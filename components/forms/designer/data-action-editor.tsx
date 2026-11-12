@@ -17,6 +17,7 @@ import { isResultPath, normalizeResultPath } from '@/lib/forms/reference-results
 import { DISPLAY_FIELD_TYPES, TASK_FIELD_TYPE_LABELS, type TaskFieldType } from '@/lib/task-field-schema'
 import { designerInputClass as inputClass } from './designer-controls'
 import { cn } from '@/lib/utils'
+import { asListField } from '@/lib/forms/repeating-section'
 
 /**
  * The designer for a rule's data and API steps (lib/forms/data-actions.ts):
@@ -124,7 +125,8 @@ interface Target { value: string; label: string; type: string }
 function outputTargets(state: DesignerState): Target[] {
   return [
     ...state.fields.filter((f) => !DISPLAY_FIELD_TYPES.has(f.type) && f.type !== 'data_table' && f.type !== 'attachments' && f.type !== 'custom')
-      .map((f) => ({ value: f.key, label: `${f.label || f.key}${f.read_only ? ' (read-only)' : ''}`, type: f.type })),
+      // A repeating section takes rows like a List (its items).
+      .map((f) => ({ value: f.key, label: `${f.label || f.key}${f.read_only ? ' (read-only)' : ''}`, type: f.type === 'repeating_section' ? 'list' : f.type })),
     ...layoutFormVariables(state.layout).map((v) => ({ value: `var.${v.name}`, label: `{{var.${v.name}}}`, type: 'var' })),
   ]
 }
@@ -152,7 +154,7 @@ export function OutputsEditor({ action, state, onChange, resultIsList, onOpenFil
       <Heading>Then write the result</Heading>
       {outputs.map((o, i) => {
         const type = typeOf(o.to)
-        const field = state.fields.find((f) => f.key === o.to)
+        const field = state.fields.map(asListField).find((f) => f.key === o.to)
         const notice = topOneNotice(action, o, type, resultIsList)
         const update = (patch: Partial<ActionOutput>) => set(outputs.map((x, j) => (j === i ? { ...x, ...patch } : x)))
         return (

@@ -13,7 +13,7 @@ Microsoft InfoPath is retired, but many teams still run forms built with it. Use
 2. Drag the .xsn onto the box, or click to browse. UserTasks analyses it. The file is only read, never stored.
 3. Check the review:
    - **Views**: each ticked view becomes a form called "*Form* — *View*". Untick views you don't need, such as print views.
-   - **Make**: *One form per view* (the default), or *One form, views as steps* to combine the views into a single form with steps.
+   - **Make**: *One form per view* (the default), or *Views as steps* / *Views as tabs* to combine the views into one form (InfoPath **Switch view** rules then go to that step or tab).
    - The counts: fields, repeating tables, and how many rules, validations and formulas convert.
    - **Preview**: each form as it will look.
    - **Full report**: every item and what it became, which you can download as Markdown or JSON.
@@ -34,18 +34,25 @@ When you upload the same file again (matched by its file name), UserTasks offers
 | InfoPath | UserTasks |
 |---|---|
 | Text box | Text, or Number / Currency / Date / URL / Email from the field's data type and format |
-| Rich text box, multi-line text | Long text (formatting is not kept) |
+| Rich text box | Rich text (bold, italic, lists, links; sanitised) |
 | Date picker, date and time picker | Date, Date & time |
 | Time field | Text with an HH:MM pattern |
 | Drop-down list, list box, combo box | Single select with the options |
 | Option buttons | Single select shown as radio buttons |
-| Multiple-selection list box | Multi-select |
+| Multiple-selection list box | Multi-select shown as a list box |
+| Bulleted, numbered or plain list | Text list (one entry per item, same markers) |
+| Hyperlink | URL (opens in a new tab) |
+| Picture control | Image (upload or camera; a picture saved in the template becomes its default) |
+| Picture placed in the view (a logo) | Display image, stored with the form |
+| Signature line, ink picture, digital signature | Signature (an electronic signature: drawn or typed, with the signer and time) |
 | Check box | Checkbox (yes/no) |
 | File attachment | Attachments |
-| Person / group picker | Person |
+| Person / group picker | Person picker (several people) |
 | Calculated value (expression box) | Label with an expression |
 | Button | Button, with its rules on **Button clicked** |
-| Repeating table, repeating section | List (editable table), with a column for each control in the row |
+| Repeating table | List (editable table), a column for each control in the row; a repeating table inside it becomes a nested List (up to 3 levels) |
+| Repeating section | Repeating section: a card per item with the same controls and layout; nested sections nest (up to 3 levels) |
+| Choice group (choice sections) | Choice group: one of its sections shows, picked with a switch |
 | Section, optional section | Section, optional section |
 | Layout tables | Rows of up to 4 columns, in the same order |
 | "Cannot be blank", non-blank data types | Required |
@@ -56,6 +63,9 @@ When you upload the same file again (matched by its file name), UserTasks offers
 | Row arithmetic in a repeating table | A calculated column, e.g. \`quantity * unit_price\` |
 | Conditional formatting: hide | **Always** rule: hide while the condition holds |
 | Conditional formatting: read-only / disable | **Always** rule: read only (fields) or disable (buttons) |
+| Conditional formatting: font colour, shading, bold, italic, underline, strikethrough | **Always** rule with **Set style** (colours snap to the theme's tones and the report gives the original colour); in a repeating table, a List **row style** on that cell |
+| Data validation on a repeating field | A List column validation (per row) or a rule on each Repeating section item |
+| User roles, \`get-Role()\` | Conditions on the person's workspace roles (\`user.roles contains "Supervisor"\`) |
 | Data validation | **Always** rule with a field error |
 | Rules on a field / button / form load / submit | **Field value changes**, **Button clicked**, **Form loads**, **Before submit** |
 | Rule: set a field's value | Set values, with \`{{= … }}\` formulas |
@@ -70,7 +80,11 @@ XPath conditions and formulas are translated to UserTasks conditions and [expres
 | \`=\`, \`!=\`, \`<\`, \`>\`, \`and\`, \`or\`, \`not()\` | conditions (AND / OR groups) |
 | \`. = ""\`, \`string-length(x) > 0\` | is empty, is not empty |
 | \`contains\`, \`starts-with\` | contains, starts with |
-| \`concat\`, \`sum\`, \`count\`, \`round\`, \`floor\`, \`ceiling\`, \`string-length\`, \`normalize-space\` | \`CONCAT\`, \`SUM\`, \`COUNT\`, \`ROUND\`, \`ROUND_DOWN\`, \`ROUND_UP\`, \`LENGTH\`, \`TRIM\` |
+| \`concat\`, \`sum\`, \`count\`, \`round\`, \`floor\`, \`ceiling\`, \`string-length\`, \`normalize-space\` | \`CONCAT\`, \`SUM\`, \`COUNT\`, \`ROUND\`, \`ROUND_DOWN\`, \`ROUND_UP\`, \`LENGTH\`, \`NORMALIZE_SPACE\` |
+| \`substring-before\`, \`substring-after\`, \`substring\`, \`translate\`, \`starts-with\` | \`SUBSTRING_BEFORE\`, \`SUBSTRING_AFTER\`, \`MID\`, \`TRANSLATE\` (or \`UPPER\` / \`LOWER\`), \`STARTS_WITH\` |
+| \`sum(rows[col = "x"]/amount)\`, \`count(rows[col = "x"])\` | \`SUMIF\`, \`COUNTIF\` over the List |
+| \`xdMath:Eval(rows, "qty * price")\` in a sum / average | A calculated List column, summed |
+| \`xdMath:Nz\`, \`Avg\`, \`Max\`, \`Min\`, \`xdUtil:Concat\` | \`COALESCE\`, \`AVG\`, \`MAX\`, \`MIN\`, \`CONCAT\` |
 | \`today()\`, \`now()\`, \`addDays()\` | \`TODAY()\`, \`NOW()\`, \`ADD_DAYS()\` |
 | \`+\`, \`-\`, \`*\`, \`div\`, \`mod\` | \`+\`, \`-\`, \`*\`, \`/\`, \`MOD()\` |
 | \`userName()\`, \`get-DisplayName()\` in a set-value rule | \`{{user.email}}\`, \`{{user.name}}\` |
@@ -79,14 +93,12 @@ XPath conditions and formulas are translated to UserTasks conditions and [expres
 
 Each of these is listed in the report. Behaviour is kept as a **turned-off rule** whose **Notes** hold the original XPath, so you can finish it in the Rules tab.
 
-- **Data connections** (SharePoint lists, web services, databases, XML files). Create a data table or an [integration](/docs/integrations) with the same name and import again: query rules then use it. Drop-downs fed by a connection become text fields until you give them options.
-- **Roles** and \`get-Role()\` conditions. Use workspace roles and object permissions, or a rule on \`{{user.email}}\`.
+- **Data connections** (SharePoint lists, web services, databases, XML files). Create a data table or an [integration](/docs/integrations) with the same name and import again: query rules then use it, and drop-downs fed by it get their options from the table. Until then those drop-downs are text fields.
 - **Form code** (script or managed code). It is never imported or run.
-- **Conditional styling** (colours, fonts), **digital signatures**, **ink and picture controls**.
-- **Nested repeating tables**: UserTasks Lists don't nest. Use a second List or a child data table.
-- Validation on a repeating-table column, except simple ranges (which become the column's min / max).
-- **Switch view** when you import one form per view. Open the other view's form instead, or import with *views as steps*.
-- XPath functions without an equivalent, such as \`substring-before\`, \`translate\` (other than case changes), \`position()\` and \`xdMath:Eval\`.
+- **Certificates.** Digital signatures become electronic signatures; certificates aren't carried over.
+- **Font sizes and families** (the form theme sets them), and formatting that hides or locks one cell of a repeating table (use a Repeating section for per-item behaviour).
+- A few XPath forms: \`position()\` / \`last()\` in formulas, predicates other than one \`=\` comparison, \`xdMath:Eval\` outside a sum or average, and reads of secondary data sources (\`GetDOM\`).
+- Signatures inside repeating sections (sign the whole form instead), and nesting deeper than 3 levels.
 
 ## Limits
 

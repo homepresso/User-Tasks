@@ -31,7 +31,10 @@
  * (autocomplete: value, label, fields.<field>), event.page, event.flag,
  * event.button. Conditions also read form values ({{field}}, `form.x`),
  * state flags (`state.<flag>`) and the current user (`user.id`, `user.email`,
- * `user.name`).
+ * `user.name`, and `user.roles` / `user.teams` — arrays of the person's
+ * workspace role and team names and ids, so `user.roles contains "Manager"`
+ * is "has the role" and `user.roles does not equal "Manager"` is "has not";
+ * lib/services/form-rule-user.ts).
  *
  * Actions: the in-form Button action framework (lib/forms/field-buttons.ts)
  * plus rule-only actions, grouped in the designer as Show / hide, Validate,
@@ -48,8 +51,11 @@
  *  - A submitted `__form_state` may only claim what the form's buttons and
  *    event rules can produce (sanitizeFormState). A rule's claim is accepted
  *    only when its condition holds for the submitted values — unless the
- *    condition reads the event or the user, which the server cannot see
- *    (then it is trusted like a button click: a person could have done it).
+ *    condition reads the event, which the server cannot see (then it is
+ *    trusted like a button click: a person could have done it). The user
+ *    (`user.*`, roles and teams included) is the server's own view of the
+ *    person, loaded at submit (lib/services/form-rule-user.ts) — never the
+ *    browser's; anonymous visitors have no id and empty roles / teams.
  *  - "Always" rules (declarative show / hide / disable / field errors) are
  *    recomputed by the server from the submitted values: their hides decide
  *    which fields are required, their errors block the submission.
@@ -96,15 +102,16 @@ import {
   type DataTableCondition, type DataTableConditionGroup, type DataTableOperator,
 } from './data-table'
 import {
-  FIELD_BUTTON_ACTION_LABELS, isServerRuleAction, actionAt, allActions, listClearFields, listSourceField, normalizeFieldButtonAction,
+  FIELD_BUTTON_ACTION_LABELS, isServerRuleAction, actionAt, actionStyle, allActions, listClearFields, listSourceField, normalizeFieldButtonAction,
   type ActionBranch, type FieldButtonAction, type FieldButtonActionType,
 } from './field-buttons'
 import { DISMISSED_RESPONSE, promptButton } from './form-messages'
-import { FORM_STATE_KEY, FORM_WHOLE_TARGET, flagKey, parseTarget, sectionBoundaryKeys, stateRuleFlag, targetFieldKeys, type FormUiState } from './form-state'
+import { FORM_STATE_KEY, FORM_WHOLE_TARGET, declaredSectionKeys, flagKey, parseTarget, sectionBoundaryKeys, stateRuleFlag, targetFieldKeys, type FormUiState } from './form-state'
 import { CONTROLS_KEY, formContextPath } from './form-params'
 import { sectionConditionValue } from './sections'
 import { OPTIONS_KEY, readDeepPath } from './data-actions'
-import { listEditingRow, type ListFieldConfig } from './list-field'
+import { childListAt, listEditingRow, registerListRuleJudge, type ListFieldConfig } from './list-field'
+import { describeStyle, mergeStyles, type ConditionalStyle } from './conditional-style'
 import { ignoredOnExisting, isRowsField } from './row-rules'
 
 /* ── Events ─────────────────────────────────────────────────────────── */
@@ -205,16 +212,16 @@ export const EVENT_CONTEXT: Record<FormRuleEventType, string[]> = {
   label_change: ['event.field', 'event.value', 'event.previous'],
   part_loaded: ['event.part'],
   // A List's row button (list.row_buttons): which button, the row ({{row.<column>}} too) and its position.
-  list_row_button: ['event.field', 'event.button', 'event.row', 'event.row_number', 'event.index'],
-  list_row_click: ['event.field', 'event.row', 'event.row_number', 'event.index'],
-  list_row_select: ['event.field', 'event.row', 'event.row_number', 'event.index', 'event.selected'],
+  list_row_button: ['event.field', 'event.button', 'event.row', 'event.row_number', 'event.index', 'event.child', 'event.parent', 'event.parent_row_number'],
+  list_row_click: ['event.field', 'event.row', 'event.row_number', 'event.index', 'event.child', 'event.parent', 'event.parent_row_number'],
+  list_row_select: ['event.field', 'event.row', 'event.row_number', 'event.index', 'event.selected', 'event.child', 'event.parent', 'event.parent_row_number'],
   list_selection_change: ['event.field', 'event.selected', 'event.count'],
   // Editable table rules (lib/forms/row-rules.ts): the row, its number (Lists / new Data table rows) or key (existing Data table rows).
-  row_created: ['event.field', 'event.row', 'event.row_number', 'event.key'],
-  row_values_changed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.columns'],
-  row_committed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.saved', 'event.result'],
-  row_commit_failed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.error', 'event.errors'],
-  cell_change: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.column', 'event.value', 'event.previous'],
+  row_created: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.child', 'event.parent', 'event.parent_row_number'],
+  row_values_changed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.columns', 'event.child', 'event.parent', 'event.parent_row_number'],
+  row_committed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.saved', 'event.result', 'event.child', 'event.parent', 'event.parent_row_number'],
+  row_commit_failed: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.error', 'event.errors', 'event.child', 'event.parent', 'event.parent_row_number'],
+  cell_change: ['event.field', 'event.row', 'event.row_number', 'event.key', 'event.column', 'event.value', 'event.previous', 'event.child', 'event.parent', 'event.parent_row_number'],
 }
 
 /** Events whose rules' Validate actions the server re-checks at submit. */
@@ -227,10 +234,11 @@ export interface RuleActionGroup { label: string; types: FieldButtonActionType[]
 /** The "Then" catalog, grouped. */
 export const RULE_ACTION_GROUPS: RuleActionGroup[] = [
   { label: 'Show / hide', types: ['show_hide', 'enable_disable', 'read_only', 'collapse_expand', 'load_part'] },
+  { label: 'Style', types: ['set_style'] },
   { label: 'Validate', types: ['field_error', 'block_submit', 'validate'] },
   { label: 'Update values', types: ['set_values', 'clear_values', 'set_state', 'set_variable'] },
   { label: 'Transfer data', types: ['copy_values', 'add_list_row', 'edit_list_row', 'cancel_list_edit', 'update_list_row', 'remove_list_row', 'clear_list', 'run_lookup', 'refresh'] },
-  { label: 'Editable tables', types: ['new_row', 'set_row_values', 'commit_row', 'discard_row', 'revert_row', 'delete_row', 'refresh_table'] },
+  { label: 'Editable tables', types: ['new_row', 'set_row_values', 'commit_row', 'discard_row', 'revert_row', 'delete_row', 'refresh_table', 'open_row_form'] },
   { label: 'Data tables', types: ['table_read', 'table_list', 'table_create', 'table_update', 'table_delete'] },
   { label: 'Messages', types: ['message', 'prompt'] },
   { label: 'Navigate', types: ['go_to_page', 'next_page', 'previous_page', 'open_link', 'submit', 'save_draft', 'print'] },
@@ -252,7 +260,9 @@ export const RULE_ACTION_LABELS: Record<FieldButtonActionType, string> = {
 }
 
 /** "Always" rules are declarative: only these actions (applied while the condition holds, undone when it doesn't). */
-export const ALWAYS_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['show_hide', 'enable_disable', 'read_only', 'field_error', 'block_submit'])
+export const ALWAYS_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['show_hide', 'enable_disable', 'read_only', 'set_style', 'field_error', 'block_submit'])
+/** Actions only "Always" rules take (a style follows a condition; it is not a one-off step). */
+export const ALWAYS_ONLY_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['set_style'])
 /** After submit runs on the server with the submission: these actions only. */
 export const AFTER_SUBMIT_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['message', 'open_link', 'start_workflow', 'apply_table_changes'])
 
@@ -428,8 +438,8 @@ export function ruleValue(path: string, scope: RuleScope): unknown {
   if (flag) return stateOf(scope)?.flags?.[flag] === true
   if (path === 'user' || path.startsWith('user.')) return path === 'user' ? scope.user : pathValue(scope.user ?? {}, path.slice(5))
   if (path === 'event' || path.startsWith('event.')) return path === 'event' ? scope.event : pathValue(scope.event ?? {}, path.slice(6))
-  // {{row.*}} (a List row's button, a table row event), {{result.*}} / {{error.*}} (a data / API step's own steps).
-  for (const alias of ['row', 'result', 'error'] as const) {
+  // {{row.*}} (a List row's button, a table row event), {{parent.*}} (a nested List row's parent row), {{result.*}} / {{error.*}} (a data / API step's own steps).
+  for (const alias of ['row', 'parent', 'result', 'error'] as const) {
     if ((path === alias || path.startsWith(`${alias}.`) || path.startsWith(`${alias}[`)) && isPlainObject(scope.event) && alias in scope.event) {
       // [n] indexes and [*] (every item) as well: {{result[0].name}}, {{result[*].sku}}.
       return path === alias ? scope.event[alias] : readDeepPath(scope.event[alias], path.slice(alias.length).replace(/^\./, ''))
@@ -540,6 +550,9 @@ export function ruleConditionsMet(group: DataTableConditionGroup | undefined, sc
   return group.match === 'any' ? results.some(Boolean) : results.every(Boolean)
 }
 
+// List column / row validations (lib/forms/list-field.ts) judge their conditions with this same evaluator.
+registerListRuleJudge({ conditionsMet: ruleConditionsMet, template: resolveRuleTemplate })
+
 /** Every path a group reads (subjects and placeholders). */
 export function conditionPaths(group: DataTableConditionGroup | undefined): string[] {
   const out = new Set<string>()
@@ -559,16 +572,20 @@ function serverEventPaths(rule: Pick<FormRule, 'event'>): string[] {
   return rule.event === 'value_change' || rule.event === 'blur' || rule.event === 'label_change' ? ['event.field', 'event.value'] : []
 }
 
-/** Can the server judge this rule's condition from the submitted values (no other event context, no user)? */
-export function serverVerifiable(rule: Pick<FormRule, 'event' | 'if'>): boolean {
+/**
+ * Can the server judge this rule's condition from the submitted values (no
+ * other event context; the user only when `userKnown` — the server's own
+ * view of the person, lib/services/form-rule-user.ts)?
+ */
+export function serverVerifiable(rule: Pick<FormRule, 'event' | 'if'>, userKnown = false): boolean {
   const allowed = serverEventPaths(rule)
-  return conditionPaths(rule.if).every((p) => !(p === 'user' || p.startsWith('user.') || ((p === 'event' || p.startsWith('event.')) && !allowed.includes(p))))
+  return conditionPaths(rule.if).every((p) => !(((p === 'user' || p.startsWith('user.')) && !userKnown) || ((p === 'event' || p.startsWith('event.')) && !allowed.includes(p))))
 }
 
-/** The scope the server judges a rule in (value / blur rules see their field's submitted value as event.value). */
-function serverScope(rule: FormRule, values: Record<string, unknown>, state: FormUiState | null): RuleScope {
+/** The scope the server judges a rule in (value / blur rules see their field's submitted value as event.value; `user`: the server's own). */
+function serverScope(rule: FormRule, values: Record<string, unknown>, state: FormUiState | null, user: Record<string, unknown> | null = null): RuleScope {
   const event = rule.target && (rule.event === 'value_change' || rule.event === 'blur' || rule.event === 'label_change') ? { field: rule.target, value: values[rule.target] } : null
-  return { values, state, event }
+  return { values, state, event, user }
 }
 
 /* ── Declarative ("Always") rules ───────────────────────────────────── */
@@ -580,6 +597,8 @@ export interface AlwaysEffects {
   disabled: Set<string>
   /** Targets Always rules make read only (FORM_WHOLE_TARGET included). */
   readOnly: Set<string>
+  /** Target (`field:<key>` / `section:<key>`) → its style (conditional styling; merged in rule order, later wins per property). */
+  styles: Map<string, ConditionalStyle>
 }
 
 /**
@@ -590,7 +609,7 @@ export interface AlwaysEffects {
  * field stays required).
  */
 export function alwaysRuleEffects(layout: unknown, values: Record<string, unknown>, options: { user?: Record<string, unknown> | null; state?: FormUiState | null; rules?: FormRule[] } = {}): AlwaysEffects {
-  const out: AlwaysEffects = { hidden: new Set(), disabled: new Set(), readOnly: new Set() }
+  const out: AlwaysEffects = { hidden: new Set(), disabled: new Set(), readOnly: new Set(), styles: new Map() }
   const rules = (options.rules ?? layoutFormRules(layout)).filter((r) => r.event === 'always' && !r.disabled)
   for (const rule of rules) {
     if (!options.user && conditionPaths(rule.if).some((p) => p.startsWith('user.'))) continue
@@ -605,6 +624,10 @@ export function alwaysRuleEffects(layout: unknown, values: Record<string, unknow
       } else if (action.type === 'read_only') {
         const locked = action.mode === 'editable' ? !met : met
         if (locked) for (const t of action.targets ?? []) out.readOnly.add(t)
+      } else if (action.type === 'set_style' && met) {
+        // Presentation only: applied while the condition holds, gone when it stops.
+        const style = actionStyle(action)
+        if (style) for (const t of action.targets ?? []) out.styles.set(t, mergeStyles(out.styles.get(t), style)!)
       }
     }
   }
@@ -618,6 +641,40 @@ export function ruleHiddenFieldKeys(layout: unknown, fields: Array<{ key: string
   const { hidden } = alwaysRuleEffects(layout, values, options)
   const boundaries = sectionBoundaryKeys(fields)
   for (const target of hidden) for (const key of targetFieldKeys(layout, target, boundaries)) out.add(key)
+  return out
+}
+
+/**
+ * What conditional styling draws for these values: each field's style (its
+ * own targets, and a legacy heading-made section's, merged in rule order) and
+ * each declared section's (drawn on the section's block). Read-only views
+ * use it too — the condition is computable from the values.
+ */
+export function ruleStyles(layout: unknown, fields: Array<{ key: string; type: string }>, values: Record<string, unknown>, options: { user?: Record<string, unknown> | null; styles?: ReadonlyMap<string, ConditionalStyle> } = {}): { fields: Map<string, ConditionalStyle>; sections: Map<string, ConditionalStyle> } {
+  const out = { fields: new Map<string, ConditionalStyle>(), sections: new Map<string, ConditionalStyle>() }
+  if (!options.styles && (!isPlainObject(layout) || !Array.isArray(layout.rules) || !layout.rules.some((r) => isPlainObject(r) && r.event === 'always'))) return out
+  const styles = options.styles ?? alwaysRuleEffects(layout, values, { user: options.user ?? null }).styles
+  if (!styles.size) return out
+  const declared = declaredSectionKeys(layout)
+  const boundaries = sectionBoundaryKeys(fields)
+  for (const [target, style] of styles) {
+    const t = parseTarget(target)
+    if (t?.kind === 'section' && declared.has(t.id)) { out.sections.set(t.id, style); continue }
+    for (const key of targetFieldKeys(layout, target, boundaries)) out.fields.set(key, mergeStyles(out.fields.get(key), style)!)
+  }
+  return out
+}
+
+/**
+ * Each field's conditional style for a flat read-only view (a submission's
+ * detail): a declared section's style under the field's own (ruleStyles).
+ */
+export function flatFieldStyles(layout: unknown, fields: Array<{ key: string; type: string }>, values: Record<string, unknown>): Map<string, ConditionalStyle> {
+  const { fields: own, sections } = ruleStyles(layout, fields, values)
+  if (!sections.size) return own
+  const out = new Map<string, ConditionalStyle>()
+  for (const [key, style] of sections) for (const k of targetFieldKeys(layout, `section:${key}`)) out.set(k, mergeStyles(out.get(k), style)!)
+  for (const [k, style] of own) out.set(k, mergeStyles(out.get(k), style)!)
   return out
 }
 
@@ -647,7 +704,7 @@ export function readOnlyFieldKeys(layout: unknown, fields: Array<{ key: string; 
 }
 
 /** Field types a read-only target passes over: buttons (actions, not values) and display elements. */
-const READ_ONLY_EXEMPT: ReadonlySet<string> = new Set(['button', 'heading', 'divider', 'label'])
+const READ_ONLY_EXEMPT: ReadonlySet<string> = new Set(['button', 'heading', 'divider', 'display_image', 'label'])
 
 /**
  * Field keys the rules make read only for these values, as the server
@@ -671,12 +728,13 @@ export function ruleReadOnlyFieldKeys(layout: unknown, fields: Array<{ key: stri
  * reads event / user context the server cannot rebuild — trusted like a
  * click).
  */
-export function ruleClaimGate(values: Record<string, unknown>, state: FormUiState | null = null): (rule: { id?: string; event?: string; then?: unknown; if?: unknown }) => boolean {
+export function ruleClaimGate(values: Record<string, unknown>, state: FormUiState | null = null, user: Record<string, unknown> | null = null): (rule: { id?: string; event?: string; then?: unknown; if?: unknown }) => boolean {
   return (raw) => {
     const [rule] = normalizeFormRules([raw])
     if (!rule) return false
-    if (!serverVerifiable(rule)) return true
-    return ruleConditionsMet(rule.if, serverScope(rule, values, state))
+    // `user`: the server's own view of the person — a rule reading user.roles is then judged, not trusted.
+    if (!serverVerifiable(rule, Boolean(user))) return true
+    return ruleConditionsMet(rule.if, serverScope(rule, values, state, user))
   }
 }
 
@@ -730,9 +788,8 @@ export function ruleValidationErrors(layout: unknown, values: Record<string, unk
     const validates = rule.then.filter((a) => a.type === 'field_error' || a.type === 'block_submit')
     if (!validates.length) continue
     if (rule.target && options.hiddenKeys?.has(rule.target)) continue
-    const userless = conditionPaths(rule.if).some((p) => p.startsWith('user.'))
-    if (!serverVerifiable(rule) && !(userless && options.user && serverVerifiable({ ...rule, if: undefined }))) continue
-    const scope = { ...serverScope(rule, values, options.state ?? null), user: options.user ?? null }
+    if (!serverVerifiable(rule, Boolean(options.user))) continue
+    const scope = serverScope(rule, values, options.state ?? null, options.user ?? null)
     if (!ruleConditionsMet(rule.if, scope)) continue
     for (const action of validates) {
       const key = action.field ?? FORM_ERROR_KEY
@@ -747,13 +804,13 @@ export function ruleValidationErrors(layout: unknown, values: Record<string, unk
 
 const sameValue = (a: unknown, b: unknown) => (blank(a) && blank(b)) || textOf(a) === textOf(b) || (Array.isArray(a) && Array.isArray(b) && a.map(textOf).join('\u0000') === b.map(textOf).join('\u0000'))
 
-/** Can the server compute this assignment template itself (no event / user context, no expression)? */
-function serverTemplate(template: string, rule: FormRule): boolean {
+/** Can the server compute this assignment template itself (no event context, no expression; the user only when the server knows it)? */
+function serverTemplate(template: string, rule: FormRule, userKnown = false): boolean {
   if (template.includes('{{=')) return false
   const allowed = serverEventPaths(rule)
   for (const m of template.matchAll(TEMPLATE_RE)) {
     const p = m[1]
-    if (p === 'user' || p.startsWith('user.') || ((p === 'event' || p.startsWith('event.')) && !allowed.includes(p))) return false
+    if (((p === 'user' || p.startsWith('user.')) && !userKnown) || ((p === 'event' || p.startsWith('event.')) && !allowed.includes(p))) return false
   }
   return true
 }
@@ -770,10 +827,10 @@ function serverTemplate(template: string, rule: FormRule): boolean {
  * click — the same bound as `__form_state`. Anything else is dropped (the
  * stored value stays).
  */
-export function ruleWrittenReadOnlyValues(layout: unknown, readOnlyKeys: readonly string[], values: Record<string, unknown>, stored: Record<string, unknown> = {}, state: FormUiState | null = null): Record<string, unknown> {
+export function ruleWrittenReadOnlyValues(layout: unknown, readOnlyKeys: readonly string[], values: Record<string, unknown>, stored: Record<string, unknown> = {}, state: FormUiState | null = null, user: Record<string, unknown> | null = null): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   if (!readOnlyKeys.length) return out
-  const gate = ruleClaimGate(values, state)
+  const gate = ruleClaimGate(values, state, user)
   const rules = layoutFormRules(layout).filter((r) => !r.disabled && r.event !== 'always' && r.event !== 'after_submit' && gate(r))
   for (const key of readOnlyKeys) {
     if (!Object.prototype.hasOwnProperty.call(values, key)) continue
@@ -785,7 +842,7 @@ export function ruleWrittenReadOnlyValues(layout: unknown, readOnlyKeys: readonl
       for (const a of allActions(rule.then)) {
         if ((a.type === 'set_values' || a.type === 'copy_values') && a.assign && Object.prototype.hasOwnProperty.call(a.assign, key)) {
           const template = a.assign[key]
-          if (serverTemplate(template, rule)) candidates.push(resolveRuleTemplate(template, serverScope(rule, values, state)))
+          if (serverTemplate(template, rule, Boolean(user))) candidates.push(resolveRuleTemplate(template, serverScope(rule, values, state, user)))
           else trusted = true
         }
         if (a.type === 'clear_values' && a.fields?.includes(key)) candidates.push(null)
@@ -793,6 +850,8 @@ export function ruleWrittenReadOnlyValues(layout: unknown, readOnlyKeys: readonl
         if ((a.type === 'add_list_row' || a.type === 'remove_list_row' || a.type === 'clear_list' || a.type === 'update_list_row') && a.list_field === key) trusted = true
         // …and one the editable table rules fill (New row, Set row values, Commit, Discard, Delete).
         if ((a.type === 'new_row' || a.type === 'set_row_values' || a.type === 'commit_row' || a.type === 'discard_row' || a.type === 'revert_row' || a.type === 'delete_row') && a.field === key) trusted = true
+        // …and one whose rows are edited in a pop-out a rule opens (a new row included).
+        if (a.type === 'open_row_form' && a.field === key) trusted = true
         // A read-only field a data / API step's result fills (written by the server's mapping, sent back by the browser).
         if ((a.outputs ?? []).some((o) => o.to === key && o.as !== 'options') || Object.values(a.results ?? {}).includes(key)) trusted = true
         if (a.type === 'add_list_row' && (a.clear_fields ?? []).includes(key)) candidates.push(null)
@@ -885,6 +944,18 @@ export interface RuleKnown {
   sectionKeys?: ReadonlySet<string>
   /** Fields Set / Copy / Clear values may write (inputs plus read-only value fields); default valueKeys. */
   writableKeys?: ReadonlySet<string>
+  /** Each List's nested List paths (`lines`, `lines.serials`): a step's `child` must be one. */
+  listChildren?: ReadonlyMap<string, ReadonlySet<string>>
+}
+
+/** A nested List step's problem (null = fine): `child` on a List that has that nested List. */
+function nestedStepProblem(a: FieldButtonAction, label: string, known: RuleKnown): string | null {
+  if (!a.child) return null
+  const list = a.list_field ?? a.field
+  if (!list || known.fieldTypes.get(list) !== 'list') return `${label}: nested lists are for List fields`
+  const paths = known.listChildren?.get(list)
+  if (paths && !paths.has(a.child)) return `${label}: "${a.child}" is not a nested list of ${list}`
+  return null
 }
 
 /** A `section:<key>` / `page:<id>` target the form declares. */
@@ -917,8 +988,12 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
   if (!rule.then.length) return 'Then: add at least one action'
   if (rule.event === 'always') {
     const bad = rule.then.find((a) => !ALWAYS_ACTIONS.has(a.type))
-    if (bad) return `"Always" rules can only show / hide, enable / disable, make read only or show errors ("${RULE_ACTION_LABELS[bad.type]}" needs an event)`
+    if (bad) return `"Always" rules can only show / hide, enable / disable, make read only, style or show errors ("${RULE_ACTION_LABELS[bad.type]}" needs an event)`
     if (conditionPaths(rule.if).some((p) => p.startsWith('event.'))) return '"Always" rules have no event to read'
+  }
+  if (rule.event !== 'always') {
+    const only = allActions(rule.then).find((a) => ALWAYS_ONLY_ACTIONS.has(a.type))
+    if (only) return `"${RULE_ACTION_LABELS[only.type]}" works in "Always" rules (the style follows the condition, and goes when it stops)`
   }
   if (rule.event === 'after_submit') {
     const bad = rule.then.find((a) => !AFTER_SUBMIT_ACTIONS.has(a.type))
@@ -952,6 +1027,15 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
           if (t.kind === 'field' && known.fieldTypes.get(t.id) === 'button') return `Make read only: "${t.id}" is a button — use Enable / disable for buttons`
           if (t.kind === 'field' && READ_ONLY_EXEMPT.has(known.fieldTypes.get(t.id) ?? '')) return `Make read only: "${t.id}" holds no value`
         }
+        break
+      case 'set_style':
+        if (!a.targets?.length) return 'Style: choose the fields or sections it applies to'
+        for (const target of a.targets) {
+          const t = parseTarget(target)!
+          if (t.kind === 'section' && known.sectionKeys?.has(t.id)) continue
+          if (t.kind === 'section' && known.headingKeys ? !known.headingKeys.has(t.id) : !known.fieldKeys.has(t.id)) return t.kind === 'section' ? `Style: "${t.id}" is not a section of this form` : `Style: "${t.id}" is not on this form`
+        }
+        if (!actionStyle(a)) return 'Style: choose a colour or an emphasis (bold, italic…)'
         break
       case 'collapse_expand':
         if (!a.targets?.length) return 'Collapse / expand: choose the section'
@@ -1000,7 +1084,7 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
         if (a.wait === false && (a.outputs?.length || a.on_success?.length || Object.keys(a.results ?? {}).length)) return `${RULE_ACTION_LABELS[a.type]}: a call that doesn't wait has no response to map — turn waiting on, or remove the outputs / on-success steps`
         for (const key of Object.values(a.results ?? {})) {
           if (key.startsWith('var.') ? !known.variables?.has(key.slice(4)) : !known.valueKeys.has(key)) return `Call an API reference: "${key}" is not ${key.startsWith('var.') ? 'a variable of' : 'an input on'} this form`
-          if (['data_table', 'attachments'].includes(known.fieldTypes.get(key) ?? '')) return `Call an API reference: "${key}" can't take a value from the response`
+          if (['data_table', 'attachments', 'image', 'signature'].includes(known.fieldTypes.get(key) ?? '')) return `Call an API reference: "${key}" can't take a value from the response`
         }
         break
       case 'start_workflow':
@@ -1027,6 +1111,12 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
         if (bad) return `${label}: ${bad}`
         break
       }
+      case 'open_row_form': {
+        const label = RULE_ACTION_LABELS[a.type]
+        if (!a.field || known.fieldTypes.get(a.field) !== 'list') return `${label}: choose the List`
+        { const nested = nestedStepProblem(a, label, known); if (nested) return nested }
+        break
+      }
       case 'new_row':
       case 'set_row_values':
       case 'commit_row':
@@ -1040,6 +1130,7 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
         if (type !== 'list' && type !== 'data_table') return `${label}: choose the List or editable Data table`
         if (a.type === 'set_row_values' && !Object.keys(a.values ?? {}).length) return `${label}: set at least one column`
         if (a.commit_mode === 'save_now' && type !== 'data_table') return `${label}: "Save now" is for a Data table (a List's rows are saved with the submission)`
+        { const nested = nestedStepProblem(a, label, known); if (nested) return nested }
         break
       }
       case 'add_list_row':
@@ -1050,6 +1141,7 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
       case 'clear_list': {
         const label = RULE_ACTION_LABELS[a.type]
         if (!a.list_field || known.fieldTypes.get(a.list_field) !== 'list') return `${label}: choose the List field`
+        { const nested = nestedStepProblem(a, label, known); if (nested) return nested }
         if (a.type !== 'add_list_row') break
         if (!Object.keys(a.values ?? {}).length) return `${label}: map at least one column to a value`
         const bad = [...(a.require ?? []), ...(a.clear_fields ?? [])].find((k) => !known.valueKeys.has(k))
@@ -1290,11 +1382,13 @@ function effectKeys(action: FieldButtonAction): string[] {
     case 'enable_disable': return (action.targets ?? []).map((t) => `enabled:${t}`)
     case 'collapse_expand': return (action.targets ?? []).map((t) => `collapsed:${t}`)
     case 'read_only': return (action.targets ?? []).map((t) => `readonly:${t}`)
+    case 'set_style': return (action.targets ?? []).map((t) => `style:${t}`)
     case 'load_part': return []
     case 'set_values': case 'copy_values': return Object.keys(action.assign ?? {}).map((k) => `value:${k}`)
     case 'clear_values': return (action.fields ?? []).map((k) => `value:${k}`)
     case 'add_list_row': case 'remove_list_row': case 'clear_list': case 'update_list_row': return action.list_field ? [`rows:${action.list_field}`] : []
     case 'new_row': case 'set_row_values': case 'commit_row': case 'discard_row': case 'revert_row': case 'delete_row': return action.field ? [`rows:${action.field}`] : []
+    case 'open_row_form': return action.field && String(action.row ?? '').trim().toLowerCase() === 'new' ? [`rows:${action.field}`] : []
     case 'edit_list_row': return Object.keys(action.assign ?? {}).map((k) => `value:${k}`)
     case 'cancel_list_edit': return (action.fields ?? []).map((k) => `value:${k}`)
     case 'call_reference': case 'table_read': case 'table_list': case 'table_create': case 'table_update': case 'table_delete':
@@ -1312,6 +1406,7 @@ function effectName(def: RulesDefinition, key: string): string {
   if (kind === 'rows') return `the rows of ${fieldName(def, target)}`
   const t = parseTarget(target)
   const thing = target === FORM_WHOLE_TARGET ? 'the whole form' : t ? (t.kind === 'page' ? `step / tab ${(def.layout.pages ?? []).find((p) => p.id === t.id)?.title ?? t.id}` : t.kind === 'section' && sectionTitle(def, t.id) ? `section ${sectionTitle(def, t.id)}` : `${t.kind === 'field' ? '' : `${t.kind} of `}${fieldName(def, t.id)}`) : target
+  if (kind === 'style') return `the style of ${thing}`
   return kind === 'visibility' ? `whether ${thing} shows` : kind === 'collapsed' ? `whether ${thing} is collapsed` : kind === 'readonly' ? `whether ${thing} is read only` : `whether ${thing} is enabled`
 }
 
@@ -1354,8 +1449,19 @@ function sectionTitle(def: RulesDefinition, key: string): string | null {
   return s ? (s.title || key) : null
 }
 
-/** A short "Then" line for one action. */
+/** A short "Then" line for one action (a nested List step: which nested List of which parent row). */
 export function describeRuleAction(def: RulesDefinition, a: FieldButtonAction, sample?: RuleScope): string {
+  const line = describeOneAction(def, a, sample)
+  if (!a.child) return line
+  const list = def.fields.find((x) => x.key === (a.list_field ?? a.field))
+  const nested = list?.list ? childListAt(list.list, a.child) : null
+  const name = nested ? nested.columns.map((c) => c.label).join(' › ') : a.child
+  const parent = (a.parent_row ?? 'current').trim()
+  const which = parent === 'current' ? 'the current row' : parent === 'selected' ? 'each selected row' : parent === '{{event.row_number}}' ? 'the row of the event' : `row ${parent}`
+  return `${line} — in ${name} of ${which}`
+}
+
+function describeOneAction(def: RulesDefinition, a: FieldButtonAction, sample?: RuleScope): string {
   const shown = (template: string) => (sample && template.includes('{{') ? `“${textOf(resolveRuleTemplate(template, sample))}”` : template || '""')
   const targets = (list?: string[]) => (list ?? []).map((t) => { if (t === FORM_WHOLE_TARGET) return 'the whole form'; const p = parseTarget(t); return p ? (p.kind === 'page' ? ((def.layout.pages ?? []).find((x) => x.id === p.id)?.title ?? p.id) : p.kind === 'section' && sectionTitle(def, p.id) ? `section ${sectionTitle(def, p.id)}` : fieldName(def, p.id)) : t }).join(', ') || '…'
   switch (a.type) {
@@ -1364,6 +1470,7 @@ export function describeRuleAction(def: RulesDefinition, a: FieldButtonAction, s
     case 'show_hide': return `${a.mode === 'show' ? 'Show' : a.mode === 'hide' ? 'Hide' : 'Toggle'} ${targets(a.targets)}`
     case 'enable_disable': return `${a.mode === 'enable' ? 'Enable' : a.mode === 'disable' ? 'Disable' : 'Toggle enabled'} ${targets(a.targets)}`
     case 'read_only': return `${a.mode === 'read_only' ? 'Make read only' : a.mode === 'editable' ? 'Make editable' : 'Toggle read only'} ${targets(a.targets)}`
+    case 'set_style': return `Style ${targets(a.targets)} — ${describeStyle(actionStyle(a))}`
     case 'set_values': case 'copy_values': return `${a.type === 'copy_values' ? 'Copy into' : 'Set'} ${Object.entries(a.assign ?? {}).map(([k, v]) => `${fieldName(def, k)} = ${shown(v)}`).join(', ') || '…'}`
     case 'clear_values': return `Clear ${(a.fields ?? []).map((k) => fieldName(def, k)).join(', ') || '…'}`
     case 'add_list_row': return `Add a row to ${a.list_field ? fieldName(def, a.list_field) : '…'}: ${Object.entries(a.values ?? {}).map(([k, v]) => `${k} = ${shown(v)}`).join(', ') || '…'}`
@@ -1402,6 +1509,11 @@ export function describeRuleAction(def: RulesDefinition, a: FieldButtonAction, s
     case 'discard_row': return `Discard ${rowTargetName(a)} of ${a.field ? fieldName(def, a.field) : '…'} (a new row goes, an edited one is put back)`
     case 'revert_row': return `Revert ${rowTargetName(a)} of ${a.field ? fieldName(def, a.field) : '…'}`
     case 'delete_row': return `Delete ${rowTargetName(a, 'selected')} of ${a.field ? fieldName(def, a.field) : '…'}${a.commit_mode === 'save_now' ? ' (now)' : ''}${a.confirm_text ? ' (asks first)' : ''}${branchSummary(def, a, sample)}`
+    case 'open_row_form': {
+      const spec = (a.row ?? 'current').trim()
+      const which = spec === 'new' ? 'a new row' : spec === 'first' ? 'the first row' : spec === 'last' ? 'the last row' : rowTargetName(a)
+      return `Open ${which} of ${a.field ? fieldName(def, a.field) : '…'}${a.child ? ` → ${a.child}` : ''} in a pop-out form`
+    }
     case 'refresh_table': return `Refresh ${a.field ? fieldName(def, a.field) : '…'}${a.keep_pending === 'ask' ? ' (asks before dropping pending rows)' : ' (pending rows kept)'}`
     default: return RULE_ACTION_LABELS[a.type]
   }
@@ -1480,7 +1592,7 @@ function outputTargetProblem(a: FieldButtonAction, known: RuleKnown): string | n
     const type = known.fieldTypes.get(o.to)
     if (!type) return `"${o.to}" is not a field of this form`
     if (o.as === 'options' && type !== 'choice' && type !== 'multi_choice') return `options go into a single or multi-select ("${o.to}" is not one)`
-    if (['button', 'heading', 'divider', 'data_table', 'attachments', 'custom'].includes(type)) return `"${o.to}" can't take a value from a result`
+    if (['button', 'heading', 'divider', 'display_image', 'data_table', 'attachments', 'image', 'signature', 'custom'].includes(type)) return `"${o.to}" can't take a value from a result`
   }
   return null
 }

@@ -1,9 +1,9 @@
 import { taskDataFieldSlug } from '@/lib/task-data'
 import { isPlainObject } from '@/lib/utils/guards'
 import { compileUserRegex, MAX_REGEX_PATTERN_LENGTH } from '@/lib/safe-regex'
-import { LOOKUP_LIMITS, lookupConfigProblem, lookupItemKey, lookupValues, normalizeLookupConfig, type LookupConfig } from '@/lib/forms/lookup'
+import { LOOKUP_LIMITS, lookupConfigProblem, lookupItemKey, lookupLabelKey, lookupValues, normalizeLookupConfig, type LookupConfig } from '@/lib/forms/lookup'
 import {
-  attachmentsConfigProblem, attachmentsCountKey, attachmentsValueError, attachmentUploadsInFlight, normalizeAttachmentsConfig, normalizeAttachmentValue,
+  attachmentIds, attachmentsConfigProblem, attachmentsCountKey, attachmentsValueError, attachmentUploadsInFlight, normalizeAttachmentsConfig, normalizeAttachmentValue,
   type AttachmentFile, type AttachmentsConfig,
 } from '@/lib/forms/attachments'
 import {
@@ -11,16 +11,29 @@ import {
   type CustomControlFieldConfig,
 } from '@/lib/forms/custom-controls/field'
 import { customOutputEntries, customOutputError, nativeCustomValue } from '@/lib/forms/custom-controls/output'
+import {
+  displayImageConfigProblem, imageUploadConfig, imageValueError, isImageValueShape, mediaFileIds, normalizeDisplayImageConfig, normalizeImageConfig,
+  normalizeImageDefault, normalizeImageValue, normalizeSignatureConfig, normalizeSignatureValue, signatureValueError, SIGNATURE_UPLOAD_CONFIG,
+  type DisplayImageConfig, type ImageFieldConfig, type SignatureFieldConfig, type SignatureValue,
+} from '@/lib/forms/media-fields'
+import { isBlankRichText, normalizeRichTextConfig, richTextPlainText, richTextTextKey, richTextValueError, sanitizeRichText, type RichTextConfig } from '@/lib/forms/rich-text'
+import { normalizeTextListConfig, textListConfigProblem, textListItems, textListValueError, type TextListConfig } from '@/lib/forms/text-list'
+import { isAllowedUrl, normalizeUrlConfig, urlConfigProblem, type UrlFieldConfig } from '@/lib/forms/link-field'
+import { isPeopleList, normalizePeopleValue, normalizeUserConfig, peopleValueError, type PersonRef, type UserFieldConfig } from '@/lib/forms/people-field'
 import { normalizeAutocomplete } from '@/lib/forms/autocomplete'
 import { normalizeFieldButton, type FieldButtonConfig } from '@/lib/forms/field-buttons'
 import { layoutFormRules, ruleClaimGate, ruleHiddenFieldKeys, ruleReadOnlyFieldKeys, ruleValidationErrors, ruleWrittenReadOnlyValues } from '@/lib/forms/form-rules'
-import { excludedSectionFieldKeys, isSectionIncluded, layoutSections, sectionConditionValue, sectionIncludedKeys, sectionInclusionPatch, sectionRuleHiddenFieldKeys } from '@/lib/forms/sections'
+import { choiceGroupKeys, choiceGroupValueErrors, withChoiceDefaults, excludedSectionFieldKeys, isSectionIncluded, layoutSections, sectionConditionValue, sectionIncludedKeys, sectionInclusionPatch, sectionRuleHiddenFieldKeys } from '@/lib/forms/sections'
 import {
   changeCount, dataTableConfigProblem, isChangeSet, normalizeDataTableConfig, validateChangeSet, validateSelection, type DataTableFieldConfig,
 } from '@/lib/forms/data-table'
 import { allActions } from '@/lib/forms/field-buttons'
 import { ruleOptionFields } from '@/lib/forms/data-actions'
 import { checkListValue, coerceListRows, keepReadOnlyListColumns, listConfigProblem, listDerivedKeys, listDerivedValues, normalizeListConfig, type ListFieldConfig } from '@/lib/forms/list-field'
+import {
+  REPEATING_LIMITS, innerFieldsDeep, innerFormLayout, itemScopeValues, maxItems, minItems, normalizeRepeatingSectionConfig, repeatingConfigProblem, repeatingDerivedKeys,
+  repeatingDerivedValues, repeatingItems, startItems, type RepeatingSectionConfig,
+} from '@/lib/forms/repeating-section'
 import {
   FORM_STATE_KEY, formStateConfig, hiddenPageIds, normalizeStateRuleField, sanitizeFormState, stateHiddenFieldKeys, stateRuleFlag, type FormUiState,
 } from '@/lib/forms/form-state'
@@ -51,18 +64,26 @@ export type TaskFieldType =
   | 'lookup' | 'attachments' | 'heading' | 'divider' | 'custom' | 'button' | 'data_table' | 'label'
   /** Repeating rows kept in the submission (lib/forms/list-field.ts). */
   | 'list'
+  /** A group of any controls repeated per item, InfoPath's repeating section (lib/forms/repeating-section.ts). */
+  | 'repeating_section'
   /** Survey controls (lib/forms/survey/controls.ts). */
   | 'rating' | 'nps' | 'likert' | 'matrix' | 'slider' | 'csat' | 'ranking' | 'image_choice' | 'yes_no_maybe'
+  /** Media (lib/forms/media-fields.ts): a picture the person provides, an electronic signature, a static picture. */
+  | 'image' | 'signature' | 'display_image'
+  /** Formatted text (lib/forms/rich-text.ts) and a list of text items (lib/forms/text-list.ts). */
+  | 'rich_text' | 'text_list'
 
 export const TASK_FIELD_TYPES: TaskFieldType[] = [
   'text', 'textarea', 'number', 'currency', 'email', 'phone', 'url',
   'date', 'datetime', 'boolean', 'choice', 'multi_choice', 'user',
-  'lookup', 'attachments', 'heading', 'divider', 'custom', 'button', 'data_table', 'label', 'list',
+  'lookup', 'attachments', 'heading', 'divider', 'custom', 'button', 'data_table', 'label', 'list', 'repeating_section',
   ...SURVEY_FIELD_TYPES,
+  'image', 'signature', 'display_image',
+  'rich_text', 'text_list',
 ]
 
 /** Display-only elements: placed on the grid, never hold a value. */
-export const DISPLAY_FIELD_TYPES: ReadonlySet<TaskFieldType> = new Set(['heading', 'divider', 'button'])
+export const DISPLAY_FIELD_TYPES: ReadonlySet<TaskFieldType> = new Set(['heading', 'divider', 'button', 'display_image'])
 
 export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
   text: 'Text',
@@ -87,7 +108,13 @@ export const TASK_FIELD_TYPE_LABELS: Record<TaskFieldType, string> = {
   data_table: 'Data table',
   label: 'Label',
   list: 'List (repeating rows)',
+  repeating_section: 'Repeating section',
   ...SURVEY_FIELD_LABELS,
+  image: 'Image',
+  signature: 'Signature',
+  display_image: 'Picture (display)',
+  rich_text: 'Rich text',
+  text_list: 'Text list',
 }
 
 /**
@@ -128,8 +155,12 @@ export interface TaskFieldDef {
   option_labels?: Record<string, string>
   /** Options read from a data table column when the task is created. */
   options_source?: OptionsSource
-  /** choice only: dropdown (default) or radio buttons. */
-  display?: 'dropdown' | 'radio'
+  /**
+   * choice: dropdown (default) or radio buttons. multi_choice: pills
+   * (default), checkboxes (a column of checkboxes) or listbox (a bordered,
+   * scrolling box of checkboxes — InfoPath's multiple-selection list box).
+   */
+  display?: 'dropdown' | 'radio' | 'checkboxes' | 'listbox'
   placeholder?: string
   default?: string
   help_text?: string
@@ -168,6 +199,14 @@ export interface TaskFieldDef {
    */
   list?: ListFieldConfig
   /**
+   * repeating_section only: the controls of one item (any field type but
+   * data_table / custom / signature; nested Lists / sections within 3 levels), their grid
+   * and per-item rules, Add label, card title, min / max / start items,
+   * remove / reorder / collapse, totals (lib/forms/repeating-section.ts).
+   * The value is an array of item objects keyed by the inner fields' keys.
+   */
+  repeating_section?: RepeatingSectionConfig
+  /**
    * label only: display text whose value comes from an expression, rules or
    * the default — format, prefix / suffix, "Include in submission"
    * (lib/forms/label-field.ts).
@@ -186,9 +225,36 @@ export interface TaskFieldDef {
    * images (lib/forms/survey/controls.ts).
    */
   survey?: SurveyFieldConfig
+  /**
+   * image only: largest size (`max_mb`, default 10, at most 20), formats
+   * (`types`: png / jpeg / webp / gif), phone camera, and the picture it
+   * starts with (`default_file`; a field-level `default` file object is
+   * moved here). The value is ONE file object (lib/forms/media-fields.ts).
+   */
+  image?: ImageFieldConfig
+  /** signature only: draw / type / both, the statement, audit capture, re-sign on change (lib/forms/media-fields.ts). */
+  signature?: SignatureFieldConfig
+  /** display_image only: the picture (src), alt text, width and alignment (lib/forms/media-fields.ts). */
+  display_image?: DisplayImageConfig
+  /**
+   * rich_text only: longest text (`max_length`, characters of text, default
+   * 20000) and the toolbar (basic / full). The value is sanitised HTML; the
+   * plain text is stored beside it as `<key>_text` (lib/forms/rich-text.ts).
+   */
+  rich_text?: RichTextConfig
+  /** text_list only: marker style (bulleted / numbered / plain), item count and item length bounds (lib/forms/text-list.ts). */
+  text_list?: TextListConfig
+  /** url only: link text (a text field's value or static text) and new tab, for read-only display (lib/forms/link-field.ts). */
+  url_config?: UrlFieldConfig
+  /**
+   * user only: several people and / or teams (lib/forms/people-field.ts).
+   * Without `multiple` / `allow_teams` the value is one user id string (as
+   * always); with either, an array of { kind: 'user' | 'team', id, name }.
+   */
+  user_config?: UserFieldConfig
 }
 
-export type TaskFieldValue = string | number | boolean | string[] | AttachmentFile[] | null
+export type TaskFieldValue = string | number | boolean | string[] | AttachmentFile | AttachmentFile[] | SignatureValue | PersonRef[] | null
   /** Custom controls: JSON values typed by their manifest. */
   | Record<string, unknown> | unknown[]
 
@@ -208,6 +274,28 @@ function isTaskFieldType(value: unknown): value is TaskFieldType {
 /** Fields whose value is a list of uploaded files: Attachments, and custom controls storing files. */
 export function holdsFiles(field: Pick<TaskFieldDef, 'type' | 'custom'>): boolean {
   return field.type === 'attachments' || (field.type === 'custom' && field.custom?.value_type === 'files')
+}
+
+/**
+ * Fields that take uploads through the Attachments pipeline
+ * (lib/services/form-files.ts): the file-list fields above, plus Image (one
+ * picture) and Signature (its PNG).
+ */
+export function usesFileUploads(field: Pick<TaskFieldDef, 'type' | 'custom'>): boolean {
+  return holdsFiles(field) || field.type === 'image' || field.type === 'signature'
+}
+
+/** The Attachments config an upload into this field is checked against (count, size, types). */
+export function uploadConfigFor(field: Pick<TaskFieldDef, 'type' | 'attachments' | 'image'>): AttachmentsConfig | undefined {
+  if (field.type === 'image') return imageUploadConfig(field.image)
+  if (field.type === 'signature') return SIGNATURE_UPLOAD_CONFIG
+  return field.attachments
+}
+
+/** The upload ids a file field's value names (Attachments: every file; Image: the picture; Signature: its PNG). */
+export function fileIdsOf(field: Pick<TaskFieldDef, 'type' | 'custom'>, value: unknown): string[] {
+  if (field.type === 'image' || field.type === 'signature') return mediaFileIds(field.type, value)
+  return holdsFiles(field) ? attachmentIds(value) : []
 }
 
 /** Fields that answer lookups: Lookup fields, and custom controls with the lookup capability and a source. */
@@ -328,6 +416,11 @@ export function normalizeVisibleWhen(raw: unknown): VisibleWhen | undefined {
  * trimmed/deduped. Properties that do not apply to a type are dropped.
  */
 export function normalizeTaskFields(raw: unknown): TaskFieldDef[] {
+  return normalizeFieldsAt(raw, 0)
+}
+
+/** `sectionDepth`: how many repeating sections hold these fields (0 = the form's own fields). */
+function normalizeFieldsAt(raw: unknown, sectionDepth: number): TaskFieldDef[] {
   if (!Array.isArray(raw)) return []
   const seen = new Set<string>()
   const out: TaskFieldDef[] = []
@@ -347,6 +440,12 @@ export function normalizeTaskFields(raw: unknown): TaskFieldDef[] {
       }
       // Headings and dividers show / hide like fields (a heading-made section's title with its fields).
       if (type === 'heading' || type === 'divider') {
+        const visible = normalizeVisibleWhen(entry.visible_when)
+        if (visible && visible.field !== key) field.visible_when = visible
+      }
+      if (type === 'display_image') {
+        // A static picture (lib/forms/media-fields.ts): its config and visibility.
+        field.display_image = normalizeDisplayImageConfig(entry.display_image)
         const visible = normalizeVisibleWhen(entry.visible_when)
         if (visible && visible.field !== key) field.visible_when = visible
       }
@@ -370,6 +469,7 @@ export function normalizeTaskFields(raw: unknown): TaskFieldDef[] {
         field.options_source = { table_id: entry.options_source.table_id, column: String(entry.options_source.column).slice(0, 120) }
       }
       if (type === 'choice' && entry.display === 'radio') field.display = 'radio'
+      if (type === 'multi_choice' && (entry.display === 'checkboxes' || entry.display === 'listbox')) field.display = entry.display
     }
     if (SURVEY_OPTION_TYPES.has(type)) {
       // Survey controls with options (lib/forms/survey/controls.ts): a fixed list, no table / dynamic source.
@@ -390,6 +490,17 @@ export function normalizeTaskFields(raw: unknown): TaskFieldDef[] {
       if (visible && visible.field !== key) field.visible_when = visible
       const dynamic = normalizeDynamicBindings(entry.dynamic, field)
       if (dynamic) field.dynamic = dynamic
+      out.push(field)
+      continue
+    }
+    if (type === 'repeating_section') {
+      // A group of controls repeated per item (lib/forms/repeating-section.ts): its inner form, help, visibility, required.
+      field.repeating_section = normalizeRepeatingSectionConfig(entry.repeating_section, (inner) => normalizeFieldsAt(inner, sectionDepth + 1), sectionDepth + 1)
+      const help = cleanString(entry.help_text, 2000)
+      if (help) field.help_text = help
+      if (entry.read_only === true) field.read_only = true
+      const visible = normalizeVisibleWhen(entry.visible_when)
+      if (visible && visible.field !== key) field.visible_when = visible
       out.push(field)
       continue
     }
@@ -423,11 +534,39 @@ export function normalizeTaskFields(raw: unknown): TaskFieldDef[] {
       const config = normalizeAttachmentsConfig(entry.attachments)
       if (Object.keys(config).length) field.attachments = config
     }
-    if (typeof entry.placeholder === 'string' && entry.placeholder.trim()) {
+    if (type === 'image') {
+      // One picture (lib/forms/media-fields.ts); a field-level `default` file object becomes `image.default_file`.
+      const config = normalizeImageConfig(entry.image)
+      const fallback = !config.default_file && entry.default !== undefined && entry.default !== null ? normalizeImageDefault(entry.default) : undefined
+      if (fallback) config.default_file = fallback
+      if (Object.keys(config).length) field.image = config
+    }
+    if (type === 'signature') {
+      const config = normalizeSignatureConfig(entry.signature)
+      if (Object.keys(config).length) field.signature = config
+    }
+    if (type === 'rich_text') {
+      const config = normalizeRichTextConfig(entry.rich_text)
+      if (Object.keys(config).length) field.rich_text = config
+    }
+    if (type === 'text_list') {
+      const config = normalizeTextListConfig(entry.text_list)
+      if (Object.keys(config).length) field.text_list = config
+    }
+    if (type === 'url') {
+      const config = normalizeUrlConfig(entry.url_config)
+      if (config) field.url_config = config
+    }
+    if (type === 'user') {
+      const config = normalizeUserConfig(entry.user_config)
+      if (config) field.user_config = config
+    }
+    if (type !== 'image' && type !== 'signature' && typeof entry.placeholder === 'string' && entry.placeholder.trim()) {
       field.placeholder = entry.placeholder
     }
-    if (type !== 'attachments' && entry.default !== undefined && entry.default !== null && String(entry.default) !== '') {
-      field.default = Array.isArray(entry.default) ? entry.default.map(String).join(',') : String(entry.default)
+    if (type !== 'attachments' && type !== 'image' && type !== 'signature' && entry.default !== undefined && entry.default !== null && String(entry.default) !== '') {
+      // A text list's default items are one per line (an item may hold a comma).
+      field.default = Array.isArray(entry.default) ? entry.default.map(String).join(type === 'text_list' ? '\n' : ',') : String(entry.default)
     }
     const help = cleanString(entry.help_text, 2000)
     if (help) field.help_text = help
@@ -491,6 +630,14 @@ export function fieldDefinitionProblems(fields: TaskFieldDef[]): Record<string, 
       problems[field.key] = `Another field uses the key "${lookupItemKey(field.key)}" (this lookup stores its selected item there)`
     } else if (field.type === 'attachments' && (attachmentsConfigProblem(field.attachments) || keys.has(attachmentsCountKey(field.key)))) {
       problems[field.key] = attachmentsConfigProblem(field.attachments) ?? `Another field uses the key "${attachmentsCountKey(field.key)}" (this field stores its file count there)`
+    } else if (field.type === 'display_image' && displayImageConfigProblem(field.display_image)) {
+      problems[field.key] = displayImageConfigProblem(field.display_image)!
+    } else if (field.type === 'rich_text' && keys.has(richTextTextKey(field.key))) {
+      problems[field.key] = `Another field uses the key "${richTextTextKey(field.key)}" (this field stores its plain text there)`
+    } else if (field.type === 'text_list' && textListConfigProblem(field.text_list)) {
+      problems[field.key] = textListConfigProblem(field.text_list)!
+    } else if (field.type === 'url' && urlConfigProblem(field.key, field.url_config, fields)) {
+      problems[field.key] = urlConfigProblem(field.key, field.url_config, fields)!
     } else if (field.type === 'label' && labelProblem(field, fields)) {
       problems[field.key] = labelProblem(field, fields)!
     } else if (field.type === 'data_table' && dataTableConfigProblem(field.data_table)) {
@@ -498,6 +645,8 @@ export function fieldDefinitionProblems(fields: TaskFieldDef[]): Record<string, 
     } else if (field.type === 'list' && (listConfigProblem(field.list) || listDerivedKeys(field.key, field.list).some((k) => keys.has(k)))) {
       const clash = listDerivedKeys(field.key, field.list).find((k) => keys.has(k))
       problems[field.key] = listConfigProblem(field.list) ?? `Another field uses the key "${clash}" (this list stores its row count / totals there)`
+    } else if (field.type === 'repeating_section' && repeatingSectionProblem(field, fields)) {
+      problems[field.key] = repeatingSectionProblem(field, fields)!
     } else if (field.type === 'custom' && customControlConfigProblem(field.custom, valueKeys.filter((k) => k !== field.key))) {
       problems[field.key] = customControlConfigProblem(field.custom, valueKeys.filter((k) => k !== field.key))!
     } else if (isSurveyType(field.type) && surveyConfigProblem(field)) {
@@ -518,6 +667,22 @@ export function fieldDefinitionProblems(fields: TaskFieldDef[]): Record<string, 
     }
   }
   return problems
+}
+
+/** A repeating section's problem: its config, a derived key taken, or the first problem of a control inside it. */
+function repeatingSectionProblem(field: TaskFieldDef, fields: TaskFieldDef[]): string | null {
+  const config = field.repeating_section
+  const others = fields.filter((f) => f.key !== field.key).flatMap((f) => [f.key, ...innerFieldsDeep([f]).map((x) => x.field.key)])
+  const own = repeatingConfigProblem(config, others)
+  if (own) return own
+  const keys = new Set(fields.map((f) => f.key))
+  const clash = repeatingDerivedKeys(field.key, config).find((k) => keys.has(k))
+  if (clash) return `Another field uses the key "${clash}" (this section stores its item count / totals there)`
+  const inner = fieldDefinitionProblems(config?.fields ?? [])
+  const [key, message] = Object.entries(inner)[0] ?? []
+  if (!key) return null
+  const label = config?.fields.find((f) => f.key === key)?.label ?? key
+  return `${label}: ${message}`
 }
 
 /** A Label's blocking problem: its expression doesn't read (unknown names / functions, syntax) or reads itself. */
@@ -670,6 +835,8 @@ export interface ValidateOptions {
   step?: { keys: ReadonlySet<string> } | null
   /** Choice fields whose options a rule loads from a table / API (any value of theirs is taken; lib/forms/data-actions.ts). */
   looseOptions?: ReadonlySet<string> | null
+  /** Internal: these values are a repeating section item's scope — the item (a nested section's `parent`) and the items left over every level. */
+  item?: { value: Record<string, unknown>; budget: { left: number } }
 }
 
 /** Fields hidden for these values (with the sanitized state): hidden pages, state targets, Always rules, sections. */
@@ -706,7 +873,7 @@ export function validateTaskFieldValues(
   const errors: Record<string, string> = {}
   // In-form buttons' and event rules' state (lib/forms/form-state.ts), bounded to what the form's buttons and
   // rules can do (a rule's claim only when its condition holds for these values) — never as sent.
-  const vals: Record<string, unknown> = { ...(values ?? {}), [FORM_STATE_KEY]: sanitizeFormState(fields, options.layout, values, ruleClaimGate(values ?? {})) }
+  const vals: Record<string, unknown> = { ...(values ?? {}), [FORM_STATE_KEY]: sanitizeFormState(fields, options.layout, values, ruleClaimGate(values ?? {}, null, options.user ?? null)) }
   // {{control.<section>.*}} (lib/forms/rule-variables.ts): re-derived from the sanitized state, never as reported.
   const sections = layoutSections(options.layout)
   if (sections.length && isPlainObject(vals[CONTROLS_KEY])) {
@@ -735,7 +902,7 @@ export function validateTaskFieldValues(
     const required = field.required && !options.partial && visible && !ruleReadOnly.has(field.key)
     const value = vals[field.key]
     // In the browser: files still uploading would be left out of the submission.
-    if (holdsFiles(field) && attachmentUploadsInFlight(field.key) > 0) {
+    if (usesFileUploads(field) && attachmentUploadsInFlight(field.key) > 0) {
       errors[field.key] = `${field.label}: wait for the files to finish uploading`
       continue
     }
@@ -773,8 +940,71 @@ export function validateTaskFieldValues(
     }
     if (field.type === 'list') {
       // Repeating rows (lib/forms/list-field.ts): every row's columns, min / max rows; required = at least one row.
-      const check = checkListValue(field.list, value, Boolean(required))
+      // …and the List's column / row validations, judged with the form's values and the user (the server's own).
+      // (`user` undefined — not known here, e.g. the browser's own check: validations reading the user are left to the server.)
+      const check = checkListValue(field.list, value, Boolean(required), 1, { form: vals, user: options.user })
       if (check.errors.length && visible) errors[field.key] = `${field.label}: ${check.errors.slice(0, 3).join('; ')}`
+      continue
+    }
+    if (field.type === 'repeating_section') {
+      // A group of controls repeated per item (lib/forms/repeating-section.ts): each item checked by this same engine
+      // against the inner fields and the inner rules, with the item's scope; errors by path (`expenses[1].amount`).
+      if (!visible) continue
+      const check = checkRepeatingSection(field, value, Boolean(required), { form: vals, options })
+      for (const [path, message] of Object.entries(check.paths)) errors[path] = message
+      if (check.errors.length) errors[field.key] = `${field.label}: ${check.errors.slice(0, 3).join('; ')}`
+      continue
+    }
+    if (field.type === 'image') {
+      // One picture (lib/forms/media-fields.ts); a default picture counts as one (the server stores it).
+      if (!isImageValueShape(value)) { if (visible) errors[field.key] = `${field.label} must be one picture`; continue }
+      if (!normalizeImageValue(value) && !field.image?.default_file) {
+        if (required) errors[field.key] = `${field.label} is required`
+        continue
+      }
+      if (!visible) continue
+      const error = imageValueError(field, value)
+      if (error) errors[field.key] = error
+      continue
+    }
+    if (field.type === 'signature') {
+      // An electronic signature (lib/forms/media-fields.ts): shape here; its PNG is re-read and the metadata stamped on the server.
+      if (isBlank(value)) {
+        if (required) errors[field.key] = `${field.label}: please sign`
+        continue
+      }
+      if (!visible) continue
+      const error = signatureValueError(field, value)
+      if (error) errors[field.key] = error
+      continue
+    }
+    if (field.type === 'rich_text') {
+      // Formatted text (lib/forms/rich-text.ts): markup without words is blank; the length counts the text.
+      if (isBlank(value) || (typeof value === 'string' && isBlankRichText(value))) {
+        if (required) errors[field.key] = `${field.label} is required`
+        continue
+      }
+      if (!visible) continue
+      const error = richTextValueError(field, value)
+      if (error) errors[field.key] = error
+      continue
+    }
+    if (field.type === 'text_list') {
+      // A list of text items (lib/forms/text-list.ts): blanks dropped; required = at least one item.
+      if (!visible) continue
+      const error = textListValueError(field, value, Boolean(required))
+      if (error) errors[field.key] = error
+      continue
+    }
+    if (isPeopleList(field)) {
+      // Several people / teams (lib/forms/people-field.ts): shape, kinds and count here; membership on the server.
+      if (!normalizePeopleValue(value).length && (isBlank(value) || (Array.isArray(value) && value.every((v) => v === '' || v === null)))) {
+        if (required) errors[field.key] = `${field.label} is required`
+        continue
+      }
+      if (!visible) continue
+      const error = peopleValueError(field, value)
+      if (error) errors[field.key] = error
       continue
     }
     if (field.type === 'boolean') {
@@ -804,6 +1034,8 @@ export function validateTaskFieldValues(
     const error = valueError(field, value, Boolean(options.looseOptions?.has(field.key)))
     if (error) errors[field.key] = error
   }
+  // Choice groups (lib/forms/sections.ts): a chosen alternative must be one of the group's sections.
+  if (options.layout) for (const [key, message] of Object.entries(choiceGroupValueErrors(options.layout, vals))) if (!options.partial || Object.prototype.hasOwnProperty.call(vals, key)) errors[key] = message
   // Validate rules (field errors, blocked submits) — the same check the server runs at submit.
   if (!options.partial && options.layout) {
     const hiddenKeys = new Set(fields.filter((f) => pageHidden.has(f.key) || !isFieldVisible(f, vals)).map((f) => f.key))
@@ -814,6 +1046,44 @@ export function validateTaskFieldValues(
     for (const [key, message] of Object.entries(ruleErrors)) if (!errors[key]) errors[key] = message
   }
   return errors
+}
+
+/**
+ * A repeating section's value checked: the shape, min / max items, the
+ * total item budget over nested levels, and every item validated like a form
+ * (inner fields, inner layout's sections and rules) with its scope —
+ * `{{item.*}}` / `{{row.*}}` this item, `{{parent.*}}` the item holding the
+ * section, `{{form.*}}` the form. `paths`: each inner problem at its full
+ * address below the field (`expenses[1].amount`, `trips[0].legs[2].from`).
+ */
+function checkRepeatingSection(
+  field: TaskFieldDef, value: unknown, required: boolean, ctx: { form: Record<string, unknown>; options: ValidateOptions },
+): { errors: string[]; paths: Record<string, string> } {
+  const out = { errors: [] as string[], paths: {} as Record<string, string> }
+  const config = field.repeating_section
+  const blank = value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)
+  if (!blank && !Array.isArray(value) && !(typeof value === 'string' && value.trim().startsWith('['))) { out.errors.push('has an invalid value (a list of items is expected)'); return out }
+  if (Array.isArray(value) && value.some((item) => !isPlainObject(item))) { out.errors.push('has an invalid item'); return out }
+  const items = repeatingItems(value)
+  if (items.length > maxItems(config)) { out.errors.push(`at most ${maxItems(config)} ${maxItems(config) === 1 ? 'item' : 'items'}`); return out }
+  const budget = ctx.options.item?.budget ?? { left: REPEATING_LIMITS.totalItems }
+  budget.left -= items.length
+  if (budget.left < 0) { out.errors.push(`at most ${REPEATING_LIMITS.totalItems} items in all (nested sections included)`); return out }
+  const min = ctx.options.partial ? 0 : minItems(config, required)
+  if (items.length < min) out.errors.push(min === 1 ? 'add at least one item' : `add at least ${min} items`)
+  const layout = innerFormLayout(config)
+  const parent = ctx.options.item?.value ?? null
+  items.forEach((item, i) => {
+    const scope = itemScopeValues(ctx.form, item, parent)
+    const problems = validateTaskFieldValues(config?.fields ?? [], scope, {
+      layout, user: ctx.options.user, partial: ctx.options.partial, looseOptions: ctx.options.looseOptions, item: { value: item, budget },
+    })
+    const entries = Object.entries(problems)
+    if (!entries.length) return
+    for (const [key, message] of entries) out.paths[`${field.key}[${i}].${key}`] = message
+    out.errors.push(`item ${i + 1}: ${entries[0][1]}`)
+  })
+  return out
 }
 
 function valueError(field: TaskFieldDef, value: unknown, looseOptions = false): string | null {
@@ -873,14 +1143,8 @@ function valueError(field: TaskFieldDef, value: unknown, looseOptions = false): 
   if (s.length > MAX_TEXT) return `${label} is too long`
   if (field.type === 'email' && !EMAIL_RE.test(s)) return `${label} must be an email address`
   if (field.type === 'phone' && !PHONE_RE.test(s)) return `${label} must be a phone number`
-  if (field.type === 'url') {
-    try {
-      const url = new URL(s)
-      if (url.protocol !== 'http:' && url.protocol !== 'https:') return `${label} must be an http(s) URL`
-    } catch {
-      return `${label} must be an http(s) URL`
-    }
-  }
+  // http(s) or mailto (lib/forms/link-field.ts) — javascript:, data: and the like are refused.
+  if (field.type === 'url' && !isAllowedUrl(s)) return `${label} must be an http(s) URL`
   if (field.min_length !== undefined && s.length < field.min_length) return `${label} must be at least ${field.min_length} characters`
   if (field.max_length !== undefined && s.length > field.max_length) return `${label} must be at most ${field.max_length} characters`
   if (field.pattern) {
@@ -926,10 +1190,16 @@ function coerceOne(field: TaskFieldDef, value: unknown): TaskFieldValue {
   }
   if (isSurveyType(field.type)) return coerceSurveyValue(field, value) as TaskFieldValue
   if (field.type === 'list') return coerceListRows(field.list, value) as unknown as TaskFieldValue
+  if (field.type === 'repeating_section') return coerceRepeatingItems(field.repeating_section, value) as unknown as TaskFieldValue
   if (field.type === 'boolean') return toBoolean(value) ?? false
   if (field.type === 'multi_choice') return toStringArray(value)
   if (field.type === 'lookup' && field.lookup?.multiple) return lookupValues(value, true)
   if (field.type === 'attachments') return normalizeAttachmentValue(value)
+  if (field.type === 'image') return normalizeImageValue(value)
+  if (field.type === 'signature') return normalizeSignatureValue(value)
+  if (field.type === 'text_list') return textListItems(value)
+  if (isPeopleList(field)) return normalizePeopleValue(value)
+  if (field.type === 'rich_text') return sanitizeRichText(value) || null
   if (isBlank(value)) return null
   if (field.type === 'number' || field.type === 'currency') return toNumber(value)
   if (field.type === 'datetime') {
@@ -943,6 +1213,32 @@ function coerceOne(field: TaskFieldDef, value: unknown): TaskFieldValue {
   return typeof value === 'string' ? value : String(value)
 }
 
+/**
+ * A repeating section's stored items: at most max_items, each item typed by
+ * the form's own coercion (its value fields only — unknown keys and runtime
+ * markers dropped; a missing value blank), a rich text's `<key>_text`, a
+ * lookup's `<key>_label`, and a nested section's / List's count and totals
+ * beside it in the item.
+ */
+function coerceRepeatingItems(config: RepeatingSectionConfig | undefined, value: unknown): Array<Record<string, unknown>> {
+  const fields = valueFields(config?.fields ?? [])
+  return repeatingItems(value).slice(0, maxItems(config)).map((item) => {
+    const raw: Record<string, unknown> = {}
+    for (const f of fields) raw[f.key] = Object.prototype.hasOwnProperty.call(item, f.key) ? item[f.key] : null
+    const out: Record<string, unknown> = coerceTaskFieldValues(fields, raw)
+    for (const f of fields) {
+      if (f.type === 'rich_text') out[richTextTextKey(f.key)] = richTextPlainText(out[f.key])
+      if (f.type === 'lookup') {
+        const label = item[lookupLabelKey(f.key)]
+        out[lookupLabelKey(f.key)] = out[f.key] === null ? null : typeof label === 'string' && label.trim() ? label.slice(0, 500) : out[f.key]
+      }
+      if (f.type === 'repeating_section') Object.assign(out, repeatingDerivedValues(f.key, f.repeating_section, out[f.key]))
+      if (f.type === 'list') Object.assign(out, listDerivedValues(f.key, f.list, out[f.key]))
+    }
+    return out
+  })
+}
+
 /** Initial values for a field list: each field's default (or a type-appropriate blank). */
 export function defaultTaskFieldValues(
   fields: TaskFieldDef[],
@@ -951,10 +1247,11 @@ export function defaultTaskFieldValues(
   const raw: Record<string, unknown> = {}
   for (const field of fields) {
     if (isDisplayField(field)) continue
-    if (field.default !== undefined && field.type !== 'list') raw[field.key] = resolve(field.default)
+    if (field.default !== undefined && field.type !== 'list' && field.type !== 'repeating_section') raw[field.key] = resolve(field.default)
     else if (field.type === 'data_table') raw[field.key] = field.data_table?.mode === 'select' ? [] : null
     else if (field.type === 'list') raw[field.key] = []
-    else raw[field.key] = field.type === 'boolean' ? false : field.type === 'multi_choice' || field.type === 'attachments' || (field.type === 'lookup' && field.lookup?.multiple) || (isSurveyType(field.type) && isMultiSurvey(field)) ? [] : null
+    else if (field.type === 'repeating_section') raw[field.key] = startItems(field.repeating_section, (text) => resolve(text))
+    else raw[field.key] = field.type === 'boolean' ? false : field.type === 'multi_choice' || field.type === 'attachments' || field.type === 'text_list' || isPeopleList(field) || (field.type === 'lookup' && field.lookup?.multiple) || (isSurveyType(field.type) && isMultiSurvey(field)) ? [] : null
   }
   return coerceTaskFieldValues(fields, raw)
 }
@@ -1003,6 +1300,11 @@ export function mergeTaskFieldValues(
     buttonIds?: readonly string[] | null
     /** Data tables' source rows the server fetched for Labels reading `control.<table>.rows` (lib/forms/task-values.ts). */
     labelRows?: Record<string, Array<Record<string, unknown>>>
+    /**
+     * The submitter as rules read them (`user.*`, roles and teams — lib/services/form-rule-user.ts), the
+     * server's own view: rules reading the user are judged with it. Absent: such rules are skipped / trusted.
+     */
+    ruleUser?: Record<string, unknown> | null
   } = {},
 ): { errors: Record<string, string>; templateValues: Record<string, unknown> } {
   const meta = metadata ?? {}
@@ -1032,14 +1334,20 @@ export function mergeTaskFieldValues(
   // Parameters / variables ({{param.x}}, {{var.x}} in rules): the caller puts the server-validated ones in (serverFormContext).
   for (const key of [FORM_PARAMS_KEY, FORM_VARS_KEY, CONTROLS_KEY]) if (values && Object.prototype.hasOwnProperty.call(values, key)) Object.assign(state, { [key]: values[key] })
   // Optional sections (lib/forms/sections.ts): whether the person added each one (`<key>_included`, a boolean).
-  const inclusion: Record<string, boolean> = {}
+  const inclusion: Record<string, unknown> = {}
   for (const key of sectionIncludedKeys(layout)) {
     if (values && Object.prototype.hasOwnProperty.call(values, key)) inclusion[key] = values[key] === true || values[key] === 'true'
   }
+  // Choice groups: the chosen alternative (`<key>` = a section key; checked below — anything else is refused).
+  for (const key of choiceGroupKeys(layout)) {
+    if (values && Object.prototype.hasOwnProperty.call(values, key)) inclusion[key] = values[key]
+  }
+  // A draft keeps only a valid choice (a submission reports a wrong one).
+  if (options.partial) for (const key of Object.keys(choiceGroupValueErrors(layout, inclusion))) delete inclusion[key]
   // Read-only fields a form rule wrote (Set / Copy / Clear values): kept only when a rule of the saved form could produce them.
   const readOnly = fields.filter((field) => field.read_only && !isDisplayField(field) && field.type !== 'label')
   const ruleWritten = values && readOnly.length && !options.partial
-    ? ruleWrittenReadOnlyValues(layout, readOnly.map((f) => f.key), { ...existing, ...submitted, ...inclusion, ...values, ...state }, existing, null)
+    ? ruleWrittenReadOnlyValues(layout, readOnly.map((f) => f.key), { ...existing, ...submitted, ...inclusion, ...values, ...state }, existing, null, options.ruleUser ?? null)
     : {}
   const base = { ...existing, ...submitted, ...inclusion, ...ruleWritten, ...state }
   // Labels (lib/forms/label-field.ts): recomputed from the checked values — rules judged below read these, never the browser's.
@@ -1047,12 +1355,13 @@ export function mergeTaskFieldValues(
   const labelValues = labels.length && values && !options.partial
     ? serverLabelValues(fields, layout, base, { sent: values, stored: existing, rows: options.labelRows })
     : {}
-  const judged = { ...base, ...labelValues }
+  // Choice groups: rules judge the active alternative ({{form.<group>}}) — the default when none was sent.
+  const judged = withChoiceDefaults(layout, { ...base, ...labelValues })
   // Choice fields a rule fills with options from a table / API: their value is taken like a click (the options aren't known here).
   const looseOptions = ruleOptionFields(layoutFormRules(layout).flatMap((r) => allActions(r.then)))
   const errors = options.partial
     ? validateTaskFieldValues(fields, submitted, { partial: true, looseOptions })
-    : validateTaskFieldValues(fields, judged, { layout, buttonIds: options.buttonIds ?? null, looseOptions })
+    : validateTaskFieldValues(fields, judged, { layout, buttonIds: options.buttonIds ?? null, looseOptions, user: options.ruleUser })
   const templateValues: Record<string, unknown> = {
     ...existing,
     ...coerceTaskFieldValues(editable, submitted),
@@ -1067,10 +1376,20 @@ export function mergeTaskFieldValues(
     const blanked = fields.filter((f) => patch.blank.includes(f.key) && !isDisplayField(f))
     Object.assign(templateValues, coerceTaskFieldValues(blanked, Object.fromEntries(blanked.map((f) => [f.key, null]))), patch.included)
   }
+  // Rich text (lib/forms/rich-text.ts): `<key>_text`, the plain text, recomputed from the sanitised value.
+  for (const field of fields) {
+    if (field.type !== 'rich_text' || !Object.prototype.hasOwnProperty.call(templateValues, field.key)) continue
+    templateValues[richTextTextKey(field.key)] = richTextPlainText(templateValues[field.key])
+  }
   // List fields (lib/forms/list-field.ts): `<key>_count` and the totals, recomputed from the checked rows.
   for (const field of fields) {
     if (field.type !== 'list' || !Object.prototype.hasOwnProperty.call(templateValues, field.key)) continue
     Object.assign(templateValues, listDerivedValues(field.key, field.list, templateValues[field.key]))
+  }
+  // Repeating sections (lib/forms/repeating-section.ts): `<key>_count` and the totals, from the checked items.
+  for (const field of fields) {
+    if (field.type !== 'repeating_section' || !Object.prototype.hasOwnProperty.call(templateValues, field.key)) continue
+    Object.assign(templateValues, repeatingDerivedValues(field.key, field.repeating_section, templateValues[field.key]))
   }
   // Custom control outputs (lib/forms/custom-controls/output.ts): `<key>` becomes the main output
   // (typed, HTML sanitised), the value stays under `<key>_raw`, extras beside it — recomputed here
@@ -1088,7 +1407,7 @@ export function mergeTaskFieldValues(
 export function fieldValueSchemaType(type: TaskFieldType): 'string' | 'number' | 'boolean' | 'array' | 'object' {
   if (type === 'number' || type === 'currency' || type === 'rating' || type === 'nps' || type === 'slider' || type === 'csat') return 'number'
   if (type === 'boolean') return 'boolean'
-  if (type === 'multi_choice' || type === 'attachments' || type === 'ranking' || type === 'list') return 'array'
-  if (type === 'data_table' || type === 'matrix') return 'object'
+  if (type === 'multi_choice' || type === 'attachments' || type === 'ranking' || type === 'list' || type === 'repeating_section' || type === 'text_list') return 'array'
+  if (type === 'data_table' || type === 'matrix' || type === 'image' || type === 'signature') return 'object'
   return 'string'
 }

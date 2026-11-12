@@ -32,7 +32,7 @@ export interface IpSchemaNode {
 export type IpControlKind =
   | 'text' | 'richtext' | 'date' | 'datetime' | 'time' | 'dropdown' | 'combobox' | 'listbox' | 'multiselect'
   | 'checkbox' | 'option' | 'attachment' | 'button' | 'expression' | 'hyperlink' | 'picture' | 'people'
-  | 'signature' | 'ink' | 'activex' | 'bulleted_list'
+  | 'signature' | 'ink' | 'activex' | 'bulleted_list' | 'static_image'
   | 'section' | 'optional_section' | 'repeating_section' | 'repeating_table'
   | 'unknown'
 
@@ -72,6 +72,8 @@ export interface IpControl {
   off_value?: string
   /** InfoPath display format (xd:datafmt: number, currency, percentage, date, time, datetime…). */
   format?: string
+  /** The rest of xd:datafmt (e.g. numDigits:2;negativeOrder:1;currencyLocale:1033;). */
+  format_options?: string
   /** Read-only in the view (xd:disableEditing="yes"). */
   read_only?: boolean
   formatting: IpFormatting[]
@@ -93,6 +95,13 @@ export interface IpControl {
   show_if?: string
   /** Option buttons merged into one control: the CtrlIds. */
   merged?: string[]
+  /** static_image: the package file it shows, and its alt text. */
+  src?: string
+  alt?: string
+  /** bulleted_list: bulleted | numbered | plain. */
+  list_style?: 'bulleted' | 'numbered' | 'plain'
+  /** Choice section: the id of the choice group (the xsl:choose) it is an alternative of. */
+  choice_group?: string
 }
 
 /** Static text in a view: a heading / label / instruction (not bound). */
@@ -232,6 +241,8 @@ export interface IpManifest {
   rich_text: string[]
   /** Form code (script / managed code) present. */
   code: string[]
+  /** Digital signature blocks (xsf:documentSignatures / signedDataBlock): their names / messages. */
+  signatures: string[]
   /** The manifest's root node (the schema root's local name). */
   root?: string
   warnings: string[]
@@ -248,5 +259,7 @@ export interface InfoPathModel {
   /** template.xml default values: absolute path → text (leaf nodes only). */
   defaults: Record<string, string>
   views: IpView[]
+  /** Image files in the template (lower-cased name → base64), for static pictures. */
+  images: Record<string, { mime: string; base64: string; size: number }>
   warnings: string[]
 }

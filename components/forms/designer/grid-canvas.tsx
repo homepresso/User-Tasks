@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { ArrowDown, ArrowUp, GripVertical, LayoutList, Plus, Trash2 } from 'lucide-react'
 import { addRow, findCell, moveRow, nudgeField, placeField, placeFieldInSection, removeRow, rowFree, setRowColumns, setRowSection, MAX_FORM_COLUMNS, type FormRow, type FormSection } from '@/lib/forms/layout'
 import { sectionBlocks } from '@/lib/forms/sections'
-import { addField, removeField, type DesignerState } from '@/lib/forms/designer-state'
+import { addField, designerProblems, extractField, moveIntoSection, removeField, sectionView, withSectionView, type DesignerField, type DesignerState } from '@/lib/forms/designer-state'
+import { REPEATING_EXCLUDED_TYPES, REPEATING_MAX_DEPTH } from '@/lib/forms/repeating-section'
 import { TASK_FIELD_TYPE_LABELS, type TaskFieldType } from '@/lib/task-field-schema'
 import { describeFieldButton } from '@/lib/forms/field-buttons'
 import { cn } from '@/lib/utils'
@@ -24,6 +25,11 @@ import { DRAG_FIELD_KEY, DRAG_NEW_TYPE, FIELD_ICONS } from './field-icons'
  * its header selects it (properties panel), a drop zone at its foot adds a
  * field to it, and each row's "Section" menu moves the row in or out
  * (the keyboard way). Moving a row up / down at a section's edge crosses it.
+ *
+ * A repeating section (lib/forms/repeating-section.ts) draws its inner form
+ * as a grid of its own inside its card: drop palette controls or existing
+ * fields into it (a field dragged out of it lands on the outer grid), the
+ * same rows, columns and spans; `depth` counts the sections around a grid.
  */
 
 const COLS = ['', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4']
@@ -31,8 +37,12 @@ const SPAN = ['', 'col-span-1', 'col-span-2', 'col-span-3', 'col-span-4']
 /** A row's toolbar shows on hover or focus (always on touch). */
 const ROW_TOOLS = 'opacity-0 transition-opacity duration-[var(--ds-dur-fast)] group-hover/row:opacity-100 group-focus-within/row:opacity-100 [@media(pointer:coarse)]:opacity-100'
 
-export function GridCanvas({ state, selectedId, problems, onSelect, onChange, announce, sections = [], selectedSection = null, onSelectSection = () => {}, sectionProblems = {} }: {
+export function GridCanvas({ state, selectedId, problems, onSelect, onChange, announce, sections = [], selectedSection = null, onSelectSection = () => {}, sectionProblems = {}, depth = 0, onAdopt }: {
   state: DesignerState
+  /** Repeating sections around this grid (0 = the form's own grid). */
+  depth?: number
+  /** A field from the outer grid dropped here (an inner grid): the outer grid moves it in. */
+  onAdopt?: (key: string, row: number, index: number) => void
   selectedId: string | null
   problems: Record<string, string>
   /** The form's sections (layout.sections; the grid may be one page's). */
@@ -78,12 +88,29 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
     },
   })
 
+  /** A control this grid can't hold (inside a repeating section: no data tables / custom controls; no deeper nesting than the cap). */
+  const refused = (type: TaskFieldType): string | null => {
+    if (depth > 0 && REPEATING_EXCLUDED_TYPES.has(type)) return `${TASK_FIELD_TYPE_LABELS[type]} can't go inside a repeating section`
+    if (depth >= REPEATING_MAX_DEPTH && (type === 'repeating_section' || type === 'list')) return `Repeating sections and Lists nest at most ${REPEATING_MAX_DEPTH} levels deep`
+    return null
+  }
+
   function handleDrop(e: React.DragEvent, row: number, index: number) {
     e.preventDefault()
     e.stopPropagation()
     setDropTarget(null)
     const type = e.dataTransfer.getData(DRAG_NEW_TYPE) as TaskFieldType
     const key = e.dataTransfer.getData(DRAG_FIELD_KEY)
+    if (type && refused(type)) { announce(refused(type)!); return }
+    if (key && !byKey.has(key)) {
+      // A field from another grid: out of a repeating section in this grid, or (an inner grid) from the outer one.
+      const out = extractField(state, key)
+      if (out && !refused(out.field.type)) {
+        onChange({ ...out.state, fields: [...out.state.fields, out.field], layout: placeField(out.state.layout, key, row, index) })
+        announce(`${out.field.label || 'Field'} moved`)
+      } else if (!out) onAdopt?.(key, row, index)
+      return
+    }
     if (type) {
       const { state: next, field } = row >= state.layout.rows.length
         ? addField(state, type)
@@ -135,6 +162,65 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
     }
   }
 
+  /** A repeating section: its header (select / drag / keyboard like a card) and its inner grid. */
+  function renderSectionCard(field: DesignerField, r: number, index: number, span: number, columns: number) {
+    const Icon = FIELD_ICONS[field.type]
+    const selected = field._id === selectedId
+    const target = `cell:${r}:${index}`
+    const problem = problems[field._id]
+    const view = sectionView(state, field._id)
+    const count = field.repeating_section?.fields.length ?? 0
+    return (
+      <div key={field._id} className={cn('min-w-0 rounded-md border', SPAN[Math.min(span, columns)], problem ? 'border-danger' : selected ? 'border-primary' : 'border-border', selected ? 'bg-primary-wash' : 'bg-panel', dropTarget === target && 'shadow-[inset_3px_0_0_var(--theme-primary)]')}
+        data-field-key={field.key} data-designer-repeating={field.key}>
+        <div
+          id={`form-cell-${field._id}`}
+          role="button"
+          tabIndex={0}
+          draggable
+          aria-pressed={selected}
+          aria-label={`${field.label || 'Untitled'} — Repeating section with ${count} control${count === 1 ? '' : 's'}, row ${r + 1}, spans ${span} of ${columns}. Alt+Arrow keys move it.`}
+          onDragStart={(e) => { e.dataTransfer.setData(DRAG_FIELD_KEY, field.key); e.dataTransfer.effectAllowed = 'move' }}
+          onClick={(e) => { e.stopPropagation(); onSelect(field._id) }}
+          onKeyDown={(e) => onCardKey(e, field.key, field._id)}
+          {...dropProps(target, r, index)}
+          className="group flex cursor-pointer items-start gap-2 rounded-t-md px-2 py-2 text-left"
+        >
+          <GripVertical size={14} className="mt-0.5 shrink-0 cursor-grab text-fg-subtle group-hover:text-fg-muted" aria-hidden />
+          <Icon size={14} className="mt-0.5 shrink-0 text-fg-muted" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-ui font-medium text-fg">
+              {field.label || <em className="text-fg-muted">Untitled</em>}
+              {field.required && <span className="ml-0.5 text-danger">*</span>}
+            </p>
+            <p className="truncate font-mono text-2xs text-fg-muted">{field.key} · repeating section · {count} control{count === 1 ? '' : 's'}{(field.repeating_section?.layout?.rules?.length ?? 0) > 0 ? ` · ${field.repeating_section!.layout!.rules!.length} item rule${field.repeating_section!.layout!.rules!.length === 1 ? '' : 's'}` : ''}</p>
+            {problem && <p className="mt-0.5 text-2xs text-danger">{problem}</p>}
+          </div>
+        </div>
+        {view && (
+          <div className="border-t border-dashed border-border-strong p-2" onClick={(e) => e.stopPropagation()} data-repeating-canvas={field.key}>
+            <p className="mb-2 text-2xs text-fg-muted">Each item — drop controls here:</p>
+            <GridCanvas
+              state={view}
+              selectedId={selectedId}
+              problems={designerProblems(view)}
+              onSelect={onSelect}
+              onChange={(next, tag) => onChange(withSectionView(state, field._id, next), tag)}
+              announce={announce}
+              sections={view.layout.sections ?? []}
+              depth={depth + 1}
+              onAdopt={(key, row, at) => {
+                const next = moveIntoSection(state, field._id, key, { row, index: at })
+                if (next) { onChange(next); announce('Moved into the repeating section') }
+                else announce("That field can't go into this repeating section")
+              }}
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   function renderRow(row: FormRow, r: number) {
     const free = rowFree(row)
         return (
@@ -184,6 +270,7 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
                 const selected = field._id === selectedId
                 const target = `cell:${r}:${index}`
                 const problem = problems[field._id]
+                if (field.type === 'repeating_section') return renderSectionCard(field, r, index, cell.span, row.columns)
                 return (
                   <div
                     key={field._id}
@@ -208,7 +295,7 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
                         {field.required && <span className="ml-0.5 text-danger">*</span>}
                       </p>
                       <p className="truncate font-mono text-2xs text-fg-muted">
-                        {field.type === 'button' ? `Button · ${!field.button?.actions.length && (state.layout.rules ?? []).some((r) => r.event === 'button_click' && r.target === field.key && !r.disabled) ? 'Runs its click rules' : describeFieldButton(field.button)}` : field.type === 'heading' || field.type === 'divider' ? TASK_FIELD_TYPE_LABELS[field.type] : field.key}
+                        {field.type === 'button' ? `Button · ${!field.button?.actions.length && (state.layout.rules ?? []).some((r) => r.event === 'button_click' && r.target === field.key && !r.disabled) ? 'Runs its click rules' : describeFieldButton(field.button)}` : field.type === 'heading' || field.type === 'divider' || field.type === 'display_image' ? TASK_FIELD_TYPE_LABELS[field.type] : field.key}
                         {cell.span > 1 && ` · span ${cell.span}`}
                       </p>
                       {problem && <p className="mt-0.5 text-2xs text-danger">{problem}</p>}

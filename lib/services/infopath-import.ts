@@ -34,6 +34,8 @@ import { audit, dbError, serviceRoleClient } from './_shared'
 export interface InfoPathImportOptions {
   /** One form per view (default) or the views as steps of one form. */
   mode?: ImportMode
+  /** Combined: the views as steps (default) or tabs. */
+  pages?: 'steps' | 'tabs'
   /** Views to import (names); default all. */
   views?: string[]
   /** Base form name (default the InfoPath form's title). */
@@ -85,6 +87,7 @@ function cleanOptions(raw: InfoPathImportOptions | undefined): InfoPathImportOpt
   const o = raw ?? {}
   const out: InfoPathImportOptions = {}
   if (o.mode === 'combined' || o.mode === 'per_view') out.mode = o.mode
+  if (o.pages === 'steps' || o.pages === 'tabs') out.pages = o.pages
   if (Array.isArray(o.views)) out.views = o.views.filter((v) => typeof v === 'string').map((v) => v.slice(0, 200)).slice(0, 40)
   if (typeof o.name === 'string' && o.name.trim()) {
     if (!NAME_RE.test(o.name.trim())) throw ServiceError.validation('The form name has characters that are not allowed')
@@ -171,7 +174,7 @@ async function prepare(ctx: ServiceContext, bytes: Uint8Array, fileName: string,
   const model = readInfoPath(bytes, fileName)
   if (options.views?.length && !options.views.some((v) => model.views.some((x) => x.name === v))) throw ServiceError.validation('None of the chosen views are in this form')
   const connections = await matchConnections(ctx, model)
-  const generated = generateForms(model, { mode: options.mode, views: options.views, name: options.name, tag: options.tag, connections })
+  const generated = generateForms(model, { mode: options.mode, pages: options.pages, views: options.views, name: options.name, tag: options.tag, connections })
   const existing = await earlierImports(ctx, model)
   return { options, model, generated, existing }
 }
@@ -272,6 +275,9 @@ export async function importInfoPathFile(ctx: ServiceContext, bytes: Uint8Array,
   let table: InfoPathImportResult['table']
   let workflow: InfoPathImportResult['workflow'] = null
   try {
+    // Pictures from the template (display images, default pictures) are stored as form images first.
+    const storeImages = await imageStorer(ctx)
+    for (const f of generated.forms) f.input.fields = await storeImages(f.input.fields) as TaskFieldDef[]
     for (const f of generated.forms) {
       const match = options.existing === 'update' ? existing.find((e) => e.view === f.view) : undefined
       if (match) {
@@ -341,6 +347,36 @@ export async function importInfoPathFile(ctx: ServiceContext, bytes: Uint8Array,
     workflow,
     warnings,
   }
+}
+
+/** Replace data: image URLs in fields (display images, image defaults; inside repeating sections too) with stored form images. */
+async function imageStorer(ctx: ServiceContext): Promise<(fields: unknown) => Promise<unknown>> {
+  const { uploadFormImage } = await import('./uploads')
+  const cache = new Map<string, string>()
+  const store = async (dataUrl: string, name: string): Promise<string | null> => {
+    const m = /^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl)
+    if (!m) return null
+    const hit = cache.get(m[2])
+    if (hit) return hit
+    const bytes = Buffer.from(m[2], 'base64')
+    const stored = await uploadFormImage(ctx, { name, type: m[1], bytes: new Uint8Array(bytes) })
+    // A storage reference (resolved when shown) works with every provider, also a local http one.
+    const { toStorageRef } = await import('@/lib/storage/refs')
+    const ref = stored.ref ?? String(toStorageRef(stored.url))
+    cache.set(m[2], ref)
+    return ref
+  }
+  const walk = async (value: unknown): Promise<unknown> => {
+    if (Array.isArray(value)) return Promise.all(value.map(walk))
+    if (!value || typeof value !== 'object') return value
+    const out: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if ((k === 'src' || k === 'url') && typeof v === 'string' && v.startsWith('data:image/')) out[k] = (await store(v, `${k}.img`)) ?? v
+      else out[k] = await walk(v)
+    }
+    return out
+  }
+  return walk
 }
 
 async function removeTable(ctx: ServiceContext, id: string) {

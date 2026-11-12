@@ -32,6 +32,7 @@
  */
 
 import { isPlainObject } from '@/lib/utils/guards'
+import { normalizeConditionalStyle, type ConditionalStyle } from './conditional-style'
 import type { VisibleWhen } from '@/lib/task-field-schema'
 import { interpolateButtonText, resolveInputTemplate, safeRedirectUrl, type RedirectPolicy } from './buttons'
 import { normalizeTableChanges, tableChangesProblem, type TableChangesConfig } from './table-changes'
@@ -45,9 +46,11 @@ import {
 import { FORM_VARS_KEY, setVariables } from './form-params'
 import { isResultPath, normalizeResultPath } from './result-paths'
 import {
-  LIST_EDIT_KEY, LIST_SELECT_KEY, coerceListRow, isBlankListRow, listColumnWritable, listEditingRow, listLabelKey, listRowErrors, listSelection, rawListRows, remapAfterRemoval,
-  withListEditing, withListSelected, type ListFieldConfig,
+  LIST_EDIT_KEY, LIST_SELECT_KEY, childListAt, coerceListRow, isBlankListRow, listColumnWritable, listEditingRow, listLabelKey, listRowErrors, listSelection, nestedListKey, nestedRowsIn,
+  rawListRows, remapAfterRemoval, withListEditing, withListSelected, withNestedRows, type ListFieldConfig,
 } from './list-field'
+import { stripRowMarkers } from './row-markers'
+import { rowFormRequest, type RowFormRequest } from './list-row-form'
 import { lookupLabelKey } from './lookup'
 import {
   DATA_ACTION_LIMITS, TABLE_ACTION_TYPES, clampLimit, normalizeActionFilter, normalizeActionSort, normalizeOutputs,
@@ -76,8 +79,9 @@ export type FieldButtonActionType =
  */
 export type RuleOnlyActionType =
   | 'enable_disable' | 'field_error' | 'block_submit' | 'copy_values' | 'refresh' | 'run_lookup' | 'call_reference' | 'start_workflow'
-  | 'set_variable' | 'collapse_expand' | 'load_part' | 'read_only'
+  | 'set_variable' | 'collapse_expand' | 'load_part' | 'read_only' | 'set_style'
   | 'add_list_row' | 'remove_list_row' | 'clear_list' | 'update_list_row' | 'edit_list_row' | 'cancel_list_edit'
+  | 'open_row_form'
   | TableActionType
   | RowActionType
 
@@ -94,12 +98,16 @@ RULE_ONLY_ACTION_TYPES.push('collapse_expand')
 RULE_ONLY_ACTION_TYPES.push('load_part')
 // Read only (lib/forms/form-state.ts applyReadOnly): controls, sections, steps / tabs or the whole form.
 RULE_ONLY_ACTION_TYPES.push('read_only')
+// Conditional styling (lib/forms/conditional-style.ts): "Always" rules colour / emphasise fields and sections.
+RULE_ONLY_ACTION_TYPES.push('set_style')
 // List fields (lib/forms/list-field.ts): rows added from the form's inputs, removed, cleared.
 RULE_ONLY_ACTION_TYPES.push('add_list_row', 'remove_list_row', 'clear_list', 'update_list_row', 'edit_list_row', 'cancel_list_edit')
 // Data table actions (lib/forms/data-actions.ts): read, list, create, update, delete — on the server.
 RULE_ONLY_ACTION_TYPES.push(...TABLE_ACTION_TYPES)
 // Editable table rules (lib/forms/row-rules.ts): new / fill / commit / discard / revert / delete rows, refresh a table.
 RULE_ONLY_ACTION_TYPES.push(...ROW_ACTION_TYPES)
+// The List row pop-out (lib/forms/list-row-form.ts): a row opened as a form in a dialog.
+RULE_ONLY_ACTION_TYPES.push('open_row_form')
 /** Rule actions that run on the server (targets from the saved form). */
 export const SERVER_RULE_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['call_reference', 'start_workflow', 'apply_table_changes', ...TABLE_ACTION_TYPES])
 /** Whether a step runs on the server: the server actions, and a Data table row's "Save now" commit / delete. */
@@ -154,6 +162,7 @@ export const FIELD_BUTTON_ACTION_LABELS: Record<FieldButtonActionType, string> =
   collapse_expand: 'Collapse / expand a section',
   load_part: 'Load section / tab',
   read_only: 'Make read only / editable',
+  set_style: 'Style fields / sections (colour, bold…)',
   add_list_row: 'Add row to list',
   remove_list_row: 'Remove row from list',
   clear_list: 'Clear list',
@@ -172,6 +181,7 @@ export const FIELD_BUTTON_ACTION_LABELS: Record<FieldButtonActionType, string> =
   revert_row: 'Revert a row',
   delete_row: 'Delete row(s)',
   refresh_table: 'Refresh a table (keep pending rows)',
+  open_row_form: 'Open a row in a pop-out form',
 }
 
 export interface FieldButtonAction {
@@ -201,8 +211,11 @@ export interface FieldButtonAction {
   tone?: Exclude<MessageTone, 'info'>
   /** message / prompt: a heading above the text */
   title?: string
-  /** message: banner at the top of the form, or inline (absent: the original inline message) */
-  style?: MessageStyle
+  /**
+   * message: banner at the top of the form, or inline (absent: the original inline message);
+   * set_style: the tone and emphasis (lib/forms/conditional-style.ts) — use actionStyle() to read it.
+   */
+  style?: MessageStyle | ConditionalStyle
   /** message: how long it stays (absent: until dismissed) */
   duration?: Exclude<MessageDuration, 'dismiss'>
   /** message: seconds before an auto-hide (2–60) */
@@ -287,7 +300,30 @@ export interface FieldButtonAction {
   commit_mode?: 'stage' | 'save_now'
   /** refresh_table: pending rows are kept (default) or the person is asked whether to drop them. */
   keep_pending?: 'keep' | 'ask'
+  /**
+   * List steps (add / edit / update / remove row, clear list, new row, set
+   * row values, commit / discard / revert / delete row) on a nested List:
+   * the nested List column of the List (`lines`; level 3 `lines.serials`).
+   * {{row.*}} is then the nested row, {{parent.*}} its parent row.
+   */
+  child?: string
+  /**
+   * …and whose nested List: the parent row — 'current' (default: the List's
+   * current / editing row, else the row of the event), 'selected' (each
+   * selected row), 'first', 'last', a 1-based number or a {{template}};
+   * level 3: one per level, dotted (`2.1`, `current.last`).
+   */
+  parent_row?: string
 }
+
+/** A set_style action's style (null for any other action, or a message's banner / inline style). */
+export function actionStyle(action: Pick<FieldButtonAction, 'type' | 'style'>): ConditionalStyle | null {
+  return action.type === 'set_style' && action.style && typeof action.style === 'object' ? action.style : null
+}
+
+/** The List steps that take `child` / `parent_row` (a nested List). */
+export const NESTED_LIST_ACTIONS: ReadonlySet<string> = new Set(['add_list_row', 'remove_list_row', 'clear_list', 'update_list_row', 'edit_list_row', 'cancel_list_edit', 'new_row', 'set_row_values', 'commit_row', 'discard_row', 'revert_row', 'delete_row', 'open_row_form'])
+const CHILD_PATH_RE = /^[a-z][a-z0-9_]{0,63}(?:\.[a-z][a-z0-9_]{0,63})?$/
 
 export interface FieldButtonConfig {
   style: FieldButtonStyle
@@ -417,6 +453,13 @@ function normalizeAction(raw: unknown, rule = false): FieldButtonAction | null {
       // Targets: fields, sections, rows, steps / tabs, or the whole form (`form:*`).
       out.mode = raw.mode === 'read_only' || raw.mode === 'editable' ? raw.mode : 'toggle'
       out.targets = Array.isArray(raw.targets) ? [...new Set(raw.targets.filter(isReadOnlyTarget))].slice(0, FIELD_BUTTON_LIMITS.targets) : []
+      break
+    }
+    case 'set_style': {
+      // Fields and sections only; the style from theme tokens (no CSS).
+      out.targets = Array.isArray(raw.targets) ? [...new Set(raw.targets.filter((t): t is string => { const k = parseTarget(t)?.kind; return k === 'field' || k === 'section' }))].slice(0, FIELD_BUTTON_LIMITS.targets) : []
+      const style = normalizeConditionalStyle(raw.style)
+      if (style) out.style = style
       break
     }
     case 'collapse_expand': {
@@ -571,6 +614,15 @@ function normalizeAction(raw: unknown, rule = false): FieldButtonAction | null {
       if (type === 'refresh_table' && raw.keep_pending === 'ask') out.keep_pending = 'ask'
       break
     }
+    case 'open_row_form': {
+      // The List and which row: current (default), selected, new, first, last, a 1-based number or a {{template}}.
+      if (typeof raw.field === 'string' && KEY_RE.test(raw.field)) out.field = raw.field
+      const row = typeof raw.row === 'number' && Number.isInteger(raw.row) ? String(raw.row) : str(raw.row, FIELD_BUTTON_LIMITS.template)
+      out.row = row ?? 'current'
+      const empty = str(raw.empty_text, FIELD_BUTTON_LIMITS.text)
+      if (empty) out.empty_text = empty
+      break
+    }
     case 'set_variable': {
       if (typeof raw.variable === 'string' && VAR_NAME_RE.test(raw.variable)) out.variable = raw.variable
       out.variable_mode = raw.variable_mode === 'clear' || raw.variable_mode === 'reset' ? raw.variable_mode : 'set'
@@ -589,6 +641,12 @@ function normalizeAction(raw: unknown, rule = false): FieldButtonAction | null {
       break
   }
   if (raw.allow_anonymous === true && isServerRuleAction(out)) out.allow_anonymous = true
+  // A nested List (lib/forms/list-field.ts): the child column (path) and the parent row.
+  if (NESTED_LIST_ACTIONS.has(type) && typeof raw.child === 'string' && CHILD_PATH_RE.test(raw.child.trim())) {
+    out.child = raw.child.trim()
+    const parent = typeof raw.parent_row === 'number' && Number.isInteger(raw.parent_row) ? String(raw.parent_row) : str(raw.parent_row, FIELD_BUTTON_LIMITS.template)
+    if (parent && parent.toLowerCase() !== 'current') out.parent_row = parent
+  }
   if (rule && BRANCHING_ACTIONS.has(type)) {
     const outputs = normalizeOutputs(raw.outputs)
     if (outputs) out.outputs = outputs
@@ -812,6 +870,8 @@ export interface FieldButtonHost {
   emit?(type: string, target: string, context: Record<string, unknown>): void
   /** An editable Data table's rows on screen (key + values): row rules find rows by number / key here. */
   tableRows?(field: string): Array<{ key: string; values: Record<string, unknown> }>
+  /** Open a List row in its pop-out form (open_row_form); false / absent: not on this surface. */
+  openRowForm?(request: RowFormRequest): boolean
 }
 
 const RULE_ROW_LABEL = 'this row step'
@@ -879,7 +939,7 @@ export interface PromptRequest {
 
 /** A message action's display options (undefined: a message saved before banners — the original inline look). */
 export function messageDisplay(action: FieldButtonAction, title?: string): MessageDisplay | undefined {
-  if (!action.style) return undefined
+  if (!action.style || typeof action.style !== 'string') return undefined
   return { style: action.style, ...(title ? { title } : {}), duration: action.duration ?? 'dismiss', ...(action.duration === 'auto' ? { seconds: action.seconds ?? 6 } : {}) }
 }
 
@@ -1138,6 +1198,144 @@ export async function runFieldButton(config: Pick<FieldButtonConfig, 'actions'> 
     return undefined
   }
 
+  /**
+   * Open a List row in its pop-out form (lib/forms/list-row-form.ts): the
+   * current row (else the row of the event), the selected one, a new one
+   * (the columns' defaults, pending "New" — Cancel removes it), first /
+   * last, a number or a template. Read-only Lists open the row to read.
+   */
+  async function openRowFormAction(action: FieldButtonAction, extras: Record<string, unknown>): Promise<string | undefined> {
+    const f = action.field ? host.field?.(action.field) : undefined
+    if (!f || f.type !== 'list' || !f.list) { devNote(`${action.field ?? '(no field)'}: "Open a row in a pop-out form" needs a List`); return 'list_unavailable' }
+    if (!host.openRowForm) { devNote(`${f.label || f.key}: row pop-outs are not available here`); return undefined }
+    const spec = String(await resolve(action.row ?? 'current', values, extras) ?? 'current').trim() || 'current'
+    if (spec.toLowerCase() === 'new') {
+      if (!host.editableKeys.has(f.key)) { devNote(`${f.label || f.key}: a new row needs an editable List`); return 'list_unavailable' }
+      const defaults: Record<string, unknown> = {}
+      for (const [column, template] of Object.entries(columnDefaults(f))) defaults[column] = await resolve(template, values, withDates(extras))
+      const made = newRow(f, values, defaults, 'end')
+      if ('error' in made) { host.message(made.error, 'info'); return 'row_unavailable' }
+      const next = { ...values, ...made.extra, [f.key]: made.value }
+      apply({ [f.key]: made.value, ...made.extra, [ROW_CURRENT_KEY]: withCurrentRow(next, f.key, targetRef(made.target)) })
+      host.emit?.('row_created', f.key, rowEvent(f, made.target))
+      if (pending) { await host.flush(); pending = false }
+      const request = rowFormRequest(f.key, (made.target as { index: number }).index, true)
+      if (request) host.openRowForm(request)
+      return undefined
+    }
+    let targets = resolveRowTargets(f, values, { spec })
+    const event = isPlainObject(extras.event) ? extras.event : {}
+    // "current" with no current row: the row of the event (a row button / click / cell of this List).
+    if (!targets.length && spec.toLowerCase() === 'current' && event.field === f.key && !event.child && typeof event.row_number === 'number') targets = resolveRowTargets(f, values, { spec: String(event.row_number) })
+    if (!targets.length) {
+      if (spec.toLowerCase() === 'selected' || action.empty_text) { host.message(action.empty_text ? interpolateButtonText(action.empty_text, { values, extras }) : 'Select a row first', 'info'); return 'selection_empty' }
+      devNote(`${f.label || f.key}: no row to open (${spec})`)
+      return undefined
+    }
+    const target = targets[0]
+    if (target.kind !== 'list') return undefined
+    if (pending) { await host.flush(); pending = false }
+    const request = rowFormRequest(f.key, target.index)
+    if (request) host.openRowForm(request)
+    return undefined
+  }
+
+  /**
+   * The parent rows (0-based, one index per level) a nested List step aims
+   * at: `parent_row` resolved, one spec per level (dotted); a missing level
+   * is 'current' — the level's current row (New row), else its editing row,
+   * else the row of the event (a row button / cell of that List).
+   */
+  async function nestedParents(action: FieldButtonAction, listKey: string, steps: string[], extras: Record<string, unknown>): Promise<number[][] | 'empty'> {
+    const raw = await resolve(action.parent_row ?? 'current', values, extras)
+    const specs = String(raw ?? 'current').split('.').map((p) => p.trim() || 'current')
+    const event = isPlainObject(extras.event) ? extras.event : {}
+    let paths: number[][] = [[]]
+    for (let level = 0; level < steps.length; level++) {
+      const next: number[][] = []
+      for (const path of paths) {
+        const key = level === 0 ? listKey : nestedListKey(listKey, path, steps.slice(0, level))
+        const count = level === 0 ? rawListRows(values[listKey]).length : nestedRowsIn(values[listKey], path, steps.slice(0, level)).length
+        const spec = (specs[level] ?? 'current').toLowerCase()
+        let picked: number[] = []
+        if (spec === 'selected') {
+          picked = listSelection(values, key).filter((i) => i < count)
+          if (!picked.length) { host.message(action.empty_text ? interpolateButtonText(action.empty_text, { values, extras }) : 'Select a row first', 'info'); return 'empty' }
+        } else if (spec === 'current') {
+          const at = currentRowRef(values, key)
+          const fromEvent = (() => {
+            // The event's row: a nested row's event names its parent rows (event.parent_path); the List's own row events their row.
+            const parentPath = Array.isArray(event.parent_path) ? event.parent_path : null
+            if (event.field === listKey && parentPath && typeof parentPath[level] === 'number') return (parentPath[level] as number) - 1
+            if (event.field === listKey && level === 0 && !event.child && typeof event.row_number === 'number') return event.row_number - 1
+            return null
+          })()
+          const index = at && 'index' in at ? at.index : listEditingRow(values, key) ?? fromEvent
+          if (index !== null && index >= 0 && index < count) picked = [index]
+        } else {
+          const at = listRowIndex(spec, count)
+          if (at !== null) picked = [at]
+        }
+        for (const i of picked) next.push([...path, i])
+      }
+      paths = next
+    }
+    return paths
+  }
+
+  /**
+   * A List step on a nested List (`child` / `parent_row`): the step runs as
+   * it would on a List — the nested List of each parent row standing in for
+   * the field, under its own key (nestedListKey) — and the rows it leaves go
+   * back into the parent row. {{row.*}} = the nested row, {{parent.*}} = its
+   * parent row; the events it causes name the List (event.child, event.parent,
+   * event.parent_row_number). True: the run ended.
+   */
+  async function nestedListAction(action: FieldButtonAction, index: number, branch: ActionBranch | undefined, extras: Record<string, unknown>, at: { index: number; response: string } | null): Promise<boolean | string | undefined> {
+    const listKey = action.list_field ?? action.field ?? ''
+    const top = listKey ? host.field?.(listKey) : undefined
+    // Opening a row to read it works on a read-only List too.
+    if (!top?.list || top.type !== 'list' || (action.type !== 'open_row_form' && !host.editableKeys.has(listKey))) return 'list_unavailable'
+    const steps = String(action.child).split('.')
+    const nested = childListAt(top.list, steps)
+    if (!nested) { devNote(`${top.label}: "${action.child}" is not a nested list of it`); return 'list_unavailable' }
+    const parents = await nestedParents(action, listKey, steps, extras)
+    if (parents === 'empty') return 'selection_empty'
+    if (!parents.length) { devNote(`${top.label}: no parent row for ${action.child} (${action.parent_row ?? 'current'}) — choose one with "Parent row"`); return action.empty_text ? (host.message(interpolateButtonText(action.empty_text, { values, extras }), 'info'), 'selection_empty') : undefined }
+    const label = nested.columns[nested.columns.length - 1].label
+    for (const path of parents) {
+      const key = nestedListKey(listKey, path, steps)
+      const parentRows = path.length > 1 ? nestedRowsIn(values[listKey], path.slice(0, -1), steps.slice(0, -1)) : rawListRows(values[listKey])
+      const parent = stripRowMarkers(parentRows[path[path.length - 1]] ?? {})
+      const virtual = { key, label: `${label} (${top.label} row ${path.map((i) => i + 1).join('.')})`, type: 'list', list: nested.config }
+      const eventExtra = { field: listKey, child: action.child, parent, parent_row_number: path[path.length - 1] + 1, parent_path: path.map((i) => i + 1) }
+      const proxy: FieldButtonHost = {
+        ...host,
+        values: () => ({ ...values, [key]: nestedRowsIn(values[listKey], path, steps) }),
+        setValues: (patch) => {
+          const out: Record<string, unknown> = {}
+          for (const [k, v] of Object.entries(patch)) if (k !== key) out[k] = v
+          if (Object.prototype.hasOwnProperty.call(patch, key)) out[listKey] = withNestedRows(values[listKey], path, steps, patch[key])
+          apply(out)
+        },
+        field: (k) => (k === key ? virtual : host.field?.(k)),
+        editableKeys: new Set([...host.editableKeys, key]),
+        emit: host.emit ? (type, target, context) => host.emit!(type, target === key ? listKey : target, target === key ? { ...context, ...eventExtra } : context) : undefined,
+        // A step's own server steps (on success / failure) are found by the step's place in the rule.
+        runExtra: host.runExtra ? (_i, a, v, b, e) => host.runExtra!(index, a, v, b ?? branch, e) : undefined,
+      }
+      const scoped: FieldButtonAction = { ...action, child: undefined, parent_row: undefined, ...(action.list_field ? { list_field: key } : {}), ...(action.field ? { field: key } : {}) }
+      // Inside a question's response, a step has no branches of its own.
+      if (at) { delete scoped.on_success; delete scoped.on_failure }
+      const inner = await runFieldButton({ actions: [scoped] }, proxy, { extras: { ...extras, parent, parent_row_number: eventExtra.parent_row_number }, resolve })
+      run.ran.push(...inner.ran.filter((t) => t !== action.type))
+      if (inner.answers?.length) run.answers = [...(run.answers ?? []), ...inner.answers]
+      if (inner.blocked?.length) run.blocked = [...(run.blocked ?? []), ...inner.blocked]
+      if (inner.stopped) return inner.stopped
+    }
+    return undefined
+  }
+
   /** Run a list; true = the run ended (stopped, or a submit took over). `at`: the question a response's list belongs to. */
   async function runList(actions: FieldButtonAction[], at: { index: number; response: string } | null, extras: Record<string, unknown> = baseExtras): Promise<boolean> {
     for (const [i, action] of actions.entries()) {
@@ -1145,6 +1343,13 @@ export async function runFieldButton(config: Pick<FieldButtonConfig, 'actions'> 
       const branch: ActionBranch | undefined = at ? { response: at.response, index: i } : undefined
       if (pending && NEEDS_FLUSH.has(action.type)) { await host.flush(); pending = false }
       const stop = (reason: string) => { run.ran.push(action.type); run.stopped = reason; return true }
+      // A List step on a nested List (`child`): run on the nested List of the parent row(s).
+      if (action.child && NESTED_LIST_ACTIONS.has(action.type)) {
+        const outcome = await nestedListAction(action, index, branch, extras, at)
+        if (typeof outcome === 'string') return stop(outcome)
+        run.ran.push(action.type)
+        continue
+      }
       switch (action.type) {
         case 'show_hide':
           state = applyVisibility(state, action.mode === 'show' || action.mode === 'hide' ? action.mode : 'toggle', action.targets ?? [])
@@ -1215,7 +1420,7 @@ export async function runFieldButton(config: Pick<FieldButtonConfig, 'actions'> 
           }
           const draft: Record<string, unknown> = {}
           for (const [column, template] of Object.entries(action.values ?? {})) draft[column] = await resolve(template, values, extras)
-          const problems = listRowErrors(config, draft)
+          const problems = listRowErrors(config, draft, { form: values, user: (extras?.user as Record<string, unknown> | null | undefined) ?? null })
           if (Object.keys(problems).length) {
             let shown = false
             for (const [column, text] of Object.entries(problems)) {
@@ -1322,7 +1527,7 @@ export async function runFieldButton(config: Pick<FieldButtonConfig, 'actions'> 
             }
             if (skipped.length) devNote(`${list.label} row ${at + 1}: read-only column(s) ${skipped.join(', ')} left as they are`)
             const merged = { ...rows[at], ...patch }
-            const problems = listRowErrors(list.list, merged)
+            const problems = listRowErrors(list.list, merged, { form: values, user: (extras?.user as Record<string, unknown> | null | undefined) ?? null })
             if (Object.keys(problems).length) { host.message(`Row ${at + 1}: ${Object.values(problems)[0]}`, 'info'); return stop('row_invalid') }
             next[at] = coerceListRow(list.list, merged)
           }
@@ -1376,6 +1581,11 @@ export async function runFieldButton(config: Pick<FieldButtonConfig, 'actions'> 
           if (outcome === 'ended') return true
           if (typeof outcome === 'string') return stop(outcome)
           if (outcome === 'branched') continue
+          break
+        }
+        case 'open_row_form': {
+          const outcome = await openRowFormAction(action, extras)
+          if (typeof outcome === 'string') return stop(outcome)
           break
         }
         case 'set_variable': {

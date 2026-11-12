@@ -5539,6 +5539,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "description": "per_view (default): one form per InfoPath view, \"<Form> — <View>\"; combined: one form with each view as a step"
         },
         {
+          "name": "pages",
+          "type": "string",
+          "required": false,
+          "description": "With mode combined: the views as steps (default) or as tabs"
+        },
+        {
           "name": "views",
           "required": false,
           "description": "Views to import (names; default all)"

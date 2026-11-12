@@ -11,10 +11,15 @@ import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { useJobs } from '@/components/jobs/jobs-provider'
 import { serverRead } from '@/lib/server-read'
 import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
-import { listStagingKeys } from '@/lib/forms/form-rules'
-import { formatFieldValue } from './form-renderer'
+import { flatFieldStyles, listStagingKeys } from '@/lib/forms/form-rules'
+import { ToneIcon } from '@/components/forms/conditional-style'
+import { styleAttributes } from '@/lib/forms/conditional-style'
+import { RepeatingSectionValueView, formatFieldValue } from './form-renderer'
 import { lookupDisplayValue } from './lookup-field'
 import { AttachmentList } from './attachments-field'
+import { ImageValueView } from './image-field'
+import { SignatureView } from './signature-field'
+import { ControlValueView, hasControlValueView } from './control-values'
 import { lookupItemKey } from '@/lib/forms/lookup'
 import { isSectionIncluded, layoutSections, sectionFieldKeys } from '@/lib/forms/sections'
 import { formatRelativeDate } from '@/lib/utils'
@@ -64,6 +69,8 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
   // Sections (lib/forms/sections.ts): the detail shows each one's title; one left out shows "Not included".
   const sections = layoutSections(full?.layout)
   const sectionByField = new Map(sections.flatMap((s) => sectionFieldKeys(full?.layout, s.key).map((k) => [k, s] as const)))
+  // Conditional styling (Always rules' set_style): judged from the submitted values.
+  const fieldStyles = selected ? flatFieldStyles(full?.layout, normalizeTaskFields(full?.fields ?? form?.fields ?? []), selected.values ?? {}) : null
   const rows = (data?.submissions ?? []) as any[]
   const total = data?.total ?? 0
 
@@ -114,8 +121,8 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
                       </p>
                     )}
                     {included && (<>
-                    <dt className="text-fg-muted">{f.label}</dt>
-                    <dd className="break-words">{f.type === 'data_table' ? <DataTableValueView field={f} value={selected.values?.[f.key]} /> : f.type === 'list' ? <ListValueView field={f} value={selected.values?.[f.key]} narrow /> : f.type === 'attachments' ? <AttachmentList value={selected.values?.[f.key]} /> : f.type === 'lookup' ? lookupDisplayValue(f, selected.values?.[f.key], selected.values?.[lookupItemKey(f.key)], selected.values?.[`${f.key}_label`]) : formatFieldValue(f, selected.values?.[f.key])}</dd>
+                    <dt className="text-fg-muted">{fieldStyles?.get(f.key)?.icon && <ToneIcon tone={fieldStyles.get(f.key)!.tone ?? 'neutral'} size={12} className="mr-1 align-[-2px]" />}{f.label}</dt>
+                    <dd className="break-words" {...styleAttributes(fieldStyles?.get(f.key))} {...(fieldStyles?.get(f.key) ? { 'data-cs-box': '' } : {})}>{f.type === 'data_table' ? <DataTableValueView field={f} value={selected.values?.[f.key]} /> : f.type === 'list' ? <ListValueView field={f} value={selected.values?.[f.key]} narrow formValues={selected.values ?? {}} /> : f.type === 'repeating_section' ? <RepeatingSectionValueView field={f} value={selected.values?.[f.key]} formValues={selected.values ?? {}} /> : f.type === 'attachments' ? <AttachmentList value={selected.values?.[f.key]} /> : f.type === 'image' ? <ImageValueView value={selected.values?.[f.key]} label={f.label} /> : f.type === 'signature' ? <SignatureView value={selected.values?.[f.key]} /> : hasControlValueView(f) ? <ControlValueView field={f} value={selected.values?.[f.key]} values={selected.values} /> : f.type === 'lookup' ? lookupDisplayValue(f, selected.values?.[f.key], selected.values?.[lookupItemKey(f.key)], selected.values?.[`${f.key}_label`]) : formatFieldValue(f, selected.values?.[f.key])}</dd>
                     </>)}
                   </div>
                   )

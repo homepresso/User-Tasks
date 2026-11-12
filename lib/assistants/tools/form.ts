@@ -33,7 +33,7 @@ export function formTools(snapshot: FormSnapshot | null, options: { canEdit: boo
         return {
           result: {
             errors: visible.filter((f) => f.error).map((f) => ({ key: f.key, label: f.label, error: f.error })),
-            required_empty: visible.filter((f) => f.required && empty(f.value) && !['heading', 'divider', 'button', 'label'].includes(f.type)).map((f) => ({ key: f.key, label: f.label })),
+            required_empty: visible.filter((f) => f.required && empty(f.value) && !['heading', 'divider', 'button', 'display_image', 'label'].includes(f.type)).map((f) => ({ key: f.key, label: f.label })),
           },
         }
       },

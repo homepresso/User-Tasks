@@ -68,7 +68,7 @@ async function main() {
   record('bundle.sh load', host(`cd ${dir} && ./bundle.sh load`, { allowFail: true }).status === 0)
   record('bundle.sh up (on-premises Compose profile, OpenBao KMS)', host(`cd ${dir} && ./bundle.sh up`, { allowFail: true }).status === 0)
   record('bundle.sh smoke', host(`cd ${dir} && ./bundle.sh smoke`, { allowFail: true }).status === 0)
-  const cli = host(`docker run --rm --network none -v ${dir}/npm:/npm:ro node:22-alpine sh -c 'npm install -g --offline --no-audit --no-fund /npm/usertasks-cli-*.tgz >/dev/null && usertasks --version'`, { allowFail: true })
+  const cli = host(`docker run --rm --network none -v ${dir}/npm:/npm:ro node:22-alpine sh -c 'npm install -g --offline --no-audit --no-fund /npm/user-tasks-cli-*.tgz >/dev/null && usertasks --version'`, { allowFail: true })
   record('CLI installs from npm/ with no network (npm install -g)', cli.status === 0)
 }
 

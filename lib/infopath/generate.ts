@@ -46,6 +46,7 @@ import { walkControls } from './analyze'
 import { schemaNodes } from './schema'
 import { humanize } from './view'
 import { expressionPaths, localOf, resolveBinding, toCondition, toExpression, type Ref, type TranslateEnv } from './xpath'
+import type { CellFormat } from '@/lib/formatting/cell-format'
 import type { InfoPathModel, IpControl, IpDataConnection, IpRule, IpRuleAction, IpSchemaNode, IpView, IpViewItem } from './model'
 
 /* ── Options and output ───────────────────────────────────────────────── */
@@ -56,6 +57,8 @@ export interface GenerateOptions {
   mode?: ImportMode
   /** Views to convert (names); default all that are shown in InfoPath's View menu (hidden print views too when listed). */
   views?: string[]
+  /** Combined mode: the views as steps (default) or as tabs. */
+  pages?: 'steps' | 'tabs'
   /** Base name (default the form's title / file name). */
   name?: string
   /** Extra tag (the form name, lower-cased, is always added, with "infopath"). */
@@ -195,6 +198,68 @@ export function negateText(test: string): string {
   return `not(${test})`
 }
 
+/** The tone a CSS colour is closest to (theme tones, never raw colours). */
+function toneOf(css: string): { tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'accent'; hex: string } | null {
+  const named: Record<string, string> = { red: '#ff0000', green: '#008000', blue: '#0000ff', orange: '#ffa500', yellow: '#ffff00', purple: '#800080', gray: '#808080', grey: '#808080', black: '#000000', white: '#ffffff', maroon: '#800000', navy: '#000080', teal: '#008080', olive: '#808000', lime: '#00ff00', fuchsia: '#ff00ff', silver: '#c0c0c0' }
+  let hex = css.trim().toLowerCase()
+  if (named[hex]) hex = named[hex]
+  const rgb = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(hex)
+  if (rgb) hex = `#${[rgb[1], rgb[2], rgb[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`
+  if (/^#[0-9a-f]{3}$/.test(hex)) hex = `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
+  if (!/^#[0-9a-f]{6}$/.test(hex)) return null
+  const r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255, bl = parseInt(hex.slice(5, 7), 16) / 255
+  const max = Math.max(r, g, bl), min = Math.min(r, g, bl), d = max - min
+  if (d < 0.12) return { tone: 'neutral', hex }
+  let h = max === r ? ((g - bl) / d) % 6 : max === g ? (bl - r) / d + 2 : (r - g) / d + 4
+  h = (h * 60 + 360) % 360
+  const tone = h < 20 || h >= 330 ? 'danger' : h < 65 ? 'warning' : h < 170 ? 'success' : h < 255 ? 'info' : 'accent'
+  return { tone, hex }
+}
+
+/** InfoPath conditional formatting CSS → set_style tokens (null when nothing maps); a note when a colour was snapped to a tone. */
+export function styleFromCss(css: string): { style: Record<string, unknown>; note?: string } | null {
+  const decl = new Map<string, string>()
+  for (const part of css.split(';')) {
+    const i = part.indexOf(':')
+    if (i > 0) decl.set(part.slice(0, i).trim().toLowerCase(), part.slice(i + 1).trim().toLowerCase())
+  }
+  const style: Record<string, unknown> = {}
+  const notes: string[] = []
+  const color = decl.get('color')
+  const bg = decl.get('background-color') ?? decl.get('background')
+  const ct = color ? toneOf(color) : null
+  const bt = bg ? toneOf(bg) : null
+  if (ct && ct.hex === '#ffffff' && !bt) {
+    // White text on the white form: InfoPath's way of hiding a value. Shown muted instead.
+    style.tone = 'neutral'
+    style.text = true
+    notes.push('white text (a hidden value in InfoPath) shown muted — make it a hide rule if it should disappear')
+  } else {
+    if (ct) { style.tone = ct.tone; style.text = true; if (ct.tone !== 'neutral') notes.push(`text colour ${ct.hex} → ${ct.tone} tone`) }
+    if (bt && bt.hex !== '#ffffff') { style.tone = style.tone ?? bt.tone; style.background = true; notes.push(`shading ${bt.hex} → ${bt.tone} tint`) }
+  }
+  const weight = decl.get('font-weight')
+  if (weight && (weight === 'bold' || Number(weight) >= 600)) style.bold = true
+  if (decl.get('font-style') === 'italic') style.italic = true
+  const deco = `${decl.get('text-decoration') ?? ''}`
+  if (deco.includes('underline')) style.underline = true
+  if (deco.includes('line-through')) style.strike = true
+  if (decl.get('border') || decl.get('border-color')) { style.border = true; style.tone = style.tone ?? (toneOf(decl.get('border-color') ?? '')?.tone ?? 'neutral') }
+  if (style.tone && style.tone !== 'neutral') style.icon = true
+  if (!Object.keys(style).length) return null
+  return { style, ...(notes.length ? { note: `${notes.join('; ')} (theme tones, not exact colours)` } : {}) }
+}
+
+/** A base64 image (template.xml picture defaults) → its type, or null. */
+function imageFromBase64(text: string): { mime: string; ext: string; base64: string; size: number } | null {
+  const clean = text.replace(/\s+/g, '')
+  if (clean.length < 40 || clean.length > 700_000 || !/^[A-Za-z0-9+/]+=*$/.test(clean)) return null
+  const head = Buffer.from(clean.slice(0, 24), 'base64')
+  const mime = head[0] === 0x89 && head[1] === 0x50 ? 'image/png' : head[0] === 0xff && head[1] === 0xd8 ? 'image/jpeg' : head.subarray(0, 3).toString('latin1') === 'GIF' ? 'image/gif' : ''
+  if (!mime) return null
+  return { mime, ext: mime === 'image/jpeg' ? 'jpg' : mime.slice(6), base64: clean, size: Math.floor(clean.length * 3 / 4) }
+}
+
 function isSimpleLiteral(expr: string): string | null {
   const m = /^\s*(?:"([^"]*)"|'([^']*)'|(-?\d+(?:\.\d+)?))\s*$/.exec(expr)
   return m ? (m[1] ?? m[2] ?? m[3]) : null
@@ -209,7 +274,7 @@ interface FormBuild {
   /** Path (lower-case) → key, for fields placed on this form. */
   placed: Map<string, string>
   /** Lists on this form: list path → key; the List config. */
-  lists: Map<string, { key: string; config: ListFieldConfig; path: string }>
+  lists: Map<string, { key: string; config: ListFieldConfig; path: string; cols?: Map<string, string> }>
   rules: FormRule[]
   sections: FormSection[]
   hidden: string[]
@@ -218,6 +283,14 @@ interface FormBuild {
   buttonKeys: Map<string, string>
   pages?: FormPage[]
   rows: FormRow[]
+  /** Expression boxes, translated after the view is read. */
+  pendingExpr: Array<() => void>
+  /** Choice groups (InfoPath choice sections): one of several alternative sections shows. */
+  choiceGroups: Array<{ key: string; label: string; sections: string[]; display?: 'radio' | 'tabs' | 'dropdown' }>
+  /** A repeating section's item: its node (absolute path), nesting level and the form around it. */
+  itemPath?: string
+  depth?: number
+  parent?: FormBuild
 }
 
 export function generateForms(model: InfoPathModel, options: GenerateOptions = {}): GenerateResult {
@@ -269,12 +342,12 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
         else if (t === 'time' || fmt === 'time') { base.type = 'text'; base.pattern = TIME_PATTERN; base.pattern_message = 'Enter a time as HH:MM'; base.placeholder ??= 'HH:MM' }
         else if (t === 'boolean') base.type = 'boolean'
         else if (t === 'anyURI') base.type = 'url'
-        else if (t === 'xhtml') base.type = 'textarea'
+        else if (t === 'xhtml') { base.type = 'rich_text'; (base as unknown as Record<string, unknown>).rich_text = { toolbar: 'basic' } }
         else if (/e-?mail/i.test(`${label} ${c.path ?? ''}`) && !node?.pattern) base.type = 'email'
         else if (/textarea/i.test(c.xctname)) base.type = 'textarea'
         break
       }
-      case 'richtext': base.type = 'textarea'; break
+      case 'richtext': base.type = 'rich_text'; (base as unknown as Record<string, unknown>).rich_text = { toolbar: 'full' }; break
       case 'date': base.type = t === 'dateTime' ? 'datetime' : 'date'; break
       case 'datetime': base.type = 'datetime'; break
       case 'time': base.type = 'text'; base.pattern = TIME_PATTERN; base.pattern_message = 'Enter a time as HH:MM'; base.placeholder ??= 'HH:MM'; break
@@ -296,6 +369,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
           break
         }
         base.type = c.kind === 'multiselect' ? 'multi_choice' : 'choice'
+        if (c.kind === 'multiselect' || (c.kind === 'listbox' && base.type === 'multi_choice')) base.display = 'listbox' as TaskFieldDef['display']
         base.options = opts.map((o) => o.value).slice(0, 200)
         const labels = Object.fromEntries(opts.filter((o) => o.label && o.label !== o.value).map((o) => [o.value, clip(o.label, 200)]))
         if (Object.keys(labels).length) base.option_labels = labels
@@ -310,12 +384,31 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
         break
       }
       case 'attachment': base.type = 'attachments'; base.attachments = { max_files: 1 } as TaskFieldDef['attachments']; break
-      case 'people': base.type = 'user'; break
-      case 'hyperlink': base.type = 'url'; break
+      case 'people':
+        // The SharePoint people picker takes several people by default.
+        base.type = 'user'
+        ;(base as unknown as Record<string, unknown>).user_config = { multiple: true }
+        break
+      case 'hyperlink': base.type = 'url'; (base as unknown as Record<string, unknown>).url_config = { new_tab: true }; break
       case 'bulleted_list':
-        base.type = 'textarea'
-        base.help_text = 'One item per line (was a bulleted list).'
-        report({ area: 'field', id: c.id, view: view.name, name: label, status: 'partial', detail: 'A bulleted list became a long text field (one item per line).' })
+        base.type = 'text_list'
+        ;(base as unknown as Record<string, unknown>).text_list = { style: c.list_style ?? 'bulleted' }
+        break
+      case 'picture': {
+        // A picture control: the person adds a picture. A picture stored in template.xml (base64) becomes its default.
+        base.type = 'image'
+        const img: Record<string, unknown> = { camera: true }
+        const raw = c.path ? model.defaults[c.path] : undefined
+        const data = raw ? imageFromBase64(raw) : null
+        if (data) img.default_file = { name: `${key}.${data.ext}`, url: `data:${data.mime};base64,${data.base64}`, mime_type: data.mime, size: data.size }
+        ;(base as unknown as Record<string, unknown>).image = img
+        break
+      }
+      case 'signature': case 'ink':
+        // A signature line or an ink picture: an electronic signature (drawn, or typed).
+        base.type = 'signature'
+        ;(base as unknown as Record<string, unknown>).signature = { mode: c.kind === 'ink' ? 'draw' : 'both' }
+        report({ area: 'field', id: c.id, view: view.name, name: label, status: 'converted', detail: `${c.kind === 'ink' ? 'Ink picture' : 'Signature line'} → Signature field (an electronic signature: drawn or typed, with the signer and time).` })
         break
       default:
         return null
@@ -375,7 +468,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
 
   const sourceOf = (view: string | null): FormSourceInfo => ({ kind: 'infopath', file_name: model.file_name, hash: model.hash, mode, imported_at: now, ...(view ? { view } : {}) })
 
-  const newBuild = (view: string | null): FormBuild => ({ view, fields: [], byKey: new Map(), placed: new Map(), lists: new Map(), rules: [], sections: [], hidden: [], support: new Set(), buttonKeys: new Map(), rows: [] })
+  const newBuild = (view: string | null): FormBuild => ({ view, fields: [], byKey: new Map(), placed: new Map(), lists: new Map(), rules: [], sections: [], hidden: [], support: new Set(), buttonKeys: new Map(), rows: [], choiceGroups: [], pendingExpr: [] })
 
   const addField = (b: FormBuild, f: TaskFieldDef) => { b.fields.push(f); b.byKey.set(f.key, f) }
 
@@ -436,8 +529,21 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     const nested = Boolean(outer)
     if (!nested && b.sections.length < 40) {
       sectionKey = uniqueSectionKey(b, title)
-      const s: FormSection = { key: sectionKey, title: clip(title, 120), ...(c.kind === 'optional_section' ? { optional: true } : {}) }
+      const s: FormSection = { key: sectionKey, title: clip(title, 120), ...(c.kind === 'optional_section' && !c.choice_group ? { optional: true } : {}) }
       b.sections.push(s)
+      if (c.choice_group) {
+        // An alternative of an InfoPath choice group: one of the group's sections shows at a time.
+        let group = b.choiceGroups.find((g) => (g as { id?: string }).id === c.choice_group)
+        if (!group) {
+          let gkey = uniqueSectionKey(b, `choice_${title}`).slice(0, 40)
+          while (b.byKey.has(gkey)) gkey = `${gkey}_g`
+          group = { key: gkey, label: 'Choose one', sections: [], display: 'radio' }
+          ;(group as { id?: string }).id = c.choice_group
+          b.choiceGroups.push(group)
+          report({ area: 'view', id: `cg:${c.choice_group}`, view: view.name, name: 'Choice group', status: 'converted', detail: 'An InfoPath choice group → a choice group: one of its sections shows at a time, picked with a switch.' })
+        }
+        if (group.sections.length < 6) group.sections.push(sectionKey)
+      }
     } else if (nested) {
       report({ area: 'view', id: c.id, view: view.name, name: title, status: 'partial', detail: 'A section inside a section: its fields were placed in the outer section (UserTasks nests sections one level).' })
     }
@@ -475,25 +581,30 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       if (literal !== undefined && literal !== null) {
         field.default = literal
       } else {
-        const r = toExpression(stripFormatting(expr), env(b, c.context ?? ''))
-        if (r.ok) {
-          field.label_config = { expression: r.value }
-          report({ area: 'calculation', id: c.id, view: view.name, name: label || 'Expression box', status: 'converted', detail: `Label with the expression ${clip(r.value, 160)}${r.notes.length ? ` (${r.notes.join('; ')})` : ''}`, original: expr })
-        } else {
-          field.help_text = clip(`InfoPath expression (not converted): ${expr}`, 300)
-          report({ area: 'calculation', id: c.id, view: view.name, name: label || 'Expression box', status: 'manual', detail: `Expression box not converted: it ${r.reason}. Kept as an empty Label.`, original: expr })
-        }
+        // Translated once the whole view is read (it may sum a repeating table further down).
+        b.pendingExpr.push(() => {
+          const r = toExpression(stripFormatting(expr), env(b, c.context ?? ''))
+          if (r.ok) {
+            const format = labelFormatFromInfoPath(expr, c.format, c.format_options, currency)
+            field.label_config = { expression: r.value, ...(format ? { format } : {}) }
+            report({ area: 'calculation', id: c.id, view: view.name, name: label || 'Expression box', status: 'converted', detail: `Label with the expression ${clip(r.value, 160)}${r.notes.length ? ` (${r.notes.join('; ')})` : ''}`, original: expr })
+          } else {
+            field.help_text = clip(`InfoPath expression (not converted): ${expr}`, 300)
+            report({ area: 'calculation', id: c.id, view: view.name, name: label || 'Expression box', status: 'manual', detail: `Expression box not converted: it ${r.reason}. Kept as an empty Label.`, original: expr })
+          }
+        })
       }
       addField(b, field)
       for (const f of c.formatting) applyFormatting(b, view, c, label, f, [`field:${key}`])
       return key
     }
+    if (c.kind === 'static_image') return convertStaticImage(b, view, c)
     if (!c.path) {
       report({ area: 'field', id: c.id, view: view.name, name: label || c.kind, status: 'skipped', detail: `A ${c.kind} control without a binding was skipped.` })
       return null
     }
-    if (['picture', 'ink', 'signature', 'activex', 'unknown'].includes(c.kind)) {
-      report({ area: 'field', id: c.id, view: view.name, name: label || c.kind, status: 'skipped', detail: `${c.kind === 'signature' ? 'Signature line' : c.kind === 'ink' ? 'Ink picture' : c.kind === 'picture' ? 'Picture control' : `Control "${c.xctname}"`} has no UserTasks equivalent${c.kind === 'picture' ? ' (use an Attachments field for uploaded images)' : ''}.` })
+    if (['activex', 'unknown'].includes(c.kind)) {
+      report({ area: 'field', id: c.id, view: view.name, name: label || c.kind, status: 'skipped', detail: `Control "${c.xctname}" has no UserTasks equivalent.` })
       return null
     }
     const pathKey = c.path.toLowerCase()
@@ -514,11 +625,115 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     return key
   }
 
+  /** A picture placed in the view → a display image (embedded as a data URL; the importer stores it as a form image). */
+  const convertStaticImage = (b: FormBuild, view: IpView, c: IpControl): string | null => {
+    const file = (c.src ?? '').toLowerCase()
+    const img = model.images[file]
+    if (!img) return null
+    if (img.size < 400) return null // spacers and rules (1-pixel GIFs)
+    if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(img.mime) || img.size > 512 * 1024) {
+      report({ area: 'field', id: c.id, view: view.name, name: c.src ?? 'Picture', status: 'manual', detail: `A ${img.mime.replace('image/', '').toUpperCase()} picture of ${Math.round(img.size / 1024)} KB was not added: add it again as a Display image (PNG, JPEG, GIF or WebP, up to 2 MB).` })
+      return null
+    }
+    const alt = cleanLabel(c.alt) || humanize(`/${(c.src ?? 'picture').replace(/\.[^.]+$/, '')}`) || 'Picture'
+    const key = keys.extra(`picture_${(c.src ?? 'image').replace(/\.[^.]+$/, '')}`.slice(0, 40))
+    addField(b, { key, label: alt, type: 'display_image', display_image: { src: `data:${img.mime};base64,${img.base64}`, alt, width: 'md', align: 'left' } } as unknown as TaskFieldDef)
+    report({ area: 'field', id: c.id, view: view.name, name: alt, status: 'converted', detail: `Picture in the view → Display image (stored with the form). Check its alt text: "${alt}".` })
+    return key
+  }
+
   const stripFormatting = (expr: string) => {
     // xdFormatting:formatString(x, "date", "…") → x
     const m = /^\s*xdFormatting:formatString\(\s*([^,]+),[\s\S]*\)\s*$/.exec(expr)
     return m ? m[1] : expr
   }
+
+  /** A repeating section (cards of any controls) → a Repeating section field; nested ones inside it, up to 3 levels. */
+  const convertRepeating = (b: FormBuild, view: IpView, c: IpControl, depth: number): string | null => {
+    const path = c.path!
+    const title = cleanLabel(c.label || c.title || c.caption || humanize(path)) || 'Items'
+    if (depth > 3) {
+      report({ area: 'repeating', id: c.id, view: view.name, name: title, status: 'manual', detail: 'A repeating section nested deeper than 3 levels: move it up a level, or use a child data table.' })
+      return null
+    }
+    const key = keys.key(path, c.label || c.title || c.caption, true)
+    const inner: FormBuild = { ...newBuild(b.view), itemPath: path, depth, parent: b }
+    convertItems(inner, view, c.children ?? [], inner.rows, null, 0)
+    for (const run of inner.pendingExpr.splice(0)) run()
+    // Signatures are not stamped inside items: they become a note.
+    const signatures = inner.fields.filter((f) => f.type === 'signature')
+    for (const f of signatures) {
+      report({ area: 'field', id: `${c.id}:${f.key}`, view: view.name, name: f.label, status: 'manual', detail: 'A signature inside a repeating section: UserTasks signs the whole form, not each item. Add one Signature field outside the section.' })
+    }
+    inner.fields = inner.fields.filter((f) => f.type !== 'signature')
+    const keep = new Set(inner.fields.map((f) => f.key))
+    inner.rows = inner.rows.map((r) => ({ ...r, cells: r.cells.filter((x) => keep.has(x.field_key)) })).filter((r) => r.cells.length)
+    if (!inner.fields.length) {
+      report({ area: 'repeating', id: c.id, view: view.name, name: title, status: 'manual', detail: 'A repeating section with no controls UserTasks could make.' })
+      return null
+    }
+    // Item-level validation and calculations (paths inside the item).
+    convertItemLogic(inner, view, path)
+    const singular = title.replace(/ies$/i, 'y').replace(/s$/i, '') || 'item'
+    const firstText = inner.fields.find((f) => ['text', 'choice', 'email'].includes(f.type))
+    const config: Record<string, unknown> = {
+      fields: inner.fields,
+      layout: { rows: inner.rows, ...(inner.sections.length ? { sections: inner.sections } : {}), ...(inner.rules.length ? { rules: inner.rules.slice(0, FORM_RULE_LIMITS.rules) } : {}) },
+      add_label: clip(`Add ${singular.toLowerCase()}`, 60),
+      item_title: clip(`${singular} {{index}}${firstText ? `: {{item.${firstText.key}}}` : ''}`, 120),
+      start_items: 1,
+    }
+    const totals = inner.fields.filter((f) => f.type === 'currency').map((f) => ({ field: f.key, fn: 'sum' }))
+    if (totals.length) config.totals = totals.slice(0, 5)
+    const field = { key, label: clip(title, 200), type: 'repeating_section', repeating_section: config } as unknown as TaskFieldDef
+    addField(b, field)
+    const cols = new Map([...inner.placed.entries()])
+    b.lists.set(path.toLowerCase(), { key, config: { columns: inner.fields.map((f) => ({ key: f.key, label: f.label, type: 'text' })) } as unknown as ListFieldConfig, path, cols })
+    for (const [k, v] of inner.placed) if (!b.placed.has(k)) b.placed.set(k, v) // keys are unique form-wide
+    report({ area: 'repeating', id: c.id, view: view.name, name: title, status: 'converted', detail: `Repeating section (a card per item) with ${inner.fields.length} control${inner.fields.length === 1 ? '' : 's'}${inner.rules.length ? ` and ${inner.rules.length} rule${inner.rules.length === 1 ? '' : 's'} per item` : ''}; its layout kept.` })
+    if (c.show_if) visibilityRule(b, view, c.id, title, negateText(c.show_if), c.context ?? '', [`field:${key}`], 'hide', 'show condition (xsl:if)')
+    for (const f of c.formatting) applyFormatting(b, view, c, title, f, [`field:${key}`])
+    return key
+  }
+
+  /** Validation and calculations on an item's own controls → the item's rules (and Labels). */
+  const convertItemLogic = (inner: FormBuild, view: IpView, itemPath: string) => {
+    const prefix = `${itemPath.toLowerCase()}/`
+    for (const v of model.manifest.validations) {
+      if (!v.path.toLowerCase().startsWith(prefix)) continue
+      const own = inner.placed.get(v.path.toLowerCase())
+      if (!own) continue
+      if (v.kind === 'blank') { const f = inner.byKey.get(own); if (f) f.required = true; itemStatus.set(v.id, 'converted'); continue }
+      const bound = /^\s*\.\s*(<=?|>=?)\s*(-?\d+(?:\.\d+)?)\s*$/.exec(v.expression)
+      const f = inner.byKey.get(own)
+      if (bound && f && ['number', 'currency'].includes(f.type) && (bound[1] === '<' || bound[1] === '>')) { if (bound[1] === '<') f.min = Number(bound[2]); else f.max = Number(bound[2]); itemStatus.set(v.id, 'converted'); continue }
+      const cond = toCondition(v.expression, env(inner, v.context))
+      const action = { type: 'field_error', field: own, text: clip(v.short_message, 300) } as FieldButtonAction
+      if (cond.ok) {
+        pushRule(inner, { name: clip(`Validate: ${v.short_message}`, FORM_RULE_LIMITS.name), description: clip(`From InfoPath data validation (each item).\nOriginal: ${v.expression}`, FORM_RULE_LIMITS.description), event: 'always', if: cond.value, then: [action] })
+        itemStatus.set(v.id, 'converted')
+      } else {
+        pushRule(inner, { name: clip(`Validate: ${v.short_message}`, FORM_RULE_LIMITS.name), disabled: true, description: clip(`Not converted: the condition ${cond.reason}.\nOriginal: ${v.expression}`, FORM_RULE_LIMITS.description), event: 'always', then: [action] })
+        itemStatus.set(v.id, 'manual')
+      }
+    }
+    for (const calc of model.manifest.calculations) {
+      if (!calc.path.toLowerCase().startsWith(prefix)) continue
+      const own = inner.placed.get(calc.path.toLowerCase())
+      const f = own ? inner.byKey.get(own) : undefined
+      if (!f) continue
+      const r = toExpression(calc.expression, env(inner, calc.path))
+      if (r.ok && calc.refresh !== 'onInit') {
+        Object.keys(f).forEach((k) => { if (!['key', 'label', 'help_text'].includes(k)) delete (f as unknown as Record<string, unknown>)[k] })
+        Object.assign(f, { type: 'label', label_config: { expression: r.value, include: true } })
+        itemStatus.set(calc.id, 'converted')
+      } else if (r.ok && /^TODAY\(\)$|^NOW\(\)$/.test(r.value)) {
+        f.default = r.value === 'TODAY()' ? '{{today}}' : '{{now}}'
+        itemStatus.set(calc.id, 'converted')
+      } else itemStatus.set(calc.id, 'manual')
+    }
+  }
+  const itemStatus = new Map<string, ReportStatus>()
 
   const convertList = (b: FormBuild, view: IpView, c: IpControl): string | null => {
     const path = c.path
@@ -529,27 +744,57 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     }
     const listPath = path
     if (b.lists.has(listPath.toLowerCase())) return null
-    if (isInsideRepeating(listPath)) {
-      report({ area: 'repeating', id: c.id, view: view.name, name: title, status: 'manual', detail: 'A repeating table inside another repeating part: UserTasks Lists do not nest. Use a second List (child rows) or a data table.' })
+    // Repeating sections (cards of any controls) become a Repeating section; repeating tables a List.
+    if (c.kind === 'repeating_section' && !b.itemPath) return convertRepeating(b, view, c, 1)
+    if (c.kind === 'repeating_section' && b.itemPath) return convertRepeating(b, view, c, (b.depth ?? 1) + 1)
+    const key = keys.key(listPath, c.label || c.title, true)
+    const notes: string[] = []
+    const columns = listColumns(view, key, listPath, c.children ?? [], 1, notes)
+    if (!columns.length) {
+      report({ area: 'repeating', id: c.id, view: view.name, name: title, status: 'manual', detail: `No columns could be made from this repeating part${notes.length ? ` (${notes.join('; ')})` : ''}.` })
       return null
     }
-    const key = keys.key(listPath, c.label || c.title, true)
+    const config: ListFieldConfig = { columns: columns.slice(0, 30), entry_mode: 'inline', display: 'auto' } as ListFieldConfig
+    const field: TaskFieldDef = { key, label: clip(title, 200), type: 'list', list: config }
+    addField(b, field)
+    b.lists.set(listPath.toLowerCase(), { key, config, path: listPath })
+    const nested = config.columns.filter((x) => x.type === 'list').length
+    report({ area: 'repeating', id: c.id, view: view.name, name: title, status: notes.length ? 'partial' : 'converted', detail: `List (editable table) with ${config.columns.length} column${config.columns.length === 1 ? '' : 's'}: ${config.columns.map((x) => x.label).join(', ')}${nested ? ` (${nested} nested List${nested === 1 ? '' : 's'})` : ''}${notes.length ? `. Not converted: ${notes.join('; ')}` : ''}.` })
+    if (c.show_if) visibilityRule(b, view, c.id, title, negateText(c.show_if), c.context ?? '', [`field:${key}`], 'hide', 'show condition (xsl:if)')
+    for (const f of c.formatting) applyFormatting(b, view, c, title, f, [`field:${key}`])
+    // Conditional formatting on the row's cells: per-cell styles (the condition read per row).
+    const rowStyles: unknown[] = []
+    collectCellFormatting(view, key, listPath, c.children ?? [], config, rowStyles)
+    if (rowStyles.length) (config as unknown as Record<string, unknown>).row_styles = rowStyles.slice(0, 20)
+    return key
+  }
+
+  /** The columns of a repeating table's row (nested repeating parts → nested List columns, up to 3 levels). */
+  const listColumns = (view: IpView, listKey: string, listPath: string, children: IpViewItem[], depth: number, notes: string[]): ListColumn[] => {
     const columns: ListColumn[] = []
-    const notes: string[] = []
     const leafControls: IpControl[] = []
     const collect = (list: IpViewItem[]) => {
       for (const i of list) {
         if (i.kind === 'static') continue
-        if (i.kind === 'repeating_table' || i.kind === 'repeating_section') { notes.push(`nested repeating part "${cleanLabel(i.label) || humanize(i.path)}" skipped`); continue }
+        if (i.kind === 'repeating_table' || i.kind === 'repeating_section') { leafControls.push(i); continue }
         if (i.children) { collect(i.children); continue }
         leafControls.push(i)
       }
     }
-    collect(c.children ?? [])
+    collect(children)
     const seen = new Set<string>()
     for (let li = 0; li < leafControls.length; li++) {
       const ch = leafControls[li]
       if (ch.kind === 'button') { notes.push(`button "${ch.caption ?? ch.id}" skipped`); continue }
+      if (ch.kind === 'repeating_table' || ch.kind === 'repeating_section') {
+        const label = cleanLabel(ch.label || ch.title || humanize(ch.path)) || 'Rows'
+        if (!ch.path || depth >= 3) { notes.push(`repeating part "${label}" nested deeper than 3 levels`); continue }
+        const ckey = keys.column(listKey, ch.path, label)
+        const inner = listColumns(view, `${listKey}.${ckey}`, ch.path, ch.children ?? [], depth + 1, notes)
+        if (!inner.length) { notes.push(`nested repeating part "${label}" has no columns`); continue }
+        columns.push({ key: ckey, label, type: 'list', list: { columns: inner.slice(0, 30) } } as unknown as ListColumn)
+        continue
+      }
       if (ch.kind === 'expression') {
         // Showing a column's own value (a read-only review table): that column, read only.
         const shown = /^\s*(?:xdFormatting:formatString\(\s*)?((?:\.\.\/)*(?:[\w-]+:)?[\w.-]+(?:\/(?:[\w-]+:)?[\w.-]+)*)\s*(?:,[^)]*\))?\s*$/.exec(ch.expression ?? '')
@@ -559,10 +804,10 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
           continue
         }
         // A calculated column (row arithmetic), else skipped with a note.
-        const formula = rowFormula(ch.expression ?? '', listPath, ch.context ?? listPath, columns)
+        const formula = rowFormula(ch.expression ?? '', listPath, ch.context ?? listPath, columns, listKey)
         const label = cleanLabel(ch.label) || 'Calculated'
         if (formula) {
-          const ckey = keys.column(key, `${listPath}/#calc${columns.length}`, label)
+          const ckey = keys.column(listKey, `${listPath}/#calc${columns.length}`, label)
           columns.push({ key: ckey, label, type: 'calculated', formula, ...(/currency/.test(ch.format ?? '') ? { currency } : {}) } as ListColumn)
         } else notes.push(`expression column "${label}" not converted (${ch.expression})`)
         continue
@@ -571,10 +816,10 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       seen.add(ch.path.toLowerCase())
       const node = nodeOf(ch.path)
       const t = columnType(ch, node)
-      if (!t) { notes.push(`${ch.kind} "${cleanLabel(ch.label)}" has no column type`); continue }
+      if (!t) { notes.push(`${ch.kind} "${cleanLabel(ch.label)}" has no column type (use a Repeating section for pictures, signatures and rich text)`); continue }
       if (t.note) notes.push(`"${cleanLabel(ch.label)}": ${t.note}`)
       const label = cleanLabel(ch.label || humanize(ch.path)) || 'Column'
-      const ckey = keys.column(key, ch.path, label)
+      const ckey = keys.column(listKey, ch.path, label)
       const col: ListColumn = { key: ckey, label, type: t.type }
       if (t.type === 'choice') {
         const opts = (ch.options ?? []).filter((o) => o.value)
@@ -592,32 +837,46 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     // Calculations whose target is a column of this list.
     for (const calc of model.manifest.calculations) {
       if (!calc.path.toLowerCase().startsWith(`${listPath.toLowerCase()}/`)) continue
-      const col = columns.find((x) => keys.column(key, calc.path) === x.key)
+      const col = columns.find((x) => keys.column(listKey, calc.path) === x.key)
       if (!col || col.type === 'calculated') continue
-      const formula = rowFormula(calc.expression, listPath, calc.path, columns)
+      const formula = rowFormula(calc.expression, listPath, calc.path, columns, listKey)
       if (formula && ['number', 'currency'].includes(col.type)) {
         Object.assign(col, { type: 'calculated', formula })
-        report({ area: 'calculation', id: calc.id, view: view.name, name: `${title}: ${col.label}`, status: 'converted', detail: `Calculated column: ${formula}`, original: calc.expression })
+        report({ area: 'calculation', id: calc.id, view: view.name, name: col.label, status: 'converted', detail: `Calculated column: ${formula}`, original: calc.expression })
       }
     }
-    if (!columns.length) {
-      report({ area: 'repeating', id: c.id, view: view.name, name: title, status: 'manual', detail: `No columns could be made from this repeating part${notes.length ? ` (${notes.join('; ')})` : ''}.` })
-      return null
+    return columns
+  }
+
+  /** Cell formatting inside a repeating table → List row_styles (the style on that cell while the row's condition holds). */
+  const collectCellFormatting = (view: IpView, listKey: string, listPath: string, children: IpViewItem[], config: ListFieldConfig, out: unknown[]) => {
+    for (const ch of children) {
+      if (ch.kind === 'static') continue
+      if (ch.children && ch.kind !== 'repeating_table' && ch.kind !== 'repeating_section') { collectCellFormatting(view, listKey, listPath, ch.children, config, out); continue }
+      if (!ch.path || !ch.formatting.length) continue
+      const column = config.columns.find((x) => x.key === keys.column(listKey, ch.path!))
+      for (const f of ch.formatting) {
+        const label = `${cleanLabel(ch.label) || 'Cell'}${f.caption ? ` (${f.caption})` : ''}`
+        const id = `${view.name}:${ch.id}:${f.condition}`
+        if (f.effect !== 'style') {
+          report({ area: 'formatting', id, view: view.name, name: label, status: 'manual', detail: `A cell in a repeating table is ${f.effect === 'hide' ? 'hidden' : 'locked'} by a condition: a List cell can't be ${f.effect === 'hide' ? 'hidden' : 'locked'} per row. Use a Repeating section, or a row validation.`, original: f.condition })
+          continue
+        }
+        const style = styleFromCss(f.style ?? '')
+        const cond = toCondition(f.condition, { context: ch.context ?? listPath, row: listKey, resolve: (p) => { const col = config.columns.find((x) => x.key === keys.column(listKey, p)); return col ? { kind: 'column', list: listKey, column: col.key } : null } })
+        if (!style || !cond.ok || !column) {
+          report({ area: 'formatting', id, view: view.name, name: label, status: 'manual', detail: !style ? 'Conditional formatting with nothing UserTasks styles (e.g. a font size).' : !cond.ok ? `Cell styling not converted: the condition ${cond.reason}.` : 'Cell styling not converted.', original: f.condition })
+          continue
+        }
+        out.push({ if: cond.value, style: style.style, column: column.key })
+        report({ area: 'formatting', id, view: view.name, name: label, status: style.note ? 'partial' : 'converted', detail: `Row style on the "${column.label}" cell${style.note ? `: ${style.note}` : ''}.`, original: f.condition })
+      }
     }
-    const config: ListFieldConfig = { columns: columns.slice(0, 30), entry_mode: 'inline', display: 'auto' } as ListFieldConfig
-    const field: TaskFieldDef = { key, label: clip(title, 200), type: 'list', list: config }
-    if (c.kind === 'repeating_section') field.help_text = 'Was a repeating section in InfoPath.'
-    addField(b, field)
-    b.lists.set(listPath.toLowerCase(), { key, config, path: listPath })
-    report({ area: 'repeating', id: c.id, view: view.name, name: title, status: notes.length ? 'partial' : 'converted', detail: `List (editable table) with ${config.columns.length} column${config.columns.length === 1 ? '' : 's'}: ${config.columns.map((x) => x.label).join(', ')}${notes.length ? `. Not converted: ${notes.join('; ')}` : ''}.` })
-    if (c.show_if) visibilityRule(b, view, c.id, title, negateText(c.show_if), c.context ?? '', [`field:${key}`], 'hide', 'show condition (xsl:if)')
-    for (const f of c.formatting) applyFormatting(b, view, c, title, f, [`field:${key}`])
-    return key
   }
 
   /** Row arithmetic (a + b, qty * price) as a List calculated formula, or null. */
-  const rowFormula = (expr: string, listPath: string, context: string, columns: ListColumn[]): string | null => {
-    const listKey = keys.key(listPath)
+  const rowFormula = (expr: string, listPath: string, context: string, columns: ListColumn[], listKeyIn?: string): string | null => {
+    const listKey = listKeyIn ?? keys.key(listPath)
     const r = toExpression(stripFormatting(expr), {
       context,
       row: listKey,
@@ -639,10 +898,19 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     row: row ?? null,
     resolve: (p): Ref | null => {
       const lower = p.toLowerCase()
+      if (b.itemPath) {
+        // Inside a repeating section item: its own controls are {{item.*}}, the form's fields {{form.*}}.
+        const own = b.placed.get(lower)
+        if (own) return { kind: 'item', key: own, type: b.byKey.get(own)?.type }
+        if (lower.startsWith(`${b.itemPath.toLowerCase()}/`)) return null
+        const outer = b.parent ? env(b.parent, context).resolve(p) : null
+        return outer && (outer.kind === 'field' || outer.kind === 'outer') ? { kind: 'outer', key: outer.key, type: outer.type } : outer?.kind === 'list' ? outer : null
+      }
       const list = b.lists.get(lower)
       if (list) return { kind: 'list', key: list.key }
       for (const [lp, l] of b.lists) {
         if (lower.startsWith(`${lp}/`)) {
+          if (l.cols) { const k = l.cols.get(lower); return k ? { kind: 'column', list: l.key, column: k } : null }
           const col = l.config.columns.find((x) => x.key === keys.column(l.key, p))
           return col ? { kind: 'column', list: l.key, column: col.key, type: col.type } : null
         }
@@ -695,7 +963,24 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
   const applyFormatting = (b: FormBuild, view: IpView, c: IpControl, name: string, f: IpControl['formatting'][number], targets: string[]) => {
     const context = c.context ?? c.path ?? ''
     if (f.effect === 'style') {
-      report({ area: 'formatting', id: `${view.name}:${c.id}:${f.condition}`, view: view.name, name: `${name}${f.caption ? ` (${f.caption})` : ''}`, status: 'skipped', detail: `Conditional styling (${clip(f.style ?? '', 80)}) is not converted: use a form theme or a Label's format.`, original: f.condition })
+      const label = `${name}${f.caption ? ` (${f.caption})` : ''}`
+      const id = `${view.name}:${c.id}:${f.condition}`
+      const style = styleFromCss(f.style ?? '')
+      if (!style) {
+        report({ area: 'formatting', id, view: view.name, name: label, status: 'skipped', detail: `Conditional formatting UserTasks doesn't style (${clip(f.style ?? '', 80)}): font sizes and families follow the form theme.`, original: f.condition })
+        return
+      }
+      const cond = toCondition(f.condition, env(b, context))
+      const styleTargets = targets.filter((t) => t.startsWith('field:') || t.startsWith('section:'))
+      const action = { type: 'set_style', targets: styleTargets, style: style.style } as unknown as FieldButtonAction
+      const ruleName = clip(`Style: ${label}`, FORM_RULE_LIMITS.name)
+      if (cond.ok) {
+        pushRule(b, { name: ruleName, description: clip(`From InfoPath conditional formatting (${f.style}).${style.note ? ` ${style.note}` : ''}\nOriginal: ${f.condition}`, FORM_RULE_LIMITS.description), event: 'always', if: cond.value, then: [action] })
+        report({ area: 'formatting', id, view: view.name, name: label, status: style.note ? 'partial' : 'converted', detail: `Always rule: style while the condition holds${style.note ? ` — ${style.note}` : ''}.`, original: f.condition })
+      } else {
+        pushRule(b, { name: ruleName, disabled: true, description: clip(`Not converted: the condition ${cond.reason}.\nOriginal: ${f.condition} (${f.style})`, FORM_RULE_LIMITS.description), event: 'always', then: [action] })
+        report({ area: 'formatting', id, view: view.name, name: label, status: 'manual', detail: `Kept as a disabled style rule: the condition ${cond.reason}.`, original: f.condition })
+      }
       return
     }
     visibilityRule(b, view, c.id, `${name}${f.caption ? ` (${f.caption})` : ''}`, f.condition, context, targets, f.effect, 'conditional formatting')
@@ -772,7 +1057,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
         case 'switch_view': {
           const page = pages?.get(a.view ?? '')
           if (page) then.push({ type: 'go_to_page', page } as FieldButtonAction)
-          else failures.push(`it switches to the view "${a.view}" (with one form per view, open that form instead — or import with "Combine views as steps")`)
+          else failures.push(`it switches to the view "${a.view}" (with one form per view, open that form instead — or import with "Views as steps" / "Views as tabs")`)
           break
         }
         case 'submit': {
@@ -832,6 +1117,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
   const convertValidations = (b: FormBuild, view: IpView | null) => {
     const out = new Map<string, ReportStatus | 'na'>()
     for (const v of model.manifest.validations) {
+      if (itemStatus.has(v.id)) continue // handled inside a repeating section's items
       const ref = env(b, v.path).resolve(v.path)
       if (!ref || (ref.kind === 'field' && !b.byKey.has(ref.key) )) { out.set(v.id, 'na'); continue }
       if (v.kind === 'blank' && ref.kind === 'field') {
@@ -849,8 +1135,23 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
         if (patch && target && ['number', 'currency', 'calculated'].includes(target.type)) { Object.assign(target, patch); out.set(v.id, 'converted'); continue }
       }
       if (ref.kind === 'field' && b.byKey.get(ref.key)?.type === 'email' && /@/.test(v.expression)) { out.set(v.id, 'converted'); continue }
+      if (ref.kind === 'column') {
+        // A validation on a repeating-table column: the column's own check, judged per row.
+        const entry = [...b.lists.values()].find((l) => l.key === ref.list)
+        const col = entry?.config.columns.find((x) => x.key === ref.column)
+        const cond = toCondition(v.expression, env(b, v.context, ref.list))
+        if (col && cond.ok && !entry?.cols) {
+          const list = col as unknown as { validations?: unknown[] }
+          list.validations = [...(list.validations ?? []), { if: cond.value, message: clip(v.short_message, 300) }].slice(0, 10)
+          out.set(v.id, 'converted')
+          continue
+        }
+        todoRule(b, `${v.short_message} (${humanize(v.path)})`, cond.ok ? 'a validation on a repeating part the importer could not attach' : `the condition ${cond.reason}`, v.expression, 'before_submit')
+        out.set(v.id, 'manual')
+        continue
+      }
       if (ref.kind !== 'field') {
-        todoRule(b, `${v.short_message} (${humanize(v.path)})`, 'a validation on a repeating-table column: check it on the row (an editable-table rule) or in the workflow', v.expression, 'before_submit')
+        todoRule(b, `${v.short_message} (${humanize(v.path)})`, 'a validation on a repeating part', v.expression, 'before_submit')
         out.set(v.id, 'manual')
         continue
       }
@@ -890,7 +1191,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       const r = toExpression(calc.expression, e)
       if (r.ok && !/\bNOW\(\)/.test(r.value)) {
         // Recalculated: a Label with the expression, stored with the submission.
-        const fmt = field.type === 'currency' ? { kind: 'currency' } : field.type === 'number' ? { kind: 'number' } : field.type === 'date' ? { kind: 'date' } : undefined
+        const fmt = field.type === 'currency' ? { kind: 'currency', currency: field.currency ?? currency } : field.type === 'number' ? { kind: 'number' } : field.type === 'date' ? { kind: 'date' } : undefined
         const replaced: TaskFieldDef = { key, label: field.label, type: 'label', label_config: { expression: r.value, include: true, ...(fmt ? { format: fmt } : {}) } as TaskFieldDef['label_config'] }
         if (field.help_text) replaced.help_text = field.help_text
         Object.keys(field).forEach((k) => delete (field as unknown as Record<string, unknown>)[k])
@@ -940,6 +1241,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
   const note = <T>(map: Map<string, T[]>, id: string, v: T) => map.set(id, [...(map.get(id) ?? []), v])
 
   const finish = (b: FormBuild, name: string, viewForRules: IpView | null, pageIds: Map<string, string> | null, rowsTarget: () => FormRow[]): GeneratedForm => {
+    for (const run of b.pendingExpr.splice(0)) run()
     for (const r of model.manifest.rules) {
       const s = convertRule(b, viewForRules, r, pageIds)
       if (s !== 'na') note(ruleStatus, r.id, s)
@@ -947,6 +1249,12 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     for (const [id, s] of convertValidations(b, viewForRules)) if (s !== 'na') note(valStatus, id, s as ReportStatus)
     for (const [id, s] of convertCalculations(b)) if (s.status !== 'na') note(calcStatus, id, s as { status: ReportStatus; detail: string })
     addSupport(b, rowsTarget())
+    // InfoPath digital signatures (certificate-based) → an electronic signature at the end of the form that holds the default view.
+    if (model.manifest.signatures.length && (!viewForRules || viewForRules.default) && !b.fields.some((f) => f.type === 'signature')) {
+      const key = keys.extra('signature')
+      addField(b, { key, label: clip(model.manifest.signatures[0] || 'Signature', 120), type: 'signature', signature: { mode: 'both', statement: 'I confirm the information in this form is correct.' }, help_text: 'This is an electronic signature, not a cryptographic digital signature.' } as unknown as TaskFieldDef)
+      rowsTarget().push({ columns: 1, cells: [{ field_key: key, span: 1 }] })
+    }
     // Rule budget: the enabled ones first.
     if (b.rules.length > FORM_RULE_LIMITS.rules) {
       const sorted = [...b.rules.filter((r) => !r.disabled), ...b.rules.filter((r) => r.disabled)]
@@ -958,6 +1266,9 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       ? { rows: [], mode: 'steps', pages: b.pages }
       : { rows: b.rows }
     if (b.sections.length) layout.sections = b.sections
+    const groups = b.choiceGroups.filter((g) => g.sections.length >= 2).map(({ key, label, sections, display }) => ({ key, label, sections, display }))
+    if (groups.length) (layout as unknown as Record<string, unknown>).choice_groups = groups
+    if (b.pages && options.pages === 'tabs') layout.mode = 'tabs'
     if (b.rules.length) layout.rules = b.rules
     if (b.hidden.length) layout.state = { hidden: b.hidden }
     layout.source = sourceOf(b.view)
@@ -1010,13 +1321,13 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     })
   }
   for (const v of model.manifest.validations) {
-    const statuses = valStatus.get(v.id) ?? []
+    const statuses = [...(valStatus.get(v.id) ?? []), ...(itemStatus.has(v.id) ? [itemStatus.get(v.id)!] : [])]
     const best: ReportStatus = statuses.includes('converted') ? 'converted' : statuses.length ? 'manual' : 'skipped'
-    report({ area: 'validation', id: v.id, name: `${v.short_message} (${humanize(v.path)})`, status: best, detail: v.kind === 'blank' ? (best === 'converted' ? 'Required field.' : 'Field not on an imported view.') : best === 'converted' ? 'Always rule with a field error.' : best === 'manual' ? 'Kept as a disabled rule (see its notes).' : 'Field not on an imported view.', original: v.expression })
+    report({ area: 'validation', id: v.id, name: `${v.short_message} (${humanize(v.path)})`, status: best, detail: v.kind === 'blank' ? (best === 'converted' ? 'Required field.' : 'Field not on an imported view.') : best === 'converted' ? (isInsideRepeating(v.path) ? 'Checked on each row / item (List column validation or an item rule).' : 'Always rule with a field error.') : best === 'manual' ? 'Kept as a disabled rule (see its notes).' : 'Field not on an imported view.', original: v.expression })
   }
   for (const c of model.manifest.calculations) {
     if (items.some((i) => i.area === 'calculation' && i.id === c.id)) continue
-    const s = calcStatus.get(c.id) ?? []
+    const s = [...(calcStatus.get(c.id) ?? []), ...(itemStatus.has(c.id) ? [{ status: itemStatus.get(c.id)!, detail: itemStatus.get(c.id) === 'converted' ? 'Calculated inside each repeating section item.' : 'A calculation inside a repeating section item that could not be translated.' }] : [])]
     const best = s.find((x) => x.status === 'converted') ?? s.find((x) => x.status === 'partial') ?? s[0]
     report({ area: 'calculation', id: c.id, name: humanize(c.path), status: best?.status ?? 'skipped', detail: best?.detail ?? (isInsideRepeating(c.path) ? 'A calculation on a repeating-table column that is not simple row arithmetic.' : 'The field is not on an imported view.'), original: c.expression })
   }
@@ -1025,7 +1336,8 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     const inView = views.some((v) => v.name === b.view && walkControls(v.items).some((c) => c.id === b.control))
     if (inView) report({ area: 'button', id: `btn:${b.view}:${b.control}`, view: b.view, name: b.caption ?? b.control, status: 'converted', detail: 'Button field (no rules in InfoPath).' })
   }
-  for (const role of model.manifest.roles) report({ area: 'role', id: `role:${role.name}`, name: role.name, status: 'manual', detail: 'InfoPath user roles are not converted: use workspace roles / object permissions, or a rule on {{user.email}}.' })
+  for (const role of model.manifest.roles) report({ area: 'role', id: `role:${role.name}`, name: role.name, status: 'partial', detail: `Role checks became conditions on the person's workspace roles (user.roles contains "${role.name}"). Create a workspace role named "${role.name}" (or rename the conditions) and give it to the right people.` })
+  for (const sig of model.manifest.signatures) report({ area: 'field', id: `sig:${sig}`, name: sig, status: 'partial', detail: 'InfoPath digital (certificate) signatures become electronic signature fields (drawn or typed, with the signer and time). Certificates aren\'t carried over.' })
   for (const code of model.manifest.code) report({ area: 'code', id: `code:${code}`, name: code, status: 'manual', detail: 'Form code is never imported or run. Rebuild its behaviour with form rules or a workflow.' })
   if (model.manifest.submit) report({ area: 'submit', id: 'submit', name: model.manifest.submit.caption ?? 'Submit', status: 'converted', detail: `Submitting saves the submission in UserTasks${model.manifest.submit.adapters.length ? ` (InfoPath submitted to: ${model.manifest.submit.adapters.join(', ')})` : ''}. To keep rows in a data table, choose "Create a data table" when importing.` })
   for (const v of model.views) {
@@ -1067,11 +1379,12 @@ function summarize(model: InfoPathModel, forms: GeneratedForm[], items: ReportIt
     views: model.views.length,
     forms: forms.length,
     fields: new Set(forms.flatMap((f) => f.input.fields.filter((x) => !['heading', 'divider', 'label', 'button'].includes(x.type)).map((x) => x.key))).size,
-    repeating: new Set(forms.flatMap((f) => f.input.fields.filter((x) => x.type === 'list').map((x) => x.key))).size,
+    repeating: new Set(forms.flatMap((f) => f.input.fields.filter((x) => x.type === 'list' || (x.type as string) === 'repeating_section').map((x) => x.key))).size,
     rules: { total: rules.length, converted: rules.filter((i) => i.status === 'converted').length, partial: rules.filter((i) => i.status === 'partial').length, manual: rules.filter((i) => i.status === 'manual').length },
     validations: { total: vals.length, converted: vals.filter((i) => i.status === 'converted').length, manual: vals.filter((i) => i.status !== 'converted').length },
     calculations: { total: calcs.length, converted: calcs.filter((i) => i.status === 'converted').length, manual: calcs.filter((i) => i.status !== 'converted').length },
-    formatting: { total: fmts.length, converted: fmts.filter((i) => i.status === 'converted').length, manual: fmts.filter((i) => i.status !== 'converted').length },
+    // Colours snapped to theme tones are "partly converted" in the report but count as converted here.
+    formatting: { total: fmts.length, converted: fmts.filter((i) => i.status === 'converted' || i.status === 'partial').length, manual: fmts.filter((i) => i.status === 'manual').length },
     connections: model.manifest.connections.length,
   }
 }
@@ -1141,4 +1454,26 @@ export function reportMarkdown(report: ImportReport): string {
   }
   if (report.warnings.length) lines.push('', '## Warnings', '', ...report.warnings.map((w) => `- ${w}`))
   return `${lines.join('\n')}\n`
+}
+
+/**
+ * An InfoPath expression box's display format (xd:datafmt, or the
+ * xdFormatting:formatString(x, "currency", "numDigits:2;…") it wraps) as a
+ * Label cell format: currency (in the import's currency), number (its
+ * decimals), percentage (InfoPath stores 0–1 fractions), date / date-time.
+ * Null when it has none (plain text / numbers).
+ */
+export function labelFormatFromInfoPath(expr: string, datafmt: string | undefined, options: string | undefined, currency = 'USD'): CellFormat | null {
+  const wrapped = /^\s*xdFormatting:formatString\(\s*[^,]+,\s*"([^"]*)"\s*(?:,\s*"([^"]*)")?\s*\)\s*$/.exec(expr ?? '')
+  const kind = (wrapped?.[1] ?? datafmt ?? '').toLowerCase()
+  const opts = (wrapped?.[2] ?? options ?? '').toLowerCase()
+  const digits = /numdigits:(\d+)/.exec(opts)
+  const decimals = digits ? Math.min(10, Number(digits[1])) : undefined
+  const withDecimals = <T extends CellFormat>(f: T): T => (decimals !== undefined ? { ...f, decimals } : f)
+  if (kind === 'currency') return withDecimals({ kind: 'currency', currency })
+  if (kind === 'number') return withDecimals({ kind: 'number' })
+  if (kind === 'percentage' || kind === 'percent') return withDecimals({ kind: 'percent', percent_source: 'fraction' })
+  if (kind === 'datetime') return { kind: 'datetime' }
+  if (kind === 'date') return { kind: 'date' }
+  return null
 }

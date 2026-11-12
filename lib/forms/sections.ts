@@ -24,6 +24,18 @@
  * sanitizeFormState, like every other target). A hidden section's fields are
  * not required and not checked — the same rule as hidden fields.
  *
+ * Choice groups (`layout.choice_groups`, InfoPath's choice group / choice
+ * section): `{ key, label, sections: [2–6 section keys], default?, display?:
+ * radio | tabs | dropdown }`. One alternative shows at a time; a switch above
+ * it picks another. The chosen section key travels as the value `<key>`
+ * (an API caller may send it; anything that is not one of the group's
+ * sections is refused). The other alternatives are treated exactly like an
+ * optional section left out: their fields are not required, not validated
+ * and NOT KEPT (stored empty). The server recomputes the active section
+ * from the submitted value (activeChoiceSection: the value, else `default`,
+ * else the first) and stores `<key>`. Rules read `{{form.<key>}}`, set it
+ * with Set values and react to it with "Field value changes".
+ *
  * Collapsing is presentation only (`__form_state.collapsed`): a collapsed
  * section's required fields are still required (it opens on an error).
  *
@@ -37,7 +49,7 @@
  */
 
 import { isPlainObject } from '@/lib/utils/guards'
-import type { FormRow, FormSection } from './layout'
+import type { FormChoiceGroup, FormRow, FormSection } from './layout'
 import { FORM_STATE_KEY, declaredSectionKeys, readFormState, sectionRowFieldKeys, stateRuleFlag } from './form-state'
 
 export const SECTION_INCLUDED_SUFFIX = '_included'
@@ -71,12 +83,82 @@ export function sectionOfField(layout: unknown, fieldKey: string): FormSection |
   return null
 }
 
-/** Fields of optional sections that are not included (not required, not checked, stored empty). */
+/** Fields of optional sections that are not included, and of choice groups' inactive alternatives (not required, not checked, stored empty). */
 export function excludedSectionFieldKeys(layout: unknown, values: Record<string, unknown> | null | undefined): Set<string> {
   const out = new Set<string>()
   for (const section of layoutSections(layout)) {
     if (isSectionIncluded(section, values)) continue
     for (const key of sectionFieldKeys(layout, section.key)) out.add(key)
+  }
+  for (const key of inactiveChoiceFieldKeys(layout, values)) out.add(key)
+  return out
+}
+
+/* ── Choice groups ──────────────────────────────────────────────────── */
+
+/** The choice groups of a (stored or normalized) layout, read structurally (only sections it declares). */
+export function layoutChoiceGroups(layout: unknown): FormChoiceGroup[] {
+  if (!isPlainObject(layout) || !Array.isArray(layout.choice_groups)) return []
+  const declared = new Set(layoutSections(layout).map((s) => s.key))
+  return layout.choice_groups
+    .filter(isPlainObject)
+    .filter((g) => typeof g.key === 'string' && Array.isArray(g.sections))
+    .map((g) => ({ ...(g as unknown as FormChoiceGroup), sections: (g.sections as unknown[]).filter((k): k is string => typeof k === 'string' && declared.has(k)) }))
+    .filter((g) => g.sections.length >= 2)
+}
+
+/** The alternative that shows: the value `<key>` when it names one, else `default`, else the first. */
+export function activeChoiceSection(group: Pick<FormChoiceGroup, 'key' | 'sections' | 'default'>, values: Record<string, unknown> | null | undefined): string {
+  const v = values?.[group.key]
+  if (typeof v === 'string' && group.sections.includes(v)) return v
+  return group.default && group.sections.includes(group.default) ? group.default : group.sections[0]
+}
+
+/** The group a section is an alternative of, or null. */
+export function choiceGroupOfSection(layout: unknown, sectionKey: string): FormChoiceGroup | null {
+  return layoutChoiceGroups(layout).find((g) => g.sections.includes(sectionKey)) ?? null
+}
+
+/** Section keys of the alternatives that do not show for these values. */
+export function inactiveChoiceSections(layout: unknown, values: Record<string, unknown> | null | undefined): Set<string> {
+  const out = new Set<string>()
+  for (const group of layoutChoiceGroups(layout)) {
+    const active = activeChoiceSection(group, values)
+    for (const key of group.sections) if (key !== active) out.add(key)
+  }
+  return out
+}
+
+/** Fields of the inactive alternatives (hidden, not required, not checked, stored empty). */
+export function inactiveChoiceFieldKeys(layout: unknown, values: Record<string, unknown> | null | undefined): Set<string> {
+  const out = new Set<string>()
+  for (const key of inactiveChoiceSections(layout, values)) for (const f of sectionFieldKeys(layout, key)) out.add(f)
+  return out
+}
+
+/** The value keys of the choice groups (`<key>`): stored with the submission, kept in drafts. */
+export function choiceGroupKeys(layout: unknown): string[] {
+  return layoutChoiceGroups(layout).map((g) => g.key)
+}
+
+/** A sent `<key>` that is not one of its group's sections (value key → message). Blank = the default. */
+export function choiceGroupValueErrors(layout: unknown, values: Record<string, unknown> | null | undefined): Record<string, string> {
+  const errors: Record<string, string> = {}
+  for (const group of layoutChoiceGroups(layout)) {
+    const v = values?.[group.key]
+    if (v === undefined || v === null || v === '') continue
+    if (typeof v !== 'string' || !group.sections.includes(v)) errors[group.key] = `${group.label}: choose one of ${group.sections.join(', ')}`
+  }
+  return errors
+}
+
+/** The values with each choice group's active section filled in where none is set (what rules read as `{{form.<key>}}`; a wrong value is left for validation to refuse). */
+export function withChoiceDefaults(layout: unknown, values: Record<string, unknown>): Record<string, unknown> {
+  let out = values
+  for (const group of layoutChoiceGroups(layout)) {
+    const v = values[group.key]
+    if (v !== undefined && v !== null && v !== '') continue
+    out = { ...out, [group.key]: activeChoiceSection(group, values) }
   }
   return out
 }
@@ -105,14 +187,20 @@ export function sectionRuleHiddenFieldKeys(layout: unknown, values: Record<strin
  * section, and the fields of excluded ones blanked (the caller coerces them
  * to their types' empty value). Non-optional sections add nothing.
  */
-export function sectionInclusionPatch(layout: unknown, values: Record<string, unknown>): { included: Record<string, boolean>; blank: string[] } {
-  const included: Record<string, boolean> = {}
+export function sectionInclusionPatch(layout: unknown, values: Record<string, unknown>): { included: Record<string, boolean | string>; blank: string[] } {
+  const included: Record<string, boolean | string> = {}
   const blank: string[] = []
   for (const section of layoutSections(layout)) {
     if (section.optional !== true) continue
     const yes = isSectionIncluded(section, values)
     included[sectionIncludedKey(section.key)] = yes
     if (!yes) blank.push(...sectionFieldKeys(layout, section.key))
+  }
+  // Choice groups: the active alternative recomputed and stored as `<key>`; the others' fields blanked.
+  for (const group of layoutChoiceGroups(layout)) {
+    const active = activeChoiceSection(group, values)
+    included[group.key] = active
+    for (const key of group.sections) if (key !== active) blank.push(...sectionFieldKeys(layout, key))
   }
   return { included, blank }
 }

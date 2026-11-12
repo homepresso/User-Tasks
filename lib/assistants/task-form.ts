@@ -24,6 +24,8 @@
  * Every value here is untrusted data (written by other people): it is shown
  * and given to the model as data, never as instructions.
  */
+import { describeSignature, normalizeImageValue } from '@/lib/forms/media-fields'
+import { controlValueText } from '@/lib/forms/control-text'
 import {
   hiddenFieldKeysForValues, holdsFiles, isDisplayField, normalizeTaskFields, optionLabel, validateTaskFieldValues,
   type TaskFieldDef,
@@ -166,6 +168,10 @@ const clip = (s: string, n = 300) => (s.length > n ? `${s.slice(0, n)}…` : s)
 export function displayValue(field: TaskFieldDef, value: unknown, names: ReadonlyMap<string, string> = new Map()): string {
   if (isSecretField({ key: field.key, label: field.label })) return isEmptyValue(value) ? '—' : MASK
   if (isEmptyValue(value)) return field.type === 'boolean' ? 'No' : '—'
+  if (field.type === 'image') return clip(normalizeImageValue(value)?.name || String((value as { name?: unknown })?.name ?? '') || 'a picture')
+  if (field.type === 'signature') return describeSignature(value)
+  const control = controlValueText(field, value, { names })
+  if (control !== null) return clip(control.replace(/\n/g, '; ')) || '—'
   if (holdsFiles(field)) {
     const files = (Array.isArray(value) ? value : []).map((f: any) => String(f?.name ?? 'file')).filter(Boolean)
     return files.length ? `${files.length} file${files.length === 1 ? '' : 's'}: ${clip(files.join(', '), 200)}` : '—'

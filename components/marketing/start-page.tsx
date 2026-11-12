@@ -3,6 +3,7 @@ import { Check, ShieldCheck, Sparkles } from "lucide-react"
 import { BetaSignupForm } from "@/components/marketing/beta-signup-form"
 import { MarketingFooter, MarketingHeader } from "@/components/marketing/marketing-ui"
 import { NavArt } from "@/components/marketing/nav-art"
+import { loginHref } from "@/lib/signup-link"
 
 const POINTS = [
   "Workflows, forms, tasks, data tables and reports",
@@ -12,7 +13,7 @@ const POINTS = [
 ]
 
 /** /start: the cloud sign-up page the "Start free" buttons lead to. */
-export function StartPage({ email, next = null }: { email: string; next?: string | null }) {
+export function StartPage({ email, next = null, redirect = null }: { email: string; next?: string | null; redirect?: string | null }) {
   return (
     <div className="relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)">
       <MarketingHeader />
@@ -37,9 +38,9 @@ export function StartPage({ email, next = null }: { email: string; next?: string
           </section>
           <section aria-label="Create your workspace" className="rounded-3xl border border-(color:--mkt-ink)/10 bg-(color:--mkt-white)/90 p-6 shadow-[0_40px_100px_-40px_rgba(27,25,22,0.45)] backdrop-blur sm:p-8">
             <h2 className="text-xl font-semibold">Create your workspace</h2>
-            <p className="mb-6 mt-1 text-sm text-(color:--mkt-muted)">Already have one? <Link href="/login" className="font-semibold text-(color:--mkt-ink) underline-offset-4 hover:underline">Sign in</Link></p>
+            <p className="mb-6 mt-1 text-sm text-(color:--mkt-muted)">Already have one? <Link href={loginHref(redirect)} className="font-semibold text-(color:--mkt-ink) underline-offset-4 hover:underline">Sign in</Link></p>
             {next === 'infopath' && <p className="mb-4 rounded-xl border border-(color:--mkt-bronze)/30 bg-(color:--mkt-gold)/[0.10] px-4 py-3 text-sm text-(color:--mkt-ink-soft)" data-testid="start-infopath-note">After sign-up your InfoPath form opens in the importer. Your file stays in this browser, not on our servers: if it doesn't come across, choose it again.</p>}
-            <BetaSignupForm defaultEmail={email} next={next} />
+            <BetaSignupForm defaultEmail={email} next={next} redirect={redirect} />
           </section>
         </div>
       </main>

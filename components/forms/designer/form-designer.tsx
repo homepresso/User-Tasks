@@ -21,10 +21,11 @@ import { FormLookupProvider } from '@/components/forms/lookup-field'
 import { useWorkspaceTheme } from '@/components/providers/theme-provider'
 import { formDefinitionKey, type FormDefinition } from '@/lib/forms/definition'
 import {
-  addField, addSection, convertHeadingToSection, definitionFrom, deletePage, designerProblems, designerRuleProblems, designerSectionProblems, designerStateFrom, duplicateField, duplicatePage, keyRenames, onPage, removeField, updateField,
+  addField, addSection, convertHeadingToSection, designerFieldPath, scopedView, withScopedView, definitionFrom, deletePage, designerProblems, designerRuleProblems, designerSectionProblems, designerStateFrom, duplicateField, duplicatePage, keyRenames, onPage, removeField, updateField,
   type DesignerState,
 } from '@/lib/forms/designer-state'
 import { allRows, isPaged, pageGrid } from '@/lib/forms/layout'
+import { REPEATING_EXCLUDED_TYPES, REPEATING_MAX_DEPTH } from '@/lib/forms/repeating-section'
 import { pageFieldKeys, pageProblems } from '@/lib/forms/pages'
 import type { FormPage } from '@/lib/forms/layout'
 import { FormPagesProvider, FormStepActions } from '@/components/forms/form-pages'
@@ -276,7 +277,11 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
   const sectionIssues = useMemo(() => designerSectionProblems(state), [state])
   const sectionDef = (state.layout.sections ?? []).find((s) => s.key === selectedSection) ?? null
   const problemCount = Object.keys(problems).length + Object.keys(buttonIssues).length + (themeBlocking.length ? 1 : 0) + Object.keys(pageBlocking).length + Object.keys(ruleIssues).length + Object.keys(sectionIssues).length
-  const selected = state.fields.find((f) => f._id === selectedId) ?? null
+  // A selected control may sit inside a repeating section (any level): its properties edit that section's inner form.
+  const selectedPath = selectedId ? designerFieldPath(state, selectedId) : null
+  const selectedView = selectedPath ? scopedView(state, selectedPath) : null
+  const selected = selectedView?.fields.find((f) => f._id === selectedId) ?? null
+  const inScope = (fn: (view: DesignerState) => DesignerState) => (selectedPath && selectedView ? withScopedView(state, selectedPath, fn(selectedView)) : state)
   const contextCount = (state.layout.params?.length ?? 0) + (state.layout.variables?.length ?? 0)
   const ruleCount = useMemo(() => collectFormRules({ fields: state.fields as never, layout: state.layout as never, buttons: state.buttons as never }).length, [state])
   const a11y = useFormAccessibility(definition, themeOverrides, formSettings !== false && formSettings.showDraft ? 'task' : undefined)
@@ -391,7 +396,18 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
   }
 
   function addType(type: TaskFieldType) {
-    // Into the selected field's row when it has room, else a new row.
+    // Into the selected repeating section (or the one holding the selected control) when it can hold the type, else a new row of the form.
+    const into = selected && selectedPath ? (selected.type === 'repeating_section' ? [...selectedPath, selected._id] : selectedPath) : []
+    const inner = into.length && !REPEATING_EXCLUDED_TYPES.has(type) && !(into.length >= REPEATING_MAX_DEPTH && (type === 'repeating_section' || type === 'list')) ? scopedView(state, into) : null
+    if (inner) {
+      const { state: nextInner, field } = addField(inner, type)
+      change(withScopedView(state, into, nextInner))
+      setSelectedId(field._id)
+      setTab('field')
+      setAnnouncement(`${TASK_FIELD_TYPE_LABELS[type]} added to the repeating section`)
+      requestAnimationFrame(() => document.getElementById(`form-cell-${field._id}`)?.focus())
+      return
+    }
     const { state: next, field } = addField(state, type, undefined, activeId)
     change(next)
     setSelectedId(field._id)
@@ -705,14 +721,14 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                   <DesignerPreviewValuesProvider value={shownValues}>
                   <FieldProperties
                     key={selected._id}
-                    state={state}
+                    state={selectedView ?? state}
                     field={selected}
-                    allowedTypes={allowedTypes}
-                    onPatch={(patch, tag) => change(updateField(state, selected._id, patch), tag)}
-                    onChangeState={(next) => change(next)}
-                    onRemove={() => { change(removeField(state, selected._id)); setSelectedId(null) }}
-                    onDuplicate={() => { const r = duplicateField(state, selected._id); if (r) { change(r.state); setSelectedId(r.field._id) } }}
-                    onConvertToSection={selected.type === 'heading' ? () => {
+                    allowedTypes={selectedPath?.length ? allowedTypes.filter((t) => !REPEATING_EXCLUDED_TYPES.has(t)) : allowedTypes}
+                    onPatch={(patch, tag) => change(inScope((view) => updateField(view, selected._id, patch)), tag)}
+                    onChangeState={(next) => change(selectedPath?.length ? withScopedView(state, selectedPath, next) : next)}
+                    onRemove={() => { change(inScope((view) => removeField(view, selected._id))); setSelectedId(null) }}
+                    onDuplicate={() => { const view = selectedView ?? state; const r = duplicateField(view, selected._id); if (r) { change(selectedPath?.length ? withScopedView(state, selectedPath, r.state) : r.state); setSelectedId(r.field._id) } }}
+                    onConvertToSection={selected.type === 'heading' && !selectedPath?.length ? () => {
                       const r = convertHeadingToSection(state, selected._id)
                       if (!r) return
                       change(r.state); setSelectedId(null); setSelectedSection(r.key); setTab('section')

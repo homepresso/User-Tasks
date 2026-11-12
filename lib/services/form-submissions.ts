@@ -24,9 +24,13 @@
  * workflows whose "Form submitted" trigger names the form.
  */
 
+import { repeatingDerivedValues } from '@/lib/forms/repeating-section'
+import { describeSignature } from '@/lib/forms/media-fields'
 import { isSurveyType, surveyCsvColumns } from '@/lib/forms/survey/controls'
+import { controlValueText } from '@/lib/forms/control-text'
+import { richTextPlainText, richTextTextKey } from '@/lib/forms/rich-text'
 import { mergeTaskFieldValuesChecked } from '@/lib/forms/task-values'
-import { sectionIncludedKeys } from '@/lib/forms/sections'
+import { choiceGroupKeys, sectionIncludedKeys } from '@/lib/forms/sections'
 import { formParamsMessage, hasFormContext, includedContextSchema, includedFormContext, layoutFormParams, serverFormContext, stripFormContext } from '@/lib/forms/form-params'
 import { normalizeFormDefinition } from '@/lib/forms/definition'
 import {
@@ -38,7 +42,7 @@ import { applySubmittedPage } from '@/lib/forms/submitted-page'
 import { buildFormSubmittedPayload, readFormSubmittedConfig, triggerMatchesButton, FORM_SUBMITTED_TRIGGER } from '@/lib/forms/submitted-trigger'
 import { lookupItemKey, lookupLabelKey } from '@/lib/forms/lookup'
 import { attachmentNames, attachmentsCountKey } from '@/lib/forms/attachments'
-import { listCountKey, listDerivedValues } from '@/lib/forms/list-field'
+import { childListPaths, listCountKey, listDerivedValues, nestedRowsAt, rawListRows, type ListRow } from '@/lib/forms/list-field'
 import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
@@ -295,10 +299,10 @@ async function submitter(db: AnySupabaseClient, userId: string | null, tenantId?
   return { id: userId, name: data?.display_name ?? null, email: data?.email ?? null, manager_id: manager }
 }
 
-/** Values stored for a submission: the form's value fields (and lookups' items, attachments' counts, optional sections' `<key>_included`), nothing else. */
+/** Values stored for a submission: the form's value fields (and lookups' items, attachments' counts, rich text's plain text, optional sections' `<key>_included`, choice groups' `<key>`), nothing else. */
 export function storedValues(fields: TaskFieldDef[], values: Record<string, unknown>, layout: unknown = null): Record<string, unknown> {
   const out: Record<string, unknown> = {}
-  for (const key of sectionIncludedKeys(layout)) if (Object.prototype.hasOwnProperty.call(values, key)) out[key] = values[key]
+  for (const key of [...sectionIncludedKeys(layout), ...choiceGroupKeys(layout)]) if (Object.prototype.hasOwnProperty.call(values, key)) out[key] = values[key]
   for (const field of valueFields(fields)) {
     if (Object.prototype.hasOwnProperty.call(values, field.key)) out[field.key] = values[field.key]
     if (field.type === 'lookup' && Object.prototype.hasOwnProperty.call(values, lookupItemKey(field.key))) out[lookupItemKey(field.key)] = values[lookupItemKey(field.key)]
@@ -306,6 +310,10 @@ export function storedValues(fields: TaskFieldDef[], values: Record<string, unkn
     if (field.type === 'attachments' && Object.prototype.hasOwnProperty.call(values, attachmentsCountKey(field.key))) out[attachmentsCountKey(field.key)] = values[attachmentsCountKey(field.key)]
     // List fields: `<key>_count` and the totals, recomputed from the rows (never as sent).
     if (field.type === 'list' && Object.prototype.hasOwnProperty.call(values, field.key)) Object.assign(out, listDerivedValues(field.key, field.list, values[field.key]))
+    // Repeating sections: `<key>_count` and the totals, recomputed from the items.
+    if (field.type === 'repeating_section' && Object.prototype.hasOwnProperty.call(values, field.key)) Object.assign(out, repeatingDerivedValues(field.key, field.repeating_section, values[field.key]))
+    // Rich text: `<key>_text`, the plain text, recomputed from the (sanitised) value.
+    if (field.type === 'rich_text' && Object.prototype.hasOwnProperty.call(values, field.key)) out[richTextTextKey(field.key)] = richTextPlainText(values[field.key])
     // Custom control outputs: the whole value and the extras beside the main output.
     for (const key of customOutputSiblingKeys(field)) if (Object.prototype.hasOwnProperty.call(values, key)) out[key] = values[key]
   }
@@ -686,12 +694,15 @@ export async function formSubmissionsCsv(ctx: ServiceContext, filters: Submissio
   }
   const people = await userProfiles(db, rows.map((r) => r.submitted_by))
   // The submission metadata first (as {{submission.*}}), then one column per field.
+  // Rich text: its plain text; a text list: one item per line; a people list: names (lib/forms/control-text.ts).
   // One column per field; survey controls by surveyCsvColumns (a matrix: one per statement, a ranking "A > B > C").
-  // A List: its rows as JSON and the row count beside them.
-  const cells = fields.flatMap((f) => (isSurveyType(f.type) ? surveyCsvColumns(f) : f.type === 'list' ? [
+  // A List: its rows as JSON (nested Lists inside their rows) and the row count beside them; per nested List
+  // (path P: `lines`, `lines_serials`) its rows under every parent row as `<key>_<P>_count`.
+  const cells = fields.flatMap((f) => (isSurveyType(f.type) ? surveyCsvColumns(f) : f.type === 'list' || f.type === 'repeating_section' ? [
     { header: f.key, cell: (values: Record<string, unknown>) => (Array.isArray(values[f.key]) && (values[f.key] as unknown[]).length ? values[f.key] : '') },
     { header: listCountKey(f.key), cell: (values: Record<string, unknown>) => (Array.isArray(values[f.key]) ? (values[f.key] as unknown[]).length : 0) },
-  ] : [{ header: f.key, cell: (values: Record<string, unknown>) => (f.type === 'attachments' ? attachmentNames(values[f.key]) : values[f.key]) }]))
+    ...childListPaths(f.list).map((path) => ({ header: listCountKey(`${f.key}_${path.join('_')}`), cell: (values: Record<string, unknown>) => nestedRowsAt(rawListRows(values[f.key]) as ListRow[], path).length })),
+  ] : [{ header: f.key, cell: (values: Record<string, unknown>) => (controlValueText(f, values[f.key], { csv: true }) ?? (f.type === 'attachments' ? attachmentNames(values[f.key]) : f.type === 'image' ? attachmentNames(values[f.key]) : f.type === 'signature' ? (values[f.key] ? describeSignature(values[f.key], 'UTC') + ' UTC' : '') : values[f.key])) }]))
   const header = ['submission_id', 'reference', 'submitted_at', 'submitted_by', 'submitted_by_email', 'submitted_by_id', 'form_version', 'source', 'submission_source', 'button', 'outcome', 'task_id', ...cells.map((c) => c.header)]
   const lines = [header.map(csvCell).join(',')]
   for (const r of rows) {

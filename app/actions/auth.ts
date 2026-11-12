@@ -7,6 +7,7 @@ import { getAuthProvider, isAuthError, type AuthRequestContext, type LoginOption
 import { checkInvitation, inviteTokenMatches, joinInvitedTenant } from '@/lib/providers/auth/provisioning'
 import { sanitizeRedirect } from '@/lib/safe-redirect'
 import { getCachedUser } from '@/lib/supabase/server'
+import { isCloud } from '@/lib/deployment'
 
 /*
  * Sign-in, sign-up, sign-out, password reset and SSO start — all server side.
@@ -100,7 +101,12 @@ export async function signInAction(input: SignInInput): Promise<AuthActionResult
   // 2. Invitation (pending or accepted) or existing access?
   const check = await checkInvitation(slug, email.toLowerCase()).catch(() => null)
   if (!check?.ok) {
-    return { ok: false, error: "Invalid email or password. If you're new, ask an admin to invite you first." }
+    return {
+      ok: false,
+      error: isCloud()
+        ? 'Invalid email or password. New here? Use "Create a free workspace" below to set up your own account.'
+        : "Invalid email or password. If you're new, ask an admin to invite you first.",
+    }
   }
   if (check.existingUserId) {
     return { ok: false, error: 'Incorrect password. Please try again.', code: isAuthError(signInError) ? signInError.code : undefined }

@@ -9,7 +9,7 @@ import { profileTokenStore } from './oauth'
 import { render } from './output'
 import { resolveSettings, type GlobalFlags, type ResolvedSettings } from './settings'
 
-export const CLI_VERSION = '0.1.0'
+export const CLI_VERSION = '0.1.1'
 
 export class Runtime {
   readonly store: ConfigStore

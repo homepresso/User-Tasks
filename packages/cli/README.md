@@ -21,6 +21,10 @@ usertasks workflows list
 | `usertasks profiles list\|use\|rm` | Manages the saved profiles. |
 | `usertasks whoami` | Shows the workspace, user, auth kind, permissions, scopes and expiry. |
 
+New to UserTasks? Log in against usertasks.com without an account: the login page has a
+**Create a free workspace** link, and after sign-up the browser returns to the CLI login. Self-hosted
+servers stay invite-only.
+
 Profiles are stored in `$XDG_CONFIG_HOME/usertasks/config.json` (`~/.config/...`, or
 `%APPDATA%\usertasks` on Windows). The folder is created with mode 0700 and the file with mode
 0600.

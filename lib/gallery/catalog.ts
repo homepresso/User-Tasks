@@ -237,7 +237,7 @@ export function catalogEntry(source: GallerySource, built: BuiltGalleryPackage):
     const uses = formUses(fields, layout)
     return { ...(columns > 1 ? { columns } : {}), ...(themed ? { themed } : {}), ...(labels?.length ? { buttons: labels } : {}), ...(uses.length ? { uses } : {}) }
   }
-  const shown = (fields: any) => (Array.isArray(fields) ? fields : []).filter((f: any) => !['heading', 'divider', 'button'].includes(f?.type)).map(field)
+  const shown = (fields: any) => (Array.isArray(fields) ? fields : []).filter((f: any) => !['heading', 'divider', 'button', 'display_image'].includes(f?.type)).map(field)
   for (const form of assets.forms ?? []) {
     forms.push({
       workflow: 'Form page', step: String(form.name), title: String(form.header?.title || form.name), outcomes: [],

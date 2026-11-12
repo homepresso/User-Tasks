@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { FormattedCellView } from './data-table-cell'
 import { useFormRules } from './form-rules-runtime'
 import {
-  LABEL_LIMITS, LabelCascade, computeLabelValues, formatLabelValue, isLabel, sameLabelValue,
+  LABEL_LIMITS, LabelCascade, computeLabelValues, formatLabelValue, inferLabelFormat, isLabel, sameLabelValue,
   type LabelFieldConfig,
 } from '@/lib/forms/label-field'
 import { layoutFormRules } from '@/lib/forms/form-rules'
@@ -19,15 +19,18 @@ import { cn } from '@/lib/utils'
 
 const SIZE: Record<NonNullable<LabelFieldConfig['size']>, string> = { sm: 'text-sm', md: 'text-base', lg: 'text-xl', xl: 'text-3xl' }
 
-export function LabelDisplay({ field, value, id, dynamic, locale }: {
+export function LabelDisplay({ field, fields, value, id, dynamic, locale }: {
   field: TaskFieldDef
+  /** The form's fields: a label with no format of its own defaults to currency when it adds up currency values (inferLabelFormat). */
+  fields?: readonly TaskFieldDef[]
   value: unknown
   id: string
   dynamic: boolean
   locale?: string
 }) {
   const config = field.label_config
-  const cell = formatLabelValue(config, value, { locale })
+  const inferred = useMemo(() => (config?.format || !fields ? null : inferLabelFormat(field, fields as never)), [config?.format, field, fields])
+  const cell = formatLabelValue(config, value, { locale, inferred })
   const align = config?.align ?? (cell.empty ? undefined : cell.align)
   const size = SIZE[config?.size ?? 'md']
   const captionId = `${id}-label`

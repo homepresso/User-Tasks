@@ -8,6 +8,7 @@ import { ConfigStore, type OAuthCredentials } from '../src/config'
 import { EXIT } from '../src/exit-codes'
 import type { Io } from '../src/io'
 import { run } from '../src/main'
+import { signupHint, signupUrl } from '../src/oauth'
 import { tempConfigPath } from './helpers'
 
 // ─── Fake authorization server + API ───
@@ -22,7 +23,7 @@ interface FakeServer {
   registerRequests: Record<string, unknown>[]
   meAuth: string[]
   /** Behaviour switches. */
-  options: { firstParty: boolean; denyConsent: boolean; meRejects: Set<string> }
+  options: { firstParty: boolean; denyConsent: boolean; meRejects: Set<string>; signup: boolean }
 }
 
 const ME = {
@@ -47,7 +48,7 @@ async function startFakeServer(): Promise<FakeServer> {
   let n = 0
   const state: Omit<FakeServer, 'url' | 'close'> = {
     authorizeRequests: [], tokenRequests: [], revokeRequests: [], registerRequests: [], meAuth: [],
-    options: { firstParty: true, denyConsent: false, meRejects: new Set() },
+    options: { firstParty: true, denyConsent: false, meRejects: new Set(), signup: false },
   }
   const issue = (scope: string) => {
     n++
@@ -73,6 +74,7 @@ async function startFakeServer(): Promise<FakeServer> {
         scopes_supported: ['tasks:read', 'workflows:read', 'config:write', 'keys:write', 'mcp', 'admin'],
         code_challenge_methods_supported: ['S256'],
         ...(state.options.firstParty ? { usertasks_cli_client_id: 'usertasks-cli' } : {}),
+        ...(state.options.signup ? { usertasks_signup_url: `${base}/start` } : {}),
       })
     }
     if (url.pathname === '/api/oauth/authorize') {
@@ -304,6 +306,19 @@ describe('usertasks login (browser)', () => {
     expect(new ConfigStore(configPath).read().profiles).toEqual({})
   })
 
+  it('prints no sign-up hint for a self-hosted server', async () => {
+    const c = cli(tempConfigPath(), { loginTimeoutMs: 200 })
+    await c.run('login', '--url', fake.url, '--no-browser')
+    expect(c.stderr()).not.toContain('No account yet?')
+  })
+
+  it('prints the sign-up hint while waiting when the server advertises self-signup (cloud)', async () => {
+    fake.options.signup = true
+    const c = cli(tempConfigPath(), { loginTimeoutMs: 200 })
+    await c.run('login', '--url', fake.url, '--no-browser')
+    expect(c.stderr()).toContain(`No account yet? Create one free at ${fake.url}/start\nWaiting for the login to finish`)
+  })
+
   it('the loopback listener is gone after a timeout', async () => {
     const configPath = tempConfigPath()
     const c = cli(configPath, { loginTimeoutMs: 200 })
@@ -481,5 +496,29 @@ describe('ConfigStore.withLock', () => {
     writeFileSync(store.lockPath, '1 live\n')
     await expect(store.withLock(async () => 'never', { timeoutMs: 100, pollMs: 10 })).rejects.toThrow(/Timed out waiting/)
     expect(existsSync(store.lockPath)).toBe(true) // someone else's lock is left alone
+  })
+})
+
+describe('signupUrl / signupHint', () => {
+  it('cloud hosts: usertasks.com and its subdomains', () => {
+    expect(signupHint('https://usertasks.com')).toBe('No account yet? Create one free at https://usertasks.com/start')
+    expect(signupUrl('https://usertasks.com/')).toBe('https://usertasks.com/start')
+    expect(signupUrl('https://acme.usertasks.com')).toBe('https://usertasks.com/start')
+  })
+
+  it('other hosts get no hint unless the server advertises self-signup', () => {
+    expect(signupHint('https://tasks.example.com')).toBeNull()
+    expect(signupUrl('http://localhost:3000')).toBeNull()
+    expect(signupUrl('https://usertasks.com.evil.test')).toBeNull()
+    expect(signupUrl('https://notusertasks.com')).toBeNull()
+    expect(signupUrl('http://usertasks.com')).toBeNull()
+    expect(signupUrl('not a url')).toBeNull()
+  })
+
+  it('uses the advertised URL only when it is on the same origin', () => {
+    expect(signupUrl('http://localhost:3000', { usertasks_signup_url: 'http://localhost:3000/start' })).toBe('http://localhost:3000/start')
+    expect(signupUrl('http://localhost:3000', { usertasks_signup_url: 'https://evil.test/start' })).toBe('http://localhost:3000/start')
+    expect(signupUrl('http://localhost:3000', { usertasks_signup_url: 'javascript:alert(1)' })).toBe('http://localhost:3000/start')
+    expect(signupUrl('https://tasks.example.com', { usertasks_signup_url: 42 })).toBeNull()
   })
 })

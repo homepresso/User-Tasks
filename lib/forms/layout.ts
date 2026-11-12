@@ -83,6 +83,30 @@ export interface FormSection {
   preload?: boolean
 }
 
+/** How a choice group's switch shows (default radio). */
+export type ChoiceGroupDisplay = 'radio' | 'tabs' | 'dropdown'
+export const CHOICE_GROUP_DISPLAYS: ChoiceGroupDisplay[] = ['radio', 'tabs', 'dropdown']
+export const CHOICE_GROUP_DISPLAY_LABELS: Record<ChoiceGroupDisplay, string> = { radio: 'Radio buttons', tabs: 'Tabs', dropdown: 'Dropdown' }
+export const CHOICE_GROUP_LIMITS = { groups: 20, min: 2, max: 6 } as const
+
+/**
+ * A choice group (InfoPath's choice group / choice section —
+ * lib/forms/sections.ts): one of 2–6 alternative sections shows at a time,
+ * picked with a switch above it. The chosen section's key is the value
+ * `<key>`; the other alternatives' fields are hidden, not required, not
+ * checked and not kept.
+ */
+export interface FormChoiceGroup {
+  /** The value key (`{{form.<key>}}`); never a field or section key. */
+  key: string
+  label: string
+  /** Section keys of the alternatives (2–6, on one page), in switch order. */
+  sections: string[]
+  /** The alternative chosen when nothing is (default: the first). */
+  default?: string
+  display?: ChoiceGroupDisplay
+}
+
 /**
  * When a step / tab or a section loads (lib/forms/lazy-load.ts):
  * eager = on form open (the default), visible = when first shown / opened,
@@ -154,6 +178,8 @@ export interface FormLayout {
   variables?: FormVariable[]
   /** Sections rows can belong to (lib/forms/sections.ts). */
   sections?: FormSection[]
+  /** Choice groups: one of several sections shows at a time (lib/forms/sections.ts). */
+  choice_groups?: FormChoiceGroup[]
   /** The Submitted page shown after a submission (lib/forms/submitted-page.ts); absent = as before. */
   submitted_page?: SubmittedPageConfig
   /** The top-right icons (favourite, save draft) turned off; absent = both on (lib/forms/form-actions.ts). */
@@ -304,7 +330,8 @@ export function normalizeFormLayout(raw: unknown, fieldKeys: string[]): FormLayo
     const settings = normalizePageSettings(raw.page_settings)
     if (settings) out.page_settings = settings
     const sections = tidySections(out, declared)
-    return { ...out, ...extras(new Set(pages.map((p) => p.id)), new Set(sections.map((x) => x.key))), ...(sections.length ? { sections } : {}) }
+    const groups = normalizeChoiceGroups(raw.choice_groups, out, sections, known)
+    return { ...out, ...extras(new Set(pages.map((p) => p.id)), new Set(sections.map((x) => x.key))), ...(sections.length ? { sections } : {}), ...(groups.length ? { choice_groups: groups } : {}) }
   }
   const flat = Array.isArray(raw.rows) ? raw.rows : []
   const sources = [...flat, ...rawPages.flatMap((page) => (Array.isArray(page.rows) ? page.rows : []))]
@@ -314,7 +341,8 @@ export function normalizeFormLayout(raw: unknown, fieldKeys: string[]): FormLayo
   }
   const out: FormLayout = { rows }
   const sections = tidySections(out, declared)
-  return { ...out, ...extras(new Set(), new Set(sections.map((x) => x.key))), ...(sections.length ? { sections } : {}) }
+  const groups = normalizeChoiceGroups(raw.choice_groups, out, sections, known)
+  return { ...out, ...extras(new Set(), new Set(sections.map((x) => x.key))), ...(sections.length ? { sections } : {}), ...(groups.length ? { choice_groups: groups } : {}) }
 }
 
 /** A part's stored `load` / `preload` → clean (eager is the default and not stored; preload only on a lazy part). */
@@ -371,6 +399,46 @@ function tidySections(layout: FormLayout, declared: FormSection[]): FormSection[
     grid.rows.splice(0, grid.rows.length, ...grouped)
   }
   return declared.filter((s) => home.has(s.key))
+}
+
+/**
+ * Stored `layout.choice_groups` → clean groups: a key like a field key that
+ * is no field, section or `<section>_included` key; 2–6 declared sections
+ * on one page (later pages' alternatives dropped), each in one group only;
+ * `default` one of them; display radio (default, not stored) / tabs /
+ * dropdown. A group left with fewer than 2 sections is dropped.
+ */
+export function normalizeChoiceGroups(raw: unknown, layout: FormLayout, sections: FormSection[], fieldKeys: ReadonlySet<string>): FormChoiceGroup[] {
+  if (!Array.isArray(raw) || !sections.length) return []
+  const sectionKeys = new Set(sections.map((s) => s.key))
+  const home = new Map<string, string>()
+  for (const grid of isPaged(layout) ? layout.pages.map((p) => ({ id: p.id, rows: p.rows })) : [{ id: '', rows: layout.rows }]) {
+    for (const row of grid.rows) if (row.section && !home.has(row.section)) home.set(row.section, grid.id)
+  }
+  const used = new Set<string>()
+  const keys = new Set<string>()
+  const out: FormChoiceGroup[] = []
+  for (const entry of raw) {
+    if (out.length >= CHOICE_GROUP_LIMITS.groups) break
+    if (!isPlainObject(entry)) continue
+    const key = typeof entry.key === 'string' && SECTION_KEY_RE.test(entry.key) ? entry.key : ''
+    if (!key || keys.has(key) || fieldKeys.has(key) || sectionKeys.has(key) || [...sectionKeys].some((s) => `${s}_included` === key)) continue
+    const picked: string[] = []
+    for (const s of Array.isArray(entry.sections) ? entry.sections : []) {
+      if (typeof s !== 'string' || !sectionKeys.has(s) || used.has(s) || picked.includes(s)) continue
+      if (picked.length && home.get(s) !== home.get(picked[0])) continue
+      if (picked.length >= CHOICE_GROUP_LIMITS.max) break
+      picked.push(s)
+    }
+    if (picked.length < CHOICE_GROUP_LIMITS.min) continue
+    keys.add(key)
+    for (const s of picked) used.add(s)
+    const group: FormChoiceGroup = { key, label: pageText(entry.label, 120) || 'Choose one', sections: picked }
+    if (typeof entry.default === 'string' && picked.includes(entry.default)) group.default = entry.default
+    if (entry.display === 'tabs' || entry.display === 'dropdown') group.display = entry.display
+    out.push(group)
+  }
+  return out
 }
 
 /** Rows with each section's rows gathered at its first run (stable otherwise). */
@@ -736,6 +804,9 @@ function withExtras(out: FormLayout, layout: FormLayout): FormLayout {
   const used = new Set(allRows(out).map((r) => r.section).filter(Boolean))
   const sections = normalizeFormSections(layout.sections).filter((s) => used.has(s.key))
   if (sections.length) out.sections = sections
+  // Choice groups ride along with their sections (they were dropped on save before).
+  const groups = sections.length ? normalizeChoiceGroups(layout.choice_groups, out, sections, new Set(allRows(out).flatMap((r) => r.cells.map((c) => c.field_key)))) : []
+  if (groups.length) out.choice_groups = groups
   return out
 }
 

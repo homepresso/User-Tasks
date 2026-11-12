@@ -59,6 +59,11 @@ export function useFormRuntime(): FormRuntime | null {
   return useContext(RuntimeContext)
 }
 
+/** A nested form (a repeating section's item): it registers nothing with the outer surface (bar, rules, Validate errors). */
+export function RuntimeBoundary({ children }: { children: React.ReactNode }) {
+  return <RuntimeContext.Provider value={null}>{children}</RuntimeContext.Provider>
+}
+
 /** Register a surface's bar buttons (after every render: the latest handler wins; cleared on unmount). */
 export function useRegisterBar(bar: RegisteredBar) {
   const register = useContext(RuntimeContext)?.registerBar

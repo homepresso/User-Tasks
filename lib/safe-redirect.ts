@@ -10,7 +10,9 @@ export function sanitizeRedirect(raw: string | null | undefined, fallback = '/ho
   if (!candidate) return fallback
   // Must start with a single '/' not followed by '/' or '\'
   if (!/^\/(?![/\\])/.test(candidate)) return fallback
-  // Reject anything that could smuggle a scheme or CRLF
-  if (/[\r\n]/.test(candidate) || candidate.includes('://')) return fallback
+  // Reject anything that could smuggle a scheme, a header (CRLF) or a host:
+  // browsers drop tabs/newlines and read `\` as `/`, so `/\t/evil.com` or
+  // `/\\evil.com` would become `//evil.com`. No control characters, no backslashes.
+  if (/[\u0000-\u001f\u007f\\]/.test(candidate) || candidate.includes('://')) return fallback
   return candidate
 }

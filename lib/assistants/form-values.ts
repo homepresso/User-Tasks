@@ -20,7 +20,7 @@ export const ASSISTANT_SETTABLE_TYPES = new Set([
 ])
 
 /** Field types with no value (never sent as fields to fill). */
-const DISPLAY_TYPES = new Set(['heading', 'divider', 'button'])
+const DISPLAY_TYPES = new Set(['heading', 'divider', 'button', 'display_image'])
 
 const SECRET_LABEL = /\b(password|passcode|passphrase|secret|api[ -]?key|access token|token|pin|cvv|cvc|security code)\b/i
 

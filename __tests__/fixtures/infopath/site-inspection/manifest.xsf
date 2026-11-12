@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A sample InfoPath form template written for UserTasks' importer tests (not from Microsoft). -->
+<xsf:xDocumentClass solutionFormatVersion="3.0.0.0" solutionVersion="1.0.0.7" productVersion="15.0.0" name="urn:schemas-microsoft-com:office:infopath:Site-Inspection" xmlns:xsf="http://schemas.microsoft.com/office/infopath/2003/solutionDefinition" xmlns:xsf2="http://schemas.microsoft.com/office/infopath/2006/solutionDefinition/extensions" xmlns:xd="http://schemas.microsoft.com/office/infopath/2003" xmlns:xdXDocument="http://schemas.microsoft.com/office/infopath/2003/xslt/xDocument" xmlns:xdUser="http://schemas.microsoft.com/office/infopath/2006/xslt/User" xmlns:my="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-03-04T08:00:00">
+	<xsf:package><xsf:files><xsf:file name="myschema.xsd"><xsf:fileProperties><xsf:property name="rootElement" type="string" value="siteInspection"></xsf:property></xsf:fileProperties></xsf:file></xsf:files></xsf:package>
+	<xsf:views default="Inspection">
+		<xsf:view name="Inspection" caption="Site inspection" showMenuItem="yes">
+			<xsf:mainpane transform="view1.xsl"></xsf:mainpane>
+			<xsf:editing>
+				<xsf:xmlToEdit name="notes_1" item="/my:siteInspection/my:notes"><xsf:editWith type="rich" component="xField"></xsf:editWith></xsf:xmlToEdit>
+				<xsf:xmlToEdit name="item_2" item="/my:siteInspection/my:items/my:item" container="/my:siteInspection/my:items"><xsf:editWith component="xCollection"></xsf:editWith></xsf:xmlToEdit>
+				<xsf:xmlToEdit name="finding_3" item="/my:siteInspection/my:items/my:item/my:findings/my:finding" container="/my:siteInspection/my:items/my:item/my:findings"><xsf:editWith component="xCollection"></xsf:editWith></xsf:xmlToEdit>
+				<xsf:xmlToEdit name="hazard_4" item="/my:siteInspection/my:hazards/my:hazard" container="/my:siteInspection/my:hazards"><xsf:editWith component="xCollection"></xsf:editWith></xsf:xmlToEdit>
+				<xsf:xmlToEdit name="control_5" item="/my:siteInspection/my:hazards/my:hazard/my:controls/my:control" container="/my:siteInspection/my:hazards/my:hazard/my:controls"><xsf:editWith component="xCollection"></xsf:editWith></xsf:xmlToEdit>
+			</xsf:editing>
+		</xsf:view>
+	</xsf:views>
+	<xsf:documentSchemas><xsf:documentSchema rootSchema="yes" location="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-03-04T08:00:00 myschema.xsd"></xsf:documentSchema></xsf:documentSchemas>
+	<xsf:fileNew><xsf:initialXmlDocument caption="Site Inspection" href="template.xml"></xsf:initialXmlDocument></xsf:fileNew>
+	<xsf:roles default="Inspector"><xsf:role name="Inspector"></xsf:role><xsf:role name="Supervisor"></xsf:role></xsf:roles>
+	<xsf:documentSignatures signatureLocation="/my:siteInspection/my:signature">
+		<xsf:signedDataBlock name="inspectorSignature" data="/my:siteInspection" signatureLocation="/my:siteInspection/my:signature" mode="countersign" message="Inspector sign-off"></xsf:signedDataBlock>
+	</xsf:documentSignatures>
+	<xsf:ruleSets>
+		<xsf:ruleSet name="ruleSet_load">
+			<xsf:rule caption="Supervisor review" condition="xdXDocument:get-Role() = &quot;Supervisor&quot;" isEnabled="yes">
+				<xsf:assignmentAction targetField="my:reviewedBy" expression="xdUser:get-DisplayName()"></xsf:assignmentAction>
+			</xsf:rule>
+		</xsf:ruleSet>
+	</xsf:ruleSets>
+	<xsf:onLoad><xsf:ruleSetAction ruleSet="ruleSet_load"></xsf:ruleSetAction></xsf:onLoad>
+	<xsf:customValidation>
+		<xsf:errorCondition match="/my:siteInspection/my:items/my:item" expressionContext="my:area" expression=". = &quot;&quot; and ../my:result = &quot;Fail&quot;">
+			<xsf:errorMessage type="modeless" shortMessage="Name the area that failed"></xsf:errorMessage>
+		</xsf:errorCondition>
+		<xsf:errorCondition match="/my:siteInspection/my:items/my:item" expressionContext="my:score" expression=". &gt; 10">
+			<xsf:errorMessage type="modeless" shortMessage="Scores go up to 10"></xsf:errorMessage>
+		</xsf:errorCondition>
+		<xsf:errorCondition match="/my:siteInspection/my:hazards/my:hazard" expressionContext="my:hazardTitle" expression=". = &quot;&quot; and ../my:level = &quot;High&quot;">
+			<xsf:errorMessage type="modeless" shortMessage="Describe every high hazard"></xsf:errorMessage>
+		</xsf:errorCondition>
+	</xsf:customValidation>
+</xsf:xDocumentClass>

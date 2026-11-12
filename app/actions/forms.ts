@@ -92,6 +92,16 @@ export async function uploadFormHeaderImage(formData: FormData) {
   })
 }
 
+/** A picture for a form's layout (Display image, an Image field's default picture): PNG, JPEG, WebP or GIF, ≤ 2 MB. */
+export async function uploadFormImage(formData: FormData) {
+  return run('uploadFormImage', 'Could not upload the image.', async (ctx) => {
+    const file = formData.get('file')
+    if (!(file instanceof File)) throw new Error('No file')
+    const { uploadFormImage: upload } = await import('@/lib/services/uploads')
+    return upload(ctx, { name: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) })
+  })
+}
+
 /**
  * An in-form button's "Open link" to another host: the address when it is
  * allowed (an app page, the app's origin or a FORM_REDIRECT_ALLOWLIST host —

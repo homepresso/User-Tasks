@@ -110,12 +110,20 @@ function cleanUrl(raw: string): string {
   return decodeEntities(raw).replace(URL_NOISE, (ch) => (ch === ' ' ? '%20' : '')).replace(/^(%20)+|(%20)+$/g, '')
 }
 
-function safeHref(raw: string): string | null {
+const DEFAULT_HREF_SCHEMES: readonly string[] = ['http', 'https', 'mailto']
+
+function safeHref(raw: string, options: SanitizeOptions = {}): string | null {
   const url = cleanUrl(raw)
   if (!url) return null
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(url)
-  if (!scheme) return url.startsWith('\\') ? null : url // relative (/path, #anchor, ?q, page)
-  return ['http', 'https', 'mailto'].includes(scheme[1].toLowerCase()) ? url : null
+  if (!scheme) return options.relativeLinks === false || url.startsWith('\\') ? null : url // relative (/path, #anchor, ?q, page)
+  return (options.hrefSchemes ?? DEFAULT_HREF_SCHEMES).includes(scheme[1].toLowerCase()) ? url : null
+}
+
+/** A link target that is safe to put in an href (scheme allowlist after entity / control-character cleanup); null otherwise. */
+export function safeLinkHref(raw: unknown, schemes: readonly string[] = ['https', 'mailto']): string | null {
+  if (typeof raw !== 'string') return null
+  return safeHref(raw, { hrefSchemes: schemes, relativeLinks: false })
 }
 
 function safeImgSrc(raw: string): string | null {
@@ -124,6 +132,24 @@ function safeImgSrc(raw: string): string | null {
 }
 
 interface Tag { name: string; closing: boolean; attrs: Array<[string, string]>; end: number }
+
+/**
+ * A narrower policy than the task-description default (form Rich text,
+ * lib/forms/rich-text.ts): its own element allowlist, link schemes, and
+ * elements renamed before the allowlist applies (`div` → `p`).
+ */
+export interface SanitizeOptions {
+  /** Element → allowed attributes (default: the description allowlist). */
+  tags?: Readonly<Record<string, readonly string[]>>
+  /** Link schemes (default http, https, mailto). */
+  hrefSchemes?: readonly string[]
+  /** Relative links (default allowed). */
+  relativeLinks?: boolean
+  /** Elements renamed first (e.g. { div: 'p', h1: 'h3' }). */
+  rename?: Readonly<Record<string, string>>
+  /** Block elements that close an open paragraph first, as an HTML parser does (`<p>a<ul>` → `<p>a</p><ul>`). */
+  closeParagraphBefore?: ReadonlySet<string>
+}
 
 /** Parse a tag starting at `<` (index `start`); null when it isn't a complete tag. */
 function parseTag(html: string, start: number): Tag | null {
@@ -166,14 +192,14 @@ function parseTag(html: string, start: number): Tag | null {
   return null
 }
 
-function renderAttrs(tag: Tag): string {
-  const allowed = ALLOWED_TAGS[tag.name]
+function renderAttrs(tag: Tag, options: SanitizeOptions = {}): string {
+  const allowed = (options.tags ?? ALLOWED_TAGS)[tag.name]
   const out: string[] = []
   const seen = new Set<string>()
   for (const [name, raw] of tag.attrs) {
     if (!allowed.includes(name) || seen.has(name)) continue
     let value: string | null
-    if (name === 'href') value = safeHref(raw)
+    if (name === 'href') value = safeHref(raw, options)
     else if (name === 'src') value = safeImgSrc(raw)
     else if (['width', 'height', 'colspan', 'rowspan', 'start'].includes(name)) value = /^\d{1,4}$/.test(raw.trim()) ? raw.trim() : null
     else value = decodeEntities(raw).slice(0, 500)
@@ -186,8 +212,9 @@ function renderAttrs(tag: Tag): string {
 }
 
 /** Sanitise untrusted HTML down to the allowlist. Idempotent. */
-export function sanitizeHtml(input: unknown): string {
+export function sanitizeHtml(input: unknown, options: SanitizeOptions = {}): string {
   const html = String(input ?? '')
+  const tags = options.tags ?? ALLOWED_TAGS
   let out = ''
   const open: string[] = []
   let i = 0
@@ -228,9 +255,11 @@ export function sanitizeHtml(input: unknown): string {
     }
 
     i = tag.end
-    if (!(tag.name in ALLOWED_TAGS)) {
+    const renamed = options.rename?.[tag.name]
+    if (renamed) tag.name = renamed
+    if (!Object.prototype.hasOwnProperty.call(tags, tag.name)) {
       // Real-but-disallowed element: unwrap. Not an HTML element: keep as text.
-      if (!KNOWN_HTML_TAGS.has(tag.name)) out += escapeText(html.slice(lt, tag.end))
+      if (!KNOWN_HTML_TAGS.has(tag.name) && !Object.prototype.hasOwnProperty.call(ALLOWED_TAGS, tag.name)) out += escapeText(html.slice(lt, tag.end))
       continue
     }
     if (tag.closing) {
@@ -239,7 +268,11 @@ export function sanitizeHtml(input: unknown): string {
       while (open.length > at) out += `</${open.pop()}>`
       continue
     }
-    const attrs = renderAttrs(tag)
+    if (options.closeParagraphBefore?.has(tag.name) && open.includes('p')) {
+      const at = open.lastIndexOf('p')
+      while (open.length > at) out += `</${open.pop()}>`
+    }
+    const attrs = renderAttrs(tag, options)
     if (tag.name === 'img' && !attrs.includes(' src=')) continue // nothing safe to show
     out += `<${tag.name}${attrs}>`
     if (!VOID_TAGS.has(tag.name)) open.push(tag.name)

@@ -66,6 +66,11 @@ export interface FormPager {
 
 const PagerContext = createContext<FormPager | null>(null)
 
+/** A nested form (a repeating section's item): not part of the outer form's steps / tabs. */
+export function PagerBoundary({ children }: { children: React.ReactNode }) {
+  return <PagerContext.Provider value={null}>{children}</PagerContext.Provider>
+}
+
 /** The pager of the enclosing paged form, or null. */
 export function useFormPager(): FormPager | null {
   return useContext(PagerContext)

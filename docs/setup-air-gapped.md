@@ -140,7 +140,7 @@ boxes), unless you point an integration's base URL at a reachable endpoint
 ## The CLI
 
 ```bash
-npm install -g --offline ./npm/usertasks-cli-0.1.0.tgz
+npm install -g --offline ./npm/user-tasks-cli-0.1.0.tgz
 usertasks login --url https://tasks.corp.example
 ```
 

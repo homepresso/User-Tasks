@@ -1,0 +1,62 @@
+/* ─── Conditional styling (lib/forms/conditional-style.ts) ───
+   Drawn from data attributes (styleAttributes): data-cs + data-cs-tone set
+   the tone's theme tokens, one attribute per switch draws it. Authors pick
+   tones and switches, never CSS. Each tone's text colour reaches WCAG AA on
+   its wash and on the card in every built-in theme, light and dark
+   (STYLE_TONE_TOKENS; __tests__/conditional-style.test.ts). Unlayered, so it
+   wins over the controls' own text utilities. Error messages
+   ([role="alert"]) and anything marked data-cs-keep keep their own look. */
+
+[data-cs] {
+  --cs-fg: var(--theme-card-text);
+  --cs-wash: var(--ds-bg-muted);
+  --cs-line: var(--theme-muted-text);
+}
+[data-cs-tone="success"] { --cs-fg: var(--theme-success); --cs-wash: var(--status-success-bg); --cs-line: var(--theme-success); }
+[data-cs-tone="warning"] { --cs-fg: var(--theme-warning); --cs-wash: var(--status-warning-bg); --cs-line: var(--theme-warning); }
+[data-cs-tone="danger"] { --cs-fg: var(--theme-danger); --cs-wash: var(--status-danger-bg); --cs-line: var(--theme-danger); }
+[data-cs-tone="info"] { --cs-fg: var(--status-info); --cs-wash: var(--status-info-bg); --cs-line: var(--status-info); }
+[data-cs-tone="neutral"] { --cs-fg: var(--theme-card-text); --cs-wash: var(--ds-bg-muted); --cs-line: var(--theme-muted-text); }
+[data-cs-tone="accent"] { --cs-fg: var(--theme-primary-text); --cs-wash: var(--theme-primary-light); --cs-line: var(--theme-primary-text); }
+
+[data-cs-background] { background-color: var(--cs-wash); }
+[data-cs-border] { outline: 2px solid var(--cs-line); outline-offset: -2px; }
+
+/* A styled field: room for its shade / border. */
+[data-cs-box][data-cs-background],
+[data-cs-box][data-cs-border] {
+  border-radius: var(--ds-radius-md);
+  padding: 0.375rem 0.5rem;
+}
+
+/* The tone icon (the non-colour cue). */
+[data-cs-glyph] { color: var(--cs-fg); }
+
+/* Text: the styled element and the text it holds (labels, values, inputs, cells). */
+[data-cs-text]:not([data-cs-keep]),
+[data-cs-text] :where(label, legend, input, textarea, select, output, p, dd, dt, td, li, h3, h4, a, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  color: var(--cs-fg);
+}
+[data-cs-bold],
+[data-cs-bold] :where(label, legend, input, textarea, select, output, p, dd, dt, td, li, a, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  font-weight: 600;
+}
+[data-cs-italic],
+[data-cs-italic] :where(label, legend, input, textarea, select, output, p, dd, dt, td, li, a, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  font-style: italic;
+}
+[data-cs-deco="underline"],
+[data-cs-deco="underline"] :where(input, textarea, select, output, p, dd, td, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  text-decoration-line: underline;
+}
+[data-cs-deco="line-through"],
+[data-cs-deco="line-through"] :where(input, textarea, select, output, p, dd, td, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  text-decoration-line: line-through;
+}
+[data-cs-deco="underline-line-through"],
+[data-cs-deco="underline-line-through"] :where(input, textarea, select, output, p, dd, td, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  text-decoration-line: underline line-through;
+}
+
+/* A section (fieldset): the border itself, so the legend keeps its gap. */
+fieldset[data-cs-border] { outline: none; border: 2px solid var(--cs-line); }

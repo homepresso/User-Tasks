@@ -769,7 +769,7 @@ UserTasks unpacks the template and reads its views, data source, rules and valid
 
 - **Views → forms** shows *1 → 1*: the form has one view.
 - **Fields** includes *1 repeating → Lists*. The *Line items* table becomes a List with Date, Description, Category, Qty, Unit price and a calculated Line total (\`quantity * unit_price\`).
-- **Rules converted** shows, for example, *3 of 5*. Open **Full report** to see each one: the cost center rule, the large-report warning (over USD 5,000) and the submit button convert. A role check and a query of the *Projects* SharePoint list need attention.
+- **Rules converted** shows *4 of 5*. Open **Full report** to see each one: the cost center rule, the large-report warning (over USD 5,000), the submit button and the *Manager* role check convert. A query of the *Projects* SharePoint list needs attention.
 - The **Preview** shows the form as it will look.
 
 ## 3. Import
@@ -784,7 +784,7 @@ Import again with **Create a data table for the submissions** ticked, and choose
 
 1. In the designer, open the **Rules** tab. Turned-off rules show what InfoPath did in their **Notes**.
 2. *Refresh projects* queried a SharePoint list. Export the list from SharePoint as CSV or Excel and import it as a data table named **Projects** (**New table → Create from file**; see [Import from CSV or Excel](/docs/data-tables#import-from-csv-or-excel)), then import the form again: the rule becomes a **Table list** step. Or give the *Project* field options from the table.
-3. *Managers see status* used an InfoPath role. Replace it with a condition on \`{{user.email}}\`, or share the form with a role instead.
+3. *Managers see status* checks the InfoPath role *Manager*: it now reads \`user.roles contains "Manager"\`. Create a workspace role called **Manager** (Settings → Roles) and give it to the right people.
 4. Select **Preview**, add two line items (for example 2 × USD 45.00 and 1 × USD 120.00) and check the total is USD 210.00.
 
 ## What you built

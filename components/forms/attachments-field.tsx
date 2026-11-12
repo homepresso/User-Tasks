@@ -32,7 +32,7 @@ export function FormAttachmentsProvider({ source, children }: { source: FormAtta
   return <AttachmentSourceContext.Provider value={source}>{children}</AttachmentSourceContext.Provider>
 }
 
-function useAttachmentSource(): FormAttachmentSource | null {
+export function useAttachmentSource(): FormAttachmentSource | null {
   const explicit = useContext(AttachmentSourceContext)
   const lookup = useFormLookupSource()
   if (explicit) return explicit

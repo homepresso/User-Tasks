@@ -7,17 +7,17 @@ import { betaSignup } from '@/app/actions/beta-signup'
 import { passwordSignInAction } from '@/app/actions/auth'
 import { CheckCircle2, Loader2, Rocket } from 'lucide-react'
 import Link from 'next/link'
+import { completeBetaSignup } from '@/lib/signup-link'
 
 const COMPANY_SIZES = ['Just me', '2–10', '11–50', '51–200', '200+']
 
 /**
  * Beta signup form — provisions a new tenant via the betaSignup server action,
- * then signs the user straight in and lands them on the dashboard.
+ * then signs the user straight in and lands them on `redirect` (a safe
+ * same-origin path, e.g. the CLI's OAuth authorize), the known `next`
+ * destination, or the dashboard (postSignupDestination; no open redirects).
  */
-/** Where to land after sign-up: only known destinations (no open redirects). */
-const NEXT: Record<string, string> = { infopath: '/automations/forms?import=infopath' }
-
-export function BetaSignupForm({ defaultEmail = '', next }: { defaultEmail?: string; next?: string | null }) {
+export function BetaSignupForm({ defaultEmail = '', next, redirect = null }: { defaultEmail?: string; next?: string | null; redirect?: string | null }) {
   const router = useRouter()
   const [form, setForm] = useState({
     fullName: '',
@@ -44,23 +44,26 @@ export function BetaSignupForm({ defaultEmail = '', next }: { defaultEmail?: str
       setError(null)
       setPhase('provisioning')
       try {
-        const result = await betaSignup(form)
-        if (!result.ok) {
-          setError(result.error ?? 'Something went wrong — please try again.')
+        const outcome = await completeBetaSignup(form, { redirect, next }, {
+          signup: betaSignup,
+          // Server-side sign-in: the action sets the httpOnly session cookies.
+          signIn: passwordSignInAction,
+          onProvisioned: () => setPhase('signing-in'),
+        })
+        if (outcome.kind === 'error') {
+          setError(outcome.error)
           setPhase('idle')
           return
         }
-
-        setPhase('signing-in')
-        // Server-side sign-in: the action sets the httpOnly session cookies.
-        const signedIn = await passwordSignInAction(form.email.trim(), form.password)
-        if (!signedIn.ok) {
+        if (outcome.kind === 'sign_in') {
           // Workspace exists — fall back to the login page rather than erroring.
-          router.push('/login')
+          router.push(outcome.href)
           return
         }
         setPhase('done')
-        window.location.href = (next && NEXT[next]) || '/tasks'
+        // A full navigation: the sign-in action's response already carried the
+        // session cookies, so the next request (e.g. /api/oauth/authorize) sees the user.
+        window.location.href = outcome.href
       } catch {
         setError('Something went wrong — please try again.')
         setPhase('idle')

@@ -13,7 +13,7 @@ export const maxDuration = 60
 export const POST = apiRoute(importInfoPathEndpoint, async ({ ctx, body }) => {
   const bytes = decodeBase64File(body.file_base64, INFOPATH_LIMITS.maxInputBytes)
   const options = {
-    mode: body.mode, views: body.views, name: body.name, tag: body.tag, existing: body.existing,
+    mode: body.mode, pages: body.pages, views: body.views, name: body.name, tag: body.tag, existing: body.existing,
     create_table: body.create_table, available_in_menu: body.available_in_menu,
   }
   const fileName = body.file_name || 'form.xsn'

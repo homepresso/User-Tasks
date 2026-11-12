@@ -366,6 +366,29 @@ function buildMain(): { g: Graph; humanChecks: number; realTaskChecks: number } 
   }, { x: X_FAIL, y: loopN.position.y })
   g.edge(loopN.id, bodyN.id, 'Each Item')
   g.pending = [{ source: loopN.id, label: 'Done' }]
+  // Nested Lists (orders → lines): a loop inside a loop — the inner one reads the order as parent_item, the order comes back after it.
+  g.step('nested_init', 'set_variable', 'Orders with their lines', {
+    assignments: [
+      { name: 'nested_raw', expression: '[{"customer":"Acme","lines":[{"sku":"A-1","qty":2},{"sku":"A-2","qty":3}]},{"customer":"Globex","lines":[{"sku":"B-1","qty":4}]}]' },
+      { name: 'nested_orders', expression: '{{=FROM_JSON(nested_raw)}}' },
+      { name: 'nested_qty', expression: '0' },
+      { name: 'nested_parent', expression: '' },
+      { name: 'nested_restored', expression: '' },
+    ],
+  })
+  const outer = g.step('nested_outer', 'loop', 'Loop over the orders', { items: '{{nested_orders}}', item_var: 'item', index_var: 'index' })
+  const inner = g.place('nested_inner', 'loop', 'Loop over the order\'s lines', { items: '{{item.lines}}', item_var: 'item', index_var: 'line_index' }, { x: X_FAIL, y: outer.position.y })
+  const innerBody = g.place('nested_inner_body', 'set_variable', 'Add the line\'s qty', {
+    assignments: [{ name: 'nested_qty', expression: '{{=nested_qty + item.qty}}' }, { name: 'nested_parent', expression: '{{parent_item.customer}}' }],
+  }, { x: X_FAIL + 360, y: outer.position.y })
+  const innerDone = g.place('nested_inner_done', 'set_variable', 'The order again', { assignments: [{ name: 'nested_restored', expression: '{{item.customer}}' }] }, { x: X_FAIL, y: outer.position.y + ROW })
+  g.edge(outer.id, inner.id, 'Each Item')
+  g.edge(inner.id, innerBody.id, 'Each Item')
+  g.edge(inner.id, innerDone.id, 'Done')
+  g.pending = [{ source: outer.id, label: 'Done' }]
+  g.check('nested_loop', 'nested loop (sum of the lines\' qty)', '{{nested_qty}}', 'equals', '9')
+  g.check('nested_parent', 'nested loop reads the outer item (parent_item)', '{{nested_parent}}', 'equals', 'Globex')
+  g.check('nested_restored', 'the outer item comes back after the inner loop', '{{nested_restored}}', 'equals', 'Globex')
   g.check('col_count', 'count', '{{number_count}}', 'equals', '4')
   g.check('col_unique', 'remove duplicates', '{{=COUNT(unique_numbers)}}', 'equals', '3')
   g.check('col_first', 'sorted first', '{{smallest}}', 'equals', '1')
@@ -647,7 +670,7 @@ function buildMain(): { g: Graph; humanChecks: number; realTaskChecks: number } 
     assignee_variable: '{{workflow_started_by}}',
     form_id: ids.form,
     form_name: KITCHEN_SINK_FORM_NAME,
-    field_values: { ks_token: '{{ks_run_key}}', ks_note: 'Prefilled by the kitchen sink', ks_lines: '{{order_lines}}' },
+    field_values: { ks_token: '{{ks_run_key}}', ks_note: 'Prefilled by the kitchen sink', ks_lines: '{{order_lines}}', ks_orders: '{{nested_orders}}' },
     due_date_mode: 'relative',
     due_offset_amount: 1,
     due_offset_unit: 'days',
@@ -682,6 +705,7 @@ function buildMain(): { g: Graph; humanChecks: number; realTaskChecks: number } 
   g.check('list_rows', 'list field rows (prefilled from an array)', '{{=COUNT(task_data.ks_lines)}}', 'equals', '2')
   g.check('list_first', 'list row value (typed)', '{{task_data.ks_lines[0].sku}}', 'equals', 'A-1')
   g.check('list_loop', 'loop over the list (sum of qty)', '{{list_qty}}', 'equals', '7')
+  g.check('nested_list', 'nested List rows (prefilled orders → lines)', '{{task_data.ks_orders[0].lines[1].sku}}', 'equals', 'A-2')
   const realTaskChecks = g.checks.length - checksBeforeReal
   g.step('tally_real', 'set_variable', `Tally: task writes (${realTaskChecks} checks)`, {
     assignments: [{ name: 'checks_run', expression: `{{=checks_run + ${realTaskChecks}}}` }],
@@ -896,6 +920,16 @@ function buildBundle(workflow: KitchenSinkWorkflow, subWorkflow: KitchenSinkWork
         { key: 'ks_note', label: 'Note', type: 'text', required: true },
         { key: 'ks_ok', label: 'The run looks right', type: 'boolean' },
         { key: 'ks_lines', label: 'Order lines', type: 'list', read_only: true, help_text: 'Filled in by the workflow from an array; it loops over the rows.', list: { columns: [{ key: 'sku', label: 'SKU', type: 'text', required: true }, { key: 'qty', label: 'Qty', type: 'number' }], totals: [{ column: 'qty', fn: 'sum' }] } },
+        { key: 'ks_photo', label: 'Photo (optional)', type: 'image', help_text: 'One picture: checked by content, GPS / EXIF metadata removed.', image: { max_mb: 5, camera: true } },
+        { key: 'ks_signature', label: 'Signature (optional)', type: 'signature', signature: { statement: 'I checked this kitchen sink run.' } },
+        { key: 'ks_findings', label: 'Findings (optional)', type: 'rich_text', help_text: 'Formatted text, sanitised on the server; the plain text is ks_findings_text.', rich_text: { max_length: 2000 } },
+        { key: 'ks_checks', label: 'Checks done (optional)', type: 'text_list', text_list: { style: 'numbered', max_items: 10 } },
+        { key: 'ks_link', label: 'Run link (optional)', type: 'url', url_config: { link_text: 'Open the run', new_tab: true } },
+        { key: 'ks_watchers', label: 'Also tell (optional)', type: 'user', user_config: { multiple: true, allow_teams: true, max: 5 } },
+        // A nested List (orders → lines), prefilled from the nested array the loops checked.
+        { key: 'ks_orders', label: 'Orders', type: 'list', read_only: true, help_text: 'Filled in by the workflow: each order with its lines (a nested List).', list: { columns: [{ key: 'customer', label: 'Customer', type: 'text', required: true }, { key: 'lines', label: 'Lines', type: 'list', list: { columns: [{ key: 'sku', label: 'SKU', type: 'text', required: true }, { key: 'qty', label: 'Qty', type: 'number' }], totals: [{ column: 'qty', fn: 'sum' }] } }] } },
+        // A repeating section (card-style items of any controls, per-item rules), optional.
+        { key: 'ks_expenses', label: 'Expenses (optional)', type: 'repeating_section', help_text: 'A card per expense: any controls repeat per item; the run gets ks_expenses_count and ks_expenses_total_ks_amount.', repeating_section: { fields: [{ key: 'ks_description', label: 'Description', type: 'text', required: true }, { key: 'ks_amount', label: 'Amount', type: 'currency', currency: 'USD', min: 0 }, { key: 'ks_spent_on', label: 'Date', type: 'date', default: '{{today}}' }], layout: { rows: [{ columns: 3, cells: [{ field_key: 'ks_description', span: 1 }, { field_key: 'ks_amount', span: 1 }, { field_key: 'ks_spent_on', span: 1 }] }] }, add_label: 'Add expense', item_title: 'Expense {{index}}: {{item.ks_description}}', max_items: 10, totals: [{ field: 'ks_amount', fn: 'sum' }] } },
       ],
       theme: { source: 'workspace' },
       available_in_menu: false,

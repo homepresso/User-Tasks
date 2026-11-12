@@ -12,6 +12,7 @@ import { coerceListRows, rawListRows, type ListFieldConfig } from './list-field'
 import { coerceTaskFieldValues, isDisplayField, type TaskFieldDef } from '@/lib/task-field-schema'
 import { parseFormVariables, type FormVariable } from './form-params'
 import { DATA_ACTION_LIMITS, readActionResult, type ActionOutput, type RuleOption } from './data-actions'
+import { asListField } from './repeating-section'
 
 function bounded(v: unknown, max = 20_000): unknown {
   if (v === null || v === undefined || typeof v === 'number' || typeof v === 'boolean') return v ?? null
@@ -75,7 +76,8 @@ export function itemsToOptions(items: unknown, valuePath?: string, labelPath?: s
  * choice / multi-select fields. `current`: the form's values (append mode).
  */
 export function mapActionOutputs(result: unknown, outputs: ActionOutput[] | undefined, fields: TaskFieldDef[], variables: FormVariable[], current: Record<string, unknown> = {}): MappedOutputs {
-  const byKey = new Map(fields.filter((f) => !isDisplayField(f) && f.type !== 'data_table' && f.type !== 'attachments' && f.type !== 'custom').map((f) => [f.key, f]))
+  // A repeating section takes rows like a List (lib/forms/repeating-section.ts asListField: its items).
+  const byKey = new Map(fields.map(asListField).filter((f) => !isDisplayField(f) && f.type !== 'data_table' && f.type !== 'attachments' && f.type !== 'image' && f.type !== 'signature' && f.type !== 'custom').map((f) => [f.key, f]))
   const raw: Record<string, unknown> = {}
   const rawVars: Record<string, unknown> = {}
   const options: Record<string, RuleOption[]> = {}
@@ -112,13 +114,13 @@ export function mapActionOutputs(result: unknown, outputs: ActionOutput[] | unde
 /** Designer / save problems of an action's outputs. */
 export function outputProblems(outputs: ActionOutput[] | undefined, known: { fields: TaskFieldDef[]; variables: string[] }): string[] {
   const out: string[] = []
-  const byKey = new Map(known.fields.map((f) => [f.key, f]))
+  const byKey = new Map(known.fields.map((f) => [f.key, asListField(f)]))
   for (const o of outputs ?? []) {
     if (o.to.startsWith('var.')) { if (!known.variables.includes(o.to.slice(4))) out.push(`"${o.to}" is not a variable of this form`); continue }
     const field = byKey.get(o.to)
     if (!field) { out.push(`"${o.to}" is not a field of this form`); continue }
     if (o.as === 'options' && field.type !== 'choice' && field.type !== 'multi_choice') out.push(`options go into a single or multi-select ("${field.label || o.to}" is not one)`)
-    else if (isDisplayField(field) || field.type === 'data_table' || field.type === 'attachments' || field.type === 'custom') out.push(`"${field.label || o.to}" can't take a value from a result`)
+    else if (isDisplayField(field) || field.type === 'data_table' || field.type === 'attachments' || field.type === 'image' || field.type === 'signature' || field.type === 'custom') out.push(`"${field.label || o.to}" can't take a value from a result`)
     else if (field.type === 'list') {
       const columns = new Set((field.list?.columns ?? []).map((c) => c.key))
       const bad = Object.keys(o.columns ?? {}).find((c) => !columns.has(c))

@@ -2,10 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Check, Info, X } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { serverRead } from '@/lib/server-read'
 import { resolveInputTemplate } from '@/lib/forms/buttons'
 import { runFieldButton, type MessageDisplay } from '@/lib/forms/field-buttons'
+import type { RowFormRequest } from '@/lib/forms/list-row-form'
 import type { MessageTone } from '@/lib/forms/form-messages'
 import { readFormState, withFormState } from '@/lib/forms/form-state'
 import { formContextScope } from '@/lib/forms/form-params'
@@ -14,12 +13,14 @@ import {
   FORM_ERROR_KEY, alwaysRuleEffects, listEditLockedInputs, conditionPaths, disabledFieldKeys, layoutFormRules, readOnlyFieldKeys, ruleConditionsMet, rulesForEvent, resumeOptionEvents, RuleChainGuard,
   type FormRule, type RuleEvent,
 } from '@/lib/forms/form-rules'
+import type { ConditionalStyle } from '@/lib/forms/conditional-style'
 import type { FormLayout } from '@/lib/forms/layout'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import { buildActionHost, type ActionLive } from './action-host'
 import { useFormPager } from './form-pages'
 import { useFormRuntime } from './form-runtime'
-import { isAnonymousSource, useFormLookupSource } from './lookup-field'
+import { useFormLookupSource } from './lookup-field'
+import { useRuleUser, type RuleUser } from './use-rule-user'
 import { MessageCard, useFormMessages } from './form-messages'
 
 /**
@@ -41,8 +42,9 @@ import { MessageCard, useFormMessages } from './form-messages'
  *    form (a message saved before banners keeps its original look); an
  *    answered question dispatches "A question is answered";
  *  - provides what fields are disabled and read only (state + "Always"
- *    rules; read only inherits from sections, steps / tabs, the form) and the
- *    refresh counters Data tables / autocompletes listen to.
+ *    rules; read only inherits from sections, steps / tabs, the form), the
+ *    Always rules' conditional styles and the refresh counters Data tables /
+ *    autocompletes listen to.
  */
 
 const MAX_DEPTH = 3
@@ -55,12 +57,16 @@ export interface FormRulesApi {
   disabledKeys: ReadonlySet<string>
   /** Field keys read only by rules (Make read only / editable; a section, step / tab or the whole form covers its controls). */
   readOnlyKeys: ReadonlySet<string>
+  /** Conditional styling: Always rules' set_style per target (`field:<key>` / `section:<key>`), judged with the signed-in person. */
+  styles: ReadonlyMap<string, ConditionalStyle>
   /** Bumped by "Refresh" actions (per field key). */
   refreshTick: (key: string) => number
   /** A field's value changed by the person (or a rule): Value changes rules. */
   notifyChange: (key: string, value: unknown, previous: unknown) => void
   /** An editable Data table reports the rows on screen (row rules find rows by number / key); returns the unregister. */
   registerRows: (key: string, rows: () => Array<{ key: string; values: Record<string, unknown> }>) => () => void
+  /** A List takes "open a row in its pop-out form" requests (the open_row_form step); returns the unregister. */
+  registerRowForm: (key: string, open: (request: RowFormRequest) => void) => () => void
 }
 
 const RulesContext = createContext<FormRulesApi | null>(null)
@@ -69,7 +75,12 @@ export function useFormRules(): FormRulesApi | null {
   return useContext(RulesContext)
 }
 
-type User = { id: string; email: string | null; name: string | null } | null
+/** A nested form (a repeating section's item, lib/forms/repeating-section.ts): the outer form's rules do not reach in. */
+export function RulesBoundary({ children }: { children: React.ReactNode }) {
+  return <RulesContext.Provider value={null}>{children}</RulesContext.Provider>
+}
+
+type User = RuleUser
 
 export function FormRulesScope({ fields, layout, values: rawValues, onChange, idPrefix, children }: {
   fields: TaskFieldDef[]
@@ -85,13 +96,8 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
   const source = useFormLookupSource()
   const values = useMemo(() => withFormState(layout, rawValues), [layout, rawValues])
   const needsUser = useMemo(() => rules.some((r) => conditionPaths(r.if).some((p) => p.startsWith('user.')) || JSON.stringify(r.then).includes('{{user.')), [rules])
-  const { data: user = null } = useQuery({
-    queryKey: ['form-rule-user'],
-    // Public form links: {{user.*}} is empty (no one is signed in).
-    enabled: needsUser && !isAnonymousSource(source),
-    staleTime: 5 * 60_000,
-    queryFn: async () => ((await serverRead('forms.ruleUser')).data ?? null) as User,
-  })
+  // {{user.*}}, user.roles / user.teams (public form links: empty — no one is signed in).
+  const user = useRuleUser(needsUser) as User
   const center = useFormMessages()
   const [messages, setMessages] = useState<Array<{ id: number; text: string; tone: MessageTone; display?: MessageDisplay; tick: number }>>([])
   const centerRef = useRef(center)
@@ -105,6 +111,11 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
   const registerRows = useCallback((key: string, rows: () => Array<{ key: string; values: Record<string, unknown> }>) => {
     rowSources.current.set(key, rows)
     return () => { if (rowSources.current.get(key) === rows) rowSources.current.delete(key) }
+  }, [])
+  const rowForms = useRef(new Map<string, (request: RowFormRequest) => void>())
+  const registerRowForm = useCallback((key: string, open: (request: RowFormRequest) => void) => {
+    rowForms.current.set(key, open)
+    return () => { if (rowForms.current.get(key) === open) rowForms.current.delete(key) }
   }, [])
   const userRef = useRef<User>(user)
   useLayoutEffect(() => { userRef.current = user })
@@ -127,12 +138,19 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
         // Row rules' own events (row_created, row_committed…): dispatched once React has the new rows.
         onEmit: (type, target, ctx) => { setTimeout(() => dispatchRef.current({ type: type as RuleEvent['type'], target, context: ctx }), 0) },
         tableRows: (key) => rowSources.current.get(key)?.() ?? [],
+        // open_row_form: the List opens the row once React has its rows (a new row included).
+        openRowForm: (request) => {
+          if (!rowForms.current.has(request.field)) return false
+          setTimeout(() => rowForms.current.get(request.field)?.(request), 0)
+          return true
+        },
       },
       ...(centerRef.current ? { ask: centerRef.current.ask } : {}),
       answered: ({ id, response, label }) => dispatchRef.current({ type: 'message_answered', ...(id ? { target: id } : {}), context: { message: id ?? null, response, label } }),
     })
     // {{row.*}}: the List row a row button was pressed on (lib/forms/data-actions.ts).
-    const extras = { event: context, user: scopeUser, ...((context as Record<string, unknown>).row !== undefined ? { row: (context as Record<string, unknown>).row } : {}) }
+    // {{parent.*}}: a nested List row's parent row (lib/forms/list-field.ts).
+    const extras = { event: context, user: scopeUser, ...((context as Record<string, unknown>).row !== undefined ? { row: (context as Record<string, unknown>).row } : {}), ...((context as Record<string, unknown>).parent !== undefined ? { parent: (context as Record<string, unknown>).parent } : {}) }
     const result = await runFieldButton({ actions: rule.then }, host, {
       extras,
       resolve: async (template, vals, ex) => {
@@ -233,19 +251,20 @@ export function FormRulesScope({ fields, layout, values: rawValues, onChange, id
     dispatch({ type: 'value_change', target: key, context: { field: key, value, previous } })
   }, [dispatch])
 
-  const { disabledKeys, readOnlyKeys } = useMemo(() => {
+  const { disabledKeys, readOnlyKeys, styles } = useMemo(() => {
     const state = readFormState(layout, values)
     const always = alwaysRuleEffects(layout, values, { user: user as Record<string, unknown> | null, rules })
     return {
       disabledKeys: disabledFieldKeys(layout, fields, [...(state.disabled ?? []), ...always.disabled]),
       // An "Edit row" in progress: the inputs mapped to the List's read-only columns are locked (lib/forms/form-rules.ts).
       readOnlyKeys: new Set([...readOnlyFieldKeys(layout, fields, [...(state.read_only ?? []), ...always.readOnly]), ...listEditLockedInputs(rules, fields, values)]),
+      styles: always.styles,
     }
   }, [layout, values, user, rules, fields])
 
   const api = useMemo<FormRulesApi>(() => ({
-    dispatch, run, disabledKeys, readOnlyKeys, notifyChange, refreshTick: (key) => ticks[key] ?? 0, registerRows,
-  }), [dispatch, run, disabledKeys, readOnlyKeys, notifyChange, ticks, registerRows])
+    dispatch, run, disabledKeys, readOnlyKeys, styles, notifyChange, refreshTick: (key) => ticks[key] ?? 0, registerRows, registerRowForm,
+  }), [dispatch, run, disabledKeys, readOnlyKeys, styles, notifyChange, ticks, registerRows, registerRowForm])
 
   // "Until the next action" inline messages go once the person does something after them.
   const actionTick = center?.actionTick ?? 0

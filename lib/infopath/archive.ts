@@ -53,9 +53,12 @@ export interface InfoPathPackage {
   files: Map<string, Buffer>
   /** Names as stored. */
   names: string[]
+  /** Image files (lower-cased name → bytes, ≤ 2 MB each, at most 40). */
+  images: Map<string, Buffer>
 }
 
 const TEXT_EXT = /\.(xsf|xsl|xslt|xsd|xml)$/i
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp)$/i
 
 export interface PackageLimits { maxInputBytes?: number; maxFiles?: number; maxTotalBytes?: number }
 
@@ -69,11 +72,17 @@ export function openInfoPathPackage(bytes: Uint8Array, limits: PackageLimits = {
   }
   const hash = createHash('sha256').update(bytes).digest('hex')
   const files = new Map<string, Buffer>()
+  const images = new Map<string, Buffer>()
   const names: string[] = []
   let textBytes = 0
   const keep = (name: string, data: Buffer) => {
     const clean = name.replace(/\\/g, '/').replace(/^\/+/, '')
     names.push(clean)
+    // Pictures the views show (static images): kept when small, at most 40.
+    if (IMAGE_EXT.test(clean)) {
+      if (data.length <= 2 * MB && images.size < 40) images.set(clean.toLowerCase(), data)
+      return
+    }
     if (!TEXT_EXT.test(clean) && !/\.js$|\.vbs$|\.dll$/i.test(clean)) return
     textBytes += data.length
     if (textBytes > INFOPATH_LIMITS.maxTextBytes) throw new InfoPathFileError('The form\'s files are too large to read', 'limit')
@@ -87,7 +96,7 @@ export function openInfoPathPackage(bytes: Uint8Array, limits: PackageLimits = {
       throw error
     }
     if (!files.has('manifest.xsf')) throw new InfoPathFileError('This cabinet has no manifest.xsf: it is not an InfoPath form template', 'not_infopath')
-    return { format: 'xsn', hash, files, names }
+    return { format: 'xsn', hash, files, names, images }
   }
   if (isZip(bytes)) {
     let zip
@@ -118,7 +127,7 @@ export function openInfoPathPackage(bytes: Uint8Array, limits: PackageLimits = {
       if (error instanceof ZipLimitError) throw new InfoPathFileError(error.message, 'limit')
       throw error
     }
-    return { format: 'zip', hash, files, names }
+    return { format: 'zip', hash, files, names, images }
   }
   throw new InfoPathFileError('This is not an InfoPath form template. Upload the .xsn file (or a .zip of its extracted files).', 'not_infopath')
 }

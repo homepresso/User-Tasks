@@ -6,10 +6,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { formatDateTime } from "@/lib/format/date"
 import { serverRead } from "@/lib/server-read"
 import { normalizeTaskFields, valueFields } from "@/lib/task-field-schema"
-import { listStagingKeys } from "@/lib/forms/form-rules"
-import { formatFieldValue } from "@/components/forms/form-renderer"
+import { flatFieldStyles, listStagingKeys } from "@/lib/forms/form-rules"
+import { ToneIcon } from "@/components/forms/conditional-style"
+import { styleAttributes } from "@/lib/forms/conditional-style"
+import { RepeatingSectionValueView, formatFieldValue } from "@/components/forms/form-renderer"
 import { lookupDisplayValue } from "@/components/forms/lookup-field"
 import { AttachmentList } from "@/components/forms/attachments-field"
+import { ImageValueView } from "@/components/forms/image-field"
+import { SignatureView } from "@/components/forms/signature-field"
+import { ControlValueView, hasControlValueView } from "@/components/forms/control-values"
 import { DataTableValueView } from "@/components/forms/data-table-field"
 import { ListValueView } from "@/components/forms/list-field"
 import { lookupItemKey } from "@/lib/forms/lookup"
@@ -43,6 +48,8 @@ export function SubmissionDialog({ submission, onClose }: { submission: { id: st
     const section = sectionByField.get(f.key)
     return !section || isSectionIncluded(section, values)
   })
+  // Conditional styling (Always rules' set_style): judged from the submitted values.
+  const fieldStyles = flatFieldStyles(layout, normalizeTaskFields(data?.form?.fields ?? []), values)
   const extraKeys = !fields.length ? Object.keys(values).filter((k) => !k.startsWith("_")) : []
 
   return (
@@ -58,8 +65,8 @@ export function SubmissionDialog({ submission, onClose }: { submission: { id: st
                 <dd>{data?.sub?.created_at ? formatDateTime(data.sub.created_at) : "—"}</dd>
                 {shownFields.map((f) => (
                   <div key={f.key} className="contents">
-                    <dt className="text-fg-muted">{f.label}</dt>
-                    <dd className="break-words">{f.type === "data_table" ? <DataTableValueView field={f} value={values[f.key]} /> : f.type === "list" ? <ListValueView field={f} value={values[f.key]} narrow /> : f.type === "attachments" ? <AttachmentList value={values[f.key]} /> : f.type === "lookup" ? lookupDisplayValue(f, values[f.key], values[lookupItemKey(f.key)], values[`${f.key}_label`]) : formatFieldValue(f, values[f.key])}</dd>
+                    <dt className="text-fg-muted">{fieldStyles.get(f.key)?.icon && <ToneIcon tone={fieldStyles.get(f.key)!.tone ?? "neutral"} size={12} className="mr-1 align-[-2px]" />}{f.label}</dt>
+                    <dd className="break-words" {...styleAttributes(fieldStyles.get(f.key))} {...(fieldStyles.get(f.key) ? { "data-cs-box": "" } : {})}>{f.type === "data_table" ? <DataTableValueView field={f} value={values[f.key]} /> : f.type === "list" ? <ListValueView field={f} value={values[f.key]} narrow formValues={values} /> : f.type === "repeating_section" ? <RepeatingSectionValueView field={f} value={values[f.key]} formValues={values} /> : f.type === "attachments" ? <AttachmentList value={values[f.key]} /> : f.type === "image" ? <ImageValueView value={values[f.key]} label={f.label} /> : f.type === "signature" ? <SignatureView value={values[f.key]} /> : hasControlValueView(f) ? <ControlValueView field={f} value={values[f.key]} values={values} /> : f.type === "lookup" ? lookupDisplayValue(f, values[f.key], values[lookupItemKey(f.key)], values[`${f.key}_label`]) : formatFieldValue(f, values[f.key])}</dd>
                   </div>
                 ))}
                 {extraKeys.map((k) => (

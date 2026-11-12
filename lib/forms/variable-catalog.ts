@@ -131,7 +131,8 @@ function fieldType(type: string): PickerType {
   if (type === 'number' || type === 'currency' || type === 'rating' || type === 'slider') return 'number'
   if (type === 'date' || type === 'datetime') return 'date'
   if (type === 'boolean') return 'boolean'
-  if (type === 'multi_choice' || type === 'data_table' || type === 'attachments') return 'list'
+  if (type === 'multi_choice' || type === 'data_table' || type === 'attachments' || type === 'text_list') return 'list'
+  if (type === 'image' || type === 'signature') return 'row'
   return 'text'
 }
 
@@ -311,6 +312,8 @@ function userEntries(): PickerVariable[] {
     { path: 'user.name', label: 'Current user › Name', group: 'Current user', type: 'text' },
     { path: 'user.email', label: 'Current user › Email', group: 'Current user', type: 'text' },
     { path: 'user.id', label: 'Current user › ID', group: 'Current user', type: 'text' },
+    { path: 'user.roles', label: 'Current user › Roles', group: 'Current user', type: 'list', hint: 'Role names and ids — "contains Manager" means has the role' },
+    { path: 'user.teams', label: 'Current user › Teams', group: 'Current user', type: 'list', hint: 'Team names and ids — "contains Finance" means is in the team' },
   ]
 }
 

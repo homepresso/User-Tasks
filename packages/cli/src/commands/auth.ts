@@ -4,7 +4,7 @@ import type { Command } from 'commander'
 import { apiKeyAuth, revokeToken } from '@user-tasks/sdk'
 import type { OAuthCredentials } from '../config'
 import { CliUsageError } from '../exit-codes'
-import { browserLogin, buildOAuthCredentials } from '../oauth'
+import { browserLogin, buildOAuthCredentials, signupHint } from '../oauth'
 import type { Runtime } from '../runtime'
 import { normaliseServerUrl } from '../settings'
 
@@ -107,11 +107,14 @@ export function registerAuthCommands(program: Command, runtime: Runtime) {
         savedClient: sameServer ? settings.profile?.oauth_client : undefined,
         fetch: io.fetch,
         timeoutMs: io.loginTimeoutMs,
-        showUrl: (authorizeUrl) => {
+        showUrl: (authorizeUrl, meta) => {
           // Always shown (even with --quiet): the user may need to open it by hand.
+          // On a cloud server, new users can sign up from the login page.
+          const hint = signupHint(url, meta)
           io.stderr.write(opts.browser
-            ? `Opening your browser to log in. If it does not open, visit:\n\n  ${authorizeUrl}\n\nWaiting for the login to finish (5 minutes)...\n`
-            : `Open this URL in a browser on this computer to log in:\n\n  ${authorizeUrl}\n\nWaiting for the login to finish (5 minutes)...\n`)
+            ? `Opening your browser to log in. If it does not open, visit:\n\n  ${authorizeUrl}\n\n`
+            : `Open this URL in a browser on this computer to log in:\n\n  ${authorizeUrl}\n\n`)
+          io.stderr.write(`${hint ? `${hint}\n` : ''}Waiting for the login to finish (5 minutes)...\n`)
         },
         ...(opts.browser && io.openBrowser ? { openBrowser: (authorizeUrl: string) => io.openBrowser!(authorizeUrl) } : {}),
         verify: (tokens) => runtime.client(self, { auth: apiKeyAuth(tokens.access_token), url }).request<Me>('GET', '/me'),

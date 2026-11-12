@@ -445,7 +445,7 @@ export function anonymousSubmittableValues(fields: TaskFieldDef[], values: Recor
     if (field.type === 'lookup' && field.lookup?.anonymous_read !== true) drop(field.key)
     else if (field.type === 'data_table' && field.data_table?.anonymous_read !== true) drop(field.key)
     else if (field.type === 'user') drop(field.key)
-    else if (field.type === 'attachments' && !uploads) drop(field.key)
+    else if ((field.type === 'attachments' || field.type === 'image' || field.type === 'signature') && !uploads) drop(field.key)
     else if (field.type === 'custom' && (field.lookup || field.custom?.value_type === 'files')) drop(field.key)
     // Options from a data table / API without "Allow anonymous read": the visitor gets none, so no value is judged against them.
     else if (field.dynamic?.options && field.dynamic.options.kind !== 'expr' && field.dynamic.options.anonymous_read !== true) drop(field.key)

@@ -150,6 +150,12 @@ export function describeFindings(findings: AccessibilityFinding[], limit = 5): s
 /** The fix's patch with a prompt answer filled in. */
 export function fixPatch(fix: AccessibilityFix, answer?: string): Record<string, unknown> {
   if (!fix.prompt || answer === undefined) return fix.patch
+  // `a.b`: a property of an object in the patch (a Display image's `display_image.alt`).
+  const [head, sub] = fix.prompt.property.split('.', 2)
+  if (sub) {
+    const base = fix.patch[head]
+    return { ...fix.patch, [head]: { ...(base && typeof base === 'object' ? base : {}), [sub]: answer } }
+  }
   return { ...fix.patch, [fix.prompt.property]: answer }
 }
 

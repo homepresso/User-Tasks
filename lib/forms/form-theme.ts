@@ -306,6 +306,8 @@ const FORM_SCOPE_VARS = [
   '--theme-primary', '--theme-primary-hover', '--theme-on-primary', '--theme-primary-text', '--theme-primary-light',
   '--theme-card-bg', '--theme-card-text', '--theme-muted-text', '--theme-surface-border', '--theme-focus-ring',
   '--theme-input-bg', '--theme-input-border', '--status-blocked', '--theme-success', '--theme-warning',
+  // Conditional styling's tones (lib/forms/conditional-style.ts): text and washes judged on the form's own card.
+  '--status-info', '--status-success-bg', '--status-warning-bg', '--status-danger-bg', '--status-info-bg',
 ]
 
 function scopeVars(palette: ThemePalette, inputColor?: string): CssVars {

@@ -60,7 +60,9 @@ export function publicInfoPathSummary(bytes: Uint8Array, fileName = 'form.xsn'):
 
 /** A static preview: no rules, no provenance, no notes, a bounded number of fields. */
 function previewOf(name: string, fields: TaskFieldDef[], layout: FormLayout): PublicInfoPathSummary['preview'] {
-  const kept = fields.filter((f) => f.type !== 'button').slice(0, PUBLIC_INFOPATH_LIMITS.previewFields)
+  // Pictures from the file are not echoed back: display images and default pictures are left out of the public preview.
+  const kept = fields.filter((f) => f.type !== 'button' && (f.type as string) !== 'display_image').slice(0, PUBLIC_INFOPATH_LIMITS.previewFields)
+    .map((f) => ((f as unknown as { image?: Record<string, unknown> }).image?.default_file ? { ...f, image: { ...(f as unknown as { image: Record<string, unknown> }).image, default_file: undefined } } as TaskFieldDef : f))
   const keys = new Set(kept.map((f) => f.key))
   const rows = (layout.rows ?? []).map((r) => ({ ...r, cells: r.cells.filter((c) => keys.has(c.field_key)) })).filter((r) => r.cells.length).map((r) => ({ ...r, columns: Math.max(1, Math.min(r.columns, r.cells.length)) }))
   const out: FormLayout = { rows }

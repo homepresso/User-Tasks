@@ -12,6 +12,7 @@
  *  - data-table files    task-files/data-tables/<table>/<uuid>.<ext> any type, ≤ 45 MB
  *  - agent knowledge     task-files/agent-knowledge/<tenant>/<uuid>.<ext> documents, ≤ 20 MB
  *  - workspace logos     logos/<tenant>/<variant>.<ext> (replaced)   per variant (LOGO_SPECS)
+ *  - form images         task-files/form-images/<tenant>/<uuid>.<ext> PNG / JPEG / WebP / GIF, ≤ 2 MB
  *
  * The browser path only required a signed-in user for task-files (any path)
  * and settings.edit in the folder's workspace for logos; these also check the
@@ -195,6 +196,32 @@ export async function uploadFormHeaderImage(ctx: ServiceContext, file: UploadInp
     throw ServiceError.validation('The file is not a valid image')
   }
   return store(TASK_FILES, `form-headers/${ctx.tenantId}/${crypto.randomUUID()}.${ext}`, upload, { contentType: file.type })
+}
+
+/** Largest picture uploadFormImage stores (display images in a form's layout). */
+export const FORM_IMAGE_MAX_BYTES = 2 * 1024 * 1024
+const FORM_IMAGE_TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' }
+
+/**
+ * A picture placed in a form's layout (Display image field, an Image
+ * field's default picture; the InfoPath importer stores pictures from .xsn
+ * files with it): forms.edit, PNG / JPEG / WebP / GIF up to 2 MB, verified
+ * by content (the browser's type is only a hint), metadata (EXIF / GPS, text
+ * chunks) stripped. Stored at task-files/form-images/<tenant>/<uuid>.<ext>
+ * and served through /files; persist `ref ?? url` (a storage:// reference
+ * under non-Supabase providers).
+ */
+export async function uploadFormImage(ctx: ServiceContext, file: UploadInput): Promise<StoredFile & { mime_type: string }> {
+  requirePerm(ctx, 'forms.edit')
+  checkFile(file, FORM_IMAGE_MAX_BYTES)
+  const { sniffContent } = await import('@/lib/forms/attachment-sniff')
+  const sniffed = sniffContent(file.bytes)
+  const mime = sniffed === 'png' ? 'image/png' : sniffed === 'jpeg' ? 'image/jpeg' : sniffed === 'webp' ? 'image/webp' : sniffed === 'gif' ? 'image/gif' : null
+  if (!mime) throw ServiceError.validation('Use a PNG, JPEG, WebP or GIF image')
+  const { stripImageMetadata } = await import('@/lib/forms/image-metadata')
+  const bytes = stripImageMetadata(file.bytes, sniffed).bytes
+  const stored = await store(TASK_FILES, `form-images/${ctx.tenantId}/${crypto.randomUUID()}.${FORM_IMAGE_TYPES[mime]}`, { ...file, bytes, type: mime }, { contentType: mime })
+  return { ...stored, mime_type: mime }
 }
 
 /** Magic bytes of the raster types we accept. */

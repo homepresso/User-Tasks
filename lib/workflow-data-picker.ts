@@ -29,7 +29,10 @@ import {
 import { lookupItemFields, lookupItemKey, lookupLabelKey } from './forms/lookup'
 import { runAgentOutputPrefix } from './agent-knowledge'
 import { attachmentsCountKey } from './forms/attachments'
-import { isNumericColumn, listCountKey, listTotalKey, listTotalLabel, type ListColumn } from './forms/list-field'
+import { richTextTextKey } from './forms/rich-text'
+import { isPeopleList } from './forms/people-field'
+import { childListPaths, childListAt, isNumericColumn, listCountKey, listTotalKey, listTotalLabel, type ListColumn, type ListFieldConfig } from './forms/list-field'
+import { repeatingCountKey, repeatingTotalKey } from './forms/repeating-section'
 import { customValueSchemaType } from './forms/custom-controls/field'
 import { activeOutput, keepsRaw, outputExtraKeys } from './forms/custom-controls/output'
 import type { ControlValueSchema } from './forms/custom-controls/contract'
@@ -239,11 +242,42 @@ export const TASK_ATTACHMENT_SCHEMA: SchemaNode = {
   ],
 }
 
+/** A Signature field's value (lib/forms/media-fields.ts SignatureValue). */
+const SIGNATURE_SCHEMA: SchemaNode = {
+  type: 'object',
+  description: 'An electronic signature (not a cryptographic digital signature)',
+  fields: [
+    { name: 'file', type: 'object', description: 'The signature image (PNG file object; attach it or pass it to a document step)' },
+    { name: 'method', type: 'string', description: 'draw or type', example: 'draw' },
+    { name: 'typed_name', type: 'string', description: 'The name typed (method type)' },
+    { name: 'signed_at', type: 'string', description: 'When it was signed (ISO 8601, server time)' },
+    { name: 'user_id', type: 'string', description: 'The signed-in person who signed' },
+    { name: 'user_name', type: 'string', description: 'Their name', example: 'Ada Lovelace' },
+    { name: 'ip', type: 'string', description: 'IP address (only when the field records audit details)' },
+    { name: 'user_agent', type: 'string', description: 'Browser (only when the field records audit details)' },
+  ],
+}
+
+/** One pick of a Person field with several people / teams (lib/forms/people-field.ts PersonRef). */
+const PERSON_REF_SCHEMA: SchemaNode = {
+  type: 'object',
+  fields: [
+    { name: 'kind', type: 'string', description: 'user or team', example: 'user' },
+    { name: 'id', type: 'string', description: 'The user / team id (assign a task to it)' },
+    { name: 'name', type: 'string', description: 'Their name (set by the server)', example: 'Ada Lovelace' },
+  ],
+}
+
 const TASK_ATTACHMENTS_LIST: SchemaNode = { type: 'array', items: TASK_ATTACHMENT_SCHEMA, description: 'Files on the task\'s Attachments tab (loop over them, or pass one to a file step)' }
 
 /** The value model of a form field (numbers, booleans, ISO date strings, multi-select arrays, file lists). */
 export function fieldSchema(field: TaskFieldDef): SchemaNode {
   if (field.type === 'attachments') return { type: 'array', items: ATTACHMENT_FILE_SCHEMA, description: 'Uploaded files (loop over them, or attach them all)' }
+  if (field.type === 'image') return { ...ATTACHMENT_FILE_SCHEMA, description: 'The picture (one file object; attach it or pass it to a file step)' }
+  if (field.type === 'signature') return SIGNATURE_SCHEMA
+  if (field.type === 'rich_text') return { type: 'string', nullable: true, description: `Formatted text (sanitised HTML); the plain text is {{form.${field.key}_text}}` }
+  if (field.type === 'text_list') return { type: 'array', items: { type: 'string' }, description: 'Text items, in order (loop over them, or join them)' }
+  if (isPeopleList(field)) return { type: 'array', items: PERSON_REF_SCHEMA, description: field.user_config?.allow_teams ? 'People and teams (loop over them; kind says which)' : 'People (loop over them)' }
   if (field.type === 'lookup') {
     const what = field.lookup?.source === 'reference' ? 'API reference' : 'data table'
     return field.lookup?.multiple
@@ -252,6 +286,7 @@ export function fieldSchema(field: TaskFieldDef): SchemaNode {
   }
   if (field.type === 'data_table') return dataTableValueSchema(field)
   if (field.type === 'list') return listValueSchema(field)
+  if (field.type === 'repeating_section') return repeatingValueSchema(field)
   if (field.type === 'custom') {
     if (field.custom?.value_type === 'files') return { type: 'array', items: ATTACHMENT_FILE_SCHEMA, description: `Uploaded files (${field.custom.name ?? 'custom control'})` }
     const output = field.custom ? activeOutput(field.custom) : null
@@ -297,9 +332,37 @@ function valueSchemaAt(schema: ControlValueSchema | undefined, path: string): Sc
 }
 
 function listColumnSchema(column: ListColumn): SchemaNode & { name: string } {
+  // A nested List: its rows (a Loop over {{item.<column>}} inside a Loop over the List gives their columns).
+  if (column.type === 'list') return { name: column.key, ...listRowsSchema(column.list), description: `${column.label} (nested list — loop over it inside the outer loop)` }
   const type: SchemaNode['type'] = isNumericColumn(column) ? 'number' : column.type === 'boolean' ? 'boolean' : 'string'
   const what = column.type === 'date' ? ' (YYYY-MM-DD)' : column.type === 'currency' ? ` (${column.currency ?? 'USD'})` : column.type === 'calculated' && column.formula ? ` (= ${column.formula})` : column.type === 'choice' && column.options?.length ? ` (${column.options.slice(0, 6).join(', ')})` : ''
   return { name: column.key, type, ...(column.type === 'boolean' ? {} : { nullable: true }), description: `${column.label}${what}` }
+}
+
+/**
+ * A repeating section's value (lib/forms/repeating-section.ts): the items, an
+ * array of objects keyed by the inner fields (each typed like the field on
+ * a form; a rich text's `_text`, a lookup's `_label`, a nested section's /
+ * List's count and totals beside it) — a Loop gives `{{item.<field>}}`; a
+ * nested section is looped inside (`{{parent_item.*}}` = the outer item).
+ */
+export function repeatingValueSchema(field: TaskFieldDef): SchemaNode {
+  return { type: 'array', items: { type: 'object', fields: repeatingItemFields(field) }, description: 'The items added on the form (loop over them: {{item.<field>}})' }
+}
+
+function repeatingItemFields(field: TaskFieldDef): Array<SchemaNode & { name: string }> {
+  const out: Array<SchemaNode & { name: string }> = []
+  for (const inner of valueFields(field.repeating_section?.fields ?? [])) {
+    const schema = fieldSchema(inner)
+    const nested = inner.type === 'repeating_section' || inner.type === 'list'
+    out.push({ name: inner.key, ...schema, description: `${inner.label}${nested ? ' (loop over it inside the outer loop)' : schema.description ? ` — ${schema.description}` : ''}` })
+    if (inner.type === 'rich_text') out.push({ name: richTextTextKey(inner.key), type: 'string', nullable: true, description: `${inner.label} (plain text)` })
+    if (inner.type === 'lookup') out.push({ name: lookupLabelKey(inner.key), type: 'string', nullable: true, description: `${inner.label} (display label)` })
+    if (inner.type === 'repeating_section' || inner.type === 'list') out.push({ name: listCountKey(inner.key), type: 'integer', description: `${inner.label}: items in this item` })
+    for (const total of inner.repeating_section?.totals ?? []) out.push({ name: repeatingTotalKey(inner.key, total), type: total.fn === 'count' ? 'integer' : 'number', nullable: total.fn === 'avg', description: `${inner.label}: ${total.fn === 'sum' ? 'total' : total.fn === 'avg' ? 'average' : 'count'} of ${total.field}` })
+    for (const total of inner.list?.totals ?? []) out.push({ name: listTotalKey(inner.key, total), type: total.fn === 'count' ? 'integer' : 'number', nullable: total.fn === 'avg', description: `${inner.label}: ${listTotalLabel(inner.list!, total).toLowerCase()}` })
+  }
+  return out
 }
 
 /**
@@ -308,10 +371,20 @@ function listColumnSchema(column: ListColumn): SchemaNode & { name: string } {
  * `{{item.<column>}}` per row.
  */
 export function listValueSchema(field: TaskFieldDef): SchemaNode {
-  const columns = field.list?.columns ?? []
+  return { ...listRowsSchema(field.list), description: 'The rows added on the form (loop over them: {{item.<column>}})' }
+}
+
+/** A List level's rows: its columns, lookups' labels, and per nested List its count / totals in each row. */
+function listRowsSchema(config: ListFieldConfig | undefined): SchemaNode {
+  const columns = config?.columns ?? []
   // A lookup column's display label travels beside its value (`product` → `product_label`).
   const fields = columns.flatMap((c) => (c.type === 'lookup' ? [listColumnSchema(c), { name: `${c.key}_label`, type: 'string' as const, nullable: true, description: `${c.label} (display label)` }] : [listColumnSchema(c)]))
-  return { type: 'array', items: { type: 'object', fields }, description: 'The rows added on the form (loop over them: {{item.<column>}})' }
+  for (const c of columns) {
+    if (c.type !== 'list' || !c.list) continue
+    fields.push({ name: listCountKey(c.key), type: 'integer', description: `${c.label}: rows in this row` } as SchemaNode & { name: string })
+    for (const total of c.list.totals ?? []) fields.push({ name: listTotalKey(c.key, total), type: total.fn === 'count' ? 'integer' : 'number', nullable: total.fn === 'avg', description: `${c.label}: ${listTotalLabel(c.list, total).toLowerCase()} in this row` } as SchemaNode & { name: string })
+  }
+  return { type: 'array', items: { type: 'object', fields } }
 }
 
 const DT_TYPE: Record<string, SchemaNode['type']> = { text: 'string', number: 'number', date: 'string', datetime: 'string', choice: 'string', boolean: 'boolean' }
@@ -392,12 +465,30 @@ function formFieldEntries(fields: TaskFieldDef[]): FormFieldEntry[] {
           : { type: 'string', nullable: true, description: 'What the person saw for the selected value (the field itself is the stored value)' },
       })
     }
+    if (field.type === 'rich_text') out.push({ key: richTextTextKey(field.key), label: `${field.label || field.key} (plain text)`, schema: { type: 'string', nullable: true, description: 'The formatted text without markup' }, typeLabel: 'Text' })
     if (field.type === 'attachments') out.push({ key: attachmentsCountKey(field.key), label: `${field.label || field.key} (number of files)`, schema: { type: 'integer', description: 'Number of files' }, typeLabel: 'Number' })
     if (field.type === 'list') {
       // The row count and the configured totals (lib/forms/list-field.ts listDerivedValues).
       out.push({ key: listCountKey(field.key), label: `${field.label || field.key} (number of rows)`, schema: { type: 'integer', description: 'Number of rows' }, typeLabel: 'Number' })
+      // Nested Lists: their rows over every parent (count, totals) and the count per row.
+      for (const path of childListPaths(field.list)) {
+        const at = childListAt(field.list, path)!
+        const name = `${field.label || field.key} › ${at.columns.map((c) => c.label).join(' › ')}`
+        const p = `${field.key}_${path.join('_')}`
+        out.push({ key: listCountKey(p), label: `${name} (rows in all)`, schema: { type: 'integer', description: 'Rows under every parent row' }, typeLabel: 'Number' })
+        out.push({ key: `${p}_counts`, label: `${name} (rows per ${field.label || 'row'})`, schema: { type: 'array', items: { type: 'integer' }, description: 'Rows under each top-level row, in order' }, typeLabel: 'List' })
+        for (const total of at.config.totals ?? []) out.push({ key: listTotalKey(field.key, { ...total, column: `${path.join('_')}_${total.column}` }), label: `${name} (${listTotalLabel(at.config, total).toLowerCase()}, all rows)`, schema: { type: total.fn === 'count' ? 'integer' : 'number', nullable: total.fn === 'avg', description: `${listTotalLabel(at.config, total)} over every parent row` }, typeLabel: 'Number' })
+      }
       for (const total of field.list?.totals ?? []) {
         out.push({ key: listTotalKey(field.key, total), label: `${field.label || field.key} (${listTotalLabel(field.list!, total).toLowerCase()})`, schema: { type: total.fn === 'count' ? 'integer' : 'number', nullable: total.fn === 'avg', description: listTotalLabel(field.list!, total) }, typeLabel: 'Number' })
+      }
+    }
+    if (field.type === 'repeating_section') {
+      // The item count and the configured totals (lib/forms/repeating-section.ts repeatingDerivedValues).
+      out.push({ key: repeatingCountKey(field.key), label: `${field.label || field.key} (number of items)`, schema: { type: 'integer', description: 'Number of items' }, typeLabel: 'Number' })
+      for (const total of field.repeating_section?.totals ?? []) {
+        const what = total.label ?? `${total.fn === 'sum' ? 'Total' : total.fn === 'avg' ? 'Average' : 'Count'} of ${field.repeating_section?.fields.find((f) => f.key === total.field)?.label ?? total.field}`
+        out.push({ key: repeatingTotalKey(field.key, total), label: `${field.label || field.key} (${what.toLowerCase()})`, schema: { type: total.fn === 'count' ? 'integer' : 'number', nullable: total.fn === 'avg', description: what }, typeLabel: 'Number' })
       }
     }
     if (field.type === 'custom' && field.custom?.output) {
@@ -843,15 +934,23 @@ export function buildDataTree(input: BuildDataTreeInput): DataGroup[] {
   if (currentNodeId) {
     const loops = enclosingLoops(currentNodeId, nodes, edges)
     const loopRoots: DataRoot[] = []
+    let outerItem: SchemaNode | null = null
     loops.forEach((loop, index) => {
       const itemVar = loop.config?.item_var || 'item'
       const indexVar = loop.config?.index_var || 'index'
-      const listSchema = schemaForExpression(loop.config?.items, [...known, ...loopRoots])
+      // Inner loops resolve against the outer loop's item ({{item.lines}} inside a loop over orders); the latest root of a path wins.
+      const listSchema = schemaForExpression(loop.config?.items, [...known, ...[...loopRoots].reverse()])
       const itemSchema = listSchema?.type === 'array' ? (listSchema.items ?? { type: 'any' }) : { type: 'any' as const }
       const roots: DataRoot[] = [
         { path: itemVar, label: itemVar, schema: itemSchema, description: `The item this pass of "${loop.label}" is on` },
         { path: indexVar, label: indexVar, schema: { type: 'integer' }, description: 'Position of the current item (0 = first)' },
+        // A loop inside another loop: the outer loop's current item / index (whatever its item variable is called).
+        ...(outerItem ? [
+          { path: 'parent_item', label: 'parent_item', schema: outerItem, description: `The outer loop's current item (${loops[index - 1].label})` },
+          { path: 'parent_index', label: 'parent_index', schema: { type: 'integer' as const }, description: `Position of the outer loop's item (0 = first)` },
+        ] : []),
       ]
+      outerItem = itemSchema
       loopRoots.push(...roots)
       const innermost = index === loops.length - 1
       loopGroups.unshift({ id: `loop:${loop.id}`, label: innermost ? 'Current item' : `Outer loop item (${loop.label})`, kind: 'loop', nodeId: loop.id, nodeType: 'loop', roots })

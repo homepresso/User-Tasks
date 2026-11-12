@@ -436,7 +436,7 @@ export type CommitOutcome =
 /** A row's checks (column → message): the List's column rules, a Data table's types / required. */
 export function rowProblems(field: RowsField, values: Record<string, unknown>, target: RowTarget): Record<string, string> {
   const row = targetValues(field, values, target)
-  if (target.kind === 'list') return listRowErrors(field.list!, row)
+  if (target.kind === 'list') return listRowErrors(field.list!, row, { form: values })
   const config = field.data_table!
   const errors: Record<string, string> = {}
   const cols = target.kind === 'added' ? insertableColumns(config) : editableColumns(config)
@@ -652,7 +652,7 @@ export function rowCommitKit(field: RowsField, taken: Iterable<string>, options:
   const mapping: Record<string, string> = {}
   if (field.type === 'list') {
     for (const c of field.list?.columns ?? []) {
-      if (c.type === 'calculated' || c.hidden || c.read_only) continue
+      if (c.type === 'calculated' || c.type === 'list' || c.hidden || c.read_only) continue
       const key = unique(`${field.key}_${c.key}`)
       const type = c.type === 'textarea' ? 'textarea' : c.type === 'currency' ? 'currency' : c.type === 'email' ? 'email' : c.type === 'lookup' ? 'lookup' : c.type
       const out: Record<string, unknown> & { key: string; label: string; type: string } = { key, label: c.label, type }

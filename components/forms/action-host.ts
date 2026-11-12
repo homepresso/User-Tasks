@@ -1,6 +1,7 @@
 'use client'
 
 import { isSubmittingButton, safeRedirectUrl } from '@/lib/forms/buttons'
+import type { RowFormRequest } from '@/lib/forms/list-row-form'
 import type { ActionBranch, FieldButtonAction, FieldButtonHost, MessageDisplay, PromptRequest } from '@/lib/forms/field-buttons'
 import type { MessageTone } from '@/lib/forms/form-messages'
 import { FORM_STATE_KEY, readFormState, type FormUiState } from '@/lib/forms/form-state'
@@ -14,6 +15,7 @@ import { OPTIONS_KEY, OPTIONS_LOADING } from '@/lib/forms/data-actions'
 import { staleChoiceValue } from '@/lib/forms/dynamic-values'
 import { coerceTaskFieldValues, isDisplayField, validateTaskFieldValues, type TaskFieldDef } from '@/lib/task-field-schema'
 import { resolveInputTemplate } from '@/lib/forms/buttons'
+import { asListField } from '@/lib/forms/repeating-section'
 import type { FormPager } from './form-pages'
 import type { FormRuntime } from './form-runtime'
 import { formApiUrl, type FormLookupSource } from './lookup-field'
@@ -44,12 +46,14 @@ export type ServerOwner =
     onEmit?: (type: string, target: string, context: Record<string, unknown>) => void
     /** An editable Data table's rows on screen. */
     tableRows?: (field: string) => Array<{ key: string; values: Record<string, unknown> }>
+    /** open_row_form: a List opens a row in its pop-out form. */
+    openRowForm?: (request: RowFormRequest) => boolean
   }
 
 export function blankFor(field: TaskFieldDef | undefined): unknown {
   if (!field) return null
   if (field.type === 'boolean') return false
-  if (field.type === 'multi_choice' || field.type === 'list' || field.type === 'attachments' || (field.type === 'lookup' && field.lookup?.multiple)) return []
+  if (field.type === 'multi_choice' || field.type === 'list' || field.type === 'repeating_section' || field.type === 'attachments' || (field.type === 'lookup' && field.lookup?.multiple)) return []
   return null
 }
 
@@ -88,7 +92,8 @@ export function buildActionHost({ live, fields, layout, idPrefix, source, messag
   /** A question was answered ("Message answered" rules). */
   answered?: (answer: { id?: string; response: string; label: string }) => void
 }): FieldButtonHost {
-  const byKey = new Map(fields.map((f) => [f.key, f]))
+  // A repeating section is a List to the List steps (lib/forms/repeating-section.ts asListField).
+  const byKey = new Map(fields.map((f) => [f.key, asListField(f)]))
   const key = clickKey()
   const preview = !source || source.kind === 'preview'
 
@@ -265,6 +270,7 @@ export function buildActionHost({ live, fields, layout, idPrefix, source, messag
     field: (k) => byKey.get(k),
     ...(owner.kind === 'rule' && owner.onEmit ? { emit: owner.onEmit } : {}),
     ...(owner.kind === 'rule' && owner.tableRows ? { tableRows: owner.tableRows } : {}),
+    ...(owner.kind === 'rule' && owner.openRowForm ? { openRowForm: owner.openRowForm } : {}),
     // After "Add row" / "Cancel editing": the field's default again (placeholders resolved against the form as it is now).
     reset: (k) => resetFor(byKey.get(k), live.current.values),
   }

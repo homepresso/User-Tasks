@@ -24,22 +24,24 @@
  */
 
 import type { RunTask } from '@/lib/run-tasks'
+import { controlValueText } from '@/lib/forms/control-text'
 import { runOutcomeLabel } from '@/lib/run-tasks'
 import { classifyOutcome } from '@/lib/home/activity'
 import { resolveTemplateText } from '@/lib/assistants/process'
 import { isSensitiveFieldName } from '@/lib/response-schema'
 import { isSensitiveKey } from '@/lib/secret-keys'
 import { normalizeTaskFields } from '@/lib/task-field-schema'
-import { describeListValue } from '@/lib/forms/list-field'
+import { coerceListRows, describeListValue } from '@/lib/forms/list-field'
 import { canViewTask, findTaskViewerGrant } from '@/lib/task-authz'
 import {
-  formatGap,
+  formatGap, TIMELINE_LIST_ROWS,
   type RunTimeline, type TimelineCategory, type TimelineEvent, type TimelineField, type TimelineHeader,
   type TimelineIcon, type TimelineLink, type TimelinePerson, type TimelineTarget, type TimelineTone,
 } from '@/lib/run-timeline'
 import { hasPerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
 import { resolveRunScope, runInScope } from './run-visibility'
+import { describeRepeatingValue } from '@/lib/forms/repeating-section'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped rows and definitions */
 
@@ -211,9 +213,12 @@ export function highlightedFields(row: TimelineTaskRow | undefined): TimelineFie
     const v = values[f.key]
     if (v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length) || typeof v === 'object' && !Array.isArray(v)) continue
     // A List's rows: "3 rows" (the rows themselves are on the task / submission).
-    if (f.type === 'list') { out.push({ label: f.label || f.key, value: describeListValue(v) }); continue }
+    // …which open read-only (each row in its pop-out) from the timeline.
+    if (f.type === 'repeating_section') { out.push({ label: f.label || f.key, value: describeRepeatingValue(v, f) }); continue }
+    if (f.type === 'list') { out.push({ label: f.label || f.key, value: describeListValue(v, f.list), ...(f.list ? { list: { config: f.list, rows: coerceListRows(f.list, v).slice(0, TIMELINE_LIST_ROWS) } } : {}) }); continue }
     const secret = isSensitiveFieldName(f.key) || isSensitiveKey(f.key) || String(f.type) === 'password'
-    const shown = secret ? '••••' : Array.isArray(v) ? v.map((x) => f.option_labels?.[String(x)] ?? String(x)).join(', ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : (f.option_labels?.[String(v)] ?? String(v))
+    const control = controlValueText(f, v, { values })
+    const shown = secret ? '••••' : control !== null ? control.replace(/\n/g, '; ') : Array.isArray(v) ? v.map((x) => f.option_labels?.[String(x)] ?? String(x)).join(', ') : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : (f.option_labels?.[String(v)] ?? String(v))
     out.push({ label: f.label || f.key, value: shown.length > 120 ? `${shown.slice(0, 119)}…` : shown })
   }
   return out

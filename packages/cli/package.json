@@ -1,6 +1,6 @@
 {
   "name": "@user-tasks/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Command-line interface for UserTasks: every REST endpoint as a command, browser login and config as code",
   "keywords": [
     "usertasks",
@@ -24,7 +24,7 @@
     "node": ">=20"
   },
   "bin": {
-    "usertasks": "./dist/bin.js"
+    "usertasks": "dist/bin.js"
   },
   "files": [
     "dist",

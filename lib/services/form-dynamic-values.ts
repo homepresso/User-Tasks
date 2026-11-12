@@ -36,6 +36,7 @@ import {
   restrictsToList, shapeRows, type DynamicBinding, type DynamicValueType, type SourceBinding,
 } from '@/lib/forms/dynamic-values'
 import { normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { findFieldDeep } from '@/lib/forms/repeating-section'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { serviceRoleClient } from './_shared'
@@ -77,6 +78,8 @@ interface Loaded {
   storedParams?: Record<string, unknown> | null
   task: Record<string, unknown> | null
   preview: boolean
+  /** The field sits in repeating section(s): their keys, outermost first (lib/forms/repeating-section.ts). */
+  sections?: string[]
 }
 
 function bindingOf(field: TaskFieldDef, prop: string | undefined): { binding: DynamicBinding; expects: DynamicValueType } {
@@ -88,10 +91,13 @@ function bindingOf(field: TaskFieldDef, prop: string | undefined): { binding: Dy
 
 async function load(ctx: ServiceContext, target: DynamicValueTarget, fieldKey: string | undefined): Promise<Loaded> {
   const db = await serviceRoleClient(ctx)
+  // A field of the form, or a control inside one of its repeating sections (any level).
+  let sections: string[] | undefined
   const pick = (fields: TaskFieldDef[], where: string) => {
-    const field = fields.find((f) => f.key === fieldKey)
-    if (!field) throw ServiceError.notFound(`${where} has no field "${String(fieldKey ?? '').slice(0, 64)}"`)
-    return field
+    const found = typeof fieldKey === 'string' ? findFieldDeep(fields, fieldKey) : null
+    if (!found) throw ServiceError.notFound(`${where} has no field "${String(fieldKey ?? '').slice(0, 64)}"`)
+    if (found.sections.length) sections = found.sections
+    return found.field
   }
   if ('task_id' in target) {
     const { loadLookupTask } = await import('./form-lookup')
@@ -101,7 +107,7 @@ async function load(ctx: ServiceContext, target: DynamicValueTarget, fieldKey: s
     return {
       fields, field: pick(fields, "The task's form"), stored: isPlainObject(meta.template_values) ? meta.template_values : {},
       layout: meta.form_layout, storedParams: isPlainObject(meta.form_params) ? meta.form_params : {},
-      task: { id: task.id, title: task.title, priority: task.priority, status: task.status }, preview: false,
+      task: { id: task.id, title: task.title, priority: task.priority, status: task.status }, preview: false, sections,
     }
   }
   if ('form_id' in target) {
@@ -111,7 +117,8 @@ async function load(ctx: ServiceContext, target: DynamicValueTarget, fieldKey: s
     const { data: form } = await (db as any).from('forms').select('id, fields, layout').eq('id', target.form_id).eq('tenant_id', ctx.tenantId).maybeSingle()
     if (!form) throw ServiceError.notFound('Form not found')
     const fields = normalizeTaskFields(form.fields)
-    return { fields, field: pick(fields, 'The form'), stored: {}, layout: form.layout, storedParams: null, task: null, preview: false }
+    const field = pick(fields, 'The form')
+    return { fields, field, stored: {}, layout: form.layout, storedParams: null, task: null, preview: false, sections }
   }
   if (!hasPerm(ctx, 'workflows.edit') && !hasPerm(ctx, 'forms.edit')) {
     throw ServiceError.forbidden("Forbidden: previewing a dynamic property needs the 'workflows.edit' or 'forms.edit' permission")
@@ -119,6 +126,38 @@ async function load(ctx: ServiceContext, target: DynamicValueTarget, fieldKey: s
   const [field] = normalizeTaskFields([target.preview_field])
   if (!field) throw ServiceError.validation('Not a field')
   return { fields: [field], field, stored: {}, task: null, preview: true }
+}
+
+/**
+ * A control inside a repeating section: the item's values its binding reads,
+ * as the browser sent them (`item.<key>` / `row.<key>` / `parent.<key>`, or a
+ * bare inner key) — declared inner keys only, scalars only (they are only
+ * ever quoted values that narrow the base filter / mapped inputs).
+ */
+function itemScopeFromRequest(fields: TaskFieldDef[], sections: string[], submitted: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!submitted) return {}
+  const levels: TaskFieldDef[][] = []
+  let level = fields
+  for (const key of sections) {
+    const section = level.find((f) => f.key === key)
+    level = section?.repeating_section?.fields ?? []
+    levels.push(level)
+  }
+  const scalar = (v: unknown) => v === null || typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? (typeof v === 'string' ? v.slice(0, 500) : v) : undefined
+  const read = (inner: TaskFieldDef[], prefixes: string[], bare: boolean): Record<string, unknown> => {
+    const out: Record<string, unknown> = {}
+    for (const f of inner) {
+      for (const prefix of prefixes) {
+        const v = scalar(submitted[`${prefix}.${f.key}`])
+        if (v !== undefined) out[f.key] = v
+      }
+      if (bare && out[f.key] === undefined) { const v = scalar(submitted[f.key]); if (v !== undefined) out[f.key] = v }
+    }
+    return out
+  }
+  const item = read(levels[levels.length - 1] ?? [], ['item', 'row'], true)
+  const parent = levels.length > 1 ? read(levels[levels.length - 2], ['parent'], false) : {}
+  return { ...item, item, row: item, ...(Object.keys(parent).length ? { parent } : {}) }
 }
 
 /** A source binding's rows: projected to its declared columns, within its base filter, capped. */
@@ -175,6 +214,14 @@ export async function resolveDynamicValue(ctx: ServiceContext, target: DynamicVa
   await rateLimited(ctx)
   const submitted = isPlainObject(input.values) ? input.values : undefined
   const values = loaded.preview ? { ...(submitted ?? {}) } : scopeValues(loaded.fields, loaded.stored, submitted)
+  if (!loaded.preview && loaded.sections?.length) Object.assign(values, itemScopeFromRequest(loaded.fields, loaded.sections, submitted))
+  // The designer's preview of a control inside a repeating section: `item.<key>` sent flat, read as the item's.
+  if (loaded.preview) {
+    for (const [k, v] of Object.entries(submitted ?? {})) {
+      const m = /^(item|row|parent)\.([a-z0-9_]{1,64})$/.exec(k)
+      if (m) values[m[1]] = { ...(isPlainObject(values[m[1]]) ? values[m[1]] as Record<string, unknown> : {}), [m[2]]: v }
+    }
+  }
   const config = isSourceBinding(binding) ? bindingQueryConfig(binding) : { source: 'table' as const, mode: 'display' as const, columns: [], base_filter: undefined, input_mappings: { expr: binding.expr } }
   if (!loaded.preview) Object.assign(values, contextEntries(config, loaded.layout, { values: submitted, params: input.params, variables: input.variables }, loaded.storedParams, loaded.fields))
   const sys = await serviceRoleClient(ctx)

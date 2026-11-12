@@ -113,6 +113,8 @@ export function normalizeLabelConfig(raw: unknown): LabelFieldConfig {
   if (expression) out.expression = expressionBody(expression)
   if (!out.expression) delete out.expression
   if (isPlainObject(r.format)) out.format = normalizeCellFormat(r.format, 'text')
+  // Shorthand: format: "currency" with currency / decimals beside it.
+  else if (typeof r.format === 'string' && (LABEL_FORMAT_KINDS as readonly string[]).includes(r.format)) out.format = normalizeCellFormat({ kind: r.format, currency: r.currency, decimals: r.decimals }, 'text')
   const prefix = cleanText(r.prefix, LABEL_LIMITS.affix)
   if (prefix) out.prefix = prefix
   const suffix = cleanText(r.suffix, LABEL_LIMITS.affix)
@@ -610,9 +612,86 @@ export function serverLabelValues(fields: readonly FieldLike[], layout: unknown,
 
 /* ── Display ────────────────────────────────────────────────────────── */
 
-/** The value as shown: formatted (cell formats), with the prefix / suffix; the empty text when there's no value. */
-export function formatLabelValue(config: LabelFieldConfig | undefined, value: unknown, options: { locale?: string } = {}): FormattedCell & { prefix?: string; suffix?: string } {
-  const format = config?.format ?? { kind: typeof value === 'number' ? 'number' as const : 'text' as const }
+/** The currency labels fall back to when nothing they read names one (no form / workspace currency exists). */
+export const LABEL_DEFAULT_CURRENCY = 'USD'
+
+/** Functions whose result is a count or text, never an amount (a label using one isn't defaulted to currency). */
+const NOT_AN_AMOUNT = /^(COUNT\w*|CONCAT|TEXT\w*|LEN|JOIN|UPPER|LOWER|TRIM|PROPER|LEFT|RIGHT|MID|SUBSTITUTE|REPLACE|FORMAT\w*|DATE\w*|DAYS?|YEAR|MONTH|WEEKDAY|TODAY|IS\w+|NOT|AND|OR|EQ|NEQ|GT|GTE|LT|LTE)$/
+
+interface FormatSourceField {
+  key: string
+  type: string
+  currency?: string
+  label_config?: LabelFieldConfig
+  list?: { columns?: ReadonlyArray<{ key: string; type: string; currency?: string }> }
+  repeating_section?: { fields?: ReadonlyArray<FormatSourceField> }
+  data_table?: { columns?: ReadonlyArray<{ key: string; format?: CellFormat }> }
+}
+
+/** The currency code of a child (List column / repeating section inner field / Data table column), or null. */
+function childCurrency(container: FormatSourceField, child: string): string | null {
+  const col = container.list?.columns?.find((c) => c.key === child)
+  if (col) return col.type === 'currency' || (col.type === 'calculated' && col.currency) ? (col.currency ?? LABEL_DEFAULT_CURRENCY) : null
+  const inner = container.repeating_section?.fields?.find((f) => f.key === child)
+  if (inner) return inner.type === 'currency' ? (inner.currency ?? LABEL_DEFAULT_CURRENCY) : null
+  const dt = container.data_table?.columns?.find((c) => c.key === child)
+  if (dt?.format?.kind === 'currency') return dt.format.currency ?? LABEL_DEFAULT_CURRENCY
+  return null
+}
+
+/**
+ * The display format a label takes when its author set none: currency when
+ * the expression adds up money — currency fields, a List / Repeating
+ * section's currency column or its `<key>_total_<column>`, a Data table's
+ * currency column, or another currency label — in that currency (one code;
+ * mixed codes give no default). Counts and text functions never default to
+ * currency. Null: no default (numbers show as plain numbers).
+ */
+export function inferLabelFormat(field: Pick<FormatSourceField, 'key' | 'label_config'>, fields: readonly FormatSourceField[], depth = 0): CellFormat | null {
+  const body = field.label_config?.expression
+  if (!body || depth > 5) return null
+  // A hand-written "$" / "USD" prefix or suffix already says it: don't add a symbol twice.
+  if (field.label_config?.prefix || field.label_config?.suffix) return null
+  const { paths, functions } = lex(body)
+  if (functions.some((fn) => NOT_AN_AMOUNT.test(fn))) return null
+  const byKey = new Map(fields.map((f) => [f.key, f]))
+  // Column names quoted in the formula (SUM(PLUCK(form.x, "amount")), SUM(MAP(rows, "qty * price"))…).
+  const quoted = new Set<string>()
+  for (const m of stripBraces(body).matchAll(/"([^"]*)"|'([^']*)'/g)) for (const w of (m[1] ?? m[2] ?? '').match(/[A-Za-z_]\w*/g) ?? []) quoted.add(w)
+  const codes = new Set<string>()
+  for (const path of paths) {
+    const key = pathKey(path)
+    if (!key || key === field.key) continue
+    const f = byKey.get(key)
+    if (f) {
+      if (f.type === 'currency') codes.add(f.currency ?? LABEL_DEFAULT_CURRENCY)
+      else if (f.type === 'label') {
+        const fmt = f.label_config?.format ?? inferLabelFormat(f, fields, depth + 1)
+        if (fmt?.kind === 'currency') codes.add(fmt.currency ?? LABEL_DEFAULT_CURRENCY)
+      } else if (f.list || f.repeating_section || f.data_table) {
+        for (const w of quoted) { const c = childCurrency(f, w); if (c) codes.add(c) }
+      }
+      continue
+    }
+    // A List / Repeating section's stored total (<key>_total_<column>, <key>_avg_<column>).
+    for (const c of fields) {
+      if (!(c.list || c.repeating_section)) continue
+      const m = new RegExp(`^${c.key}_(?:total|avg)_(\\w+)$`).exec(key)
+      const code = m ? childCurrency(c, m[1]) : null
+      if (code) codes.add(code)
+    }
+  }
+  return codes.size === 1 ? { kind: 'currency', currency: [...codes][0] } : null
+}
+
+/** The format a label shows its value in: the author's, else the inferred default (inferLabelFormat), else none. */
+export function labelDisplayFormat(field: Pick<FormatSourceField, 'key' | 'label_config'>, fields: readonly FormatSourceField[]): CellFormat | undefined {
+  return field.label_config?.format ?? inferLabelFormat(field, fields) ?? undefined
+}
+
+/** The value as shown: formatted (cell formats), with the prefix / suffix; the empty text when there's no value. `inferred`: the default format when the config has none (labelDisplayFormat), used for numbers. */
+export function formatLabelValue(config: LabelFieldConfig | undefined, value: unknown, options: { locale?: string; inferred?: CellFormat | null } = {}): FormattedCell & { prefix?: string; suffix?: string } {
+  const format = config?.format ?? (options.inferred && typeof value === 'number' ? options.inferred : { kind: typeof value === 'number' ? 'number' as const : 'text' as const })
   const cell = formatCellValue(value, format, { locale: options.locale, placeholder: config?.empty_text ?? '—' })
   if (cell.empty) return cell
   return { ...cell, ...(config?.prefix ? { prefix: config.prefix } : {}), ...(config?.suffix ? { suffix: config.suffix } : {}) }

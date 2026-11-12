@@ -344,6 +344,8 @@ interface ExecutionContext {
   cache?: RunCache;
   /** > 0 while executing a loop body (loop state can't survive a pause). */
   loopDepth?: number;
+  /** The loops running now, outermost first: their current item / index (nested loops read the outer one as parent_item / parent_index). */
+  loopFrames?: Array<{ item: unknown; index: number }>;
   nodeResults: Record<string, NodeResult>;
   executedNodes: Set<string>;
   executionTrace: Array<Record<string, unknown>>;
@@ -3582,11 +3584,27 @@ async function executeNode(
       }
       for (const e of loopEdges) collectBodyNodes(e.target);
 
+      // A loop inside another loop's body (orders → {{item.lines}}): the
+      // outer loop's current item / index stay readable as parent_item /
+      // parent_index, and its own variables come back once this loop ends.
+      const frames = (ctx.loopFrames ??= []);
+      const outer = frames.length ? frames[frames.length - 1] : null;
+      const savedVars = outer
+        ? [itemVar, indexVar, "parent_item", "parent_index"].map((name) => ({ name, had: Object.prototype.hasOwnProperty.call(ctx.variables, name), value: ctx.variables[name] }))
+        : [];
+      const frame = { item: undefined as unknown, index: -1 };
+      frames.push(frame);
       ctx.loopDepth = (ctx.loopDepth ?? 0) + 1;
       try {
         for (let i = 0; i < items.length; i++) {
+          frame.item = items[i];
+          frame.index = i;
           ctx.variables[itemVar] = items[i];
           ctx.variables[indexVar] = i;
+          if (outer) {
+            ctx.variables.parent_item = outer.item;
+            ctx.variables.parent_index = outer.index;
+          }
           // Clear the entire body subgraph so every node re-runs each iteration
           for (const id of bodyNodeIds) ctx.executedNodes.delete(id);
           for (const edge of loopEdges) {
@@ -3599,6 +3617,11 @@ async function executeNode(
         }
       } finally {
         ctx.loopDepth -= 1;
+        frames.pop();
+        for (const v of savedVars) {
+          if (v.had) ctx.variables[v.name] = v.value;
+          else delete ctx.variables[v.name];
+        }
       }
 
       // Execute "Done" edges after loop completes

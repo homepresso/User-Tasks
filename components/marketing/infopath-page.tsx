@@ -25,21 +25,26 @@ const THEME = {
 const MAPS: Array<[string, string]> = [
   ["Each view", "A form of its own, “Expense Report — Approval”. Or all views as steps of one form."],
   ["Text boxes, date pickers, drop-downs, option buttons, check boxes", "Text, number, currency, date, choice, radio and yes / no fields, typed from your data source"],
-  ["Repeating tables and sections", "List fields: an editable table with a column per control, row arithmetic as calculated columns"],
+  ["Repeating tables", "List fields: an editable table with a column per control, nested tables as nested Lists, row arithmetic as calculated columns"],
+  ["Repeating sections", "Repeating sections: a card per item with the same controls and layout, nested up to 3 levels"],
+  ["Pictures, signatures and ink", "Image fields (camera on phones), display images for logos, electronic signature fields"],
+  ["Rich text, list boxes, people pickers, bulleted lists", "Rich text, multi-select list boxes, people pickers and text lists"],
+  ["Choice groups", "Choice groups: one alternative section at a time, with a switch"],
   ["Sections and optional sections", "Sections and optional sections, with their show conditions"],
   ["Layout tables", "Rows of up to four columns, in the same order"],
   ["“Cannot be blank”, patterns, ranges", "Required, pattern, min / max and length checks, enforced on the server"],
   ["Default values and formulas", "Defaults, form-load rules and calculated labels (sum, count, concat, today, arithmetic…)"],
   ["Rules on fields, buttons and form load", "Form rules: set values, show messages, hide, make read only, go to step"],
   ["Data validation", "Field errors that block submit, in the browser and again on the server"],
-  ["Conditional formatting: hide, read-only", "“Always” rules that hide or lock while the condition holds"],
+  ["Conditional formatting", "“Always” rules that hide, lock or colour while the condition holds — colours snap to your theme"],
+  ["User roles", "Conditions on the person's workspace roles"],
 ]
 
 const LEFT_OUT = [
-  "Data connections (SharePoint lists, web services, databases): rules keep a note until you point them at a data table or an API integration",
-  "InfoPath user roles and form code (JScript, C#)",
-  "Conditional colours and fonts, ink, picture and signature controls",
-  "Nested repeating tables, and a few XPath functions such as substring-before",
+  "Data connections (SharePoint lists, web services, databases): give them a data table or an API integration with the same name and they connect",
+  "Form code (JScript, C#) is never run",
+  "Certificates on digital signatures (they become electronic signatures)",
+  "Font sizes, and a few rare XPath functions such as position()",
 ]
 
 const STEPS = [
@@ -162,7 +167,7 @@ export function InfoPathPage() {
             </div>
             <div className="mt-10 grid gap-6 lg:grid-cols-2">
               <div className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/70 p-6" data-reveal>
-                <h3 className="flex items-center gap-2 text-lg font-semibold"><Minus size={18} className="text-(color:--mkt-bronze)" aria-hidden="true" />What doesn&apos;t convert (yet)</h3>
+                <h3 className="flex items-center gap-2 text-lg font-semibold"><Minus size={18} className="text-(color:--mkt-bronze)" aria-hidden="true" />What still needs a person</h3>
                 <ul className="mt-4 space-y-2 text-sm leading-6 text-(color:--mkt-text)">
                   {LEFT_OUT.map((t) => <li key={t} className="flex gap-2"><X size={16} className="mt-1 shrink-0 text-(color:--mkt-coral)" aria-hidden="true" />{t}</li>)}
                 </ul>

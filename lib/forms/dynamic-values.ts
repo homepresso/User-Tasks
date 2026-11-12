@@ -129,7 +129,7 @@ export const DYNAMIC_PROP_LABELS: Record<DynamicFieldProp, string> = {
 export const VALIDATING_PROPS: ReadonlySet<string> = new Set(['options', 'min', 'max', 'min_date', 'max_date', 'required'])
 
 const TEXT_LIKE = new Set(['text', 'textarea', 'email', 'phone', 'url'])
-const NO_VALUE = new Set(['heading', 'divider', 'button'])
+const NO_VALUE = new Set(['heading', 'divider', 'button', 'display_image'])
 const COLUMN_RE = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
 const PATH_RE = /^[A-Za-z0-9_$-]{1,64}(?:\.[A-Za-z0-9_$-]{1,64}){0,7}$/
 const AS_RE = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/
@@ -143,6 +143,8 @@ interface FieldLike { key?: string; type: string; display?: string; custom?: { p
 export function fieldPropType(field: FieldLike, prop: string): DynamicValueType | null {
   const t = field.type
   if (NO_VALUE.has(t)) return null
+  // A repeating section (lib/forms/repeating-section.ts): its inner controls carry their own bindings.
+  if (t === 'repeating_section') return null
   // Label fields (lib/forms/label-field.ts) display a value: their caption, help text and default may be dynamic —
   // never options, bounds or required (their value comes from the expression / rules / default).
   if (t === 'label' && prop !== 'label' && prop !== 'help_text' && prop !== 'default') return null
@@ -150,9 +152,9 @@ export function fieldPropType(field: FieldLike, prop: string): DynamicValueType 
     case 'label': case 'help_text': return 'string'
     case 'required': return 'boolean'
     case 'placeholder':
-      return TEXT_LIKE.has(t) || t === 'number' || t === 'currency' || t === 'date' || t === 'lookup' || t === 'user' || (t === 'choice' && field.display !== 'radio') ? 'string' : null
+      return TEXT_LIKE.has(t) || t === 'rich_text' || t === 'text_list' || t === 'number' || t === 'currency' || t === 'date' || t === 'lookup' || t === 'user' || (t === 'choice' && field.display !== 'radio') ? 'string' : null
     case 'default':
-      if (t === 'attachments' || t === 'custom' || t === 'data_table' || t === 'lookup' || t === 'list') return null
+      if (t === 'attachments' || t === 'image' || t === 'signature' || t === 'custom' || t === 'data_table' || t === 'lookup' || t === 'list') return null
       return t === 'multi_choice' ? 'string_list' : t === 'number' || t === 'currency' ? 'number' : t === 'boolean' ? 'boolean' : t === 'date' ? 'date' : 'string'
     case 'options': return t === 'choice' || t === 'multi_choice' ? 'options' : null
     case 'min': case 'max': return t === 'number' || t === 'currency' || t === 'multi_choice' ? 'number' : null
@@ -345,6 +347,9 @@ export function bindingDependencies(binding: DynamicBinding): string[] {
     for (const path of templatePaths(text)) {
       const context = /^(param|var|control)(\.|$)/.exec(path)
       if (context) { add(context[1] === 'param' ? FORM_PARAMS_KEY : context[1] === 'var' ? FORM_VARS_KEY : CONTROLS_KEY); continue }
+      // A repeating section item's own values (lib/forms/repeating-section.ts): `item.<key>` / `row.<key>` / `parent.<key>`.
+      const scoped = /^(item|row|parent)\.([a-z0-9][a-z0-9_]*)/.exec(path)
+      if (scoped) { add(`${scoped[1]}.${scoped[2]}`); continue }
       const m = /^(?:task_data|form|task\.data)\.([a-z0-9_]+)/.exec(path) ?? /^([a-z0-9][a-z0-9_]*)$/.exec(path)
       if (m && !/^(today|now|start_of_month|start_of_year|user)$/.test(m[1])) add(m[1])
     }
@@ -358,7 +363,16 @@ export function bindingDependencies(binding: DynamicBinding): string[] {
  * other change to the form doesn't).
  */
 export function bindingInputs(binding: DynamicBinding, values: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(bindingDependencies(binding).map((k) => [k, values[k] ?? null]))
+  return Object.fromEntries(bindingDependencies(binding).map((k) => [k, dependencyValue(values, k) ?? null]))
+}
+
+/** A dependency's value: a key, or `item.<key>` / `row.<key>` / `parent.<key>` in a repeating section item's scope (or as sent: the flat key). */
+export function dependencyValue(values: Record<string, unknown>, key: string): unknown {
+  if (Object.prototype.hasOwnProperty.call(values, key)) return values[key]
+  const m = /^(item|row|parent)\.(.+)$/.exec(key)
+  if (!m) return undefined
+  const holder = values[m[1]]
+  return isPlainObject(holder) ? holder[m[2]] : undefined
 }
 
 /**
@@ -369,7 +383,7 @@ export function bindingInputs(binding: DynamicBinding, values: Record<string, un
 export function blankInputsBehaviour(binding: DynamicBinding, values: Record<string, unknown>): 'clear' | 'keep' | null {
   if (binding.kind === 'expr') return null
   const fieldDeps = bindingDependencies(binding).filter((k) => k !== FORM_PARAMS_KEY && k !== FORM_VARS_KEY && k !== CONTROLS_KEY)
-  const blank = fieldDeps.some((k) => { const v = values[k]; return v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) })
+  const blank = fieldDeps.some((k) => { const v = dependencyValue(values, k); return v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) })
   return blank ? binding.when_inputs_blank ?? 'clear' : null
 }
 

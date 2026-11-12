@@ -38,7 +38,8 @@
  */
 
 import { coerceTaskFieldValues, normalizeTaskFields } from '@/lib/task-field-schema'
-import { findServerRuleAction, resolveRuleTemplate, ruleConditionsMet, serverVerifiable } from '@/lib/forms/form-rules'
+import { conditionPaths, findServerRuleAction, resolveRuleTemplate, ruleConditionsMet, serverVerifiable } from '@/lib/forms/form-rules'
+import { loadRuleUser } from './form-rule-user'
 import { layoutFormVariables, serverFormContext } from '@/lib/forms/form-params'
 import { mapReferenceResults } from '@/lib/forms/reference-results'
 import { ruleValue } from '@/lib/forms/form-rules'
@@ -54,7 +55,7 @@ import { DataTableQueryError, conditionTerm, isConditionGroup, type DataTableCol
 import { unwrapExecutorResult } from '@/lib/response-collections'
 import { enrichEventContext, serverControlEntries } from '@/lib/forms/rule-variables'
 import { isPlainObject } from '@/lib/utils/guards'
-import { isAnonymous, rateSubject, requirePerm, ServiceError, type ServiceContext } from './context'
+import { getDb, isAnonymous, rateSubject, requirePerm, ServiceError, type ServiceContext } from './context'
 import { audit, serviceRoleClient } from './_shared'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- task metadata and forms rows are free-form JSON */
@@ -183,10 +184,13 @@ export async function runRuleAction(ctx: ServiceContext, target: { task_id: stri
   }
   // The same event names the browser's rules read (row_id, previous_value, item.<field>, from / to).
   const event = enrichEventContext(rule.event, isPlainObject(input.event) ? input.event : {})
-  // A forged event cannot reach the action: a condition the server can judge must hold.
-  if (serverVerifiable(rule)) {
+  // A forged event cannot reach the action: a condition the server can judge must hold. A condition on the
+  // user (user.roles / user.teams…) is judged with the server's own view of the person (anonymous: no roles).
+  const readsUser = conditionPaths(rule.if).some((p) => p === 'user' || p.startsWith('user.'))
+  const user = readsUser ? await loadRuleUser(getDb(ctx), ctx.tenantId, isAnonymous(ctx) ? null : ctx.actorId) : null
+  if (serverVerifiable(rule, readsUser)) {
     const scopeEvent = rule.target && (rule.event === 'value_change' || rule.event === 'blur') ? { field: rule.target, value: typed[rule.target] } : {}
-    if (!ruleConditionsMet(rule.if, { values: typed, event: scopeEvent })) throw ServiceError.forbidden("The rule's conditions do not hold for these values")
+    if (!ruleConditionsMet(rule.if, { values: typed, event: scopeEvent, user: user as unknown as Record<string, unknown> | null })) throw ServiceError.forbidden("The rule's conditions do not hold for these values")
   }
 
   const { rateLimit } = await import('@/lib/rate-limit')

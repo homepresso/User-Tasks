@@ -32,7 +32,7 @@ describe('InfoPath generator — fields and layout', () => {
     expect(field(fields, 'department')).toMatchObject({ type: 'choice', options: ['Operations', 'Sales', 'Engineering'], default: 'Operations' })
     expect(field(fields, 'cost_center')).toMatchObject({ type: 'text', pattern: '^(?:[A-Z]{2}-\\d{4})$' })
     expect(field(fields, 'report_date').type).toBe('date')
-    expect(field(fields, 'purpose').type).toBe('textarea')
+    expect(field(fields, 'purpose').type).toBe('rich_text')
     expect(field(fields, 'receipts').type).toBe('attachments')
     expect(field(fields, 'status')).toMatchObject({ type: 'text', default: 'Draft' })
     expect(field(fields, 'btn_submit_report')).toMatchObject({ type: 'button', label: 'Submit report' })
@@ -70,7 +70,9 @@ describe('InfoPath generator — rules', () => {
   it('converts conditional formatting to Always rules', () => {
     expect(rule(rules, 'Hide: Manager email (Hide for small reports)')).toMatchObject({ event: 'always', if: { match: 'all', conditions: [{ column: 'total', operator: 'lte', value: '1000' }] }, then: [{ type: 'show_hide', mode: 'hide', targets: ['field:manager_email'] }] })
     expect(rule(rules, 'Read only: Status')).toMatchObject({ then: [{ type: 'read_only', mode: 'read_only', targets: ['field:status'] }] })
-    expect(report.items.find((i) => i.area === 'formatting' && i.status === 'skipped')?.detail).toMatch(/styling/)
+    // Colours become theme-token styles (green text → the success tone).
+    expect(rule(rules, 'Style: Status (Green when submitted)')).toMatchObject({ event: 'always', if: { conditions: [{ column: 'status', operator: 'eq', value: 'Submitted' }] }, then: [{ type: 'set_style', targets: ['field:status'], style: { tone: 'success', text: true, icon: true } }] })
+    expect(report.items.find((i) => i.area === 'formatting' && i.name.includes('Green'))).toMatchObject({ status: 'partial', detail: expect.stringContaining('#008000 → success') })
   })
 
   it('converts field, button and load rules with their actions', () => {
@@ -82,14 +84,13 @@ describe('InfoPath generator — rules', () => {
   })
 
   it('keeps what does not translate as disabled rules with the original in the notes', () => {
-    const role = rule(rules, 'Managers see status')
-    expect(role.disabled).toBe(true)
-    expect(role.description).toMatch(/user role/)
-    expect(role.description).toContain('xdXDocument:get-Role() = "Manager"')
+    // Roles are workspace roles now: get-Role() becomes a user.roles condition.
+    expect(rule(rules, 'Managers see status')).toMatchObject({ event: 'form_load', if: { conditions: [{ column: 'user.roles', operator: 'contains', value: 'Manager' }] } })
+    expect(rule(rules, 'Managers see status').disabled).toBeUndefined()
     const query = rule(rules, 'Refresh projects')
     expect(query).toMatchObject({ disabled: true, then: [{ type: 'message' }] })
     expect(query.description).toMatch(/queries the data connection "Projects"/)
-    expect(report.summary.rules).toEqual({ total: 5, converted: 3, partial: 0, manual: 2 })
+    expect(report.summary.rules).toEqual({ total: 5, converted: 4, partial: 0, manual: 1 })
     expect(report.items.filter((i) => i.area === 'role')).toHaveLength(2)
   })
 
@@ -156,8 +157,8 @@ describe('InfoPath generator — views and modes', () => {
   it('writes a Markdown report', () => {
     const md = reportMarkdown(expense().report)
     expect(md).toContain('# InfoPath import: Expense Report')
-    expect(md).toMatch(/Rules: 3 of 5 converted/)
-    expect(md).toContain('Original: `if xdXDocument:get-Role() = "Manager"')
+    expect(md).toMatch(/Rules: 4 of 5 converted/)
+    expect(md).toContain('Original: `query Projects`')
   })
 
   it('negates show conditions without double not()', () => {

@@ -36,6 +36,12 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'SPLIT', category: 'text', description: 'Split text into a list', args: [{ name: 'text', type: 'string' }, { name: 'separator', type: 'string' }], example: 'SPLIT("a;b;c", ";") → ["a","b","c"]', returnType: 'array' },
   { name: 'PAD_LEFT', category: 'text', description: 'Pad string on the left', args: [{ name: 'text', type: 'string' }, { name: 'length', type: 'number' }, { name: 'char', type: 'string', optional: true }], example: 'PAD_LEFT("5", 3, "0") → "005"', returnType: 'string' },
   { name: 'PAD_RIGHT', category: 'text', description: 'Pad string on the right', args: [{ name: 'text', type: 'string' }, { name: 'length', type: 'number' }, { name: 'char', type: 'string', optional: true }], example: 'PAD_RIGHT("5", 3, "0") → "500"', returnType: 'string' },
+  { name: 'SUBSTRING_BEFORE', category: 'text', description: 'The text before the first occurrence of a search string ("" when not found)', args: [{ name: 'text', type: 'string' }, { name: 'search', type: 'string' }], example: 'SUBSTRING_BEFORE("ada@example.com", "@") → "ada"', returnType: 'string' },
+  { name: 'SUBSTRING_AFTER', category: 'text', description: 'The text after the first occurrence of a search string ("" when not found)', args: [{ name: 'text', type: 'string' }, { name: 'search', type: 'string' }], example: 'SUBSTRING_AFTER("ada@example.com", "@") → "example.com"', returnType: 'string' },
+  { name: 'TRANSLATE', category: 'text', description: 'Replace characters one for one: each character of "from" becomes the character at the same position in "to" (removed when "to" is shorter)', args: [{ name: 'text', type: 'string' }, { name: 'from', type: 'string' }, { name: 'to', type: 'string' }], example: 'TRANSLATE("a-b-c", "-", "/") → "a/b/c"', returnType: 'string' },
+  { name: 'NORMALIZE_SPACE', category: 'text', description: 'Trim and collapse every run of spaces, tabs and line breaks to one space', args: [{ name: 'text', type: 'string' }], example: 'NORMALIZE_SPACE("  a   b ") → "a b"', returnType: 'string' },
+  { name: 'STARTS_WITH', category: 'text', description: 'Whether text starts with a prefix', args: [{ name: 'text', type: 'string' }, { name: 'prefix', type: 'string' }], example: 'STARTS_WITH("INV-0042", "INV-") → true', returnType: 'boolean' },
+  { name: 'ENDS_WITH', category: 'text', description: 'Whether text ends with a suffix', args: [{ name: 'text', type: 'string' }, { name: 'suffix', type: 'string' }], example: 'ENDS_WITH("report.pdf", ".pdf") → true', returnType: 'boolean' },
   { name: 'PROPER', category: 'text', description: 'Convert to title case', args: [{ name: 'text', type: 'string' }], example: 'PROPER("hello world") → "Hello World"', returnType: 'string' },
   { name: 'URL_ENCODE', category: 'text', description: 'URL-encode a string', args: [{ name: 'text', type: 'string' }], example: 'URL_ENCODE("a b") → "a%20b"', returnType: 'string' },
   { name: 'URL_DECODE', category: 'text', description: 'URL-decode a string', args: [{ name: 'text', type: 'string' }], example: 'URL_DECODE("a%20b") → "a b"', returnType: 'string' },
@@ -570,6 +576,16 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
       case 'UPPER': return String(args[0] ?? '').toUpperCase()
       case 'LOWER': return String(args[0] ?? '').toLowerCase()
       case 'TRIM': return String(args[0] ?? '').trim()
+      case 'SUBSTRING_BEFORE': { const t = String(args[0] ?? ''); const q = String(args[1] ?? ''); const i = t.indexOf(q); return i < 0 ? '' : t.slice(0, i) }
+      case 'SUBSTRING_AFTER': { const t = String(args[0] ?? ''); const q = String(args[1] ?? ''); const i = t.indexOf(q); return i < 0 ? '' : t.slice(i + q.length) }
+      case 'TRANSLATE': {
+        const from = Array.from(String(args[1] ?? ''))
+        const to = Array.from(String(args[2] ?? ''))
+        return Array.from(String(args[0] ?? '')).map((ch) => { const i = from.indexOf(ch); return i < 0 ? ch : (to[i] ?? '') }).join('')
+      }
+      case 'NORMALIZE_SPACE': return String(args[0] ?? '').replace(/\s+/g, ' ').trim()
+      case 'STARTS_WITH': return String(args[0] ?? '').startsWith(String(args[1] ?? ''))
+      case 'ENDS_WITH': return String(args[0] ?? '').endsWith(String(args[1] ?? ''))
       case 'REPLACE': return String(args[0] ?? '').split(String(args[1] ?? '')).join(String(args[2] ?? ''))
       case 'FIND': { const idx = String(args[0] ?? '').indexOf(String(args[1] ?? '')); return idx >= 0 ? idx + 1 : 0 }
       case 'CONTAINS': return String(args[0] ?? '').includes(String(args[1] ?? ''))

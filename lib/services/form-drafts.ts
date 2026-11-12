@@ -28,7 +28,7 @@ import { dbError, serviceRoleClient } from './_shared'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { normalizeFormDefinition } from '@/lib/forms/definition'
 import { draftBytes, FORM_DRAFT_MAX_BYTES } from '@/lib/forms/form-actions'
-import { holdsFiles, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { usesFileUploads, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { attachmentsCountKey } from '@/lib/forms/attachments'
 import { isPlainObject } from '@/lib/utils/guards'
 import { SUBMISSION_META_KEY } from '@/lib/forms/submission-meta'
@@ -92,7 +92,7 @@ function cleanParams(raw: unknown): Record<string, unknown> | null {
  * (saving); otherwise the field is dropped (reading back an old draft).
  */
 async function checkFiles(db: AnySupabaseClient, ctx: ServiceContext, formId: string, fields: TaskFieldDef[], values: Record<string, unknown>, strict: boolean): Promise<Record<string, unknown>> {
-  const fileFields = valueFields(fields).filter((f) => holdsFiles(f) && values[f.key] !== undefined && values[f.key] !== null)
+  const fileFields = valueFields(fields).filter((f) => usesFileUploads(f) && values[f.key] !== undefined && values[f.key] !== null)
   if (!fileFields.length) return values
   const { resolveAttachmentValues } = await import('./form-files')
   const out = { ...values }
@@ -105,7 +105,7 @@ async function checkFiles(db: AnySupabaseClient, ctx: ServiceContext, formId: st
       continue
     }
     out[field.key] = rebuilt[field.key]
-    out[attachmentsCountKey(field.key)] = rebuilt[attachmentsCountKey(field.key)]
+    if (Object.prototype.hasOwnProperty.call(rebuilt, attachmentsCountKey(field.key))) out[attachmentsCountKey(field.key)] = rebuilt[attachmentsCountKey(field.key)]
   }
   return out
 }

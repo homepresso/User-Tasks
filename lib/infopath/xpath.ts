@@ -24,7 +24,7 @@ import type { DataTableCondition, DataTableConditionGroup, DataTableOperator } f
 export type XNode =
   | { t: 'num'; v: number }
   | { t: 'str'; v: string }
-  | { t: 'path'; abs: boolean; steps: string[]; filtered: boolean; raw: string }
+  | { t: 'path'; abs: boolean; steps: string[]; filtered: boolean; raw: string; preds?: Array<{ at: number; expr: XNode }> }
   | { t: 'fn'; name: string; args: XNode[] }
   | { t: 'bin'; op: string; l: XNode; r: XNode }
   | { t: 'neg'; e: XNode }
@@ -202,6 +202,8 @@ export function parseXPath(src: string): XNode {
     let abs = false
     const steps: string[] = []
     let filtered = false
+    const preds: Array<{ at: number; expr: XNode }> = []
+    const predicate = () => { expect('['); preds.push({ at: steps.length - 1, expr: orExpr() }); expect(']'); filtered = true }
     if (isOp('/') || isOp('//')) {
       abs = true
       if (isOp('//')) steps.push('#descendant')
@@ -209,15 +211,15 @@ export function parseXPath(src: string): XNode {
       if (!peek() || (peek()!.k === 'op' && !['.', '..', '@', '*'].includes(peek()!.v))) return { t: 'path', abs, steps, filtered, raw: '/' }
     }
     steps.push(step())
-    while (isOp('[')) { skipPredicate(); filtered = true }
+    while (isOp('[')) predicate()
     while (isOp('/') || isOp('//')) {
       if (isOp('//')) steps.push('#descendant')
       p++
       steps.push(step())
-      while (isOp('[')) { skipPredicate(); filtered = true }
+      while (isOp('[')) predicate()
     }
     const raw = toks.slice(start, p).map((t) => t.v).join('')
-    return { t: 'path', abs, steps, filtered, raw }
+    return { t: 'path', abs, steps, filtered, raw, ...(preds.length ? { preds } : {}) }
   }
 
   const e = orExpr()
@@ -261,6 +263,10 @@ export type Ref =
   | { kind: 'field'; key: string; type?: string }
   | { kind: 'list'; key: string }
   | { kind: 'column'; list: string; column: string; type?: string }
+  /** Inside a repeating section item: a control of this item ({{item.<key>}}). */
+  | { kind: 'item'; key: string; type?: string }
+  /** Inside a repeating section item: a field of the form around it ({{form.<key>}}). */
+  | { kind: 'outer'; key: string; type?: string }
 
 export interface TranslateEnv {
   /** The node `.` refers to (absolute local-name path). */
@@ -269,6 +275,10 @@ export interface TranslateEnv {
   resolve: (path: string) => Ref | null
   /** Inside a List row (conditions / formulas on a repeating table's columns): its key. */
   row?: string | null
+  /** Rule templates: the signed-in person is known ({{user.name}}, {{user.email}}). */
+  allowUser?: boolean
+  /** xdMath:Eval over a repeating node: add a calculated column computing `expression` per row; returns the List and column. */
+  evalColumn?: (listPath: string, expression: string) => { list: string; column: string } | null
 }
 
 export type Translated<T> = { ok: true; value: T; notes: string[] } | { ok: false; reason: string }
@@ -278,7 +288,8 @@ const fail = (reason: string): { ok: false; reason: string } => ({ ok: false, re
 /** Functions with a direct {{= }} equivalent: name (local, lower-case) → catalog name. */
 const FN_MAP: Record<string, string> = {
   concat: 'CONCAT', 'string-length': 'LENGTH', contains: 'CONTAINS', round: 'ROUND', floor: 'ROUND_DOWN', ceiling: 'ROUND_UP',
-  number: 'TO_NUMBER', string: 'TO_STRING', boolean: 'TO_BOOLEAN', not: 'NOT', 'normalize-space': 'TRIM', abs: 'ABS',
+  number: 'TO_NUMBER', string: 'TO_STRING', boolean: 'TO_BOOLEAN', not: 'NOT', 'normalize-space': 'NORMALIZE_SPACE', abs: 'ABS',
+  'substring-before': 'SUBSTRING_BEFORE', 'substring-after': 'SUBSTRING_AFTER', translate: 'TRANSLATE', 'starts-with': 'STARTS_WITH',
   today: 'TODAY', now: 'NOW', adddays: 'ADD_DAYS', nz: 'COALESCE', avg: 'AVG', max: 'MAX', min: 'MIN', sum: 'SUM', count: 'COUNT', substring: 'MID',
 }
 
@@ -293,12 +304,9 @@ const NO_EQUIVALENT: Record<string, string> = {
   'get-sharepointserverrooturl': 'reads the SharePoint server address',
   'get-sharepointsiteurl': 'reads the SharePoint site address',
   'get-sharepointsitecollectionurl': 'reads the SharePoint site address',
-  eval: 'evaluates an expression per repeating row (xdMath:Eval)',
-  'substring-before': 'has no direct UserTasks function',
-  'substring-after': 'has no direct UserTasks function',
-  translate: 'translates characters (only lower → upper case and the reverse convert)',
-  position: 'reads a row position',
-  last: 'reads a row position',
+  eval: 'evaluates an expression per repeating row (xdMath:Eval) outside a sum / average over a repeating table',
+  position: 'reads a row position (the List shows row numbers; a formula cannot read them)',
+  last: 'reads the number of rows outside a count() (use count() of the repeating table)',
   'current': 'reads the current node',
   'function-available': 'is an InfoPath compatibility check',
   'xdextension': 'calls form code',
@@ -337,7 +345,8 @@ export function toExpression(src: string | XNode, env: TranslateEnv): Translated
         const ref = refOf(n, env)
         if (ref === 'filtered') throw new XPathError(`filters rows (${n.raw})`)
         if (ref === 'unresolved' || !ref) throw new XPathError(`reads ${n.raw || 'a node'}, which is not on the form`)
-        if (ref.kind === 'field') return `{{form.${ref.key}}}`
+        if (ref.kind === 'field' || ref.kind === 'outer') return `{{form.${ref.key}}}`
+        if (ref.kind === 'item') return `{{item.${ref.key}}}`
         if (ref.kind === 'list') return `{{form.${ref.key}}}`
         if (env.row && ref.list === env.row) return `{{row.${ref.column}}}`
         return `PLUCK({{form.${ref.list}}}, ${lit(ref.column)})`
@@ -363,13 +372,30 @@ export function toExpression(src: string | XNode, env: TranslateEnv): Translated
           if (from === 'abcdefghijklmnopqrstuvwxyz' && to === 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') return `UPPER(${go(n.args[0])})`
           if (from === 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' && to === 'abcdefghijklmnopqrstuvwxyz') return `LOWER(${go(n.args[0])})`
         }
-        if (name === 'starts-with') return `(FIND(${go(n.args[0])}, ${go(n.args[1])}) == 1)`
+        if (name === 'concat' || (name === 'concat' && n.name.startsWith('xdUtil'))) return `CONCAT(${n.args.map(go).join(', ')})`
+        if (['get-username', 'username', 'get-displayname'].includes(name)) {
+          if (!env.allowUser) throw new XPathError(`${n.name}() reads the signed-in person (available in rules, not in calculated values)`)
+          return name === 'get-displayname' ? '{{user.name}}' : '{{user.email}}'
+        }
         if (name === 'round') return `ROUND(${go(n.args[0])}, 0)`
         if (name === 'floor') return `ROUND_DOWN(${go(n.args[0])}, 0)`
         if (name === 'ceiling') return `ROUND_UP(${go(n.args[0])}, 0)`
         if (name === 'nz') return `COALESCE(${go(n.args[0])}, 0)`
-        if (name === 'normalize-space') notes.push('normalize-space became TRIM (inner runs of spaces are kept)')
         if (name === 'string-length' && !n.args.length) return `LENGTH({{form.${currentKey(env)}}})`
+        if ((name === 'sum' || name === 'count') && n.args.length === 1 && n.args[0].t === 'path' && n.args[0].preds?.length) {
+          const f = filteredAggregate(name, n.args[0], env, go)
+          if (f) return f
+          throw new XPathError(`filters rows with a condition UserTasks cannot express (${n.args[0].raw})`)
+        }
+        if ((name === 'sum' || name === 'avg' || name === 'max' || name === 'min') && n.args.length === 1 && n.args[0].t === 'fn' && fnLocal(n.args[0].name) === 'eval') {
+          const ev = n.args[0]
+          const [nodes, formula] = ev.args
+          const listPath = nodes?.t === 'path' && !nodes.filtered ? resolveSteps(env.context, nodes.abs, nodes.steps) : null
+          if (!listPath || formula?.t !== 'str' || !env.evalColumn) throw new XPathError(NO_EQUIVALENT.eval)
+          const col = env.evalColumn(listPath, formula.v)
+          if (!col) throw new XPathError(`xdMath:Eval's formula (${formula.v}) is not row arithmetic`)
+          return `${FN_MAP[name]}(PLUCK({{form.${col.list}}}, ${lit(col.column)}))`
+        }
         if (name === 'count') {
           const a = n.args[0]
           const ref = a ? refOf(a, env) : null
@@ -401,8 +427,34 @@ export function toExpression(src: string | XNode, env: TranslateEnv): Translated
   }
 }
 
+/** sum(rows[col = "x"]/amount) → SUMIF, count(rows[col = "x"]) → COUNTIF (one equality predicate on the repeating step). */
+function filteredAggregate(name: string, path: Extract<XNode, { t: 'path' }>, env: TranslateEnv, go: (n: XNode) => string): string | null {
+  if (path.preds!.length !== 1) return null
+  const pred = path.preds![0]
+  const itemPath = resolveSteps(env.context, path.abs, path.steps.slice(0, pred.at + 1))
+  const list = itemPath ? env.resolve(itemPath) : null
+  if (!list || list.kind !== 'list') return null
+  const e = pred.expr
+  if (e.t !== 'bin' || e.op !== '=') return null
+  let [l, r] = [e.l, e.r]
+  if (l.t !== 'path') [l, r] = [r, l]
+  if (l.t !== 'path' || (r.t !== 'str' && r.t !== 'num')) return null
+  const colPath = resolveSteps(itemPath!, false, l.steps)
+  const col = colPath ? env.resolve(colPath) : null
+  if (!col || col.kind !== 'column') return null
+  const value = r.t === 'str' ? lit(r.v) : String(r.v)
+  if (name === 'count') return path.steps.length === pred.at + 1 ? `COUNTIF({{form.${list.key}}}, ${lit(col.column)}, ${value})` : null
+  const rest = path.steps.slice(pred.at + 1)
+  const sumPath = resolveSteps(itemPath!, false, rest)
+  const sumCol = sumPath ? env.resolve(sumPath) : null
+  if (!sumCol || sumCol.kind !== 'column') return null
+  void go
+  return `SUMIF({{form.${list.key}}}, ${lit(col.column)}, ${value}, ${lit(sumCol.column)})`
+}
+
 function currentKey(env: TranslateEnv): string {
   const ref = env.resolve(env.context)
+  if (ref && ref.kind === 'item') return `item.${ref.key}`.replace(/^item\./, '') // only used in LENGTH({{form.x}}) below
   if (!ref || ref.kind !== 'field') throw new XPathError('reads the current field, which is not on the form')
   return ref.key
 }
@@ -438,6 +490,8 @@ function subjectOf(node: XNode, env: TranslateEnv): string | null {
     return null
   }
   if (ref.kind === 'field') return ref.key
+  if (ref.kind === 'item') return `item.${ref.key}`
+  if (ref.kind === 'outer') return `form.${ref.key}`
   if (ref.kind === 'column' && env.row === ref.list) return `row.${ref.column}`
   if (ref.kind === 'column') throw new XPathError(`compares a repeating-table column (${pathText(node)}) outside its row`)
   return null
@@ -457,7 +511,7 @@ function valueOf(node: XNode, env: TranslateEnv): string | null {
     if (name === 'now' && !node.args.length) return '{{now}}'
   }
   const subject = subjectOf(node, env)
-  if (subject) return subject.startsWith('row.') ? `{{${subject}}}` : `{{form.${subject}}}`
+  if (subject) return subject.includes('.') ? `{{${subject}}}` : `{{form.${subject}}}`
   return null
 }
 
@@ -498,6 +552,13 @@ export function toCondition(src: string | XNode, env: TranslateEnv): Translated<
     if (n.t === 'bin' && (DIRECT[n.op])) {
       let l = n.l
       let r = n.r
+      // get-Role() = "Manager" → the person has that workspace role (user.roles; roles keep their InfoPath names).
+      const roleSide = [l, r].find((x) => x.t === 'fn' && fnLocal(x.name) === 'get-role')
+      if (roleSide && (n.op === '=' || n.op === '!=')) {
+        const other = roleSide === l ? r : l
+        if (other.t !== 'str') throw new XPathError('compares the InfoPath role with something other than a role name')
+        return { column: 'user.roles', operator: n.op === '=' ? 'contains' : 'neq', value: other.v }
+      }
       // msxsl:string-compare(a, b) <op> 0  →  a <op> b (dates and text compare in order).
       if (l.t === 'fn' && fnLocal(l.name) === 'string-compare' && l.args.length >= 2 && r.t === 'num' && r.v === 0) {
         const [a, b] = l.args

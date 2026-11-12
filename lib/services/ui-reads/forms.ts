@@ -34,13 +34,13 @@ export const reads = {
     run: async (ctx) => forms.listAvailableForms(ctx),
   }),
 
-  /** The signed-in person as form rules read them ({{user.id}}, {{user.email}}, {{user.name}}). */
+  /** The signed-in person as form rules read them ({{user.id}}, {{user.email}}, {{user.name}}, user.roles, user.teams — lib/services/form-rule-user.ts). */
   'forms.ruleUser': defineRead({
     args: NO_ARGS,
     run: async (ctx) => {
       if (!ctx.actorId) return null
-      const { data } = await (getDb(ctx) as any).from('users').select('id, email, display_name').eq('id', ctx.actorId).maybeSingle() // eslint-disable-line @typescript-eslint/no-explicit-any -- users is read untyped
-      return { id: ctx.actorId, email: (data?.email ?? null) as string | null, name: (data?.display_name ?? null) as string | null }
+      const { loadRuleUser } = await import('../form-rule-user')
+      return loadRuleUser(getDb(ctx), ctx.tenantId, ctx.actorId)
     },
   }),
 

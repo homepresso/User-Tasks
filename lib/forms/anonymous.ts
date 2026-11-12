@@ -136,7 +136,7 @@ export function anonymousReadiness(def: { fields: TaskFieldDef[]; layout?: unkno
     if (field.type === 'data_table' && field.data_table) out.sources.push({ key: field.key, label: label(field), kind: 'data_table', allowed: field.data_table.anonymous_read === true })
     // Dynamic properties from a data table / API reference (lib/forms/dynamic-values.ts): each binding's own switch.
     for (const s of anonymousDynamicSources([field])) out.sources.push({ key: field.key, label: label(field), kind: 'dynamic', allowed: s.allowed, prop: s.prop })
-    if (field.type === 'attachments') out.attachments.push({ key: field.key, label: label(field) })
+    if (field.type === 'attachments' || field.type === 'image' || field.type === 'signature') out.attachments.push({ key: field.key, label: label(field) })
     if (field.type === 'user') out.people.push({ key: field.key, label: label(field) })
     if (field.type === 'custom') {
       const caps = field.custom?.capabilities ?? []

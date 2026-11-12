@@ -32,9 +32,11 @@
 import { isPlainObject } from '@/lib/utils/guards'
 import { lookupItemKey, lookupLabelKey } from './lookup'
 import { attachmentsCountKey } from './attachments'
+import { richTextPlainText, richTextTextKey } from './rich-text'
 import { coerceListRows, listDerivedValues } from './list-field'
 import { includedContextSchema } from './form-params'
-import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { coerceTaskFieldValues, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { repeatingDerivedValues } from './repeating-section'
 import { customOutputSiblingKeys } from './custom-controls/output'
 import { buildSubmissionMeta, submissionSurface, type SubmissionSurface } from './submission-meta'
 
@@ -96,6 +98,14 @@ export function buildFormSubmittedPayload(input: FormSubmittedPayloadInput): Rec
       form[field.key] = rows
       Object.assign(form, listDerivedValues(field.key, field.list, rows))
     }
+    if (field.type === 'repeating_section') {
+      // Repeating sections (lib/forms/repeating-section.ts): the typed items a Loop iterates, the count and the totals.
+      const items = coerceTaskFieldValues([field], { [field.key]: input.values[field.key] ?? [] })[field.key]
+      form[field.key] = items
+      Object.assign(form, repeatingDerivedValues(field.key, field.repeating_section, items))
+    }
+    // Rich text (lib/forms/rich-text.ts): the sanitised HTML and `<key>_text`, its plain text.
+    if (field.type === 'rich_text') form[richTextTextKey(field.key)] = richTextPlainText(input.values[field.key])
     // Custom control outputs (lib/forms/custom-controls/output.ts): `<key>_raw` and the extras.
     for (const key of customOutputSiblingKeys(field)) form[key] = input.values[key] ?? null
   }

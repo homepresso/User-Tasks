@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xsd:schema targetNamespace="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-03-04T08:00:00" xmlns:my="http://schemas.microsoft.com/office/infopath/2003/myXSD/2026-03-04T08:00:00" xmlns:pc="http://schemas.microsoft.com/office/infopath/2007/PartnerControls" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:element name="siteInspection">
+		<xsd:complexType><xsd:sequence>
+			<xsd:element ref="my:inspector" minOccurs="0"/><xsd:element ref="my:siteName" minOccurs="0"/><xsd:element ref="my:inspectionDate" minOccurs="0"/>
+			<xsd:element ref="my:status" minOccurs="0"/><xsd:element ref="my:notes" minOccurs="0"/><xsd:element ref="my:regions" minOccurs="0"/>
+			<xsd:element ref="my:owner" minOccurs="0"/><xsd:element ref="my:actions" minOccurs="0"/><xsd:element ref="my:referenceUrl" minOccurs="0"/>
+			<xsd:element ref="my:sitePhoto" minOccurs="0"/><xsd:element ref="my:items" minOccurs="0"/><xsd:element ref="my:hazards" minOccurs="0"/>
+			<xsd:element ref="my:contact" minOccurs="0"/><xsd:element ref="my:reviewedBy" minOccurs="0"/><xsd:element ref="my:signature" minOccurs="0"/><xsd:element ref="my:sketch" minOccurs="0"/>
+		</xsd:sequence></xsd:complexType>
+	</xsd:element>
+	<xsd:element name="inspector" type="xsd:string"/><xsd:element name="siteName" type="xsd:string"/>
+	<xsd:element name="inspectionDate" nillable="true" type="xsd:date"/><xsd:element name="status" type="xsd:string"/>
+	<xsd:element name="notes"><xsd:complexType mixed="true"><xsd:sequence><xsd:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/1999/xhtml" processContents="lax"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="regions"><xsd:complexType><xsd:sequence><xsd:element ref="my:region" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="region" type="xsd:string"/>
+	<xsd:element name="owner"><xsd:complexType><xsd:sequence><xsd:element ref="pc:Person" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="actions"><xsd:complexType><xsd:sequence><xsd:element ref="my:action" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="action" type="xsd:string"/><xsd:element name="referenceUrl" type="xsd:anyURI"/>
+	<xsd:element name="sitePhoto" nillable="true" type="xsd:base64Binary"/>
+	<xsd:element name="items"><xsd:complexType><xsd:sequence><xsd:element ref="my:item" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="item"><xsd:complexType><xsd:sequence><xsd:element ref="my:area" minOccurs="0"/><xsd:element ref="my:result" minOccurs="0"/><xsd:element ref="my:score" minOccurs="0"/><xsd:element ref="my:findings" minOccurs="0"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="area" type="xsd:string"/><xsd:element name="result" type="xsd:string"/><xsd:element name="score" nillable="true" type="xsd:integer"/>
+	<xsd:element name="findings"><xsd:complexType><xsd:sequence><xsd:element ref="my:finding" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="finding"><xsd:complexType><xsd:sequence><xsd:element ref="my:description" minOccurs="0"/><xsd:element ref="my:severity" minOccurs="0"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="description" type="xsd:string"/><xsd:element name="severity" type="xsd:string"/>
+	<xsd:element name="hazards"><xsd:complexType><xsd:sequence><xsd:element ref="my:hazard" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="hazard"><xsd:complexType><xsd:sequence><xsd:element ref="my:hazardTitle" minOccurs="0"/><xsd:element ref="my:level" minOccurs="0"/><xsd:element ref="my:hazardPhoto" minOccurs="0"/><xsd:element ref="my:controls" minOccurs="0"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="hazardTitle" type="xsd:string"/><xsd:element name="level" type="xsd:string"/><xsd:element name="hazardPhoto" nillable="true" type="xsd:base64Binary"/>
+	<xsd:element name="controls"><xsd:complexType><xsd:sequence><xsd:element ref="my:control" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="control"><xsd:complexType><xsd:sequence><xsd:element ref="my:measure" minOccurs="0"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="measure" type="xsd:string"/>
+	<xsd:element name="contact"><xsd:complexType><xsd:choice><xsd:element ref="my:byPhone"/><xsd:element ref="my:byEmail"/></xsd:choice></xsd:complexType></xsd:element>
+	<xsd:element name="byPhone"><xsd:complexType><xsd:sequence><xsd:element ref="my:phone" minOccurs="0"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="byEmail"><xsd:complexType><xsd:sequence><xsd:element ref="my:email" minOccurs="0"/></xsd:sequence></xsd:complexType></xsd:element>
+	<xsd:element name="phone" type="xsd:string"/><xsd:element name="email" type="xsd:string"/>
+	<xsd:element name="reviewedBy" type="xsd:string"/>
+	<xsd:element name="signature" nillable="true" type="xsd:base64Binary"/><xsd:element name="sketch" nillable="true" type="xsd:base64Binary"/>
+</xsd:schema>

@@ -4,6 +4,8 @@ import { ChevronDown, Minus, Plus } from 'lucide-react'
 import type { FormSection } from '@/lib/forms/layout'
 import { cn } from '@/lib/utils'
 import { useCellMotion, useFormMotion } from './form-motion'
+import { styleAttributes, type ConditionalStyle } from '@/lib/forms/conditional-style'
+import { ToneIcon } from './conditional-style'
 
 /**
  * One section of a form (lib/forms/sections.ts): a fieldset whose legend is
@@ -16,7 +18,9 @@ import { useCellMotion, useFormMotion } from './form-motion'
  *    header. Read-only views show "Not included" for a section left out.
  *  - Bordered (default) or plain.
  */
-export function FormSectionBlock({ section, idPrefix, included, collapsed, readOnly, hasError, onToggle, onInclude, children }: {
+export function FormSectionBlock({ section, idPrefix, included, collapsed, readOnly, hasError, onToggle, onInclude, condStyle, children }: {
+  /** Conditional styling (an Always rule's set_style on section:<key>). */
+  condStyle?: ConditionalStyle | null
   section: FormSection
   idPrefix: string
   /** Optional sections: added by the person. Others: always true. */
@@ -38,13 +42,15 @@ export function FormSectionBlock({ section, idPrefix, included, collapsed, readO
   const reveal = useCellMotion(motion.on && !readOnly)
   return (
     <fieldset
-      className={cn('min-w-0', bordered ? 'rounded-lg border px-3 pb-3 pt-1' : 'pt-1', bordered ? 'border-border' : '')}
+      className={cn('min-w-0', bordered || condStyle?.background || condStyle?.border ? 'rounded-lg px-3 pb-3 pt-1' : 'pt-1', bordered ? 'border border-border' : '')}
+      {...styleAttributes(condStyle)}
       data-form-section={section.key}
       data-section-included={included ? 'true' : 'false'}
       data-section-collapsed={open ? 'false' : 'true'}
       data-fm={reveal === 'reveal' ? 'fade' : undefined}
     >
       <legend className={cn('flex w-full items-center gap-2', bordered && 'px-1', 'text-fg')}>
+        {condStyle?.icon && <ToneIcon tone={condStyle.tone ?? 'neutral'} />}
         {section.collapsible && included ? (
           <button
             type="button"

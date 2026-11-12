@@ -7,7 +7,7 @@ import { VariableInput } from '@/components/automations/variable-input'
 import type { DesignerField, DesignerState } from '@/lib/forms/designer-state'
 import {
   LABEL_EMPHASES, LABEL_EMPHASIS_LABELS, LABEL_FORMAT_KINDS, LABEL_SIZES, LABEL_SIZE_LABELS, computeLabelValues, expressionKnown, expressionProblems,
-  formatLabelValue, labelLoopWarnings, readsTableRows, type LabelFieldConfig,
+  formatLabelValue, inferLabelFormat, labelLoopWarnings, readsTableRows, type LabelFieldConfig,
 } from '@/lib/forms/label-field'
 import { CELL_FORMAT_LABELS, normalizeCellFormat, type CellFormatKind } from '@/lib/formatting/cell-format'
 import { withFormContext } from '@/lib/forms/form-params'
@@ -64,8 +64,10 @@ export function LabelProperties({ state, field, onPatch }: {
   const problems = useMemo(() => expressionProblems(config.expression, expressionKnown(state.fields, state.layout, field.key)), [config.expression, state.fields, state.layout, field.key])
   const loops = useMemo(() => labelLoopWarnings(state.fields, state.layout).filter((w) => w.includes(`"${field.label || field.key}"`) || w.includes(field.label || field.key)), [state.fields, state.layout, field.key, field.label])
   const rowsRead = readsTableRows(field)
+  const inferred = useMemo(() => (config.format ? null : inferLabelFormat(field, state.fields as never)), [config.format, field, state.fields])
   const kind = config.format?.kind ?? 'text'
-  const shown = formatLabelValue(config, live?.value ?? null)
+  const shown = formatLabelValue(config, live?.value ?? null, { inferred })
+  const autoLabel = inferred ? `Auto: ${CELL_FORMAT_LABELS[inferred.kind]}${inferred.currency ? ` (${inferred.currency})` : ''}` : 'Auto: as calculated'
   const firstTable = tables[0]
   const numberCol = firstTable?.data_table?.columns.find((c) => c.type === 'number')
   const numberCols = (firstTable?.data_table?.columns ?? []).filter((c) => c.type === 'number')
@@ -125,8 +127,9 @@ export function LabelProperties({ state, field, onPatch }: {
         <div className="grid grid-cols-2 gap-1">
           <div>
             <Label>Format</Label>
-            <AutocompleteSelect value={kind} options={LABEL_FORMAT_KINDS.map((k) => ({ value: k, label: CELL_FORMAT_LABELS[k] }))}
-              onChange={(v) => set({ format: v && v !== 'text' ? normalizeCellFormat({ kind: v as CellFormatKind }) : undefined })} />
+            <AutocompleteSelect value={config.format ? kind : ''} placeholder={autoLabel} clearable={Boolean(config.format)}
+              options={[{ value: '', label: autoLabel, hint: 'Currency when it adds up currency fields, else as calculated' }, ...LABEL_FORMAT_KINDS.map((k) => ({ value: k, label: CELL_FORMAT_LABELS[k] }))]}
+              onChange={(v) => set({ format: v ? normalizeCellFormat({ kind: v as CellFormatKind, ...(v === 'currency' && inferred?.currency ? { currency: inferred.currency } : {}), ...(v === 'number' ? { decimals: 2 } : {}) }) : undefined })} />
           </div>
           <div>
             <Label>Align</Label>
@@ -154,7 +157,7 @@ export function LabelProperties({ state, field, onPatch }: {
             <input id={id('empty')} className={inputClass} maxLength={80} placeholder="—" value={config.empty_text ?? ''} onChange={(e) => set({ empty_text: e.target.value || undefined }, `label-empty-${field._id}`)} />
           </div>
         </div>
-        {kind !== 'text' && (
+        {config.format && kind !== 'text' && (
           <FormatEditor col={column} hideKind onChange={(format, tag) => set({ format: format && format.kind !== 'text' ? format : undefined }, tag ? `label-${tag}-${field._id}` : undefined)} />
         )}
         <label className="flex items-center gap-1.5 text-2xs">

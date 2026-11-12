@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import {
   DISMISSED_RESPONSE, MESSAGE_DURATION_LABELS, MESSAGE_LIMITS, MESSAGE_TONE_LABELS, MESSAGE_TONES, MIN_READABLE_SECONDS,
   PROMPT_PRESETS, PROMPT_PRESET_LABELS, clampSeconds, defaultEscape, presetButtons,
-  type MessageDuration, type MessageTone, type PromptButton, type PromptConfig, type PromptPreset,
+  type MessageDuration, type MessageStyle, type MessageTone, type PromptButton, type PromptConfig, type PromptPreset,
 } from '@/lib/forms/form-messages'
 
 /**
@@ -76,8 +76,8 @@ export function MessageActionEditor({ action, onChange, placeholders }: {
   const seconds = action.seconds ?? MESSAGE_LIMITS.seconds.default
   return (
     <div className="space-y-1.5" data-testid="message-editor">
-      <Seg label="Where it shows" value={action.style ?? 'inline'} options={[['banner', 'Banner at the top'], ['inline', legacy ? 'Inline (original)' : 'Inline']]}
-        onChange={(style) => onChange({ ...action, style })} />
+      <Seg label="Where it shows" value={typeof action.style === 'string' ? action.style : 'inline'} options={[['banner', 'Banner at the top'], ['inline', legacy ? 'Inline (original)' : 'Inline']]}
+        onChange={(style) => onChange({ ...action, style: style as MessageStyle })} />
       <TextAndTone action={action} onChange={onChange} placeholders={placeholders} textPlaceholder="Saved — {{name}}" />
       {!legacy && (
         <>

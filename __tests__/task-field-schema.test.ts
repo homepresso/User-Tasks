@@ -46,7 +46,7 @@ describe('normalizeTaskFields', () => {
   })
 
   it('falls back to text for unknown types', () => {
-    expect(normalizeTaskFields([{ key: 'x', type: 'rich_text' }])[0].type).toBe('text')
+    expect(normalizeTaskFields([{ key: 'x', type: 'hologram' }])[0].type).toBe('text')
   })
 
   it('trims and dedupes choice options; keeps required/placeholder/default', () => {

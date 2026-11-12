@@ -14,7 +14,7 @@ const ctx = (perms: string[]): ServiceContext => ({ supabase: db() as never, ten
 describe('Agent: InfoPath attachments', () => {
   it('turns an .xsn into its analysis for the model and keeps the file for the import tool', async () => {
     const a = await convertAttachment(fixtureXsn('expense-report'), 'Expense Report.xsn', { vision: false })
-    expect(a).toMatchObject({ kind: 'text', mime_type: 'application/vnd.ms-infopath', note: expect.stringMatching(/InfoPath form: 1 view, \d+ fields, 3 of 5 rules convert/) })
+    expect(a).toMatchObject({ kind: 'text', mime_type: 'application/vnd.ms-infopath', note: expect.stringMatching(/InfoPath form: 1 view, \d+ fields, 4 of 5 rules convert/) })
     expect(a.text).toContain('# InfoPath import: Expense Report')
     expect(a.infopath?.file_base64.length).toBeGreaterThan(100)
     // Sanitizing keeps it; the stored history drops the bytes.

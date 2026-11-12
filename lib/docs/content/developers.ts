@@ -166,6 +166,8 @@ usertasks login --url https://tasks.example.com --api-key -  < key.txt   # or st
 usertasks whoami
 \`\`\`
 
+**New to UserTasks?** On usertasks.com you don't need an account first: the login page has a **Create a free workspace** link, and after sign-up the browser goes straight back to the CLI login. Self-hosted servers stay invite-only.
+
 Browser logins refresh automatically and request every scope except \`keys:write\`; add it with \`--scopes …,keys:write\` if the CLI must create API keys (those keys must expire within 90 days). \`usertasks logout\` revokes the tokens.
 
 **CI:** set \`USERTASKS_URL\` and \`USERTASKS_API_KEY\` — no login or profile needed. \`USERTASKS_API_KEY\` always overrides a stored credential.

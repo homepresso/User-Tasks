@@ -235,7 +235,7 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
       const { data: task } = await supabase.from('tasks').select('metadata').eq('id', args.task_id).eq('tenant_id', tenantId).maybeSingle()
       if (!task) return mcpErr('Task not found')
       const metadata = (task.metadata ?? {}) as Record<string, unknown>
-      const { errors, templateValues } = await mergeTaskFieldValuesChecked(supabase, tenantId, metadata, args.values, { taskId: args.task_id })
+      const { errors, templateValues } = await mergeTaskFieldValuesChecked(supabase, tenantId, metadata, args.values, { taskId: args.task_id, actorId: actingUserId ?? null })
       if (Object.keys(errors).length > 0) return mcpErr(`Invalid field values: ${Object.values(errors).join('; ')}`)
       updates.metadata = { ...metadata, template_values: templateValues } as Json
     }

@@ -111,17 +111,25 @@ function fixedContainingBlock(from: HTMLElement | null): HTMLElement | null {
   return null
 }
 
-/** Custom properties scoped on the anchor's ancestors (nearest wins) plus its color-scheme and font. */
+/**
+ * Custom properties scoped on the anchor's ancestors (nearest wins) plus its
+ * color-scheme and font. Values are taken as resolved at the anchor: an inline
+ * `--theme-card-bg: var(--mkt-white)` refers to a variable the portalled panel
+ * can't see, so copying the raw text would leave the panel transparent.
+ */
 export function inheritedThemeStyle(anchor: HTMLElement): React.CSSProperties {
   const out: Record<string, string> = {}
+  const cs = getComputedStyle(anchor)
   for (let el: HTMLElement | null = anchor; el && el !== document.body; el = el.parentElement) {
     const style = el.style
     for (let i = 0; i < style.length; i++) {
       const name = style[i]
-      if (name.startsWith('--') && !(name in out)) out[name] = style.getPropertyValue(name)
+      if (!name.startsWith('--') || name in out) continue
+      const raw = style.getPropertyValue(name)
+      const resolved = raw.includes('var(') ? cs.getPropertyValue(name).trim() : ''
+      out[name] = resolved || raw
     }
   }
-  const cs = getComputedStyle(anchor)
   if (cs.colorScheme && cs.colorScheme !== 'normal') out.colorScheme = cs.colorScheme
   if (cs.fontFamily) out.fontFamily = cs.fontFamily
   return out as React.CSSProperties

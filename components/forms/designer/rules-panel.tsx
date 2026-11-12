@@ -18,11 +18,11 @@ import { isPaged } from '@/lib/forms/layout'
 import { FORM_ACTION_LABELS, allowedActions, type FormAction, type FormActionType, type FormButton } from '@/lib/forms/buttons'
 import { loadableTargets } from '@/lib/forms/lazy-load'
 import { CallReferenceExtras, TableActionEditor } from './data-action-editor'
-import { ConfirmTextEditor, EditRowEditor, RowActionEditor, RowTargetEditor } from './list-action-editor'
+import { ConfirmTextEditor, EditRowEditor, NestedTargetEditor, OpenRowFormEditor, RowActionEditor, RowTargetEditor, actionListConfig } from './list-action-editor'
 import { ROW_ACTION_TYPES, RULE_ONLY_ACTION_TYPES, listClearFields, type RowActionType, listSourceField, type FieldButtonAction, type FieldButtonActionType, type RuleOnlyActionType } from '@/lib/forms/field-buttons'
 import { FORM_TARGET_LABELS, FORM_WHOLE_TARGET } from '@/lib/forms/form-state'
 import {
-  AFTER_SUBMIT_ACTIONS, ALWAYS_ACTIONS, EVENT_CONTEXT, EVENT_TARGET, FORM_RULE_EVENTS, FORM_RULE_EVENT_LABELS, RULE_ACTION_GROUPS, RULE_ACTION_LABELS,
+  AFTER_SUBMIT_ACTIONS, ALWAYS_ACTIONS, ALWAYS_ONLY_ACTIONS, EVENT_CONTEXT, EVENT_TARGET, FORM_RULE_EVENTS, FORM_RULE_EVENT_LABELS, RULE_ACTION_GROUPS, RULE_ACTION_LABELS,
   collectFormRules, conditionPaths, describeConditions, describeRuleAction, duplicateRule, moveNativeRule, newRuleId, removeUnifiedRule, ruleConflicts, ruleValue,
   promptIds, simulateRuleEvent, writeUnifiedRule,
   type FormRule, type FormRuleEventType, type RuleHome, type RulesDefinition, type UnifiedRule,
@@ -38,6 +38,7 @@ import { labelLoopWarnings } from '@/lib/forms/label-field'
 import { BarActionEditor } from './form-settings'
 import { useDesignerPreviewValues } from './designer-preview-context'
 import { SetVariableEditor } from './set-variable-editor'
+import { SetStyleEditor } from './style-editor'
 import { DesignerTestSampleProvider, DesignerVariableScope } from './designer-variable-scope'
 import { AFTER_SUBMIT_VARIABLES, type FormVariableContext } from '@/lib/forms/variable-catalog'
 import { CONTROLS_KEY, contextVariableOptions, layoutFormParams, withFormContext } from '@/lib/forms/form-params'
@@ -45,6 +46,7 @@ import { prefillRuleTemplate } from '@/lib/forms/reference-results'
 import { RULE_VARIABLE_TYPE_LABELS, controlState, controlVariables, enrichEventContext, eventVariables, ruleVariableOptions, withControlState } from '@/lib/forms/rule-variables'
 import { cn } from '@/lib/utils'
 import { designerInputClass as inputClass } from './designer-controls'
+import { asListField } from '@/lib/forms/repeating-section'
 
 /**
  * The form designer's Rules tab: every rule of the form in one list —
@@ -101,11 +103,16 @@ function scopeOptions(state: DesignerState, rule: FormRule) {
       { value: `section.${s.key}.visible`, label: `Section ${s.title || s.key} is visible`, hint: 'section' },
       { value: `section.${s.key}.loaded`, label: `Section ${s.title || s.key} has loaded`, hint: 'section' },
     ]),
+    // Choice groups: the chosen alternative's section key (lib/forms/sections.ts).
+    ...(state.layout.choice_groups ?? []).map((g) => ({ value: g.key, label: `${g.label} (choice group: ${g.sections.join(' / ')})`, hint: 'field' })),
     // When to load (lib/forms/lazy-load.ts): a step / tab has loaded.
     ...(isPaged(state.layout) ? state.layout.pages.map((p) => ({ value: `step.${p.id}.loaded`, label: `Step / tab ${p.title} has loaded`, hint: 'section' })) : []),
     { value: 'user.email', label: 'Current user: email', hint: 'user' },
     { value: 'user.name', label: 'Current user: name', hint: 'user' },
     { value: 'user.id', label: 'Current user: id', hint: 'user' },
+    // Roles and teams (lib/services/form-rule-user.ts): lists of names and ids — test with "contains" (has) / "does not equal" (has not).
+    { value: 'user.roles', label: 'Current user: roles (contains a role name or id)', hint: 'user' },
+    { value: 'user.teams', label: 'Current user: teams (contains a team name or id)', hint: 'user' },
   ]
   const eventPaths = [...EVENT_CONTEXT[rule.event].filter((p) => p !== 'event.row' && p !== 'event.item.fields')]
   const table = EVENT_TARGET[rule.event] === 'table' && rule.target ? state.fields.find((f) => f.key === rule.target) : null
@@ -129,11 +136,11 @@ function targetChoices(state: DesignerState, event: FormRuleEventType): Array<{ 
   const kind = EVENT_TARGET[event]
   const of = (pred: (t: TaskFieldType) => boolean) => state.fields.filter((f) => pred(f.type)).map((f) => ({ value: f.key, label: f.label || f.key }))
   switch (kind) {
-    case 'field': return of((t) => !DISPLAY_FIELD_TYPES.has(t))
+    case 'field': return [...of((t) => !DISPLAY_FIELD_TYPES.has(t)), ...(state.layout.choice_groups ?? []).map((g) => ({ value: g.key, label: `${g.label} (choice group)` }))]
     case 'button': return of((t) => t === 'button')
     case 'table': return of((t) => t === 'data_table')
     case 'list': return of((t) => t === 'list')
-    case 'rows': return state.fields.filter((f) => f.type === 'list' || (f.type === 'data_table' && f.data_table?.mode === 'edit')).map((f) => ({ value: f.key, label: f.label || f.key }))
+    case 'rows': return state.fields.filter((f) => f.type === 'list' || f.type === 'repeating_section' || (f.type === 'data_table' && f.data_table?.mode === 'edit')).map((f) => ({ value: f.key, label: f.label || f.key }))
     case 'lookup': return of((t) => t === 'lookup')
     case 'label': return of((t) => t === 'label')
     case 'page': return isPaged(state.layout) ? state.layout.pages.map((p) => ({ value: p.id, label: p.title })) : []
@@ -148,6 +155,7 @@ function targetChoices(state: DesignerState, event: FormRuleEventType): Array<{ 
 
 function actionAllowed(event: FormRuleEventType, type: FieldButtonActionType, paged: boolean): boolean {
   if (event === 'always') return ALWAYS_ACTIONS.has(type)
+  if (ALWAYS_ONLY_ACTIONS.has(type)) return false
   if (event === 'after_submit') return AFTER_SUBMIT_ACTIONS.has(type)
   if (!paged && (type === 'go_to_page' || type === 'next_page' || type === 'previous_page')) return false
   return true
@@ -248,6 +256,7 @@ function RuleOnlyActionEditor({ action, index, count, state, rule, onChange, onM
           </>
         )
       })()}
+      {action.type === 'set_style' && <SetStyleEditor action={action} state={state} onChange={onChange} idBase={`rule-${rule.id}-style-${index}`} />}
       {action.type === 'collapse_expand' && (() => {
         const sections = state.layout.sections ?? []
         const chosen = action.targets ?? []
@@ -346,19 +355,21 @@ function RuleOnlyActionEditor({ action, index, count, state, rule, onChange, onM
         </>
       )}
       {ROW_ACTION_TYPES.includes(action.type as RowActionType) && <RowActionEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />}
+      {action.type === 'open_row_form' && <OpenRowFormEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />}
       {(action.type === 'commit_row' || action.type === 'delete_row') && action.commit_mode === 'save_now' && (
         <AnonymousStepToggle checked={action.allow_anonymous === true} onChange={(v) => onChange({ ...action, allow_anonymous: v || undefined })} />
       )}
       {(action.type === 'edit_list_row' || action.type === 'cancel_list_edit') && <EditRowEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />}
       {action.type === 'update_list_row' && (() => {
-        const lists = state.fields.filter((f) => f.type === 'list')
-        const list = lists.find((f) => f.key === action.list_field)
+        const lists = state.fields.map(asListField).filter((f) => f.type === 'list')
+        const config = actionListConfig(state, action)
         const values = action.values ?? {}
         return (
           <>
-            <AutocompleteSelect value={action.list_field ?? ''} placeholder="Which List…" options={lists.map((f) => ({ value: f.key, label: f.label || f.key }))} onChange={(v) => onChange({ ...action, list_field: v || undefined })} />
+            <AutocompleteSelect value={action.list_field ?? ''} placeholder="Which List…" options={lists.map((f) => ({ value: f.key, label: f.label || f.key }))} onChange={(v) => onChange({ ...action, list_field: v || undefined, child: undefined, parent_row: undefined })} />
+            <NestedTargetEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />
             <RowTargetEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} fallback="last" />
-            {(list?.list?.columns ?? []).filter((c) => c.type !== 'calculated').map((c) => (
+            {(config?.columns ?? []).filter((c) => c.type !== 'calculated' && c.type !== 'list').map((c) => (
               <div key={c.key} className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-1 text-2xs">
                 <span className="truncate">{c.label}</span>
                 <VariableInput value={values[c.key] ?? ''} extraVariables={formPlaceholders} placeholder="{{result.row_id}}, {{form.x}} — empty: unchanged" ariaLabel={`New ${c.label}`}
@@ -370,10 +381,11 @@ function RuleOnlyActionEditor({ action, index, count, state, rule, onChange, onM
       })()}
       {(action.type === 'add_list_row' || action.type === 'remove_list_row' || action.type === 'clear_list') && (() => {
         // List fields (lib/forms/list-field.ts): the list, then (Add row) each column's value from the form's inputs.
-        const lists = state.fields.filter((f) => f.type === 'list')
-        const list = lists.find((f) => f.key === action.list_field)
-        const columns = (list?.list?.columns ?? []).filter((c) => c.type !== 'calculated')
-        const inputs = valueFields.filter((f) => f.type !== 'list')
+        const lists = state.fields.map(asListField).filter((f) => f.type === 'list')
+        const config = actionListConfig(state, action)
+        const list = config ? lists.find((f) => f.key === action.list_field) : undefined
+        const columns = (config?.columns ?? []).filter((c) => c.type !== 'calculated' && c.type !== 'list')
+        const inputs = valueFields.filter((f) => f.type !== 'list' && f.type !== 'repeating_section')
         const inputOptions = inputs.map((f) => ({ value: f.key, label: f.label || f.key }))
         const values = action.values ?? {}
         const clear = listClearFields(action)
@@ -382,16 +394,17 @@ function RuleOnlyActionEditor({ action, index, count, state, rule, onChange, onM
           <>
             <AutocompleteSelect value={action.list_field ?? ''} placeholder={lists.length ? 'Which List…' : 'Add a List field to the form first'} options={lists.map((f) => ({ value: f.key, label: f.label || f.key }))}
               onChange={(v) => {
-                if (action.type !== 'add_list_row') { onChange({ ...action, list_field: v || undefined }); return }
+                if (action.type !== 'add_list_row') { onChange({ ...action, list_field: v || undefined, child: undefined, parent_row: undefined }); return }
                 // Guess each column's input: a field named like the column (<list>_<column>, <column>, …).
                 const target = lists.find((f) => f.key === v)
                 const guessed: Record<string, string> = {}
-                for (const c of (target?.list?.columns ?? []).filter((c) => c.type !== 'calculated')) {
+                for (const c of (target?.list?.columns ?? []).filter((c) => c.type !== 'calculated' && c.type !== 'list')) {
                   const match = inputs.find((f) => f.key === `${v}_${c.key}` || f.key === c.key || f.key.endsWith(`_${c.key}`))
                   if (match) guessed[c.key] = `{{${match.key}}}`
                 }
-                onChange({ ...action, list_field: v || undefined, values: Object.keys(values).length ? values : guessed })
+                onChange({ ...action, list_field: v || undefined, child: undefined, parent_row: undefined, values: Object.keys(values).length ? values : guessed })
               }} />
+            <NestedTargetEditor action={action} state={state} placeholders={formPlaceholders} onChange={onChange} />
             {action.type === 'add_list_row' && list && (
               <div className="space-y-1" data-list-row-values>
                 {columns.map((c) => (
@@ -637,7 +650,7 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
         </select>
         <p className="text-2xs text-fg-muted">
           {rule.event === 'always'
-            ? '“Always” rules are declarative: their show / hide and enable / disable follow the condition; errors block submitting (checked on the server too).'
+            ? '“Always” rules are declarative: their show / hide, enable / disable and styles follow the condition; errors block submitting (checked on the server too).'
             : 'Actions run in order. Browser-only actions change what the person sees; API calls, workflows and table writes run on the server, from the saved form.'}
         </p>
       </fieldset>

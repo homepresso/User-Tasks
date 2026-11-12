@@ -108,6 +108,7 @@ export function InfoPathImportDialog({ open, onOpenChange, initialFile, onImport
   const [dragging, setDragging] = useState(false)
   const [views, setViews] = useState<string[]>([])
   const [mode, setMode] = useState<'per_view' | 'combined'>('per_view')
+  const [pages, setPages] = useState<'steps' | 'tabs'>('steps')
   const [name, setName] = useState('')
   const [tag, setTag] = useState('')
   const [existing, setExisting] = useState<'new' | 'update'>('new')
@@ -120,7 +121,7 @@ export function InfoPathImportDialog({ open, onOpenChange, initialFile, onImport
 
   const reset = () => {
     setStep('pick'); setFile(null); setError(null); setAnalysis(null); setResult(null)
-    setViews([]); setMode('per_view'); setName(''); setTag(''); setExisting('new'); setCreateTable(false); setAvailable(false); setShowReport(false); setPreviewIndex(0); setPreviewValues({})
+    setViews([]); setMode('per_view'); setPages('steps'); setName(''); setTag(''); setExisting('new'); setCreateTable(false); setAvailable(false); setShowReport(false); setPreviewIndex(0); setPreviewValues({})
   }
 
   const analyse = useCallback(async (f: File, opts: Record<string, unknown> = {}) => {
@@ -148,13 +149,14 @@ export function InfoPathImportDialog({ open, onOpenChange, initialFile, onImport
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per opening
   }, [open, initialFile])
 
-  const options = () => ({ mode, views, ...(name.trim() && name.trim() !== analysis?.report.form.name ? { name: name.trim() } : {}), ...(tag.trim() ? { tag: tag.trim() } : {}), existing, create_table: createTable, available_in_menu: available })
+  const options = () => ({ mode, pages, views, ...(name.trim() && name.trim() !== analysis?.report.form.name ? { name: name.trim() } : {}), ...(tag.trim() ? { tag: tag.trim() } : {}), existing, create_table: createTable, available_in_menu: available })
 
   // Options that change what is made: analyse again for the preview / counts.
-  const reanalyse = async (patch: { mode?: 'per_view' | 'combined'; views?: string[] }) => {
+  const reanalyse = async (patch: { mode?: 'per_view' | 'combined'; pages?: 'steps' | 'tabs'; views?: string[] }) => {
     if (!file) return
     const next = { ...options(), ...patch }
     if (patch.mode) setMode(patch.mode)
+    if (patch.pages) setPages(patch.pages)
     if (patch.views) setViews(patch.views)
     setStep('analysing')
     const res = await post(file, 'analyze', next)
@@ -238,7 +240,7 @@ export function InfoPathImportDialog({ open, onOpenChange, initialFile, onImport
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                 <div className="space-y-4">
                   <fieldset className="space-y-1.5">
-                    <legend className="mb-1 text-xs font-semibold">Views ({mode === 'per_view' ? 'each becomes a form' : 'each becomes a step'})</legend>
+                    <legend className="mb-1 text-xs font-semibold">Views ({mode === 'per_view' ? 'each becomes a form' : pages === 'tabs' ? 'each becomes a tab' : 'each becomes a step'})</legend>
                     {analysis.report.form.views.map((v) => (
                       <Checkbox key={v.name} checked={views.includes(v.name)} data-testid={`infopath-view-${v.name}`}
                         onChange={(e) => void reanalyse({ views: e.target.checked ? [...views, v.name] : views.filter((x) => x !== v.name) })}
@@ -247,8 +249,8 @@ export function InfoPathImportDialog({ open, onOpenChange, initialFile, onImport
                     ))}
                   </fieldset>
                   <Field label="Make">
-                    <SegmentedControl aria-label="Forms to make" size="sm" value={mode} onValueChange={(m) => void reanalyse({ mode: m })}
-                      options={[{ value: 'per_view', text: 'One form per view' }, { value: 'combined', text: 'One form, views as steps' }]} />
+                    <SegmentedControl aria-label="Forms to make" size="sm" value={mode === 'per_view' ? 'per_view' : pages} onValueChange={(m) => void reanalyse(m === 'per_view' ? { mode: 'per_view' } : { mode: 'combined', pages: m })}
+                      options={[{ value: 'per_view', text: 'One form per view' }, { value: 'steps', text: 'Views as steps' }, { value: 'tabs', text: 'Views as tabs' }]} />
                   </Field>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Form name"><Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} /></Field>

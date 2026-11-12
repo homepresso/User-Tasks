@@ -284,7 +284,7 @@ async function create(values: Record<string, string | boolean | string[] | undef
     // 4. npm packages.
     run('npm', ['run', 'cli:build'])
     run('npm', ['pack', '--pack-destination', stage], { cwd: path.join(ROOT, 'packages/sdk') })
-    const sdkTarball = path.join(stage, readdirSync(stage).find((f) => f.startsWith('usertasks-sdk-'))!)
+    const sdkTarball = path.join(stage, readdirSync(stage).find((f) => f.startsWith('user-tasks-sdk-'))!)
     copyFileSync(sdkTarball, path.join(dir, 'npm', path.basename(sdkTarball)))
     packCli(stage, path.join(dir, 'npm'), sdkTarball)
 

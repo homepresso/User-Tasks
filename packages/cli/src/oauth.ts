@@ -41,6 +41,44 @@ export function chooseScopes(requested: string | undefined, meta: AuthorizationS
   return offered.filter((scope) => !OPT_IN_SCOPES.has(scope))
 }
 
+// ─── Sign-up hint ───
+
+const CLOUD_APEX = 'usertasks.com'
+
+/**
+ * Where a new user can create an account, when `serverUrl` is a UserTasks
+ * cloud server: the server says so in its metadata (`usertasks_signup_url`,
+ * cloud edition only), or the host is usertasks.com or a subdomain of it
+ * (servers that predate the field). Null for self-hosted servers, where
+ * sign-in is invite-only. Only same-origin URLs from the metadata are used.
+ */
+export function signupUrl(serverUrl: string, meta?: object | null): string | null {
+  let server: URL
+  try {
+    server = new URL(serverUrl)
+  } catch {
+    return null
+  }
+  const field = meta ? (meta as Record<string, unknown>).usertasks_signup_url : undefined
+  const advertised = typeof field === 'string' ? field : ''
+  if (advertised) {
+    try {
+      const url = new URL(advertised)
+      if ((url.protocol === 'https:' || url.protocol === 'http:') && url.origin === server.origin) return url.href
+    } catch { /* ignore a malformed value */ }
+  }
+  const host = server.hostname.toLowerCase()
+  if (server.protocol === 'https:' && host === CLOUD_APEX) return `${server.origin}/start`
+  if (server.protocol === 'https:' && host.endsWith(`.${CLOUD_APEX}`)) return `https://${CLOUD_APEX}/start`
+  return advertised ? `${server.origin}/start` : null
+}
+
+/** The one-line hint `usertasks login` prints while it waits for the browser, or null. */
+export function signupHint(serverUrl: string, meta?: object | null): string | null {
+  const url = signupUrl(serverUrl, meta)
+  return url ? `No account yet? Create one free at ${url}` : null
+}
+
 // ─── Token store over a profile ───
 
 export function credentialsToTokens(credentials: OAuthCredentials): OAuthTokens {
@@ -142,8 +180,8 @@ export interface BrowserLoginOptions<T> {
   /** A client registered dynamically by an earlier login against this server. */
   savedClient?: Profile['oauth_client']
   fetch?: typeof fetch
-  /** Show the authorize URL to the user (always called). */
-  showUrl: (url: string) => void
+  /** Show the authorize URL to the user (always called), with the server's metadata. */
+  showUrl: (url: string, meta: AuthorizationServerMetadata) => void
   /** Open the URL in a browser; omitted with --no-browser. */
   openBrowser?: (url: string) => Promise<void> | void
   /** Check the issued tokens (GET /me) before success is shown in the browser. */
@@ -282,7 +320,7 @@ export async function browserLogin<T>(options: BrowserLoginOptions<T>): Promise<
         })()
       })
 
-      options.showUrl(authorizeUrl)
+      options.showUrl(authorizeUrl, meta)
       if (options.openBrowser) {
         Promise.resolve()
           .then(() => options.openBrowser!(authorizeUrl))

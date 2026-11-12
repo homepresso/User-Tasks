@@ -1,8 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
-import type { FormSection } from '@/lib/forms/layout'
-import { designerSectionProblems, removeSection, updateSection, type DesignerState } from '@/lib/forms/designer-state'
+import { CHOICE_GROUP_DISPLAYS, CHOICE_GROUP_DISPLAY_LABELS, CHOICE_GROUP_LIMITS, isPaged, type FormChoiceGroup, type FormSection } from '@/lib/forms/layout'
+import {
+  addChoiceGroup, designerChoiceGroupProblems, designerSectionProblems, removeChoiceGroup, removeSection, updateChoiceGroup, updateSection, type DesignerState,
+} from '@/lib/forms/designer-state'
 import { sectionFieldKeys, sectionIncludedKey } from '@/lib/forms/sections'
 import { DISPLAY_FIELD_TYPES } from '@/lib/task-field-schema'
 import { VisibleWhenEditor } from './field-properties'
@@ -108,11 +111,110 @@ export function SectionProperties({ state, section, onChange, onRemoved, allowOp
           <p className="mt-0.5 text-2xs text-fg-muted">A hidden section&apos;s fields are not required. Rules can also show, hide, collapse or expand <code>section:{section.key}</code>.</p>
         </div>
       )}
+      <ChoiceGroupSettings state={state} section={section} onChange={onChange} />
       <div>
         <p className="mb-1 text-2xs font-medium text-fg-muted">When to load</p>
         <LoadModeEditor idPrefix={id('load')} noun="section" load={section.load} preload={section.preload}
           problem={lazyLoadProblems(state.layout, state.fields)[`section:${section.key}`]} onChange={(patch) => set(patch)} />
       </div>
     </div>
+  )
+}
+
+/** The page (or '' on a single-page form) each section's rows sit on. */
+function sectionPages(state: DesignerState): Map<string, string> {
+  const out = new Map<string, string>()
+  const grids = isPaged(state.layout) ? state.layout.pages.map((p) => ({ id: p.id, rows: p.rows })) : [{ id: '', rows: state.layout.rows }]
+  for (const grid of grids) for (const row of grid.rows) if (row.section && !out.has(row.section)) out.set(row.section, grid.id)
+  return out
+}
+
+/**
+ * Choice group (lib/forms/sections.ts — InfoPath's choice group): this
+ * section and 1–5 others on the same page become alternatives — one shows
+ * at a time, picked with a switch; the others' fields are not required and
+ * not kept. Create one here, or edit the group this section belongs to.
+ */
+function ChoiceGroupSettings({ state, section, onChange }: { state: DesignerState; section: FormSection; onChange: (next: DesignerState, tag?: string) => void }) {
+  const id = (name: string) => `sp-${section.key}-cg-${name}`
+  const groups = state.layout.choice_groups ?? []
+  const group = groups.find((g) => g.sections.includes(section.key))
+  const pages = sectionPages(state)
+  const titles = new Map((state.layout.sections ?? []).map((s) => [s.key, s.title || s.key]))
+  const grouped = new Set(groups.filter((g) => g !== group).flatMap((g) => g.sections))
+  // Alternatives: sections on this section's page that no other group uses.
+  const candidates = (state.layout.sections ?? []).filter((s) => pages.get(s.key) === pages.get(section.key) && !grouped.has(s.key))
+  const [picked, setPicked] = useState<string[]>([])
+  if (!group) {
+    const others = candidates.filter((s) => s.key !== section.key)
+    return (
+      <div className="space-y-1 rounded border border-dashed border-border p-2" data-choice-group-create={section.key}>
+        <p className="text-2xs font-medium text-fg-muted">Choice group</p>
+        {others.length === 0
+          ? <p className="text-2xs text-fg-muted">Add another section on this {isPaged(state.layout) ? 'step / tab' : 'form'} to offer it as an alternative: one of them shows at a time, picked with a switch.</p>
+          : (
+            <>
+              <p className="text-2xs text-fg-muted">Show one of several sections at a time, with a switch above it. Alternatives to <strong>{section.title}</strong>:</p>
+              {others.map((s) => (
+                <label key={s.key} className="flex items-center gap-1.5 text-2xs">
+                  <input type="checkbox" className="accent-primary" checked={picked.includes(s.key)} disabled={!picked.includes(s.key) && picked.length >= CHOICE_GROUP_LIMITS.max - 1}
+                    onChange={(e) => setPicked(e.target.checked ? [...picked, s.key] : picked.filter((k) => k !== s.key))} data-choice-group-pick={s.key} />
+                  {s.title || s.key}
+                </label>
+              ))}
+              <button type="button" disabled={picked.length < 1} className="text-2xs font-semibold text-primary-text disabled:opacity-40"
+                onClick={() => { const made = addChoiceGroup(state, [section.key, ...picked], `Choose: ${section.title}`); if (made) { onChange(made.state); setPicked([]) } }} data-choice-group-add>
+                Create choice group
+              </button>
+            </>
+          )}
+      </div>
+    )
+  }
+  const problem = designerChoiceGroupProblems(state)[group.key]
+  const set = (patch: Partial<FormChoiceGroup>, tag?: string) => onChange(updateChoiceGroup(state, group.key, patch), tag)
+  return (
+    <fieldset className="space-y-1.5 rounded border border-primary/40 p-2" data-choice-group-settings={group.key}>
+      <legend className="px-1 text-2xs font-semibold text-primary-text">Choice group</legend>
+      <div>
+        <Label htmlFor={id('label')}>Switch label</Label>
+        <input id={id('label')} className={inputClass} value={group.label} onChange={(e) => set({ label: e.target.value }, `cgl-${group.key}`)} data-choice-group-label />
+      </div>
+      <div>
+        <Label htmlFor={id('key')}>Key</Label>
+        <input id={id('key')} className={`${inputClass} font-mono`} value={group.key} aria-invalid={Boolean(problem)}
+          onChange={(e) => { const key = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 52); if (key) set({ key }, `cgk-${group.key}`) }} />
+        <p className={cn('mt-0.5 text-2xs', problem ? 'text-danger' : 'text-fg-muted')}>
+          {problem ?? <>The chosen section&apos;s key is submitted as <code>{group.key}</code> — rules read <code>{`{{form.${group.key}}}`}</code> and may set it.</>}
+        </p>
+      </div>
+      <div>
+        <Label htmlFor={id('display')}>Switch</Label>
+        <select id={id('display')} className={inputClass} value={group.display ?? 'radio'} onChange={(e) => set({ display: e.target.value as FormChoiceGroup['display'] })} data-choice-group-display>
+          {CHOICE_GROUP_DISPLAYS.map((d) => <option key={d} value={d}>{CHOICE_GROUP_DISPLAY_LABELS[d]}</option>)}
+        </select>
+      </div>
+      <div>
+        <Label htmlFor={id('default')}>Shown first</Label>
+        <select id={id('default')} className={inputClass} value={group.default ?? group.sections[0]} onChange={(e) => set({ default: e.target.value === group.sections[0] ? undefined : e.target.value })}>
+          {group.sections.map((k) => <option key={k} value={k}>{titles.get(k) ?? k}</option>)}
+        </select>
+      </div>
+      <div className="space-y-0.5">
+        <p className="text-2xs font-medium text-fg-muted">Alternatives ({CHOICE_GROUP_LIMITS.min}–{CHOICE_GROUP_LIMITS.max})</p>
+        {candidates.map((s) => {
+          const on = group.sections.includes(s.key)
+          return (
+            <label key={s.key} className="flex items-center gap-1.5 text-2xs">
+              <input type="checkbox" className="accent-primary" checked={on} disabled={(!on && group.sections.length >= CHOICE_GROUP_LIMITS.max) || (on && group.sections.length <= CHOICE_GROUP_LIMITS.min)}
+                onChange={(e) => set({ sections: e.target.checked ? [...group.sections, s.key] : group.sections.filter((k) => k !== s.key) })} />
+              {s.title || s.key}
+            </label>
+          )
+        })}
+      </div>
+      <p className="text-2xs text-fg-muted">Only the chosen section shows; the others&apos; fields are not required, not checked and stored empty.</p>
+      <button type="button" className="text-2xs font-medium text-danger" onClick={() => onChange(removeChoiceGroup(state, group.key))} data-choice-group-remove>Remove choice group (the sections stay)</button>
+    </fieldset>
   )
 }

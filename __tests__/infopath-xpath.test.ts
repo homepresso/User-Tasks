@@ -52,7 +52,9 @@ describe('XPath → rule conditions', () => {
   })
 
   it('says why when there is no equivalent', () => {
-    expect(toCondition('xdXDocument:get-Role() = "Manager"', env())).toEqual({ ok: false, reason: expect.stringMatching(/user role/) })
+    expect(toCondition('xdXDocument:get-Role() = "Manager"', env())).toMatchObject({ ok: true, value: { conditions: [{ column: 'user.roles', operator: 'contains', value: 'Manager' }] } })
+    expect(toCondition('xdXDocument:get-Role() != "Manager"', env())).toMatchObject({ ok: true, value: { conditions: [{ column: 'user.roles', operator: 'neq', value: 'Manager' }] } })
+    expect(toCondition('xdXDocument:get-Role() = my:status', env())).toMatchObject({ ok: false })
     expect(toCondition('count(xdXDocument:GetDOM("Projects")/a) > 0', env())).toMatchObject({ ok: false })
     expect(toCondition('not(contains(my:email, "@"))', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/not/) })
     expect(toCondition('my:unknown = 1', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/not on the form/) })
@@ -72,8 +74,44 @@ describe('XPath → formulas', () => {
   })
 
   it('refuses what has no equivalent with a reason', () => {
-    expect(toExpression('substring-before(my:email, "@")', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/no direct UserTasks function/) })
     expect(toExpression('xdMath:Eval(my:items/my:item, "my:qty")', env())).toMatchObject({ ok: false })
+    expect(toExpression('position()', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/row position/) })
+    expect(toExpression('xdUser:get-UserName()', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/in rules/) })
+  })
+
+  it('translates the extra string, aggregate and InfoPath functions', () => {
+    expect(toExpression('substring-before(my:email, "@")', env())).toMatchObject({ ok: true, value: 'SUBSTRING_BEFORE({{form.email}}, "@")' })
+    expect(toExpression('substring-after(my:email, "@")', env())).toMatchObject({ ok: true, value: 'SUBSTRING_AFTER({{form.email}}, "@")' })
+    expect(toExpression('translate(my:status, "-", "/")', env())).toMatchObject({ ok: true, value: 'TRANSLATE({{form.status}}, "-", "/")' })
+    expect(toExpression('normalize-space(my:status)', env())).toMatchObject({ ok: true, value: 'NORMALIZE_SPACE({{form.status}})' })
+    expect(toExpression('starts-with(my:status, "A")', env())).toMatchObject({ ok: true, value: 'STARTS_WITH({{form.status}}, "A")' })
+    expect(toExpression('substring(my:status, 2, 3)', env())).toMatchObject({ ok: true, value: 'MID({{form.status}}, 2, 3)' })
+    expect(toExpression('xdUtil:Concat(my:status, "!")', env())).toMatchObject({ ok: true, value: 'CONCAT({{form.status}}, "!")' })
+    expect(toExpression('xdMath:Nz(my:total)', env())).toMatchObject({ ok: true, value: 'COALESCE({{form.total}}, 0)' })
+    expect(toExpression('xdMath:Avg(my:items/my:item/my:price)', env())).toMatchObject({ ok: true, value: 'AVG(PLUCK({{form.items}}, "price"))' })
+    expect(toExpression('xdDate:AddSeconds(xdDate:Now(), 120)', env())).toMatchObject({ ok: true, value: 'ADD_MINUTES(NOW(), (120) / 60)' })
+    expect(toExpression('sum(my:items/my:item[my:qty = 2]/my:price)', env())).toMatchObject({ ok: true, value: 'SUMIF({{form.items}}, "qty", 2, "price")' })
+    expect(toExpression('count(my:items/my:item[my:price = "10"])', env())).toMatchObject({ ok: true, value: 'COUNTIF({{form.items}}, "price", "10")' })
+    expect(toExpression('sum(my:items/my:item[my:qty > 2]/my:price)', env())).toMatchObject({ ok: false, reason: expect.stringMatching(/filters rows/) })
+    expect(toExpression('concat(xdUser:get-DisplayName(), " / ", my:status)', { ...env(), allowUser: true })).toMatchObject({ ok: true, value: 'CONCAT({{user.name}}, " / ", {{form.status}})' })
+    // xdMath:Eval → a calculated column, summed.
+    const added: string[] = []
+    const withEval = { ...env(), evalColumn: (list: string, formula: string) => { added.push(`${list}|${formula}`); return { list: 'items', column: 'line_total' } } }
+    expect(toExpression('sum(xdMath:Eval(my:items/my:item, "my:qty * my:price"))', withEval)).toMatchObject({ ok: true, value: 'SUM(PLUCK({{form.items}}, "line_total"))' })
+    expect(added).toEqual(['/r/items/item|my:qty * my:price'])
+  })
+
+  it('evaluates the new functions in the expression engine', () => {
+    const fields = [
+      { key: 'email', label: 'Email', type: 'text' }, { key: 'status', label: 'Status', type: 'text' },
+      { key: 'items', label: 'Items', type: 'list', list: { columns: [{ key: 'qty', label: 'Qty', type: 'number' }, { key: 'price', label: 'Price', type: 'number' }] } },
+      ...[
+        ['a', 'SUBSTRING_BEFORE({{form.email}}, "@")'], ['b', 'SUBSTRING_AFTER({{form.email}}, "@")'], ['c', 'TRANSLATE({{form.status}}, "-", "/")'],
+        ['d', 'NORMALIZE_SPACE({{form.status}})'], ['e', 'SUMIF({{form.items}}, "qty", 2, "price")'], ['f', 'COUNTIF({{form.items}}, "qty", 2)'], ['g', 'STARTS_WITH({{form.email}}, "ada")'],
+      ].map(([key, expression]) => ({ key, label: key, type: 'label', label_config: { expression, include: true } })),
+    ]
+    const out = serverLabelValues(fields as never, null, { email: 'ada@example.com', status: '  a-b   c ', items: [{ qty: 2, price: 10 }, { qty: 1, price: 99 }, { qty: 2, price: 5.5 }] }, { sent: {} })
+    expect(out).toMatchObject({ a: 'ada', b: 'example.com', c: '  a/b   c ', d: 'a/b c'.replace('/', '-'), e: 15.5, f: 2, g: true })
   })
 
   it('produces formulas the Label engine evaluates', () => {

@@ -9,10 +9,13 @@ import { findCell, pageGrid, setCellSpan } from '@/lib/forms/layout'
 import { addListEntryKit, addRowCommitKit, keyProblemFor, type DesignerField, type DesignerState } from '@/lib/forms/designer-state'
 import { LookupProperties } from './lookup-properties'
 import { AttachmentsProperties } from './attachments-properties'
+import { DisplayImageProperties, ImageProperties, SignatureProperties } from './media-properties'
+import { MultiChoiceDisplayProperty, PersonProperties, RichTextProperties, TextListProperties, UrlProperties } from './control-properties'
 import { CustomControlProperties } from './custom-control-properties'
 import { ButtonProperties } from './button-properties'
 import { DataTableProperties } from './data-table-properties'
 import { ListProperties } from './list-properties'
+import { RepeatingSectionProperties } from './repeating-section-properties'
 import { DEFAULT_LIST_CONFIG } from '@/lib/forms/list-field'
 import { LabelProperties } from './label-properties'
 import { SurveyProperties } from './survey-properties'
@@ -122,7 +125,10 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
             onChange={(e) => onPatch({ key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 64) }, `key-${field._id}`)}
           />
           <p id={id('key-hint')} className={cn('mt-1 text-2xs', keyProblem ? 'text-danger' : 'text-fg-muted')}>
-            {keyProblem ?? <>Downstream: <code className="text-primary-text">{`{{task_data.${field.key}}}`}</code></>}
+            {keyProblem ?? (state.outerKeys
+              // A control inside a repeating section: each item's value (a Loop over the section).
+              ? <>In each item: <code className="text-primary-text">{`{{item.${field.key}}}`}</code> (rules, and a Loop over the section)</>
+              : <>Downstream: <code className="text-primary-text">{`{{task_data.${field.key}}}`}</code></>)}
           </p>
         </div>
       )}
@@ -185,7 +191,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
         </DynamicProp>
       )}
 
-      {!display && !isLabelField && !isSurveyType(field.type) && field.type !== 'boolean' && field.type !== 'multi_choice' && field.type !== 'attachments' && field.type !== 'custom' && field.type !== 'list' && !(field.type === 'choice' && field.display === 'radio') && (
+      {!display && !isLabelField && !isSurveyType(field.type) && field.type !== 'boolean' && field.type !== 'multi_choice' && field.type !== 'attachments' && field.type !== 'image' && field.type !== 'signature' && field.type !== 'custom' && field.type !== 'list' && field.type !== 'repeating_section' && !(field.type === 'choice' && field.display === 'radio') && (
         fieldPropType(field, 'placeholder') ? (
           <DynamicProp state={state} field={field} prop="placeholder" label="Placeholder" expects="string" onPatch={onPatch} htmlFor={id('placeholder')}>
             <input id={id('placeholder')} className={inputClass} value={field.placeholder ?? ''} onChange={(e) => onPatch({ placeholder: e.target.value || undefined }, `ph-${field._id}`)} />
@@ -217,7 +223,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
               Required
             </label>
           )}
-          {field.type !== 'attachments' && (
+          {field.type !== 'attachments' && field.type !== 'signature' && (
             <label className="flex items-center gap-1.5 text-2xs">
               <input className="accent-primary" type="checkbox" checked={field.read_only === true} onChange={(e) => onPatch({ read_only: e.target.checked || undefined })} />
               Read-only (shows the default)
@@ -226,13 +232,13 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
         </div>
       )}
 
-      {!display && !isLabelField && (
+      {!display && !isLabelField && field.type !== 'repeating_section' && (
         <DynamicProp state={state} field={field} prop="required" label="Required when (dynamic)" expects="boolean" onPatch={onPatch}>
           <p className="text-2xs text-fg-muted">Static: the Required box above. Dynamic: a yes / no expression or source.</p>
         </DynamicProp>
       )}
 
-      {!display && field.type !== 'attachments' && field.type !== 'custom' && field.type !== 'data_table' && field.type !== 'list' && field.type !== 'matrix' && field.type !== 'ranking' && !(isLabelField && field.label_config?.expression) && (
+      {!display && field.type !== 'attachments' && field.type !== 'image' && field.type !== 'signature' && field.type !== 'custom' && field.type !== 'data_table' && field.type !== 'list' && field.type !== 'repeating_section' && field.type !== 'matrix' && field.type !== 'ranking' && !(isLabelField && field.label_config?.expression) && (
         <DynamicProp state={state} field={field} prop="default" label={isLabelField ? 'Default value (until a rule sets it)' : 'Default value'} expects={fieldPropType(field, 'default') ?? 'string'} onPatch={onPatch}>
           {field.type === 'boolean' ? (
             <AutocompleteSelect
@@ -246,7 +252,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
                 value={field.default ?? ''}
                 ariaLabel="Default value"
                 onChange={(value) => onPatch({ default: value || undefined }, `default-${field._id}`)}
-                placeholder={field.type === 'multi_choice' ? 'A, B — {{variables}} allowed' : 'Optional — {{variables}} allowed'}
+                placeholder={field.type === 'multi_choice' ? 'A, B — {{variables}} allowed' : field.type === 'text_list' ? '["First", "Second"] — {{variables}} allowed' : 'Optional — {{variables}} allowed'}
               />
             </DesignerVariableScope>
           )}
@@ -282,6 +288,16 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
         <AttachmentsProperties field={field} onPatch={(attachments, tag) => onPatch({ attachments }, tag)} />
       )}
 
+      {field.type === 'multi_choice' && <MultiChoiceDisplayProperty field={field} onPatch={onPatch} />}
+      {field.type === 'rich_text' && <RichTextProperties field={field} onPatch={(rich_text, tag) => onPatch({ rich_text }, tag)} />}
+      {field.type === 'text_list' && <TextListProperties field={field} onPatch={(text_list, tag) => onPatch({ text_list }, tag)} />}
+      {field.type === 'url' && <UrlProperties field={field} fields={state.fields} onPatch={(url_config, tag) => onPatch({ url_config }, tag)} />}
+      {field.type === 'user' && <PersonProperties field={field} onPatch={(user_config, tag) => onPatch({ user_config }, tag)} />}
+
+      {field.type === 'image' && <ImageProperties field={field} onPatch={(image, tag) => onPatch({ image }, tag)} />}
+      {field.type === 'signature' && <SignatureProperties field={field} onPatch={(signature, tag) => onPatch({ signature }, tag)} />}
+      {field.type === 'display_image' && <DisplayImageProperties field={field} onPatch={(display_image, tag) => onPatch({ display_image }, tag)} />}
+
       {isLabelField && (
         <LabelProperties state={state} field={field} onPatch={(label_config, tag) => onPatch({ label_config }, tag)} />
       )}
@@ -293,6 +309,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
 
       {field.type === 'list' && (
         <ListProperties field={field} onPatch={(list, tag) => onPatch({ list }, tag)}
+          formFields={state.fields.filter((f) => f._id !== field._id && !isDisplayField(f) && f.type !== 'button').map((f) => ({ key: f.key, label: f.label }))}
           ruleCount={(state.layout.rules ?? []).filter((r) => r.then.some((x) => x.type === 'add_list_row' && x.list_field === field.key)).length}
           onAddEntryKit={(edit, selection) => { const kit = addListEntryKit(state, field._id, { edit, selection }); if (kit) onChangeState(kit.state) }}
           onAddCommitKit={(options) => { const kit = addRowCommitKit(state, field._id, options); if (kit) onChangeState(kit.state) }}
@@ -304,6 +321,10 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
 
       {field.type === 'lookup' && (
         <LookupProperties state={state} field={field} onPatch={(lookup, tag) => onPatch({ lookup }, tag)} />
+      )}
+
+      {field.type === 'repeating_section' && (
+        <RepeatingSectionProperties state={state} field={field} onPatch={(repeating_section, tag) => onPatch({ repeating_section }, tag)} />
       )}
 
       {isChoice && (

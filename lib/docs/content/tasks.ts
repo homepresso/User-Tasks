@@ -383,17 +383,21 @@ A User Task lists its \`outcomes\`, for example **Approved** and **Rejected**. E
 | Type | Stored as | Notes |
 |---|---|---|
 | \`text\`, \`textarea\` (long text) | string | \`placeholder\`, \`min_length\` / \`max_length\`, \`pattern\` |
-| \`email\`, \`phone\`, \`url\` | string | checked for the format |
+| \`rich_text\` | sanitised HTML | formatted text; the plain text is \`{{task_data.<key>_text}}\` — see [Rich text](/docs/tasks/forms#rich-text) |
+| \`text_list\` | array of strings | a bulleted / numbered / plain list of items — see [Text list](/docs/tasks/forms#text-list) |
+| \`email\`, \`phone\`, \`url\` | string | checked for the format; a URL can show link text (\`url_config\`) — see [Links](/docs/tasks/forms#links-with-display-text) |
 | \`number\`, \`currency\` | number | \`min\` / \`max\`; currency has a \`currency\` code |
 | \`date\` | \`YYYY-MM-DD\` | \`min_date\` / \`max_date\` |
 | \`datetime\` | ISO 8601 (UTC) | |
 | \`boolean\` | true / false | a required checkbox must be ticked |
 | \`choice\` | string | \`options\` (or \`options_source\` from a data table column), dropdown or radio |
-| \`multi_choice\` | array of strings | \`options\`; \`min\` / \`max\` selections |
-| \`user\` | user id | a person in the workspace |
+| \`multi_choice\` | array of strings | \`options\`; \`min\` / \`max\` selections; shown as pills, checkboxes or a list box (\`display\`) |
+| \`user\` | user id (array of \`{ kind, id, name }\` with \`user_config\`) | a person in the workspace; several people and / or teams — see [People and teams](/docs/tasks/forms#people-and-teams) |
 | \`lookup\` (autocomplete) | string (array when \`multiple\`) | suggestions from a data table or an API reference; the selected item is \`{{task_data.<key>_item}}\` — see [Autocomplete / lookup fields](/docs/tasks/forms#autocomplete-lookup-fields) |
 | \`attachments\` | array of file objects | uploaded files; \`attachments\` sets counts, sizes and types; the number of files is \`{{task_data.<key>_count}}\` — see [Attachments](/docs/tasks/forms#attachments) |
-| \`heading\`, \`divider\` | (no value) | layout only |
+| \`image\` | one file object (or null) | one picture; \`image\` sets the size, formats, phone camera and a default picture — see [Image](/docs/tasks/forms#image) |
+| \`signature\` | signature object | an electronic signature (drawn or typed) with who signed and when — see [Signature](/docs/tasks/forms#signature) |
+| \`heading\`, \`divider\`, \`display_image\` | (no value) | layout only — see [Display image](/docs/tasks/forms#display-image) |
 
 Each field has a \`key\` (defaults to the label in snake_case), a \`label\`, \`required\`, optional \`help_text\`, \`read_only\` and \`visible_when\`. Keys must be unique in the task and can't be reserved names such as \`outcome\` or \`task_data\`. After completion the values are available as \`{{task_data.<key>}}\` (also \`{{task.data.<key>}}\`).
 
@@ -579,6 +583,26 @@ Select the section's header to edit it in the **Section** tab:
 
 **Read-only views.** Completed tasks, the review step and **Submissions** show each section's title above its fields; an optional section that was left out shows **Not included**.
 
+### Choice groups (one of several sections)
+
+A **choice group** shows one of two to six alternative sections at a time, with a switch above it — *Card*, *Bank transfer* or *Cheque*; *Individual* or *Company*. (InfoPath calls this a choice group with choice sections.) Select one of the sections, and under **Choice group** in its properties tick the other sections on the same page (or step / tab) and choose **Create choice group**. Then set:
+
+| Option | What it does |
+|---|---|
+| **Switch label** | The question above the switch (*How will you pay?*). |
+| **Key** | The value that records the choice: the chosen section's key is submitted as \`<key>\`. It can't equal a field or section key. |
+| **Switch** | **Radio buttons** (default), **Tabs** (arrow keys move between them) or **Dropdown**. |
+| **Shown first** | The alternative that shows until the person picks (default: the first). |
+| **Alternatives** | Two to six sections on the same page; a section belongs to one group. |
+
+**What gets submitted.** Only the chosen alternative counts: the others' fields are hidden, not required, not checked and **stored empty**, exactly like an optional section left out. The server works out the chosen section from the submitted \`<key>\` (or **Shown first** when none was sent), refuses a value that is not one of the group's sections, and stores \`<key>\` with the submission, so a workflow can branch on \`{{form.payment}}\`.
+
+\`\`\`json title="layout.choice_groups"
+[{ "key": "payment", "label": "How will you pay?", "sections": ["card", "bank", "cheque"], "default": "card", "display": "tabs" }]
+\`\`\`
+
+**Rules.** Conditions and placeholders read the choice as \`{{form.payment}}\` (the default until someone picks), **Set values** can pick an alternative (\`payment: "bank"\`), and **Field value changes** on the group's key runs when the choice changes. Read-only views show *How will you pay?: Card* above the chosen section.
+
 **Older forms.** Before sections, a **Section heading** with the rows under it (up to the next heading or divider) acted as a section, and \`section:<heading key>\` targets still mean exactly that — nothing changes in existing forms. To upgrade one, select the heading and choose **Convert heading to section**: the rows under it join a new section titled like the heading (its description and **Visible when** carry over), and rules that targeted the heading's section target the new one. Headings and dividers can now have **Visible when** too.
 
 **Accessibility.** A section is a \`fieldset\` with the title as its \`legend\`; a collapsible one's chevron is a button with \`aria-expanded\`. The checker flags a section that starts collapsed but holds required fields, and generic titles ("Section 2").
@@ -685,23 +709,28 @@ Every field has \`key\`, \`label\`, \`type\`, and optionally \`required\`, \`hel
 |---|---|---|---|---|
 | Text | \`text\` | \`min_length\`, \`max_length\`, \`pattern\`, \`pattern_message\` | string | — |
 | Long text | \`textarea\` | as Text | string | — |
+| Rich text | \`rich_text\` | \`rich_text\`: \`max_length\` (characters of text, default 20000), \`toolbar\` (\`basic\`, \`full\`) — see [Rich text](#rich-text) | sanitised HTML | \`<key>_text\`: the plain text |
+| Text list | \`text_list\` | \`text_list\`: \`style\` (\`bulleted\`, \`numbered\`, \`plain\`), \`min_items\`, \`max_items\` (default 50), \`item_max_length\` (default 500) — see [Text list](#text-list) | array of strings | — |
 | Email | \`email\` | as Text; format checked | string | — |
 | Phone | \`phone\` | as Text; format checked | string | — |
-| URL | \`url\` | as Text; http(s) only | string | — |
+| URL | \`url\` | as Text; http(s) or mailto only; \`url_config\`: \`text_field\`, \`link_text\`, \`new_tab\` — see [Links](#links-with-display-text) | string | — |
 | Number | \`number\` | \`min\`, \`max\` | number | — |
 | Currency | \`currency\` | \`currency\` (ISO 4217, default USD), \`min\`, \`max\` | number | — |
 | Date | \`date\` | \`min_date\`, \`max_date\` | \`YYYY-MM-DD\` | — |
 | Date & time | \`datetime\` | \`min_date\`, \`max_date\` | ISO 8601 (UTC) | — |
 | Checkbox (yes/no) | \`boolean\` | required means it must be ticked | true / false | — |
 | Single select | \`choice\` | \`options\`, \`option_labels\`, \`options_source\` (a data table column), \`display\` (\`dropdown\` or \`radio\`) | string | — |
-| Multi-select | \`multi_choice\` | \`options\`, \`option_labels\`, \`options_source\`, \`min\` / \`max\` selections | array of strings | — |
-| Person | \`user\` | — | user id | — |
+| Multi-select | \`multi_choice\` | \`options\`, \`option_labels\`, \`options_source\`, \`min\` / \`max\` selections, \`display\` (\`checkboxes\`, \`listbox\`; default pills) | array of strings | — |
+| Person | \`user\` | \`user_config\`: \`multiple\`, \`allow_teams\`, \`max\` — see [People and teams](#people-and-teams) | user id; with \`user_config\` an array of \`{ kind, id, name }\` | — |
 | Autocomplete / lookup | \`lookup\` | \`lookup\`: a data table or API reference, search, shown and stored fields, filters, fill-ins, several / free text | string (array when several) | \`<key>_item\`: the selected item |
 | Attachments | \`attachments\` | \`attachments\`: \`min_files\`, \`max_files\`, \`max_file_mb\`, \`max_total_mb\`, \`types\`, \`custom_types\`, \`camera\` | array of file objects | \`<key>_count\`: the number of files |
+| Image | \`image\` | \`image\`: \`max_mb\` (default 10, at most 20), \`types\` (\`png\`, \`jpeg\`, \`webp\`, \`gif\`), \`camera\`, \`default_file\` — see [Image](#image) | one file object | — |
+| Signature | \`signature\` | \`signature\`: \`mode\` (\`draw\`, \`type\`, \`both\`), \`statement\`, \`capture_audit\`, \`resign_on_change\` — see [Signature](#signature) | \`{ file, method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }\` | — |
+| Picture (display) | \`display_image\` | \`display_image\`: \`src\`, \`alt\`, \`width\`, \`align\` — see [Display image](#display-image) | none | — |
 | Section heading | \`heading\` | — | none | — |
 | Divider | \`divider\` | — | none | — |
 | Data table | \`data_table\` | \`data_table\`: a data table or API reference, columns and formats, base filter, sort, page size, mode — see [Data table fields](#data-table-fields) | the selected rows, or the changes \`{ added, updated, deleted }\` | — |
-| List (repeating rows) | \`list\` | \`list\`: \`columns\` (key, label, type, required, options, min / max, default, formula), \`min_rows\` / \`max_rows\`, \`totals\`, \`display\`, \`entry_mode\` — see [List fields](#list-fields-repeating-rows) | array of row objects | \`<key>_count\` and one key per total |
+| List (repeating rows) | \`list\` | \`list\`: \`columns\` (key, label, type, required, options, min / max, default, formula; type \`list\` = a [nested List](#nested-lists) with its own \`list\`), \`min_rows\` / \`max_rows\`, \`totals\`, \`display\`, \`entry_mode\` — see [List fields](#list-fields-repeating-rows) | array of row objects | \`<key>_count\` and one key per total (nested: \`<key>_<child>_count\`, \`_counts\`, \`<key>_total_<child>_<column>\`) |
 | Button | \`button\` | \`button\`: style, size, icon, alignment, tooltip, confirm prompt, \`disabled_when\`, On click \`actions\` — see [Buttons anywhere](#buttons-anywhere-and-form-state) | none | — |
 | Label | \`label\` | \`label_config\`: \`expression\`, \`format\`, \`prefix\` / \`suffix\`, size, alignment, \`include\` — see [Label and expressions](#label-and-expressions) | display text; stored only with \`include\` (recomputed by the server) | — |
 
@@ -833,13 +862,55 @@ A real \`<table>\` labelled by the field; a grid with arrow-key navigation (Home
 
 API clients read rows with \`POST /api/v1/forms/{id}/data-table\` or \`POST /api/v1/tasks/{id}/data-table\` (\`{ "field_key", "query": { "search", "filters", "sort", "page", "page_size" }, "values" }\`), the MCP tools \`forms_data_table\` / \`tasks_data_table\`, or \`usertasks forms data-table <id>\` / \`usertasks tasks data-table <id>\`.
 
+## Repeating sections
+
+A **Repeating section** (palette group **Data**) is InfoPath's repeating section: a group of form controls laid out on their own grid and repeated once per item — an expense claim with a card per receipt, the travellers on a booking, the stops of a trip. People press **Add expense** (the button text is yours) to add an item; each item is a card with its title, **Collapse**, **Move up / down** and **Remove** (optionally confirmed). Prefer a Repeating section when each entry is a small form of its own; prefer a [List](#list-fields-repeating-rows) for tabular rows.
+
+**Any control inside.** Drag controls from the palette — or fields already on the form — into the section's grid in the designer, with the same rows, columns, spans and section headings as the form (one column on phones). Text, numbers, currency, dates, dropdowns (including ones bound to a data table or an API reference), people, lookups, rich text, attachments, pictures, Labels, buttons, Lists and other repeating sections (three levels at most) all work; Data tables, custom controls and signatures stay on the form itself. A control's key is unique over the whole form. Select the section to set:
+
+- **Add button** and **Item title** — the title can read the item: \`Expense {{index}}: {{item.description}}\`.
+- **Min / Max items** (max 50 by default, at most 200) and **Start with** (blank items a new form opens with, defaults filled in — \`{{today}}\` too).
+- **People can remove / reorder items**, **Ask before removing**, **Items can collapse**.
+- **Totals under the items** — a sum, average or count of a control.
+
+**Rules for each item.** *Rules for each item* opens the rules panel on the section's own controls: Always rules (show / hide, required, read only, styles, field errors) and event rules (a value changes → set values) run in every item on its own. In them \`{{item.<key>}}\` (or \`{{row.<key>}}\`) is this item, \`{{parent.<key>}}\` the item that holds a nested section, and \`{{form.<key>}}\` the form's fields. A dropdown bound to a data table can cascade on another control of the same item: filter its options on \`{{item.country}}\`.
+
+\`\`\`json title="An expense card"
+{ "key": "expenses", "label": "Expenses", "type": "repeating_section", "required": true,
+  "repeating_section": {
+    "fields": [
+      { "key": "description", "label": "Description", "type": "text", "required": true },
+      { "key": "country", "label": "Country", "type": "choice", "options": ["US", "CA"], "default": "US" },
+      { "key": "category", "label": "Category", "type": "choice", "options": [],
+        "dynamic": { "options": { "kind": "table", "table_id": "<categories table>", "value": "name",
+          "base_filter": { "match": "all", "conditions": [{ "column": "country", "operator": "eq", "value": "{{item.country}}" }] } } } },
+      { "key": "amount", "label": "Amount", "type": "currency", "currency": "USD", "required": true },
+      { "key": "spent_on", "label": "Date", "type": "date", "default": "{{today}}" }
+    ],
+    "layout": { "rows": [
+      { "columns": 3, "cells": [{ "field_key": "description", "span": 2 }, { "field_key": "spent_on", "span": 1 }] },
+      { "columns": 3, "cells": [{ "field_key": "country", "span": 1 }, { "field_key": "category", "span": 1 }, { "field_key": "amount", "span": 1 }] }
+    ] },
+    "add_label": "Add expense", "item_title": "Expense {{index}}: {{item.description}}",
+    "min_items": 1, "start_items": 1, "totals": [{ "field": "amount", "fn": "sum" }]
+  } }
+\`\`\`
+
+**The value is a list.** The section's value is an array of items keyed by the inner controls — the same shape as a List: \`[{ "description": "Flight", "country": "US", "category": "Airfare", "amount": 412.6, "spent_on": "2026-11-02" }, …]\`. Each item is checked on the server by the same rules as the form (types, required, bounds, options, the item rules); a problem comes back at its path — \`expenses[1].amount\` — and shows on that control in that card. Beside it the submission keeps \`<key>_count\` and one value per total (\`expenses_total_amount\`). A Label can add up the items too: \`SUM(PLUCK({{form.expenses}}, "amount"))\`.
+
+**In the workflow.** Loop over \`{{form.expenses}}\`; in its *Each item* branch \`{{item.amount}}\` and \`{{index}}\` work — add a **Data table** step (insert) there to save each item as a row. A nested section is looped inside (\`{{parent_item.*}}\` is the outer item). The data picker offers the items' controls, the count and the totals.
+
+**The form's List rules work on it.** *Add row to list*, *New row*, *Set row values*, *Update / Remove a row*, *Clear list* and *Commit row* accept a repeating section as their List, and a data / API step can write its result rows into it as items (*Then write the result* → the section, with a column mapping).
+
+**Read only.** Completed tasks show every item as a card; submission views show "3 expenses" with each card collapsed to its title — expand one to see it.
+
 ## List fields (repeating rows)
 
 A **List** field (palette group **Data**, *List (repeating rows)*) holds rows the person adds on the form itself — line items, attendees, expenses, milestones. The rows live in the submission (no data table behind them) and reach the workflow as an **array of objects** it can loop over. A form can have as many Lists as it needs; each has its own inputs, rule, totals and workflow variable (\`{{form.line_items}}\`, \`{{form.attendees}}\`…).
 
 **Columns.** Each column has a key (snake_case, the row object's key), a label and a type: Text, Long text, Number, Currency, Date, Choice (with options), Yes / no, Email, **Lookup** (rows of a data table or an API reference, searched on the server like an Autocomplete field) or **Calculated** — a formula over the row's number columns such as \`quantity * unit_price\` (numbers, column keys, \`+ - * /\` and brackets; worked out on the server too, never taken from the browser). Columns can be required, and have a default, a placeholder, help text and min / max (a value for numbers, a length for text). **At least / at most (rows)** bound the row count; **Totals** add a sum, average or count of a column under the list.
 
-**The list view.** The field shows the rows as a table — cards on phones (**Show rows as**: table with cards on phones, always a table, always cards) — with **Remove** on each row and the totals underneath. It has no input row or Add button of its own: rows come from the form's own inputs through a rule.
+**The list view.** The field shows the rows as a table — cards on phones (**Show rows as**: table with cards on phones, always a table, always cards) — with **Remove** on each row and the totals underneath. It has no input row or Add button of its own: rows come from the form's own inputs through a rule. With **Always cards** an editable table shows each row as a card holding its columns as a small form (labelled inputs, its own Remove) — the shape of an InfoPath repeating section.
 
 **Add rows with a rule.** The rule action **Add row to list** (Rules → Then → *Transfer data*) maps each column to a value — usually one of the form's inputs (\`{{line_items_item}}\`) — checks the inputs you mark as **Must be filled in**, checks the row against the columns (required, types, bounds, options) and the list's maximum, appends it and clears the inputs (**Clear after adding**; by default the inputs the values read). A problem shows on the input it came from and nothing is added. It runs on any trigger; typically a **Button** field (*Add item*) placed under the inputs, with a *Button clicked* rule. **Remove row from list** (the last, the first, a row number or an expression) and **Clear list** go with it.
 
@@ -928,6 +999,117 @@ Beside the rows the run gets \`{{form.line_items_count}}\` (the number of rows) 
 **Prefill a List.** A User Task's prefill (\`field_values\`) takes an array from a workflow variable — \`{ "line_items": "{{order_lines}}" }\` — or JSON text of one; the rows are typed by the columns.
 
 **Where rows show.** Read-only views (completed tasks, submissions, the review step) show the rows and totals; tables of submissions, reports over submissions and the timeline say *3 rows*; the submissions CSV has the rows as JSON plus a \`<key>_count\` column.
+
+### Nested Lists
+
+A column of a List can itself be a List — **Nested list** (\`type: "list"\`) — for orders with their lines, trips with their legs, inspections with their findings. Its \`list\` holds the nested List's own settings: \`columns\` (any column type, calculated and choice included — and one more nested list), \`totals\`, \`min_rows\` / \`max_rows\` (and \`key_column\`, \`on_submit_pending\`, \`row_commit_controls\`). Lists nest **at most 3 levels** (the field's List is level 1), and one value holds at most **2,000 rows over every level** (each level also keeps the 500-row limit).
+
+\`\`\`json title="Orders, each with its lines (USD)"
+{
+  "key": "orders", "label": "Orders", "type": "list",
+  "list": {
+    "entry_mode": "inline",
+    "columns": [
+      { "key": "customer", "label": "Customer", "type": "text", "required": true },
+      { "key": "lines", "label": "Lines", "type": "list", "required": true, "list": {
+        "columns": [
+          { "key": "sku", "label": "SKU", "type": "text", "required": true },
+          { "key": "qty", "label": "Qty", "type": "number", "min": 1, "default": "1" },
+          { "key": "price", "label": "Price", "type": "currency", "currency": "USD" },
+          { "key": "amount", "label": "Amount", "type": "calculated", "formula": "qty * price", "currency": "USD" }
+        ],
+        "totals": [{ "column": "amount", "fn": "sum" }],
+        "max_rows": 50
+      } }
+    ]
+  }
+}
+\`\`\`
+
+**On the form.** Each row has a chevron (or, in an editable table, its *3 lines* button): it opens the row's nested rows under it — an editable table of their own with **Add row**, Remove and the nested totals — and closes them again; both are plain buttons (\`aria-expanded\`), reachable with Tab. On phones (cards) a **Lines (3)** button opens them in a bottom sheet. It works in the list view and in an editable table; read-only views show the nested rows the same way, read-only.
+
+**The value** nests the same way, and every rule of a level applies inside each parent row — types, required columns, read-only columns (with the nested List's own \`key_column\`), min / max rows, choices, calculated columns, blank rows dropped, pending rows. \`required\` on the nested-list column means *at least one row under every row*. The server's errors name the cell: \`orders[1].lines[0].qty\` (*row 2: Lines: row 1: Qty must be at least 1*).
+
+\`\`\`json title="{{form.orders}}"
+[
+  { "customer": "Acme", "lines": [
+      { "sku": "A-1", "qty": 2, "price": 1250, "amount": 2500 },
+      { "sku": "A-2", "qty": 1, "price": 99.5, "amount": 99.5 }
+    ], "lines_count": 2, "lines_total_amount": 2599.5 },
+  { "customer": "Globex", "lines": [{ "sku": "B-1", "qty": 3, "price": 10, "amount": 30 }], "lines_count": 1, "lines_total_amount": 30 }
+]
+\`\`\`
+
+**Totals.** Each parent row carries its nested List's count and totals — \`<child>_count\` and \`<child>_total_<column>\` (\`_avg_\`, \`_count_\`) — shown under its nested table. The run gets, per nested List (its path \`P\` = the column keys joined by \`_\`: \`lines\`, or \`lines_serials\` a level deeper): \`{{form.orders_lines_count}}\` (its rows under every parent row), \`{{form.orders_lines_counts}}\` (the count under each top-level row, in order: \`[2, 1]\`) and \`{{form.orders_total_lines_amount}}\` — the grand total over every parent, also shown under the List as *Total amount · all lines*.
+
+**Rules on a nested List.** The List steps — *Add row to list*, *Edit a row*, *Update a row*, *Remove row*, *Clear list*, *Cancel editing*, *New row*, *Set row values*, *Commit row*, *Discard*, *Revert*, *Delete row(s)* — take **Whose rows** (\`child\`: the nested-list column, \`lines\`; level 3 \`lines.serials\`) and the **parent row** (\`parent_row\`): \`current\` (default — the List's current or editing row, else the row of the event), \`selected\` (each selected row), \`first\`, \`last\`, a number or a template such as \`{{event.row_number}}\` (level 3: one per level, \`2.1\`). Then \`{{row.*}}\` is the nested row and \`{{parent.*}}\` its parent row. Events from nested rows (*Cell changed*, *row created / committed*…) are the List's, with \`event.child\`, \`event.parent\`, \`event.parent_row_number\` and \`event.parent_path\`.
+
+\`\`\`json title="Add a line to the selected order"
+{ "type": "add_list_row", "list_field": "orders", "child": "lines", "parent_row": "selected",
+  "values": { "sku": "{{sku}}", "qty": "{{qty}}", "price": "{{price}}" } }
+\`\`\`
+
+**Loop over it in the workflow.** Loop over \`{{form.orders}}\`, and inside its *Each item* branch loop over \`{{item.lines}}\`: in the inner loop \`{{item.*}}\` is the line and \`{{parent_item.*}}\` the order (\`{{parent_index}}\` its position) — whatever the outer loop's item is called; after the inner loop \`{{item}}\` is the order again. Distinct names work too (outer *item* \`order\`, inner \`line\`: \`{{order.customer}}\`, \`{{line.sku}}\`). The data picker offers \`item.lines\` in the outer loop and the line's columns plus \`parent_item\` in the inner one.
+
+### Validation on List columns and rows
+
+A List column can carry its own **Validation** (column settings → *Add validation*): *show this message when this condition holds*. The message shows on that cell, and the row does not pass. **Row checks** (under the columns, at every level) do the same for the whole row; pick a column under **Show it on** to put the message on that cell, or leave **The row** to show it under the row. Conditions use the rule condition builder with:
+
+| Subject | Means |
+|---|---|
+| \`row.<column>\` | This row's value (typed; calculated columns included). |
+| \`parent.<column>\` | The parent row of a nested List. |
+| \`form.<field>\` | A field of the form. |
+| \`user.roles\`, \`user.teams\`, \`user.email\` | The person (see Roles and teams under Rules). |
+
+Messages take placeholders (\`Only {{form.stock}} in stock\`, \`{{row.sku}}\`). Errors show on the rows when the person submits (or presses Next), and the server checks every row again, nested Lists included, naming the cell (\`orders[1].lines[0].qty\`) or the row (\`orders[2]\`).
+
+\`\`\`json title="A column validation and a row check"
+{ "columns": [
+    { "key": "qty", "label": "Qty", "type": "number",
+      "validations": [{ "if": { "match": "all", "conditions": [{ "column": "row.qty", "operator": "gt", "value": "{{form.stock}}" }] }, "message": "Only {{form.stock}} in stock" }] },
+    { "key": "price", "label": "Price", "type": "currency", "currency": "USD" },
+    { "key": "amount", "label": "Amount", "type": "calculated", "formula": "qty * price", "currency": "USD" } ],
+  "row_validations": [{ "if": { "match": "all", "conditions": [{ "column": "row.amount", "operator": "gt", "value": "5000" }] }, "message": "Lines over $5,000 need a quote", "column": "price" }] }
+\`\`\`
+
+**Where nested rows show.** Summaries read *3 rows (7 lines)*; submissions, tasks and the timeline's detail expand each row to its nested rows. The submissions CSV keeps the List as JSON (nested rows inside their rows) with \`<key>_count\` and one \`<key>_<P>_count\` column per nested List.
+
+### Row pop-out
+
+A row can open as a form in a dialog instead of being filled in across the table — handy when a List has more columns than fit on screen, and on phones.
+
+- **Editable Lists.** Each row has an **Open row** icon, and **Add in form** (beside *Add row*) opens the form for a new row. The form shows the row's columns with their labels, help text, required marks, the right input for each type, read-only columns as values and calculated columns worked out as you type. **Save** checks the row — required, bounds, the column and row validations — and commits it; **Cancel** puts the row back (a new row goes); closing with changes asks first. **Previous / Next** walk the rows ("Row 3 of 12"), saving the row first. A row's nested List shows inside its form as an editable table whose rows open their own form. Changes reach the form as you type, so rules (*Cell changed*, \`{{row.*}}\`, lookups that read the row) work as they do in the table.
+- **Read-only Lists** — submissions, completed tasks, a List read only on a form or step (or made read only by a rule), the timeline — show a **View row** icon: the row as a read-only form with every value formatted (currency in its currency, dates, choice labels, Yes / No, links, pictures, signatures, long text with its line breaks, "—" for nothing); nested rows as a compact table whose rows open the same way.
+- **Layout.** One column in a full-screen sheet below 768px wide, two columns from 768px; long text and nested Lists take the full width.
+
+| Setting (list) | Means |
+|---|---|
+| \`row_editing\` | \`both\` (default): cells in place, plus *Open row* and *Add in form*. \`inline\`: in the table only. \`popout\`: rows read-only in the list, edited only in the form (*Add row* opens it). Phones use the pop-out whenever it is allowed. |
+| \`row_form.title\` | The form's title, e.g. \`Expense: {{row.description}}\` (\`{{row_number}}\` works too). |
+| \`row_form.layout\` | The fields in order with section headings: \`[{ "section": "Cost" }, { "column": "amount" }]\`; columns left out follow. |
+| \`row_form.hide_view_icon\` | Read-only Lists show no *View row* icon. |
+
+The rule step **Open a row in a pop-out form** (\`open_row_form\`) opens a row from a rule: \`row\` is \`current\` (default; else the row of the event), \`selected\`, \`new\` (a pending row with the columns' defaults — *Cancel* removes it), \`first\`, \`last\`, a number or a \`{{template}}\`; \`child\` / \`parent_row\` reach a nested List's row. On a read-only List it opens the row to read.
+
+\`\`\`json title="An expense List edited in a pop-out"
+{ "key": "expenses", "label": "Expenses", "type": "list",
+  "list": { "entry_mode": "inline", "row_editing": "popout",
+    "row_form": { "title": "Expense: {{row.description}}",
+      "layout": [{ "section": "What" }, { "column": "description" }, { "column": "category" },
+                 { "section": "Cost" }, { "column": "amount" }, { "column": "tax" }, { "column": "total" }] },
+    "columns": [
+      { "key": "description", "label": "Description", "type": "text", "required": true },
+      { "key": "category", "label": "Category", "type": "choice", "options": ["Travel", "Meals", "Lodging"] },
+      { "key": "amount", "label": "Amount", "type": "currency", "currency": "USD", "required": true },
+      { "key": "tax", "label": "Tax", "type": "currency", "currency": "USD", "default": "0" },
+      { "key": "total", "label": "Total", "type": "calculated", "formula": "amount + tax", "currency": "USD" } ] } }
+\`\`\`
+
+\`\`\`json title="Open the new row's form from a button"
+{ "id": "r_add_expense", "event": "button_click", "target": "add_expense",
+  "then": [{ "type": "open_row_form", "field": "expenses", "row": "new" }] }
+\`\`\`
 
 ## For each changed row
 
@@ -1076,7 +1258,7 @@ A Label is a field with \`"type": "label"\` and its settings under \`label_confi
 
 ## Attachments
 
-An **Attachments** field (palette group **Files**) takes one or more uploaded files. It works everywhere a form does: task forms, a reusable form's own page (\`/f/<id>\`), a workflow that starts from a form (the Run dialog and **Save & Test**), a workflow's own start form (an attachments input — see below), **Publish as form page**, the Test runner's User Tasks, and the grid and themes.
+An **Attachments** field (palette group **Files & media**) takes one or more uploaded files. It works everywhere a form does: task forms, a reusable form's own page (\`/f/<id>\`), a workflow that starts from a form (the Run dialog and **Save & Test**), a workflow's own start form (an attachments input — see below), **Publish as form page**, the Test runner's User Tasks, and the grid and themes.
 
 **Settings** (Properties → Files): at least / at most so many files (default at most 10; **Required** means at least one), the largest single file (default 10 MB) and all files together, the allowed types — **Documents** (PDF, Word, OpenDocument, RTF, text, Markdown, PowerPoint), **Images** (PNG, JPEG, GIF, WebP, HEIC, BMP, TIFF, SVG), **Spreadsheets** (Excel, OpenDocument, CSV, TSV), **PDF only** or **Any (safe) file**, plus extra extensions or MIME types (\`.dwg\`, \`application/zip\`, \`image/*\`) — and **Offer the camera on phones** when images are allowed. The instance caps every file at \`FORM_ATTACHMENT_MAX_MB\` (default 25 MB, at most 45).
 
@@ -1141,6 +1323,104 @@ An **Attachments** field (palette group **Files**) takes one or more uploaded fi
 - **Deleting.** Deleting a task or a submission (by hand or by a retention policy) deletes its files; the \`form-files-cleanup\` job (every 15 minutes) removes them and expired pending uploads, rows and stored objects.
 
 Exports, packages and GitHub sync carry the field's settings; uploaded files never travel.
+
+## Image
+
+An **Image** field (palette group **Files & media**) takes **one picture** the person provides: **Upload picture** (or drag and drop, or paste), or **Take photo** on a phone when **Offer the camera on phones** is on (the browser opens the back camera, \`capture="environment"\`). The field shows a preview with **Replace** and **Remove**.
+
+\`\`\`json title="An Image field"
+{ "key": "photo", "label": "Photo of the damage", "type": "image", "required": true,
+  "image": { "max_mb": 10, "types": ["jpeg", "png"], "camera": true } }
+\`\`\`
+
+- **Settings** (\`image\`): \`max_mb\` (default 10, at most 20 — the instance cap \`FORM_ATTACHMENT_MAX_MB\` wins), \`types\` (\`png\`, \`jpeg\`, \`webp\`, \`gif\`; default all four), \`camera\`, and \`default_file\` (\`{ name, url }\`: a picture the field starts with, e.g. one uploaded in the designer or imported from InfoPath — kept when the person doesn't provide their own; **Remove** goes back to it).
+- **Value:** one file object — the same shape as one file of an Attachments field (\`{ id, name, size, mime_type, url, storage_ref, uploaded_by, uploaded_at, checksum_sha256 }\`) — or null. \`{{form.photo}}\` / \`{{task_data.photo}}\` is that object (not a list), so it goes straight into **Send Email → Attachments**, the media actions (analyse or redact a photo) and the file steps. A default picture is stored as \`{ name, url, mime_type, is_default: true }\`.
+- **Safe by design:** the picture goes through the [Attachments](#attachments) pipeline — private storage, pending until the form is submitted, the content checked by its bytes (a text file renamed \`.png\` is refused), size limits and the optional virus scan.
+- **Metadata removed.** Before a picture is stored the server strips its metadata: from JPEG the EXIF block (camera, dates and **GPS location**), XMP, Photoshop / IPTC data and comments; from PNG the \`eXIf\`, \`tEXt\`, \`zTXt\`, \`iTXt\` and \`tIME\` chunks; from WebP the \`EXIF\` and \`XMP\` chunks. Pixels and colour profiles are untouched, and a photo the camera stored sideways keeps only its orientation so it still shows the right way up. GIFs carry no such metadata.
+- **Shown** as a thumbnail on the task, in the submission view and in completed tasks; summaries and exports use the file name.
+
+## Display image
+
+A **Picture (display)** element (palette group **Layout**) puts a static picture or logo in the form: it holds no value. Upload the image in the designer (PNG, JPEG, WebP or GIF up to 2 MB — stored with the form's files, metadata stripped) or give an **https** address, then write its **Alt text** — required: screen readers announce it instead of the picture, and the accessibility checker reports a picture without one (**Add alt text** fixes it).
+
+\`\`\`json title="A Display image"
+{ "key": "logo", "label": "Logo", "type": "display_image",
+  "display_image": { "src": "https://example.com/acme-logo.png", "alt": "Acme Ltd", "width": "sm", "align": "center" } }
+\`\`\`
+
+\`src\` is an https URL, an uploaded image's \`storage://…\` reference (or its \`/files/…\` address), or a small inline \`data:image/png|jpeg|webp|gif;base64,…\` under 512 KB — never \`javascript:\` or other \`data:\` content. \`width\` is \`sm\` (160 px), \`md\` (320 px, default), \`lg\` (480 px) or \`full\` (the cell's width); \`align\` is \`left\` (default), \`center\` or \`right\`. Like a heading it can have **Visible when**.
+
+## Signature
+
+A **Signature** field (palette group **Files & media**) asks the person to sign: **Draw** on a pad with a mouse, finger or pen (smoothed strokes, **Undo**, **Redo**, **Clear**), or **Type instead** — their name rendered in a script face, which is also how keyboard users sign. **Use this signature** turns it into a PNG that is uploaded like an attachment (pending until submit). The field shows its label, your **statement** (for example *I confirm the information above is correct.*) and the note *"This is an electronic signature, not a cryptographic digital signature."*
+
+> **An electronic signature, not a digital one.** A Signature field records that a signed-in person (or a visitor) adopted a mark on this form at a time the server recorded. It is not a cryptographic digital signature: nothing seals the document or proves it wasn't changed afterwards. Check what your process and jurisdiction require before relying on it.
+
+\`\`\`json title="A Signature field"
+{ "key": "signature", "label": "Signature", "type": "signature", "required": true,
+  "signature": { "mode": "both", "statement": "I confirm the information above is correct.", "capture_audit": true } }
+\`\`\`
+
+- **Settings** (\`signature\`): \`mode\` — \`draw\`, \`type\` or \`both\` (default); \`statement\`; \`capture_audit\` — also record the signer's IP address and browser (user agent), default off; \`resign_on_change\` — when another answer changes after the person signed (in the same visit), the signature is cleared and they're asked to sign again, default off.
+- **Value:** \`{ file, method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }\` — \`file\` is the PNG's file object, \`method\` \`draw\` or \`type\`, \`typed_name\` the name typed.
+- **Set by the server, never the browser:** \`user_id\` and \`user_name\` (the signed-in person; absent for a public form's visitor), \`signed_at\` (the browser's time only when it is plausible — within the last day and not in the future — else the server's time) and, only with \`capture_audit\`, \`ip\` and \`user_agent\`. Values a browser or API caller sends for these are ignored. A draft that already holds the same signature keeps its original stamp.
+- **Checks:** required means a signature must be present; the value's shape and method are checked, and the file must be a PNG this person uploaded into this form or task.
+- **After submit** the signature is read-only: the task, the submission view and completed tasks show the image and *"Signed by Ada Lovelace on 11 Nov 2026 14:02"*; summaries and exports use that line.
+
+## Rich text
+
+A **Rich text** field (palette group **Text**) takes formatted text: a small editor with a toolbar — **Basic** (bold, italic, underline, bulleted and numbered lists, link, clear formatting) or **Full** (adds strikethrough, heading, subheading, quote and code). The toolbar is one tab stop (arrow keys move between its buttons, each says whether it is on); **Ctrl/Cmd+B / I / U** format and **Ctrl/Cmd+K** adds a link. A counter shows the characters used.
+
+\`\`\`json title="A Rich text field"
+{ "key": "summary", "label": "Summary", "type": "rich_text", "required": true,
+  "rich_text": { "max_length": 5000, "toolbar": "basic" } }
+\`\`\`
+
+- **Value:** sanitised HTML. The server rebuilds every submission from an allowlist — \`p\`, \`br\`, \`strong\` / \`b\`, \`em\` / \`i\`, \`u\`, \`s\`, \`ul\`, \`ol\`, \`li\`, \`h3\`, \`h4\`, \`blockquote\`, \`code\` and links (\`a\` with an **https** or **mailto** address only, opened in a new tab with \`rel="noopener noreferrer"\`). Scripts, styles, event handlers, images, \`javascript:\` / \`data:\` links and every other element are removed (their text kept); what the browser sends is never stored as is. Plain text sent by the API or a workflow becomes paragraphs.
+- **Plain text:** the server also stores \`<key>_text\` — the same content without markup — for conditions, e-mails and exports: \`{{form.summary_text}}\` / \`{{task_data.summary_text}}\`. Exports (CSV) use the plain text.
+- **Checks:** \`max_length\` counts the characters of text, not the markup (default 20000, at most 100000); **Required** means some text (an empty paragraph is blank).
+- Read-only views show the formatted text. A plain **Long text** (\`textarea\`) field is unchanged.
+
+## Text list
+
+A **Text list** field (palette group **Text**) collects a list of short items — InfoPath's bulleted, numbered and plain lists. Each item is its own input: **Enter** adds the next item, **Backspace** in an empty item removes it, **↑ / ↓** move between items and **Alt+↑ / Alt+↓** (or the arrow buttons) reorder them; **Add item** adds one at the end.
+
+\`\`\`json title="A Text list field"
+{ "key": "actions", "label": "Next actions", "type": "text_list",
+  "text_list": { "style": "numbered", "min_items": 1, "max_items": 10, "item_max_length": 200 } }
+\`\`\`
+
+- **Settings** (\`text_list\`): \`style\` — \`bulleted\` (default), \`numbered\` or \`plain\`; \`min_items\`; \`max_items\` (default 50, at most 500); \`item_max_length\` (default 500, at most 5000).
+- **Value:** an array of strings, in order. Blank items are dropped; text with one item per line (or a JSON array) is accepted from the API, workflows and defaults. **Required** means at least one item.
+- In a workflow, loop over \`{{form.actions}}\` (each item is \`{{item}}\`). Read-only views draw the items with the chosen markers; exports put one item per line.
+
+## Links with display text
+
+A **URL** field can show link text instead of the address — InfoPath's hyperlink with display text. Under **Link display** pick a text field holding the text (\`text_field\`) and / or type static **Link text** (\`link_text\`); read-only views, submissions and summaries then show *Contract MSA 2026 ↗* rather than the raw URL. **Open in a new tab** (\`new_tab\`, default on) adds \`rel="noopener noreferrer"\`.
+
+\`\`\`json title="A URL with link text"
+{ "key": "contract_url", "label": "Contract", "type": "url",
+  "url_config": { "text_field": "contract_name", "link_text": "Open the contract", "new_tab": true } }
+\`\`\`
+
+The value stays the URL string. Only **http**, **https** and **mailto** addresses are accepted, and only those ever become a link — \`javascript:\`, \`data:\` and other schemes are refused on submit.
+
+## People and teams
+
+A **Person** field picks one person by default (its value one user id, as always). Under **People**, **Several people** (\`multiple\`) and **Teams too** (\`allow_teams\`) turn it into a person / group picker: the picks show as chips (each with a remove button) above a type-to-filter picker; \`max\` limits several picks (default 20, at most 100).
+
+\`\`\`json title="Several people and teams"
+{ "key": "reviewers", "label": "Reviewers", "type": "user", "required": true,
+  "user_config": { "multiple": true, "allow_teams": true, "max": 5 } }
+\`\`\`
+
+- **Value:** without \`multiple\` / \`allow_teams\`, one user id string (unchanged). With either, an array — \`[{ "kind": "user", "id": "…", "name": "Ada Lovelace" }, { "kind": "team", "id": "…", "name": "Finance" }]\` (one person or team at most without \`multiple\`).
+- **Checked on the server:** every user must be a member of the workspace and every team one of its teams; \`name\` is set from the workspace on submit, never taken from what was sent. The API and workflows may send ids, \`"user:<id>"\` / \`"team:<id>"\` strings or the objects.
+- In a workflow, loop over \`{{form.reviewers}}\` (\`{{item.kind}}\`, \`{{item.id}}\`, \`{{item.name}}\`). Read-only views show the names; public (anonymous) forms leave Person fields out.
+
+## Multi-select display
+
+A **Multi-select** field shows its options as pills (default), as a column of **Checkboxes** (\`"display": "checkboxes"\`) or as a **List box** (\`"display": "listbox"\`) — a bordered, scrolling box of checkboxes like InfoPath's multiple-selection list box. The value is the same array of strings.
 
 ## Header
 
@@ -1293,13 +1573,22 @@ An edit that no longer fits the old place — AND / OR groups on a visibility ru
 
 ### If: conditions
 
-The same condition builder as a Data table's filter: conditions in an **All (AND)** or **Any (OR)** group, with one nested group. A condition tests a form field (or an autocomplete's \`<key>_label\`), a state flag (\`state.<flag>\`), the current user (\`user.email\`, \`user.name\`, \`user.id\`) or the event (\`event.row.city\`). The value can be fixed or a template — \`{{start_date}}\` compares two fields (dates and numbers compare as dates and numbers). No conditions: the rule always runs on its event.
+The same condition builder as a Data table's filter: conditions in an **All (AND)** or **Any (OR)** group, with one nested group. A condition tests a form field (or an autocomplete's \`<key>_label\`), a state flag (\`state.<flag>\`), the current user (\`user.email\`, \`user.name\`, \`user.id\`, \`user.roles\`, \`user.teams\`) or the event (\`event.row.city\`). The value can be fixed or a template — \`{{start_date}}\` compares two fields (dates and numbers compare as dates and numbers). No conditions: the rule always runs on its event.
+
+**Roles and teams.** \`user.roles\` is the list of the person's workspace roles (each by its name, its slug and its id) and \`user.teams\` the teams they belong to (name and id). Test them with **contains** — *Current user: roles contains Manager* is "has the Manager role" — and **does not equal** for "doesn't have it". Comparisons ignore case, and the value can be a template (\`{{form.approver_role}}\`). People on a public link have no roles or teams. The browser uses them to show, hide and check things as the person works; at submit the server works out the person's roles and teams itself and judges every Always rule, Validate rule, rule-made change and server step that reads them with its own copy — never anything the browser sends.
+
+\`\`\`json title="Only managers approve amounts over $10,000"
+{ "id": "r_mgr", "event": "always",
+  "if": { "match": "all", "conditions": [{ "column": "amount", "operator": "gt", "value": "10000" }, { "column": "user.roles", "operator": "neq", "value": "Manager" }] },
+  "then": [{ "type": "field_error", "field": "amount", "text": "Amounts over $10,000 need a manager" }] }
+\`\`\`
 
 ### Then: actions
 
 | Group | Actions |
 |---|---|
 | **Show / hide** | show / hide / toggle fields, sections, rows and steps / tabs; enable / disable fields; make a control, section, step / tab or the whole form read only (or editable again); collapse / expand a section; load a section, step or tab ([When to load](#when-to-load-faster-forms)) |
+| **Style** | colour and emphasise fields and sections while the condition holds (**Always** rules — see [Conditional styling](#conditional-styling)) |
 | **Validate** | show an error on a field; block submit with a message; validate the form or step |
 | **Update values** | set or calculate values (\`{{qty}}\`, \`{{=SUM(qty, 2)}}\`); clear fields; set or toggle a flag |
 | **Transfer data** | copy values into fields (from the clicked row or the selected item: \`{{event.row.name}}\`); run an autocomplete's lookup; refresh a Data table or autocomplete |
@@ -1350,6 +1639,31 @@ Rules run in list order — drag them (or use the arrows) to reorder; the later 
   "if": { "match": "all", "conditions": [{ "column": "status", "operator": "eq", "value": "Approved" }] },
   "then": [{ "type": "read_only", "mode": "read_only", "targets": ["form:*"] }] }
 \`\`\`
+
+### Conditional styling
+
+Colour a field or a section while a condition holds — InfoPath's conditional formatting. Add an **Always** rule, then **Then → Style → Style fields / sections**: pick the fields and sections, a **colour** (Danger, Warning, Success, Info, Accent, Neutral) and what it does — **Shade the background**, **Colour the text**, **Bold**, **Italic**, **Underline**, **Strikethrough**, **Emphasise the border**, **Tone icon beside the label**. The preview chip shows the result. The style applies while the condition holds and goes when it stops; several rules on one field combine, the later rule winning per setting (a later tone replaces an earlier one, the switches add up). A section is styled as a block (its border, background and text); an older heading-made section styles each field in it.
+
+- **Lists:** a List (every nesting level) has **Row styles** under its row checks: a condition per row — the same subjects as validations (\`row.<column>\`, \`parent.<column>\`, \`form.<field>\`, \`user.*\`) — and the style of **the whole row** or **only one cell**. Rows are styled in the table, on phones' cards, in nested tables and in the row pop-out (read-only too).
+- **Everywhere the values show:** editable forms, completed tasks, read-only steps, submissions and the row pop-out all draw the styles — the condition is worked out from the values.
+- **Theme colours only:** a style is a tone and switches, never CSS. Each tone uses the theme's own tokens (the danger / warning / success / info colours on their washes, the brand colour on the brand wash, the text colour on the muted fill), which reach WCAG AA (4.5:1) on their wash and on the card in every built-in theme, light and dark; form themes keep them readable on the form's own card.
+- **Presentation only:** the server keeps and checks the style's shape but never acts on it; what is submitted and validated is unchanged.
+
+**Accessibility: don't rely on colour alone.** Some people can't tell red from green, and screen readers don't announce colour. Turn on **Tone icon beside the label** — the icon is announced by name ("Alert", "Warning", "OK", "Note", "Highlighted") — and use **Bold** or a short message as well. The designer reminds you when a style changes colour only.
+
+\`\`\`json title="Always → amounts over USD 1,000 turn red, with an icon"
+{ "id": "r_big", "name": "Flag large amounts", "event": "always",
+  "if": { "match": "all", "conditions": [{ "column": "amount", "operator": "gt", "value": "1000" }] },
+  "then": [{ "type": "set_style", "targets": ["field:amount"], "style": { "tone": "danger", "background": true, "text": true, "bold": true, "icon": true } }] }
+\`\`\`
+
+\`\`\`json title="List row styles: a whole row and one cell"
+{ "row_styles": [
+    { "if": { "match": "all", "conditions": [{ "column": "row.amount", "operator": "gt", "value": "5000" }] }, "style": { "tone": "danger", "background": true, "icon": true } },
+    { "if": { "match": "all", "conditions": [{ "column": "row.status", "operator": "eq", "value": "Paid" }] }, "style": { "tone": "success", "text": true, "bold": true }, "column": "status" } ] }
+\`\`\`
+
+In JSON: \`{ "type": "set_style", "targets": ["field:<key>" | "section:<key>"], "style": { "tone"?: "success" | "warning" | "danger" | "info" | "neutral" | "accent", "background"?, "text"?, "bold"?, "italic"?, "underline"?, "strike"?, "border"?, "icon"? } }\` (each switch \`true\` or left out; a tone alone shades and colours). \`set_style\` belongs to **Always** rules. A List's \`row_styles\` is \`[{ "if", "style", "column"? }]\` (up to 20).
 
 ### Before submit on steps, bar buttons and read-only fields
 

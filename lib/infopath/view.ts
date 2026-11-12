@@ -66,9 +66,9 @@ const XCT_KIND: Record<string, IpControlKind> = {
   datetimepicker: 'datetime',
 }
 
-const SECTION_XCT = new Set(['section', 'optionalsection', 'repeatingsection'])
+const SECTION_XCT = new Set(['section', 'optionalsection', 'repeatingsection', 'choicesection'])
 const INNER_PARTS = new Set(['dtpicker_dttext', 'dtpicker_dtbutton'])
-const SKIP_TAGS = new Set(['script', 'style', 'head', 'title', 'meta', 'link', 'colgroup', 'col', 'object-param', 'img'])
+const SKIP_TAGS = new Set(['script', 'style', 'head', 'title', 'meta', 'link', 'colgroup', 'col', 'object-param'])
 
 function textChildren(el: XmlElement): string {
   return el.children.filter((c): c is string => typeof c === 'string').join(' ').replace(/\s+/g, ' ').trim()
@@ -169,7 +169,7 @@ function isSectionEl(el: XmlElement): boolean {
   const xct = (xd(el, 'xctname') ?? '').toLowerCase()
   if (SECTION_XCT.has(xct)) return true
   const c = cls(el)
-  return el.local === 'div' && (/\bxdsection\b/.test(c) || /\bxdrepeatingsection\b/.test(c))
+  return el.local === 'div' && (/\bxdsection\b/.test(c) || /\bxdrepeatingsection\b/.test(c) || /\bxdchoicesection\b/.test(c))
 }
 
 function isRepeatingTable(el: XmlElement): boolean {
@@ -245,6 +245,8 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
     if (disable === 'yes') control.read_only = true
     const datafmt = (xd(bindingEl, 'datafmt') ?? '').toLowerCase()
     if (datafmt) control.format = datafmt.split(',')[0].replace(/"/g, '')
+    const fmtOptions = datafmt.split(',').slice(1).join(',').replace(/"/g, '').trim()
+    if (fmtOptions) control.format_options = fmtOptions
     if ((kind === 'date' || kind === 'text') && datafmt.includes('"datetime"')) control.kind = 'datetime'
     else if (kind === 'text' && datafmt.includes('"date"')) control.kind = 'date'
     else if (kind === 'text' && datafmt.includes('"time"')) control.kind = 'time'
@@ -254,6 +256,7 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
       if (on !== undefined) control.on_value = on
       if (off !== undefined) control.off_value = off
     }
+    if (kind === 'bulleted_list') control.list_style = xct.includes('plainnumbered') || xct === 'plainlist' ? 'plain' : xct.includes('numbered') ? 'numbered' : 'bulleted'
     if (kind === 'button') {
       const caption = attr(el, 'value') ?? plainText(el)
       if (caption) control.caption = caption
@@ -337,6 +340,14 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
     const el = node
     if (SKIP_TAGS.has(el.local) && !el.name.startsWith('xsl:')) return
     if (el.name.startsWith('xsl:')) return walkXsl(el, ctx, items, depth)
+    if (el.local === 'img') {
+      // A picture placed in the view (a file in the template): a display image. Built-in resources (res://) are skipped.
+      const src = (attr(el, 'src') ?? '').trim()
+      if (src && !/^(res|https?|data):/i.test(src) && !xd(el, 'binding')) {
+        items.push({ id: `IMG${++generated}`, kind: 'static_image', xctname: 'img', src: src.replace(/^.*[\\/]/, ''), alt: attr(el, 'alt') ?? attr(el, 'title') ?? '', row: ctx.inCell ? ctx.row : nextRow(), col: ctx.col, context: ctx.path, formatting: [] })
+      }
+      return
+    }
     if (/optionalplaceholder/.test(cls(el)) || /xCollection::insert|xOptional::insert/.test(xd(el, 'action') ?? '')) return
     if (isRepeatingTable(el)) return repeatingTable(el, ctx, items, depth)
     if (isSectionEl(el)) return section(el, ctx, items, depth)
@@ -368,6 +379,15 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
         // Show conditions per branch (when / otherwise).
         const branches = elements(el)
         const tests: string[] = []
+        // InfoPath choice group: each branch applies a template whose section is a choice section.
+        const choiceBranches = branches.filter((b) => findDesc(b, (e) => /choicesection|xdchoicesection/i.test(`${xd(e, 'xctname') ?? ''} ${cls(e)}`)) || isChoiceTemplate(b))
+        if (choiceBranches.length >= 2) {
+          const group = `CG${++generated}`
+          const before = items.length
+          for (const b of branches) walkChildren(b, { ...ctx }, items, depth)
+          for (const item of items.slice(before)) if (item.kind === 'section' || item.kind === 'optional_section') item.choice_group = group
+          return
+        }
         for (const b of branches) {
           if (b.local === 'when') { const t = attr(b, 'test') ?? ''; walkChildren(b, { ...ctx, showIf: [...ctx.showIf, t] }, items, depth); tests.push(t) }
           else if (b.local === 'otherwise') walkChildren(b, { ...ctx, showIf: [...ctx.showIf, ...tests.map((t) => `not(${t})`)] }, items, depth)
@@ -411,6 +431,14 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
       case 'call-template': return
       default: return walkChildren(el, ctx, items, depth)
     }
+  }
+
+  /** A branch applying a template whose root is a choice section. */
+  function isChoiceTemplate(branch: XmlElement): boolean {
+    const apply = findDesc(branch, (e) => e.name === 'xsl:apply-templates')
+    if (!apply) return false
+    const tpl = (byMode.get(attr(apply, 'mode') ?? '') ?? [])[0]
+    return Boolean(tpl && findDesc(tpl, (e) => /choicesection|xdchoicesection/i.test(`${xd(e, 'xctname') ?? ''} ${cls(e)}`)))
   }
 
   function section(el: XmlElement, ctx: Ctx, items: IpViewItem[], depth: number) {
@@ -582,6 +610,9 @@ export function associateLabels(items: IpViewItem[]) {
       continue
     }
     if (before) { item.label = before.text.replace(/:\s*$/, ''); consumed.add(before); continue }
+    // "Phone:" in its own block just before the control (sections laid out without tables).
+    const prev = items[idx - 1]
+    if (prev && prev.kind === 'static' && !consumed.has(prev) && /:\s*$/.test(prev.text) && prev.text.length <= 80) { item.label = prev.text.replace(/:\s*$/, ''); consumed.add(prev); continue }
     // The nearest cell to the left in the same row, with no control in between.
     const left = texts.filter((t) => t.row === item.row && t.col < item.col && !consumed.has(t)).sort((a, b) => b.col - a.col)[0]
     if (left && !controls(item.row).some((c) => c !== item && c.col > left.col && c.col < item.col)) { item.label = left.text.replace(/:\s*$/, ''); consumed.add(left); continue }

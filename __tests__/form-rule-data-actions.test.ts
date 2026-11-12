@@ -429,3 +429,36 @@ describe('options a rule loaded are checked on submit', () => {
     expect(bad.errors.state).toMatch(/not one of the options/)
   })
 })
+
+describe('on-load data (form_load rules) and role-gated server steps', () => {
+  const ONLOAD = [
+    // Options for a choice from a table when the form opens.
+    { id: 'r_onload_opts', event: 'form_load', then: [{ type: 'table_list', table_id: PRODUCTS, sort: [{ column: 'name', direction: 'asc' }], outputs: [{ path: '', to: 'state', as: 'options', value_path: 'sku', label_path: 'name' }] }] },
+    // A field from an API reference when the form opens.
+    { id: 'r_onload_ref', event: 'form_load', then: [{ type: 'call_reference', reference_id: 'ref-crm', inputs: { email: '{{form.email}}' }, outputs: [{ path: 'customer.name', to: 'customer_name' }] }] },
+    // Only managers load the price list (judged on the server with its own view of the person).
+    { id: 'r_onload_mgr', event: 'form_load', if: { match: 'all', conditions: [{ column: 'user.roles', operator: 'contains', value: 'Manager' }] }, then: [{ type: 'table_list', table_id: PRODUCTS, outputs: [{ path: '', to: 'products' }] }] },
+  ]
+  beforeEach(() => { forms[FORM].layout = { ...LAYOUT, rules: [...LAYOUT.rules, ...ONLOAD] } })
+
+  it('table_list on form load fills a choice\'s options; call_reference on form load fills a field', async () => {
+    const opts = await run(USER, 'r_onload_opts', {})
+    expect(opts.options).toEqual({ state: [{ value: 'A-1', label: 'Anvil' }, { value: 'B-2', label: 'Bolt' }] })
+    const ref = await run(USER, 'r_onload_ref', { email: 'ada@example.com' })
+    expect(ref.values).toEqual({ customer_name: 'Acme Ltd' })
+    // The browser dispatches form_load once when the form opens; these rules are what it finds.
+    const { rulesForEvent } = await import('@/lib/forms/form-rules')
+    expect(rulesForEvent(normalizeFormRules(forms[FORM].layout.rules), { type: 'form_load' }).map((r) => r.id)).toEqual(['r_onload_opts', 'r_onload_ref', 'r_onload_mgr'])
+    // A choice whose options a rule loads takes the loaded value on submit (checked against the saved step).
+    const { verifyRuleOptions } = await import('@/lib/services/form-rule-actions')
+    expect(await verifyRuleOptions(USER, { form_id: FORM }, { state: 'B-2' })).toEqual({})
+  })
+
+  it('a step whose condition reads the user runs only when the server\'s own user meets it (roles never taken from the browser)', async () => {
+    // u1 has no roles in this workspace: refused, whatever the browser claims.
+    await expect(run(USER, 'r_onload_mgr', { user: { roles: ['Manager'] } }, { user: { roles: ['Manager'] } })).rejects.toThrow(/conditions do not hold/)
+    // Anonymous visitors have no roles either.
+    forms[FORM].layout.rules = forms[FORM].layout.rules.map((r: any) => (r.id === 'r_onload_mgr' ? { ...r, then: [{ ...r.then[0], allow_anonymous: true }] } : r))
+    await expect(run(anon(), 'r_onload_mgr', {})).rejects.toThrow(/conditions do not hold/)
+  })
+})

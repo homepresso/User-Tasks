@@ -10,6 +10,8 @@
  * small helpers the UI, REST, MCP and the Agent all use.
  */
 
+import type { ListFieldConfig, ListRow } from '@/lib/forms/list-field'
+
 export type TimelineKind =
   | 'started' | 'task_created' | 'accepted' | 'held' | 'declined'
   | 'reassigned' | 'redirected' | 'escalated' | 'took_ownership'
@@ -38,7 +40,15 @@ export interface TimelineLink {
   href: string
 }
 
-export interface TimelineField { label: string; value: string }
+export interface TimelineField {
+  label: string
+  value: string
+  /** A List field: its config and rows (at most TIMELINE_LIST_ROWS) — the timeline opens them read-only, each row in its pop-out. */
+  list?: { config: ListFieldConfig; rows: ListRow[] }
+}
+
+/** Rows of a List a timeline field carries. */
+export const TIMELINE_LIST_ROWS = 50
 
 export interface TimelineEvent {
   id: string

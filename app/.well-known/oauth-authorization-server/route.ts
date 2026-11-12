@@ -4,6 +4,7 @@ import { appBaseUrl } from '@/lib/oauth/redirect'
 import { OAUTH_SCOPES } from '@/lib/oauth/scopes'
 import { OAUTH_CORS_HEADERS } from '@/lib/oauth/errors'
 import { USERTASKS_CLI_CLIENT_ID } from '@/lib/oauth/first-party'
+import { isCloud } from '@/lib/deployment'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +45,9 @@ export async function GET(_request: NextRequest) {
       code_challenge_methods_supported: ['S256'],
       token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
       ...(cliId ? { usertasks_cli_client_id: cliId } : {}),
+      // Cloud edition only: where a new user creates an account (the CLI's
+      // login hint). Self-hosted sign-in is invite-only, so no field there.
+      ...(isCloud() ? { usertasks_signup_url: `${base}/start` } : {}),
     },
     { headers: { ...OAUTH_CORS_HEADERS, 'Cache-Control': 'public, max-age=3600' } },
   )

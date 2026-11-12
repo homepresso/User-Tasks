@@ -137,7 +137,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     case 'complete': {
       const taskMetadata = (task.metadata ?? {}) as Record<string, unknown>
-      const { errors: fieldErrors, templateValues } = await mergeTaskFieldValuesChecked(supabase, tenantId, taskMetadata, body.values, { taskId })
+      const { errors: fieldErrors, templateValues } = await mergeTaskFieldValuesChecked(supabase, tenantId, taskMetadata, body.values, { taskId, actorId: actingUserId ?? null })
       if (Object.keys(fieldErrors).length > 0) {
         return err(`Invalid field values: ${Object.values(fieldErrors).join('; ')}`, 400)
       }

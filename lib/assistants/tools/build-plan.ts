@@ -318,7 +318,7 @@ export function formRulesProblems(fields: TaskFieldDef[], layout: unknown): stri
     fieldKeys: new Set(fields.map((f) => f.key)),
     valueKeys: new Set(fields.filter((f) => !isDisplayField(f) && !f.read_only).map((f) => f.key)),
     writableKeys: new Set(fields.filter((f) => !isDisplayField(f)).map((f) => f.key)),
-    fieldTypes: new Map(fields.map((f) => [f.key, f.type])),
+    fieldTypes: new Map(fields.map((f) => [f.key, f.type === 'repeating_section' ? 'list' : f.type])),
     headingKeys: new Set(fields.filter((f) => f.type === 'heading').map((f) => f.key)),
     pageIds: new Set(Array.isArray((layout as any)?.pages) ? (layout as any).pages.map((p: any) => String(p?.id ?? '')) : []),
     flags: new Set(Array.isArray((layout as any)?.state?.flags) ? (layout as any).state.flags.map((f: any) => String(f?.key ?? '')) : []),

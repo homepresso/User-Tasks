@@ -33,6 +33,9 @@ export function AutocompleteSelect({
   labelledBy,
   describedBy,
   invalid,
+  buttonRef,
+  onKeyDown,
+  dataAttrs,
 }: {
   value: string | null | undefined
   onChange: (value: string) => void
@@ -49,6 +52,12 @@ export function AutocompleteSelect({
   labelledBy?: string
   describedBy?: string
   invalid?: boolean
+  /** The trigger button (focus management, e.g. a grid's cells). */
+  buttonRef?: (el: HTMLButtonElement | null) => void
+  /** Keys on the closed trigger (e.g. Enter to move to the next cell). */
+  onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void
+  /** data-* attributes for the trigger. */
+  dataAttrs?: Record<`data-${string}`, string | undefined>
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -97,8 +106,11 @@ export function AutocompleteSelect({
   return (
     <div ref={rootRef} className={cn('relative', className)}>
       <button
+        ref={buttonRef}
         type="button"
         id={id}
+        {...dataAttrs}
+        onKeyDown={onKeyDown}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-labelledby={labelledBy && id ? `${labelledBy} ${id}` : undefined}
@@ -135,6 +147,7 @@ export function AutocompleteSelect({
         anchorRef={rootRef}
         open={open}
         onDismiss={() => { setOpen(false); setQuery('') }}
+        closeOnEscape
         minWidth={200}
         maxHeight={300}
         className="flex flex-col overflow-hidden rounded-lg border shadow-lg bg-panel border-border"

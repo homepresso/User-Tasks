@@ -491,28 +491,39 @@ const timing: Rule = {
 }
 
 const imageAlt: Rule = {
-  info: { rule: 'image-alt', title: 'Header images have alternative text', wcag: ['1.1.1'], level: 'A' },
+  info: { rule: 'image-alt', title: 'Images have alternative text', wcag: ['1.1.1'], level: 'A' },
   run: ({ def }) => {
-    const h = def.header
-    if (!h?.enabled || !blank(h.image_alt)) return []
-    if (h.image === 'upload') {
-      return [finding({
-        id: 'image-alt:header', rule: 'image-alt', severity: 'serious', wcag: ['1.1.1'],
-        message: 'The uploaded header image has no alternative text.',
-        help: 'Describe what the image shows (or the organisation for a logo). It is announced instead of the image.',
-        fix: { kind: 'header', label: 'Add alt text', patch: { image_alt: '' }, prompt: { property: 'image_alt', question: 'Describe the header image', suggestion: h.title ? `${h.title} logo` : '' } },
-      })]
-    }
-    if (h.image === 'workspace_logo' && blank(h.title)) {
-      return [finding({
-        id: 'image-alt:logo', rule: 'image-alt', severity: 'moderate', wcag: ['1.1.1'],
-        message: 'The workspace logo is the only thing in the header and it has no alternative text.',
-        help: 'Add a title or alt text naming the organisation.',
-        fix: { kind: 'header', label: 'Add alt text', patch: { image_alt: '' }, prompt: { property: 'image_alt', question: 'Name of the organisation in the logo', suggestion: '' } },
-      })]
-    }
-    return []
+    // Display images in the layout (lib/forms/media-fields.ts): alt text is required.
+    const pictures: AccessibilityFinding[] = def.fields.filter((f) => f.type === 'display_image' && blank(f.display_image?.alt)).map((f) => finding({
+      id: `image-alt:${f.key}`, rule: 'image-alt', severity: 'serious', wcag: ['1.1.1'], field_key: f.key,
+      message: `The picture "${f.label || f.key}" has no alternative text.`,
+      help: 'Describe what the picture shows (or name the organisation for a logo). Screen readers announce it instead of the picture.',
+      fix: { kind: 'field', label: 'Add alt text', field_key: f.key, patch: { display_image: { ...(f.display_image ?? { src: '' }), alt: '' } }, prompt: { property: 'display_image.alt', question: 'Describe the picture', suggestion: f.label && !/^picture( \d+)?$/i.test(f.label) ? f.label : '' } },
+    }))
+    return [...pictures, ...headerImageAlt(def)]
   },
+}
+
+function headerImageAlt(def: FormDefinition): AccessibilityFinding[] {
+  const h = def.header
+  if (!h?.enabled || !blank(h.image_alt)) return []
+  if (h.image === 'upload') {
+    return [finding({
+      id: 'image-alt:header', rule: 'image-alt', severity: 'serious', wcag: ['1.1.1'],
+      message: 'The uploaded header image has no alternative text.',
+      help: 'Describe what the image shows (or the organisation for a logo). It is announced instead of the image.',
+      fix: { kind: 'header', label: 'Add alt text', patch: { image_alt: '' }, prompt: { property: 'image_alt', question: 'Describe the header image', suggestion: h.title ? `${h.title} logo` : '' } },
+    })]
+  }
+  if (h.image === 'workspace_logo' && blank(h.title)) {
+    return [finding({
+      id: 'image-alt:logo', rule: 'image-alt', severity: 'moderate', wcag: ['1.1.1'],
+      message: 'The workspace logo is the only thing in the header and it has no alternative text.',
+      help: 'Add a title or alt text naming the organisation.',
+      fix: { kind: 'header', label: 'Add alt text', patch: { image_alt: '' }, prompt: { property: 'image_alt', question: 'Name of the organisation in the logo', suggestion: '' } },
+    })]
+  }
+  return []
 }
 
 /** The form's Submitted page (lib/forms/submitted-page.ts): it replaces the form, so it needs a heading, and an uploaded image a text alternative. */

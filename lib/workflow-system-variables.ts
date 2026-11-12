@@ -89,7 +89,8 @@ export const STEP_DEFAULT_OUTPUTS: Record<string, readonly string[]> = {
   read_file: ['file_content'],
   file_to_base64: ['base64', 'file_content'],
   base64_to_file: ['file_url'],
-  loop: ['item', 'index'],
+  // parent_item / parent_index: the outer loop's item inside a nested loop (lib/workflow-engine.ts).
+  loop: ['item', 'index', 'parent_item', 'parent_index'],
   loop_n_times: ['i', 'index', 'iteration'],
   run_agent: ['agent_response'],
   doc_word: ['doc_file'],

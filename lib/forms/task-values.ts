@@ -14,11 +14,22 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { FileValueContext } from '@/lib/services/form-files'
-import { coerceTaskFieldValues, holdsFiles, mergeTaskFieldValues, normalizeTaskFields } from '@/lib/task-field-schema'
+import { coerceTaskFieldValues, mergeTaskFieldValues, normalizeTaskFields, usesFileUploads } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
+import { isPeopleList, normalizePeopleValue } from './people-field'
 import { CONTROLS_KEY, FORM_PARAMS_KEY, FORM_VARS_KEY, hasFormContext, includedFormContext, serverFormContext, stripFormContext } from './form-params'
 import { serverControlEntries } from './rule-variables'
 import { readsTableRows } from './label-field'
+import { loadRuleUser } from '@/lib/services/form-rule-user'
+import { innerFieldsDeep } from '@/lib/forms/repeating-section'
+
+/** Whether a form's rules, sections or List validations read the user (`user.*`): the server then loads its own view of the submitter. */
+export function readsRuleUser(metadata: Record<string, unknown> | null | undefined): boolean {
+  const layout = isPlainObject(metadata?.form_layout) ? metadata!.form_layout as Record<string, unknown> : null
+  const reads = (v: unknown) => v !== undefined && v !== null && /["{\s.]user\.|"user"/.test(JSON.stringify(v))
+  if (layout && reads(layout.rules)) return true
+  return normalizeTaskFields(metadata?.fields).some((f) => f.type === 'list' && reads(f.list))
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- user_memberships is read untyped */
 
@@ -125,7 +136,12 @@ async function checkedValues(
     if (Object.keys(read.errors).length) return { errors: read.errors, templateValues: {} }
     labelRows = read.rows
   }
-  const merged = mergeTaskFieldValues(metadata, values, { ...options, labelRows })
+  // Rules / List validations reading the user (`user.*`, roles, teams): the server's own view of the submitter, never the browser's.
+  // Known submitter → their roles / teams; a public link (anonymous) → empty ones; an unknown caller (a workspace API key) → not judged (as before).
+  const actor = options.actorId ?? options.ctx?.actorId ?? null
+  const anonymous = !actor && options.ctx?.authKind === 'anonymous'
+  const ruleUser = !options.partial && values && (actor || anonymous) && readsRuleUser(metadata) ? await loadRuleUser(supabase, tenantId, actor) : undefined
+  const merged = mergeTaskFieldValues(metadata, values, { ...options, labelRows, ...(ruleUser ? { ruleUser: ruleUser as unknown as Record<string, unknown> } : {}) })
   if (Object.keys(merged.errors).length > 0) return merged
   const fields = allFields
   const errors: Record<string, string> = {}
@@ -197,7 +213,8 @@ async function checkedValues(
   // Attachments and file-valued custom controls (signature, PDF viewer
   // uploads): the files are re-read from the upload records (this task's,
   // or this submitter's uploads to this form); `<key>_count` added.
-  const attachments = fields.filter((f) => holdsFiles(f) && !f.read_only)
+  // …and repeating sections with file controls inside their items (lib/forms/repeating-section.ts).
+  const attachments = fields.filter((f) => (usesFileUploads(f) || (f.type === 'repeating_section' && innerFieldsDeep([f]).some((x) => usesFileUploads(x.field)))) && !f.read_only)
   const attachmentKeys = options.partial
     ? attachments.filter((f) => values && Object.prototype.hasOwnProperty.call(values, f.key)).map((f) => f.key)
     : attachments.map((f) => f.key)
@@ -210,15 +227,39 @@ async function checkedValues(
     Object.assign(errors, resolved.errors)
     templateValues = { ...templateValues, ...resolved.values }
   }
+  // Signatures (lib/services/form-signatures.ts): who signed, when, and (capture_audit) from where — the server's facts only.
+  const signatureKeys = attachmentKeys.filter((key) => fields.some((f) => f.key === key && f.type === 'signature'))
+  if (signatureKeys.length && !Object.keys(errors).some((key) => signatureKeys.includes(key))) {
+    const { stampSignatureValues } = await import('@/lib/services/form-signatures')
+    const { createServiceClient } = await import('@/lib/cron-auth')
+    const existing = isPlainObject(metadata?.template_values) ? metadata!.template_values as Record<string, unknown> : {}
+    const stamped = await stampSignatureValues(createServiceClient(), fields, templateValues, { actorId: options.actorId ?? options.ctx?.actorId ?? null, previous: existing, keys: signatureKeys })
+    templateValues = { ...templateValues, ...stamped }
+  }
   if (!values) return { errors, templateValues }
-  const people = fields.filter((f) => f.type === 'user' && !f.read_only)
+  const people = fields.filter((f) => f.type === 'user' && !f.read_only && !isPeopleList(f))
   const wanted = new Map<string, string>()
   for (const field of people) {
     const value = values[field.key]
     if (typeof value === 'string' && value.trim()) wanted.set(field.key, value.trim())
   }
-  if (wanted.size > 0) {
-    const ids = [...new Set(wanted.values())]
+  // People lists (lib/forms/people-field.ts): every user / team in this workspace; names set from the workspace, never the browser's.
+  const peopleLists = fields.filter((f) => isPeopleList(f) && !f.read_only && Object.prototype.hasOwnProperty.call(values, f.key) && !errors[f.key])
+  const listRefs = new Map(peopleLists.map((f) => [f.key, normalizePeopleValue(templateValues[f.key] ?? values[f.key])]))
+  const listUserIds = [...new Set([...listRefs.values()].flat().filter((r) => r.kind === 'user').map((r) => r.id))]
+  const teamIds = [...new Set([...listRefs.values()].flat().filter((r) => r.kind === 'team').map((r) => r.id))]
+  const userNames = new Map<string, string>()
+  const teamNames = new Map<string, string>()
+  if (listUserIds.length) {
+    const { data } = await (supabase as any).from('users').select('id, display_name, email').in('id', listUserIds)
+    for (const u of (data ?? []) as Array<{ id: string; display_name: string | null; email: string | null }>) userNames.set(String(u.id), u.display_name || u.email || 'A person')
+  }
+  if (teamIds.length) {
+    const { data } = await (supabase as any).from('teams').select('id, name').eq('tenant_id', tenantId).in('id', teamIds)
+    for (const t of (data ?? []) as Array<{ id: string; name: string | null }>) teamNames.set(String(t.id), t.name || 'A team')
+  }
+  if (wanted.size > 0 || listUserIds.length) {
+    const ids = [...new Set([...wanted.values(), ...listUserIds])]
     const { data } = await (supabase as any).from('user_memberships')
       .select('user_id').eq('tenant_id', tenantId).eq('is_active', true).in('user_id', ids)
     const members = new Set(((data ?? []) as Array<{ user_id: string }>).map((r) => String(r.user_id)))
@@ -232,6 +273,16 @@ async function checkedValues(
       const id = wanted.get(field.key)
       if (id && !members.has(id)) errors[field.key] = `${field.label} must be a person in this workspace`
     }
+    for (const id of [...userNames.keys()]) if (!members.has(id)) userNames.delete(id)
+  }
+  for (const field of peopleLists) {
+    const refs = listRefs.get(field.key) ?? []
+    const unknown = refs.filter((r) => !(r.kind === 'team' ? teamNames : userNames).has(r.id))
+    if (unknown.length) {
+      errors[field.key] = `${field.label} must be ${field.user_config?.allow_teams ? 'people or teams' : 'people'} in this workspace`
+      continue
+    }
+    templateValues = { ...templateValues, [field.key]: refs.map((r) => ({ kind: r.kind, id: r.id, name: (r.kind === 'team' ? teamNames : userNames).get(r.id)! })) }
   }
   return { errors, templateValues }
 }

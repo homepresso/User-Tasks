@@ -102,7 +102,9 @@ export function ActionEditor({ action, index, count, state, field, onChange, onM
 }) {
   // A form rule (field key '') may also set read-only fields (the server bounds what they may hold).
   const ruleMode = field.key === ''
-  const valueFields = state.fields.filter((f) => !DISPLAY_FIELD_TYPES.has(f.type) && (!f.read_only || ruleMode)).map((f) => (f.read_only ? { ...f, label: `${f.label || f.key} (read-only)` } : f))
+  // Rules may also set a choice group's chosen section (`<group key>` = a section key — lib/forms/sections.ts).
+  const choiceValues = ruleMode ? (state.layout.choice_groups ?? []).map((g) => ({ _id: `choice-${g.key}`, key: g.key, label: `${g.label} (choice group: ${g.sections.join(' / ')})`, type: 'choice' as const })) : []
+  const valueFields = [...state.fields.filter((f) => !DISPLAY_FIELD_TYPES.has(f.type) && (!f.read_only || ruleMode)).map((f) => (f.read_only ? { ...f, label: `${f.label || f.key} (read-only)` } : f)), ...(choiceValues as unknown as typeof state.fields)]
   const flags = (state.layout.state?.flags ?? []).map((f) => f.key)
   const startHidden = new Set(state.layout.state?.hidden ?? [])
   const pages = isPaged(state.layout) ? state.layout.pages : []
@@ -260,6 +262,7 @@ export function newAction(type: FieldButtonActionType): FieldButtonAction {
     case 'apply_table_changes': return { type, table_changes: { field: '', target: 'table', operation: 'auto' } }
     case 'enable_disable': return { type, mode: 'disable', targets: [] }
     case 'read_only': return { type, mode: 'read_only', targets: [] }
+    case 'set_style': return { type, targets: [], style: { tone: 'danger', background: true, text: true, icon: true } }
     case 'field_error': return { type, text: 'Check this value.' }
     case 'block_submit': return { type, text: 'The form cannot be submitted yet.' }
     case 'copy_values': return { type, assign: {} }
@@ -271,6 +274,7 @@ export function newAction(type: FieldButtonActionType): FieldButtonAction {
     case 'set_row_values': return { type, row: 'current', values: {} }
     case 'commit_row': case 'discard_row': case 'revert_row': return { type, row: 'current' }
     case 'delete_row': return { type, row: 'selected' }
+    case 'open_row_form': return { type, row: 'current' }
     case 'table_list': return { type, limit: 50 }
     case 'table_create': case 'table_update': return { type, column_values: {} }
     default: return { type }

@@ -1,5 +1,5 @@
 import {
-  AlignLeft, ArrowDownUp, Calendar, Gauge, Grid3x3, Images, ListOrdered, ListPlus, SlidersHorizontal, Smile, Star, ToggleLeft, MousePointerClick, Paperclip, CalendarClock, CircleDot, DollarSign, Hash, Heading, Link, ListChecks, Mail, Minus, Phone, Puzzle, SearchCheck, SquareCheck, Table2, Tag, Type, User,
+  AlignLeft, ArrowDownUp, List, Pilcrow, Image as ImageIcon, Frame as ImagePlay, Signature, Calendar, Gauge, Grid3x3, Images, ListOrdered, ListPlus, Rows3, SlidersHorizontal, Smile, Star, ToggleLeft, MousePointerClick, Paperclip, CalendarClock, CircleDot, DollarSign, Hash, Heading, Link, ListChecks, Mail, Minus, Phone, Puzzle, SearchCheck, SquareCheck, Table2, Tag, Type, User,
   type LucideIcon,
 } from 'lucide-react'
 import type { TaskFieldType } from '@/lib/task-field-schema'
@@ -26,6 +26,7 @@ export const FIELD_ICONS: Record<TaskFieldType, LucideIcon> = {
   button: MousePointerClick,
   data_table: Table2,
   list: ListPlus,
+  repeating_section: Rows3,
   label: Tag,
   rating: Star,
   nps: Gauge,
@@ -36,6 +37,11 @@ export const FIELD_ICONS: Record<TaskFieldType, LucideIcon> = {
   ranking: ArrowDownUp,
   image_choice: Images,
   yes_no_maybe: ToggleLeft,
+  image: ImageIcon,
+  signature: Signature,
+  display_image: ImagePlay,
+  rich_text: Pilcrow,
+  text_list: List,
 }
 
 /** A palette group's label: 11px sentence case. */
@@ -46,14 +52,14 @@ export const paletteItemClass = 'flex h-7 w-full cursor-grab items-center gap-2 
 
 /** Palette groups, in order. */
 export const PALETTE_GROUPS: Array<{ label: string; types: TaskFieldType[] }> = [
-  { label: 'Text', types: ['text', 'textarea', 'email', 'phone', 'url'] },
+  { label: 'Text', types: ['text', 'textarea', 'rich_text', 'text_list', 'email', 'phone', 'url'] },
   { label: 'Numbers & dates', types: ['number', 'currency', 'date', 'datetime'] },
   { label: 'Choices', types: ['boolean', 'choice', 'multi_choice', 'user', 'lookup'] },
   { label: 'Survey', types: ['rating', 'nps', 'likert', 'matrix', 'slider', 'csat', 'ranking', 'image_choice', 'yes_no_maybe'] },
-  { label: 'Data', types: ['list', 'data_table'] },
-  { label: 'Files', types: ['attachments'] },
+  { label: 'Data', types: ['repeating_section', 'list', 'data_table'] },
+  { label: 'Files & media', types: ['attachments', 'image', 'signature'] },
   { label: 'Display', types: ['label'] },
-  { label: 'Layout', types: ['heading', 'divider', 'button'] },
+  { label: 'Layout', types: ['heading', 'divider', 'button', 'display_image'] },
 ]
 
 /** Drag payload types (HTML drag and drop). */

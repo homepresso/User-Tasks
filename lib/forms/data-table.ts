@@ -473,6 +473,8 @@ function scopeLookup(path: string, scope: DataTableScope): unknown {
   if (m) return st.filters?.[m[1]] ?? ''
   m = /^(?:task_data|form|task\.data)\.(.+)$/.exec(path)
   if (m) return pathValue(scope.values, m[1])
+  // {{item.x}} / {{row.x}} / {{parent.x}}: a repeating section item's scope (lib/forms/repeating-section.ts itemScopeValues).
+  if (/^(item|row|parent)\./.test(path)) return pathValue(scope.values, path)
   // {{param.x}} / {{var.x}}: the form's parameters and variables, validated by the server (lib/forms/form-params.ts).
   const context = formContextPath(path)
   if (context) return pathValue(scope.values, context)

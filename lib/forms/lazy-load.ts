@@ -259,6 +259,11 @@ export function estimatePartHeight(rows: Array<{ cells: Array<{ field_key: strin
       case 'custom': return 24 + Math.min(Math.max(f.custom?.size?.default_height ?? 200, 40), 1400)
       case 'textarea': return 124
       case 'attachments': return 110
+      case 'image': return 160
+      case 'signature': return 280
+      case 'display_image': return 200
+      case 'rich_text': return 200
+      case 'text_list': return 150
       case 'multi_choice': return 120
       default: return 64
     }

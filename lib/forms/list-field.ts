@@ -35,13 +35,35 @@
 
 import { isPlainObject } from '@/lib/utils/guards'
 import { normalizeLookupConfig, type LookupConfig } from './lookup'
+import { groupConditions, normalizeConditionGroup, type DataTableConditionGroup } from './data-table'
+import type { RuleScope } from './form-rules'
 import { ROW_ORIGINAL_KEY, rowDraftState } from './row-markers'
+import { NO_ROW_STYLE, ROW_STYLE_LIMIT, mergeStyles, normalizeConditionalStyle, type ListRowStyle, type RowStyleResult } from './conditional-style'
 
-export type ListColumnType = 'text' | 'textarea' | 'number' | 'currency' | 'date' | 'choice' | 'boolean' | 'email' | 'lookup' | 'calculated'
-export const LIST_COLUMN_TYPES: ListColumnType[] = ['text', 'textarea', 'number', 'currency', 'date', 'choice', 'boolean', 'email', 'lookup', 'calculated']
+/**
+ * `field` is internal: a repeating section seen as a List (lib/forms/repeating-section.ts)
+ * keeps a control the List columns don't model (rich text, files, people…) as it is.
+ * Never offered in the designer (not in LIST_COLUMN_TYPES), never kept by normalizeListConfig.
+ */
+export type ListColumnType = 'text' | 'textarea' | 'number' | 'currency' | 'date' | 'choice' | 'boolean' | 'email' | 'lookup' | 'calculated' | 'list' | 'field'
+export const LIST_COLUMN_TYPES: ListColumnType[] = ['text', 'textarea', 'number', 'currency', 'date', 'choice', 'boolean', 'email', 'lookup', 'calculated', 'list']
 export const LIST_COLUMN_TYPE_LABELS: Record<ListColumnType, string> = {
-  text: 'Text', textarea: 'Long text', number: 'Number', currency: 'Currency', date: 'Date', choice: 'Choice', boolean: 'Yes / no', email: 'Email', lookup: 'Lookup (table / API)', calculated: 'Calculated',
+  text: 'Text', textarea: 'Long text', number: 'Number', currency: 'Currency', date: 'Date', choice: 'Choice', boolean: 'Yes / no', email: 'Email', lookup: 'Lookup (table / API)', calculated: 'Calculated', list: 'Nested list', field: 'Form control',
 }
+
+/**
+ * Nested Lists: a column of type `list` holds, in each row, rows of its own
+ * (`list` = the child List's config: columns of any type — itself possibly
+ * nested — totals, min / max rows). The top List is level 1; at most
+ * LIST_MAX_DEPTH levels. The value nests the same way:
+ *
+ *   [{ customer: 'Acme', lines: [{ sku: 'A-1', qty: 2, price: 1250, amount: 2500 }] }]
+ *
+ * Every rule of a level (types, required, read-only, min / max rows,
+ * calculated columns, blank rows dropped) applies inside each parent row; a
+ * value holds at most LIST_LIMITS.nestedRows rows over all levels.
+ */
+export const LIST_MAX_DEPTH = 3
 
 /** `view` (default): the rows, filled by "Add row to list" rules; `inline`: the rows edited in place. */
 export type ListEntryMode = 'view' | 'inline'
@@ -93,6 +115,62 @@ export interface ListColumn {
    * read the same row ({{row.<column>}}) or the form ({{form.x}}).
    */
   lookup?: LookupConfig
+  /**
+   * list (a nested List): the child List's config — columns, totals,
+   * min_rows / max_rows (also display, key_column, on_submit_pending,
+   * row_commit_controls). `required` = each parent row needs a child row.
+   */
+  list?: ListFieldConfig
+  /**
+   * Validation (InfoPath's validation on a repeating field): when a
+   * condition holds, its message shows on this cell and the row does not
+   * pass. Subjects: `row.<column>` (this row, typed), `parent.<column>` (the
+   * parent row of a nested List), `form.<field>`, `user.*`. Checked in the
+   * browser and again on the server (checkListValue).
+   */
+  validations?: ListValidation[]
+}
+
+/** A List column's validation: the message shows on the cell while `if` holds. */
+export interface ListValidation {
+  if: DataTableConditionGroup
+  /** The error text; `{{row.<column>}}`, `{{form.<field>}}` placeholders are filled in. */
+  message: string
+}
+
+/** A row-level validation: the message shows on the row (or on `column`'s cell) while `if` holds. */
+export interface ListRowValidation extends ListValidation {
+  column?: string
+}
+
+/** Where a row-level error without a column sits in a row's errors (never a column key: those start with a letter). */
+export const LIST_ROW_ERROR_KEY = '_row'
+
+/**
+ * What List validations read besides the row: the form's values
+ * (`form.<field>`), the signed-in person (`user.*`) and, in a nested List,
+ * the parent row (`parent.<column>`). Without it (a row checked on its own)
+ * validations do not run.
+ */
+export interface ListCheckContext {
+  form?: Record<string, unknown> | null
+  /** The person; null = nobody signed in (no roles); undefined = not known here — validations reading `user.*` are skipped (the server judges them with its own user). */
+  user?: Record<string, unknown> | null
+  parent?: Record<string, unknown> | null
+}
+
+/**
+ * The form rules' condition evaluator (lib/forms/form-rules.ts registers it
+ * when it loads — list-field cannot import it: form-rules → field-buttons →
+ * list-field). One evaluator for rules and List validations alike.
+ */
+type RuleJudge = { conditionsMet: (group: DataTableConditionGroup | undefined, scope: RuleScope) => boolean; template: (text: string | undefined, scope: RuleScope) => unknown }
+let judge: RuleJudge | null = null
+export function registerListRuleJudge(next: RuleJudge): void { judge = next }
+function ruleJudge(): RuleJudge {
+  // Every caller that checks List validations has loaded the form rules (task-field-schema, the rules runtime, field-buttons' callers).
+  if (!judge) throw new Error('List validations need lib/forms/form-rules (its condition evaluator) to be loaded')
+  return judge
 }
 
 /** The key a lookup column's display label is kept under in the row (`product` → `product_label`). */
@@ -152,6 +230,66 @@ export interface ListFieldConfig {
    * columns — whatever the browser sent.
    */
   key_column?: string
+  /** Row-level validations (any level): the message shows on the row, or on `column`'s cell. */
+  row_validations?: ListRowValidation[]
+  /**
+   * How an editable List's rows are edited: 'inline' (cells in place only),
+   * 'popout' (each row opens as a form in a dialog — Add row too) or 'both'
+   * (the default: cells in place, plus an "Open row" icon per row and "Add in
+   * form"). Phones use the pop-out whenever it is allowed ('both' / 'popout').
+   * Read-only Lists always offer "View row" (row_form.hide_view_icon hides it).
+   */
+  row_editing?: ListRowEditing
+  /** The row pop-out (lib/forms/list-row-form.ts): its title, field order and sections. */
+  row_form?: ListRowFormConfig
+  /**
+   * Conditional styling (any level; lib/forms/conditional-style.ts): while a
+   * style's condition holds for a row, the row — or `column`'s cell — takes
+   * its tone / emphasis. Same subjects as validations. Presentation only.
+   */
+  row_styles?: ListRowStyle<DataTableConditionGroup>[]
+}
+
+export type ListRowEditing = 'inline' | 'popout' | 'both'
+export const LIST_ROW_EDITINGS: ListRowEditing[] = ['both', 'inline', 'popout']
+export const LIST_ROW_EDITING_LABELS: Record<ListRowEditing, string> = {
+  both: 'In the table and in a pop-out form',
+  inline: 'In the table only',
+  popout: 'In a pop-out form only',
+}
+
+/** One entry of a row form's layout: a column (in this order) or a section heading. */
+export type ListRowFormItem = { column: string } | { section: string }
+
+/** The row pop-out's settings. */
+export interface ListRowFormConfig {
+  /** The dialog's title; `{{row.<column>}}` and `{{row_number}}` are filled in ("Expense: {{row.description}}"). */
+  title?: string
+  /** The columns in order, with optional section headings; columns left out follow at the end. */
+  layout?: ListRowFormItem[]
+  /** Read-only Lists: no "View row" icon. */
+  hide_view_icon?: boolean
+}
+
+/** Stored row-form settings → clean ones (known columns once each, short headings), or undefined when empty. */
+export function normalizeRowForm(raw: unknown, columnKeys: ReadonlySet<string>): ListRowFormConfig | undefined {
+  if (!isPlainObject(raw)) return undefined
+  const out: ListRowFormConfig = {}
+  const title = cleanText(raw.title, 200)
+  if (title) out.title = title
+  const layout: ListRowFormItem[] = []
+  const used = new Set<string>()
+  for (const entry of Array.isArray(raw.layout) ? raw.layout : []) {
+    if (layout.length >= LIST_LIMITS.columns * 2) break
+    if (typeof entry === 'string' && columnKeys.has(entry) && !used.has(entry)) { used.add(entry); layout.push({ column: entry }); continue }
+    if (!isPlainObject(entry)) continue
+    if (typeof entry.column === 'string' && columnKeys.has(entry.column) && !used.has(entry.column)) { used.add(entry.column); layout.push({ column: entry.column }); continue }
+    const section = cleanText(entry.section, 120)
+    if (section && entry.column === undefined) layout.push({ section })
+  }
+  if (layout.some((item) => 'column' in item)) out.layout = layout
+  if (raw.hide_view_icon === true) out.hide_view_icon = true
+  return Object.keys(out).length ? out : undefined
 }
 
 export type ListPendingMode = 'exclude' | 'block' | 'commit'
@@ -208,7 +346,9 @@ export function settleListRows(config: ListFieldConfig | undefined, value: unkno
 export function keepReadOnlyListColumns(config: ListFieldConfig | undefined, submitted: unknown, stored: unknown): { rows: unknown; restored: string[] } {
   const readOnly = listReadOnlyColumns(config)
   const key = config?.key_column
-  if (!config || !readOnly.length || !key || !Array.isArray(submitted)) return { rows: submitted, restored: [] }
+  // Nested Lists: a parent row matched by its key has its child rows checked the same way (their own key column).
+  const nested = childListColumns(config).filter((c) => !c.read_only && hasReadOnlyColumns(c.list))
+  if (!config || (!readOnly.length && !nested.length) || !key || !Array.isArray(submitted)) return { rows: submitted, restored: [] }
   const before = new Map<string, Record<string, unknown>>()
   for (const row of rawListRows(stored)) { const k = row[key]; if (k !== null && k !== undefined && k !== '') before.set(String(k), row) }
   const restored = new Set<string>()
@@ -223,9 +363,19 @@ export function keepReadOnlyListColumns(config: ListFieldConfig | undefined, sub
       next[col] = original[col] ?? null
       if (config.columns.find((c) => c.key === col)?.type === 'lookup') next[listLabelKey(col)] = original[listLabelKey(col)] ?? null
     }
+    for (const c of nested) {
+      const inner = keepReadOnlyListColumns(c.list, next[c.key], original[c.key])
+      next[c.key] = inner.rows
+      for (const r of inner.restored) restored.add(`${c.key}.${r}`)
+    }
     return next
   })
   return { rows, restored: [...restored] }
+}
+
+/** Whether a config (or a List nested in it) has read-only columns. */
+function hasReadOnlyColumns(config: ListFieldConfig | undefined): boolean {
+  return Boolean(config?.columns.some((c) => c.read_only || (c.type === 'list' && hasReadOnlyColumns(c.list))))
 }
 
 /** Where the selected rows of each List live in the values ({ <list>: [0-based indexes] }); never stored. */
@@ -299,7 +449,9 @@ export function withListEditing(values: Record<string, unknown> | null | undefin
   return current
 }
 
-export type ListRow = Record<string, string | number | boolean | null>
+/** A typed cell: a nested List column holds its child rows. */
+export type ListCell = string | number | boolean | null | ListRow[]
+export type ListRow = { [key: string]: ListCell }
 
 /** A new List field in the designer: line items with a calculated total. */
 export const DEFAULT_LIST_CONFIG: ListFieldConfig = {
@@ -312,7 +464,8 @@ export const DEFAULT_LIST_CONFIG: ListFieldConfig = {
   totals: [{ column: 'total', fn: 'sum' }],
 }
 
-export const LIST_LIMITS = { columns: 30, rows: 500, options: 200, text: 5000, formula: 300 } as const
+/** Per level: columns / rows / options…; `nestedRows`: rows over every level of one List value (the parent rows included). */
+export const LIST_LIMITS = { columns: 30, rows: 500, options: 200, text: 5000, formula: 300, nestedRows: 2000, validations: 10, message: 300 } as const
 
 const KEY_RE = /^[a-z][a-z0-9_]{0,63}$/
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -322,6 +475,81 @@ const RESERVED_COLUMN_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
 const NUMERIC_COLUMNS: ReadonlySet<ListColumnType> = new Set(['number', 'currency', 'calculated'])
 const TEXT_COLUMNS: ReadonlySet<ListColumnType> = new Set(['text', 'textarea', 'email'])
+
+/** The nested List columns of a config. */
+export function childListColumns(config: ListFieldConfig | undefined): ListColumn[] {
+  return (config?.columns ?? []).filter((c) => c.type === 'list' && c.list)
+}
+
+/** Levels a config spans (1 = no nested Lists). */
+export function listDepth(config: ListFieldConfig | undefined): number {
+  return 1 + Math.max(0, ...childListColumns(config).map((c) => listDepth(c.list)))
+}
+
+/**
+ * A nested List by its path (`lines`, or `lines.serials` for level 3): the
+ * column at each step and the child config at the end; null when a step is
+ * not a nested List column.
+ */
+export function childListAt(config: ListFieldConfig | undefined, path: string | string[]): { config: ListFieldConfig; columns: ListColumn[] } | null {
+  const steps = (Array.isArray(path) ? path : String(path ?? '').split('.')).map((s) => s.trim()).filter(Boolean)
+  if (!steps.length || !config) return null
+  let at: ListFieldConfig = config
+  const columns: ListColumn[] = []
+  for (const step of steps) {
+    const column = at.columns.find((c) => c.key === step && c.type === 'list' && c.list)
+    if (!column?.list) return null
+    columns.push(column)
+    at = column.list
+  }
+  return { config: at, columns }
+}
+
+/**
+ * Where a nested List of one parent row lives while the form is open — the
+ * key its rows / current row / selection are kept under by the row rules:
+ * `orders.1.lines` (the Lines of row 2 of Orders; level 3:
+ * `orders.1.lines.0.serials`). Not a field key (field keys have no dots).
+ */
+export function nestedListKey(listKey: string, indexes: number[], steps: string[]): string {
+  return [listKey, ...steps.flatMap((step, i) => [String(indexes[i]), step])].join('.')
+}
+
+/** The raw rows of a nested List under the parent rows `indexes` (0-based, one per level) of a List value. */
+export function nestedRowsIn(value: unknown, indexes: number[], steps: string[]): Record<string, unknown>[] {
+  let rows = rawListRows(value)
+  for (const [i, step] of steps.entries()) {
+    const row = rows[indexes[i]]
+    if (!row) return []
+    rows = rawListRows(row[step])
+  }
+  return rows
+}
+
+/** A List value with the nested List under `indexes` replaced by `childRows` (other rows as they were). */
+export function withNestedRows(value: unknown, indexes: number[], steps: string[], childRows: unknown): Record<string, unknown>[] {
+  const rows = rawListRows(value)
+  if (!steps.length) return rawListRows(childRows)
+  const [at, ...restIdx] = indexes
+  const [step, ...restSteps] = steps
+  if (!rows[at]) return rows
+  return rows.map((row, i) => (i === at ? { ...row, [step]: restSteps.length ? withNestedRows(row[step], restIdx, restSteps, childRows) : rawListRows(childRows) } : row))
+}
+
+/** Every nested List path of a config (`lines`, `lines.serials`), outer ones first. */
+export function childListPaths(config: ListFieldConfig | undefined, prefix: string[] = []): string[][] {
+  const out: string[][] = []
+  for (const c of childListColumns(config)) {
+    const path = [...prefix, c.key]
+    out.push(path, ...childListPaths(c.list, path))
+  }
+  return out
+}
+
+/** The row keys derived inside each parent row for its nested Lists: `<child>_count` and `<child>_<total|avg|count>_<column>`. */
+export function childRowDerivedKeys(config: ListFieldConfig | undefined): string[] {
+  return childListColumns(config).flatMap((c) => [listCountKey(c.key), ...(c.list!.totals ?? []).map((t) => listTotalKey(c.key, t))])
+}
 
 export function isNumericColumn(column: Pick<ListColumn, 'type'>): boolean {
   return NUMERIC_COLUMNS.has(column.type)
@@ -353,23 +581,62 @@ function cleanText(value: unknown, max = 500): string | undefined {
   return s ? s.slice(0, max) : undefined
 }
 
-function normalizeColumn(raw: unknown, seen: Set<string>): ListColumn | null {
+const VALIDATION_SUBJECT_RE = /^[A-Za-z_][A-Za-z0-9_]{0,63}(?:\.[A-Za-z0-9_$-]{1,64}){0,8}$/
+
+/** Stored validations → clean ones (a condition and a message each; at most LIST_LIMITS.validations). */
+function normalizeValidations(raw: unknown, columnKeys?: ReadonlySet<string>): ListRowValidation[] {
+  const out: ListRowValidation[] = []
+  for (const entry of Array.isArray(raw) ? raw : []) {
+    if (out.length >= LIST_LIMITS.validations) break
+    if (!isPlainObject(entry)) continue
+    const group = normalizeConditionGroup(entry.if ?? entry.when)
+    if (!group || !groupConditions(group).every((c) => VALIDATION_SUBJECT_RE.test(c.column))) continue
+    const message = cleanText(entry.message, LIST_LIMITS.message)
+    if (!message) continue
+    const v: ListRowValidation = { if: group, message }
+    if (columnKeys && typeof entry.column === 'string' && columnKeys.has(entry.column)) v.column = entry.column
+    out.push(v)
+  }
+  return out
+}
+
+/** Stored row styles → clean ones (a condition and a style each; `column` kept only when it is one of the List's). */
+function normalizeRowStyles(raw: unknown, columnKeys: ReadonlySet<string>): ListRowStyle<DataTableConditionGroup>[] {
+  const out: ListRowStyle<DataTableConditionGroup>[] = []
+  for (const entry of Array.isArray(raw) ? raw : []) {
+    if (out.length >= ROW_STYLE_LIMIT) break
+    if (!isPlainObject(entry)) continue
+    const group = normalizeConditionGroup(entry.if ?? entry.when)
+    if (!group || !groupConditions(group).every((c) => VALIDATION_SUBJECT_RE.test(c.column))) continue
+    const style = normalizeConditionalStyle(entry.style)
+    if (!style) continue
+    const s: ListRowStyle<DataTableConditionGroup> = { if: group, style }
+    if (typeof entry.column === 'string' && entry.column) {
+      if (!columnKeys.has(entry.column)) continue
+      s.column = entry.column
+    }
+    out.push(s)
+  }
+  return out
+}
+
+function normalizeColumn(raw: unknown, seen: Set<string>, depth: number): ListColumn | null {
   if (!isPlainObject(raw)) return null
   const label = cleanText(raw.label, 120) ?? ''
   const key = slug(cleanText(raw.key, 64) ?? label)
   if (!key || !KEY_RE.test(key) || seen.has(key) || RESERVED_COLUMN_KEYS.has(key)) return null
   seen.add(key)
-  const rawType = raw.type === 'select' ? 'choice' : raw.type === 'checkbox' ? 'boolean' : raw.type === 'formula' ? 'calculated' : raw.type
+  const rawType = raw.type === 'select' ? 'choice' : raw.type === 'checkbox' ? 'boolean' : raw.type === 'formula' ? 'calculated' : raw.type === 'nested_list' || raw.type === 'repeating' ? 'list' : raw.type
   const type: ListColumnType = (LIST_COLUMN_TYPES as string[]).includes(rawType as string) ? rawType as ListColumnType : 'text'
   const column: ListColumn = { key, label: label || key, type }
   if (raw.required === true && type !== 'calculated' && type !== 'boolean') column.required = true
   const placeholder = cleanText(raw.placeholder, 200)
-  if (placeholder && type !== 'boolean' && type !== 'calculated') column.placeholder = placeholder
+  if (placeholder && type !== 'boolean' && type !== 'calculated' && type !== 'list') column.placeholder = placeholder
   const help = cleanText(raw.help_text, 500)
   if (help) column.help_text = help
   if (raw.hidden === true) column.hidden = true
   if (raw.read_only === true && type !== 'calculated') column.read_only = true
-  if (type !== 'calculated') {
+  if (type !== 'calculated' && type !== 'list') {
     const def = raw.default === true || raw.default === false ? String(raw.default) : cleanText(raw.default, 500)
     if (def !== undefined) column.default = def
   }
@@ -407,17 +674,27 @@ function normalizeColumn(raw: unknown, seen: Set<string>): ListColumn | null {
     if (formula) column.formula = formula
   }
   if (type === 'lookup') column.lookup = { ...normalizeLookupConfig(raw.lookup), multiple: undefined } as LookupConfig
+  // A nested List: its own config, one level down (beyond the cap: kept empty, and listConfigProblem says why).
+  if (type === 'list') column.list = depth < LIST_MAX_DEPTH ? normalizeListConfig(raw.list ?? { columns: raw.columns }, depth + 1) : { columns: [] }
+  const validations = normalizeValidations(raw.validations).map(({ if: cond, message }) => ({ if: cond, message }))
+  if (validations.length) column.validations = validations
   return column
 }
 
-/** A clean List config: columns (deduped snake_case keys, known types), row limits, entry mode, totals, display. */
-export function normalizeListConfig(raw: unknown): ListFieldConfig {
+/**
+ * A clean List config: columns (deduped snake_case keys, known types), row
+ * limits, entry mode, totals, display. `depth`: the level (1 = the field's
+ * List); a nested List (level 2+) keeps its columns, totals, row limits,
+ * display, key column, pending-row, row pop-out and row style settings only.
+ */
+export function normalizeListConfig(raw: unknown, depth = 1): ListFieldConfig {
   const r = isPlainObject(raw) ? raw : {}
+  const level = Number.isInteger(depth) && depth >= 1 ? depth : 1
   const seen = new Set<string>()
   const columns: ListColumn[] = []
   for (const entry of Array.isArray(r.columns) ? r.columns : []) {
     if (columns.length >= LIST_LIMITS.columns) break
-    const column = normalizeColumn(entry, seen)
+    const column = normalizeColumn(entry, seen, level)
     if (column) columns.push(column)
   }
   const config: ListFieldConfig = { columns }
@@ -425,7 +702,7 @@ export function normalizeListConfig(raw: unknown): ListFieldConfig {
   const maxRows = finite(r.max_rows)
   if (minRows !== undefined && minRows > 0) config.min_rows = Math.min(LIST_LIMITS.rows, Math.floor(minRows))
   if (maxRows !== undefined && maxRows > 0) config.max_rows = Math.min(LIST_LIMITS.rows, Math.floor(maxRows))
-  if (r.entry_mode === 'inline') config.entry_mode = 'inline'
+  if (r.entry_mode === 'inline' && level === 1) config.entry_mode = 'inline'
   if (r.display === 'table' || r.display === 'cards' || r.display === 'auto') config.display = r.display
   const keys = new Set(columns.map((c) => c.key))
   const totals: ListTotal[] = []
@@ -440,6 +717,20 @@ export function normalizeListConfig(raw: unknown): ListFieldConfig {
     totals.push(total)
   }
   if (totals.length) config.totals = totals
+  const rowValidations = normalizeValidations(r.row_validations, keys)
+  if (rowValidations.length) config.row_validations = rowValidations
+  const rowStyles = normalizeRowStyles(r.row_styles, keys)
+  if (rowStyles.length) config.row_styles = rowStyles
+  // The row pop-out (any level): how rows are edited and the form's title / layout.
+  if (r.row_editing === 'inline' || r.row_editing === 'popout') config.row_editing = r.row_editing
+  const rowForm = normalizeRowForm(r.row_form, keys)
+  if (rowForm) config.row_form = rowForm
+  if (level > 1) {
+    if (r.on_submit_pending === 'exclude' || r.on_submit_pending === 'commit') config.on_submit_pending = r.on_submit_pending
+    if (r.row_commit_controls === true) config.row_commit_controls = true
+    if (typeof r.key_column === 'string' && keys.has(r.key_column)) config.key_column = r.key_column
+    return config
+  }
   const buttons: ListRowButton[] = []
   for (const b of Array.isArray(r.row_buttons) ? r.row_buttons : []) {
     if (!isPlainObject(b) || buttons.length >= 4) continue
@@ -573,11 +864,19 @@ export function calculateColumn(column: ListColumn, row: Record<string, unknown>
 
 /* ── Config problems ─────────────────────────────────────────────────── */
 
-/** The designer's / server's blocking problem with a List config (null = fine). */
-export function listConfigProblem(config: ListFieldConfig | undefined): string | null {
+/** The designer's / server's blocking problem with a List config (null = fine); nested Lists checked too (`depth`: the level). */
+export function listConfigProblem(config: ListFieldConfig | undefined, depth = 1): string | null {
   if (!config || !config.columns.length) return 'Add at least one column'
   if (!inputColumns(config).length) return 'Add a column people fill in (not only calculated ones)'
+  const derived = new Set(childRowDerivedKeys(config))
   for (const column of config.columns) {
+    if (derived.has(column.key) || (column.type === 'lookup' && derived.has(listLabelKey(column.key)))) return `Column "${column.label}": its key is taken by a nested list's count / total (${column.key})`
+    if (column.type === 'list') {
+      if (depth >= LIST_MAX_DEPTH) return `Column "${column.label}": lists nest at most ${LIST_MAX_DEPTH} levels deep`
+      const inner = listConfigProblem(column.list, depth + 1)
+      if (inner) return `Column "${column.label}": ${inner.charAt(0).toLowerCase()}${inner.slice(1)}`
+      continue
+    }
     if (column.type === 'choice' && !(column.options ?? []).length) return `Column "${column.label}": add at least one option`
     if (column.type === 'lookup' && !(column.lookup?.source === 'reference' ? column.lookup.reference_id : column.lookup?.table_id)) return `Column "${column.label}": choose the lookup's ${column.lookup?.source === 'reference' ? 'API reference' : 'data table'}`
     if (column.type === 'calculated') { const p = formulaProblem(column, config.columns); if (p) return p }
@@ -587,6 +886,15 @@ export function listConfigProblem(config: ListFieldConfig | undefined): string |
   for (const total of config.totals ?? []) {
     const column = config.columns.find((c) => c.key === total.column)
     if (column && total.fn !== 'count' && !isNumericColumn(column)) return `Total of "${column.label}": only number, currency and calculated columns add up`
+  }
+  if (config.key_column && childListColumns(config).some((c) => c.key === config.key_column)) return 'The key column cannot be a nested list'
+  const keys = new Set(config.columns.flatMap((c) => [c.key, ...(c.type === 'lookup' ? [listLabelKey(c.key)] : []), ...(c.type === 'list' ? childRowDerivedKeys({ columns: [c] }) : [])]))
+  for (const [where, v] of [...config.columns.flatMap((c) => (c.validations ?? []).map((x) => [`Column "${c.label}"`, x] as const)), ...(config.row_validations ?? []).map((x) => ['Row check', x] as const), ...(config.row_styles ?? []).map((x) => ['Row style', x] as const)]) {
+    for (const c of groupConditions(v.if)) {
+      const m = /^row\.([a-z][a-z0-9_]*)/.exec(c.column)
+      if (m && !keys.has(m[1])) return `${where}: the validation reads an unknown column "${m[1]}"`
+      if (c.column.startsWith('parent.') && depth === 1) return `${where}: parent.* is for nested lists (this list has no parent row)`
+    }
   }
   return null
 }
@@ -627,13 +935,21 @@ export function rawListRows(value: unknown): Record<string, unknown>[] {
   return list.filter(isPlainObject) as Record<string, unknown>[]
 }
 
-/** A row nobody filled in: every input column blank (booleans unticked). */
+/** A row nobody filled in: every input column blank (booleans unticked, nested Lists without a filled row). */
 export function isBlankListRow(config: ListFieldConfig, row: Record<string, unknown>): boolean {
-  return inputColumns(config).every((c) => (c.type === 'boolean' ? toBoolean(row[c.key]) !== true : blankCell(row[c.key])))
+  return inputColumns(config).every((c) => (c.type === 'boolean' ? toBoolean(row[c.key]) !== true : c.type === 'list' ? !c.list || rawListRows(row[c.key]).every((r) => isBlankListRow(c.list!, r)) : blankCell(row[c.key])))
 }
 
-function coerceCell(column: ListColumn, value: unknown): string | number | boolean | null {
+/** Rows still allowed over every level of one List value (LIST_LIMITS.nestedRows). */
+type RowBudget = { left: number }
+
+function coerceCell(column: ListColumn, value: unknown, budget?: RowBudget): ListCell {
   switch (column.type) {
+    case 'field':
+      // A repeating section's control (lib/forms/repeating-section.ts): kept as it is; the form's engine types it on submit.
+      return blankCell(value) ? null : value as ListCell
+    case 'list':
+      return column.list ? coerceRows(column.list, value, budget ?? { left: LIST_LIMITS.nestedRows }) : []
     case 'number':
     case 'currency':
       return toNumber(value)
@@ -650,11 +966,20 @@ function coerceCell(column: ListColumn, value: unknown): string | number | boole
   }
 }
 
-/** One row typed: the columns only (unknown keys dropped), calculated columns worked out. */
-export function coerceListRow(config: ListFieldConfig, row: Record<string, unknown>): ListRow {
+/**
+ * One row typed: the columns only (unknown keys dropped), calculated columns
+ * worked out; a nested List column's rows typed the same way, with its count
+ * and totals beside it in the row (`<child>_count`, `<child>_total_<column>`).
+ */
+export function coerceListRow(config: ListFieldConfig, row: Record<string, unknown>, budget?: RowBudget): ListRow {
   const out: ListRow = {}
-  for (const column of config.columns) if (column.type !== 'calculated') out[column.key] = coerceCell(column, row[column.key])
+  for (const column of config.columns) if (column.type !== 'calculated') out[column.key] = coerceCell(column, row[column.key], budget)
   for (const column of config.columns) if (column.type === 'calculated') out[column.key] = calculateColumn(column, out)
+  for (const column of childListColumns(config)) {
+    const rows = Array.isArray(out[column.key]) ? out[column.key] as ListRow[] : []
+    out[listCountKey(column.key)] = rows.length
+    for (const total of column.list!.totals ?? []) out[listTotalKey(column.key, total)] = listTotalValue(total, rows)
+  }
   // A lookup cell keeps its display label beside the value (`product_label`; the server re-reads it on submit).
   for (const column of config.columns) {
     if (column.type !== 'lookup') continue
@@ -664,17 +989,35 @@ export function coerceListRow(config: ListFieldConfig, row: Record<string, unkno
   return out
 }
 
-/** The stored value: typed rows, blank rows dropped, at most the hard limit. */
+/** The stored value: typed rows, blank rows dropped, at most the hard limits (per level, and LIST_LIMITS.nestedRows over all levels). */
 export function coerceListRows(config: ListFieldConfig | undefined, value: unknown): ListRow[] {
   if (!config) return []
-  // Pending rows (lib/forms/row-rules.ts): left out or taken as they are (the List's on_submit_pending).
-  return settleListRows(config, value).filter((row) => !isBlankListRow(config, row)).slice(0, LIST_LIMITS.rows).map((row) => coerceListRow(config, row))
+  return coerceRows(config, value, { left: LIST_LIMITS.nestedRows })
 }
 
-/** A new row: each input column's default (typed), calculated columns worked out. */
+function coerceRows(config: ListFieldConfig, value: unknown, budget: RowBudget): ListRow[] {
+  // Pending rows (lib/forms/row-rules.ts): left out or taken as they are (the List's on_submit_pending).
+  const rows = settleListRows(config, value).filter((row) => !isBlankListRow(config, row)).slice(0, LIST_LIMITS.rows)
+  const out: ListRow[] = []
+  for (const row of rows) {
+    if (budget.left <= 0) break
+    budget.left -= 1
+    out.push(coerceListRow(config, row, budget))
+  }
+  return out
+}
+
+/** Rows over every level of a List value (the parent rows included). */
+export function nestedRowCount(config: ListFieldConfig | undefined, value: unknown): number {
+  const rows = rawListRows(value)
+  const children = childListColumns(config)
+  return rows.length + rows.reduce((n, row) => n + children.reduce((m, c) => m + nestedRowCount(c.list, row[c.key]), 0), 0)
+}
+
+/** A new row: each input column's default (typed), calculated columns worked out, nested Lists empty. */
 export function blankListRow(config: ListFieldConfig): ListRow {
   const seed: Record<string, unknown> = {}
-  for (const column of inputColumns(config)) seed[column.key] = column.default ?? (column.type === 'boolean' ? false : null)
+  for (const column of inputColumns(config)) seed[column.key] = column.type === 'list' ? [] : column.default ?? (column.type === 'boolean' ? false : null)
   return coerceListRow(config, seed)
 }
 
@@ -682,14 +1025,81 @@ export function blankListRow(config: ListFieldConfig): ListRow {
 export function listRowDraft(config: ListFieldConfig, row?: Record<string, unknown> | null): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const column of inputColumns(config)) {
+    if (column.type === 'list') { out[column.key] = row ? rawListRows(row[column.key]) : []; continue }
     const v = row ? row[column.key] : (column.default ?? (column.type === 'boolean' ? false : ''))
     out[column.key] = column.type === 'boolean' ? toBoolean(v) === true : v === null || v === undefined ? '' : v
   }
   return out
 }
 
-/** Per-column problems with one row (column key → message); empty when the row is fine. */
-export function listRowErrors(config: ListFieldConfig, row: Record<string, unknown>): Record<string, string> {
+/**
+ * The List's validations for one row (column → message; LIST_ROW_ERROR_KEY
+ * for a row-level one without a column): each column's `validations` and
+ * the config's `row_validations` whose condition holds — judged by the form
+ * rules' evaluator (lib/forms/form-rules.ts) with `row.*` = the typed row,
+ * `parent.*` = the parent row (nested Lists), `form.*` and `user.*` from the
+ * context. A cell that already has an error keeps it.
+ */
+export function listValidationErrors(config: ListFieldConfig, row: Record<string, unknown>, ctx: ListCheckContext): Record<string, string> {
+  const out: Record<string, string> = {}
+  const rules = [
+    ...config.columns.flatMap((c) => (c.validations ?? []).map((v) => ({ ...v, column: c.key }))),
+    ...(config.row_validations ?? []),
+  ]
+  if (!rules.length) return out
+  const typed = coerceListRow(config, row)
+  const event: Record<string, unknown> = { row: typed, ...(ctx.parent ? { parent: ctx.parent } : {}) }
+  const scope = { values: ctx.form ?? {}, user: ctx.user ?? null, event }
+  const { conditionsMet, template } = ruleJudge()
+  for (const v of rules) {
+    const at = v.column ?? LIST_ROW_ERROR_KEY
+    if (ctx.user === undefined && readsUser(v.if)) continue
+    if (out[at] || !conditionsMet(v.if, scope)) continue
+    const text = template(v.message, scope)
+    out[at] = String(text ?? '').trim() || 'Check this row'
+  }
+  return out
+}
+
+/**
+ * A row's conditional styles (list.row_styles): each style whose condition
+ * holds — judged like the List's validations (`row.*` typed, `parent.*`,
+ * `form.*`, `user.*`; one that reads the user is skipped when the user is
+ * not known here) — merged in order, the later one winning per property: the
+ * whole row's, and each styled column's cell.
+ */
+export function listRowStyles(config: ListFieldConfig | undefined, row: Record<string, unknown>, ctx: ListCheckContext = {}): RowStyleResult {
+  const list = config?.row_styles
+  if (!config || !list?.length || !judge) return NO_ROW_STYLE
+  const typed = coerceListRow(config, row)
+  const scope = { values: ctx.form ?? {}, user: ctx.user ?? null, event: { row: typed, ...(ctx.parent ? { parent: ctx.parent } : {}) } }
+  let whole: RowStyleResult['row'] = null
+  const cells: RowStyleResult['cells'] = {}
+  for (const s of list) {
+    if (ctx.user === undefined && readsUser(s.if)) continue
+    if (!judge.conditionsMet(s.if, scope)) continue
+    if (s.column) cells[s.column] = mergeStyles(cells[s.column], s.style)!
+    else whole = mergeStyles(whole, s.style)
+  }
+  return whole || Object.keys(cells).length ? { row: whole, cells } : NO_ROW_STYLE
+}
+
+/** Whether a validation's condition reads the user (`user.*` as a subject or a placeholder). */
+function readsUser(group: DataTableConditionGroup): boolean {
+  return groupConditions(group).some((c) => c.column === 'user' || c.column.startsWith('user.') || /\{\{\s*user[.}\s]/.test(String(c.value ?? '')))
+}
+
+/** Whether a List config (or a List nested in it) has validations. */
+export function hasListValidations(config: ListFieldConfig | undefined): boolean {
+  return Boolean(config && ((config.row_validations?.length ?? 0) > 0 || config.columns.some((c) => (c.validations?.length ?? 0) > 0 || (c.type === 'list' && hasListValidations(c.list)))))
+}
+
+/**
+ * Per-column problems with one row (column key → message; LIST_ROW_ERROR_KEY
+ * for a row-level validation); empty when the row is fine. With `ctx` the
+ * List's validations run too (listValidationErrors).
+ */
+export function listRowErrors(config: ListFieldConfig, row: Record<string, unknown>, ctx?: ListCheckContext | null): Record<string, string> {
   const errors: Record<string, string> = {}
   for (const column of config.columns) {
     const value = column.type === 'calculated' ? calculateColumn(column, coerceListRow(config, row)) : row[column.key]
@@ -702,6 +1112,12 @@ export function listRowErrors(config: ListFieldConfig, row: Record<string, unkno
     }
     if (column.type === 'boolean') {
       if (!blankCell(value) && toBoolean(value) === null) errors[column.key] = `${name} must be yes or no`
+      continue
+    }
+    if (column.type === 'list') {
+      // A nested List: its own rows' checks, min / max rows; required = at least one row.
+      const inner = checkListValue(column.list, value, Boolean(column.required), 2, ctx ? { ...ctx, parent: coerceListRow(config, row) } : null)
+      if (inner.errors.length) errors[column.key] = `${name}: ${inner.errors[0]}`
       continue
     }
     if (blankCell(value)) {
@@ -732,6 +1148,7 @@ export function listRowErrors(config: ListFieldConfig, row: Record<string, unkno
         else if (column.max !== undefined && s.length > column.max) errors[column.key] = `${name} must be at most ${column.max} characters`
     }
   }
+  if (ctx) for (const [at, text] of Object.entries(listValidationErrors(config, row, ctx))) if (!errors[at]) errors[at] = text
   return errors
 }
 
@@ -740,6 +1157,12 @@ export interface ListValueCheck {
   errors: string[]
   /** Per row (index in the submitted, non-blank rows) → column → message. */
   rowErrors: Record<number, Record<string, string>>
+  /**
+   * Every problem by its path under the List: `[1].qty`, a nested List's
+   * `[1].lines[0].qty` (or `[1].lines` for its row count); '' = the List
+   * itself. Prefix the field key for the full address (`orders[1].lines[0].qty`).
+   */
+  paths: Record<string, string>
   /** The rows counted (blank rows left out). */
   count: number
 }
@@ -749,31 +1172,49 @@ export interface ListValueCheck {
  * columns (required, types, bounds, options); the row count against
  * min / max rows and the hard limit; `required` = at least one row.
  */
-export function checkListValue(config: ListFieldConfig | undefined, value: unknown, required = false): ListValueCheck {
-  const out: ListValueCheck = { errors: [], rowErrors: {}, count: 0 }
-  if (!config) { out.errors.push('the list is not configured'); return out }
+export function checkListValue(config: ListFieldConfig | undefined, value: unknown, required = false, level = 1, ctx: ListCheckContext | null = null): ListValueCheck {
+  const out: ListValueCheck = { errors: [], rowErrors: {}, paths: {}, count: 0 }
+  const listError = (text: string) => { out.errors.push(text); if (!('' in out.paths)) out.paths[''] = text }
+  if (!config) { listError('the list is not configured'); return out }
   const blank = value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)
-  if (!blank && !Array.isArray(value) && !(typeof value === 'string' && value.trim().startsWith('['))) { out.errors.push('has an invalid value (a list of rows is expected)'); return out }
+  if (!blank && !Array.isArray(value) && !(typeof value === 'string' && value.trim().startsWith('['))) { listError('has an invalid value (a list of rows is expected)'); return out }
   const list = blank ? [] : typeof value === 'string' ? (() => { try { const p = JSON.parse(value); return Array.isArray(p) ? p : null } catch { return null } })() : value as unknown[]
-  if (list === null) { out.errors.push('has an invalid value (a list of rows is expected)'); return out }
-  if (list.some((row) => !isPlainObject(row))) { out.errors.push('has an invalid row'); return out }
+  if (list === null) { listError('has an invalid value (a list of rows is expected)'); return out }
+  if (list.some((row) => !isPlainObject(row))) { listError('has an invalid row'); return out }
   // Pending rows: 'block' stops the submission until they are committed or discarded; 'exclude' leaves them out.
   const pending = (list as Record<string, unknown>[]).filter((row) => rowDraftState(row) !== null).length
-  if (pending && (config.on_submit_pending ?? 'block') === 'block') out.errors.push(`commit or discard the ${pending === 1 ? 'pending row' : `${pending} pending rows`} first`)
+  if (pending && (config.on_submit_pending ?? 'block') === 'block') listError(`commit or discard the ${pending === 1 ? 'pending row' : `${pending} pending rows`} first`)
   const rows = settleListRows(config, list).filter((row) => !isBlankListRow(config, row))
   out.count = rows.length
-  if (rows.length > LIST_LIMITS.rows) { out.errors.push(`at most ${LIST_LIMITS.rows} rows`); return out }
+  if (rows.length > LIST_LIMITS.rows) { listError(`at most ${LIST_LIMITS.rows} rows`); return out }
+  // Nested Lists: at most LIST_LIMITS.nestedRows rows over every level of the value.
+  if (level === 1 && childListColumns(config).length && nestedRowCount(config, rows) > LIST_LIMITS.nestedRows) { listError(`at most ${LIST_LIMITS.nestedRows} rows in all (nested lists included)`); return out }
   rows.forEach((row, i) => {
-    const problems = listRowErrors(config, row)
+    const problems = listRowErrors(config, row, ctx)
     if (Object.keys(problems).length) {
       out.rowErrors[i] = problems
       out.errors.push(`row ${i + 1}: ${Object.values(problems)[0]}`)
+      for (const [column, text] of Object.entries(problems)) {
+        // A row-level validation without a column: the row's own path ([i]).
+        if (column === LIST_ROW_ERROR_KEY) { out.paths[`[${i}]`] = text; continue }
+        const nested = config.columns.find((c) => c.key === column && c.type === 'list')
+        if (!nested) { out.paths[`[${i}].${column}`] = text; continue }
+        // A nested List's own problems, each at its path ([i].lines[0].qty; [i].lines for its row count).
+        const inner = checkListValue(nested.list, row[column], Boolean(nested.required), level + 1, ctx ? { ...ctx, parent: coerceListRow(config, row) } : null)
+        for (const [path, message] of Object.entries(inner.paths)) out.paths[`[${i}].${column}${path}`] = message
+      }
     }
   })
   const min = Math.max(config.min_rows ?? 0, required ? 1 : 0)
-  if (rows.length < min) out.errors.push(min === 1 ? 'add at least one row' : `add at least ${min} rows`)
-  if (config.max_rows !== undefined && rows.length > config.max_rows) out.errors.push(`at most ${config.max_rows} ${config.max_rows === 1 ? 'row' : 'rows'}`)
+  if (rows.length < min) listError(min === 1 ? 'add at least one row' : `add at least ${min} rows`)
+  if (config.max_rows !== undefined && rows.length > config.max_rows) listError(`at most ${config.max_rows} ${config.max_rows === 1 ? 'row' : 'rows'}`)
   return out
+}
+
+/** A List value's problems by their full address (`orders[1].lines[0].qty`; `orders` for the List itself). */
+export function listValuePathErrors(fieldKey: string, config: ListFieldConfig | undefined, value: unknown, required = false, ctx: ListCheckContext | null = null): Record<string, string> {
+  const check = checkListValue(config, value, required, 1, ctx)
+  return Object.fromEntries(Object.entries(check.paths).map(([path, text]) => [`${fieldKey}${path}`, text]))
 }
 
 /* ── Totals and the run's derived values ─────────────────────────────── */
@@ -786,16 +1227,33 @@ export function listTotalKey(fieldKey: string, total: Pick<ListTotal, 'column' |
   return `${fieldKey}_${total.fn === 'sum' ? 'total' : total.fn}_${total.column}`
 }
 
-/** Every key the field adds beside its rows: `<key>_count` and one per total. */
+/**
+ * Every key the field adds beside its rows: `<key>_count` and one per total;
+ * per nested List (path P = its column keys joined by `_`: `lines`,
+ * `lines_serials`): `<key>_<P>_count` (its rows under every parent),
+ * `<key>_<P>_counts` (per top-level row, in order) and per child total
+ * `<key>_<total|avg|count>_<P>_<column>` (over every parent row).
+ */
 export function listDerivedKeys(fieldKey: string, config: ListFieldConfig | undefined): string[] {
   // A selectable List also owns the keys rules read its selection under.
-  return [listCountKey(fieldKey), ...(config?.totals ?? []).map((t) => listTotalKey(fieldKey, t)), ...(config?.selectable ? listSelectionKeys(fieldKey).filter((k) => k !== listCountKey(fieldKey)) : [])]
+  const nested = childListPaths(config).flatMap((path) => {
+    const p = `${fieldKey}_${path.join('_')}`
+    return [listCountKey(p), `${p}_counts`, ...(childListAt(config, path)!.config.totals ?? []).map((t) => listTotalKey(fieldKey, { ...t, column: `${path.join('_')}_${t.column}` }))]
+  })
+  return [listCountKey(fieldKey), ...(config?.totals ?? []).map((t) => listTotalKey(fieldKey, t)), ...nested, ...(config?.selectable ? listSelectionKeys(fieldKey).filter((k) => k !== listCountKey(fieldKey)) : [])]
+}
+
+/** The rows of a nested List under every row, in order (`lines` of every order; `lines.serials` of every line of every order). */
+export function nestedRowsAt(rows: ListRow[], path: string[]): ListRow[] {
+  if (!path.length) return rows
+  const [head, ...rest] = path
+  return nestedRowsAt(rows.flatMap((r) => (Array.isArray(r[head]) ? r[head] as ListRow[] : [])), rest)
 }
 
 /** A total over typed rows (sum / average rounded to 6 decimals; count = rows with a value). */
 export function listTotalValue(total: ListTotal, rows: ListRow[]): number | null {
   const values = rows.map((r) => r[total.column])
-  if (total.fn === 'count') return values.filter((v) => !(v === null || v === undefined || v === '' || v === false)).length
+  if (total.fn === 'count') return values.filter((v) => !(v === null || v === undefined || v === '' || v === false || (Array.isArray(v) && !v.length))).length
   const numbers = values.map((v) => toNumber(v)).filter((n): n is number => n !== null)
   if (!numbers.length) return total.fn === 'sum' ? 0 : null
   const sum = numbers.reduce((a, b) => a + b, 0)
@@ -803,23 +1261,50 @@ export function listTotalValue(total: ListTotal, rows: ListRow[]): number | null
 }
 
 /** `<key>_count` and the configured totals, from the typed rows (what the run and the submission carry). */
-export function listDerivedValues(fieldKey: string, config: ListFieldConfig | undefined, rows: unknown): Record<string, number | null> {
+export function listDerivedValues(fieldKey: string, config: ListFieldConfig | undefined, rows: unknown): Record<string, number | null | number[]> {
   const typed = config ? coerceListRows(config, rows) : []
-  const out: Record<string, number | null> = { [listCountKey(fieldKey)]: typed.length }
+  const out: Record<string, number | null | number[]> = { [listCountKey(fieldKey)]: typed.length }
   for (const total of config?.totals ?? []) out[listTotalKey(fieldKey, total)] = listTotalValue(total, typed)
+  // Nested Lists: their rows over every parent (count, grand totals) and the count under each top-level row.
+  for (const path of childListPaths(config)) {
+    const p = `${fieldKey}_${path.join('_')}`
+    const all = nestedRowsAt(typed, path)
+    out[listCountKey(p)] = all.length
+    out[`${p}_counts`] = typed.map((row) => nestedRowsAt([row], path).length)
+    for (const total of childListAt(config, path)!.config.totals ?? []) out[listTotalKey(fieldKey, { ...total, column: `${path.join('_')}_${total.column}` })] = listTotalValue(total, all)
+  }
   return out
 }
 
 /* ── Formatting ──────────────────────────────────────────────────────── */
 
-/** "3 rows" (the one-line summary for tables, reports and the timeline). */
-export function describeListValue(value: unknown): string {
-  const n = rawListRows(value).length
-  return n === 0 ? '—' : `${n} ${n === 1 ? 'row' : 'rows'}`
+/**
+ * "3 rows" (the one-line summary for tables, reports and the timeline); with
+ * nested Lists their rows under every parent too: "3 rows (7 lines)". The
+ * config names them (its column labels); without it, array-of-row keys do.
+ */
+export function describeListValue(value: unknown, config?: ListFieldConfig): string {
+  const rows = rawListRows(value)
+  const n = rows.length
+  if (n === 0) return '—'
+  const base = `${n} ${n === 1 ? 'row' : 'rows'}`
+  const nested: Array<{ label: string; count: number }> = config
+    ? childListColumns(config).map((c) => ({ label: c.label, count: rows.reduce((m, r) => m + rawListRows(r[c.key]).filter((x) => !isBlankListRow(c.list!, x)).length, 0) }))
+    : [...new Set(rows.flatMap((r) => Object.keys(r).filter((k) => Array.isArray(r[k]) && (r[k] as unknown[]).some(isPlainObject))))]
+      .map((k) => ({ label: k.replace(/_/g, ' '), count: rows.reduce((m, r) => m + rawListRows(r[k]).length, 0) }))
+  const parts = nested.map(({ label, count }) => `${count} ${countNoun(label, count)}`)
+  return parts.length ? `${base} (${parts.join(', ')})` : base
+}
+
+/** "lines" / "line" for a nested List's label. */
+function countNoun(label: string, count: number): string {
+  const plural = label.trim().toLowerCase() || 'rows'
+  return count === 1 ? singular(plural) || plural : plural
 }
 
 /** A cell as the person reads it (currency formatted, Yes / No, option labels). */
 export function formatListCell(column: ListColumn, value: unknown, row?: Record<string, unknown>): string {
+  if (column.type === 'list') { const n = rawListRows(value).length; return n ? `${n} ${countNoun(column.label, n)}` : '—' }
   if (value === null || value === undefined || value === '') return '—'
   if (column.type === 'lookup') { const label = row?.[listLabelKey(column.key)]; return typeof label === 'string' && label ? label : String(value) }
   if (column.type === 'boolean') return toBoolean(value) ? 'Yes' : 'No'
@@ -852,10 +1337,14 @@ export function listTotalLabel(config: ListFieldConfig, total: ListTotal): strin
   return total.fn === 'sum' ? `Total ${name.toLowerCase()}` : total.fn === 'avg' ? `Average ${name.toLowerCase()}` : `${name} (count)`
 }
 
-/** Rows as plain text, one per line (CSV / copy / Agent snapshots). */
-export function listValueText(config: ListFieldConfig | undefined, value: unknown): string {
+/** Rows as plain text, one per line (CSV / copy / Agent snapshots); a nested List's rows indented under their row. */
+export function listValueText(config: ListFieldConfig | undefined, value: unknown, indent = ''): string {
   if (!config) return describeListValue(value)
-  return rawListRows(value).map((row, i) => `${i + 1}. ${config.columns.map((c) => `${c.label}: ${formatListCell(c, row[c.key], row)}`).join(', ')}`).join('\n')
+  return rawListRows(value).map((row, i) => {
+    const line = `${indent}${i + 1}. ${config.columns.map((c) => `${c.label}: ${formatListCell(c, row[c.key], row)}`).join(', ')}`
+    const nested = childListColumns(config).map((c) => (rawListRows(row[c.key]).length ? `\n${indent}   ${c.label}:\n${listValueText(c.list, row[c.key], `${indent}   `)}` : '')).join('')
+    return line + nested
+  }).join('\n')
 }
 
 /* ── The designer's "Add inputs and an Add button" helper ─────────────── */
@@ -895,7 +1384,7 @@ export interface ListEntryKit {
   listPatch: Partial<ListFieldConfig>
 }
 
-const KIT_TYPE: Record<Exclude<ListColumnType, 'calculated'>, string> = {
+const KIT_TYPE: Record<Exclude<ListColumnType, 'calculated' | 'list' | 'field'>, string> = {
   text: 'text', textarea: 'textarea', number: 'number', currency: 'currency', date: 'date', choice: 'choice', boolean: 'boolean', email: 'email', lookup: 'lookup',
 }
 
@@ -917,11 +1406,12 @@ export function listEntryKit(listKey: string, listLabel: string, config: ListFie
   const fields: ListKitField[] = []
   const values: Record<string, string> = {}
   const require: string[] = []
-  const kitColumns = inputColumns(config).filter((c) => !c.hidden)
+  // A nested List column is edited in the list itself (its rows under each row), not from an input.
+  const kitColumns = inputColumns(config).filter((c) => !c.hidden && c.type !== 'list')
   const keyOf = new Map(kitColumns.map((c) => [c.key, unique(`${listKey}_${c.key}`)]))
   for (const column of kitColumns) {
     const key = keyOf.get(column.key)!
-    const field: ListKitField = { key, label: column.label, type: KIT_TYPE[column.type as Exclude<ListColumnType, 'calculated'>] ?? 'text' }
+    const field: ListKitField = { key, label: column.label, type: KIT_TYPE[column.type as Exclude<ListColumnType, 'calculated' | 'list' | 'field'>] ?? 'text' }
     // Options with their labels (a choice field reads labels from { value, label } entries).
     if (column.options) field.options = column.options.map((v) => (column.option_labels?.[v] ? { value: v, label: column.option_labels[v] } : v))
     const numeric = column.type === 'number' || column.type === 'currency'

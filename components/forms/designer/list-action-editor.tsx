@@ -5,7 +5,9 @@ import { VariableInput } from '@/components/automations/variable-input'
 import type { DesignerState } from '@/lib/forms/designer-state'
 import type { FieldButtonAction } from '@/lib/forms/field-buttons'
 import { DISPLAY_FIELD_TYPES } from '@/lib/task-field-schema'
+import { childListAt, childListPaths, type ListFieldConfig } from '@/lib/forms/list-field'
 import { designerInputClass as inputClass } from './designer-controls'
+import { asListField } from '@/lib/forms/repeating-section'
 
 /**
  * The row a List action aims at (remove / edit / update a row): the last,
@@ -54,6 +56,57 @@ export function RowTargetEditor({ action, state, placeholders, onChange, fallbac
   )
 }
 
+/** The List level a List step works on: the field's List, or the nested List its `child` names. */
+export function actionListConfig(state: DesignerState, action: FieldButtonAction): ListFieldConfig | undefined {
+  const list = state.fields.map(asListField).find((f) => f.key === (action.list_field ?? action.field) && f.type === 'list')
+  if (!list?.list) return undefined
+  return action.child ? childListAt(list.list, action.child)?.config : list.list
+}
+
+const PARENT_PRESETS = [
+  { value: 'current', label: 'The current row (the List’s current / editing row, else the row of the event)' },
+  { value: 'selected', label: 'Each selected row' },
+  { value: '{{event.row_number}}', label: 'The row of the event (a row button / click)' },
+  { value: 'first', label: 'The first row' },
+  { value: 'last', label: 'The last row' },
+]
+
+/**
+ * A List step on a nested List: whose rows — the List's own, or a nested
+ * List's (`child`) — and, for a nested List, the parent row (`parent_row`).
+ */
+export function NestedTargetEditor({ action, state, placeholders, onChange }: { action: FieldButtonAction; state: DesignerState; placeholders: Placeholder[]; onChange: (next: FieldButtonAction, tag?: string) => void }) {
+  const list = state.fields.map(asListField).find((f) => f.key === (action.list_field ?? action.field) && f.type === 'list')
+  const paths = list?.list ? childListPaths(list.list) : []
+  if (!list || (!paths.length && !action.child)) return null
+  const parent = action.parent_row ?? 'current'
+  const preset = PARENT_PRESETS.some((p) => p.value === parent) ? parent : 'custom'
+  const name = (path: string[]) => childListAt(list.list, path)?.columns.map((c) => c.label).join(' › ') ?? path.join('.')
+  return (
+    <div className="space-y-1 rounded border border-dashed border-border p-1.5" data-nested-target>
+      <select className={inputClass} aria-label="Whose rows" value={action.child ?? ''} data-nested-child
+        onChange={(e) => onChange({ ...action, child: e.target.value || undefined, parent_row: e.target.value ? action.parent_row : undefined, values: action.type === 'set_row_values' ? {} : undefined, assign: action.type === 'edit_list_row' ? {} : action.assign })}>
+        <option value="">Rows of {list.label || list.key}</option>
+        {paths.map((p) => <option key={p.join('.')} value={p.join('.')}>Rows of {name(p)} (a nested list)</option>)}
+      </select>
+      {action.child && (
+        <>
+          <select className={inputClass} aria-label="Parent row" value={preset} data-nested-parent
+            onChange={(e) => onChange({ ...action, parent_row: e.target.value === 'current' ? undefined : e.target.value === 'custom' ? '1' : e.target.value })}>
+            {PARENT_PRESETS.map((p) => <option key={p.value} value={p.value}>In {p.label.charAt(0).toLowerCase()}{p.label.slice(1)}</option>)}
+            <option value="custom">In a parent row number or expression…</option>
+          </select>
+          {preset === 'custom' && (
+            <VariableInput value={parent} extraVariables={placeholders} placeholder={action.child.includes('.') ? '2.1 (row 2, its line 1), or {{form.order_no}}' : '2, or {{form.order_no}}'} ariaLabel="Parent row number"
+              onChange={(v) => onChange({ ...action, parent_row: v || undefined }, 'nested-parent')} />
+          )}
+          <p className="text-2xs text-fg-muted">{'{{row.*}}'} is the nested row, {'{{parent.*}}'} its parent row.</p>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function ConfirmTextEditor({ action, placeholders, onChange }: { action: FieldButtonAction; placeholders: Placeholder[]; onChange: (next: FieldButtonAction, tag?: string) => void }) {
   return (
     <div className="space-y-1" data-confirm-text>
@@ -72,17 +125,18 @@ export function ConfirmTextEditor({ action, placeholders, onChange }: { action: 
 
 /** edit_list_row: which input gets which column of the row ({{row.<column>}}); cancel_list_edit: the inputs it resets. */
 export function EditRowEditor({ action, state, placeholders, onChange }: { action: FieldButtonAction; state: DesignerState; placeholders: Placeholder[]; onChange: (next: FieldButtonAction, tag?: string) => void }) {
-  const lists = state.fields.filter((f) => f.type === 'list')
-  const list = lists.find((f) => f.key === action.list_field)
-  const inputs = state.fields.filter((f) => !DISPLAY_FIELD_TYPES.has(f.type) && f.type !== 'list')
+  const lists = state.fields.map(asListField).filter((f) => f.type === 'list')
+  const config = actionListConfig(state, action)
+  const inputs = state.fields.filter((f) => !DISPLAY_FIELD_TYPES.has(f.type) && f.type !== 'list' && f.type !== 'repeating_section')
   const assign = action.assign ?? {}
   return (
     <div className="space-y-1.5" data-edit-row-editor={action.type}>
-      <AutocompleteSelect value={action.list_field ?? ''} placeholder="Which List…" options={lists.map((f) => ({ value: f.key, label: f.label || f.key }))} onChange={(v) => onChange({ ...action, list_field: v || undefined })} />
+      <AutocompleteSelect value={action.list_field ?? ''} placeholder="Which List…" options={lists.map((f) => ({ value: f.key, label: f.label || f.key }))} onChange={(v) => onChange({ ...action, list_field: v || undefined, child: undefined, parent_row: undefined })} />
+      <NestedTargetEditor action={action} state={state} placeholders={placeholders} onChange={onChange} />
       {action.type === 'edit_list_row' && (
         <>
           <RowTargetEditor action={action} state={state} placeholders={placeholders} onChange={onChange} fallback="{{event.row_number}}" />
-          {(list?.list?.columns ?? []).filter((c) => c.type !== 'calculated').map((c) => {
+          {(config?.columns ?? []).filter((c) => c.type !== 'calculated' && c.type !== 'list').map((c) => {
             const input = Object.entries(assign).find(([, t]) => t.replace(/\s/g, '') === `{{row.${c.key}}}`)?.[0] ?? ''
             return (
               <div key={c.key} className="grid grid-cols-[6rem_auto_minmax(0,1fr)] items-center gap-1 text-2xs">
@@ -117,9 +171,9 @@ const ROW_PRESETS = [
 
 type RowsFieldDef = DesignerState['fields'][number]
 
-function rowColumns(f: RowsFieldDef | undefined): Array<{ key: string; label: string; read_only?: boolean; type?: string; hidden?: boolean }> {
+function rowColumns(f: RowsFieldDef | undefined, child?: string): Array<{ key: string; label: string; read_only?: boolean; type?: string; hidden?: boolean }> {
   if (!f) return []
-  if (f.type === 'list') return (f.list?.columns ?? []).filter((c) => c.type !== 'calculated')
+  if (f.type === 'list') return ((child && f.list ? childListAt(f.list, child)?.config.columns : f.list?.columns) ?? []).filter((c) => c.type !== 'calculated' && c.type !== 'list')
   return (f.data_table?.columns ?? []).map((c) => ({ key: c.key, label: c.label, read_only: c.read_only, type: c.type, hidden: c.hidden }))
 }
 
@@ -129,9 +183,9 @@ function rowColumns(f: RowsFieldDef | undefined): Array<{ key: string; label: st
  * values, Stage vs Save now, the question first.
  */
 export function RowActionEditor({ action, state, placeholders, onChange }: { action: FieldButtonAction; state: DesignerState; placeholders: Placeholder[]; onChange: (next: FieldButtonAction, tag?: string) => void }) {
-  const choices = state.fields.filter((f) => (action.type === 'refresh_table' ? false : f.type === 'list') || (f.type === 'data_table' && f.data_table?.mode === 'edit'))
+  const choices = state.fields.map(asListField).filter((f) => (action.type === 'refresh_table' ? false : f.type === 'list') || (f.type === 'data_table' && f.data_table?.mode === 'edit'))
   const field = choices.find((f) => f.key === action.field)
-  const columns = rowColumns(field)
+  const columns = rowColumns(field, action.child)
   const values = action.values ?? {}
   const isTable = field?.type === 'data_table'
   const row = action.row ?? (action.type === 'delete_row' ? 'selected' : 'current')
@@ -145,7 +199,8 @@ export function RowActionEditor({ action, state, placeholders, onChange }: { act
   return (
     <div className="space-y-1.5" data-row-action-editor={action.type}>
       <AutocompleteSelect value={action.field ?? ''} placeholder={choices.length ? (action.type === 'refresh_table' ? 'Which Data table…' : 'Which List or Data table…') : 'Add a List or an editable Data table first'}
-        options={choices.map((f) => ({ value: f.key, label: `${f.label || f.key} (${f.type === 'list' ? 'List' : 'Data table'})` }))} onChange={(v) => onChange({ ...action, field: v || undefined })} />
+        options={choices.map((f) => ({ value: f.key, label: `${f.label || f.key} (${f.type === 'list' ? 'List' : 'Data table'})` }))} onChange={(v) => onChange({ ...action, field: v || undefined, child: undefined, parent_row: undefined })} />
+      {action.type !== 'refresh_table' && field?.type === 'list' && <NestedTargetEditor action={action} state={state} placeholders={placeholders} onChange={onChange} />}
       {action.type === 'new_row' && field && (
         <>
           <select className={inputClass} aria-label="Where the row goes" value={action.position ?? 'end'} onChange={(e) => onChange({ ...action, position: e.target.value as FieldButtonAction['position'] })}>
@@ -232,6 +287,42 @@ export function RowActionEditor({ action, state, placeholders, onChange }: { act
           Ask whether to drop pending rows first (otherwise they are kept)
         </label>
       )}
+    </div>
+  )
+}
+
+const OPEN_ROW_PRESETS = [
+  { value: 'current', label: 'The current row (else the row of the event)' },
+  { value: 'selected', label: 'The selected row' },
+  { value: 'new', label: 'A new row (Cancel removes it)' },
+  { value: '{{event.row_number}}', label: 'The row of the event' },
+  { value: 'first', label: 'The first row' },
+  { value: 'last', label: 'The last row' },
+]
+
+/** open_row_form: the List (a nested List: the column and parent row) and which row opens in its pop-out form. */
+export function OpenRowFormEditor({ action, state, placeholders, onChange }: { action: FieldButtonAction; state: DesignerState; placeholders: Placeholder[]; onChange: (next: FieldButtonAction, tag?: string) => void }) {
+  const lists = state.fields.map(asListField).filter((f) => f.type === 'list')
+  const field = lists.find((f) => f.key === action.field)
+  const row = action.row ?? 'current'
+  const preset = OPEN_ROW_PRESETS.some((p) => p.value === row) ? row : 'custom'
+  return (
+    <div className="space-y-1.5" data-open-row-form-editor>
+      <AutocompleteSelect value={action.field ?? ''} placeholder={lists.length ? 'Which List…' : 'Add a List first'}
+        options={lists.map((f) => ({ value: f.key, label: f.label || f.key }))} onChange={(v) => onChange({ ...action, field: v || undefined, child: undefined, parent_row: undefined })} />
+      {field && <NestedTargetEditor action={action} state={state} placeholders={placeholders} onChange={onChange} />}
+      {field && (
+        <select className={inputClass} aria-label="Which row" value={preset} onChange={(e) => onChange({ ...action, row: e.target.value === 'custom' ? '1' : e.target.value })} data-open-row-target>
+          {OPEN_ROW_PRESETS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          <option value="custom">A row number or expression…</option>
+        </select>
+      )}
+      {field && preset === 'custom' && <VariableInput value={row} extraVariables={placeholders} placeholder="2, or {{form.row_to_open}}" ariaLabel="Row number" onChange={(v) => onChange({ ...action, row: v || 'current' }, 'open-row-number')} />}
+      {field && (row === 'selected' || preset === 'custom') && (
+        <VariableInput value={action.empty_text ?? ''} extraVariables={placeholders} placeholder="When there is no such row: Select a row first" ariaLabel="Message when there is no row"
+          onChange={(v) => onChange({ ...action, empty_text: v || undefined }, 'open-row-empty')} />
+      )}
+      <p className="text-2xs text-fg-muted">Opens the row as a form in a dialog (one column on phones, two on wider screens). Save checks and commits it; Cancel puts it back. A read-only List opens the row to read.</p>
     </div>
   )
 }

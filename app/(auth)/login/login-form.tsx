@@ -30,7 +30,12 @@ const ERROR_MESSAGES: Record<string, string> = {
  * session cookies; the browser never sees a token. Sign-in options come from
  * the configured auth provider (names and buttons only).
  */
-export function LoginForm({ options, defaultOrg = "" }: { options: LoginOptions; defaultOrg?: string }) {
+export function LoginForm({ options, defaultOrg = "", signupHref = null }: {
+  options: LoginOptions
+  defaultOrg?: string
+  /** Cloud edition: the self-signup link (`/start`, carrying `?redirect=`). Null on self-hosted, where sign-in is invite-only. */
+  signupHref?: string | null
+}) {
   const searchParams = useSearchParams()
   const redirectTo = sanitizeRedirect(searchParams.get("redirect"))
   const orgParam = searchParams.get("org") ?? defaultOrg
@@ -166,7 +171,17 @@ export function LoginForm({ options, defaultOrg = "" }: { options: LoginOptions;
             </>
           )}
 
-          {showPassword && (
+          {signupHref ? (
+            <div className="mt-8 space-y-2 border-t border-border-subtle pt-6 text-center" data-testid="login-signup">
+              <p className="text-sm text-fg-muted">
+                No account?{" "}
+                <Link href={signupHref} className="font-semibold text-primary-text hover:underline">Create a free workspace</Link>
+              </p>
+              {showPassword && (
+                <p className="text-xs text-fg-muted">Invited to an organisation? Enter your details above and your account is created automatically.</p>
+              )}
+            </div>
+          ) : showPassword && (
             <p className="mt-8 text-center text-xs text-fg-muted">
               New here? Enter your details above. If you have an invitation, your account is created automatically.
             </p>

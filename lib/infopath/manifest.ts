@@ -86,7 +86,7 @@ export function parseManifest(doc: XmlElement, viewControlContext: (view: string
     product_version: attr(doc, 'productVersion'),
     browser_enabled: false,
     views: [], rules: [], validations: [], calculations: [], connections: [], buttons: [], roles: [],
-    submit: null, repeating: [], optional: [], rich_text: [], code: [], warnings,
+    submit: null, repeating: [], optional: [], rich_text: [], code: [], signatures: [], warnings,
   }
   const solutionVersion = attr(doc, 'solutionVersion')
   if (solutionVersion) out.version = solutionVersion
@@ -253,6 +253,10 @@ export function parseManifest(doc: XmlElement, viewControlContext: (view: string
       out.roles.push({ name, ...(name === defaultRole ? { default: true } : {}), ...(members.length ? { members } : {}) })
     }
   }
+
+  // ── Digital signatures ──
+  for (const b of all(doc, 'signedDataBlock')) out.signatures.push(attr(b, 'message') || attr(b, 'name') || 'Signature')
+  if (!out.signatures.length && first(doc, 'documentSignatures')) out.signatures.push('Form signature')
 
   // ── Code ──
   const script = first(doc, 'script') ?? first(doc, 'scripts')

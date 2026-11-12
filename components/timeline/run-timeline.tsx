@@ -21,9 +21,10 @@ import { formatAbsolute, formatDay, formatRelative, formatTime, toDate } from "@
 import { processViewPollMs } from "@/lib/automations/process-view-poll"
 import {
   filterTimeline, formatGap, timelineAsText, TIMELINE_FILTERS,
-  type RunTimeline as RunTimelineData, type TimelineCategory, type TimelineEvent, type TimelineIcon, type TimelineTarget,
+  type RunTimeline as RunTimelineData, type TimelineCategory, type TimelineEvent, type TimelineField, type TimelineIcon, type TimelineTarget,
 } from "@/lib/run-timeline"
 
+const TimelineListRows = dynamic(() => import("./timeline-list-rows").then((m) => m.TimelineListRows))
 const SubmissionDialog = dynamic(() => import("@/components/home/submission-dialog").then((m) => m.SubmissionDialog))
 
 const ICONS: Record<TimelineIcon, React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
@@ -162,7 +163,7 @@ function EventRow({ event, onSubmission, depth = 0 }: { event: TimelineEvent; on
         })()}
         {event.fields && event.fields.length > 0 && (
           <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 rounded-md bg-subtle px-3 py-2 text-xs" data-timeline-fields>
-            {event.fields.map((f) => (<FieldRow key={f.label} label={f.label} value={f.value} />))}
+            {event.fields.map((f) => (<FieldRow key={f.label} field={f} />))}
           </dl>
         )}
         {(event.links?.length || event.submission) ? (
@@ -196,8 +197,9 @@ function EventRow({ event, onSubmission, depth = 0 }: { event: TimelineEvent; on
 
 const lowerFirst = (s: string) => (/^(Yesterday|Tomorrow|Just now)$/.test(s) ? s.toLowerCase() : s)
 
-function FieldRow({ label, value }: { label: string; value: string }) {
-  return (<><dt className="text-fg-muted">{label}</dt><dd className="min-w-0 truncate font-medium text-fg" title={value}>{value}</dd></>)
+function FieldRow({ field }: { field: TimelineField }) {
+  const { label, value, list } = field
+  return (<><dt className="text-fg-muted">{label}</dt><dd className="min-w-0 truncate font-medium text-fg" title={value}>{value}{list && list.rows.length > 0 && <TimelineListRows field={{ ...field, list }} />}</dd></>)
 }
 
 function TimelineHeaderCard({ data, actions }: { data: RunTimelineData; actions?: ReactNode }) {

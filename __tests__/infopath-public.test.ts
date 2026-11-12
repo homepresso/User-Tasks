@@ -41,7 +41,7 @@ describe('public InfoPath preview endpoint', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('cache-control')).toBe('no-store')
     const { summary } = await res.json()
-    expect(summary.counts).toMatchObject({ views: 1, fields: 11, repeating: 1, rules: { total: 5, converted: 3 } })
+    expect(summary.counts).toMatchObject({ views: 1, fields: 11, repeating: 1, rules: { total: 5, converted: 4 } })
     expect(summary.views[0].fields.find((f: { label: string }) => f.label === 'Line items').columns).toContain('Unit price')
     expect(summary.preview.fields.length).toBeGreaterThan(5)
     const text = JSON.stringify(summary)

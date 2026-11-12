@@ -1,6 +1,6 @@
 'use client'
 
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
@@ -12,9 +12,24 @@ import { lookupItemKey, lookupLabelKey } from '@/lib/forms/lookup'
 import { LookupField, lookupDisplayValue } from './lookup-field'
 import { AttachmentList, AttachmentsField } from './attachments-field'
 import { CustomControlField } from './custom-control-field'
+import { ImageField, ImageValueView } from './image-field'
+import { SignatureField, SignatureView } from './signature-field'
+import { DisplayImage } from './display-image'
+import { RichTextField } from './rich-text-field'
+import { TextListField } from './text-list-field'
+import { PeopleField } from './people-field'
+import { ControlValueView, hasControlValueView } from './control-values'
+import { controlValueText } from '@/lib/forms/control-text'
+import { isPeopleList } from '@/lib/forms/people-field'
+import { describeSignature, normalizeImageValue } from '@/lib/forms/media-fields'
 import { ControlPrewarm, ControlReadyBoundary } from './control-ready'
 import { DataTableField, DataTableValueView } from './data-table-field'
 import { ListField, ListValueView } from './list-field'
+import { RepeatingSectionField, type ItemRendererProps } from './repeating-section-field'
+import { describeRepeatingValue } from '@/lib/forms/repeating-section'
+import { RulesBoundary } from './form-rules-runtime'
+import { RuntimeBoundary } from './form-runtime'
+import { PagerBoundary } from './form-pages'
 import { currentFocusColumn, currentListIndex, rowCurrentEntries } from '@/lib/forms/row-rules'
 import { LIST_SELECT_KEY, describeListValue, listEditingRow, listSelection, listSelectionEntries, withListSelected } from '@/lib/forms/list-field'
 import { OPTIONS_KEY, optionsLoading, ruleOptions } from '@/lib/forms/data-actions'
@@ -25,15 +40,17 @@ import { hiddenFieldKeysForValues, holdsFiles, isDisplayField, isFieldVisible, i
 import { estimatePartHeight } from '@/lib/forms/lazy-load'
 import { LazyLoadController, LazyPartPlaceholder, LazyPartsProvider, LazyReveal, useLazyParts, useLazyState } from './lazy-parts'
 import { FORM_STATE_KEY, applyCollapsed, readFormState, sectionRowFieldKeys, stateHiddenFieldKeys, stateRuleFlag, withFormState } from '@/lib/forms/form-state'
-import { isSectionIncluded, sectionBlocks, sectionIncludedKey, sectionRuleHiddenFieldKeys } from '@/lib/forms/sections'
+import { activeChoiceSection, inactiveChoiceFieldKeys, isSectionIncluded, layoutChoiceGroups, sectionBlocks, sectionIncludedKey, sectionRuleHiddenFieldKeys, withChoiceDefaults } from '@/lib/forms/sections'
 import { FormSectionBlock } from './form-section'
+import { ChoiceGroupBlock } from './choice-group'
 import { CONTROLS_KEY, withFormContext } from '@/lib/forms/form-params'
 import { layoutPages, layoutSectionControls, reportControl, withControlState } from '@/lib/forms/rule-variables'
 import { resolveHeaderText } from '@/lib/forms/header'
 import { FieldButtonCell } from './field-button'
 import { FormLevelError, FormRulesScope, useFormRules } from './form-rules-runtime'
 import { FormMessagesScope } from './form-messages'
-import { alwaysRuleEffects, ruleHiddenFieldKeys } from '@/lib/forms/form-rules'
+import { alwaysRuleEffects, ruleHiddenFieldKeys, ruleStyles } from '@/lib/forms/form-rules'
+import { StyledBox } from './conditional-style'
 import { useFormRuntime } from './form-runtime'
 import { DynamicStatusProvider, useDynamicFields, useDynamicStatus } from './dynamic-fields'
 import { LabelDisplay, LabelValues } from './label-field'
@@ -93,10 +110,15 @@ const SM_SPAN = ['', 'sm:col-span-1', 'sm:col-span-2', 'sm:col-span-3', 'sm:col-
 
 export function formatFieldValue(field: TaskFieldDef | undefined, value: unknown, people?: Map<string, string>): string {
   if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) return '—'
+  const control = controlValueText(field, value, { names: people })
+  if (control !== null) return control || '—'
   if (field?.type === 'attachments') return attachmentNames(value) || '—'
+  if (field?.type === 'image') return normalizeImageValue(value)?.name || (typeof value === 'object' && value && 'name' in value ? String((value as { name?: unknown }).name ?? '') : '') || '—'
+  if (field?.type === 'signature') return describeSignature(value)
   if (field?.type === 'custom') return formatCustomValue(field.custom, value)
   if (field?.type === 'data_table') return describeDataTableValue(field.data_table, value)
-  if (field?.type === 'list') return describeListValue(value)
+  if (field?.type === 'list') return describeListValue(value, field.list)
+  if (field?.type === 'repeating_section') return describeRepeatingValue(value, field)
   if (field && isSurveyType(field.type)) return formatSurveyValue(field, value)
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (Array.isArray(value)) return value.map((v) => (field ? optionLabel(field, String(v)) : String(v))).join(', ')
@@ -190,7 +212,9 @@ function ReadOnlyText({ id, value, describedBy, labelledBy }: { id: string; valu
   )
 }
 
-function FieldControl({ field, value, onChange, error, id, people, values, setValue, reportRows, locked = false, narrow }: {
+function FieldControl({ field, value, onChange, error, id, people, values, setValue, reportRows, locked = false, narrow, watch }: {
+  /** Signature fields: the other answers (JSON), to ask for a new signature when they change. */
+  watch?: string
   /** One-column form / the designer's phone preview: List rows as cards. */
   narrow?: boolean
   field: TaskFieldDef
@@ -231,6 +255,7 @@ function FieldControl({ field, value, onChange, error, id, people, values, setVa
         if (field.display === 'radio') break
         return <ReadOnlyText id={id} value={text(value) ? optionLabel(field, text(value)) : ''} describedBy={describedBy} labelledBy={`${id}-label`} />
       case 'user': {
+        if (isPeopleList(field)) break
         const person = people.find((p) => p.id === text(value))
         return <ReadOnlyText id={id} value={person ? person.display_name || person.email || person.id : text(value)} describedBy={describedBy} labelledBy={`${id}-label`} />
       }
@@ -277,6 +302,16 @@ function FieldControl({ field, value, onChange, error, id, people, values, setVa
       return <ListField field={field} value={value} onChange={onChange} id={id} describedBy={describedBy} invalid={invalid} disabled={field.read_only || locked} narrow={narrow} editing={listEditingRow(values, field.key)} formValues={values}
         selected={listSelection(values, field.key)} onSelect={(next) => setValue(LIST_SELECT_KEY, withListSelected(values, field.key, next))}
         current={currentListIndex(values, field.key)} focusColumn={currentFocusColumn(values, field.key)} />
+    case 'rich_text':
+      return <RichTextField value={value} onChange={onChange} id={id} labelledBy={`${id}-label`} describedBy={describedBy} invalid={invalid} disabled={field.read_only} readOnly={locked}
+        config={field.rich_text} placeholder={field.placeholder} required={field.required && !locked} />
+    case 'text_list':
+      return <TextListField value={value} onChange={onChange} id={id} label={field.label} labelledBy={`${id}-label`} describedBy={describedBy} invalid={invalid} disabled={field.read_only} readOnly={locked}
+        config={field.text_list} placeholder={field.placeholder} />
+    case 'image':
+      return <ImageField field={field} value={value} onChange={onChange} id={id} describedBy={describedBy} invalid={invalid} disabled={field.read_only || locked} />
+    case 'signature':
+      return <SignatureField field={field} value={value} onChange={onChange} id={id} describedBy={describedBy} invalid={invalid} disabled={field.read_only || locked} watch={watch} />
     case 'attachments':
       return (
         <AttachmentsField
@@ -377,6 +412,25 @@ function FieldControl({ field, value, onChange, error, id, people, values, setVa
     case 'multi_choice': {
       if (optionsStatus && (optionsStatus.loading || optionsStatus.error)) return <OptionsUnavailable id={id} status={optionsStatus} describedBy={describedBy} />
       const selected = asList(value)
+      if (field.display === 'checkboxes' || field.display === 'listbox') {
+        // A column of checkboxes, or InfoPath's multiple-selection list box: the same checkboxes in a bordered, scrolling box.
+        const box = field.display === 'listbox'
+        return (
+          <fieldset aria-labelledby={`${id}-label`} aria-describedby={describedBy} {...(locked ? { 'data-read-only': '' } : {})} data-multi-display={field.display}
+            className={cn('min-w-0', box ? cn('max-h-56 overflow-y-auto rounded-lg border px-1 py-1 bg-input', invalid ? 'border-(--status-blocked)' : 'border-input-border', locked && READ_ONLY_CONTROL) : 'space-y-1 pt-1')}>
+            {(field.options ?? []).map((option, i) => {
+              const on = selected.includes(option)
+              return (
+                <label key={option} htmlFor={i === 0 ? id : `${id}-${i}`} className={cn('flex min-h-9 items-center gap-2 rounded-md px-2 text-sm text-fg', box && 'hover:bg-subtle', box && on && 'bg-primary-wash', locked ? 'cursor-default' : 'cursor-pointer')}>
+                  <input id={i === 0 ? id : `${id}-${i}`} type="checkbox" className="h-4 w-4 shrink-0 accent-primary" checked={on} disabled={field.read_only} aria-readonly={locked || undefined}
+                    onChange={() => { if (!locked) onChange(on ? selected.filter((v) => v !== option) : [...selected, option]) }} {...swallow} />
+                  <span className="min-w-0 break-words">{optionLabel(field, option)}</span>
+                </label>
+              )
+            })}
+          </fieldset>
+        )
+      }
       return (
         <div role="group" aria-labelledby={`${id}-label`} aria-describedby={describedBy} {...(locked ? { 'data-read-only': '' } : {})} className="flex flex-wrap gap-1.5 pt-1">
           {(field.options ?? []).map((option) => {
@@ -403,6 +457,10 @@ function FieldControl({ field, value, onChange, error, id, people, values, setVa
       )
     }
     case 'user':
+      if (isPeopleList(field)) {
+        return <PeopleField value={value} onChange={onChange} id={id} label={field.label} labelledBy={`${id}-label`} describedBy={describedBy} invalid={invalid} disabled={field.read_only} readOnly={locked}
+          config={field.user_config} people={people} placeholder={field.placeholder} />
+      }
       return (
         <AutocompleteSelect
           value={text(value)}
@@ -451,9 +509,45 @@ function FieldControl({ field, value, onChange, error, id, people, values, setVa
   }
 }
 
-function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelLeft, idPrefix, peopleMap, people, singleColumn, values, fields, fullLayout, locked = false }: {
+/** The other answers of the form (value fields only), as text: a Signature with "re-sign on change" watches it. */
+function signatureWatch(fields: TaskFieldDef[], values: Record<string, unknown>, self: string): string {
+  const out: Record<string, unknown> = {}
+  for (const f of fields) if (f.key !== self && !isDisplayField(f) && f.type !== 'label' && f.type !== 'signature') out[f.key] = values[f.key] ?? null
+  try { return JSON.stringify(out) } catch { return '' }
+}
+
+/** Inside a repeating section's item (lib/forms/repeating-section.ts): a nested form — no assistant bridge of its own. */
+const NestedFormContext = createContext(false)
+
+/** A repeating section's item: the form renderer again, cut off from the outer form's rules, runtime and pager. */
+function ItemFormRenderer(props: ItemRendererProps) {
+  return (
+    <NestedFormContext.Provider value>
+      <RulesBoundary><RuntimeBoundary><PagerBoundary>
+        <FormRenderer {...props} />
+      </PagerBoundary></RuntimeBoundary></RulesBoundary>
+    </NestedFormContext.Provider>
+  )
+}
+
+/**
+ * A repeating section's stored items, read only (submission views, the
+ * timeline): "3 expenses" and a card per item — collapsed to its title when
+ * `collapsed` (expand one to see its controls).
+ */
+export function RepeatingSectionValueView({ field, value, formValues = {}, collapsed = true, narrow = true }: { field: TaskFieldDef; value: unknown; formValues?: Record<string, unknown>; collapsed?: boolean; narrow?: boolean }) {
+  return (
+    <RepeatingSectionField field={field} value={value} id={`rs-view-${field.key}`} idPrefix={`rs-view-${field.key}-`} formValues={formValues} readOnly narrow={narrow} compact
+      Renderer={ItemFormRenderer} defaultCollapsed={collapsed} />
+  )
+}
+
+function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelLeft, idPrefix, peopleMap, people, singleColumn, values, fields, fullLayout, locked = false, allErrors, compact }: {
   /** Read only by a rule (Make read only / editable): shown as a read-only control, still submitted. */
   locked?: boolean
+  /** Every error (a repeating section picks its items' paths out). */
+  allErrors?: Record<string, string>
+  compact?: boolean
   fields: TaskFieldDef[]
   fullLayout: FormLayout | null | undefined
   singleColumn?: boolean
@@ -479,11 +573,20 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
     )
   }
   if (field.type === 'divider') return <hr className="my-1 border-t border-border" aria-hidden />
+  if (field.type === 'display_image') return <DisplayImage config={field.display_image} fieldKey={field.key} />
   if (field.type === 'label') {
     // Display text (lib/forms/label-field.ts): an expression's live value; else what rules / the default put in the values.
     const live = field.label_config?.expression && (readOnly ? value === undefined : true) ? computeLabelValues(fields, values)[field.key]?.value : undefined
     const shown = live !== undefined ? live : value !== undefined ? value : field.default ?? null
-    return <LabelDisplay field={field} value={shown} id={id} dynamic={!readOnly && isDynamicLabel(field, fullLayout)} />
+    return <LabelDisplay field={field} fields={fields} value={shown} id={id} dynamic={!readOnly && isDynamicLabel(field, fullLayout)} />
+  }
+  if (field.type === 'repeating_section') {
+    // A group of controls repeated per item (components/forms/repeating-section-field.tsx): its own label, cards, Add and totals.
+    return (
+      <RepeatingSectionField field={field} value={value} id={id} idPrefix={idPrefix} formValues={values} errors={allErrors} error={error}
+        onChange={onChange ? (items) => onChange(field.key, items) : undefined} onFormChange={onChange}
+        readOnly={readOnly} disabled={Boolean(field.read_only) || locked} narrow={singleColumn} compact={compact} Renderer={ItemFormRenderer} />
+    )
   }
   if (field.type === 'button') {
     if (readOnly) return null
@@ -511,7 +614,7 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
   }
 
   if (readOnly && field.type === 'list') {
-    return <div>{label}<ListValueView field={field} value={value} narrow={singleColumn} /></div>
+    return <div>{label}<ListValueView field={field} value={value} narrow={singleColumn} formValues={values} /></div>
   }
 
   if (readOnly) {
@@ -520,13 +623,17 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
         {label}
         {holdsFiles(field)
           ? <div className="text-sm text-fg"><AttachmentList value={value} /></div>
+          : field.type === 'image' ? <ImageValueView value={value} label={field.label} />
+          : field.type === 'signature' ? <SignatureView value={value} />
+          : hasControlValueView(field) ? <ControlValueView field={field} value={value} values={values} />
           : isSurveyType(field.type) ? <SurveyAnswerView field={field} value={value} />
           : <p className="text-sm break-words whitespace-pre-wrap text-fg">{field.type === 'lookup' ? lookupDisplayValue(field, value, values[lookupItemKey(field.key)], values[lookupLabelKey(field.key)]) : formatFieldValue(field, value, peopleMap)}</p>}
       </div>
     )
   }
 
-  const control = <FieldControl field={field} value={value} onChange={(v) => onChange?.(field.key, v)} error={error} id={id} people={people} values={values} setValue={(key, v) => onChange?.(key, v)} reportRows={field.type === 'data_table' && tablesReadByLabels(fields).has(field.key)} locked={locked} narrow={singleColumn} />
+  const watch = field.type === 'signature' && field.signature?.resign_on_change ? signatureWatch(fields, values, field.key) : undefined
+  const control = <FieldControl field={field} value={value} onChange={(v) => onChange?.(field.key, v)} error={error} id={id} people={people} values={values} setValue={(key, v) => onChange?.(key, v)} reportRows={field.type === 'data_table' && tablesReadByLabels(fields).has(field.key)} locked={locked} narrow={singleColumn} watch={watch} />
   const errorLine = error ? <p id={`${id}-error`} role="alert" className="mt-1 text-2xs text-(--status-blocked)">{error}</p> : null
   if (field.type === 'boolean') {
     // Aligned with the inputs beside it on wider screens; no gap when the row collapses to one column.
@@ -553,7 +660,8 @@ export function FormRenderer(rawProps: FormRendererProps) {
     const pages = layoutPages(rawProps.layout)
     const reported = (ctx[CONTROLS_KEY] && typeof ctx[CONTROLS_KEY] === 'object' ? ctx[CONTROLS_KEY] : {}) as Record<string, unknown>
     const withStep = pages.length && stepId ? { ...ctx, [CONTROLS_KEY]: { ...reported, form: { step_id: stepId } } } : ctx
-    const out = withControlState(rawProps.fields, withStep, pages, layoutSectionControls(rawProps.layout))
+    // Choice groups: the active alternative as rules read it ({{form.<group>}}) — the default until someone picks.
+    const out = withChoiceDefaults(rawProps.layout, withControlState(rawProps.fields, withStep, pages, layoutSectionControls(rawProps.layout)))
     // Lists' selections, as rules and buttons read them ({{form.<list>_selected_count}}…): UI state, never submitted.
     const selection = rawProps.fields.some((f) => f.type === 'list' && f.list?.selectable) ? listSelectionEntries(rawProps.fields, out) : null
     // The current / pending rows of Lists and editable Data tables ({{form.<field>_current_row.<column>}} — lib/forms/row-rules.ts).
@@ -644,6 +752,8 @@ function fieldVisibility(fields: TaskFieldDef[], layout: FormLayout | null | und
   for (const key of ruleHiddenFieldKeys(layout, fields, scope)) hidden.add(key)
   // A section's own Visible when (lib/forms/sections.ts).
   for (const key of sectionRuleHiddenFieldKeys(layout, scope, isRuleMet)) hidden.add(key)
+  // A choice group's alternatives that are not chosen (lib/forms/sections.ts).
+  for (const key of inactiveChoiceFieldKeys(layout, scope)) hidden.add(key)
   return (field) => {
     if (hidden.has(field.key)) return false
     if (readOnly && field.visible_when && stateRuleFlag(field.visible_when.field)) return hasValue(values[field.key]) || isRuleMet(field.visible_when, scope)
@@ -812,7 +922,8 @@ function FormGridBody({ fields, layout, fullLayout, values: rawValues, onChange:
   // not greyed out like disabled; a disabled or Read-only field keeps its own look.
   const locked = (field: TaskFieldDef) => Boolean(rules?.readOnlyKeys.has(field.key)) && !field.read_only && !rules?.disabledKeys.has(field.key)
   // The AI assistant reads the live form and sets values through the same change handler (rules run).
-  useAssistantFormBridge({ fields, values: rawValues, errors, disabled, visible: visibleRule, ruleLocked: (key) => Boolean(rules?.readOnlyKeys.has(key) || rules?.disabledKeys.has(key)), onChange })
+  const nested = useContext(NestedFormContext)
+  useAssistantFormBridge({ fields, values: rawValues, errors, disabled, visible: visibleRule, ruleLocked: (key) => Boolean(rules?.readOnlyKeys.has(key) || rules?.disabledKeys.has(key)), onChange, skip: nested })
   const gap = density === 'compact' ? 'gap-2' : 'gap-3'
   const labelLeft = labelPosition === 'left' && !singleColumn
   // Sections (lib/forms/sections.ts): read-only views collapse locally; live forms keep it in the form state (rules can collapse too).
@@ -824,7 +935,10 @@ function FormGridBody({ fields, layout, fullLayout, values: rawValues, onChange:
     onBlur: (e: React.FocusEvent<HTMLDivElement>) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) rules.dispatch({ type: 'blur', target: key, context: { field: key, value: rawValues[key] } }) },
   } : {})
 
+  // Conditional styling (Always rules' set_style): recomputed from the values — read-only views too.
+  const styles = useMemo(() => ruleStyles(whole, fields, values, rules ? { styles: rules.styles } : {}), [whole, fields, values, rules])
   const cell = (field: TaskFieldDef) => (
+    <StyledBox style={styles.fields.get(field.key)}>
     <FieldCell
       field={ruled(field)}
       locked={locked(field)}
@@ -841,7 +955,10 @@ function FormGridBody({ fields, layout, fullLayout, values: rawValues, onChange:
       values={values}
       fields={fields}
       fullLayout={whole}
+      allErrors={errors}
+      compact={compact}
     />
+    </StyledBox>
   )
 
   if (layout) {
@@ -884,44 +1001,73 @@ function FormGridBody({ fields, layout, fullLayout, values: rawValues, onChange:
       rules?.dispatch({ type: 'section_change', target: key, context: { section: key, included: yes } })
       if (yes) requestAnimationFrame(() => (document.getElementById(`${idPrefix}section-${key}`)?.querySelector('input, select, textarea, button') as HTMLElement | null)?.focus())
     }
+    // Choice groups (lib/forms/sections.ts): the switch and the active alternative sit where the group's first section is.
+    const groups = layoutChoiceGroups(whole)
+    const groupOf = new Map(groups.flatMap((g) => g.sections.map((k) => [k, g] as const)))
+    const blocks = sectionBlocks(rows)
+    const placed = new Set<string>()
+    const choose = (group: (typeof groups)[number], key: string) => {
+      const previous = activeChoiceSection(group, rawValues)
+      rawOnChange?.(group.key, key)
+      // "Field value changes" on the group's value (rules react to the choice like to a field).
+      if (rules && previous !== key) rules.notifyChange(group.key, key, previous)
+    }
+    const renderSection = (block: (typeof blocks)[number]) => {
+      const section = sections.get(block.section!)!
+      if (!sectionShown(section.key)) return null
+      const included = isSectionIncluded(section, rawValues)
+      const filled = block.rows.filter((row) => row.cells.length > 0)
+      if (!filled.length && !section.optional) return null
+      return (
+        <FormSectionBlock
+          key={`section-${section.key}`}
+          section={section}
+          idPrefix={idPrefix}
+          included={included}
+          collapsed={collapsedSet.has(`section:${section.key}`)}
+          readOnly={disabled}
+          hasError={filled.some((row) => row.cells.some((c) => errors?.[c.field_key]))}
+          onToggle={() => toggle(section.key)}
+          onInclude={disabled || sectionLocked(section.key) ? undefined : (yes) => include(section.key, yes)}
+          condStyle={styles.sections.get(section.key)}
+        >
+          {(() => {
+            const target = `section:${section.key}`
+            const part = lazy?.parts.get(target)
+            const inner = (
+              <div className={cn('flex flex-col', density === 'compact' ? 'gap-2' : 'gap-3')}>
+                {filled.map((row, i) => renderRow(row, block.start + i))}
+              </div>
+            )
+            if (!part || !lazy) return inner
+            // Not loaded: a placeholder; "when first shown" loads it as it scrolls into view (or is expanded).
+            if (!lazy.loaded.has(target)) return <LazyPartPlaceholder target={target} title={section.title} rows={filled.length} height={estimatePartHeight(filled, byKey, density === 'compact' ? 8 : 12)} onVisible={part.load === 'visible' ? () => lazy.load([target]) : undefined} />
+            return <LazyReveal target={target}>{inner}</LazyReveal>
+          })()}
+        </FormSectionBlock>
+      )
+    }
     return (
       <MotionContainerScope entering>
       <div className={cn('flex flex-col', density === 'compact' ? 'gap-2' : 'gap-3')} data-form-layout="grid" {...(fmOn ? motionAttrs(motion.level) : {})}>
         <FormLevelError errors={errors} />
-        {sectionBlocks(rows).map((block) => {
+        {blocks.map((block) => {
           const section = block.section ? sections.get(block.section) : undefined
           if (!section) return block.rows.filter((row) => row.cells.length > 0).map((row, i) => renderRow(row, block.start + i))
-          if (!sectionShown(section.key)) return null
-          const included = isSectionIncluded(section, rawValues)
-          const filled = block.rows.filter((row) => row.cells.length > 0)
-          if (!filled.length && !section.optional) return null
-          return (
-            <FormSectionBlock
-              key={`section-${section.key}`}
-              section={section}
-              idPrefix={idPrefix}
-              included={included}
-              collapsed={collapsedSet.has(`section:${section.key}`)}
-              readOnly={disabled}
-              hasError={filled.some((row) => row.cells.some((c) => errors?.[c.field_key]))}
-              onToggle={() => toggle(section.key)}
-              onInclude={disabled || sectionLocked(section.key) ? undefined : (yes) => include(section.key, yes)}
-            >
-              {(() => {
-                const target = `section:${section.key}`
-                const part = lazy?.parts.get(target)
-                const inner = (
-                  <div className={cn('flex flex-col', density === 'compact' ? 'gap-2' : 'gap-3')}>
-                    {filled.map((row, i) => renderRow(row, block.start + i))}
-                  </div>
-                )
-                if (!part || !lazy) return inner
-                // Not loaded: a placeholder; "when first shown" loads it as it scrolls into view (or is expanded).
-                if (!lazy.loaded.has(target)) return <LazyPartPlaceholder target={target} title={section.title} rows={filled.length} height={estimatePartHeight(filled, byKey, density === 'compact' ? 8 : 12)} onVisible={part.load === 'visible' ? () => lazy.load([target]) : undefined} />
-                return <LazyReveal target={target}>{inner}</LazyReveal>
-              })()}
-            </FormSectionBlock>
-          )
+          const group = groupOf.get(section.key)
+          if (group) {
+            if (placed.has(group.key)) return null
+            placed.add(group.key)
+            const active = activeChoiceSection(group, rawValues)
+            const activeBlock = blocks.find((b) => b.section === active)
+            return (
+              <ChoiceGroupBlock key={`choice-${group.key}`} group={group} sections={sections} active={active} idPrefix={idPrefix} readOnly={disabled}
+                onChoose={disabled || (rules?.readOnlyKeys.has(group.key) ?? false) ? undefined : (key) => choose(group, key)}>
+                {activeBlock ? renderSection(activeBlock) : null}
+              </ChoiceGroupBlock>
+            )
+          }
+          return renderSection(block)
         })}
       </div>
       </MotionContainerScope>
@@ -934,9 +1080,9 @@ function FormGridBody({ fields, layout, fullLayout, values: rawValues, onChange:
     <div className={cn('grid', gap, compact || singleColumn ? 'grid-cols-1' : 'sm:grid-cols-2')} {...(fmOn ? motionAttrs(motion.level) : {})}>
       <div className="sm:col-span-2 empty:hidden"><FormLevelError errors={errors} /></div>
       {fields.filter(kept).map((field, i) => {
-        const wide = !compact && !singleColumn && (field.type === 'text' || field.type === 'textarea' || isDisplayField(field) || field.type === 'multi_choice' || field.type === 'attachments' || field.type === 'data_table' || field.type === 'list' || field.type === 'matrix' || field.type === 'likert' || field.type === 'nps' || field.type === 'ranking' || field.type === 'image_choice' || (field.type === 'custom' && Boolean(field.custom?.size?.full_width)))
+        const wide = !compact && !singleColumn && (field.type === 'text' || field.type === 'textarea' || field.type === 'rich_text' || field.type === 'text_list' || isDisplayField(field) || field.type === 'multi_choice' || field.type === 'attachments' || field.type === 'data_table' || field.type === 'list' || field.type === 'repeating_section' || field.type === 'matrix' || field.type === 'likert' || field.type === 'nps' || field.type === 'ranking' || field.type === 'image_choice' || (field.type === 'custom' && Boolean(field.custom?.size?.full_width)))
         return (
-          <MotionCell key={field.key} on={fmOn} index={stagger(Math.floor(i / 2))} exiting={exiting.has(field.key)} id={`${idPrefix}cell-${field.key}`} className={cn('min-w-0', wide && !disabled && 'sm:col-span-2', wide && disabled && (isDisplayField(field) || field.type === 'list') && 'sm:col-span-2')} {...focusEvents(field.key)}>
+          <MotionCell key={field.key} on={fmOn} index={stagger(Math.floor(i / 2))} exiting={exiting.has(field.key)} id={`${idPrefix}cell-${field.key}`} className={cn('min-w-0', wide && !disabled && 'sm:col-span-2', wide && disabled && (isDisplayField(field) || field.type === 'list' || field.type === 'repeating_section') && 'sm:col-span-2')} {...focusEvents(field.key)}>
             {cell(field)}
           </MotionCell>
         )
@@ -985,10 +1131,14 @@ function useAssistantFormBridge(params: {
   visible: (field: TaskFieldDef) => boolean
   ruleLocked: (key: string) => boolean
   onChange: ((key: string, value: unknown) => void) | undefined
+  /** A nested form (a repeating section's item): the outer form's bridge covers it. */
+  skip?: boolean
 }) {
   const live = useRef(params)
   useLayoutEffect(() => { live.current = params })
+  const skip = Boolean(params.skip)
   useLayoutEffect(() => {
+    if (skip) return
     const snapshot = (): FormSnapshot => {
       const p = live.current
       return {
@@ -1026,5 +1176,5 @@ function useAssistantFormBridge(params: {
       },
     }
     return registerFormBridge(bridge)
-  }, [])
+  }, [skip])
 }

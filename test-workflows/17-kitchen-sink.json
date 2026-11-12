@@ -1789,8 +1789,8 @@
         "y": 10
       },
       "config": {
-        "width": 720,
-        "height": 2820,
+        "width": 1080,
+        "height": 3420,
         "color": "#06B6D4"
       },
       "collapsed": false
@@ -2064,12 +2064,290 @@
       "sectionId": "sec_collections"
     },
     {
+      "id": "nested_init",
+      "type": "set_variable",
+      "label": "Orders with their lines",
+      "position": {
+        "x": 2280,
+        "y": 1640
+      },
+      "config": {
+        "assignments": [
+          {
+            "name": "nested_raw",
+            "expression": "[{\"customer\":\"Acme\",\"lines\":[{\"sku\":\"A-1\",\"qty\":2},{\"sku\":\"A-2\",\"qty\":3}]},{\"customer\":\"Globex\",\"lines\":[{\"sku\":\"B-1\",\"qty\":4}]}]"
+          },
+          {
+            "name": "nested_orders",
+            "expression": "{{=FROM_JSON(nested_raw)}}"
+          },
+          {
+            "name": "nested_qty",
+            "expression": "0"
+          },
+          {
+            "name": "nested_parent",
+            "expression": ""
+          },
+          {
+            "name": "nested_restored",
+            "expression": ""
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "nested_outer",
+      "type": "loop",
+      "label": "Loop over the orders",
+      "position": {
+        "x": 2280,
+        "y": 1760
+      },
+      "config": {
+        "items": "{{nested_orders}}",
+        "item_var": "item",
+        "index_var": "index"
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "nested_inner",
+      "type": "loop",
+      "label": "Loop over the order's lines",
+      "position": {
+        "x": 2640,
+        "y": 1760
+      },
+      "config": {
+        "items": "{{item.lines}}",
+        "item_var": "item",
+        "index_var": "line_index"
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "nested_inner_body",
+      "type": "set_variable",
+      "label": "Add the line's qty",
+      "position": {
+        "x": 3000,
+        "y": 1760
+      },
+      "config": {
+        "assignments": [
+          {
+            "name": "nested_qty",
+            "expression": "{{=nested_qty + item.qty}}"
+          },
+          {
+            "name": "nested_parent",
+            "expression": "{{parent_item.customer}}"
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "nested_inner_done",
+      "type": "set_variable",
+      "label": "The order again",
+      "position": {
+        "x": 2640,
+        "y": 1880
+      },
+      "config": {
+        "assignments": [
+          {
+            "name": "nested_restored",
+            "expression": "{{item.customer}}"
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "chk_nested_loop",
+      "type": "condition",
+      "label": "Check: nested loop (sum of the lines' qty)",
+      "position": {
+        "x": 2280,
+        "y": 1880
+      },
+      "config": {
+        "match_mode": "first",
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Pass",
+            "logic": "and",
+            "rules": [
+              {
+                "field": "{{nested_qty}}",
+                "operator": "equals",
+                "value": "9"
+              }
+            ]
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "fail_nested_loop",
+      "type": "json_add_to_array",
+      "label": "Record failure: nested loop (sum of the lines' qty)",
+      "position": {
+        "x": 2640,
+        "y": 1880
+      },
+      "config": {
+        "array_var": "failures",
+        "fields": [
+          {
+            "key": "check",
+            "value": "nested_loop"
+          },
+          {
+            "key": "group",
+            "value": "Collections & loops"
+          },
+          {
+            "key": "expected",
+            "value": "equals 9"
+          },
+          {
+            "key": "actual",
+            "value": "{{nested_qty}}"
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "chk_nested_parent",
+      "type": "condition",
+      "label": "Check: nested loop reads the outer item (parent_item)",
+      "position": {
+        "x": 2280,
+        "y": 2000
+      },
+      "config": {
+        "match_mode": "first",
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Pass",
+            "logic": "and",
+            "rules": [
+              {
+                "field": "{{nested_parent}}",
+                "operator": "equals",
+                "value": "Globex"
+              }
+            ]
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "fail_nested_parent",
+      "type": "json_add_to_array",
+      "label": "Record failure: nested loop reads the outer item (parent_item)",
+      "position": {
+        "x": 2640,
+        "y": 2000
+      },
+      "config": {
+        "array_var": "failures",
+        "fields": [
+          {
+            "key": "check",
+            "value": "nested_parent"
+          },
+          {
+            "key": "group",
+            "value": "Collections & loops"
+          },
+          {
+            "key": "expected",
+            "value": "equals Globex"
+          },
+          {
+            "key": "actual",
+            "value": "{{nested_parent}}"
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "chk_nested_restored",
+      "type": "condition",
+      "label": "Check: the outer item comes back after the inner loop",
+      "position": {
+        "x": 2280,
+        "y": 2120
+      },
+      "config": {
+        "match_mode": "first",
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Pass",
+            "logic": "and",
+            "rules": [
+              {
+                "field": "{{nested_restored}}",
+                "operator": "equals",
+                "value": "Globex"
+              }
+            ]
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
+      "id": "fail_nested_restored",
+      "type": "json_add_to_array",
+      "label": "Record failure: the outer item comes back after the inner loop",
+      "position": {
+        "x": 2640,
+        "y": 2120
+      },
+      "config": {
+        "array_var": "failures",
+        "fields": [
+          {
+            "key": "check",
+            "value": "nested_restored"
+          },
+          {
+            "key": "group",
+            "value": "Collections & loops"
+          },
+          {
+            "key": "expected",
+            "value": "equals Globex"
+          },
+          {
+            "key": "actual",
+            "value": "{{nested_restored}}"
+          }
+        ]
+      },
+      "sectionId": "sec_collections"
+    },
+    {
       "id": "chk_col_count",
       "type": "condition",
       "label": "Check: count",
       "position": {
         "x": 2280,
-        "y": 1640
+        "y": 2240
       },
       "config": {
         "match_mode": "first",
@@ -2096,7 +2374,7 @@
       "label": "Record failure: count",
       "position": {
         "x": 2640,
-        "y": 1640
+        "y": 2240
       },
       "config": {
         "array_var": "failures",
@@ -2127,7 +2405,7 @@
       "label": "Check: remove duplicates",
       "position": {
         "x": 2280,
-        "y": 1760
+        "y": 2360
       },
       "config": {
         "match_mode": "first",
@@ -2154,7 +2432,7 @@
       "label": "Record failure: remove duplicates",
       "position": {
         "x": 2640,
-        "y": 1760
+        "y": 2360
       },
       "config": {
         "array_var": "failures",
@@ -2185,7 +2463,7 @@
       "label": "Check: sorted first",
       "position": {
         "x": 2280,
-        "y": 1880
+        "y": 2480
       },
       "config": {
         "match_mode": "first",
@@ -2212,7 +2490,7 @@
       "label": "Record failure: sorted first",
       "position": {
         "x": 2640,
-        "y": 1880
+        "y": 2480
       },
       "config": {
         "array_var": "failures",
@@ -2243,7 +2521,7 @@
       "label": "Check: sorted last",
       "position": {
         "x": 2280,
-        "y": 2000
+        "y": 2600
       },
       "config": {
         "match_mode": "first",
@@ -2270,7 +2548,7 @@
       "label": "Record failure: sorted last",
       "position": {
         "x": 2640,
-        "y": 2000
+        "y": 2600
       },
       "config": {
         "array_var": "failures",
@@ -2301,7 +2579,7 @@
       "label": "Check: join",
       "position": {
         "x": 2280,
-        "y": 2120
+        "y": 2720
       },
       "config": {
         "match_mode": "first",
@@ -2328,7 +2606,7 @@
       "label": "Record failure: join",
       "position": {
         "x": 2640,
-        "y": 2120
+        "y": 2720
       },
       "config": {
         "array_var": "failures",
@@ -2359,7 +2637,7 @@
       "label": "Check: filter + join field",
       "position": {
         "x": 2280,
-        "y": 2240
+        "y": 2840
       },
       "config": {
         "match_mode": "first",
@@ -2386,7 +2664,7 @@
       "label": "Record failure: filter + join field",
       "position": {
         "x": 2640,
-        "y": 2240
+        "y": 2840
       },
       "config": {
         "array_var": "failures",
@@ -2417,7 +2695,7 @@
       "label": "Check: loop for each (sum)",
       "position": {
         "x": 2280,
-        "y": 2360
+        "y": 2960
       },
       "config": {
         "match_mode": "first",
@@ -2444,7 +2722,7 @@
       "label": "Record failure: loop for each (sum)",
       "position": {
         "x": 2640,
-        "y": 2360
+        "y": 2960
       },
       "config": {
         "array_var": "failures",
@@ -2475,7 +2753,7 @@
       "label": "Check: loop N times (index sum)",
       "position": {
         "x": 2280,
-        "y": 2480
+        "y": 3080
       },
       "config": {
         "match_mode": "first",
@@ -2502,7 +2780,7 @@
       "label": "Record failure: loop N times (index sum)",
       "position": {
         "x": 2640,
-        "y": 2480
+        "y": 3080
       },
       "config": {
         "array_var": "failures",
@@ -2533,7 +2811,7 @@
       "label": "Check: loop N times (iterations)",
       "position": {
         "x": 2280,
-        "y": 2600
+        "y": 3200
       },
       "config": {
         "match_mode": "first",
@@ -2560,7 +2838,7 @@
       "label": "Record failure: loop N times (iterations)",
       "position": {
         "x": 2640,
-        "y": 2600
+        "y": 3200
       },
       "config": {
         "array_var": "failures",
@@ -2588,16 +2866,16 @@
     {
       "id": "tally_collections",
       "type": "set_variable",
-      "label": "Tally: Collections & loops (9 checks)",
+      "label": "Tally: Collections & loops (12 checks)",
       "position": {
         "x": 2280,
-        "y": 2720
+        "y": 3320
       },
       "config": {
         "assignments": [
           {
             "name": "checks_run",
-            "expression": "{{=checks_run + 9}}"
+            "expression": "{{=checks_run + 12}}"
           }
         ]
       },
@@ -2609,7 +2887,7 @@
       "label": "Branching",
       "position": {
         "x": 1860,
-        "y": 2870
+        "y": 3470
       },
       "config": {
         "width": 1440,
@@ -2624,7 +2902,7 @@
       "label": "If / else if / else (tier)",
       "position": {
         "x": 2280,
-        "y": 2940
+        "y": 3540
       },
       "config": {
         "match_mode": "first",
@@ -2662,7 +2940,7 @@
       "label": "Route: gold",
       "position": {
         "x": 1920,
-        "y": 3060
+        "y": 3660
       },
       "config": {
         "assignments": [
@@ -2680,7 +2958,7 @@
       "label": "Route: silver",
       "position": {
         "x": 2280,
-        "y": 3060
+        "y": 3660
       },
       "config": {
         "assignments": [
@@ -2698,7 +2976,7 @@
       "label": "Route: other",
       "position": {
         "x": 2640,
-        "y": 3060
+        "y": 3660
       },
       "config": {
         "assignments": [
@@ -2716,7 +2994,7 @@
       "label": "Branch by value (size)",
       "position": {
         "x": 2280,
-        "y": 3180
+        "y": 3780
       },
       "config": {
         "field": "{{size_word}}",
@@ -2734,7 +3012,7 @@
       "label": "Size: big",
       "position": {
         "x": 1920,
-        "y": 3300
+        "y": 3900
       },
       "config": {
         "assignments": [
@@ -2752,7 +3030,7 @@
       "label": "Size: small",
       "position": {
         "x": 2280,
-        "y": 3300
+        "y": 3900
       },
       "config": {
         "assignments": [
@@ -2770,7 +3048,7 @@
       "label": "Size: default",
       "position": {
         "x": 2640,
-        "y": 3300
+        "y": 3900
       },
       "config": {
         "assignments": [
@@ -2788,7 +3066,7 @@
       "label": "Reset path markers",
       "position": {
         "x": 2280,
-        "y": 3420
+        "y": 4020
       },
       "config": {
         "assignments": [
@@ -2814,7 +3092,7 @@
       "label": "Multi-path (every match runs)",
       "position": {
         "x": 2280,
-        "y": 3540
+        "y": 4140
       },
       "config": {
         "match_mode": "all",
@@ -2874,7 +3152,7 @@
       "label": "Path: over 5",
       "position": {
         "x": 1920,
-        "y": 3600
+        "y": 4200
       },
       "config": {
         "assignments": [
@@ -2892,7 +3170,7 @@
       "label": "Path: odd",
       "position": {
         "x": 2640,
-        "y": 3600
+        "y": 4200
       },
       "config": {
         "assignments": [
@@ -2910,7 +3188,7 @@
       "label": "Path: over 100",
       "position": {
         "x": 3000,
-        "y": 3600
+        "y": 4200
       },
       "config": {
         "assignments": [
@@ -2928,7 +3206,7 @@
       "label": "Check: if / else if / else",
       "position": {
         "x": 2280,
-        "y": 3660
+        "y": 4260
       },
       "config": {
         "match_mode": "first",
@@ -2955,7 +3233,7 @@
       "label": "Record failure: if / else if / else",
       "position": {
         "x": 2640,
-        "y": 3660
+        "y": 4260
       },
       "config": {
         "array_var": "failures",
@@ -2986,7 +3264,7 @@
       "label": "Check: branch by value",
       "position": {
         "x": 2280,
-        "y": 3780
+        "y": 4380
       },
       "config": {
         "match_mode": "first",
@@ -3013,7 +3291,7 @@
       "label": "Record failure: branch by value",
       "position": {
         "x": 2640,
-        "y": 3780
+        "y": 4380
       },
       "config": {
         "array_var": "failures",
@@ -3044,7 +3322,7 @@
       "label": "Check: multi-path: over 5 ran",
       "position": {
         "x": 2280,
-        "y": 3900
+        "y": 4500
       },
       "config": {
         "match_mode": "first",
@@ -3071,7 +3349,7 @@
       "label": "Record failure: multi-path: over 5 ran",
       "position": {
         "x": 2640,
-        "y": 3900
+        "y": 4500
       },
       "config": {
         "array_var": "failures",
@@ -3102,7 +3380,7 @@
       "label": "Check: multi-path: odd ran",
       "position": {
         "x": 2280,
-        "y": 4020
+        "y": 4620
       },
       "config": {
         "match_mode": "first",
@@ -3129,7 +3407,7 @@
       "label": "Record failure: multi-path: odd ran",
       "position": {
         "x": 2640,
-        "y": 4020
+        "y": 4620
       },
       "config": {
         "array_var": "failures",
@@ -3160,7 +3438,7 @@
       "label": "Check: multi-path: over 100 skipped",
       "position": {
         "x": 2280,
-        "y": 4140
+        "y": 4740
       },
       "config": {
         "match_mode": "first",
@@ -3187,7 +3465,7 @@
       "label": "Record failure: multi-path: over 100 skipped",
       "position": {
         "x": 2640,
-        "y": 4140
+        "y": 4740
       },
       "config": {
         "array_var": "failures",
@@ -3218,7 +3496,7 @@
       "label": "Tally: Branching (5 checks)",
       "position": {
         "x": 2280,
-        "y": 4260
+        "y": 4860
       },
       "config": {
         "assignments": [
@@ -3236,7 +3514,7 @@
       "label": "Go to (jump)",
       "position": {
         "x": 2220,
-        "y": 4410
+        "y": 5010
       },
       "config": {
         "width": 720,
@@ -3251,7 +3529,7 @@
       "label": "Reset jump counter",
       "position": {
         "x": 2280,
-        "y": 4480
+        "y": 5080
       },
       "config": {
         "assignments": [
@@ -3269,7 +3547,7 @@
       "label": "Count a pass",
       "position": {
         "x": 2280,
-        "y": 4600
+        "y": 5200
       },
       "config": {
         "assignments": [
@@ -3287,7 +3565,7 @@
       "label": "Jump again?",
       "position": {
         "x": 2280,
-        "y": 4720
+        "y": 5320
       },
       "config": {
         "match_mode": "first",
@@ -3314,7 +3592,7 @@
       "label": "Go to: Count a pass",
       "position": {
         "x": 2640,
-        "y": 4720
+        "y": 5320
       },
       "config": {
         "target_node_id": "goto_count",
@@ -3328,7 +3606,7 @@
       "label": "Check: go to ran the step 3 times",
       "position": {
         "x": 2280,
-        "y": 4840
+        "y": 5440
       },
       "config": {
         "match_mode": "first",
@@ -3355,7 +3633,7 @@
       "label": "Record failure: go to ran the step 3 times",
       "position": {
         "x": 2640,
-        "y": 4840
+        "y": 5440
       },
       "config": {
         "array_var": "failures",
@@ -3386,7 +3664,7 @@
       "label": "Tally: Go to (jump) (1 check)",
       "position": {
         "x": 2280,
-        "y": 4960
+        "y": 5560
       },
       "config": {
         "assignments": [
@@ -3403,8 +3681,8 @@
       "type": "section_group",
       "label": "Parallel",
       "position": {
-        "x": 1920,
-        "y": 5110
+        "x": 3720,
+        "y": 10
       },
       "config": {
         "width": 1020,
@@ -3418,8 +3696,8 @@
       "type": "parallel",
       "label": "Parallel branches",
       "position": {
-        "x": 2280,
-        "y": 5180
+        "x": 4080,
+        "y": 80
       },
       "config": {
         "mode": "parallel",
@@ -3441,8 +3719,8 @@
       "type": "set_variable",
       "label": "Branch A work",
       "position": {
-        "x": 1980,
-        "y": 5300
+        "x": 3780,
+        "y": 200
       },
       "config": {
         "assignments": [
@@ -3459,8 +3737,8 @@
       "type": "math",
       "label": "Branch A math",
       "position": {
-        "x": 1980,
-        "y": 5420
+        "x": 3780,
+        "y": 320
       },
       "config": {
         "expression": "21 * 2",
@@ -3473,8 +3751,8 @@
       "type": "set_variable",
       "label": "Branch B work",
       "position": {
-        "x": 2580,
-        "y": 5300
+        "x": 4380,
+        "y": 200
       },
       "config": {
         "assignments": [
@@ -3491,8 +3769,8 @@
       "type": "set_variable",
       "label": "Join branches",
       "position": {
-        "x": 2280,
-        "y": 5540
+        "x": 4080,
+        "y": 440
       },
       "config": {
         "assignments": [
@@ -3509,8 +3787,8 @@
       "type": "condition",
       "label": "Check: join saw both branches",
       "position": {
-        "x": 2280,
-        "y": 5660
+        "x": 4080,
+        "y": 560
       },
       "config": {
         "match_mode": "first",
@@ -3536,8 +3814,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: join saw both branches",
       "position": {
-        "x": 2640,
-        "y": 5660
+        "x": 4440,
+        "y": 560
       },
       "config": {
         "array_var": "failures",
@@ -3567,8 +3845,8 @@
       "type": "condition",
       "label": "Check: branch output after Done",
       "position": {
-        "x": 2280,
-        "y": 5780
+        "x": 4080,
+        "y": 680
       },
       "config": {
         "match_mode": "first",
@@ -3594,8 +3872,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: branch output after Done",
       "position": {
-        "x": 2640,
-        "y": 5780
+        "x": 4440,
+        "y": 680
       },
       "config": {
         "array_var": "failures",
@@ -3625,8 +3903,8 @@
       "type": "set_variable",
       "label": "Tally: Parallel (2 checks)",
       "position": {
-        "x": 2280,
-        "y": 5900
+        "x": 4080,
+        "y": 800
       },
       "config": {
         "assignments": [
@@ -3644,7 +3922,7 @@
       "label": "Decision table",
       "position": {
         "x": 4020,
-        "y": 10
+        "y": 950
       },
       "config": {
         "width": 720,
@@ -3659,7 +3937,7 @@
       "label": "Evaluate pricing rules",
       "position": {
         "x": 4080,
-        "y": 80
+        "y": 1020
       },
       "config": {
         "decision_table_id": "7c5e0003-0000-4000-8000-000000000001",
@@ -3677,7 +3955,7 @@
       "label": "Check: a rule matched",
       "position": {
         "x": 4080,
-        "y": 200
+        "y": 1140
       },
       "config": {
         "match_mode": "first",
@@ -3704,7 +3982,7 @@
       "label": "Record failure: a rule matched",
       "position": {
         "x": 4440,
-        "y": 200
+        "y": 1140
       },
       "config": {
         "array_var": "failures",
@@ -3735,7 +4013,7 @@
       "label": "Check: rule label",
       "position": {
         "x": 4080,
-        "y": 320
+        "y": 1260
       },
       "config": {
         "match_mode": "first",
@@ -3762,7 +4040,7 @@
       "label": "Record failure: rule label",
       "position": {
         "x": 4440,
-        "y": 320
+        "y": 1260
       },
       "config": {
         "array_var": "failures",
@@ -3793,7 +4071,7 @@
       "label": "Check: discount output",
       "position": {
         "x": 4080,
-        "y": 440
+        "y": 1380
       },
       "config": {
         "match_mode": "first",
@@ -3820,7 +4098,7 @@
       "label": "Record failure: discount output",
       "position": {
         "x": 4440,
-        "y": 440
+        "y": 1380
       },
       "config": {
         "array_var": "failures",
@@ -3851,7 +4129,7 @@
       "label": "Check: band output",
       "position": {
         "x": 4080,
-        "y": 560
+        "y": 1500
       },
       "config": {
         "match_mode": "first",
@@ -3878,7 +4156,7 @@
       "label": "Record failure: band output",
       "position": {
         "x": 4440,
-        "y": 560
+        "y": 1500
       },
       "config": {
         "array_var": "failures",
@@ -3909,7 +4187,7 @@
       "label": "Tally: Decision table (4 checks)",
       "position": {
         "x": 4080,
-        "y": 680
+        "y": 1620
       },
       "config": {
         "assignments": [
@@ -3927,7 +4205,7 @@
       "label": "Data table",
       "position": {
         "x": 4020,
-        "y": 830
+        "y": 1770
       },
       "config": {
         "width": 720,
@@ -3942,7 +4220,7 @@
       "label": "Insert row alpha",
       "position": {
         "x": 4080,
-        "y": 900
+        "y": 1840
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -3964,7 +4242,7 @@
       "label": "Insert row beta",
       "position": {
         "x": 4080,
-        "y": 1020
+        "y": 1960
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -3986,7 +4264,7 @@
       "label": "Get row alpha",
       "position": {
         "x": 4080,
-        "y": 1140
+        "y": 2080
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -4003,7 +4281,7 @@
       "label": "List rows of this run",
       "position": {
         "x": 4080,
-        "y": 1260
+        "y": 2200
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -4027,7 +4305,7 @@
       "label": "Update row alpha",
       "position": {
         "x": 4080,
-        "y": 1380
+        "y": 2320
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -4047,7 +4325,7 @@
       "label": "Get row alpha again",
       "position": {
         "x": 4080,
-        "y": 1500
+        "y": 2440
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -4064,7 +4342,7 @@
       "label": "Delete row alpha",
       "position": {
         "x": 4080,
-        "y": 1620
+        "y": 2560
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -4080,7 +4358,7 @@
       "label": "Delete row beta (match by column)",
       "position": {
         "x": 4080,
-        "y": 1740
+        "y": 2680
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -4098,7 +4376,7 @@
       "label": "List rows after clean-up",
       "position": {
         "x": 4080,
-        "y": 1860
+        "y": 2800
       },
       "config": {
         "table_id": "7c5e0002-0000-4000-8000-000000000001",
@@ -4122,7 +4400,7 @@
       "label": "Check: insert + get",
       "position": {
         "x": 4080,
-        "y": 1980
+        "y": 2920
       },
       "config": {
         "match_mode": "first",
@@ -4149,7 +4427,7 @@
       "label": "Record failure: insert + get",
       "position": {
         "x": 4440,
-        "y": 1980
+        "y": 2920
       },
       "config": {
         "array_var": "failures",
@@ -4180,7 +4458,7 @@
       "label": "Check: list with a filter",
       "position": {
         "x": 4080,
-        "y": 2100
+        "y": 3040
       },
       "config": {
         "match_mode": "first",
@@ -4207,7 +4485,7 @@
       "label": "Record failure: list with a filter",
       "position": {
         "x": 4440,
-        "y": 2100
+        "y": 3040
       },
       "config": {
         "array_var": "failures",
@@ -4238,7 +4516,7 @@
       "label": "Check: update (status)",
       "position": {
         "x": 4080,
-        "y": 2220
+        "y": 3160
       },
       "config": {
         "match_mode": "first",
@@ -4265,7 +4543,7 @@
       "label": "Record failure: update (status)",
       "position": {
         "x": 4440,
-        "y": 2220
+        "y": 3160
       },
       "config": {
         "array_var": "failures",
@@ -4296,7 +4574,7 @@
       "label": "Check: update (amount)",
       "position": {
         "x": 4080,
-        "y": 2340
+        "y": 3280
       },
       "config": {
         "match_mode": "first",
@@ -4323,7 +4601,7 @@
       "label": "Record failure: update (amount)",
       "position": {
         "x": 4440,
-        "y": 2340
+        "y": 3280
       },
       "config": {
         "array_var": "failures",
@@ -4354,7 +4632,7 @@
       "label": "Check: delete cleaned up",
       "position": {
         "x": 4080,
-        "y": 2460
+        "y": 3400
       },
       "config": {
         "match_mode": "first",
@@ -4381,7 +4659,7 @@
       "label": "Record failure: delete cleaned up",
       "position": {
         "x": 4440,
-        "y": 2460
+        "y": 3400
       },
       "config": {
         "array_var": "failures",
@@ -4412,7 +4690,7 @@
       "label": "Tally: Data table (5 checks)",
       "position": {
         "x": 4080,
-        "y": 2580
+        "y": 3520
       },
       "config": {
         "assignments": [
@@ -4430,7 +4708,7 @@
       "label": "Sub-workflow",
       "position": {
         "x": 4020,
-        "y": 2730
+        "y": 3670
       },
       "config": {
         "width": 720,
@@ -4445,7 +4723,7 @@
       "label": "Call sub-workflow",
       "position": {
         "x": 4080,
-        "y": 2800
+        "y": 3740
       },
       "config": {
         "sub_workflow_id": "7c5e0001-0000-4000-8000-000000000002",
@@ -4463,7 +4741,7 @@
       "label": "Check: sub-workflow completed",
       "position": {
         "x": 4080,
-        "y": 2920
+        "y": 3860
       },
       "config": {
         "match_mode": "first",
@@ -4490,7 +4768,7 @@
       "label": "Record failure: sub-workflow completed",
       "position": {
         "x": 4440,
-        "y": 2920
+        "y": 3860
       },
       "config": {
         "array_var": "failures",
@@ -4521,7 +4799,7 @@
       "label": "Check: sub-workflow doubled the input",
       "position": {
         "x": 4080,
-        "y": 3040
+        "y": 3980
       },
       "config": {
         "match_mode": "first",
@@ -4548,7 +4826,7 @@
       "label": "Record failure: sub-workflow doubled the input",
       "position": {
         "x": 4440,
-        "y": 3040
+        "y": 3980
       },
       "config": {
         "array_var": "failures",
@@ -4579,7 +4857,7 @@
       "label": "Tally: Sub-workflow (2 checks)",
       "position": {
         "x": 4080,
-        "y": 3160
+        "y": 4100
       },
       "config": {
         "assignments": [
@@ -4597,7 +4875,7 @@
       "label": "Error handling",
       "position": {
         "x": 4020,
-        "y": 3310
+        "y": 4250
       },
       "config": {
         "width": 720,
@@ -4612,7 +4890,7 @@
       "label": "Fails on purpose (unsafe pattern)",
       "position": {
         "x": 4080,
-        "y": 3380
+        "y": 4320
       },
       "config": {
         "input": "aaaa",
@@ -4630,7 +4908,7 @@
       "label": "Check: error captured (has_error)",
       "position": {
         "x": 4080,
-        "y": 3500
+        "y": 4440
       },
       "config": {
         "match_mode": "first",
@@ -4657,7 +4935,7 @@
       "label": "Record failure: error captured (has_error)",
       "position": {
         "x": 4440,
-        "y": 3500
+        "y": 4440
       },
       "config": {
         "array_var": "failures",
@@ -4688,7 +4966,7 @@
       "label": "Check: error names the failing step",
       "position": {
         "x": 4080,
-        "y": 3620
+        "y": 4560
       },
       "config": {
         "match_mode": "first",
@@ -4715,7 +4993,7 @@
       "label": "Record failure: error names the failing step",
       "position": {
         "x": 4440,
-        "y": 3620
+        "y": 4560
       },
       "config": {
         "array_var": "failures",
@@ -4746,7 +5024,7 @@
       "label": "Check: error message recorded",
       "position": {
         "x": 4080,
-        "y": 3740
+        "y": 4680
       },
       "config": {
         "match_mode": "first",
@@ -4773,7 +5051,7 @@
       "label": "Record failure: error message recorded",
       "position": {
         "x": 4440,
-        "y": 3740
+        "y": 4680
       },
       "config": {
         "array_var": "failures",
@@ -4804,7 +5082,7 @@
       "label": "Tally: Error handling (3 checks)",
       "position": {
         "x": 4080,
-        "y": 3860
+        "y": 4800
       },
       "config": {
         "assignments": [
@@ -4822,7 +5100,7 @@
       "label": "Timing",
       "position": {
         "x": 4020,
-        "y": 4010
+        "y": 4950
       },
       "config": {
         "width": 720,
@@ -4837,7 +5115,7 @@
       "label": "Note the time",
       "position": {
         "x": 4080,
-        "y": 4080
+        "y": 5020
       },
       "config": {
         "assignments": [
@@ -4855,7 +5133,7 @@
       "label": "Pause for 1 second",
       "position": {
         "x": 4080,
-        "y": 4200
+        "y": 5140
       },
       "config": {
         "duration": 1,
@@ -4869,7 +5147,7 @@
       "label": "Pause until a few seconds ahead",
       "position": {
         "x": 4080,
-        "y": 4320
+        "y": 5260
       },
       "config": {
         "date": "{{=CONCAT(FORMAT_DATE(NOW(), \"YYYY-MM-DDTHH:mm:\"), PAD_LEFT(MIN(59, ADD(TO_NUMBER(FORMAT_DATE(NOW(), \"ss\")), 2)), 2, \"0\"), \"Z\")}}"
@@ -4882,7 +5160,7 @@
       "label": "Measure the wait",
       "position": {
         "x": 4080,
-        "y": 4440
+        "y": 5380
       },
       "config": {
         "date": "{{timing_start}}",
@@ -4898,7 +5176,7 @@
       "label": "Check: waited at least 1 second",
       "position": {
         "x": 4080,
-        "y": 4560
+        "y": 5500
       },
       "config": {
         "match_mode": "first",
@@ -4925,7 +5203,7 @@
       "label": "Record failure: waited at least 1 second",
       "position": {
         "x": 4440,
-        "y": 4560
+        "y": 5500
       },
       "config": {
         "array_var": "failures",
@@ -4956,7 +5234,7 @@
       "label": "Set SLA (2 days)",
       "position": {
         "x": 4080,
-        "y": 4680
+        "y": 5620
       },
       "config": {
         "sla_label": "Kitchen sink",
@@ -4974,7 +5252,7 @@
       "label": "Check: SLA on track",
       "position": {
         "x": 4080,
-        "y": 4800
+        "y": 5740
       },
       "config": {
         "match_mode": "first",
@@ -5001,7 +5279,7 @@
       "label": "Record failure: SLA on track",
       "position": {
         "x": 4440,
-        "y": 4800
+        "y": 5740
       },
       "config": {
         "array_var": "failures",
@@ -5032,7 +5310,7 @@
       "label": "Tally: Timing (2 checks)",
       "position": {
         "x": 4080,
-        "y": 4920
+        "y": 5860
       },
       "config": {
         "assignments": [
@@ -5049,8 +5327,8 @@
       "type": "section_group",
       "label": "Files & documents",
       "position": {
-        "x": 4020,
-        "y": 5070
+        "x": 5820,
+        "y": 10
       },
       "config": {
         "width": 720,
@@ -5064,8 +5342,8 @@
       "type": "read_csv",
       "label": "CSV: write",
       "position": {
-        "x": 4080,
-        "y": 5140
+        "x": 5880,
+        "y": 80
       },
       "config": {
         "mode": "write",
@@ -5080,8 +5358,8 @@
       "type": "read_csv",
       "label": "CSV: read back",
       "position": {
-        "x": 4080,
-        "y": 5260
+        "x": 5880,
+        "y": 200
       },
       "config": {
         "mode": "read",
@@ -5096,8 +5374,8 @@
       "type": "read_excel",
       "label": "Excel: write",
       "position": {
-        "x": 4080,
-        "y": 5380
+        "x": 5880,
+        "y": 320
       },
       "config": {
         "mode": "write",
@@ -5113,8 +5391,8 @@
       "type": "read_excel",
       "label": "Excel: read back",
       "position": {
-        "x": 4080,
-        "y": 5500
+        "x": 5880,
+        "y": 440
       },
       "config": {
         "mode": "read",
@@ -5130,8 +5408,8 @@
       "type": "base64_to_file",
       "label": "Base64 to file",
       "position": {
-        "x": 4080,
-        "y": 5620
+        "x": 5880,
+        "y": 560
       },
       "config": {
         "base64_data": "{{=BASE64_ENCODE(\"Kitchen sink file test\")}}",
@@ -5146,8 +5424,8 @@
       "type": "read_file",
       "label": "Read file content",
       "position": {
-        "x": 4080,
-        "y": 5740
+        "x": 5880,
+        "y": 680
       },
       "config": {
         "file_url": "{{text_file}}",
@@ -5161,8 +5439,8 @@
       "type": "file_to_base64",
       "label": "File to base64",
       "position": {
-        "x": 4080,
-        "y": 5860
+        "x": 5880,
+        "y": 800
       },
       "config": {
         "file_url": "{{text_file}}",
@@ -5175,8 +5453,8 @@
       "type": "download_file",
       "label": "Download file (own storage)",
       "position": {
-        "x": 4080,
-        "y": 5980
+        "x": 5880,
+        "y": 920
       },
       "config": {
         "url": "{{text_file}}",
@@ -5190,8 +5468,8 @@
       "type": "condition",
       "label": "Check: CSV round trip",
       "position": {
-        "x": 4080,
-        "y": 6100
+        "x": 5880,
+        "y": 1040
       },
       "config": {
         "match_mode": "first",
@@ -5217,8 +5495,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: CSV round trip",
       "position": {
-        "x": 4440,
-        "y": 6100
+        "x": 6240,
+        "y": 1040
       },
       "config": {
         "array_var": "failures",
@@ -5248,8 +5526,8 @@
       "type": "condition",
       "label": "Check: CSV row count",
       "position": {
-        "x": 4080,
-        "y": 6220
+        "x": 5880,
+        "y": 1160
       },
       "config": {
         "match_mode": "first",
@@ -5275,8 +5553,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: CSV row count",
       "position": {
-        "x": 4440,
-        "y": 6220
+        "x": 6240,
+        "y": 1160
       },
       "config": {
         "array_var": "failures",
@@ -5306,8 +5584,8 @@
       "type": "condition",
       "label": "Check: Excel round trip",
       "position": {
-        "x": 4080,
-        "y": 6340
+        "x": 5880,
+        "y": 1280
       },
       "config": {
         "match_mode": "first",
@@ -5333,8 +5611,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: Excel round trip",
       "position": {
-        "x": 4440,
-        "y": 6340
+        "x": 6240,
+        "y": 1280
       },
       "config": {
         "array_var": "failures",
@@ -5364,8 +5642,8 @@
       "type": "condition",
       "label": "Check: read file",
       "position": {
-        "x": 4080,
-        "y": 6460
+        "x": 5880,
+        "y": 1400
       },
       "config": {
         "match_mode": "first",
@@ -5391,8 +5669,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: read file",
       "position": {
-        "x": 4440,
-        "y": 6460
+        "x": 6240,
+        "y": 1400
       },
       "config": {
         "array_var": "failures",
@@ -5422,8 +5700,8 @@
       "type": "condition",
       "label": "Check: file to base64",
       "position": {
-        "x": 4080,
-        "y": 6580
+        "x": 5880,
+        "y": 1520
       },
       "config": {
         "match_mode": "first",
@@ -5449,8 +5727,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: file to base64",
       "position": {
-        "x": 4440,
-        "y": 6580
+        "x": 6240,
+        "y": 1520
       },
       "config": {
         "array_var": "failures",
@@ -5480,8 +5758,8 @@
       "type": "condition",
       "label": "Check: download size",
       "position": {
-        "x": 4080,
-        "y": 6700
+        "x": 5880,
+        "y": 1640
       },
       "config": {
         "match_mode": "first",
@@ -5507,8 +5785,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: download size",
       "position": {
-        "x": 4440,
-        "y": 6700
+        "x": 6240,
+        "y": 1640
       },
       "config": {
         "array_var": "failures",
@@ -5538,8 +5816,8 @@
       "type": "doc_convert",
       "label": "Convert text to Word",
       "position": {
-        "x": 4080,
-        "y": 6820
+        "x": 5880,
+        "y": 1760
       },
       "config": {
         "source": "{{report_text}}",
@@ -5554,8 +5832,8 @@
       "type": "doc_word",
       "label": "Word: find & replace",
       "position": {
-        "x": 4080,
-        "y": 6940
+        "x": 5880,
+        "y": 1880
       },
       "config": {
         "template_url": "{{report_docx}}",
@@ -5576,8 +5854,8 @@
       "type": "doc_read",
       "label": "Read the Word file",
       "position": {
-        "x": 4080,
-        "y": 7060
+        "x": 5880,
+        "y": 2000
       },
       "config": {
         "source": "{{word_file}}",
@@ -5590,8 +5868,8 @@
       "type": "doc_excel",
       "label": "Excel: find & replace",
       "position": {
-        "x": 4080,
-        "y": 7180
+        "x": 5880,
+        "y": 2120
       },
       "config": {
         "template_url": "{{xlsx_file}}",
@@ -5612,8 +5890,8 @@
       "type": "doc_read",
       "label": "Read the Excel file",
       "position": {
-        "x": 4080,
-        "y": 7300
+        "x": 5880,
+        "y": 2240
       },
       "config": {
         "source": "{{excel_file}}",
@@ -5626,8 +5904,8 @@
       "type": "base64_to_file",
       "label": "Save slide template",
       "position": {
-        "x": 4080,
-        "y": 7420
+        "x": 5880,
+        "y": 2360
       },
       "config": {
         "base64_data": "UEsDBAoAAAAIAACIn1u5Pt1i6wAAACMCAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbK1RyU7DMBD9FctXFE/KASGUpAeWI3AoH2A5k8TCmzxuVf6eSVIkQFW5cLJm3qpxsz16Jw6YycbQyo2qpcBgYm/D2Mq33VN1K7dds/tISIKpgVo5lZLuAMhM6DWpmDAwMsTsdeExj5C0edcjwnVd34CJoWAoVZk9ZNc84KD3rojHI6/XWJZLcb/y5qhW6pScNbowDDMKZ3UZHV0QHkL/q111aqZYuXBosomuTgkvfIdsexSvOpdn7dkOUiqQMhIHLAJ1ueuZyDgM1mAfzd6zRH038+7HqLy24a8y5HhJ67P57zaL61cDWH69+wRQSwMECgAAAAgAAIifW6EKJrKkAAAAGwEAAAsAAABfcmVscy8ucmVsc42PwQrCMAyGX6Xk7rJ5EJF1u4iwq8wHKF3WDdc2tFX07S2enHjwmD9fvp/U7cMu4k4hzt5JqIoSBDnth9kZCZf+tNlD29RnWlTKRJxmjiKfuChhSokPiFFPZFUsPJPLm9EHq1Ieg0FW+qoM4bYsdxg+HbB2im6QELqhAtE/mf5x+3GcNR29vlly6UfFF5HNKhhKEpgTcqCYwzddZDNgU+Pqy+YFUEsDBAoAAAAIAACIn1s27zrBswAAAFIBAAAUAAAAcHB0L3ByZXNlbnRhdGlvbi54bWyNUMsKgzAQ/JWw9xorVIr4uJSC0GP7AcHEGjAPdtPH5zf2hd68zbIzszNbNk8zsrtC0s5WsE1SYMp2Tmp7reByPm720NSlLzwqUjaIEHksaiwVooIhBF9wTt2gjKDEeWXjrndoRIgjXrlE8YheZuRZmubcCG3hq8c1etf3ulMH191MPP8xQTW+c9CgPf3c/Bq3eYtFpKkijbKVJwp/zLSsINvlwLCYILYyA16XfM7ly9/UL1BLAwQKAAAACAAAiJ9b7+oBEKIAAAAPAQAAHwAAAHBwdC9fcmVscy9wcmVzZW50YXRpb24ueG1sLnJlbHONz0sKwjAQBuCrhNnbqV2ISNNuROhW6gFCMk2DzYMkit7eIC4suHD5z+Mbpu0fdmF3isl4x2Fb1cDISa+M0xwu42mzh75rz7SIXCbSbEJiZcUlDnPO4YCY5ExWpMoHcqUz+WhFLjFqDEJehSZs6nqH8duAtckGxSEOqgE2PgP9Y/tpMpKOXt4sufzjBKbFKCqgiJoyh3f8VLdV0QC7FlefdS9QSwMECgAAAAgAAIifWweTIIMAAQAA4wEAABUAAABwcHQvc2xpZGVzL3NsaWRlMS54bWyNkc1qwzAQhF9F6N6sm0MpxnYgJIXQUAJ2z0FYcizQHyvVTd6+khzT9pbLIGlnPmZRtblqRSaBXlpT0+dVQYkwveXSXGr62b09vdJNU7nSK06i1fiS1XQMwZUAvh+FZn5lnTBxNljULMQrXoAj+44IrWBdFC+gmTT0nsdH8nYYZC92tv/SwoQZgkKxEGv6UTq/0NwjNIfCR0xO/6uUNutbxfOGrkMh5lNSM7XuhNnxMZ2QSF7TNSWGaVHTTgYlKNynyQhzZk64kYSbi76w+GAZwl9yuG4tvzUVK10STBKa9/bcHg+7/bk7dMd9BektKWZ1mbEkYa4Lv/1hWQnyrzU/UEsBAhQACgAAAAgAAIifW7k+3WLrAAAAIwIAABMAAAAAAAAAAAAAAAAAAAAAAFtDb250ZW50X1R5cGVzXS54bWxQSwECFAAKAAAACAAAiJ9boQomsqQAAAAbAQAACwAAAAAAAAAAAAAAAAAcAQAAX3JlbHMvLnJlbHNQSwECFAAKAAAACAAAiJ9bNu86wbMAAABSAQAAFAAAAAAAAAAAAAAAAADpAQAAcHB0L3ByZXNlbnRhdGlvbi54bWxQSwECFAAKAAAACAAAiJ9b7+oBEKIAAAAPAQAAHwAAAAAAAAAAAAAAAADOAgAAcHB0L19yZWxzL3ByZXNlbnRhdGlvbi54bWwucmVsc1BLAQIUAAoAAAAIAACIn1sHkyCDAAEAAOMBAAAVAAAAAAAAAAAAAAAAAK0DAABwcHQvc2xpZGVzL3NsaWRlMS54bWxQSwUGAAAAAAUABQBMAQAA4AQAAAAA",
@@ -5642,8 +5920,8 @@
       "type": "doc_powerpoint",
       "label": "PowerPoint: find & replace",
       "position": {
-        "x": 4080,
-        "y": 7540
+        "x": 5880,
+        "y": 2480
       },
       "config": {
         "template_url": "{{pptx_template}}",
@@ -5664,8 +5942,8 @@
       "type": "doc_read",
       "label": "Read the slides",
       "position": {
-        "x": 4080,
-        "y": 7660
+        "x": 5880,
+        "y": 2600
       },
       "config": {
         "source": "{{slides_file}}",
@@ -5678,8 +5956,8 @@
       "type": "doc_convert",
       "label": "Convert text to PDF",
       "position": {
-        "x": 4080,
-        "y": 7780
+        "x": 5880,
+        "y": 2720
       },
       "config": {
         "source": "{{report_text}}",
@@ -5695,8 +5973,8 @@
       "type": "doc_pdf",
       "label": "PDF: page count",
       "position": {
-        "x": 4080,
-        "y": 7900
+        "x": 5880,
+        "y": 2840
       },
       "config": {
         "operation": "page_count",
@@ -5710,8 +5988,8 @@
       "type": "doc_inspect",
       "label": "Inspect: search text",
       "position": {
-        "x": 4080,
-        "y": 8020
+        "x": 5880,
+        "y": 2960
       },
       "config": {
         "source": "{{report_text}}",
@@ -5726,8 +6004,8 @@
       "type": "doc_compare",
       "label": "Compare two texts",
       "position": {
-        "x": 4080,
-        "y": 8140
+        "x": 5880,
+        "y": 3080
       },
       "config": {
         "original": "alpha beta gamma",
@@ -5742,8 +6020,8 @@
       "type": "doc_extract",
       "label": "Extract emails and amounts",
       "position": {
-        "x": 4080,
-        "y": 8260
+        "x": 5880,
+        "y": 3200
       },
       "config": {
         "source": "{{report_text}}",
@@ -5760,8 +6038,8 @@
       "type": "doc_redact",
       "label": "Detect personal data",
       "position": {
-        "x": 4080,
-        "y": 8380
+        "x": 5880,
+        "y": 3320
       },
       "config": {
         "source": "{{report_text}}",
@@ -5778,8 +6056,8 @@
       "type": "condition",
       "label": "Check: Word find & replace",
       "position": {
-        "x": 4080,
-        "y": 8500
+        "x": 5880,
+        "y": 3440
       },
       "config": {
         "match_mode": "first",
@@ -5805,8 +6083,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: Word find & replace",
       "position": {
-        "x": 4440,
-        "y": 8500
+        "x": 6240,
+        "y": 3440
       },
       "config": {
         "array_var": "failures",
@@ -5836,8 +6114,8 @@
       "type": "condition",
       "label": "Check: Excel find & replace",
       "position": {
-        "x": 4080,
-        "y": 8620
+        "x": 5880,
+        "y": 3560
       },
       "config": {
         "match_mode": "first",
@@ -5863,8 +6141,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: Excel find & replace",
       "position": {
-        "x": 4440,
-        "y": 8620
+        "x": 6240,
+        "y": 3560
       },
       "config": {
         "array_var": "failures",
@@ -5894,8 +6172,8 @@
       "type": "condition",
       "label": "Check: PowerPoint find & replace",
       "position": {
-        "x": 4080,
-        "y": 8740
+        "x": 5880,
+        "y": 3680
       },
       "config": {
         "match_mode": "first",
@@ -5921,8 +6199,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: PowerPoint find & replace",
       "position": {
-        "x": 4440,
-        "y": 8740
+        "x": 6240,
+        "y": 3680
       },
       "config": {
         "array_var": "failures",
@@ -5952,8 +6230,8 @@
       "type": "condition",
       "label": "Check: PDF page count",
       "position": {
-        "x": 4080,
-        "y": 8860
+        "x": 5880,
+        "y": 3800
       },
       "config": {
         "match_mode": "first",
@@ -5979,8 +6257,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: PDF page count",
       "position": {
-        "x": 4440,
-        "y": 8860
+        "x": 6240,
+        "y": 3800
       },
       "config": {
         "array_var": "failures",
@@ -6010,8 +6288,8 @@
       "type": "condition",
       "label": "Check: inspect found the text",
       "position": {
-        "x": 4080,
-        "y": 8980
+        "x": 5880,
+        "y": 3920
       },
       "config": {
         "match_mode": "first",
@@ -6037,8 +6315,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: inspect found the text",
       "position": {
-        "x": 4440,
-        "y": 8980
+        "x": 6240,
+        "y": 3920
       },
       "config": {
         "array_var": "failures",
@@ -6068,8 +6346,8 @@
       "type": "condition",
       "label": "Check: compare found a change",
       "position": {
-        "x": 4080,
-        "y": 9100
+        "x": 5880,
+        "y": 4040
       },
       "config": {
         "match_mode": "first",
@@ -6095,8 +6373,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: compare found a change",
       "position": {
-        "x": 4440,
-        "y": 9100
+        "x": 6240,
+        "y": 4040
       },
       "config": {
         "array_var": "failures",
@@ -6126,8 +6404,8 @@
       "type": "condition",
       "label": "Check: extract found the email",
       "position": {
-        "x": 4080,
-        "y": 9220
+        "x": 5880,
+        "y": 4160
       },
       "config": {
         "match_mode": "first",
@@ -6153,8 +6431,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: extract found the email",
       "position": {
-        "x": 4440,
-        "y": 9220
+        "x": 6240,
+        "y": 4160
       },
       "config": {
         "array_var": "failures",
@@ -6184,8 +6462,8 @@
       "type": "condition",
       "label": "Check: redact detected the email",
       "position": {
-        "x": 4080,
-        "y": 9340
+        "x": 5880,
+        "y": 4280
       },
       "config": {
         "match_mode": "first",
@@ -6211,8 +6489,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: redact detected the email",
       "position": {
-        "x": 4440,
-        "y": 9340
+        "x": 6240,
+        "y": 4280
       },
       "config": {
         "array_var": "failures",
@@ -6242,8 +6520,8 @@
       "type": "set_variable",
       "label": "Tally: Files & documents (14 checks)",
       "position": {
-        "x": 4080,
-        "y": 9460
+        "x": 5880,
+        "y": 4400
       },
       "config": {
         "assignments": [
@@ -6261,7 +6539,7 @@
       "label": "Governance & custom actions",
       "position": {
         "x": 5460,
-        "y": 10
+        "y": 4550
       },
       "config": {
         "width": 1080,
@@ -6276,7 +6554,7 @@
       "label": "List retention policies",
       "position": {
         "x": 5880,
-        "y": 80
+        "y": 4620
       },
       "config": {
         "operation": "list_policies"
@@ -6289,7 +6567,7 @@
       "label": "Check: retention policies listed",
       "position": {
         "x": 5880,
-        "y": 200
+        "y": 4740
       },
       "config": {
         "match_mode": "first",
@@ -6316,7 +6594,7 @@
       "label": "Record failure: retention policies listed",
       "position": {
         "x": 6240,
-        "y": 200
+        "y": 4740
       },
       "config": {
         "array_var": "failures",
@@ -6347,7 +6625,7 @@
       "label": "Custom action: double",
       "position": {
         "x": 5880,
-        "y": 320
+        "y": 4860
       },
       "config": {
         "custom_activity_id": "7c5e0006-0000-4000-8000-000000000001",
@@ -6365,7 +6643,7 @@
       "label": "Check: custom action output",
       "position": {
         "x": 5880,
-        "y": 440
+        "y": 4980
       },
       "config": {
         "match_mode": "first",
@@ -6392,7 +6670,7 @@
       "label": "Record failure: custom action output",
       "position": {
         "x": 6240,
-        "y": 440
+        "y": 4980
       },
       "config": {
         "array_var": "failures",
@@ -6423,7 +6701,7 @@
       "label": "Started by a person?",
       "position": {
         "x": 5880,
-        "y": 560
+        "y": 5100
       },
       "config": {
         "match_mode": "first",
@@ -6450,7 +6728,7 @@
       "label": "Add me to the test role",
       "position": {
         "x": 5880,
-        "y": 680
+        "y": 5220
       },
       "config": {
         "user_id": "{{workflow_started_by}}",
@@ -6466,7 +6744,7 @@
       "label": "Check: add user to role",
       "position": {
         "x": 5880,
-        "y": 800
+        "y": 5340
       },
       "config": {
         "match_mode": "first",
@@ -6493,7 +6771,7 @@
       "label": "Record failure: add user to role",
       "position": {
         "x": 6240,
-        "y": 800
+        "y": 5340
       },
       "config": {
         "array_var": "failures",
@@ -6524,7 +6802,7 @@
       "label": "Check the role permission",
       "position": {
         "x": 5880,
-        "y": 920
+        "y": 5460
       },
       "config": {
         "user_id": "{{workflow_started_by}}",
@@ -6538,7 +6816,7 @@
       "label": "Check: check permission",
       "position": {
         "x": 5880,
-        "y": 1040
+        "y": 5580
       },
       "config": {
         "match_mode": "first",
@@ -6565,7 +6843,7 @@
       "label": "Record failure: check permission",
       "position": {
         "x": 6240,
-        "y": 1040
+        "y": 5580
       },
       "config": {
         "array_var": "failures",
@@ -6596,7 +6874,7 @@
       "label": "Remove me from the test role",
       "position": {
         "x": 5880,
-        "y": 1160
+        "y": 5700
       },
       "config": {
         "user_id": "{{workflow_started_by}}",
@@ -6612,7 +6890,7 @@
       "label": "Check: remove user from role",
       "position": {
         "x": 5880,
-        "y": 1280
+        "y": 5820
       },
       "config": {
         "match_mode": "first",
@@ -6639,7 +6917,7 @@
       "label": "Record failure: remove user from role",
       "position": {
         "x": 6240,
-        "y": 1280
+        "y": 5820
       },
       "config": {
         "array_var": "failures",
@@ -6670,7 +6948,7 @@
       "label": "Skip: no starter",
       "position": {
         "x": 5520,
-        "y": 680
+        "y": 5220
       },
       "config": {
         "assignments": [
@@ -6688,7 +6966,7 @@
       "label": "Note skipped role checks",
       "position": {
         "x": 5520,
-        "y": 800
+        "y": 5340
       },
       "config": {
         "array_var": "skipped",
@@ -6715,7 +6993,7 @@
       "label": "Tally: Governance & custom actions",
       "position": {
         "x": 5880,
-        "y": 1400
+        "y": 5940
       },
       "config": {
         "assignments": [
@@ -6732,12 +7010,12 @@
       "type": "section_group",
       "label": "Human step check",
       "position": {
-        "x": 5460,
-        "y": 1550
+        "x": 7260,
+        "y": 10
       },
       "config": {
         "width": 1080,
-        "height": 2460,
+        "height": 2580,
         "color": "#14B8A6"
       },
       "collapsed": false
@@ -6747,8 +7025,8 @@
       "type": "condition",
       "label": "Include the human step?",
       "position": {
-        "x": 5880,
-        "y": 1620
+        "x": 7680,
+        "y": 80
       },
       "config": {
         "match_mode": "first",
@@ -6774,8 +7052,8 @@
       "type": "user_task",
       "label": "Kitchen sink: confirm the human step",
       "position": {
-        "x": 5880,
-        "y": 1740
+        "x": 7680,
+        "y": 200
       },
       "config": {
         "task_title": "Kitchen sink self-test: please confirm",
@@ -6792,7 +7070,8 @@
         "field_values": {
           "ks_token": "{{ks_run_key}}",
           "ks_note": "Prefilled by the kitchen sink",
-          "ks_lines": "{{order_lines}}"
+          "ks_lines": "{{order_lines}}",
+          "ks_orders": "{{nested_orders}}"
         },
         "due_date_mode": "relative",
         "due_offset_amount": 1,
@@ -6805,8 +7084,8 @@
       "type": "condition",
       "label": "Check: task outcome",
       "position": {
-        "x": 5880,
-        "y": 1860
+        "x": 7680,
+        "y": 320
       },
       "config": {
         "match_mode": "first",
@@ -6832,8 +7111,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: task outcome",
       "position": {
-        "x": 6240,
-        "y": 1860
+        "x": 8040,
+        "y": 320
       },
       "config": {
         "array_var": "failures",
@@ -6863,8 +7142,8 @@
       "type": "condition",
       "label": "Check: prefilled value came back",
       "position": {
-        "x": 5880,
-        "y": 1980
+        "x": 7680,
+        "y": 440
       },
       "config": {
         "match_mode": "first",
@@ -6890,8 +7169,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: prefilled value came back",
       "position": {
-        "x": 6240,
-        "y": 1980
+        "x": 8040,
+        "y": 440
       },
       "config": {
         "array_var": "failures",
@@ -6921,8 +7200,8 @@
       "type": "condition",
       "label": "Check: task form value",
       "position": {
-        "x": 5880,
-        "y": 2100
+        "x": 7680,
+        "y": 560
       },
       "config": {
         "match_mode": "first",
@@ -6948,8 +7227,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: task form value",
       "position": {
-        "x": 6240,
-        "y": 2100
+        "x": 8040,
+        "y": 560
       },
       "config": {
         "array_var": "failures",
@@ -6979,8 +7258,8 @@
       "type": "condition",
       "label": "Real task (not a designer test)?",
       "position": {
-        "x": 5880,
-        "y": 2220
+        "x": 7680,
+        "y": 680
       },
       "config": {
         "match_mode": "first",
@@ -7006,8 +7285,8 @@
       "type": "add_task_attachment",
       "label": "Attach a file to the task",
       "position": {
-        "x": 5880,
-        "y": 2340
+        "x": 7680,
+        "y": 800
       },
       "config": {
         "task_id": "{{user_task_id}}",
@@ -7025,8 +7304,8 @@
       "type": "condition",
       "label": "Check: attachment added",
       "position": {
-        "x": 5880,
-        "y": 2460
+        "x": 7680,
+        "y": 920
       },
       "config": {
         "match_mode": "first",
@@ -7052,8 +7331,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: attachment added",
       "position": {
-        "x": 6240,
-        "y": 2460
+        "x": 8040,
+        "y": 920
       },
       "config": {
         "array_var": "failures",
@@ -7083,8 +7362,8 @@
       "type": "create_subtask",
       "label": "Create a subtask",
       "position": {
-        "x": 5880,
-        "y": 2580
+        "x": 7680,
+        "y": 1040
       },
       "config": {
         "parent_task_id": "{{user_task_id}}",
@@ -7098,8 +7377,8 @@
       "type": "condition",
       "label": "Check: subtask created",
       "position": {
-        "x": 5880,
-        "y": 2700
+        "x": 7680,
+        "y": 1160
       },
       "config": {
         "match_mode": "first",
@@ -7125,8 +7404,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: subtask created",
       "position": {
-        "x": 6240,
-        "y": 2700
+        "x": 8040,
+        "y": 1160
       },
       "config": {
         "array_var": "failures",
@@ -7156,8 +7435,8 @@
       "type": "auto_action",
       "label": "Auto action: close the subtask",
       "position": {
-        "x": 5880,
-        "y": 2820
+        "x": 7680,
+        "y": 1280
       },
       "config": {
         "target_task_id": "{{subtask_id}}",
@@ -7172,8 +7451,8 @@
       "type": "condition",
       "label": "Check: auto action ran without an error",
       "position": {
-        "x": 5880,
-        "y": 2940
+        "x": 7680,
+        "y": 1400
       },
       "config": {
         "match_mode": "first",
@@ -7199,8 +7478,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: auto action ran without an error",
       "position": {
-        "x": 6240,
-        "y": 2940
+        "x": 8040,
+        "y": 1400
       },
       "config": {
         "array_var": "failures",
@@ -7230,8 +7509,8 @@
       "type": "set_variable",
       "label": "Reset the list total",
       "position": {
-        "x": 5880,
-        "y": 3060
+        "x": 7680,
+        "y": 1520
       },
       "config": {
         "assignments": [
@@ -7248,8 +7527,8 @@
       "type": "loop",
       "label": "Loop over the task's list rows",
       "position": {
-        "x": 5880,
-        "y": 3180
+        "x": 7680,
+        "y": 1640
       },
       "config": {
         "items": "{{task_data.ks_lines}}",
@@ -7263,8 +7542,8 @@
       "type": "set_variable",
       "label": "Add the row's quantity",
       "position": {
-        "x": 6240,
-        "y": 3180
+        "x": 8040,
+        "y": 1640
       },
       "config": {
         "assignments": [
@@ -7281,8 +7560,8 @@
       "type": "condition",
       "label": "Check: list field rows (prefilled from an array)",
       "position": {
-        "x": 5880,
-        "y": 3300
+        "x": 7680,
+        "y": 1760
       },
       "config": {
         "match_mode": "first",
@@ -7308,8 +7587,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: list field rows (prefilled from an array)",
       "position": {
-        "x": 6240,
-        "y": 3300
+        "x": 8040,
+        "y": 1760
       },
       "config": {
         "array_var": "failures",
@@ -7339,8 +7618,8 @@
       "type": "condition",
       "label": "Check: list row value (typed)",
       "position": {
-        "x": 5880,
-        "y": 3420
+        "x": 7680,
+        "y": 1880
       },
       "config": {
         "match_mode": "first",
@@ -7366,8 +7645,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: list row value (typed)",
       "position": {
-        "x": 6240,
-        "y": 3420
+        "x": 8040,
+        "y": 1880
       },
       "config": {
         "array_var": "failures",
@@ -7397,8 +7676,8 @@
       "type": "condition",
       "label": "Check: loop over the list (sum of qty)",
       "position": {
-        "x": 5880,
-        "y": 3540
+        "x": 7680,
+        "y": 2000
       },
       "config": {
         "match_mode": "first",
@@ -7424,8 +7703,8 @@
       "type": "json_add_to_array",
       "label": "Record failure: loop over the list (sum of qty)",
       "position": {
-        "x": 6240,
-        "y": 3540
+        "x": 8040,
+        "y": 2000
       },
       "config": {
         "array_var": "failures",
@@ -7451,18 +7730,76 @@
       "sectionId": "sec_human"
     },
     {
+      "id": "chk_nested_list",
+      "type": "condition",
+      "label": "Check: nested List rows (prefilled orders → lines)",
+      "position": {
+        "x": 7680,
+        "y": 2120
+      },
+      "config": {
+        "match_mode": "first",
+        "has_else": true,
+        "branches": [
+          {
+            "label": "Pass",
+            "logic": "and",
+            "rules": [
+              {
+                "field": "{{task_data.ks_orders[0].lines[1].sku}}",
+                "operator": "equals",
+                "value": "A-2"
+              }
+            ]
+          }
+        ]
+      },
+      "sectionId": "sec_human"
+    },
+    {
+      "id": "fail_nested_list",
+      "type": "json_add_to_array",
+      "label": "Record failure: nested List rows (prefilled orders → lines)",
+      "position": {
+        "x": 8040,
+        "y": 2120
+      },
+      "config": {
+        "array_var": "failures",
+        "fields": [
+          {
+            "key": "check",
+            "value": "nested_list"
+          },
+          {
+            "key": "group",
+            "value": "Human step check"
+          },
+          {
+            "key": "expected",
+            "value": "equals A-2"
+          },
+          {
+            "key": "actual",
+            "value": "{{task_data.ks_orders[0].lines[1].sku}}"
+          }
+        ]
+      },
+      "sectionId": "sec_human"
+    },
+    {
       "id": "tally_real",
       "type": "set_variable",
-      "label": "Tally: task writes (6 checks)",
+      "label": "Tally: task writes (7 checks)",
       "position": {
-        "x": 5880,
-        "y": 3660
+        "x": 7680,
+        "y": 2240
       },
       "config": {
         "assignments": [
           {
             "name": "checks_run",
-            "expression": "{{=checks_run + 6}}"
+            "expression": "{{=checks_run + 7}}"
           }
         ]
       },
@@ -7473,14 +7810,14 @@
       "type": "set_variable",
       "label": "Skip: simulated task",
       "position": {
-        "x": 5520,
-        "y": 2340
+        "x": 7320,
+        "y": 800
       },
       "config": {
         "assignments": [
           {
             "name": "checks_skipped",
-            "expression": "{{=checks_skipped + 6}}"
+            "expression": "{{=checks_skipped + 7}}"
           }
         ]
       },
@@ -7491,8 +7828,8 @@
       "type": "json_add_to_array",
       "label": "Note skipped task writes",
       "position": {
-        "x": 5520,
-        "y": 2460
+        "x": 7320,
+        "y": 920
       },
       "config": {
         "array_var": "skipped",
@@ -7507,7 +7844,7 @@
           },
           {
             "key": "checks",
-            "value": "6"
+            "value": "7"
           }
         ]
       },
@@ -7518,8 +7855,8 @@
       "type": "set_variable",
       "label": "Tally: Human step check (3 checks)",
       "position": {
-        "x": 5880,
-        "y": 3780
+        "x": 7680,
+        "y": 2360
       },
       "config": {
         "assignments": [
@@ -7536,14 +7873,14 @@
       "type": "set_variable",
       "label": "Skip: human step off",
       "position": {
-        "x": 5520,
-        "y": 1740
+        "x": 7320,
+        "y": 200
       },
       "config": {
         "assignments": [
           {
             "name": "checks_skipped",
-            "expression": "{{=checks_skipped + 9}}"
+            "expression": "{{=checks_skipped + 10}}"
           }
         ]
       },
@@ -7554,8 +7891,8 @@
       "type": "json_add_to_array",
       "label": "Note skipped human step",
       "position": {
-        "x": 5520,
-        "y": 1860
+        "x": 7320,
+        "y": 320
       },
       "config": {
         "array_var": "skipped",
@@ -7570,7 +7907,7 @@
           },
           {
             "key": "checks",
-            "value": "9"
+            "value": "10"
           }
         ]
       },
@@ -7581,8 +7918,8 @@
       "type": "log",
       "label": "Log: human step done",
       "position": {
-        "x": 5880,
-        "y": 3900
+        "x": 7680,
+        "y": 2480
       },
       "config": {
         "message": "Human step section finished"
@@ -7594,8 +7931,8 @@
       "type": "section_group",
       "label": "Summary",
       "position": {
-        "x": 5580,
-        "y": 4050
+        "x": 7380,
+        "y": 2630
       },
       "config": {
         "width": 960,
@@ -7609,14 +7946,14 @@
       "type": "set_variable",
       "label": "Count the results",
       "position": {
-        "x": 5880,
-        "y": 4120
+        "x": 7680,
+        "y": 2700
       },
       "config": {
         "assignments": [
           {
             "name": "checks_total",
-            "expression": "81"
+            "expression": "85"
           },
           {
             "name": "failed_count",
@@ -7643,8 +7980,8 @@
       "type": "json_build_object",
       "label": "Build results",
       "position": {
-        "x": 5880,
-        "y": 4240
+        "x": 7680,
+        "y": 2820
       },
       "config": {
         "fields": [
@@ -7690,8 +8027,8 @@
       "type": "text_template",
       "label": "Summary text",
       "position": {
-        "x": 5880,
-        "y": 4360
+        "x": 7680,
+        "y": 2940
       },
       "config": {
         "template": "Kitchen sink: {{passed_count}}/{{checks_run}} passed{{skipped_note}}. Failed: {{=IF(failed_count > 0, failed_list, \"none\")}}.",
@@ -7704,8 +8041,8 @@
       "type": "set_title",
       "label": "Title: result",
       "position": {
-        "x": 5880,
-        "y": 4480
+        "x": 7680,
+        "y": 3060
       },
       "config": {
         "title": "Kitchen sink: {{passed_count}}/{{checks_run}} passed{{skipped_note}}"
@@ -7717,8 +8054,8 @@
       "type": "log",
       "label": "Log: summary",
       "position": {
-        "x": 5880,
-        "y": 4600
+        "x": 7680,
+        "y": 3180
       },
       "config": {
         "message": "{{summary_text}}"
@@ -7730,8 +8067,8 @@
       "type": "condition",
       "label": "Email the summary?",
       "position": {
-        "x": 5880,
-        "y": 4720
+        "x": 7680,
+        "y": 3300
       },
       "config": {
         "match_mode": "first",
@@ -7762,8 +8099,8 @@
       "type": "send_email",
       "label": "Send summary email",
       "position": {
-        "x": 6240,
-        "y": 4720
+        "x": 8040,
+        "y": 3300
       },
       "config": {
         "to": "{{test_email_to}}",
@@ -7777,8 +8114,8 @@
       "type": "condition",
       "label": "All checks passed?",
       "position": {
-        "x": 5880,
-        "y": 4840
+        "x": 7680,
+        "y": 3420
       },
       "config": {
         "match_mode": "first",
@@ -7809,8 +8146,8 @@
       "type": "end_workflow",
       "label": "End: all passed",
       "position": {
-        "x": 5640,
-        "y": 4960
+        "x": 7440,
+        "y": 3540
       },
       "config": {
         "reason": "{{summary_text}}"
@@ -7822,8 +8159,8 @@
       "type": "end_workflow",
       "label": "End: failed",
       "position": {
-        "x": 6120,
-        "y": 4960
+        "x": 7920,
+        "y": 3540
       },
       "config": {
         "status": "failed",
@@ -8399,1646 +8736,1743 @@
     {
       "id": "e105",
       "source": "loop_n",
-      "target": "chk_col_count",
+      "target": "nested_init",
       "label": "Done"
     },
     {
       "id": "e106",
+      "source": "nested_init",
+      "target": "nested_outer"
+    },
+    {
+      "id": "e107",
+      "source": "nested_outer",
+      "target": "nested_inner",
+      "label": "Each Item"
+    },
+    {
+      "id": "e108",
+      "source": "nested_inner",
+      "target": "nested_inner_body",
+      "label": "Each Item"
+    },
+    {
+      "id": "e109",
+      "source": "nested_inner",
+      "target": "nested_inner_done",
+      "label": "Done"
+    },
+    {
+      "id": "e110",
+      "source": "nested_outer",
+      "target": "chk_nested_loop",
+      "label": "Done"
+    },
+    {
+      "id": "e111",
+      "source": "chk_nested_loop",
+      "target": "fail_nested_loop",
+      "label": "Else"
+    },
+    {
+      "id": "e112",
+      "source": "chk_nested_loop",
+      "target": "chk_nested_parent",
+      "label": "Pass"
+    },
+    {
+      "id": "e113",
+      "source": "fail_nested_loop",
+      "target": "chk_nested_parent"
+    },
+    {
+      "id": "e114",
+      "source": "chk_nested_parent",
+      "target": "fail_nested_parent",
+      "label": "Else"
+    },
+    {
+      "id": "e115",
+      "source": "chk_nested_parent",
+      "target": "chk_nested_restored",
+      "label": "Pass"
+    },
+    {
+      "id": "e116",
+      "source": "fail_nested_parent",
+      "target": "chk_nested_restored"
+    },
+    {
+      "id": "e117",
+      "source": "chk_nested_restored",
+      "target": "fail_nested_restored",
+      "label": "Else"
+    },
+    {
+      "id": "e118",
+      "source": "chk_nested_restored",
+      "target": "chk_col_count",
+      "label": "Pass"
+    },
+    {
+      "id": "e119",
+      "source": "fail_nested_restored",
+      "target": "chk_col_count"
+    },
+    {
+      "id": "e120",
       "source": "chk_col_count",
       "target": "fail_col_count",
       "label": "Else"
     },
     {
-      "id": "e107",
+      "id": "e121",
       "source": "chk_col_count",
       "target": "chk_col_unique",
       "label": "Pass"
     },
     {
-      "id": "e108",
+      "id": "e122",
       "source": "fail_col_count",
       "target": "chk_col_unique"
     },
     {
-      "id": "e109",
+      "id": "e123",
       "source": "chk_col_unique",
       "target": "fail_col_unique",
       "label": "Else"
     },
     {
-      "id": "e110",
+      "id": "e124",
       "source": "chk_col_unique",
       "target": "chk_col_first",
       "label": "Pass"
     },
     {
-      "id": "e111",
+      "id": "e125",
       "source": "fail_col_unique",
       "target": "chk_col_first"
     },
     {
-      "id": "e112",
+      "id": "e126",
       "source": "chk_col_first",
       "target": "fail_col_first",
       "label": "Else"
     },
     {
-      "id": "e113",
+      "id": "e127",
       "source": "chk_col_first",
       "target": "chk_col_last",
       "label": "Pass"
     },
     {
-      "id": "e114",
+      "id": "e128",
       "source": "fail_col_first",
       "target": "chk_col_last"
     },
     {
-      "id": "e115",
+      "id": "e129",
       "source": "chk_col_last",
       "target": "fail_col_last",
       "label": "Else"
     },
     {
-      "id": "e116",
+      "id": "e130",
       "source": "chk_col_last",
       "target": "chk_col_join",
       "label": "Pass"
     },
     {
-      "id": "e117",
+      "id": "e131",
       "source": "fail_col_last",
       "target": "chk_col_join"
     },
     {
-      "id": "e118",
+      "id": "e132",
       "source": "chk_col_join",
       "target": "fail_col_join",
       "label": "Else"
     },
     {
-      "id": "e119",
+      "id": "e133",
       "source": "chk_col_join",
       "target": "chk_col_filter",
       "label": "Pass"
     },
     {
-      "id": "e120",
+      "id": "e134",
       "source": "fail_col_join",
       "target": "chk_col_filter"
     },
     {
-      "id": "e121",
+      "id": "e135",
       "source": "chk_col_filter",
       "target": "fail_col_filter",
       "label": "Else"
     },
     {
-      "id": "e122",
+      "id": "e136",
       "source": "chk_col_filter",
       "target": "chk_loop_each",
       "label": "Pass"
     },
     {
-      "id": "e123",
+      "id": "e137",
       "source": "fail_col_filter",
       "target": "chk_loop_each"
     },
     {
-      "id": "e124",
+      "id": "e138",
       "source": "chk_loop_each",
       "target": "fail_loop_each",
       "label": "Else"
     },
     {
-      "id": "e125",
+      "id": "e139",
       "source": "chk_loop_each",
       "target": "chk_loop_n_sum",
       "label": "Pass"
     },
     {
-      "id": "e126",
+      "id": "e140",
       "source": "fail_loop_each",
       "target": "chk_loop_n_sum"
     },
     {
-      "id": "e127",
+      "id": "e141",
       "source": "chk_loop_n_sum",
       "target": "fail_loop_n_sum",
       "label": "Else"
     },
     {
-      "id": "e128",
+      "id": "e142",
       "source": "chk_loop_n_sum",
       "target": "chk_loop_n_count",
       "label": "Pass"
     },
     {
-      "id": "e129",
+      "id": "e143",
       "source": "fail_loop_n_sum",
       "target": "chk_loop_n_count"
     },
     {
-      "id": "e130",
+      "id": "e144",
       "source": "chk_loop_n_count",
       "target": "fail_loop_n_count",
       "label": "Else"
     },
     {
-      "id": "e131",
+      "id": "e145",
       "source": "chk_loop_n_count",
       "target": "tally_collections",
       "label": "Pass"
     },
     {
-      "id": "e132",
+      "id": "e146",
       "source": "fail_loop_n_count",
       "target": "tally_collections"
     },
     {
-      "id": "e133",
+      "id": "e147",
       "source": "tally_collections",
       "target": "br_if"
     },
     {
-      "id": "e134",
+      "id": "e148",
       "source": "br_if",
       "target": "br_gold",
       "label": "Gold"
     },
     {
-      "id": "e135",
+      "id": "e149",
       "source": "br_if",
       "target": "br_silver",
       "label": "Silver"
     },
     {
-      "id": "e136",
+      "id": "e150",
       "source": "br_if",
       "target": "br_other",
       "label": "Else"
     },
     {
-      "id": "e137",
+      "id": "e151",
       "source": "br_gold",
       "target": "br_switch"
     },
     {
-      "id": "e138",
+      "id": "e152",
       "source": "br_silver",
       "target": "br_switch"
     },
     {
-      "id": "e139",
+      "id": "e153",
       "source": "br_other",
       "target": "br_switch"
     },
     {
-      "id": "e140",
+      "id": "e154",
       "source": "br_switch",
       "target": "br_big",
       "label": "big"
     },
     {
-      "id": "e141",
+      "id": "e155",
       "source": "br_switch",
       "target": "br_small",
       "label": "small"
     },
     {
-      "id": "e142",
+      "id": "e156",
       "source": "br_switch",
       "target": "br_default",
       "label": "Default"
     },
     {
-      "id": "e143",
+      "id": "e157",
       "source": "br_big",
       "target": "br_multi_init"
     },
     {
-      "id": "e144",
+      "id": "e158",
       "source": "br_small",
       "target": "br_multi_init"
     },
     {
-      "id": "e145",
+      "id": "e159",
       "source": "br_default",
       "target": "br_multi_init"
     },
     {
-      "id": "e146",
+      "id": "e160",
       "source": "br_multi_init",
       "target": "br_multi"
     },
     {
-      "id": "e147",
+      "id": "e161",
       "source": "br_multi",
       "target": "br_over5",
       "label": "Over 5"
     },
     {
-      "id": "e148",
+      "id": "e162",
       "source": "br_multi",
       "target": "br_odd",
       "label": "Odd"
     },
     {
-      "id": "e149",
+      "id": "e163",
       "source": "br_multi",
       "target": "br_over100",
       "label": "Over 100"
     },
     {
-      "id": "e150",
+      "id": "e164",
       "source": "br_multi",
       "target": "chk_br_if",
       "label": "Continue"
     },
     {
-      "id": "e151",
+      "id": "e165",
       "source": "chk_br_if",
       "target": "fail_br_if",
       "label": "Else"
     },
     {
-      "id": "e152",
+      "id": "e166",
       "source": "chk_br_if",
       "target": "chk_br_switch",
       "label": "Pass"
     },
     {
-      "id": "e153",
+      "id": "e167",
       "source": "fail_br_if",
       "target": "chk_br_switch"
     },
     {
-      "id": "e154",
+      "id": "e168",
       "source": "chk_br_switch",
       "target": "fail_br_switch",
       "label": "Else"
     },
     {
-      "id": "e155",
+      "id": "e169",
       "source": "chk_br_switch",
       "target": "chk_br_multi_over5",
       "label": "Pass"
     },
     {
-      "id": "e156",
+      "id": "e170",
       "source": "fail_br_switch",
       "target": "chk_br_multi_over5"
     },
     {
-      "id": "e157",
+      "id": "e171",
       "source": "chk_br_multi_over5",
       "target": "fail_br_multi_over5",
       "label": "Else"
     },
     {
-      "id": "e158",
+      "id": "e172",
       "source": "chk_br_multi_over5",
       "target": "chk_br_multi_odd",
       "label": "Pass"
     },
     {
-      "id": "e159",
+      "id": "e173",
       "source": "fail_br_multi_over5",
       "target": "chk_br_multi_odd"
     },
     {
-      "id": "e160",
+      "id": "e174",
       "source": "chk_br_multi_odd",
       "target": "fail_br_multi_odd",
       "label": "Else"
     },
     {
-      "id": "e161",
+      "id": "e175",
       "source": "chk_br_multi_odd",
       "target": "chk_br_multi_over100",
       "label": "Pass"
     },
     {
-      "id": "e162",
+      "id": "e176",
       "source": "fail_br_multi_odd",
       "target": "chk_br_multi_over100"
     },
     {
-      "id": "e163",
+      "id": "e177",
       "source": "chk_br_multi_over100",
       "target": "fail_br_multi_over100",
       "label": "Else"
     },
     {
-      "id": "e164",
+      "id": "e178",
       "source": "chk_br_multi_over100",
       "target": "tally_branching",
       "label": "Pass"
     },
     {
-      "id": "e165",
+      "id": "e179",
       "source": "fail_br_multi_over100",
       "target": "tally_branching"
     },
     {
-      "id": "e166",
+      "id": "e180",
       "source": "tally_branching",
       "target": "goto_init"
     },
     {
-      "id": "e167",
+      "id": "e181",
       "source": "goto_init",
       "target": "goto_count"
     },
     {
-      "id": "e168",
+      "id": "e182",
       "source": "goto_count",
       "target": "goto_again"
     },
     {
-      "id": "e169",
+      "id": "e183",
       "source": "goto_again",
       "target": "goto_jump",
       "label": "Again"
     },
     {
-      "id": "e170",
+      "id": "e184",
       "source": "goto_again",
       "target": "chk_goto",
       "label": "Else"
     },
     {
-      "id": "e171",
+      "id": "e185",
       "source": "chk_goto",
       "target": "fail_goto",
       "label": "Else"
     },
     {
-      "id": "e172",
+      "id": "e186",
       "source": "chk_goto",
       "target": "tally_goto",
       "label": "Pass"
     },
     {
-      "id": "e173",
+      "id": "e187",
       "source": "fail_goto",
       "target": "tally_goto"
     },
     {
-      "id": "e174",
+      "id": "e188",
       "source": "tally_goto",
       "target": "par"
     },
     {
-      "id": "e175",
+      "id": "e189",
       "source": "par",
       "target": "par_a",
       "label": "Branch A"
     },
     {
-      "id": "e176",
+      "id": "e190",
       "source": "par_a",
       "target": "par_a_math"
     },
     {
-      "id": "e177",
+      "id": "e191",
       "source": "par_a_math",
       "target": "par_join"
     },
     {
-      "id": "e178",
+      "id": "e192",
       "source": "par",
       "target": "par_b",
       "label": "Branch B"
     },
     {
-      "id": "e179",
+      "id": "e193",
       "source": "par_b",
       "target": "par_join"
     },
     {
-      "id": "e180",
+      "id": "e194",
       "source": "par",
       "target": "chk_par_join",
       "label": "Done"
     },
     {
-      "id": "e181",
+      "id": "e195",
       "source": "chk_par_join",
       "target": "fail_par_join",
       "label": "Else"
     },
     {
-      "id": "e182",
+      "id": "e196",
       "source": "chk_par_join",
       "target": "chk_par_branch_output",
       "label": "Pass"
     },
     {
-      "id": "e183",
+      "id": "e197",
       "source": "fail_par_join",
       "target": "chk_par_branch_output"
     },
     {
-      "id": "e184",
+      "id": "e198",
       "source": "chk_par_branch_output",
       "target": "fail_par_branch_output",
       "label": "Else"
     },
     {
-      "id": "e185",
+      "id": "e199",
       "source": "chk_par_branch_output",
       "target": "tally_parallel",
       "label": "Pass"
     },
     {
-      "id": "e186",
+      "id": "e200",
       "source": "fail_par_branch_output",
       "target": "tally_parallel"
     },
     {
-      "id": "e187",
+      "id": "e201",
       "source": "tally_parallel",
       "target": "decide"
     },
     {
-      "id": "e188",
+      "id": "e202",
       "source": "decide",
       "target": "chk_dt_matched"
     },
     {
-      "id": "e189",
+      "id": "e203",
       "source": "chk_dt_matched",
       "target": "fail_dt_matched",
       "label": "Else"
     },
     {
-      "id": "e190",
+      "id": "e204",
       "source": "chk_dt_matched",
       "target": "chk_dt_rule",
       "label": "Pass"
     },
     {
-      "id": "e191",
+      "id": "e205",
       "source": "fail_dt_matched",
       "target": "chk_dt_rule"
     },
     {
-      "id": "e192",
+      "id": "e206",
       "source": "chk_dt_rule",
       "target": "fail_dt_rule",
       "label": "Else"
     },
     {
-      "id": "e193",
+      "id": "e207",
       "source": "chk_dt_rule",
       "target": "chk_dt_discount",
       "label": "Pass"
     },
     {
-      "id": "e194",
+      "id": "e208",
       "source": "fail_dt_rule",
       "target": "chk_dt_discount"
     },
     {
-      "id": "e195",
+      "id": "e209",
       "source": "chk_dt_discount",
       "target": "fail_dt_discount",
       "label": "Else"
     },
     {
-      "id": "e196",
+      "id": "e210",
       "source": "chk_dt_discount",
       "target": "chk_dt_band",
       "label": "Pass"
     },
     {
-      "id": "e197",
+      "id": "e211",
       "source": "fail_dt_discount",
       "target": "chk_dt_band"
     },
     {
-      "id": "e198",
+      "id": "e212",
       "source": "chk_dt_band",
       "target": "fail_dt_band",
       "label": "Else"
     },
     {
-      "id": "e199",
+      "id": "e213",
       "source": "chk_dt_band",
       "target": "tally_decision",
       "label": "Pass"
     },
     {
-      "id": "e200",
+      "id": "e214",
       "source": "fail_dt_band",
       "target": "tally_decision"
     },
     {
-      "id": "e201",
+      "id": "e215",
       "source": "tally_decision",
       "target": "data_insert_a"
     },
     {
-      "id": "e202",
+      "id": "e216",
       "source": "data_insert_a",
       "target": "data_insert_b"
     },
     {
-      "id": "e203",
+      "id": "e217",
       "source": "data_insert_b",
       "target": "data_get"
     },
     {
-      "id": "e204",
+      "id": "e218",
       "source": "data_get",
       "target": "data_list"
     },
     {
-      "id": "e205",
+      "id": "e219",
       "source": "data_list",
       "target": "data_update"
     },
     {
-      "id": "e206",
+      "id": "e220",
       "source": "data_update",
       "target": "data_get_again"
     },
     {
-      "id": "e207",
+      "id": "e221",
       "source": "data_get_again",
       "target": "data_delete_a"
     },
     {
-      "id": "e208",
+      "id": "e222",
       "source": "data_delete_a",
       "target": "data_delete_b"
     },
     {
-      "id": "e209",
+      "id": "e223",
       "source": "data_delete_b",
       "target": "data_list_after"
     },
     {
-      "id": "e210",
+      "id": "e224",
       "source": "data_list_after",
       "target": "chk_data_insert_get"
     },
     {
-      "id": "e211",
+      "id": "e225",
       "source": "chk_data_insert_get",
       "target": "fail_data_insert_get",
       "label": "Else"
     },
     {
-      "id": "e212",
+      "id": "e226",
       "source": "chk_data_insert_get",
       "target": "chk_data_list",
       "label": "Pass"
     },
     {
-      "id": "e213",
+      "id": "e227",
       "source": "fail_data_insert_get",
       "target": "chk_data_list"
     },
     {
-      "id": "e214",
+      "id": "e228",
       "source": "chk_data_list",
       "target": "fail_data_list",
       "label": "Else"
     },
     {
-      "id": "e215",
+      "id": "e229",
       "source": "chk_data_list",
       "target": "chk_data_update_status",
       "label": "Pass"
     },
     {
-      "id": "e216",
+      "id": "e230",
       "source": "fail_data_list",
       "target": "chk_data_update_status"
     },
     {
-      "id": "e217",
+      "id": "e231",
       "source": "chk_data_update_status",
       "target": "fail_data_update_status",
       "label": "Else"
     },
     {
-      "id": "e218",
+      "id": "e232",
       "source": "chk_data_update_status",
       "target": "chk_data_update_amount",
       "label": "Pass"
     },
     {
-      "id": "e219",
+      "id": "e233",
       "source": "fail_data_update_status",
       "target": "chk_data_update_amount"
     },
     {
-      "id": "e220",
+      "id": "e234",
       "source": "chk_data_update_amount",
       "target": "fail_data_update_amount",
       "label": "Else"
     },
     {
-      "id": "e221",
+      "id": "e235",
       "source": "chk_data_update_amount",
       "target": "chk_data_cleanup",
       "label": "Pass"
     },
     {
-      "id": "e222",
+      "id": "e236",
       "source": "fail_data_update_amount",
       "target": "chk_data_cleanup"
     },
     {
-      "id": "e223",
+      "id": "e237",
       "source": "chk_data_cleanup",
       "target": "fail_data_cleanup",
       "label": "Else"
     },
     {
-      "id": "e224",
+      "id": "e238",
       "source": "chk_data_cleanup",
       "target": "tally_data",
       "label": "Pass"
     },
     {
-      "id": "e225",
+      "id": "e239",
       "source": "fail_data_cleanup",
       "target": "tally_data"
     },
     {
-      "id": "e226",
+      "id": "e240",
       "source": "tally_data",
       "target": "sub_call"
     },
     {
-      "id": "e227",
+      "id": "e241",
       "source": "sub_call",
       "target": "chk_sub_status"
     },
     {
-      "id": "e228",
+      "id": "e242",
       "source": "chk_sub_status",
       "target": "fail_sub_status",
       "label": "Else"
     },
     {
-      "id": "e229",
+      "id": "e243",
       "source": "chk_sub_status",
       "target": "chk_sub_result",
       "label": "Pass"
     },
     {
-      "id": "e230",
+      "id": "e244",
       "source": "fail_sub_status",
       "target": "chk_sub_result"
     },
     {
-      "id": "e231",
+      "id": "e245",
       "source": "chk_sub_result",
       "target": "fail_sub_result",
       "label": "Else"
     },
     {
-      "id": "e232",
+      "id": "e246",
       "source": "chk_sub_result",
       "target": "tally_sub",
       "label": "Pass"
     },
     {
-      "id": "e233",
+      "id": "e247",
       "source": "fail_sub_result",
       "target": "tally_sub"
     },
     {
-      "id": "e234",
+      "id": "e248",
       "source": "tally_sub",
       "target": "err_fail"
     },
     {
-      "id": "e235",
+      "id": "e249",
       "source": "err_fail",
       "target": "chk_err_flag"
     },
     {
-      "id": "e236",
+      "id": "e250",
       "source": "chk_err_flag",
       "target": "fail_err_flag",
       "label": "Else"
     },
     {
-      "id": "e237",
+      "id": "e251",
       "source": "chk_err_flag",
       "target": "chk_err_node",
       "label": "Pass"
     },
     {
-      "id": "e238",
+      "id": "e252",
       "source": "fail_err_flag",
       "target": "chk_err_node"
     },
     {
-      "id": "e239",
+      "id": "e253",
       "source": "chk_err_node",
       "target": "fail_err_node",
       "label": "Else"
     },
     {
-      "id": "e240",
+      "id": "e254",
       "source": "chk_err_node",
       "target": "chk_err_message",
       "label": "Pass"
     },
     {
-      "id": "e241",
+      "id": "e255",
       "source": "fail_err_node",
       "target": "chk_err_message"
     },
     {
-      "id": "e242",
+      "id": "e256",
       "source": "chk_err_message",
       "target": "fail_err_message",
       "label": "Else"
     },
     {
-      "id": "e243",
+      "id": "e257",
       "source": "chk_err_message",
       "target": "tally_errors",
       "label": "Pass"
     },
     {
-      "id": "e244",
+      "id": "e258",
       "source": "fail_err_message",
       "target": "tally_errors"
     },
     {
-      "id": "e245",
+      "id": "e259",
       "source": "tally_errors",
       "target": "time_start"
     },
     {
-      "id": "e246",
+      "id": "e260",
       "source": "time_start",
       "target": "time_delay"
     },
     {
-      "id": "e247",
+      "id": "e261",
       "source": "time_delay",
       "target": "time_until"
     },
     {
-      "id": "e248",
+      "id": "e262",
       "source": "time_until",
       "target": "time_gap"
     },
     {
-      "id": "e249",
+      "id": "e263",
       "source": "time_gap",
       "target": "chk_timing"
     },
     {
-      "id": "e250",
+      "id": "e264",
       "source": "chk_timing",
       "target": "fail_timing",
       "label": "Else"
     },
     {
-      "id": "e251",
+      "id": "e265",
       "source": "chk_timing",
       "target": "time_sla",
       "label": "Pass"
     },
     {
-      "id": "e252",
+      "id": "e266",
       "source": "fail_timing",
       "target": "time_sla"
     },
     {
-      "id": "e253",
+      "id": "e267",
       "source": "time_sla",
       "target": "chk_sla"
     },
     {
-      "id": "e254",
+      "id": "e268",
       "source": "chk_sla",
       "target": "fail_sla",
       "label": "Else"
     },
     {
-      "id": "e255",
+      "id": "e269",
       "source": "chk_sla",
       "target": "tally_timing",
       "label": "Pass"
     },
     {
-      "id": "e256",
+      "id": "e270",
       "source": "fail_sla",
       "target": "tally_timing"
     },
     {
-      "id": "e257",
+      "id": "e271",
       "source": "tally_timing",
       "target": "csv_write"
     },
     {
-      "id": "e258",
+      "id": "e272",
       "source": "csv_write",
       "target": "csv_read"
     },
     {
-      "id": "e259",
+      "id": "e273",
       "source": "csv_read",
       "target": "xlsx_write"
     },
     {
-      "id": "e260",
+      "id": "e274",
       "source": "xlsx_write",
       "target": "xlsx_read"
     },
     {
-      "id": "e261",
+      "id": "e275",
       "source": "xlsx_read",
       "target": "b64_to_file"
     },
     {
-      "id": "e262",
+      "id": "e276",
       "source": "b64_to_file",
       "target": "file_read"
     },
     {
-      "id": "e263",
+      "id": "e277",
       "source": "file_read",
       "target": "file_b64"
     },
     {
-      "id": "e264",
+      "id": "e278",
       "source": "file_b64",
       "target": "file_download"
     },
     {
-      "id": "e265",
+      "id": "e279",
       "source": "file_download",
       "target": "chk_csv"
     },
     {
-      "id": "e266",
+      "id": "e280",
       "source": "chk_csv",
       "target": "fail_csv",
       "label": "Else"
     },
     {
-      "id": "e267",
+      "id": "e281",
       "source": "chk_csv",
       "target": "chk_csv_count",
       "label": "Pass"
     },
     {
-      "id": "e268",
+      "id": "e282",
       "source": "fail_csv",
       "target": "chk_csv_count"
     },
     {
-      "id": "e269",
+      "id": "e283",
       "source": "chk_csv_count",
       "target": "fail_csv_count",
       "label": "Else"
     },
     {
-      "id": "e270",
+      "id": "e284",
       "source": "chk_csv_count",
       "target": "chk_xlsx",
       "label": "Pass"
     },
     {
-      "id": "e271",
+      "id": "e285",
       "source": "fail_csv_count",
       "target": "chk_xlsx"
     },
     {
-      "id": "e272",
+      "id": "e286",
       "source": "chk_xlsx",
       "target": "fail_xlsx",
       "label": "Else"
     },
     {
-      "id": "e273",
+      "id": "e287",
       "source": "chk_xlsx",
       "target": "chk_file_read",
       "label": "Pass"
     },
     {
-      "id": "e274",
+      "id": "e288",
       "source": "fail_xlsx",
       "target": "chk_file_read"
     },
     {
-      "id": "e275",
+      "id": "e289",
       "source": "chk_file_read",
       "target": "fail_file_read",
       "label": "Else"
     },
     {
-      "id": "e276",
+      "id": "e290",
       "source": "chk_file_read",
       "target": "chk_file_b64",
       "label": "Pass"
     },
     {
-      "id": "e277",
+      "id": "e291",
       "source": "fail_file_read",
       "target": "chk_file_b64"
     },
     {
-      "id": "e278",
+      "id": "e292",
       "source": "chk_file_b64",
       "target": "fail_file_b64",
       "label": "Else"
     },
     {
-      "id": "e279",
+      "id": "e293",
       "source": "chk_file_b64",
       "target": "chk_file_download",
       "label": "Pass"
     },
     {
-      "id": "e280",
+      "id": "e294",
       "source": "fail_file_b64",
       "target": "chk_file_download"
     },
     {
-      "id": "e281",
+      "id": "e295",
       "source": "chk_file_download",
       "target": "fail_file_download",
       "label": "Else"
     },
     {
-      "id": "e282",
+      "id": "e296",
       "source": "chk_file_download",
       "target": "doc_to_docx",
       "label": "Pass"
     },
     {
-      "id": "e283",
+      "id": "e297",
       "source": "fail_file_download",
       "target": "doc_to_docx"
     },
     {
-      "id": "e284",
+      "id": "e298",
       "source": "doc_to_docx",
       "target": "doc_word"
     },
     {
-      "id": "e285",
+      "id": "e299",
       "source": "doc_word",
       "target": "doc_read_word"
     },
     {
-      "id": "e286",
+      "id": "e300",
       "source": "doc_read_word",
       "target": "doc_excel"
     },
     {
-      "id": "e287",
+      "id": "e301",
       "source": "doc_excel",
       "target": "doc_read_excel"
     },
     {
-      "id": "e288",
+      "id": "e302",
       "source": "doc_read_excel",
       "target": "pptx_template"
     },
     {
-      "id": "e289",
+      "id": "e303",
       "source": "pptx_template",
       "target": "doc_powerpoint"
     },
     {
-      "id": "e290",
+      "id": "e304",
       "source": "doc_powerpoint",
       "target": "doc_read_slides"
     },
     {
-      "id": "e291",
+      "id": "e305",
       "source": "doc_read_slides",
       "target": "doc_to_pdf"
     },
     {
-      "id": "e292",
+      "id": "e306",
       "source": "doc_to_pdf",
       "target": "doc_pdf"
     },
     {
-      "id": "e293",
+      "id": "e307",
       "source": "doc_pdf",
       "target": "doc_inspect"
     },
     {
-      "id": "e294",
+      "id": "e308",
       "source": "doc_inspect",
       "target": "doc_compare"
     },
     {
-      "id": "e295",
+      "id": "e309",
       "source": "doc_compare",
       "target": "doc_extract"
     },
     {
-      "id": "e296",
+      "id": "e310",
       "source": "doc_extract",
       "target": "doc_redact"
     },
     {
-      "id": "e297",
+      "id": "e311",
       "source": "doc_redact",
       "target": "chk_doc_word"
     },
     {
-      "id": "e298",
+      "id": "e312",
       "source": "chk_doc_word",
       "target": "fail_doc_word",
       "label": "Else"
     },
     {
-      "id": "e299",
+      "id": "e313",
       "source": "chk_doc_word",
       "target": "chk_doc_excel",
       "label": "Pass"
     },
     {
-      "id": "e300",
+      "id": "e314",
       "source": "fail_doc_word",
       "target": "chk_doc_excel"
     },
     {
-      "id": "e301",
+      "id": "e315",
       "source": "chk_doc_excel",
       "target": "fail_doc_excel",
       "label": "Else"
     },
     {
-      "id": "e302",
+      "id": "e316",
       "source": "chk_doc_excel",
       "target": "chk_doc_powerpoint",
       "label": "Pass"
     },
     {
-      "id": "e303",
+      "id": "e317",
       "source": "fail_doc_excel",
       "target": "chk_doc_powerpoint"
     },
     {
-      "id": "e304",
+      "id": "e318",
       "source": "chk_doc_powerpoint",
       "target": "fail_doc_powerpoint",
       "label": "Else"
     },
     {
-      "id": "e305",
+      "id": "e319",
       "source": "chk_doc_powerpoint",
       "target": "chk_doc_pdf",
       "label": "Pass"
     },
     {
-      "id": "e306",
+      "id": "e320",
       "source": "fail_doc_powerpoint",
       "target": "chk_doc_pdf"
     },
     {
-      "id": "e307",
+      "id": "e321",
       "source": "chk_doc_pdf",
       "target": "fail_doc_pdf",
       "label": "Else"
     },
     {
-      "id": "e308",
+      "id": "e322",
       "source": "chk_doc_pdf",
       "target": "chk_doc_inspect",
       "label": "Pass"
     },
     {
-      "id": "e309",
+      "id": "e323",
       "source": "fail_doc_pdf",
       "target": "chk_doc_inspect"
     },
     {
-      "id": "e310",
+      "id": "e324",
       "source": "chk_doc_inspect",
       "target": "fail_doc_inspect",
       "label": "Else"
     },
     {
-      "id": "e311",
+      "id": "e325",
       "source": "chk_doc_inspect",
       "target": "chk_doc_compare",
       "label": "Pass"
     },
     {
-      "id": "e312",
+      "id": "e326",
       "source": "fail_doc_inspect",
       "target": "chk_doc_compare"
     },
     {
-      "id": "e313",
+      "id": "e327",
       "source": "chk_doc_compare",
       "target": "fail_doc_compare",
       "label": "Else"
     },
     {
-      "id": "e314",
+      "id": "e328",
       "source": "chk_doc_compare",
       "target": "chk_doc_extract",
       "label": "Pass"
     },
     {
-      "id": "e315",
+      "id": "e329",
       "source": "fail_doc_compare",
       "target": "chk_doc_extract"
     },
     {
-      "id": "e316",
+      "id": "e330",
       "source": "chk_doc_extract",
       "target": "fail_doc_extract",
       "label": "Else"
     },
     {
-      "id": "e317",
+      "id": "e331",
       "source": "chk_doc_extract",
       "target": "chk_doc_redact",
       "label": "Pass"
     },
     {
-      "id": "e318",
+      "id": "e332",
       "source": "fail_doc_extract",
       "target": "chk_doc_redact"
     },
     {
-      "id": "e319",
+      "id": "e333",
       "source": "chk_doc_redact",
       "target": "fail_doc_redact",
       "label": "Else"
     },
     {
-      "id": "e320",
+      "id": "e334",
       "source": "chk_doc_redact",
       "target": "tally_files",
       "label": "Pass"
     },
     {
-      "id": "e321",
+      "id": "e335",
       "source": "fail_doc_redact",
       "target": "tally_files"
     },
     {
-      "id": "e322",
+      "id": "e336",
       "source": "tally_files",
       "target": "gov_policies"
     },
     {
-      "id": "e323",
+      "id": "e337",
       "source": "gov_policies",
       "target": "chk_gov_policies"
     },
     {
-      "id": "e324",
+      "id": "e338",
       "source": "chk_gov_policies",
       "target": "fail_gov_policies",
       "label": "Else"
     },
     {
-      "id": "e325",
+      "id": "e339",
       "source": "chk_gov_policies",
       "target": "custom_action",
       "label": "Pass"
     },
     {
-      "id": "e326",
+      "id": "e340",
       "source": "fail_gov_policies",
       "target": "custom_action"
     },
     {
-      "id": "e327",
+      "id": "e341",
       "source": "custom_action",
       "target": "chk_custom_action"
     },
     {
-      "id": "e328",
+      "id": "e342",
       "source": "chk_custom_action",
       "target": "fail_custom_action",
       "label": "Else"
     },
     {
-      "id": "e329",
+      "id": "e343",
       "source": "chk_custom_action",
       "target": "gov_starter",
       "label": "Pass"
     },
     {
-      "id": "e330",
+      "id": "e344",
       "source": "fail_custom_action",
       "target": "gov_starter"
     },
     {
-      "id": "e331",
+      "id": "e345",
       "source": "gov_starter",
       "target": "gov_add",
       "label": "Yes"
     },
     {
-      "id": "e332",
+      "id": "e346",
       "source": "gov_add",
       "target": "chk_gov_add"
     },
     {
-      "id": "e333",
+      "id": "e347",
       "source": "chk_gov_add",
       "target": "fail_gov_add",
       "label": "Else"
     },
     {
-      "id": "e334",
+      "id": "e348",
       "source": "chk_gov_add",
       "target": "gov_check",
       "label": "Pass"
     },
     {
-      "id": "e335",
+      "id": "e349",
       "source": "fail_gov_add",
       "target": "gov_check"
     },
     {
-      "id": "e336",
+      "id": "e350",
       "source": "gov_check",
       "target": "chk_gov_check"
     },
     {
-      "id": "e337",
+      "id": "e351",
       "source": "chk_gov_check",
       "target": "fail_gov_check",
       "label": "Else"
     },
     {
-      "id": "e338",
+      "id": "e352",
       "source": "chk_gov_check",
       "target": "gov_remove",
       "label": "Pass"
     },
     {
-      "id": "e339",
+      "id": "e353",
       "source": "fail_gov_check",
       "target": "gov_remove"
     },
     {
-      "id": "e340",
+      "id": "e354",
       "source": "gov_remove",
       "target": "chk_gov_remove"
     },
     {
-      "id": "e341",
+      "id": "e355",
       "source": "chk_gov_remove",
       "target": "fail_gov_remove",
       "label": "Else"
     },
     {
-      "id": "e342",
+      "id": "e356",
       "source": "gov_starter",
       "target": "gov_skip",
       "label": "Else"
     },
     {
-      "id": "e343",
+      "id": "e357",
       "source": "gov_skip",
       "target": "gov_skip_note"
     },
     {
-      "id": "e344",
+      "id": "e358",
       "source": "chk_gov_remove",
       "target": "tally_governance",
       "label": "Pass"
     },
     {
-      "id": "e345",
+      "id": "e359",
       "source": "fail_gov_remove",
       "target": "tally_governance"
     },
     {
-      "id": "e346",
+      "id": "e360",
       "source": "gov_skip_note",
       "target": "tally_governance"
     },
     {
-      "id": "e347",
+      "id": "e361",
       "source": "tally_governance",
       "target": "human_gate"
     },
     {
-      "id": "e348",
+      "id": "e362",
       "source": "human_gate",
       "target": "human_task",
       "label": "Yes"
     },
     {
-      "id": "e349",
+      "id": "e363",
       "source": "human_task",
       "target": "chk_human_outcome",
       "label": "Confirm"
     },
     {
-      "id": "e350",
+      "id": "e364",
       "source": "human_task",
       "target": "chk_human_outcome",
       "label": "Report a problem"
     },
     {
-      "id": "e351",
+      "id": "e365",
       "source": "chk_human_outcome",
       "target": "fail_human_outcome",
       "label": "Else"
     },
     {
-      "id": "e352",
+      "id": "e366",
       "source": "chk_human_outcome",
       "target": "chk_human_prefill",
       "label": "Pass"
     },
     {
-      "id": "e353",
+      "id": "e367",
       "source": "fail_human_outcome",
       "target": "chk_human_prefill"
     },
     {
-      "id": "e354",
+      "id": "e368",
       "source": "chk_human_prefill",
       "target": "fail_human_prefill",
       "label": "Else"
     },
     {
-      "id": "e355",
+      "id": "e369",
       "source": "chk_human_prefill",
       "target": "chk_human_note",
       "label": "Pass"
     },
     {
-      "id": "e356",
+      "id": "e370",
       "source": "fail_human_prefill",
       "target": "chk_human_note"
     },
     {
-      "id": "e357",
+      "id": "e371",
       "source": "chk_human_note",
       "target": "fail_human_note",
       "label": "Else"
     },
     {
-      "id": "e358",
+      "id": "e372",
       "source": "chk_human_note",
       "target": "human_real",
       "label": "Pass"
     },
     {
-      "id": "e359",
+      "id": "e373",
       "source": "fail_human_note",
       "target": "human_real"
     },
     {
-      "id": "e360",
+      "id": "e374",
       "source": "human_real",
       "target": "task_attach",
       "label": "Real"
     },
     {
-      "id": "e361",
+      "id": "e375",
       "source": "task_attach",
       "target": "chk_task_attach"
     },
     {
-      "id": "e362",
+      "id": "e376",
       "source": "chk_task_attach",
       "target": "fail_task_attach",
       "label": "Else"
     },
     {
-      "id": "e363",
+      "id": "e377",
       "source": "chk_task_attach",
       "target": "task_subtask",
       "label": "Pass"
     },
     {
-      "id": "e364",
+      "id": "e378",
       "source": "fail_task_attach",
       "target": "task_subtask"
     },
     {
-      "id": "e365",
+      "id": "e379",
       "source": "task_subtask",
       "target": "chk_task_subtask"
     },
     {
-      "id": "e366",
+      "id": "e380",
       "source": "chk_task_subtask",
       "target": "fail_task_subtask",
       "label": "Else"
     },
     {
-      "id": "e367",
+      "id": "e381",
       "source": "chk_task_subtask",
       "target": "task_auto",
       "label": "Pass"
     },
     {
-      "id": "e368",
+      "id": "e382",
       "source": "fail_task_subtask",
       "target": "task_auto"
     },
     {
-      "id": "e369",
+      "id": "e383",
       "source": "task_auto",
       "target": "chk_task_auto"
     },
     {
-      "id": "e370",
+      "id": "e384",
       "source": "chk_task_auto",
       "target": "fail_task_auto",
       "label": "Else"
     },
     {
-      "id": "e371",
+      "id": "e385",
       "source": "chk_task_auto",
       "target": "list_init",
       "label": "Pass"
     },
     {
-      "id": "e372",
+      "id": "e386",
       "source": "fail_task_auto",
       "target": "list_init"
     },
     {
-      "id": "e373",
+      "id": "e387",
       "source": "list_init",
       "target": "list_loop"
     },
     {
-      "id": "e374",
+      "id": "e388",
       "source": "list_loop",
       "target": "list_body",
       "label": "Each Item"
     },
     {
-      "id": "e375",
+      "id": "e389",
       "source": "list_loop",
       "target": "chk_list_rows",
       "label": "Done"
     },
     {
-      "id": "e376",
+      "id": "e390",
       "source": "chk_list_rows",
       "target": "fail_list_rows",
       "label": "Else"
     },
     {
-      "id": "e377",
+      "id": "e391",
       "source": "chk_list_rows",
       "target": "chk_list_first",
       "label": "Pass"
     },
     {
-      "id": "e378",
+      "id": "e392",
       "source": "fail_list_rows",
       "target": "chk_list_first"
     },
     {
-      "id": "e379",
+      "id": "e393",
       "source": "chk_list_first",
       "target": "fail_list_first",
       "label": "Else"
     },
     {
-      "id": "e380",
+      "id": "e394",
       "source": "chk_list_first",
       "target": "chk_list_loop",
       "label": "Pass"
     },
     {
-      "id": "e381",
+      "id": "e395",
       "source": "fail_list_first",
       "target": "chk_list_loop"
     },
     {
-      "id": "e382",
+      "id": "e396",
       "source": "chk_list_loop",
       "target": "fail_list_loop",
       "label": "Else"
     },
     {
-      "id": "e383",
+      "id": "e397",
       "source": "chk_list_loop",
+      "target": "chk_nested_list",
+      "label": "Pass"
+    },
+    {
+      "id": "e398",
+      "source": "fail_list_loop",
+      "target": "chk_nested_list"
+    },
+    {
+      "id": "e399",
+      "source": "chk_nested_list",
+      "target": "fail_nested_list",
+      "label": "Else"
+    },
+    {
+      "id": "e400",
+      "source": "chk_nested_list",
       "target": "tally_real",
       "label": "Pass"
     },
     {
-      "id": "e384",
-      "source": "fail_list_loop",
+      "id": "e401",
+      "source": "fail_nested_list",
       "target": "tally_real"
     },
     {
-      "id": "e385",
+      "id": "e402",
       "source": "human_real",
       "target": "human_real_skip",
       "label": "Else"
     },
     {
-      "id": "e386",
+      "id": "e403",
       "source": "human_real_skip",
       "target": "human_real_skip_note"
     },
     {
-      "id": "e387",
+      "id": "e404",
       "source": "tally_real",
       "target": "tally_human"
     },
     {
-      "id": "e388",
+      "id": "e405",
       "source": "human_real_skip_note",
       "target": "tally_human"
     },
     {
-      "id": "e389",
+      "id": "e406",
       "source": "human_gate",
       "target": "human_skip",
       "label": "Else"
     },
     {
-      "id": "e390",
+      "id": "e407",
       "source": "human_skip",
       "target": "human_skip_note"
     },
     {
-      "id": "e391",
+      "id": "e408",
       "source": "tally_human",
       "target": "log_human"
     },
     {
-      "id": "e392",
+      "id": "e409",
       "source": "human_skip_note",
       "target": "log_human"
     },
     {
-      "id": "e393",
+      "id": "e410",
       "source": "log_human",
       "target": "sum_counts"
     },
     {
-      "id": "e394",
+      "id": "e411",
       "source": "sum_counts",
       "target": "sum_results"
     },
     {
-      "id": "e395",
+      "id": "e412",
       "source": "sum_results",
       "target": "sum_text"
     },
     {
-      "id": "e396",
+      "id": "e413",
       "source": "sum_text",
       "target": "sum_title"
     },
     {
-      "id": "e397",
+      "id": "e414",
       "source": "sum_title",
       "target": "sum_log"
     },
     {
-      "id": "e398",
+      "id": "e415",
       "source": "sum_log",
       "target": "sum_mail_gate"
     },
     {
-      "id": "e399",
+      "id": "e416",
       "source": "sum_mail_gate",
       "target": "sum_mail",
       "label": "Send"
     },
     {
-      "id": "e400",
+      "id": "e417",
       "source": "sum_mail_gate",
       "target": "sum_verdict",
       "label": "Else"
     },
     {
-      "id": "e401",
+      "id": "e418",
       "source": "sum_mail",
       "target": "sum_verdict"
     },
     {
-      "id": "e402",
+      "id": "e419",
       "source": "sum_verdict",
       "target": "end_pass",
       "label": "All passed"
     },
     {
-      "id": "e403",
+      "id": "e420",
       "source": "sum_verdict",
       "target": "end_fail",
       "label": "Else"

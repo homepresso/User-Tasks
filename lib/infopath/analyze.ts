@@ -129,8 +129,15 @@ export function analyzeInfoPath(bytes: Uint8Array, options: AnalyzeOptions = {})
   const templateFile = attr(descendants(manifestDoc, 'initialXmlDocument')[0], 'href') ?? 'template.xml'
   const defaults = templateDefaults(xml(pkg, templateFile))
 
+  const images: InfoPathModel['images'] = {}
+  for (const [name, data] of pkg.images) {
+    const mime = data[0] === 0x89 && data[1] === 0x50 ? 'image/png' : data[0] === 0xff && data[1] === 0xd8 ? 'image/jpeg' : data.subarray(0, 3).toString('latin1') === 'GIF' ? 'image/gif' : data.subarray(8, 12).toString('latin1') === 'WEBP' ? 'image/webp' : data.subarray(0, 2).toString('latin1') === 'BM' ? 'image/bmp' : ''
+    if (mime) images[name] = { mime, base64: data.toString('base64'), size: data.length }
+  }
+
   return {
     file_name: (options.fileName ?? 'form.xsn').slice(0, 200),
+    images,
     hash: pkg.hash,
     format: pkg.format,
     files: pkg.names.slice(0, 500),

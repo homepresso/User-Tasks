@@ -37,6 +37,7 @@ import {
 } from '@/lib/forms/lookup'
 import { answersLookups, normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { LOOKUP_ROW_KEY } from '@/lib/forms/lookup'
+import { childListAt, type ListFieldConfig } from '@/lib/forms/list-field'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { serviceRoleClient } from './_shared'
@@ -486,21 +487,30 @@ export function lookupTargetField(fields: TaskFieldDef[], key: unknown): TaskFie
   const k = String(key ?? '')
   const direct = fields.find((f) => f.key === k && answersLookups(f))
   if (direct) return direct
-  const m = /^([a-z0-9][a-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(k)
+  // A nested List's lookup column too: `orders.lines.product` (the List, its nested List columns, the lookup column).
+  const m = /^([a-z0-9][a-z0-9_]*)((?:\.[a-z][a-z0-9_]*){0,2})\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(k)
   if (!m) return null
-  const list = fields.find((f) => f.key === m[1] && f.type === 'list')
-  const column = list?.list?.columns.find((c) => c.key === m[2] && c.type === 'lookup' && c.lookup)
+  const config = listLevel(fields, m[1], m[2])
+  const column = config?.columns.find((c) => c.key === m[3] && c.type === 'lookup' && c.lookup)
   return column ? { key: k, label: column.label, type: 'lookup', lookup: column.lookup } : null
+}
+
+/** The List level a lookup key names: the field's List, or a nested List by its `.lines(.serials)` path. */
+function listLevel(fields: TaskFieldDef[], listKey: string, nested: string): ListFieldConfig | null {
+  const list = fields.find((f) => f.key === listKey && f.type === 'list')
+  if (!list?.list) return null
+  const path = nested.split('.').filter(Boolean)
+  return path.length ? childListAt(list.list, path)?.config ?? null : list.list
 }
 
 /** {{row.<column>}} for a List lookup column: the row being edited, its declared columns' plain values only. */
 function rowScope(fields: TaskFieldDef[], key: string, values: unknown): Record<string, unknown> {
-  const m = /^([a-z0-9][a-z0-9_]*)\./.exec(key)
-  const list = m ? fields.find((f) => f.key === m[1] && f.type === 'list') : null
+  const parts = key.split('.')
+  const config = parts.length >= 2 ? listLevel(fields, parts[0], parts.slice(1, -1).join('.')) : null
   const raw = isPlainObject(values) ? values[LOOKUP_ROW_KEY] : undefined
-  if (!list?.list || !isPlainObject(raw)) return {}
+  if (!config || !isPlainObject(raw)) return {}
   const row: Record<string, unknown> = {}
-  for (const c of list.list.columns) {
+  for (const c of config.columns) {
     const v = raw[c.key]
     if (v === null || ['string', 'number', 'boolean'].includes(typeof v)) row[c.key] = typeof v === 'string' ? v.slice(0, 500) : v
   }
@@ -516,29 +526,42 @@ function rowScope(fields: TaskFieldDef[], key: string, values: unknown): Record<
 export async function verifyListLookups(db: AnySupabaseClient, tenantId: string, fields: TaskFieldDef[], values: Record<string, unknown>, options: { strict: boolean; taskId?: string | null; task?: Record<string, unknown> | null; keys?: string[] }): Promise<{ errors: Record<string, string>; values: Record<string, unknown> }> {
   const errors: Record<string, string> = {}
   const out: Record<string, unknown> = {}
-  const { listLabelKey } = await import('@/lib/forms/list-field')
-  for (const list of fields) {
-    if (list.type !== 'list' || !list.list || list.read_only || (options.keys && !options.keys.includes(list.key))) continue
-    const columns = list.list.columns.filter((c) => c.type === 'lookup' && c.lookup)
-    const rows = Array.isArray(values[list.key]) ? (values[list.key] as Array<Record<string, unknown>>) : []
-    if (!columns.length || !rows.length) continue
-    const next = rows.map((r) => ({ ...r }))
-    for (const column of columns) {
-      const field: TaskFieldDef = { key: `${list.key}.${column.key}`, label: column.label, type: 'lookup', lookup: column.lookup }
-      const config = normalizeLookupConfig(column.lookup)
-      for (const [i, row] of next.entries()) {
+  const { childListColumns, listLabelKey } = await import('@/lib/forms/list-field')
+  // One List level's rows (nested Lists too: their lookup columns are keyed `<list>.<nested path>.<column>`).
+  const verifyRows = async (config: ListFieldConfig, rowsValue: unknown, lookupBase: string, where: string, list: TaskFieldDef): Promise<{ rows: Array<Record<string, unknown>>; error: string | null }> => {
+    const rows = Array.isArray(rowsValue) ? (rowsValue as unknown[]).filter(isPlainObject).map((r) => ({ ...r })) : []
+    for (const column of config.columns.filter((c) => c.type === 'lookup' && c.lookup)) {
+      const field: TaskFieldDef = { key: `${lookupBase}.${column.key}`, label: column.label, type: 'lookup', lookup: column.lookup }
+      const lookup = normalizeLookupConfig(column.lookup)
+      for (const [i, row] of rows.entries()) {
         const value = row[column.key]
         if (value === null || value === undefined || value === '') continue
         let found = new Map<string, LookupItem>()
         try {
-          found = await findByValues(db, tenantId, field, config, [String(value)], { ...values, [LOOKUP_ROW_KEY]: row }, options)
+          found = await findByValues(db, tenantId, field, lookup, [String(value)], { ...values, [LOOKUP_ROW_KEY]: row }, options)
         } catch { /* judged below as not found */ }
         const item = found.get(String(value))
         if (item) row[listLabelKey(column.key)] = item.label
-        else if (options.strict && !config.allow_free_text) { errors[list.key] = `${list.label}: row ${i + 1}: ${column.label} must be one of the suggestions`; break }
+        else if (options.strict && !lookup.allow_free_text) return { rows, error: `${list.label}: ${where}row ${i + 1}: ${column.label} must be one of the suggestions` }
       }
     }
-    out[list.key] = next
+    for (const column of childListColumns(config)) {
+      for (const [i, row] of rows.entries()) {
+        const inner = await verifyRows(column.list!, row[column.key], `${lookupBase}.${column.key}`, `${where}row ${i + 1}, ${column.label} `, list)
+        if (Array.isArray(row[column.key])) row[column.key] = inner.rows
+        if (inner.error) return { rows, error: inner.error }
+      }
+    }
+    return { rows, error: null }
+  }
+  const hasLookups = (config: ListFieldConfig | undefined): boolean => Boolean(config?.columns.some((c) => (c.type === 'lookup' && c.lookup) || (c.type === 'list' && hasLookups(c.list))))
+  for (const list of fields) {
+    if (list.type !== 'list' || !list.list || list.read_only || (options.keys && !options.keys.includes(list.key))) continue
+    const rows = Array.isArray(values[list.key]) ? (values[list.key] as Array<Record<string, unknown>>) : []
+    if (!hasLookups(list.list) || !rows.length) continue
+    const checked = await verifyRows(list.list, rows, list.key, '', list)
+    if (checked.error) errors[list.key] = checked.error
+    out[list.key] = checked.rows
   }
   return { errors, values: out }
 }

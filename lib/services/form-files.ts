@@ -42,11 +42,13 @@ import {
 } from '@/lib/forms/attachments'
 import { verifyAttachmentContent } from '@/lib/forms/attachment-sniff'
 import { scanFailOpen, scannerFor, type ScanResult } from '@/lib/forms/attachment-scan'
-import { fieldKeyFromLabel, holdsFiles, normalizeTaskFields, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { fieldKeyFromLabel, fileIdsOf, normalizeTaskFields, uploadConfigFor, usesFileUploads, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { imageDefaultValue, imageValueError, isImageDefaultValue, isImageValueShape, normalizeImageValue, normalizeSignatureValue, signatureValueError } from '@/lib/forms/media-fields'
 import { deriveInputFields } from '@/lib/workflow-inputs'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
+import { findFieldDeep } from '@/lib/forms/repeating-section'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- form_files is not in the generated Database types */
 
@@ -162,7 +164,9 @@ export function presentFormFile(row: FormFileRow): AttachmentFile {
 /* ── Upload ──────────────────────────────────────────────────────────── */
 
 function attachmentField(fields: TaskFieldDef[], fieldKey: string, where: string): TaskFieldDef {
-  const field = fields.find((f) => f.key === fieldKey && holdsFiles(f))
+  // A form's own field, or one inside a repeating section (lib/forms/repeating-section.ts; inner keys are unique over the form).
+  const found = findFieldDeep(fields, fieldKey)
+  const field = found && usesFileUploads(found.field) ? found.field : undefined
   if (!field) throw ServiceError.notFound(`${where} has no attachments field "${String(fieldKey).slice(0, 64)}"`)
   if (field.read_only) throw ServiceError.forbidden(`"${field.label}" is read-only`)
   return field
@@ -178,8 +182,8 @@ async function resolveUploadField(ctx: ServiceContext, db: AnySupabaseClient, co
     if (error) throw dbError(error)
     if (!form) throw ServiceError.notFound('Form not found')
     const field = attachmentField(normalizeTaskFields(form.fields), fieldKey, 'The form')
-    // Anonymous visitors: plain Attachments fields only (never a custom control's files capability).
-    if (isAnonymous(ctx) && field.type !== 'attachments') throw ServiceError.forbidden('Uploads are not available on a public form')
+    // Anonymous visitors: Attachments, Image and Signature fields only (never a custom control's files capability).
+    if (isAnonymous(ctx) && field.type !== 'attachments' && field.type !== 'image' && field.type !== 'signature') throw ServiceError.forbidden('Uploads are not available on a public form')
     return { field, contextId: form.id }
   }
   if (context.kind === 'task') {
@@ -207,7 +211,7 @@ async function resolveUploadField(ctx: ServiceContext, db: AnySupabaseClient, co
   for (const node of (Array.isArray(workflow.nodes) ? workflow.nodes : []) as any[]) {
     if (node?.type !== 'user_task' || !isPlainObject(node.config)) continue
     const form = await resolveRuntimeForm(db, ctx.tenantId, node.config).catch(() => null)
-    const field = form?.fields.find((f) => f.key === fieldKey && holdsFiles(f))
+    const field = form?.fields.find((f) => f.key === fieldKey && usesFileUploads(f))
     if (field && !field.read_only) return { field, contextId: workflow.id }
   }
   throw ServiceError.notFound(`No User Task of this workflow has an attachments field "${String(fieldKey).slice(0, 64)}"`)
@@ -322,10 +326,16 @@ async function checkUploadQuota(ctx: ServiceContext, db: AnySupabaseClient, cont
 export async function verifyUploadBytes(field: TaskFieldDef, name: string, bytes: Uint8Array, maxFileBytes: number): Promise<{ body: Uint8Array; mime: string; scan: ScanResult['status']; rewritten: boolean }> {
   if (!(bytes instanceof Uint8Array) || bytes.byteLength === 0) throw ServiceError.validation('The file is empty')
   if (bytes.byteLength > maxFileBytes) throw tooLarge(maxFileBytes)
-  const verified = verifyAttachmentContent({ name, bytes, config: field.attachments })
+  const verified = verifyAttachmentContent({ name, bytes, config: uploadConfigFor(field) })
   if (!verified.ok) throw new ServiceError('validation_error', verified.reason, { status: 415 })
   let body = bytes
   let rewritten = false
+  if ((field.type === 'image' || field.type === 'signature') && verified.kind) {
+    // Pictures people provide: EXIF (GPS / location, camera), XMP and text metadata removed (lib/forms/image-metadata.ts).
+    const { stripImageMetadata } = await import('@/lib/forms/image-metadata')
+    const stripped = stripImageMetadata(bytes, verified.kind.magic)
+    if (stripped.removed.length) { body = stripped.bytes; rewritten = true }
+  }
   if (verified.kind?.id === 'svg') {
     const { sanitizeSvg } = await import('@/lib/sanitize-svg')
     const text = new TextDecoder().decode(bytes).replace(/^﻿?\s*(<\?xml[\s\S]*?\?>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE[^>]*>\s*)?/i, '')
@@ -387,7 +397,7 @@ export async function uploadFormFile(ctx: ServiceContext, input: UploadFormFileI
 
   const bytes = input.bytes
   if (!(bytes instanceof Uint8Array) || bytes.byteLength === 0) throw ServiceError.validation('The file is empty')
-  const limits = anonymousLimits(ctx, attachmentLimits(field.attachments, { required: field.required, instanceMaxMb: instanceMaxMb() }))
+  const limits = anonymousLimits(ctx, attachmentLimits(uploadConfigFor(field), { required: field.required, instanceMaxMb: instanceMaxMb() }))
   if (isAnonymous(ctx)) await assertAnonymousType(sanitizeFileName(input.name))
   if (bytes.byteLength > limits.maxFileBytes) throw tooLarge(limits.maxFileBytes)
   if (input.declared_size !== undefined && input.declared_size !== null && Number(input.declared_size) !== bytes.byteLength) {
@@ -473,11 +483,11 @@ export async function initDirectUpload(ctx: ServiceContext, input: InitDirectUpl
   await rateLimited(ctx)
   const size = Number(input.size)
   if (!Number.isInteger(size) || size <= 0) throw ServiceError.validation('The file is empty')
-  const limits = attachmentLimits(field.attachments, { required: field.required, instanceMaxMb: instanceMaxMb() })
+  const limits = attachmentLimits(uploadConfigFor(field), { required: field.required, instanceMaxMb: instanceMaxMb() })
   if (size > limits.maxFileBytes) throw tooLarge(limits.maxFileBytes)
   const name = sanitizeFileName(input.name)
   const ext = fileExtension(name)
-  if (BLOCKED_EXTENSIONS.has(ext) || !isTypeAllowed(field.attachments, ext, kindForExtension(ext))) {
+  if (BLOCKED_EXTENSIONS.has(ext) || !isTypeAllowed(uploadConfigFor(field), ext, kindForExtension(ext))) {
     throw new ServiceError('validation_error', ext ? `.${ext} files are not allowed here` : 'Files without an extension are not allowed here', { status: 415 })
   }
   await checkUploadQuota(ctx, db, input.context, contextId, field, limits.maxFiles)
@@ -551,7 +561,7 @@ export async function completeDirectUpload(ctx: ServiceContext, fileId: string):
       : row.context_kind === 'start' ? { kind: 'start', workflowId: row.workflow_id } : { kind: 'test', workflowId: row.workflow_id }
     if (!context.kind || !(context as Record<string, unknown>)[context.kind === 'form' ? 'formId' : context.kind === 'task' ? 'taskId' : 'workflowId']) throw ServiceError.notFound('Upload not found')
     const { field } = await resolveUploadField(ctx, db, context, row.field_key)
-    const limits = attachmentLimits(field.attachments, { required: field.required, instanceMaxMb: instanceMaxMb() })
+    const limits = attachmentLimits(uploadConfigFor(field), { required: field.required, instanceMaxMb: instanceMaxMb() })
     const head = await provider.head(FORM_FILES_BUCKET, row.storage_key)
     if (!head) throw ServiceError.validation('The file did not arrive — try again')
     if (head.size > limits.maxFileBytes) throw tooLarge(limits.maxFileBytes)
@@ -623,15 +633,18 @@ export async function resolveAttachmentValues(
 ): Promise<{ errors: Record<string, string>; values: Record<string, unknown> }> {
   const errors: Record<string, string> = {}
   const out: Record<string, unknown> = {}
-  const targets = valueFields(fields).filter((f) => holdsFiles(f) && (!keys || keys.includes(f.key)))
-  if (!targets.length) return { errors, values: out }
+  const targets = valueFields(fields).filter((f) => usesFileUploads(f) && (!keys || keys.includes(f.key)))
+  // Repeating sections holding file controls (any level): every item's files are re-read the same way.
+  const sections = valueFields(fields).filter((f) => f.type === 'repeating_section' && hasInnerFiles(f) && (!keys || keys.includes(f.key)))
+  if (!targets.length && !sections.length) return { errors, values: out }
   const wanted = new Map<string, string[]>()
-  for (const field of targets) wanted.set(field.key, attachmentIds(values[field.key]))
-  const allIds = [...new Set([...wanted.values()].flat())]
+  for (const field of targets) wanted.set(field.key, fileIdsOf(field, values[field.key]))
+  const allIds = [...new Set([...wanted.values()].flat().concat(sections.flatMap((f) => itemFileIds(f, values[f.key]))))]
   const rows = new Map<string, FormFileRow>()
   if (allIds.length) {
     if (!context) {
       for (const field of targets) if ((wanted.get(field.key) ?? []).length) errors[field.key] = `${field.label}: files can't be attached here`
+      for (const field of sections) if (itemFileIds(field, values[field.key]).length) errors[field.key] = `${field.label}: files can't be attached here`
       return { errors, values: out }
     }
     const { data, error } = await (db as any).from('form_files').select(FILE_COLUMNS).eq('tenant_id', tenantId).in('id', allIds)
@@ -639,40 +652,118 @@ export async function resolveAttachmentValues(
     for (const row of (data ?? []) as FormFileRow[]) rows.set(String(row.id).toLowerCase(), row)
   }
   for (const field of targets) {
-    const files: AttachmentFile[] = []
-    let problem: string | null = null
-    for (const id of wanted.get(field.key) ?? []) {
-      const row = rows.get(id)
-      const belongs = row && row.field_key === field.key && (row.status === 'pending' || row.status === 'bound') && (
-        context!.kind === 'form'
-          ? row.context_kind === 'form' && row.form_id === context!.formId && row.status === 'pending' && (context!.actorId
-            ? row.uploaded_by !== null && row.uploaded_by === context!.actorId
-            : Boolean(context!.uploadSession) && row.uploaded_by === null && row.upload_session === context!.uploadSession)
-          : context!.kind === 'start'
-            ? row.context_kind === 'start' && row.workflow_id === context!.workflowId && row.status === 'pending' && row.uploaded_by !== null && row.uploaded_by === context!.actorId
-            : row.context_kind === 'task' && row.task_id === context!.taskId
-      )
-      if (!belongs) { problem = `${field.label}: a file is no longer available — remove it and upload it again`; break }
-      files.push(presentFormFile(row!))
-    }
-    // The raw value must be a list of file objects (a forged string or number is refused).
-    const raw = values[field.key]
-    const rawList = Array.isArray(raw) ? raw : raw === null || raw === undefined ? [] : [raw]
-    if (!problem && normalizeAttachmentValue(rawList).length !== rawList.length) {
-      problem = `${field.label} has an invalid value`
-    }
-    problem ??= files.length ? attachmentsValueError(field, files) : null
-    if (problem) { errors[field.key] = problem; continue }
-    out[field.key] = files
-    out[attachmentsCountKey(field.key)] = files.length
+    const judged = judgeFileField(field, values[field.key], rows, context)
+    if ('problem' in judged) { errors[field.key] = judged.problem; continue }
+    Object.assign(out, judged.values)
+  }
+  // Items: each inner file control's files rebuilt in place; a problem at its item path (`expenses[1].receipt`) and on the section.
+  const rebuild = (section: TaskFieldDef, value: unknown, path: string, top: TaskFieldDef): unknown => {
+    if (!Array.isArray(value)) return value
+    return value.map((item, i) => {
+      if (!isPlainObject(item)) return item
+      const next: Record<string, unknown> = { ...item }
+      for (const inner of valueFields(section.repeating_section?.fields ?? [])) {
+        if (inner.type === 'repeating_section') { next[inner.key] = rebuild(inner, item[inner.key], `${path}[${i}].${inner.key}`, top); continue }
+        if (!usesFileUploads(inner)) continue
+        const judged = judgeFileField(inner, item[inner.key], rows, context)
+        if ('problem' in judged) {
+          errors[`${path}[${i}].${inner.key}`] = judged.problem
+          errors[top.key] ??= `${top.label}: item ${i + 1}: ${judged.problem}`
+          continue
+        }
+        Object.assign(next, judged.values)
+      }
+      return next
+    })
+  }
+  for (const field of sections) {
+    const rebuilt = rebuild(field, values[field.key], field.key, field)
+    if (!errors[field.key]) out[field.key] = rebuilt
   }
   return { errors, values: out }
+}
+
+/** A repeating section with a file control inside (any level). */
+function hasInnerFiles(field: TaskFieldDef): boolean {
+  return (field.repeating_section?.fields ?? []).some((f) => usesFileUploads(f) || (f.type === 'repeating_section' && hasInnerFiles(f)))
+}
+
+/** The upload ids a repeating section's items name (any level). */
+function itemFileIds(field: TaskFieldDef, value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const out: string[] = []
+  for (const item of value) {
+    if (!isPlainObject(item)) continue
+    for (const inner of valueFields(field.repeating_section?.fields ?? [])) {
+      if (usesFileUploads(inner)) out.push(...fileIdsOf(inner, item[inner.key]))
+      else if (inner.type === 'repeating_section') out.push(...itemFileIds(inner, item[inner.key]))
+    }
+  }
+  return out
+}
+
+/**
+ * One file field's value re-read from the upload records: the files must be
+ * this field's (by key) and this context's; the result — files, a picture,
+ * a signature (with its PNG) — and `<key>_count`, or the problem.
+ */
+function judgeFileField(field: TaskFieldDef, raw: unknown, rows: Map<string, FormFileRow>, context: FileValueContext | null): { values: Record<string, unknown> } | { problem: string } {
+  const out: Record<string, unknown> = {}
+  const files: AttachmentFile[] = []
+  let problem: string | null = null
+  for (const id of fileIdsOf(field, raw)) {
+    const row = rows.get(id)
+    const belongs = context && row && row.field_key === field.key && (row.status === 'pending' || row.status === 'bound') && (
+      context.kind === 'form'
+        ? row.context_kind === 'form' && row.form_id === context.formId && row.status === 'pending' && (context.actorId
+          ? row.uploaded_by !== null && row.uploaded_by === context.actorId
+          : Boolean(context.uploadSession) && row.uploaded_by === null && row.upload_session === context.uploadSession)
+        : context.kind === 'start'
+          ? row.context_kind === 'start' && row.workflow_id === context.workflowId && row.status === 'pending' && row.uploaded_by !== null && row.uploaded_by === context.actorId
+          : row.context_kind === 'task' && row.task_id === context.taskId
+    )
+    if (!belongs) { problem = `${field.label}: a file is no longer available — remove it and upload it again`; break }
+    files.push(presentFormFile(row!))
+  }
+  if (field.type === 'image') {
+    // One picture; blank (or the default picture sent back) → the field's default picture when it has one.
+    if (!problem && !isImageValueShape(raw)) problem = `${field.label} must be one picture`
+    problem ??= files.length ? imageValueError(field, files[0], { instanceMaxMb: instanceMaxMb() }) : null
+    if (problem) return { problem }
+    const blank = !normalizeImageValue(raw) || isImageDefaultValue(raw)
+    out[field.key] = files[0] ?? (blank && field.image?.default_file ? imageDefaultValue(field.image.default_file) : null)
+    return { values: out }
+  }
+  if (field.type === 'signature') {
+    // The signature object with its PNG re-read from the upload record (the metadata is stamped by stampSignatureValues).
+    const sig = raw === null || raw === undefined || raw === '' ? null : normalizeSignatureValue(raw)
+    if (!problem && raw !== null && raw !== undefined && raw !== '' && !sig) problem = `${field.label} has an invalid signature`
+    if (!problem && sig && files[0] && files[0].mime_type !== 'image/png') problem = `${field.label}: the signature must be a PNG image`
+    if (!problem && sig) problem = signatureValueError(field, { ...sig, file: files[0] })
+    if (problem) return { problem }
+    out[field.key] = sig && files[0] ? { ...sig, file: files[0] } : null
+    return { values: out }
+  }
+  // The raw value must be a list of file objects (a forged string or number is refused).
+  const rawList = Array.isArray(raw) ? raw : raw === null || raw === undefined ? [] : [raw]
+  if (!problem && normalizeAttachmentValue(rawList).length !== rawList.length) {
+    problem = `${field.label} has an invalid value`
+  }
+  problem ??= files.length ? attachmentsValueError(field, files) : null
+  if (problem) return { problem }
+  out[field.key] = files
+  out[attachmentsCountKey(field.key)] = files.length
+  return { values: out }
 }
 
 /** Ids of every file in the attachments fields of a value set. */
 export function attachmentIdsIn(fields: TaskFieldDef[], values: Record<string, unknown> | null | undefined): string[] {
   const ids: string[] = []
-  for (const field of valueFields(fields)) if (holdsFiles(field)) ids.push(...attachmentIds(values?.[field.key]))
+  for (const field of valueFields(fields)) {
+    if (usesFileUploads(field)) ids.push(...fileIdsOf(field, values?.[field.key]))
+    // …and the file controls inside repeating sections' items.
+    if (field.type === 'repeating_section') ids.push(...itemFileIds(field, values?.[field.key]))
+  }
   return [...new Set(ids)]
 }
 
@@ -884,10 +975,10 @@ export async function sanitizeTestTaskFiles(db: AnySupabaseClient, tenantId: str
   const keys = Object.keys(taskData).filter((key) => {
     const v = taskData[key]
     // File objects only (a list of plain ids could be anything, e.g. user ids).
-    return isAttachmentFile(v) || (Array.isArray(v) && v.length > 0 && v.some(isAttachmentFile))
+    return isAttachmentFile(v) || (Array.isArray(v) && v.length > 0 && v.some(isAttachmentFile)) || isSignatureLike(v)
   })
   if (!keys.length) return taskData
-  const ids = [...new Set(keys.flatMap((key) => attachmentIds(taskData[key])))]
+  const ids = [...new Set(keys.flatMap((key) => attachmentIds(isSignatureLike(taskData[key]) ? (taskData[key] as { file: unknown }).file : taskData[key])))]
   const rows = new Map<string, FormFileRow>()
   if (actorId && ids.length) {
     const { data } = await (db as any).from('form_files').select(FILE_COLUMNS).eq('tenant_id', tenantId).eq('uploaded_by', actorId).in('id', ids).in('status', ['pending', 'bound'])
@@ -895,11 +986,25 @@ export async function sanitizeTestTaskFiles(db: AnySupabaseClient, tenantId: str
   }
   const out = { ...taskData }
   for (const key of keys) {
-    const files = attachmentIds(taskData[key]).map((id) => rows.get(id)).filter((r): r is FormFileRow => Boolean(r)).map(presentFormFile)
+    const v = taskData[key]
+    if (isSignatureLike(v)) {
+      // A Signature: its PNG re-read; the person and the time are the tester's / now, never as sent.
+      const row = rows.get(attachmentIds((v as { file: unknown }).file)[0] ?? '')
+      const sig = normalizeSignatureValue(v)
+      out[key] = row && sig ? { file: presentFormFile(row), method: sig.method, ...(sig.typed_name ? { typed_name: sig.typed_name } : {}), signed_at: new Date().toISOString(), ...(actorId ? { user_id: actorId } : {}) } : null
+      continue
+    }
+    const files = attachmentIds(v).map((id) => rows.get(id)).filter((r): r is FormFileRow => Boolean(r)).map(presentFormFile)
+    // An Image field holds one file object (not a list).
+    if (isAttachmentFile(v)) { out[key] = files[0] ?? null; continue }
     out[key] = files
     out[attachmentsCountKey(key)] = files.length
   }
   return out
+}
+
+function isSignatureLike(value: unknown): boolean {
+  return isPlainObject(value) && isAttachmentFile(value.file) && (value.method === 'draw' || value.method === 'type')
 }
 
 /**

@@ -27,6 +27,7 @@
  */
 
 import { audit, dbError, ilikeTerm, serviceRoleClient, type Page } from './_shared'
+import { controlValueText } from '@/lib/forms/control-text'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { computeRunOverlay } from '@/lib/workflow-run-overlay'
 import type { RunTask } from '@/lib/run-tasks'
@@ -484,12 +485,14 @@ export function shapeTaskDetails(
 ): HomeTaskDetails {
   const meta = (task.metadata && typeof task.metadata === 'object' ? task.metadata : {}) as Record<string, unknown>
   const values = (meta.template_values && typeof meta.template_values === 'object' ? meta.template_values : {}) as Record<string, unknown>
-  const skip = new Set(['heading', 'divider', 'button', 'attachments', 'custom', 'data_table'])
+  const skip = new Set(['heading', 'divider', 'button', 'display_image', 'attachments', 'image', 'signature', 'custom', 'data_table'])
   const fields: HomeTaskDetails['fields'] = []
   for (const f of normalizeFields(meta.fields)) {
     if (fields.length >= FIELD_MAX) break
     if (skip.has(f.type)) continue
-    const value = fieldValueText(values[f.key], f.option_labels)
+    // Rich text / text lists / linked URLs / people lists (lib/forms/control-text.ts): their plain text.
+    const control = controlValueText(f as Parameters<typeof controlValueText>[0], values[f.key], { values })
+    const value = control !== null ? (control.length > 120 ? `${control.slice(0, 119)}…` : control) : fieldValueText(values[f.key], f.option_labels)
     if (value) fields.push({ key: f.key, label: f.label || f.key, value })
   }
   const done = (s: string) => s === 'completed'

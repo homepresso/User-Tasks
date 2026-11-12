@@ -141,13 +141,13 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
     restoredRef.current = true
     const draft = readDraft(form.id)
     if (!draft) return
-    const known = new Set(form.fields.filter((f) => f.type !== 'attachments').map((f) => f.key))
+    const known = new Set(form.fields.filter((f) => f.type !== 'attachments' && f.type !== 'image' && f.type !== 'signature').map((f) => f.key))
     const kept = Object.fromEntries(Object.entries(draft).filter(([key]) => known.has(key)))
     if (Object.keys(kept).length) { setValues(kept); setResumed(true) }
   }, [form, resumeKey])
   useEffect(() => {
     if (!form || !resumeKey || !restoredRef.current) return
-    const attachments = new Set(form.fields.filter((f) => f.type === 'attachments').map((f) => f.key))
+    const attachments = new Set(form.fields.filter((f) => f.type === 'attachments' || f.type === 'image' || f.type === 'signature').map((f) => f.key))
     writeDraft(form.id, Object.fromEntries(Object.entries(values).filter(([key]) => !attachments.has(key))))
   }, [form, resumeKey, values])
   // Save draft (top-right icon): the person's answers on the server, offered back as "Resume your draft from …?".
