@@ -132,6 +132,15 @@ export function RepeatingSectionProperties({ state, field, onPatch }: {
         </div>
       </div>
 
+      <div>
+        <Label htmlFor={id('key')}>Key control (identifies an item)</Label>
+        <select id={id('key')} className={inputClass} value={config.key_field ?? ''} onChange={(e) => set({ key_field: e.target.value || undefined })} data-rs-key-field>
+          <option value="">None</option>
+          {valueFields.filter((f) => f.type !== 'list' && f.type !== 'repeating_section').map((f) => <option key={f.key} value={f.key}>{f.label || f.key}</option>)}
+        </select>
+        <p className="mt-0.5 text-2xs text-fg-muted">With a key, an item the form opened with keeps the saved value of every control an item rule makes read only (checked on the server). Without one, items are matched by position only when they can&apos;t be reordered.</p>
+      </div>
+
       <div className="space-y-1">
         <Button size="sm" variant="secondary" leadingIcon={<ListChecks />} onClick={() => setRulesOpen(true)} disabled={!view} data-rs-rules>
           Rules for each item{ruleCount ? ` (${ruleCount})` : ''}

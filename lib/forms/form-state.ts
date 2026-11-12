@@ -92,11 +92,30 @@ export interface FormUiState {
   loaded?: string[]
 }
 
-export type FormTargetKind = 'field' | 'section' | 'row' | 'page'
-export const FORM_TARGET_KINDS: FormTargetKind[] = ['field', 'section', 'row', 'page']
-export const FORM_TARGET_LABELS: Record<FormTargetKind, string> = { field: 'Field', section: 'Section', row: 'Row', page: 'Step / tab' }
+/**
+ * `column:<list>.<column>`: a whole List column (its header and every cell)
+ * or, for a repeating section, one inner control in every item
+ * (`column:<section>.<inner key>`). Only show / hide takes it; it names no
+ * form field, so targetFieldKeys gives nothing for it (ruleHiddenColumns
+ * in lib/forms/form-rules.ts reads it).
+ */
+export type FormTargetKind = 'field' | 'section' | 'row' | 'page' | 'column'
+export const FORM_TARGET_KINDS: FormTargetKind[] = ['field', 'section', 'row', 'page', 'column']
+export const FORM_TARGET_LABELS: Record<FormTargetKind, string> = { field: 'Field', section: 'Section', row: 'Row', page: 'Step / tab', column: 'List column' }
 
-const TARGET_RE = /^(field|section|row|page):([A-Za-z0-9_-]{1,64})$/
+const TARGET_RE = /^(field|section|row|page):([A-Za-z0-9_-]{1,64})$|^(column):([A-Za-z0-9_-]{1,64}\.[A-Za-z0-9_-]{1,64})$/
+
+/** A column target's List (or repeating section) and column (or inner control), or null. */
+export function parseColumnTarget(raw: unknown): { field: string; column: string } | null {
+  const t = parseTarget(raw)
+  if (!t || t.kind !== 'column') return null
+  const [field, column] = t.id.split('.')
+  return { field, column }
+}
+
+export function columnTarget(field: string, column: string): string {
+  return `column:${field}.${column}`
+}
 
 /**
  * The whole form as a target (`form:*`) — only the "Make read only /
@@ -133,7 +152,8 @@ export function normalizeStateRuleField(raw: string): string | null {
 
 export function parseTarget(raw: unknown): { kind: FormTargetKind; id: string } | null {
   const m = typeof raw === 'string' ? TARGET_RE.exec(raw) : null
-  return m ? { kind: m[1] as FormTargetKind, id: m[2] } : null
+  if (!m) return null
+  return m[1] ? { kind: m[1] as FormTargetKind, id: m[2] } : { kind: 'column', id: m[4] }
 }
 
 export function formTarget(kind: FormTargetKind, id: string): string {
@@ -179,6 +199,7 @@ function targetKnown(target: string, known?: { fieldKeys?: ReadonlySet<string>; 
   if (!known) return true
   if (t.kind === 'page') return !known.pageIds || known.pageIds.has(t.id)
   if (t.kind === 'section' && known.sectionKeys?.has(t.id)) return true
+  if (t.kind === 'column') return !known.fieldKeys || known.fieldKeys.has(t.id.split('.')[0])
   return !known.fieldKeys || known.fieldKeys.has(t.id)
 }
 
@@ -244,6 +265,8 @@ export function targetFieldKeys(layout: unknown, target: string, headingKeys?: R
   if (!t) return []
   const grids = gridsOf(layout)
   if (t.kind === 'field') return [t.id]
+  // A List column / a repeating section's inner control in every item: no form field of its own.
+  if (t.kind === 'column') return []
   // A declared section (layout.sections) wins; otherwise `section:<heading>` is the legacy heading-made section.
   if (t.kind === 'section' && declaredSectionKeys(layout).has(t.id)) return sectionRowFieldKeys(layout, t.id)
   if (t.kind === 'page') {

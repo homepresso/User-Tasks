@@ -10,6 +10,7 @@ import { LIST_ROW_ERROR_KEY, coerceListRow, type ListColumn, type ListFieldConfi
 import { formatRowValue, rowFormBlocks, rowFormLayout, rowPositionText, type RowValueView } from '@/lib/forms/list-row-form'
 import type { RowStyleResult } from '@/lib/forms/conditional-style'
 import { ToneIcon, rowStyleAttrs, useRowStyles } from './conditional-style'
+import { labelStyleProps, valueStyleProps } from '@/lib/forms/text-style'
 
 /**
  * The List row pop-out (lib/forms/list-row-form.ts): a row shown as a form
@@ -125,11 +126,13 @@ export function RowFormFields({ mode, config, row, columns, errors = {}, idBase,
           return <h3 key={`s${i}`} className={cn('border-b border-border-subtle pb-1 pt-2 text-sm font-semibold text-fg', columns === 2 && 'col-span-2')} data-row-form-section>{block.title}</h3>
         }
         const c = block.column
+        // A cell rule hides this row's cell: the field is left out of the form.
+        if (styles?.hidden[c.key]) return null
         const span = columns === 2 && block.wide ? 'col-span-2' : ''
         if (c.type === 'list') {
           return (
             <section key={c.key} className={cn('min-w-0', span)} aria-label={c.label} data-row-form-nested={c.key}>
-              <h3 className="mb-1 text-xs font-semibold text-fg-muted">{c.label}{edit && c.required && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}</h3>
+              <h3 className="mb-1 text-xs font-semibold text-fg-muted" {...labelStyleProps(c)}>{c.label}{edit && c.required && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}</h3>
               {renderNested?.(c)}
               {edit && errors[c.key] && <p className="mt-1 text-2xs text-(--status-blocked)" role="alert">{errors[c.key]}</p>}
             </section>
@@ -138,8 +141,8 @@ export function RowFormFields({ mode, config, row, columns, errors = {}, idBase,
         if (!edit) {
           return (
             <div key={c.key} role="group" aria-labelledby={`${inputId(c.key)}-label`} className={cn('min-w-0', span)} data-row-form-value={c.key} {...boxAttrs(c.key)}>
-              <p id={`${inputId(c.key)}-label`} className="mb-0.5 text-xs font-medium text-fg-muted">{icon(c.key)}{c.label}</p>
-              <div className="text-sm text-fg"><RowValue view={formatRowValue(c, c.type === 'calculated' && (row[c.key] === null || row[c.key] === undefined) ? typed?.[c.key] : row[c.key], row)} /></div>
+              <p id={`${inputId(c.key)}-label`} className="mb-0.5 text-xs font-medium text-fg-muted" {...labelStyleProps(c)}>{icon(c.key)}{c.label}</p>
+              <div className="text-sm text-fg" {...valueStyleProps(c)}><RowValue view={formatRowValue(c, c.type === 'calculated' && (row[c.key] === null || row[c.key] === undefined) ? typed?.[c.key] : row[c.key], row)} /></div>
             </div>
           )
         }
@@ -148,10 +151,10 @@ export function RowFormFields({ mode, config, row, columns, errors = {}, idBase,
         const describedBy = [c.help_text ? `${id}-help` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined
         return (
           <div key={c.key} className={cn('min-w-0', span)} data-row-form-field={c.key} {...boxAttrs(c.key)}>
-            <label htmlFor={id} id={`${id}-label`} className="mb-1 block text-xs font-medium text-fg">
-              {icon(c.key)}{c.label}{c.required && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}{c.required && <span className="sr-only"> (required)</span>}
+            <label htmlFor={id} id={`${id}-label`} className="mb-1 block text-xs font-medium text-fg" {...labelStyleProps(c)}>
+              {icon(c.key)}{c.label}{c.required && !styles?.locked[c.key] && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}{c.required && !styles?.locked[c.key] && <span className="sr-only"> (required)</span>}
             </label>
-            {renderInput?.(c, id, error, describedBy)}
+            <div {...valueStyleProps(c)}>{renderInput?.(c, id, error, describedBy)}</div>
             {c.help_text && <p id={`${id}-help`} className="mt-1 text-2xs text-fg-muted">{c.help_text}</p>}
             {error && <p id={`${id}-error`} className="mt-1 text-2xs text-(--status-blocked)" data-row-form-error={c.key}>{error}</p>}
           </div>

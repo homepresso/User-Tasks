@@ -38,7 +38,8 @@ import { normalizeLookupConfig, type LookupConfig } from './lookup'
 import { groupConditions, normalizeConditionGroup, type DataTableConditionGroup } from './data-table'
 import type { RuleScope } from './form-rules'
 import { ROW_ORIGINAL_KEY, rowDraftState } from './row-markers'
-import { NO_ROW_STYLE, ROW_STYLE_LIMIT, mergeStyles, normalizeConditionalStyle, type ListRowStyle, type RowStyleResult } from './conditional-style'
+import { CELL_RULE_LIMIT, NO_ROW_STYLE, ROW_STYLE_LIMIT, mergeStyles, normalizeConditionalStyle, type ListCellRule, type ListRowStyle, type RowStyleResult } from './conditional-style'
+import { normalizeControlTextStyle, type ControlTextStyle } from './text-style'
 
 /**
  * `field` is internal: a repeating section seen as a List (lib/forms/repeating-section.ts)
@@ -129,6 +130,8 @@ export interface ListColumn {
    * browser and again on the server (checkListValue).
    */
   validations?: ListValidation[]
+  /** Text styling (lib/forms/text-style.ts): `label` = the header (and the label in the row pop-out), `value` = the cells. */
+  text_style?: ControlTextStyle
 }
 
 /** A List column's validation: the message shows on the cell while `if` holds. */
@@ -157,6 +160,8 @@ export interface ListCheckContext {
   /** The person; null = nobody signed in (no roles); undefined = not known here — validations reading `user.*` are skipped (the server judges them with its own user). */
   user?: Record<string, unknown> | null
   parent?: Record<string, unknown> | null
+  /** Columns a form rule hides in every row (`column:<list>.<column>` — ruleHiddenColumns): not required, not checked. */
+  hiddenColumns?: ReadonlySet<string> | null
 }
 
 /**
@@ -248,6 +253,15 @@ export interface ListFieldConfig {
    * its tone / emphasis. Same subjects as validations. Presentation only.
    */
   row_styles?: ListRowStyle<DataTableConditionGroup>[]
+  /**
+   * Cell rules (any level; InfoPath's hide / disable on a control in a
+   * repeating table): while a rule's condition holds for a row, that row's
+   * `column` cell is hidden (empty; the header stays) and / or read only.
+   * Same subjects as validations. A hidden cell is not required or checked;
+   * a read-only cell is not required, cannot be edited in the table or the
+   * row pop-out, and the server keeps its stored value (keepLockedListCells).
+   */
+  cell_rules?: ListCellRule<DataTableConditionGroup>[]
 }
 
 export type ListRowEditing = 'inline' | 'popout' | 'both'
@@ -371,6 +385,66 @@ export function keepReadOnlyListColumns(config: ListFieldConfig | undefined, sub
     return next
   })
   return { rows, restored: [...restored] }
+}
+
+/**
+ * Server merge for cell rules (list.cell_rules with read_only, any level):
+ * a submitted row that is a row the form opened with keeps the stored value
+ * of every cell that was read only when the form opened AND is read only for
+ * the submitted values — whatever the browser sent. Rows are matched by the
+ * List's key column; a List without one is matched by position, and only
+ * while the row count is unchanged (a row removed and another added in the
+ * same session cannot be told apart from an edit: set a key column for
+ * Lists whose rows can be removed). A new row takes its locked cells as sent
+ * (a default or a rule fills them, like a read-only column's first commit).
+ * `ctx.skip`: columns a form rule writes (a rule may fill a read-only cell).
+ * `ctx`: the form's values now (`form`) and as stored (`storedForm`), the
+ * person as the server sees them (null = nobody). Returns the rows and the
+ * cells put back (`column` / `child.column`) for a logged warning.
+ */
+export function keepLockedListCells(
+  config: ListFieldConfig | undefined, submitted: unknown, stored: unknown,
+  ctx: { form?: Record<string, unknown> | null; storedForm?: Record<string, unknown> | null; user?: Record<string, unknown> | null; parent?: Record<string, unknown> | null; storedParent?: Record<string, unknown> | null; skip?: ReadonlySet<string> } = {},
+): { rows: unknown; restored: string[] } {
+  if (!config || !Array.isArray(submitted) || !hasLockRules(config)) return { rows: submitted, restored: [] }
+  const before = rawListRows(stored)
+  if (!before.length) return { rows: submitted, restored: [] }
+  const key = config.key_column
+  const byKey = new Map<string, Record<string, unknown>>()
+  if (key) for (const row of before) { const k = row[key]; if (k !== null && k !== undefined && k !== '') byKey.set(String(k), row) }
+  const positional = !key && submitted.length === before.length
+  const user = ctx.user ?? null
+  const nested = childListColumns(config).filter((c) => hasLockRules(c.list))
+  const restored = new Set<string>()
+  const rows = submitted.map((row, i) => {
+    if (!isPlainObject(row)) return row
+    const k = key ? row[key] : undefined
+    const original = key ? (k === null || k === undefined || k === '' ? undefined : byKey.get(String(k))) : positional ? before[i] : undefined
+    if (!original) return row
+    const next: Record<string, unknown> = { ...row }
+    const now = listCellStates(config, row, { form: ctx.form ?? {}, user, parent: ctx.parent ?? null }).locked
+    const then = listCellStates(config, original, { form: ctx.storedForm ?? ctx.form ?? {}, user, parent: ctx.storedParent ?? ctx.parent ?? null }).locked
+    for (const col of Object.keys(now)) {
+      if (!then[col] || ctx.skip?.has(col)) continue
+      const column = config.columns.find((c) => c.key === col)
+      if (!column || column.type === 'calculated') continue
+      if (JSON.stringify(next[col] ?? null) !== JSON.stringify(original[col] ?? null)) restored.add(col)
+      next[col] = original[col] ?? null
+      if (column.type === 'lookup') next[listLabelKey(col)] = original[listLabelKey(col)] ?? null
+    }
+    for (const c of nested) {
+      const inner = keepLockedListCells(c.list, next[c.key], original[c.key], { ...ctx, parent: coerceListRow(config, next), storedParent: coerceListRow(config, original) })
+      next[c.key] = inner.rows
+      for (const r of inner.restored) restored.add(`${c.key}.${r}`)
+    }
+    return next
+  })
+  return { rows, restored: [...restored] }
+}
+
+/** Whether a config (or a List nested in it) has read-only cell rules. */
+function hasLockRules(config: ListFieldConfig | undefined): boolean {
+  return Boolean(config && ((config.cell_rules ?? []).some((r) => r.read_only) || config.columns.some((c) => c.type === 'list' && hasLockRules(c.list))))
 }
 
 /** Whether a config (or a List nested in it) has read-only columns. */
@@ -620,6 +694,23 @@ function normalizeRowStyles(raw: unknown, columnKeys: ReadonlySet<string>): List
   return out
 }
 
+/** Stored cell rules → clean ones (a condition, one of the List's columns, and hide and / or read only). */
+function normalizeCellRules(raw: unknown, columnKeys: ReadonlySet<string>): ListCellRule<DataTableConditionGroup>[] {
+  const out: ListCellRule<DataTableConditionGroup>[] = []
+  for (const entry of Array.isArray(raw) ? raw : []) {
+    if (out.length >= CELL_RULE_LIMIT) break
+    if (!isPlainObject(entry)) continue
+    const group = normalizeConditionGroup(entry.if ?? entry.when)
+    if (!group || !groupConditions(group).every((c) => VALIDATION_SUBJECT_RE.test(c.column))) continue
+    if (typeof entry.column !== 'string' || !columnKeys.has(entry.column)) continue
+    const hide = entry.hide === true || entry.effect === 'hide'
+    const readOnly = entry.read_only === true || entry.effect === 'read_only' || entry.effect === 'lock'
+    if (!hide && !readOnly) continue
+    out.push({ if: group, column: entry.column, ...(hide ? { hide: true } : {}), ...(readOnly ? { read_only: true } : {}) })
+  }
+  return out
+}
+
 function normalizeColumn(raw: unknown, seen: Set<string>, depth: number): ListColumn | null {
   if (!isPlainObject(raw)) return null
   const label = cleanText(raw.label, 120) ?? ''
@@ -678,6 +769,8 @@ function normalizeColumn(raw: unknown, seen: Set<string>, depth: number): ListCo
   if (type === 'list') column.list = depth < LIST_MAX_DEPTH ? normalizeListConfig(raw.list ?? { columns: raw.columns }, depth + 1) : { columns: [] }
   const validations = normalizeValidations(raw.validations).map(({ if: cond, message }) => ({ if: cond, message }))
   if (validations.length) column.validations = validations
+  const textStyle = normalizeControlTextStyle(raw.text_style)
+  if (textStyle) column.text_style = textStyle
   return column
 }
 
@@ -721,6 +814,8 @@ export function normalizeListConfig(raw: unknown, depth = 1): ListFieldConfig {
   if (rowValidations.length) config.row_validations = rowValidations
   const rowStyles = normalizeRowStyles(r.row_styles, keys)
   if (rowStyles.length) config.row_styles = rowStyles
+  const cellRules = normalizeCellRules(r.cell_rules, keys)
+  if (cellRules.length) config.cell_rules = cellRules
   // The row pop-out (any level): how rows are edited and the form's title / layout.
   if (r.row_editing === 'inline' || r.row_editing === 'popout') config.row_editing = r.row_editing
   const rowForm = normalizeRowForm(r.row_form, keys)
@@ -889,7 +984,7 @@ export function listConfigProblem(config: ListFieldConfig | undefined, depth = 1
   }
   if (config.key_column && childListColumns(config).some((c) => c.key === config.key_column)) return 'The key column cannot be a nested list'
   const keys = new Set(config.columns.flatMap((c) => [c.key, ...(c.type === 'lookup' ? [listLabelKey(c.key)] : []), ...(c.type === 'list' ? childRowDerivedKeys({ columns: [c] }) : [])]))
-  for (const [where, v] of [...config.columns.flatMap((c) => (c.validations ?? []).map((x) => [`Column "${c.label}"`, x] as const)), ...(config.row_validations ?? []).map((x) => ['Row check', x] as const), ...(config.row_styles ?? []).map((x) => ['Row style', x] as const)]) {
+  for (const [where, v] of [...config.columns.flatMap((c) => (c.validations ?? []).map((x) => [`Column "${c.label}"`, x] as const)), ...(config.row_validations ?? []).map((x) => ['Row check', x] as const), ...(config.row_styles ?? []).map((x) => ['Row style', x] as const), ...(config.cell_rules ?? []).map((x) => ['Cell rule', x] as const)]) {
     for (const c of groupConditions(v.if)) {
       const m = /^row\.([a-z][a-z0-9_]*)/.exec(c.column)
       if (m && !keys.has(m[1])) return `${where}: the validation reads an unknown column "${m[1]}"`
@@ -1070,18 +1165,43 @@ export function listValidationErrors(config: ListFieldConfig, row: Record<string
  */
 export function listRowStyles(config: ListFieldConfig | undefined, row: Record<string, unknown>, ctx: ListCheckContext = {}): RowStyleResult {
   const list = config?.row_styles
-  if (!config || !list?.length || !judge) return NO_ROW_STYLE
+  if (!config || (!list?.length && !config.cell_rules?.length) || !judge) return NO_ROW_STYLE
   const typed = coerceListRow(config, row)
   const scope = { values: ctx.form ?? {}, user: ctx.user ?? null, event: { row: typed, ...(ctx.parent ? { parent: ctx.parent } : {}) } }
   let whole: RowStyleResult['row'] = null
   const cells: RowStyleResult['cells'] = {}
-  for (const s of list) {
+  for (const s of list ?? []) {
     if (ctx.user === undefined && readsUser(s.if)) continue
     if (!judge.conditionsMet(s.if, scope)) continue
     if (s.column) cells[s.column] = mergeStyles(cells[s.column], s.style)!
     else whole = mergeStyles(whole, s.style)
   }
-  return whole || Object.keys(cells).length ? { row: whole, cells } : NO_ROW_STYLE
+  const { hidden, locked } = cellStates(config, scope, ctx.user === undefined)
+  return whole || Object.keys(cells).length || Object.keys(hidden).length || Object.keys(locked).length ? { row: whole, cells, hidden, locked } : NO_ROW_STYLE
+}
+
+function cellStates(config: ListFieldConfig, scope: RuleScope, skipUser: boolean): { hidden: Record<string, true>; locked: Record<string, true> } {
+  const hidden: Record<string, true> = {}
+  const locked: Record<string, true> = {}
+  for (const r of config.cell_rules ?? []) {
+    if (skipUser && readsUser(r.if)) continue
+    if (!judge!.conditionsMet(r.if, scope)) continue
+    if (r.hide) hidden[r.column] = true
+    if (r.read_only) locked[r.column] = true
+  }
+  return { hidden, locked }
+}
+
+/**
+ * A row's hidden and read-only cells (list.cell_rules), judged like the
+ * List's validations (`row.*` typed, `parent.*`, `form.*`, `user.*`). On the
+ * server pass the user (null = nobody: no roles) — a rule reading the user
+ * is skipped only when `ctx.user` is undefined (not known here).
+ */
+export function listCellStates(config: ListFieldConfig | undefined, row: Record<string, unknown>, ctx: ListCheckContext = {}): { hidden: Record<string, true>; locked: Record<string, true> } {
+  if (!config?.cell_rules?.length || !judge) return { hidden: {}, locked: {} }
+  const scope = { values: ctx.form ?? {}, user: ctx.user ?? null, event: { row: coerceListRow(config, row), ...(ctx.parent ? { parent: ctx.parent } : {}) } }
+  return cellStates(config, scope, ctx.user === undefined)
 }
 
 /** Whether a validation's condition reads the user (`user.*` as a subject or a placeholder). */
@@ -1101,7 +1221,12 @@ export function hasListValidations(config: ListFieldConfig | undefined): boolean
  */
 export function listRowErrors(config: ListFieldConfig, row: Record<string, unknown>, ctx?: ListCheckContext | null): Record<string, string> {
   const errors: Record<string, string> = {}
+  // Cell rules and hidden columns (with a context only): a hidden cell is not checked at all (a hidden field's
+  // semantics); a read-only cell is not required (the person can't fill it in) — every other check still runs.
+  const states = ctx ? listCellStates(config, row, ctx) : { hidden: {} as Record<string, true>, locked: {} as Record<string, true> }
   for (const column of config.columns) {
+    if (states.hidden[column.key] || ctx?.hiddenColumns?.has(column.key)) continue
+    const unlockedRequired = column.required && !states.locked[column.key]
     const value = column.type === 'calculated' ? calculateColumn(column, coerceListRow(config, row)) : row[column.key]
     const name = column.label
     if (column.type === 'calculated') {
@@ -1116,12 +1241,12 @@ export function listRowErrors(config: ListFieldConfig, row: Record<string, unkno
     }
     if (column.type === 'list') {
       // A nested List: its own rows' checks, min / max rows; required = at least one row.
-      const inner = checkListValue(column.list, value, Boolean(column.required), 2, ctx ? { ...ctx, parent: coerceListRow(config, row) } : null)
+      const inner = checkListValue(column.list, value, Boolean(unlockedRequired), 2, ctx ? { ...ctx, hiddenColumns: null, parent: coerceListRow(config, row) } : null)
       if (inner.errors.length) errors[column.key] = `${name}: ${inner.errors[0]}`
       continue
     }
     if (blankCell(value)) {
-      if (column.required) errors[column.key] = `${name} is required`
+      if (unlockedRequired) errors[column.key] = `${name} is required`
       continue
     }
     if (typeof value === 'object') { errors[column.key] = `${name} has an invalid value`; continue }
@@ -1148,7 +1273,7 @@ export function listRowErrors(config: ListFieldConfig, row: Record<string, unkno
         else if (column.max !== undefined && s.length > column.max) errors[column.key] = `${name} must be at most ${column.max} characters`
     }
   }
-  if (ctx) for (const [at, text] of Object.entries(listValidationErrors(config, row, ctx))) if (!errors[at]) errors[at] = text
+  if (ctx) for (const [at, text] of Object.entries(listValidationErrors(config, row, ctx))) if (!errors[at] && !states.hidden[at] && !ctx.hiddenColumns?.has(at)) errors[at] = text
   return errors
 }
 
@@ -1200,7 +1325,7 @@ export function checkListValue(config: ListFieldConfig | undefined, value: unkno
         const nested = config.columns.find((c) => c.key === column && c.type === 'list')
         if (!nested) { out.paths[`[${i}].${column}`] = text; continue }
         // A nested List's own problems, each at its path ([i].lines[0].qty; [i].lines for its row count).
-        const inner = checkListValue(nested.list, row[column], Boolean(nested.required), level + 1, ctx ? { ...ctx, parent: coerceListRow(config, row) } : null)
+        const inner = checkListValue(nested.list, row[column], Boolean(nested.required) && !(ctx ? listCellStates(config, row, ctx).locked[column] : false), level + 1, ctx ? { ...ctx, hiddenColumns: null, parent: coerceListRow(config, row) } : null)
         for (const [path, message] of Object.entries(inner.paths)) out.paths[`[${i}].${column}${path}`] = message
       }
     }

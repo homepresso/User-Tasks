@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import {
   blankListRow, childListColumns, childListPaths, childListAt, coerceListRow, coerceListRows, formatListCell, formatListTotal, inputColumns, isBlankListRow, listEntryMode,
-  hasListValidations, listColumnWritable, listLabelKey, listRowDraft, listRowErrors, nestedRowsAt, LIST_ROW_ERROR_KEY, remapAfterRemoval, listTotalLabel, listTotalValue, rawListRows, shownColumns, LIST_LIMITS,
+  hasListValidations, listCellStates, listColumnWritable, listLabelKey, listRowDraft, listRowErrors, nestedRowsAt, LIST_ROW_ERROR_KEY, remapAfterRemoval, listTotalLabel, listTotalValue, rawListRows, shownColumns, LIST_LIMITS,
   rowCellErrors, rowDraftState, stripRowMarkers, type ListColumn, type ListFieldConfig, type ListRow,
 } from '@/lib/forms/list-field'
 import { commitRow, currentListIndex, discardRow, targetValues } from '@/lib/forms/row-rules'
@@ -23,6 +23,7 @@ import {
 } from '@/lib/forms/list-row-form'
 import { ListRowDialog, RowFormIcon, RowValue } from './list-row-dialog'
 import { RowStyleScope, ToneIcon, rowStyleAttrs, useRowStyles } from './conditional-style'
+import { labelStyleProps, mergeStyleProps, valueStyleProps } from '@/lib/forms/text-style'
 
 /**
  * The List field (lib/forms/list-field.ts): rows people add on the form.
@@ -336,7 +337,7 @@ function RowsView({ config, rows, label, narrow, actions, editing = null, onRowC
               </th>
             )}
             <th scope="col" className="w-8 px-2 py-1.5 text-left text-2xs font-semibold text-fg-muted">#</th>
-            {columns.map((c) => <th key={c.key} scope="col" className={cn('px-2 py-1.5 text-xs font-semibold whitespace-nowrap', cellAlign(c))}>{c.label}</th>)}
+            {columns.map((c) => <th key={c.key} scope="col" className={cn('px-2 py-1.5 text-xs font-semibold whitespace-nowrap', cellAlign(c))} {...labelStyleProps(c)}>{c.label}</th>)}
             {actions && <th scope="col" className="w-20 px-2 py-1.5"><span className="sr-only">Actions</span></th>}
           </tr>
         </thead>
@@ -344,13 +345,13 @@ function RowsView({ config, rows, label, narrow, actions, editing = null, onRowC
           {rows.map((row, i) => (
             <Fragment key={i}>
             <tr className={cn('border-t border-border', (editing === i || isSelected(i)) && 'bg-primary-wash/60', rowDraftState(row) && !isSelected(i) && 'bg-primary-wash/30', (onRowClick || selection) && 'cursor-pointer hover:bg-subtle')}
-              {...rowStyleAttrs(styleOf(i).row)} style={current === i ? CURRENT_STYLE : undefined} data-list-row={i} data-selected={isSelected(i) || undefined} data-row-state={rowDraftState(row) ?? undefined} data-current={current === i || undefined} aria-current={editing === i || current === i || undefined} {...rowProps(i)}>
+              {...mergeStyleProps(rowStyleAttrs(styleOf(i).row), current === i ? { style: CURRENT_STYLE as Record<string, string> } : null)} data-list-row={i} data-selected={isSelected(i) || undefined} data-row-state={rowDraftState(row) ?? undefined} data-current={current === i || undefined} aria-current={editing === i || current === i || undefined} {...rowProps(i)}>
               {selection?.mode === 'multiple' && (
                 <td className="px-2 py-1.5"><input type="checkbox" className="h-4 w-4 accent-primary" aria-label={`Select row ${i + 1}`} checked={isSelected(i)} onChange={() => selection.toggle(i)} data-list-select-row={i} /></td>
               )}
               <td className="px-2 py-1.5 text-2xs text-fg-muted tabular-nums whitespace-nowrap">{nested.length > 0 && <ExpandButton open={expanded.isOpen(i)} onToggle={() => expanded.toggle(i)} controls={panelId(i)} label={`${expanded.isOpen(i) ? 'Hide' : 'Show'} ${nested.map((c) => c.label).join(', ')} of row ${i + 1}`} />}<RowToneIcon style={styleOf(i).row} />{i + 1}{editing === i && editingBadge}{pendingBadge(row)}</td>
-              {columns.map((c) => (
-                <td key={c.key} className={cn('px-2 py-1.5 align-top break-words', cellAlign(c))} aria-invalid={Boolean(errorsOf(row)[c.key]) || undefined} {...rowStyleAttrs(styleOf(i).cells[c.key])}>
+              {columns.map((c) => styleOf(i).hidden[c.key] ? <td key={c.key} className="px-2 py-1.5" data-list-hidden-cell={c.key} /> : (
+                <td key={c.key} className={cn('px-2 py-1.5 align-top break-words', cellAlign(c))} aria-invalid={Boolean(errorsOf(row)[c.key]) || undefined} {...mergeStyleProps(valueStyleProps(c), rowStyleAttrs(styleOf(i).cells[c.key]))}>
                   <RowToneIcon style={styleOf(i).cells[c.key]} />{formatListCell(c, row[c.key], row)}
                   {errorsOf(row)[c.key] && <span className="block text-left text-2xs text-(--status-blocked)" data-list-cell-error={c.key}>{errorsOf(row)[c.key]}</span>}
                 </td>
@@ -391,10 +392,10 @@ function RowsView({ config, rows, label, narrow, actions, editing = null, onRowC
             {actions && <span className="flex gap-1">{actions(i)}</span>}
           </div>
           <dl className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-3 gap-y-0.5 text-sm">
-            {columns.map((c) => (
+            {columns.filter((c) => !styleOf(i).hidden[c.key]).map((c) => (
               <div key={c.key} className="contents">
-                <dt className="text-xs text-fg-muted">{c.label}</dt>
-                <dd className={cn('break-words text-fg', cellAlign(c) === 'text-left' ? '' : 'tabular-nums')} {...rowStyleAttrs(styleOf(i).cells[c.key])}>
+                <dt className="text-xs text-fg-muted" {...labelStyleProps(c)}>{c.label}</dt>
+                <dd className={cn('break-words text-fg', cellAlign(c) === 'text-left' ? '' : 'tabular-nums')} {...mergeStyleProps(valueStyleProps(c), rowStyleAttrs(styleOf(i).cells[c.key]))}>
                   <RowToneIcon style={styleOf(i).cells[c.key]} />{formatListCell(c, row[c.key], row)}
                   {errorsOf(row)[c.key] && <span className="block text-2xs text-(--status-blocked)" data-list-cell-error={c.key}>{errorsOf(row)[c.key]}</span>}
                 </dd>
@@ -762,7 +763,7 @@ function useRowEditor({ field, config, value, onChange, id, nest, formValues, na
     if (c.type === 'calculated') {
       return <output id={inputId} className="flex h-10 items-center rounded-lg bg-subtle px-3 text-sm font-medium tabular-nums" data-list-calculated={c.key}>{formatListCell(c, coerceListRow(config, row)[c.key])}</output>
     }
-    if (!listColumnWritable(config, c.key, row)) {
+    if (!listColumnWritable(config, c.key, row) || listCellStates(config, row, ctx).locked[c.key]) {
       return (
         <div id={inputId} role="textbox" aria-readonly="true" aria-labelledby={`${inputId}-label`} className="flex min-h-10 items-center rounded-lg bg-subtle px-3 text-sm text-fg-muted" data-list-readonly={c.key}>
           <RowValue view={formatRowValue(c, row[c.key], row)} />
@@ -968,8 +969,12 @@ function InlineList({ field, config, value, onChange, id, describedBy, invalid, 
   }
   // Read-only columns ("Read-only when editing"): a row already in the list shows them, not an input (a New row's, before its commit, may be filled).
   // Nested List columns are a button (their rows open under the row), not in the Enter flow.
-  const editableIn = (row: Record<string, unknown>) => inputs.filter((c) => c.type !== 'list' && listColumnWritable(config, c.key, row))
-  const writable = (row: Record<string, unknown>, c: ListColumn) => listColumnWritable(config, c.key, row)
+  // Cell rules (list.cell_rules): a row's hidden cells are empty, its read-only cells show the value (the server keeps it too).
+  const cellStates = rows.map((r) => listCellStates(config, r, checkCtx))
+  const lockedCell = (row: Record<string, unknown>, c: ListColumn) => Boolean(cellStates[rows.indexOf(row)]?.locked[c.key])
+  const hiddenCell = (r: number, c: ListColumn) => Boolean(cellStates[r]?.hidden[c.key])
+  const writable = (row: Record<string, unknown>, c: ListColumn) => listColumnWritable(config, c.key, row) && !lockedCell(row, c)
+  const editableIn = (row: Record<string, unknown>) => inputs.filter((c) => c.type !== 'list' && writable(row, c) && !hiddenCell(rows.indexOf(row), c))
   // A New row asking for a column's focus (new_row's focus_column).
   useEffect(() => {
     if (current === null || !focusColumn) return
@@ -1053,7 +1058,7 @@ function InlineList({ field, config, value, onChange, id, describedBy, invalid, 
           <tr>
             <th scope="col" className="w-8 px-2 py-1.5 text-left text-2xs font-semibold text-fg-muted">#</th>
             {shownColumns(config).map((c) => (
-              <th key={c.key} scope="col" id={`${id}-h-${c.key}`} className={cn('px-2 py-1.5 text-xs font-semibold whitespace-nowrap', cellAlign(c))}>
+              <th key={c.key} scope="col" id={`${id}-h-${c.key}`} className={cn('px-2 py-1.5 text-xs font-semibold whitespace-nowrap', cellAlign(c))} {...labelStyleProps(c)}>
                 {c.label}{c.required && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}
               </th>
             ))}
@@ -1063,14 +1068,14 @@ function InlineList({ field, config, value, onChange, id, describedBy, invalid, 
         <tbody>
           {rows.map((row, r) => (
             <Fragment key={r}>
-            <tr className={cn('border-t border-border align-top', rowDraftState(row) && 'bg-primary-wash/30')} style={current === r ? CURRENT_STYLE : undefined}
-              {...rowStyleAttrs(styleOf(r).row)} data-list-row={r} data-row-state={rowDraftState(row) ?? undefined} data-current={current === r || undefined} aria-current={current === r || undefined}>
+            <tr className={cn('border-t border-border align-top', rowDraftState(row) && 'bg-primary-wash/30')}
+              {...mergeStyleProps(rowStyleAttrs(styleOf(r).row), current === r ? { style: CURRENT_STYLE as Record<string, string> } : null)} data-list-row={r} data-row-state={rowDraftState(row) ?? undefined} data-current={current === r || undefined} aria-current={current === r || undefined}>
               <td className="px-2 py-2.5 text-2xs text-fg-muted tabular-nums whitespace-nowrap">
                 {/* "Open row" leads the row: a wide table scrolls, the icon stays in reach. */}
                 {modes.popout ? <span className="-my-2 -ml-1 mr-0.5 inline-flex align-middle">{openIcon(r)}</span> : null}<RowToneIcon style={styleOf(r).row} />{r + 1}<PendingBadge state={rowDraftState(row)} />
               </td>
-              {shownColumns(config).map((c) => (
-                <td key={c.key} className={cn('min-w-[8rem] px-1 py-1', cellAlign(c))} {...rowStyleAttrs(styleOf(r).cells[c.key])}>
+              {shownColumns(config).map((c) => hiddenCell(r, c) ? <td key={c.key} className="min-w-[8rem] px-1 py-1" data-list-hidden-cell={c.key} /> : (
+                <td key={c.key} className={cn('min-w-[8rem] px-1 py-1', cellAlign(c))} {...mergeStyleProps(valueStyleProps(c), rowStyleAttrs(styleOf(r).cells[c.key]))}>
                   <CellWithIcon style={styleOf(r).cells[c.key]}>
                   {c.type === 'calculated'
                     ? <span className="flex h-10 items-center justify-end px-2 tabular-nums" data-list-calculated={c.key}>{formatListCell(c, typed[r][c.key])}</span>
@@ -1125,9 +1130,9 @@ function InlineList({ field, config, value, onChange, id, describedBy, invalid, 
             </span>
           </div>
           <div className="flex flex-col gap-2">
-            {shownColumns(config).filter((c) => c.type !== 'list').map((c) => (
-              <div key={c.key} {...rowStyleAttrs(styleOf(r).cells[c.key])} {...(styleOf(r).cells[c.key] ? { 'data-cs-box': '' } : {})}>
-                <label htmlFor={`${cellId(r, c.key)}-m`} className="mb-1 block text-xs font-medium text-fg-muted"><RowToneIcon style={styleOf(r).cells[c.key]} />{c.label}{c.required && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}</label>
+            {shownColumns(config).filter((c) => c.type !== 'list' && !hiddenCell(r, c)).map((c) => (
+              <div key={c.key} {...mergeStyleProps(valueStyleProps(c), rowStyleAttrs(styleOf(r).cells[c.key]))} {...(styleOf(r).cells[c.key] ? { 'data-cs-box': '' } : {})}>
+                <label htmlFor={`${cellId(r, c.key)}-m`} className="mb-1 block text-xs font-medium text-fg-muted" {...labelStyleProps(c)}><RowToneIcon style={styleOf(r).cells[c.key]} />{c.label}{c.required && !lockedCell(row, c) && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}</label>
                 {c.type === 'calculated'
                   ? <output id={`${cellId(r, c.key)}-m`} className="text-sm font-medium tabular-nums">{formatListCell(c, typed[r][c.key])}</output>
                   : !writable(row, c) ? readOnlyCell(c, row, `${cellId(r, c.key)}-m`)

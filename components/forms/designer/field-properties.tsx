@@ -1,5 +1,6 @@
 'use client'
 
+import { ControlTextStyleEditor } from './style-editor'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, Copy, Plus, Trash2, X } from 'lucide-react'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
@@ -184,6 +185,10 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
           <Label htmlFor={id('help')}>Description</Label>
           <VariableInput value={field.help_text ?? ''} multiline rows={2} ariaLabel="Description" placeholder="Optional — {{field}} or {{param.x}} allowed" onChange={(v) => onPatch({ help_text: v || undefined }, `help-${field._id}`)} />
         </div>
+      )}
+      {field.type !== 'divider' && field.type !== 'display_image' && field.type !== 'button' && (
+        <ControlTextStyleEditor value={field.text_style} idBase={id('ts')} labelName={field.type === 'heading' ? 'Heading' : 'Label'} valueName={field.type === 'heading' ? 'Description' : field.type === 'label' ? 'Text' : 'Value'}
+          onChange={(next, tag) => onPatch({ text_style: next }, tag ? `ts-${field._id}-${tag}` : undefined)} />
       )}
       {!display && (
         <DynamicProp state={state} field={field} prop="help_text" label="Help text" expects="string" onPatch={onPatch} htmlFor={id('help')}>

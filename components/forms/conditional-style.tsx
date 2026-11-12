@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Info, OctagonAlert, Star, CircleDot } from
 import { cn } from '@/lib/utils'
 import { NO_ROW_STYLE, STYLE_TONE_NAMES, styleAttributes, type ConditionalStyle, type RowStyleResult, type StyleTone } from '@/lib/forms/conditional-style'
 import { listRowStyles, type ListFieldConfig } from '@/lib/forms/list-field'
+import type { TextStyleProps } from '@/lib/forms/text-style'
 import { useRuleUser } from './use-rule-user'
 
 /**
@@ -47,7 +48,7 @@ const RowStyleContext = createContext<{ form: Record<string, unknown>; user: Rec
 
 /** Provides the form's values (and the person, when a List's row styles read `user.*`) to the Lists inside. */
 export function RowStyleScope({ config, form, children }: { config: ListFieldConfig | undefined; form: Record<string, unknown> | null | undefined; children: React.ReactNode }) {
-  const needsUser = Boolean(config && JSON.stringify(config.row_styles ?? []).includes('user'))
+  const needsUser = Boolean(config && JSON.stringify([config.row_styles ?? [], config.cell_rules ?? []]).includes('user'))
   return needsUser ? <ScopeWithUser form={form}>{children}</ScopeWithUser> : <Scope form={form} user={undefined} own={false}>{children}</Scope>
 }
 
@@ -66,13 +67,13 @@ function Scope({ form, user, own, children }: { form: Record<string, unknown> | 
 export function useRowStyles(config: ListFieldConfig | undefined, rows: Array<Record<string, unknown>>, parent?: Record<string, unknown> | null): (index: number) => RowStyleResult {
   const ctx = useContext(RowStyleContext)
   const list = useMemo(() => {
-    if (!config?.row_styles?.length) return null
+    if (!config?.row_styles?.length && !config?.cell_rules?.length) return null
     return rows.map((row) => listRowStyles(config, row, { form: ctx?.form ?? {}, user: ctx?.user, parent: parent ?? null }))
   }, [config, rows, ctx, parent])
   return (index) => list?.[index] ?? NO_ROW_STYLE
 }
 
 /** A row's / cell's style attributes (spread on the tr / li / td / dd). */
-export function rowStyleAttrs(style: ConditionalStyle | null | undefined): Record<string, string> {
+export function rowStyleAttrs(style: ConditionalStyle | null | undefined): TextStyleProps {
   return styleAttributes(style)
 }

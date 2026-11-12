@@ -19,6 +19,10 @@
  *
  * Behaviour → form rules (lib/forms/form-rules.ts):
  *   conditional formatting hide / disable   Always: hide / make read only while …
+ *     …on a repeating table's cell           List cell rule (per row), or a whole-column
+ *                                            hide (column:<list>.<column>) on a form condition
+ *   inline fonts, sizes, colours             field / List column text_style (the view's
+ *                                            usual font and size left to the theme)
  *   xsl:if around a section                  Always: hide the section while not …
  *   custom validation                        Always: field error while …
  *   "cannot be blank"                        required
@@ -47,6 +51,8 @@ import { schemaNodes } from './schema'
 import { humanize } from './view'
 import { expressionPaths, localOf, resolveBinding, toCondition, toExpression, type Ref, type TranslateEnv } from './xpath'
 import type { CellFormat } from '@/lib/formatting/cell-format'
+import { colorFromCss, fontFromCss, normalizeTextStyle, sizeFromCss, type ControlTextStyle, type TextStyle } from '@/lib/forms/text-style'
+import type { IpTextStyle } from './model'
 import type { InfoPathModel, IpControl, IpDataConnection, IpRule, IpRuleAction, IpSchemaNode, IpView, IpViewItem } from './model'
 
 /* ── Options and output ───────────────────────────────────────────────── */
@@ -246,6 +252,10 @@ export function styleFromCss(css: string): { style: Record<string, unknown>; not
   if (deco.includes('line-through')) style.strike = true
   if (decl.get('border') || decl.get('border-color')) { style.border = true; style.tone = style.tone ?? (toneOf(decl.get('border-color') ?? '')?.tone ?? 'neutral') }
   if (style.tone && style.tone !== 'neutral') style.icon = true
+  const size = decl.get('font-size') ? sizeFromCss(decl.get('font-size')!) : undefined
+  if (size) style.size = size
+  const font = decl.get('font-family') ? fontFromCss(decl.get('font-family')!) : undefined
+  if (font) style.font = font
   if (!Object.keys(style).length) return null
   return { style, ...(notes.length ? { note: `${notes.join('; ')} (theme tones, not exact colours)` } : {}) }
 }
@@ -320,6 +330,64 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       if (repeatingPaths.has(p)) return parts.slice(0, i).join('/')
     }
     return null
+  }
+
+  /* ── text styles (fonts, sizes, colours from the view) ── */
+
+  // The view's usual font and size (InfoPath writes "Calibri 10pt" on nearly everything): not copied onto each field.
+  const viewBase = new Map<string, { font?: string; size?: string }>()
+  const styledCount = new Map<string, number>()
+  const baseOf = (view: IpView) => {
+    let base = viewBase.get(view.name)
+    if (base) return base
+    const fonts = new Map<string, number>()
+    const sizes = new Map<string, number>()
+    const count = (raw?: IpTextStyle) => {
+      const f = raw?.family ? fontFromCss(raw.family) : undefined
+      const z = raw?.size ? sizeFromCss(raw.size) : undefined
+      if (f) fonts.set(f, (fonts.get(f) ?? 0) + 1)
+      if (z) sizes.set(z, (sizes.get(z) ?? 0) + 1)
+    }
+    const walk = (list: IpViewItem[]) => {
+      for (const i of list) {
+        if (i.kind === 'static') { count(i.style); continue }
+        count(i.text_style); count(i.label_style)
+        for (const h of i.header_styles ?? []) count(h)
+        if (i.children) walk(i.children)
+      }
+    }
+    walk(view.items)
+    const mode = (m: Map<string, number>) => [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
+    base = { font: mode(fonts), size: mode(sizes) }
+    viewBase.set(view.name, base)
+    return base
+  }
+  /** A view's raw styling → a TextStyle (the view's usual font / size and black text left out), or undefined. */
+  const textStyleOf = (view: IpView, raw: IpTextStyle | undefined, opts: { heading?: boolean } = {}): TextStyle | undefined => {
+    if (!raw) return undefined
+    const base = baseOf(view)
+    const out: Record<string, unknown> = {}
+    const size = raw.size ? sizeFromCss(raw.size) : undefined
+    if (size && size !== base.size && !opts.heading) out.size = size
+    const font = raw.family ? fontFromCss(raw.family) : undefined
+    if (font && font !== base.font) out.font = font
+    const color = raw.color ? colorFromCss(raw.color) : undefined
+    if (color && color !== '#ffffff') out.color = color
+    if (raw.bold && !opts.heading) out.bold = true
+    if (raw.italic) out.italic = true
+    if (raw.underline) out.underline = true
+    return normalizeTextStyle(out)
+  }
+  const controlTextStyle = (view: IpView, value: IpTextStyle | undefined, label: IpTextStyle | undefined, opts: { heading?: boolean } = {}): ControlTextStyle | undefined => {
+    const v = textStyleOf(view, value, opts)
+    const l = textStyleOf(view, label)
+    if (!v && !l) return undefined
+    styledCount.set(view.name, (styledCount.get(view.name) ?? 0) + 1)
+    return { ...(l ? { label: l } : {}), ...(v ? { value: v } : {}) }
+  }
+  const styleField = (view: IpView, f: { text_style?: ControlTextStyle; type: string }, value: IpTextStyle | undefined, label: IpTextStyle | undefined) => {
+    const ts = controlTextStyle(view, value, label, { heading: f.type === 'heading' })
+    if (ts) f.text_style = ts
   }
 
   /* ── fields ── */
@@ -494,12 +562,16 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
         if (!text || text.length < 2) continue
         if (item.heading && text.length <= 120) {
           const key = keys.extra(`heading_${text}`.slice(0, 40))
-          addField(b, { key, label: clip(text, 200), type: 'heading' })
+          const heading: TaskFieldDef = { key, label: clip(text, 200), type: 'heading' }
+          styleField(view, heading, item.style, undefined)
+          addField(b, heading)
           place(item.row, key, true)
           flush()
         } else {
           const key = keys.extra(`note_${text}`.slice(0, 30))
-          addField(b, { key, label: clip(text, 80), type: 'label', default: clip(text, 5000), label_config: { hide_caption: true } } as TaskFieldDef)
+          const note = { key, label: clip(text, 80), type: 'label', default: clip(text, 5000), label_config: { hide_caption: true } } as TaskFieldDef
+          styleField(view, note, item.style, undefined)
+          addField(b, note)
           place(item.row, key)
         }
         continue
@@ -594,6 +666,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
           }
         })
       }
+      styleField(view, field, c.text_style, c.label_style)
       addField(b, field)
       for (const f of c.formatting) applyFormatting(b, view, c, label, f, [`field:${key}`])
       return key
@@ -619,6 +692,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     const key = keys.key(c.path, c.label)
     const field = fieldFor(c, key, b, view)
     if (!field) return null
+    styleField(view, field, c.text_style, c.label_style)
     addField(b, field)
     b.placed.set(pathKey, key)
     for (const f of c.formatting) applyFormatting(b, view, c, field.label, f, [`field:${key}`])
@@ -749,7 +823,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     if (c.kind === 'repeating_section' && b.itemPath) return convertRepeating(b, view, c, (b.depth ?? 1) + 1)
     const key = keys.key(listPath, c.label || c.title, true)
     const notes: string[] = []
-    const columns = listColumns(view, key, listPath, c.children ?? [], 1, notes)
+    const columns = listColumns(view, key, listPath, c.children ?? [], 1, notes, c.header_styles)
     if (!columns.length) {
       report({ area: 'repeating', id: c.id, view: view.name, name: title, status: 'manual', detail: `No columns could be made from this repeating part${notes.length ? ` (${notes.join('; ')})` : ''}.` })
       return null
@@ -764,13 +838,15 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     for (const f of c.formatting) applyFormatting(b, view, c, title, f, [`field:${key}`])
     // Conditional formatting on the row's cells: per-cell styles (the condition read per row).
     const rowStyles: unknown[] = []
-    collectCellFormatting(view, key, listPath, c.children ?? [], config, rowStyles)
+    const cellRules: unknown[] = []
+    collectCellFormatting(b, view, key, listPath, c.children ?? [], config, rowStyles, cellRules, c)
     if (rowStyles.length) (config as unknown as Record<string, unknown>).row_styles = rowStyles.slice(0, 20)
+    if (cellRules.length) (config as unknown as Record<string, unknown>).cell_rules = cellRules.slice(0, 20)
     return key
   }
 
   /** The columns of a repeating table's row (nested repeating parts → nested List columns, up to 3 levels). */
-  const listColumns = (view: IpView, listKey: string, listPath: string, children: IpViewItem[], depth: number, notes: string[]): ListColumn[] => {
+  const listColumns = (view: IpView, listKey: string, listPath: string, children: IpViewItem[], depth: number, notes: string[], headerStyles?: Array<IpTextStyle | undefined>): ListColumn[] => {
     const columns: ListColumn[] = []
     const leafControls: IpControl[] = []
     const collect = (list: IpViewItem[]) => {
@@ -790,7 +866,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
         const label = cleanLabel(ch.label || ch.title || humanize(ch.path)) || 'Rows'
         if (!ch.path || depth >= 3) { notes.push(`repeating part "${label}" nested deeper than 3 levels`); continue }
         const ckey = keys.column(listKey, ch.path, label)
-        const inner = listColumns(view, `${listKey}.${ckey}`, ch.path, ch.children ?? [], depth + 1, notes)
+        const inner = listColumns(view, `${listKey}.${ckey}`, ch.path, ch.children ?? [], depth + 1, notes, ch.header_styles)
         if (!inner.length) { notes.push(`nested repeating part "${label}" has no columns`); continue }
         columns.push({ key: ckey, label, type: 'list', list: { columns: inner.slice(0, 30) } } as unknown as ListColumn)
         continue
@@ -830,6 +906,9 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       if (t.type === 'currency') col.currency = currency
       if (ch.read_only) col.read_only = true
       if (node?.required) col.required = true
+      // Fonts from the view: the header cell (label) and the cell's control (value).
+      const ts = controlTextStyle(view, ch.text_style, headerStyles?.[ch.col] ?? ch.label_style)
+      if (ts) col.text_style = ts
       const dflt = model.defaults[ch.path]
       if (dflt) col.default = clip(dflt, 500)
       columns.push(col)
@@ -848,30 +927,78 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
     return columns
   }
 
-  /** Cell formatting inside a repeating table → List row_styles (the style on that cell while the row's condition holds). */
-  const collectCellFormatting = (view: IpView, listKey: string, listPath: string, children: IpViewItem[], config: ListFieldConfig, out: unknown[]) => {
-    for (const ch of children) {
-      if (ch.kind === 'static') continue
-      if (ch.children && ch.kind !== 'repeating_table' && ch.kind !== 'repeating_section') { collectCellFormatting(view, listKey, listPath, ch.children, config, out); continue }
-      if (!ch.path || !ch.formatting.length) continue
-      const column = config.columns.find((x) => x.key === keys.column(listKey, ch.path!))
-      for (const f of ch.formatting) {
-        const label = `${cleanLabel(ch.label) || 'Cell'}${f.caption ? ` (${f.caption})` : ''}`
-        const id = `${view.name}:${ch.id}:${f.condition}`
-        if (f.effect !== 'style') {
-          report({ area: 'formatting', id, view: view.name, name: label, status: 'manual', detail: `A cell in a repeating table is ${f.effect === 'hide' ? 'hidden' : 'locked'} by a condition: a List cell can't be ${f.effect === 'hide' ? 'hidden' : 'locked'} per row. Use a Repeating section, or a row validation.`, original: f.condition })
-          continue
+  /**
+   * Formatting inside a repeating table, judged per row:
+   *  - style → List row_styles (the style on that cell while the row's condition holds);
+   *  - hide / disable reading the row → List cell_rules (that row's cell hidden / read only);
+   *  - hide reading only the form (no row field) → a whole-column hide (an Always rule on
+   *    `column:<list>.<column>`), also when the column's header cell is hidden that way;
+   *  - disable reading only the form → a cell rule (every row's cell read only while it holds).
+   */
+  const collectCellFormatting = (b: FormBuild, view: IpView, listKey: string, listPath: string, children: IpViewItem[], config: ListFieldConfig, out: unknown[], cellRules: unknown[], table?: IpControl) => {
+    const rowEnv = (ch: IpControl): TranslateEnv => ({
+      context: ch.context ?? listPath,
+      row: listKey,
+      resolve: (p) => {
+        const col = config.columns.find((x) => x.key === keys.column(listKey, p))
+        if (col) return { kind: 'column', list: listKey, column: col.key }
+        // Outer form fields (a condition on the form, not the row).
+        if (p.toLowerCase().startsWith(`${listPath.toLowerCase()}/`)) return null
+        const outer = env(b, ch.context ?? listPath).resolve(p)
+        return outer && outer.kind === 'field' ? { kind: 'outer', key: outer.key, type: outer.type } : null
+      },
+    })
+    const readsRow = (group: DataTableConditionGroup) => JSON.stringify(group).includes('"row.')
+    const hiddenColumns = new Set<string>()
+    const hideColumn = (column: ListColumn, condition: string, group: DataTableConditionGroup, id: string, label: string, what: string) => {
+      if (hiddenColumns.has(column.key)) return
+      hiddenColumns.add(column.key)
+      pushRule(b, { name: clip(`Hide column: ${column.label}`, FORM_RULE_LIMITS.name), description: clip(`From InfoPath conditional formatting (${what}): the whole column hides while the condition holds.\nOriginal: ${condition}`, FORM_RULE_LIMITS.description), event: 'always', if: group, then: [{ type: 'show_hide', mode: 'hide', targets: [`column:${listKey}.${column.key}`] } as FieldButtonAction] })
+      report({ area: 'formatting', id, view: view.name, name: label, status: 'converted', detail: `Always rule: the "${column.label}" column (header and cells) hides while the form condition holds.`, original: condition })
+    }
+    const walk = (list: IpViewItem[]) => {
+      for (const ch of list) {
+        if (ch.kind === 'static') continue
+        if (ch.children && ch.kind !== 'repeating_table' && ch.kind !== 'repeating_section') { walk(ch.children); continue }
+        if (!ch.path) continue
+        const column = config.columns.find((x) => x.key === keys.column(listKey, ch.path!))
+        // The header cell over this control hidden by a form condition: the whole column hides.
+        const header = table?.header_formatting?.[ch.col] ?? []
+        for (const f of header) {
+          if (f.effect !== 'hide' || !column) continue
+          const cond = toCondition(f.condition, rowEnv({ ...ch, context: table?.context ?? ch.context }))
+          if (cond.ok && !readsRow(cond.value)) hideColumn(column, f.condition, cond.value, `${view.name}:${table?.id}:h${ch.col}:${f.condition}`, `${cleanLabel(ch.label) || 'Column'} (header)`, 'a header cell')
         }
-        const style = styleFromCss(f.style ?? '')
-        const cond = toCondition(f.condition, { context: ch.context ?? listPath, row: listKey, resolve: (p) => { const col = config.columns.find((x) => x.key === keys.column(listKey, p)); return col ? { kind: 'column', list: listKey, column: col.key } : null } })
-        if (!style || !cond.ok || !column) {
-          report({ area: 'formatting', id, view: view.name, name: label, status: 'manual', detail: !style ? 'Conditional formatting with nothing UserTasks styles (e.g. a font size).' : !cond.ok ? `Cell styling not converted: the condition ${cond.reason}.` : 'Cell styling not converted.', original: f.condition })
-          continue
+        for (const f of ch.formatting) {
+          const label = `${cleanLabel(ch.label) || 'Cell'}${f.caption ? ` (${f.caption})` : ''}`
+          const id = `${view.name}:${ch.id}:${f.condition}`
+          const cond = toCondition(f.condition, rowEnv(ch))
+          if (f.effect !== 'style') {
+            const what = f.effect === 'hide' ? 'hidden' : 'read only'
+            if (!cond.ok || !column) {
+              report({ area: 'formatting', id, view: view.name, name: label, status: 'manual', detail: !cond.ok ? `A cell ${what} by a condition was not converted: the condition ${cond.reason}.` : `A cell ${what} by a condition: its column was not made.`, original: f.condition })
+              continue
+            }
+            if (f.effect === 'hide' && !readsRow(cond.value)) { hideColumn(column, f.condition, cond.value, id, label, 'a cell control'); continue }
+            if (cellRules.length >= 20) {
+              report({ area: 'formatting', id, view: view.name, name: label, status: 'manual', detail: 'More than 20 cell rules on one List: this one was not added.', original: f.condition })
+              continue
+            }
+            cellRules.push({ if: cond.value, column: column.key, ...(f.effect === 'hide' ? { hide: true } : { read_only: true }) })
+            report({ area: 'formatting', id, view: view.name, name: label, status: 'converted', detail: `Cell rule: the "${column.label}" cell is ${what} in ${readsRow(cond.value) ? 'rows where the condition holds' : 'every row while the condition holds'}${f.effect === 'disable' ? ' (kept as stored on the server)' : ''}.`, original: f.condition })
+            continue
+          }
+          const style = styleFromCss(f.style ?? '')
+          if (!style || !cond.ok || !column) {
+            report({ area: 'formatting', id, view: view.name, name: label, status: 'manual', detail: !style ? 'Conditional formatting with nothing UserTasks styles.' : !cond.ok ? `Cell styling not converted: the condition ${cond.reason}.` : 'Cell styling not converted.', original: f.condition })
+            continue
+          }
+          out.push({ if: cond.value, style: style.style, column: column.key })
+          report({ area: 'formatting', id, view: view.name, name: label, status: style.note ? 'partial' : 'converted', detail: `Row style on the "${column.label}" cell${style.note ? `: ${style.note}` : ''}.`, original: f.condition })
         }
-        out.push({ if: cond.value, style: style.style, column: column.key })
-        report({ area: 'formatting', id, view: view.name, name: label, status: style.note ? 'partial' : 'converted', detail: `Row style on the "${column.label}" cell${style.note ? `: ${style.note}` : ''}.`, original: f.condition })
       }
     }
+    walk(children)
   }
 
   /** Row arithmetic (a + b, qty * price) as a List calculated formula, or null. */
@@ -967,7 +1094,7 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
       const id = `${view.name}:${c.id}:${f.condition}`
       const style = styleFromCss(f.style ?? '')
       if (!style) {
-        report({ area: 'formatting', id, view: view.name, name: label, status: 'skipped', detail: `Conditional formatting UserTasks doesn't style (${clip(f.style ?? '', 80)}): font sizes and families follow the form theme.`, original: f.condition })
+        report({ area: 'formatting', id, view: view.name, name: label, status: 'skipped', detail: `Conditional formatting with nothing UserTasks styles (${clip(f.style ?? '', 80)}).`, original: f.condition })
         return
       }
       const cond = toCondition(f.condition, env(b, context))
@@ -1308,6 +1435,14 @@ export function generateForms(model: InfoPathModel, options: GenerateOptions = {
   }
 
   /* ── report ── */
+
+  // One line per view for the fonts, sizes and colours carried over.
+  for (const v of views) {
+    const n = styledCount.get(v.name) ?? 0
+    if (!n) continue
+    const base = viewBase.get(v.name)
+    report({ area: 'view', id: `fonts:${v.name}`, view: v.name, name: 'Fonts, sizes and colours', status: 'converted', detail: `Font styles: ${n} control${n === 1 ? '' : 's'} keep their font, size, colour or emphasis (text style on the field or List column)${base?.font || base?.size ? `; the view's usual ${[base.font, base.size].filter(Boolean).join(' ')} is left to the form theme` : ''}.` })
+  }
 
   for (const r of model.manifest.rules) {
     const statuses = ruleStatus.get(r.id) ?? []

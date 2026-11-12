@@ -16,7 +16,11 @@
  *     around one is its show condition;
  *   - conditional formatting (xsl:attribute style / xd:disableEditing with
  *     xsl:when / xsl:if) is kept per control: DISPLAY: none → hide,
- *     disableEditing → disable, anything else → style (reported, not mapped).
+ *     disableEditing → disable, anything else → style; a repeating table's
+ *     header cells keep theirs too (a hidden header = a hidden column);
+ *   - inline text styling (style attributes, font face / size / color,
+ *     strong / em / u) flows down to static text and controls (text_style,
+ *     a label's label_style, a repeating table's header_styles).
  * Labels are matched afterwards (associateLabels): text before a control in
  * the same cell, the cell to its left, or the cell above; a check box's or an
  * option button's text after it.
@@ -24,7 +28,7 @@
 
 import { attr, elements, type XmlChild, type XmlElement } from '@/lib/documents/xml'
 import { resolveBinding, localOf } from './xpath'
-import type { IpControl, IpControlKind, IpFormatting, IpOption, IpText, IpView, IpViewItem } from './model'
+import type { IpControl, IpControlKind, IpFormatting, IpOption, IpText, IpTextStyle, IpView, IpViewItem } from './model'
 
 const PEOPLE_CLSID = '61e40d31-993d-4777-8fa0-19ca59b6d0bb'
 const MAX_ITEMS = 5000
@@ -49,6 +53,60 @@ interface Ctx {
   repeating: number
   showIf: string[]
   templates: string[]
+  /** Text styling inherited from enclosing elements (style attributes, font / strong / em / u). */
+  style?: IpTextStyle
+}
+
+const FONT_SIZE_ATTR: Record<string, string> = { '1': '8pt', '2': '10pt', '3': '12pt', '4': '14pt', '5': '18pt', '6': '24pt', '7': '36pt' }
+
+/** An element's own text styling over the inherited one (undefined when neither has any). */
+export function styleOfElement(el: XmlElement, base?: IpTextStyle): IpTextStyle | undefined {
+  const out: IpTextStyle = { ...(base ?? {}) }
+  const css = attr(el, 'style') ?? ''
+  for (const part of css.split(';')) {
+    const i = part.indexOf(':')
+    if (i <= 0) continue
+    const k = part.slice(0, i).trim().toLowerCase()
+    const v = part.slice(i + 1).trim()
+    if (!v) continue
+    if (k === 'font-size') out.size = v
+    else if (k === 'font-family') out.family = v
+    else if (k === 'color') out.color = v
+    else if (k === 'font-weight') out.bold = v.toLowerCase() === 'bold' || Number(v) >= 600
+    else if (k === 'font-style') out.italic = v.toLowerCase() === 'italic'
+    else if (k === 'text-decoration') out.underline = /underline/i.test(v)
+    else if (k === 'font') {
+      // Shorthand: "bold 10pt Calibri".
+      if (/\bbold\b/i.test(v)) out.bold = true
+      if (/\bitalic\b/i.test(v)) out.italic = true
+      const m = /(\d+(?:\.\d+)?(?:pt|px))(?:\/\S+)?\s+(.+)$/i.exec(v)
+      if (m) { out.size = m[1]; out.family = m[2] }
+    }
+  }
+  if (el.local === 'font') {
+    const face = attr(el, 'face'); if (face) out.family = face
+    const size = attr(el, 'size'); if (size && FONT_SIZE_ATTR[size.trim()]) out.size = FONT_SIZE_ATTR[size.trim()]
+    const color = attr(el, 'color'); if (color) out.color = color
+  }
+  if (el.local === 'strong' || el.local === 'b') out.bold = true
+  if (el.local === 'em' || el.local === 'i') out.italic = true
+  if (el.local === 'u') out.underline = true
+  for (const k of Object.keys(out) as Array<keyof IpTextStyle>) if (out[k] === undefined || out[k] === false) delete out[k]
+  return Object.keys(out).length ? out : undefined
+}
+
+/** A cell's text styling: the cell, then the elements down to its first text. */
+function styleOfCell(el: XmlElement, base?: IpTextStyle, depth = 0): IpTextStyle | undefined {
+  const own = styleOfElement(el, base)
+  if (depth > 6 || el.children.some((c) => typeof c === 'string' && c.trim())) return own
+  const next = elements(el).find((c) => !c.name.startsWith('xsl:') && plainText(c))
+  return next ? styleOfCell(next, own, depth + 1) : own
+}
+
+/** Conditional formatting anywhere in a header cell (InfoPath puts it on the cell's div / font). */
+function cellFormatting(el: XmlElement, depth = 0): IpFormatting[] {
+  if (depth > 6) return []
+  return [...formattingOf(el), ...elements(el).filter((c) => !c.name.startsWith('xsl:')).flatMap((c) => cellFormatting(c, depth + 1))]
 }
 
 const xd = (el: XmlElement, local: string): string | undefined => {
@@ -216,7 +274,7 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
       last.heading = last.heading && heading
       return
     }
-    items.push({ kind: 'static', text: clean, heading, row: ctx.row, col: ctx.col })
+    items.push({ kind: 'static', text: clean, heading, row: ctx.row, col: ctx.col, ...(ctx.style ? { style: { ...ctx.style } } : {}) })
   }
 
   const makeControl = (el: XmlElement, kind: IpControlKind, xct: string, ctx: Ctx): IpControl => {
@@ -241,6 +299,8 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
     const title = attr(el, 'title')
     if (title && !/^CTRL\d+/i.test(title)) control.title = title
     if (ctx.showIf.length) control.formatting.push(...ctx.showIf.map((t) => ({ condition: `not(${t})`, effect: 'hide' as const })))
+    const ownStyle = bindingEl !== el ? styleOfElement(bindingEl, ctx.style) : ctx.style
+    if (ownStyle) control.text_style = { ...ownStyle }
     const disable = xd(el, 'disableEditing') ?? xd(bindingEl, 'disableEditing')
     if (disable === 'yes') control.read_only = true
     const datafmt = (xd(bindingEl, 'datafmt') ?? '').toLowerCase()
@@ -340,6 +400,8 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
     const el = node
     if (SKIP_TAGS.has(el.local) && !el.name.startsWith('xsl:')) return
     if (el.name.startsWith('xsl:')) return walkXsl(el, ctx, items, depth)
+    // Text styling flows down to the text and controls inside.
+    if (attr(el, 'style') || ['font', 'strong', 'b', 'em', 'i', 'u'].includes(el.local)) ctx = { ...ctx, style: styleOfElement(el, ctx.style) }
     if (el.local === 'img') {
       // A picture placed in the view (a file in the template): a display image. Built-in resources (res://) are skipped.
       const src = (attr(el, 'src') ?? '').trim()
@@ -479,8 +541,18 @@ export function parseView(doc: XmlElement, meta: { name: string; caption: string
     const body = bodies.find((b) => (xd(b, 'xctname') ?? '').toLowerCase() === 'repeatingtable' || xd(b, 'repeating')) ?? bodies.find((b) => b !== header && b !== footer)
     const headers: string[] = []
     const headRow = header ? elements(header).find((r) => r.local === 'tr') : undefined
-    for (const cell of headRow ? elements(headRow).filter((c) => c.local === 'td' || c.local === 'th') : []) headers.push(plainText(cell))
+    const headerStyles: Array<IpTextStyle | undefined> = []
+    const headerFormatting: IpFormatting[][] = []
+    for (const cell of headRow ? elements(headRow).filter((c) => c.local === 'td' || c.local === 'th') : []) {
+      headers.push(plainText(cell))
+      headerStyles.push(styleOfCell(cell, ctx.style))
+      headerFormatting.push(cellFormatting(cell))
+      // A header cell spanning columns: the same title style for each.
+      for (let k = 1; k < Math.max(1, Number(attr(cell, 'colSpan') ?? 1) || 1); k++) { headers.push(''); headerStyles.push(undefined); headerFormatting.push([]) }
+    }
     const control: IpControl = { id: xd(body ?? table, 'CtrlId') ?? xd(table, 'CtrlId') ?? `X${++generated}`, kind: 'repeating_table', xctname: 'RepeatingTable', row: nextRow(), col: 0, context: ctx.path, formatting: formattingOf(table), children: [], headers }
+    if (headerStyles.some(Boolean)) control.header_styles = headerStyles
+    if (headerFormatting.some((f) => f.length)) control.header_formatting = headerFormatting
     const title = attr(table, 'title') ?? attr(body ?? table, 'title')
     if (title && !/^CTRL\d+/i.test(title)) control.title = title
     if (ctx.showIf.length) control.show_if = ctx.showIf.join(' and ')
@@ -585,7 +657,7 @@ export function associateLabels(items: IpViewItem[]) {
     if (item.children) associateLabels(item.children)
     if ((item.kind === 'repeating_table' || item.kind === 'repeating_section') && !item.label) {
       const prev = items[idx - 1]
-      if (prev && prev.kind === 'static' && !consumed.has(prev) && prev.text.length <= 80) { item.label = prev.text.replace(/:\s*$/, ''); consumed.add(prev) }
+      if (prev && prev.kind === 'static' && !consumed.has(prev) && prev.text.length <= 80) { item.label = prev.text.replace(/:\s*$/, ''); consumed.add(prev); if (prev.style) item.label_style = prev.style }
       continue
     }
     if (!LABELLED.has(item.kind) || item.label) continue
@@ -598,27 +670,27 @@ export function associateLabels(items: IpViewItem[]) {
       if (item.kind === 'option') {
         item.options = [{ value: item.on_value ?? after.text, label: after.text.replace(/:$/, '') }]
         consumed.add(after)
-        if (before && !before.heading) { item.label = before.text.replace(/:\s*$/, ''); consumed.add(before) }
+        if (before && !before.heading) { item.label = before.text.replace(/:\s*$/, ''); consumed.add(before); if (before.style) item.label_style = before.style }
         else {
           const left = texts.filter((t) => t.row === item.row && t.col < item.col && !consumed.has(t)).sort((a, b) => b.col - a.col)[0]
-          if (left) { item.label = left.text.replace(/:\s*$/, ''); consumed.add(left) }
+          if (left) { item.label = left.text.replace(/:\s*$/, ''); consumed.add(left); if (left.style) item.label_style = left.style }
         }
         continue
       }
       item.label = after.text.replace(/:$/, '')
-      consumed.add(after)
+      consumed.add(after); if (after.style) item.label_style = after.style
       continue
     }
-    if (before) { item.label = before.text.replace(/:\s*$/, ''); consumed.add(before); continue }
+    if (before) { item.label = before.text.replace(/:\s*$/, ''); consumed.add(before); if (before.style) item.label_style = before.style; continue }
     // "Phone:" in its own block just before the control (sections laid out without tables).
     const prev = items[idx - 1]
-    if (prev && prev.kind === 'static' && !consumed.has(prev) && /:\s*$/.test(prev.text) && prev.text.length <= 80) { item.label = prev.text.replace(/:\s*$/, ''); consumed.add(prev); continue }
+    if (prev && prev.kind === 'static' && !consumed.has(prev) && /:\s*$/.test(prev.text) && prev.text.length <= 80) { item.label = prev.text.replace(/:\s*$/, ''); consumed.add(prev); if (prev.style) item.label_style = prev.style; continue }
     // The nearest cell to the left in the same row, with no control in between.
     const left = texts.filter((t) => t.row === item.row && t.col < item.col && !consumed.has(t)).sort((a, b) => b.col - a.col)[0]
-    if (left && !controls(item.row).some((c) => c !== item && c.col > left.col && c.col < item.col)) { item.label = left.text.replace(/:\s*$/, ''); consumed.add(left); continue }
+    if (left && !controls(item.row).some((c) => c !== item && c.col > left.col && c.col < item.col)) { item.label = left.text.replace(/:\s*$/, ''); consumed.add(left); if (left.style) item.label_style = left.style; continue }
     // The cell above (a label row over an input row).
     const above = texts.filter((t) => t.row < item.row && t.col === item.col && !consumed.has(t) && !controls(t.row).length).sort((a, b) => b.row - a.row)[0]
-    if (above && item.row - above.row <= 2 && (!above.heading || /:\s*$/.test(above.text))) { item.label = above.text.replace(/:\s*$/, ''); consumed.add(above); continue }
+    if (above && item.row - above.row <= 2 && (!above.heading || /:\s*$/.test(above.text))) { item.label = above.text.replace(/:\s*$/, ''); consumed.add(above); if (above.style) item.label_style = above.style; continue }
     if (item.kind === 'option' && item.on_value !== undefined && !item.options) item.options = [{ value: item.on_value, label: item.on_value }]
   }
   // Merge option buttons bound to the same node into one control.

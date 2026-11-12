@@ -49,7 +49,9 @@ import { resolveHeaderText } from '@/lib/forms/header'
 import { FieldButtonCell } from './field-button'
 import { FormLevelError, FormRulesScope, useFormRules } from './form-rules-runtime'
 import { FormMessagesScope } from './form-messages'
-import { alwaysRuleEffects, ruleHiddenFieldKeys, ruleStyles } from '@/lib/forms/form-rules'
+import { alwaysRuleEffects, ruleHiddenColumns, ruleHiddenFieldKeys, ruleStyles } from '@/lib/forms/form-rules'
+import { withHiddenColumns } from '@/lib/forms/repeating-section'
+import { labelStyleProps, valueStyleProps } from '@/lib/forms/text-style'
 import { StyledBox } from './conditional-style'
 import { useFormRuntime } from './form-runtime'
 import { DynamicStatusProvider, useDynamicFields, useDynamicStatus } from './dynamic-fields'
@@ -567,8 +569,8 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
   if (field.type === 'heading') {
     return (
       <div className="pt-2">
-        <h3 className="text-sm font-semibold text-fg">{field.label.includes('{{') ? resolveHeaderText(field.label, values) : field.label}</h3>
-        {field.help_text && <p className="mt-0.5 text-xs text-fg-muted">{field.help_text.includes('{{') ? resolveHeaderText(field.help_text, values) : field.help_text}</p>}
+        <h3 className="text-sm font-semibold text-fg" {...labelStyleProps(field)}>{field.label.includes('{{') ? resolveHeaderText(field.label, values) : field.label}</h3>
+        {field.help_text && <p className="mt-0.5 text-xs text-fg-muted" {...valueStyleProps(field)}>{field.help_text.includes('{{') ? resolveHeaderText(field.help_text, values) : field.help_text}</p>}
       </div>
     )
   }
@@ -578,7 +580,8 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
     // Display text (lib/forms/label-field.ts): an expression's live value; else what rules / the default put in the values.
     const live = field.label_config?.expression && (readOnly ? value === undefined : true) ? computeLabelValues(fields, values)[field.key]?.value : undefined
     const shown = live !== undefined ? live : value !== undefined ? value : field.default ?? null
-    return <LabelDisplay field={field} fields={fields} value={shown} id={id} dynamic={!readOnly && isDynamicLabel(field, fullLayout)} />
+    const display = <LabelDisplay field={field} fields={fields} value={shown} id={id} dynamic={!readOnly && isDynamicLabel(field, fullLayout)} />
+    return field.text_style?.value ? <div {...valueStyleProps(field)}>{display}</div> : display
   }
   if (field.type === 'repeating_section') {
     // A group of controls repeated per item (components/forms/repeating-section-field.tsx): its own label, cards, Add and totals.
@@ -594,7 +597,7 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
   }
 
   const label = (
-    <label id={`${id}-label`} htmlFor={id} className={cn('block font-medium', labelClass, labelLeft ? 'sm:pt-2.5' : 'mb-1', 'text-fg-muted')}>
+    <label id={`${id}-label`} htmlFor={id} className={cn('block font-medium', labelClass, labelLeft ? 'sm:pt-2.5' : 'mb-1', 'text-fg-muted')} {...labelStyleProps(field)}>
       {field.label}
       {field.required && !readOnly && !locked && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}
     </label>
@@ -614,13 +617,14 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
   }
 
   if (readOnly && field.type === 'list') {
-    return <div>{label}<ListValueView field={field} value={value} narrow={singleColumn} formValues={values} /></div>
+    return <div>{label}<div {...valueStyleProps(field)}><ListValueView field={field} value={value} narrow={singleColumn} formValues={values} /></div></div>
   }
 
   if (readOnly) {
     return (
       <div className={cn(labelLeft && 'sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-3')}>
         {label}
+        <div className="min-w-0" {...valueStyleProps(field)}>
         {holdsFiles(field)
           ? <div className="text-sm text-fg"><AttachmentList value={value} /></div>
           : field.type === 'image' ? <ImageValueView value={value} label={field.label} />
@@ -628,12 +632,15 @@ function FieldCell({ field, value, onChange, error, readOnly, labelClass, labelL
           : hasControlValueView(field) ? <ControlValueView field={field} value={value} values={values} />
           : isSurveyType(field.type) ? <SurveyAnswerView field={field} value={value} />
           : <p className="text-sm break-words whitespace-pre-wrap text-fg">{field.type === 'lookup' ? lookupDisplayValue(field, value, values[lookupItemKey(field.key)], values[lookupLabelKey(field.key)]) : formatFieldValue(field, value, peopleMap)}</p>}
+        </div>
       </div>
     )
   }
 
   const watch = field.type === 'signature' && field.signature?.resign_on_change ? signatureWatch(fields, values, field.key) : undefined
-  const control = <FieldControl field={field} value={value} onChange={(v) => onChange?.(field.key, v)} error={error} id={id} people={people} values={values} setValue={(key, v) => onChange?.(key, v)} reportRows={field.type === 'data_table' && tablesReadByLabels(fields).has(field.key)} locked={locked} narrow={singleColumn} watch={watch} />
+  const rawControl = <FieldControl field={field} value={value} onChange={(v) => onChange?.(field.key, v)} error={error} id={id} people={people} values={values} setValue={(key, v) => onChange?.(key, v)} reportRows={field.type === 'data_table' && tablesReadByLabels(fields).has(field.key)} locked={locked} narrow={singleColumn} watch={watch} />
+  // Text styling (lib/forms/text-style.ts): the value's size, font and colour reach the control's text.
+  const control = field.text_style?.value ? <div {...valueStyleProps(field)} data-field-value-style>{rawControl}</div> : rawControl
   const errorLine = error ? <p id={`${id}-error`} role="alert" className="mt-1 text-2xs text-(--status-blocked)">{error}</p> : null
   if (field.type === 'boolean') {
     // Aligned with the inputs beside it on wider screens; no gap when the row collapses to one column.
@@ -937,10 +944,12 @@ function FormGridBody({ fields, layout, fullLayout, values: rawValues, onChange:
 
   // Conditional styling (Always rules' set_style): recomputed from the values — read-only views too.
   const styles = useMemo(() => ruleStyles(whole, fields, values, rules ? { styles: rules.styles } : {}), [whole, fields, values, rules])
+  // Whole List columns / a repeating section's control in every item hidden by a rule (`column:<field>.<column>`).
+  const hiddenColumns = useMemo(() => (fields.some((f) => f.type === 'list' || f.type === 'repeating_section') ? ruleHiddenColumns(whole, values) : new Map<string, Set<string>>()), [whole, fields, values])
   const cell = (field: TaskFieldDef) => (
     <StyledBox style={styles.fields.get(field.key)}>
     <FieldCell
-      field={ruled(field)}
+      field={withHiddenColumns(ruled(field), hiddenColumns.get(field.key))}
       locked={locked(field)}
       value={values[field.key]}
       onChange={onChange}

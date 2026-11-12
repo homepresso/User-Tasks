@@ -91,7 +91,10 @@ describe('conditional formatting CSS → theme tokens', () => {
     expect(styleFromCss('BACKGROUND-COLOR: rgb(0, 112, 192)')).toMatchObject({ style: { tone: 'info', background: true } })
     expect(styleFromCss('TEXT-DECORATION: line-through underline')).toMatchObject({ style: { strike: true, underline: true } })
     expect(styleFromCss('COLOR: #ffffff')).toMatchObject({ style: { tone: 'neutral', text: true }, note: expect.stringContaining('hidden value') })
-    expect(styleFromCss('FONT-SIZE: 14pt')).toBeNull()
+    // Font sizes and families now carry over (a size token and a curated web-safe stack).
+    expect(styleFromCss('FONT-SIZE: 14pt')).toEqual({ style: { size: '18.5px' } })
+    expect(styleFromCss('FONT-FAMILY: Georgia; FONT-WEIGHT: bold')).toEqual({ style: { bold: true, font: 'georgia' } })
+    expect(styleFromCss('WIDTH: 100px')).toBeNull()
   })
 })
 

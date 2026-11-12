@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { cn } from '@/lib/utils'
+import { labelStyleProps } from '@/lib/forms/text-style'
 import { resolveRuleTemplate } from '@/lib/forms/form-rules'
 import type { FormLayout } from '@/lib/forms/layout'
 import {
@@ -186,7 +187,7 @@ export function RepeatingSectionField({ field, value, onChange, formValues, onFo
   return (
     <div role="group" aria-labelledby={`${id}-label`} aria-describedby={describedBy} data-repeating-section={field.key} className="min-w-0">
       <div className="mb-1.5 flex flex-wrap items-baseline gap-x-2">
-        <span id={`${id}-label`} className={cn('font-medium text-fg-muted', compact ? 'text-2xs' : 'text-xs')}>
+        <span id={`${id}-label`} className={cn('font-medium text-fg-muted', compact ? 'text-2xs' : 'text-xs')} {...labelStyleProps(field)}>
           {field.label}
           {required && <span className="ml-0.5 text-(--status-blocked)" aria-hidden>*</span>}
         </span>

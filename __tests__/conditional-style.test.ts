@@ -52,7 +52,7 @@ const LAYOUT = {
 
 describe('normalisation', () => {
   it('keeps known tones and switches only; a tone alone shades and colours; colour switches without a tone are neutral', () => {
-    expect(normalizeConditionalStyle({ tone: 'Danger', bold: true, italic: 'yes', color: '#f00', css: 'x', underline: true })).toEqual({ tone: 'danger', bold: true, underline: true })
+    expect(normalizeConditionalStyle({ tone: 'Danger', bold: true, italic: 'yes', color: '#f00', css: 'x', underline: true })).toEqual({ tone: 'danger', bold: true, underline: true, color: '#ff0000' })
     expect(normalizeConditionalStyle({ tone: 'purple', bold: true })).toEqual({ bold: true })
     expect(normalizeConditionalStyle({ tone: 'warning' })).toEqual({ tone: 'warning', background: true, text: true })
     expect(normalizeConditionalStyle({ text: true, icon: true })).toEqual({ tone: 'neutral', text: true, icon: true })
@@ -187,9 +187,9 @@ describe('List row_styles: per row and per cell, every level', () => {
 
   it('judges each row: the whole row, a cell, the form and the user', () => {
     const ctx = { form: { floor: '10' }, user: null }
-    expect(listRowStyles(LINES, { item: 'Desk', qty: 10, price: 600 }, ctx)).toEqual({ row: { tone: 'danger', background: true, icon: true }, cells: {} })
-    expect(listRowStyles(LINES, { item: 'Pen', qty: 0, price: 2 }, ctx)).toEqual({ row: { strike: true, tone: 'neutral', text: true }, cells: { price: { tone: 'warning', bold: true } } })
-    expect(listRowStyles(LINES, { item: 'Pen', qty: 1, price: 20 }, ctx)).toEqual({ row: null, cells: {} })
+    expect(listRowStyles(LINES, { item: 'Desk', qty: 10, price: 600 }, ctx)).toEqual({ row: { tone: 'danger', background: true, icon: true }, cells: {}, hidden: {}, locked: {} })
+    expect(listRowStyles(LINES, { item: 'Pen', qty: 0, price: 2 }, ctx)).toEqual({ row: { strike: true, tone: 'neutral', text: true }, cells: { price: { tone: 'warning', bold: true } }, hidden: {}, locked: {} })
+    expect(listRowStyles(LINES, { item: 'Pen', qty: 1, price: 20 }, ctx)).toEqual({ row: null, cells: {}, hidden: {}, locked: {} })
     // The user: judged when known, skipped when not known here.
     expect(listRowStyles(LINES, { item: 'Pen', qty: 1, price: 20 }, { form: {}, user: { roles: ['Finance'] } }).cells.item).toEqual({ tone: 'info', underline: true })
     expect(listRowStyles(LINES, { item: 'Pen', qty: 1, price: 20 }, { form: {} }).cells.item).toBeUndefined()
@@ -197,8 +197,8 @@ describe('List row_styles: per row and per cell, every level', () => {
 
   it('nested rows read their parent row', () => {
     const nested = LINES.columns.find((c) => c.key === 'serials')!.list!
-    expect(listRowStyles(nested, { sn: '' }, { parent: { qty: 8 } })).toEqual({ row: { tone: 'accent', italic: true }, cells: { sn: { tone: 'warning', text: true } } })
-    expect(listRowStyles(nested, { sn: 'A1' }, { parent: { qty: 1 } })).toEqual({ row: null, cells: {} })
+    expect(listRowStyles(nested, { sn: '' }, { parent: { qty: 8 } })).toEqual({ row: { tone: 'accent', italic: true }, cells: { sn: { tone: 'warning', text: true } }, hidden: {}, locked: {} })
+    expect(listRowStyles(nested, { sn: 'A1' }, { parent: { qty: 1 } })).toEqual({ row: null, cells: {}, hidden: {}, locked: {} })
   })
 
   it('the rows show their styles (table and cards), read-only included; the pop-out form styles its fields', () => {

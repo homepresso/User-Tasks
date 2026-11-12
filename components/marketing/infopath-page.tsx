@@ -37,7 +37,8 @@ const MAPS: Array<[string, string]> = [
   ["XPath functions", "substring-before / after, translate, normalize-space, starts-with, Nz, Avg, Max, Min, xdUtil:Concat; sum and count with a filter become SUMIF / COUNTIF; xdMath:Eval becomes a calculated List column"],
   ["Rules on fields, buttons and form load", "Form rules: set values, show messages, hide, make read only, go to step"],
   ["Data validation", "Field errors that block submit, in the browser and again on the server; on repeating fields, List column and row validations"],
-  ["Conditional formatting", "“Always” rules that hide, lock or style while the condition holds: font colour, shading, bold, italic, underline, strikethrough, with colours snapped to your theme; in a repeating table, List row styles"],
+  ["Conditional formatting", "“Always” rules that hide, lock or style while the condition holds: font colour, font size and font, shading, bold, italic, underline, strikethrough, with colours snapped to your theme; in a repeating table, row styles and cells hidden or locked row by row (locked cells keep their saved value on the server), and whole columns hidden by a condition on the form"],
+  ["Fonts, sizes and colours in the view", "Font size, font, colour, bold, italic and underline on labels, values, table headers and cells, mapped to web-safe fonts (Calibri, Segoe UI, Arial, Verdana, Tahoma, Times New Roman, Georgia, Courier New) and kept readable in dark mode; the view's usual font is left to your theme"],
   ["User roles, get-Role(), user names", "Conditions on the person's workspace roles; userName() and get-DisplayName() become the signed-in person's email and name"],
 ]
 
@@ -46,7 +47,7 @@ const LEFT_OUT = [
   "Secondary data sources read in formulas (GetDOM), position() and last() in formulas, and filters other than one “=” comparison",
   "Form code (JScript, C#, managed code) is never run",
   "Certificates on digital signatures (they become electronic signatures), and signatures inside repeating sections",
-  "Hiding or locking one cell of a repeating table, font sizes, and nesting deeper than 3 levels",
+  "Nesting deeper than 3 levels, and fonts outside the web-safe set (they fall back to the nearest one or your theme's font)",
   "Person fields on a form shared publicly: anonymous visitors don't see them",
   "Rules that convert only in part: the converted actions run, the rest is in the rule's notes",
 ]

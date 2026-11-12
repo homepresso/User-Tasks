@@ -22,14 +22,15 @@ import { isAllowedUrl, normalizeUrlConfig, urlConfigProblem, type UrlFieldConfig
 import { isPeopleList, normalizePeopleValue, normalizeUserConfig, peopleValueError, type PersonRef, type UserFieldConfig } from '@/lib/forms/people-field'
 import { normalizeAutocomplete } from '@/lib/forms/autocomplete'
 import { normalizeFieldButton, type FieldButtonConfig } from '@/lib/forms/field-buttons'
-import { layoutFormRules, ruleClaimGate, ruleHiddenFieldKeys, ruleReadOnlyFieldKeys, ruleValidationErrors, ruleWrittenReadOnlyValues } from '@/lib/forms/form-rules'
+import { normalizeControlTextStyle, type ControlTextStyle } from '@/lib/forms/text-style'
+import { alwaysRuleEffects, readOnlyFieldKeys, layoutFormRules, ruleHiddenColumns, ruleClaimGate, ruleHiddenFieldKeys, ruleReadOnlyFieldKeys, ruleValidationErrors, ruleWrittenReadOnlyValues } from '@/lib/forms/form-rules'
 import { choiceGroupKeys, choiceGroupValueErrors, withChoiceDefaults, excludedSectionFieldKeys, isSectionIncluded, layoutSections, sectionConditionValue, sectionIncludedKeys, sectionInclusionPatch, sectionRuleHiddenFieldKeys } from '@/lib/forms/sections'
 import {
   changeCount, dataTableConfigProblem, isChangeSet, normalizeDataTableConfig, validateChangeSet, validateSelection, type DataTableFieldConfig,
 } from '@/lib/forms/data-table'
 import { allActions } from '@/lib/forms/field-buttons'
 import { ruleOptionFields } from '@/lib/forms/data-actions'
-import { checkListValue, coerceListRows, keepReadOnlyListColumns, listConfigProblem, listDerivedKeys, listDerivedValues, normalizeListConfig, type ListFieldConfig } from '@/lib/forms/list-field'
+import { checkListValue, coerceListRows, keepLockedListCells, keepReadOnlyListColumns, listConfigProblem, listDerivedKeys, listDerivedValues, normalizeListConfig, type ListFieldConfig } from '@/lib/forms/list-field'
 import {
   REPEATING_LIMITS, innerFieldsDeep, innerFormLayout, itemScopeValues, maxItems, minItems, normalizeRepeatingSectionConfig, repeatingConfigProblem, repeatingDerivedKeys,
   repeatingDerivedValues, repeatingItems, startItems, type RepeatingSectionConfig,
@@ -206,6 +207,13 @@ export interface TaskFieldDef {
    * The value is an array of item objects keyed by the inner fields' keys.
    */
   repeating_section?: RepeatingSectionConfig
+  /**
+   * Text styling (lib/forms/text-style.ts): `label` = the field's label,
+   * `value` = its input / shown value (a heading's / label's text). Font
+   * size, family, colour (theme token or #hex), bold / italic / underline;
+   * whitelisted values only, presentation only.
+   */
+  text_style?: ControlTextStyle
   /**
    * label only: display text whose value comes from an expression, rules or
    * the default — format, prefix / suffix, "Include in submission"
@@ -433,6 +441,9 @@ function normalizeFieldsAt(raw: unknown, sectionDepth: number): TaskFieldDef[] {
     if (!key || seen.has(key) || RESERVED_FIELD_KEYS.has(key)) continue
     seen.add(key)
     const field: TaskFieldDef = { key, label: label || key, type }
+    // Text styling (lib/forms/text-style.ts): font size, family, colour, bold / italic / underline of the label and the value.
+    const textStyle = type === 'divider' ? undefined : normalizeControlTextStyle(entry.text_style)
+    if (textStyle) field.text_style = textStyle
     if (isDisplayField(field)) {
       if (type === 'heading') {
         const help = cleanString(entry.help_text, 2000)
@@ -837,6 +848,8 @@ export interface ValidateOptions {
   looseOptions?: ReadonlySet<string> | null
   /** Internal: these values are a repeating section item's scope — the item (a nested section's `parent`) and the items left over every level. */
   item?: { value: Record<string, unknown>; budget: { left: number } }
+  /** Internal: a repeating section's inner controls a form rule hides in every item (`column:<section>.<key>`). */
+  hiddenKeys?: ReadonlySet<string> | null
 }
 
 /** Fields hidden for these values (with the sanitized state): hidden pages, state targets, Always rules, sections. */
@@ -849,6 +862,7 @@ function hiddenFieldKeys(fields: TaskFieldDef[], vals: Record<string, unknown>, 
   // Sections (lib/forms/sections.ts): a section's own rule; an optional section not included.
   for (const key of sectionRuleHiddenFieldKeys(options.layout, vals, isRuleMet, known)) hidden.add(key)
   for (const key of excludedSectionFieldKeys(options.layout, vals)) hidden.add(key)
+  for (const key of options.hiddenKeys ?? []) hidden.add(key)
   return hidden
 }
 
@@ -890,6 +904,8 @@ export function validateTaskFieldValues(
   // Read only by a rule (lib/forms/form-rules.ts "Make read only"): not required — the person can't fill it in.
   // Always rules recomputed, event rules' claims as sanitized above; every other check still runs.
   const ruleReadOnly = ruleReadOnlyFieldKeys(options.layout, fields, vals, { user: options.user ?? null })
+  // Whole List columns / a repeating section's control in every item hidden by a rule (`column:` targets): hidden-field semantics.
+  const hiddenColumns = fields.some((f) => f.type === 'list' || f.type === 'repeating_section') ? ruleHiddenColumns(options.layout, vals, { user: options.user ?? null }) : new Map<string, Set<string>>()
   const stepKeys = options.step?.keys ?? null
   for (const field of fields) {
     // Labels are display text: nothing to validate (their stored value is the server's own).
@@ -942,7 +958,7 @@ export function validateTaskFieldValues(
       // Repeating rows (lib/forms/list-field.ts): every row's columns, min / max rows; required = at least one row.
       // …and the List's column / row validations, judged with the form's values and the user (the server's own).
       // (`user` undefined — not known here, e.g. the browser's own check: validations reading the user are left to the server.)
-      const check = checkListValue(field.list, value, Boolean(required), 1, { form: vals, user: options.user })
+      const check = checkListValue(field.list, value, Boolean(required), 1, { form: vals, user: options.user, hiddenColumns: hiddenColumns.get(field.key) ?? null })
       if (check.errors.length && visible) errors[field.key] = `${field.label}: ${check.errors.slice(0, 3).join('; ')}`
       continue
     }
@@ -950,7 +966,7 @@ export function validateTaskFieldValues(
       // A group of controls repeated per item (lib/forms/repeating-section.ts): each item checked by this same engine
       // against the inner fields and the inner rules, with the item's scope; errors by path (`expenses[1].amount`).
       if (!visible) continue
-      const check = checkRepeatingSection(field, value, Boolean(required), { form: vals, options })
+      const check = checkRepeatingSection(field, value, Boolean(required), { form: vals, options, hiddenKeys: hiddenColumns.get(field.key) ?? null })
       for (const [path, message] of Object.entries(check.paths)) errors[path] = message
       if (check.errors.length) errors[field.key] = `${field.label}: ${check.errors.slice(0, 3).join('; ')}`
       continue
@@ -1057,7 +1073,7 @@ export function validateTaskFieldValues(
  * address below the field (`expenses[1].amount`, `trips[0].legs[2].from`).
  */
 function checkRepeatingSection(
-  field: TaskFieldDef, value: unknown, required: boolean, ctx: { form: Record<string, unknown>; options: ValidateOptions },
+  field: TaskFieldDef, value: unknown, required: boolean, ctx: { form: Record<string, unknown>; options: ValidateOptions; hiddenKeys?: ReadonlySet<string> | null },
 ): { errors: string[]; paths: Record<string, string> } {
   const out = { errors: [] as string[], paths: {} as Record<string, string> }
   const config = field.repeating_section
@@ -1076,7 +1092,7 @@ function checkRepeatingSection(
   items.forEach((item, i) => {
     const scope = itemScopeValues(ctx.form, item, parent)
     const problems = validateTaskFieldValues(config?.fields ?? [], scope, {
-      layout, user: ctx.options.user, partial: ctx.options.partial, looseOptions: ctx.options.looseOptions, item: { value: item, budget },
+      layout, user: ctx.options.user, partial: ctx.options.partial, looseOptions: ctx.options.looseOptions, item: { value: item, budget }, hiddenKeys: ctx.hiddenKeys ?? null,
     })
     const entries = Object.entries(problems)
     if (!entries.length) return
@@ -1284,6 +1300,83 @@ export function stepFieldValues(
 }
 
 /**
+ * Columns of a List that rules write (Add row / New row / Set row values /
+ * Update a row… with `values`): a rule may fill a read-only cell (InfoPath
+ * sets disabled controls by rules), so a cell rule's lock is not enforced on
+ * those columns — the browser's value is taken like a rule's.
+ */
+function ruleWrittenColumns(layout: unknown, listKey: string): Set<string> {
+  const out = new Set<string>()
+  for (const rule of layoutFormRules(layout)) {
+    for (const a of allActions(rule.then)) {
+      const target = (a as { field?: string; list_field?: string }).field ?? (a as { list_field?: string }).list_field
+      const values = (a as { values?: Record<string, unknown> }).values
+      if (target === listKey && isPlainObject(values)) for (const k of Object.keys(values)) out.add(k)
+    }
+  }
+  return out
+}
+
+/**
+ * Server merge for a repeating section: an item the form opened with keeps
+ * the stored value of each inner control its item rules (Always "Make read
+ * only") lock — locked as stored AND locked for the submitted item. Items
+ * are matched by key_field; without one by position, only when the items
+ * cannot be reordered and their count is unchanged. Controls an item rule
+ * writes (Set / Copy / Clear values) are left as sent (a rule fills them).
+ */
+export function keepLockedItemValues(
+  config: RepeatingSectionConfig | undefined, submitted: unknown, stored: unknown,
+  ctx: { form?: Record<string, unknown> | null; storedForm?: Record<string, unknown> | null; user?: Record<string, unknown> | null; parent?: Record<string, unknown> | null; storedParent?: Record<string, unknown> | null } = {},
+): { rows: unknown; restored: string[] } {
+  const layout = config ? innerFormLayout(config) : null
+  const rules = layout ? layoutFormRules(layout) : []
+  if (!config || !Array.isArray(submitted) || !rules.some((r) => r.event === 'always' && !r.disabled && r.then.some((a) => a.type === 'read_only'))) return { rows: submitted, restored: [] }
+  const before = repeatingItems(stored)
+  if (!before.length) return { rows: submitted, restored: [] }
+  const written = new Set<string>()
+  for (const r of rules) for (const a of allActions(r.then)) if ((a.type === 'set_values' || a.type === 'copy_values' || a.type === 'clear_values') && isPlainObject(a.assign)) for (const k of Object.keys(a.assign)) written.add(k)
+  for (const r of rules) for (const a of allActions(r.then)) if (a.type === 'clear_values') for (const t of a.targets ?? []) written.add(t.replace(/^field:/, ''))
+  const key = config.key_field
+  const byKey = new Map<string, Record<string, unknown>>()
+  if (key) for (const item of before) { const k = item[key]; if (k !== null && k !== undefined && k !== '') byKey.set(String(k), item) }
+  const positional = !key && config.allow_reorder === false && submitted.length === before.length
+  const fields = config.fields
+  const user = ctx.user ?? null
+  const lockedOf = (item: Record<string, unknown>, form: Record<string, unknown>, parent: Record<string, unknown> | null) => {
+    const scope = itemScopeValues(form, item, parent)
+    return readOnlyFieldKeys(layout, fields, [...alwaysRuleEffects(layout, scope, { user, rules }).readOnly])
+  }
+  const restored = new Set<string>()
+  const rows = submitted.map((item, i) => {
+    if (!isPlainObject(item)) return item
+    const k = key ? item[key] : undefined
+    const original = key ? (k === null || k === undefined || k === '' ? undefined : byKey.get(String(k))) : positional ? before[i] : undefined
+    if (!original) return item
+    const now = lockedOf(item, ctx.form ?? {}, ctx.parent ?? null)
+    const then = lockedOf(original, ctx.storedForm ?? ctx.form ?? {}, ctx.storedParent ?? ctx.parent ?? null)
+    const next: Record<string, unknown> = { ...item }
+    for (const f of fields) {
+      if (!now.has(f.key) || !then.has(f.key) || written.has(f.key) || f.type === 'label') continue
+      if (JSON.stringify(next[f.key] ?? null) !== JSON.stringify(original[f.key] ?? null)) restored.add(f.key)
+      next[f.key] = original[f.key] ?? null
+      if (f.type === 'lookup') next[lookupLabelKey(f.key)] = original[lookupLabelKey(f.key)] ?? null
+    }
+    // Nested repeating sections / Lists in the item: their own locks, matched the same way.
+    for (const f of fields) {
+      const inner = f.type === 'repeating_section'
+        ? keepLockedItemValues(f.repeating_section, next[f.key], original[f.key], { ...ctx, parent: next, storedParent: original })
+        : f.type === 'list' ? keepLockedListCells(f.list, next[f.key], original[f.key], { form: itemScopeValues(ctx.form, next, ctx.parent ?? null), storedForm: itemScopeValues(ctx.storedForm ?? ctx.form, original, ctx.storedParent ?? null), user }) : null
+      if (!inner) continue
+      next[f.key] = inner.rows
+      for (const r of inner.restored) restored.add(`${f.key}.${r}`)
+    }
+    return next
+  })
+  return { rows, restored: [...restored] }
+}
+
+/**
  * Apply submitted values to a task's metadata: validates against
  * `metadata.fields` and returns the merged `template_values` (existing values
  * overlaid with the coerced submission). Only declared, editable field keys
@@ -1325,6 +1418,18 @@ export function mergeTaskFieldValues(
     if (field.type !== 'list' || !Object.prototype.hasOwnProperty.call(submitted, field.key)) continue
     const kept = keepReadOnlyListColumns(field.list, submitted[field.key], existing[field.key])
     if (kept.restored.length) console.warn(`[forms.list] ${field.key}: read-only column(s) ${kept.restored.join(', ')} kept their stored values`)
+    submitted[field.key] = kept.rows
+  }
+  // Cells / item controls a rule makes read only (List cell_rules, a repeating section's item rules) keep their stored value
+  // in rows / items the form opened with (lib/forms/list-field.ts keepLockedListCells, keepLockedItemValues below).
+  const formNow = { ...existing, ...submitted }
+  for (const field of editable) {
+    if (!Object.prototype.hasOwnProperty.call(submitted, field.key)) continue
+    const kept = field.type === 'list'
+      ? keepLockedListCells(field.list, submitted[field.key], existing[field.key], { form: formNow, storedForm: existing, user: options.ruleUser ?? null, skip: ruleWrittenColumns(meta.form_layout, field.key) })
+      : field.type === 'repeating_section' ? keepLockedItemValues(field.repeating_section, submitted[field.key], existing[field.key], { form: formNow, storedForm: existing, user: options.ruleUser ?? null }) : null
+    if (!kept) continue
+    if (kept.restored.length) console.warn(`[forms.locked] ${field.key}: read-only cell(s) ${kept.restored.join(', ')} kept their stored values`)
     submitted[field.key] = kept.rows
   }
   // A steps / tabs form: fields on a hidden page are not required (judged on the full values).

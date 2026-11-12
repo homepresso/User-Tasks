@@ -26,7 +26,7 @@ export const PUBLIC_INFOPATH_LIMITS = { maxInputBytes: 4 * MB, maxTotalBytes: 40
 /** What the importer made, by kind: shown as "What converts" (only kinds with a count). */
 export type PublicInfoPathFeatureKey =
   | 'lists' | 'nested_lists' | 'repeating_sections' | 'calculated_columns' | 'images' | 'display_images' | 'signatures'
-  | 'rich_text' | 'text_lists' | 'people' | 'choice_groups' | 'styles' | 'list_validations' | 'roles' | 'functions'
+  | 'rich_text' | 'text_lists' | 'people' | 'choice_groups' | 'styles' | 'cell_rules' | 'column_rules' | 'text_styles' | 'list_validations' | 'roles' | 'functions'
 export interface PublicInfoPathFeature { key: PublicInfoPathFeatureKey; label: string; count: number; items?: string[] }
 
 export interface PublicInfoPathSummary {
@@ -98,6 +98,9 @@ const FEATURE_LABELS: Record<PublicInfoPathFeatureKey, string> = {
   people: 'People pickers',
   choice_groups: 'Choice sections → choice groups',
   styles: 'Conditional formatting → styles',
+  cell_rules: 'Cells hidden or locked per row',
+  column_rules: 'Columns hidden by form conditions',
+  text_styles: 'Fonts, sizes and colours',
   list_validations: 'Validation on repeating fields',
   roles: 'User roles → role conditions',
   functions: 'XPath functions translated',
@@ -115,6 +118,7 @@ function featuresOf(forms: GeneratedForm[]): PublicInfoPathFeature[] {
       if (r.disabled) continue
       scanFunctions(r.then)
       if (r.then.some((a) => a.type === 'set_style')) add('styles', `${at}:${r.id}`)
+      if (r.then.some((a) => a.type === 'show_hide' && (a.targets ?? []).some((t) => t.startsWith('column:')))) add('column_rules', `${at}:${r.id}`)
       if (usesRoles(r)) add('roles', `${at}:${r.id}`)
       if (at !== 'form' && r.then.some((a) => a.type === 'field_error')) add('list_validations', `${at}:${r.id}`)
     }
@@ -122,6 +126,7 @@ function featuresOf(forms: GeneratedForm[]): PublicInfoPathFeature[] {
   const columns = (cols: Array<Record<string, any>>, at: string, depth: number) => {
     for (const c of cols) {
       if (c.type === 'calculated') { add('calculated_columns', `${at}.${c.key}`); scanFunctions(c.formula) }
+      if (c.text_style) add('text_styles', `${at}.${c.key}`)
       for (const [i] of (c.validations ?? []).entries()) add('list_validations', `${at}.${c.key}:${i}`)
       if (c.type === 'list' && c.list) list(c.list, `${at}.${c.key}`, depth + 1)
     }
@@ -129,12 +134,14 @@ function featuresOf(forms: GeneratedForm[]): PublicInfoPathFeature[] {
   const list = (cfg: Record<string, any>, at: string, depth: number) => {
     add(depth ? 'nested_lists' : 'lists', at)
     for (const [i] of (cfg.row_styles ?? []).entries()) add('styles', `${at}:row_style:${i}`)
+    for (const [i] of (cfg.cell_rules ?? []).entries()) add('cell_rules', `${at}:cell_rule:${i}`)
     for (const [i] of (cfg.row_validations ?? []).entries()) add('list_validations', `${at}:row:${i}`)
     columns(cfg.columns ?? [], at, depth)
   }
   const fields = (fs: AnyField[], at: string, depth: number) => {
     for (const f of fs) {
       const id = `${at}.${f.key}`
+      if (f.text_style) add('text_styles', id)
       if (f.type === 'list' && f.list) list(f.list, id, depth)
       else if (f.type === 'repeating_section') {
         add('repeating_sections', id)
@@ -209,7 +216,7 @@ function previewOf(name: string, fields: TaskFieldDef[], layout: FormLayout): Pu
   const out: FormLayout = { rows }
   if (layout.sections?.length) out.sections = layout.sections
   if (layout.choice_groups?.length) out.choice_groups = layout.choice_groups
-  const rules = previewRules(layout.rules).filter((r) => r.then.every((a) => !('targets' in a) || !a.targets?.length || a.targets.every((t: string) => !t.startsWith('field:') || keys.has(t.slice(6)))))
+  const rules = previewRules(layout.rules).filter((r) => r.then.every((a) => !('targets' in a) || !a.targets?.length || a.targets.every((t: string) => (!t.startsWith('field:') || keys.has(t.slice(6))) && (!t.startsWith('column:') || keys.has(t.slice(7).split('.')[0])))))
   if (rules.length) out.rules = rules
   return { name: clip(name, 120), fields: kept, layout: out }
 }

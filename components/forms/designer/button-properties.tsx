@@ -65,7 +65,7 @@ function Segmented<T extends string>({ value, options, onChange, label }: { valu
 
 interface TargetOption { target: string; label: string; kind: FormTargetKind }
 
-function targetOptions(state: DesignerState, self: string): TargetOption[] {
+function targetOptions(state: DesignerState, self: string, options: { columns?: boolean } = {}): TargetOption[] {
   const out: TargetOption[] = []
   // Declared sections (lib/forms/sections.ts); a heading still names the rows under it (older forms).
   for (const s of state.layout.sections ?? []) out.push({ target: `section:${s.key}`, label: `Section: ${s.title || s.key}`, kind: 'section' })
@@ -74,6 +74,9 @@ function targetOptions(state: DesignerState, self: string): TargetOption[] {
     if (f.type === 'heading') out.push({ target: `section:${f.key}`, label: `Heading section: ${f.label || f.key}`, kind: 'section' })
     if (f.type !== 'divider') out.push({ target: `field:${f.key}`, label: `${f.type === 'heading' ? 'Heading' : f.type === 'button' ? 'Button' : 'Field'}: ${f.label || f.key}`, kind: 'field' })
     if (!DISPLAY_FIELD_TYPES.has(f.type)) out.push({ target: `row:${f.key}`, label: `Row of ${f.label || f.key}`, kind: 'row' })
+    // Show / hide only: a whole List column (header and every cell), or a repeating section's control in every item.
+    if (options.columns && f.type === 'list') for (const c of f.list?.columns ?? []) out.push({ target: `column:${f.key}.${c.key}`, label: `Column: ${f.label || f.key} › ${c.label || c.key}`, kind: 'column' })
+    if (options.columns && f.type === 'repeating_section') for (const inner of f.repeating_section?.fields ?? []) out.push({ target: `column:${f.key}.${inner.key}`, label: `In every item: ${f.label || f.key} › ${inner.label || inner.key}`, kind: 'column' })
   }
   if (isPaged(state.layout)) {
     const noun = state.layout.mode === 'tabs' ? 'Tab' : 'Step'
@@ -119,7 +122,7 @@ export function ActionEditor({ action, index, count, state, field, onChange, onM
         <button type="button" className="rounded p-0.5" aria-label={`Remove ${label}`} onClick={onRemove}><X size={11} /></button>
       </div>
       {action.type === 'show_hide' && (() => {
-        const options = targetOptions(state, field.key)
+        const options = targetOptions(state, field.key, { columns: true })
         const chosen = action.targets ?? []
         return (
           <>
@@ -143,7 +146,7 @@ export function ActionEditor({ action, index, count, state, field, onChange, onM
                 )
               })}
             </ul>
-            <Hint>A section is a heading and the rows under it, up to the next heading or divider. Hidden elements are not required and skip validation. A button hide wins over a rule; Show only undoes a hide.</Hint>
+            <Hint>A section is a heading and the rows under it, up to the next heading or divider. A List column hides its header and every cell (the table closes up; the row pop-out and phone cards leave it out); a repeating section&apos;s control hides in every item. Hidden elements are not required and skip validation; their values are kept. A button hide wins over a rule; Show only undoes a hide.</Hint>
           </>
         )
       })()}

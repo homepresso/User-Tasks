@@ -14,6 +14,7 @@ import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
 import { flatFieldStyles, listStagingKeys } from '@/lib/forms/form-rules'
 import { ToneIcon } from '@/components/forms/conditional-style'
 import { styleAttributes } from '@/lib/forms/conditional-style'
+import { mergeStyleProps, valueStyleProps } from '@/lib/forms/text-style'
 import { RepeatingSectionValueView, formatFieldValue } from './form-renderer'
 import { lookupDisplayValue } from './lookup-field'
 import { AttachmentList } from './attachments-field'
@@ -122,7 +123,7 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
                     )}
                     {included && (<>
                     <dt className="text-fg-muted">{fieldStyles?.get(f.key)?.icon && <ToneIcon tone={fieldStyles.get(f.key)!.tone ?? 'neutral'} size={12} className="mr-1 align-[-2px]" />}{f.label}</dt>
-                    <dd className="break-words" {...styleAttributes(fieldStyles?.get(f.key))} {...(fieldStyles?.get(f.key) ? { 'data-cs-box': '' } : {})}>{f.type === 'data_table' ? <DataTableValueView field={f} value={selected.values?.[f.key]} /> : f.type === 'list' ? <ListValueView field={f} value={selected.values?.[f.key]} narrow formValues={selected.values ?? {}} /> : f.type === 'repeating_section' ? <RepeatingSectionValueView field={f} value={selected.values?.[f.key]} formValues={selected.values ?? {}} /> : f.type === 'attachments' ? <AttachmentList value={selected.values?.[f.key]} /> : f.type === 'image' ? <ImageValueView value={selected.values?.[f.key]} label={f.label} /> : f.type === 'signature' ? <SignatureView value={selected.values?.[f.key]} /> : hasControlValueView(f) ? <ControlValueView field={f} value={selected.values?.[f.key]} values={selected.values} /> : f.type === 'lookup' ? lookupDisplayValue(f, selected.values?.[f.key], selected.values?.[lookupItemKey(f.key)], selected.values?.[`${f.key}_label`]) : formatFieldValue(f, selected.values?.[f.key])}</dd>
+                    <dd className="break-words" {...mergeStyleProps(valueStyleProps(f), styleAttributes(fieldStyles?.get(f.key)))} {...(fieldStyles?.get(f.key) ? { 'data-cs-box': '' } : {})}>{f.type === 'data_table' ? <DataTableValueView field={f} value={selected.values?.[f.key]} /> : f.type === 'list' ? <ListValueView field={f} value={selected.values?.[f.key]} narrow formValues={selected.values ?? {}} /> : f.type === 'repeating_section' ? <RepeatingSectionValueView field={f} value={selected.values?.[f.key]} formValues={selected.values ?? {}} /> : f.type === 'attachments' ? <AttachmentList value={selected.values?.[f.key]} /> : f.type === 'image' ? <ImageValueView value={selected.values?.[f.key]} label={f.label} /> : f.type === 'signature' ? <SignatureView value={selected.values?.[f.key]} /> : hasControlValueView(f) ? <ControlValueView field={f} value={selected.values?.[f.key]} values={selected.values} /> : f.type === 'lookup' ? lookupDisplayValue(f, selected.values?.[f.key], selected.values?.[lookupItemKey(f.key)], selected.values?.[`${f.key}_label`]) : formatFieldValue(f, selected.values?.[f.key])}</dd>
                     </>)}
                   </div>
                   )

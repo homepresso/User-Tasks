@@ -205,7 +205,17 @@
           "key": "ks_note",
           "label": "Note",
           "type": "text",
-          "required": true
+          "required": true,
+          "text_style": {
+            "label": {
+              "bold": true,
+              "color": "accent"
+            },
+            "value": {
+              "font": "georgia",
+              "size": "lg"
+            }
+          }
         },
         {
           "key": "ks_ok",
@@ -384,6 +394,43 @@
                     }
                   ]
                 }
+              ],
+              "rules": [
+                {
+                  "id": "ks_fixed",
+                  "name": "Fixed fee: amount read only, highlighted",
+                  "event": "always",
+                  "if": {
+                    "match": "all",
+                    "conditions": [
+                      {
+                        "column": "item.ks_description",
+                        "operator": "equals",
+                        "value": "Fixed fee"
+                      }
+                    ]
+                  },
+                  "then": [
+                    {
+                      "type": "read_only",
+                      "mode": "read_only",
+                      "targets": [
+                        "field:ks_amount"
+                      ]
+                    },
+                    {
+                      "type": "set_style",
+                      "targets": [
+                        "field:ks_amount"
+                      ],
+                      "style": {
+                        "tone": "info",
+                        "text": true,
+                        "font": "mono"
+                      }
+                    }
+                  ]
+                }
               ]
             },
             "add_label": "Add expense",
@@ -393,6 +440,109 @@
               {
                 "field": "ks_amount",
                 "fn": "sum"
+              }
+            ]
+          }
+        },
+        {
+          "key": "ks_adjustments",
+          "label": "Adjustments (optional)",
+          "type": "list",
+          "help_text": "Approved rows lock their amount and hide the reason; the server keeps a locked amount as it was.",
+          "list": {
+            "entry_mode": "inline",
+            "key_column": "ref",
+            "columns": [
+              {
+                "key": "ref",
+                "label": "Ref",
+                "type": "text"
+              },
+              {
+                "key": "status",
+                "label": "Status",
+                "type": "choice",
+                "options": [
+                  "Open",
+                  "Approved"
+                ]
+              },
+              {
+                "key": "amount",
+                "label": "Amount",
+                "type": "currency",
+                "currency": "USD",
+                "text_style": {
+                  "label": {
+                    "color": "info"
+                  },
+                  "value": {
+                    "font": "courier_new",
+                    "bold": true
+                  }
+                }
+              },
+              {
+                "key": "reason",
+                "label": "Reason",
+                "type": "text",
+                "text_style": {
+                  "value": {
+                    "italic": true,
+                    "size": "sm"
+                  }
+                }
+              }
+            ],
+            "cell_rules": [
+              {
+                "if": {
+                  "match": "all",
+                  "conditions": [
+                    {
+                      "column": "row.status",
+                      "operator": "equals",
+                      "value": "Approved"
+                    }
+                  ]
+                },
+                "column": "amount",
+                "read_only": true
+              },
+              {
+                "if": {
+                  "match": "all",
+                  "conditions": [
+                    {
+                      "column": "row.status",
+                      "operator": "equals",
+                      "value": "Approved"
+                    }
+                  ]
+                },
+                "column": "reason",
+                "hide": true
+              }
+            ],
+            "row_styles": [
+              {
+                "if": {
+                  "match": "all",
+                  "conditions": [
+                    {
+                      "column": "row.amount",
+                      "operator": "gt",
+                      "value": "1000"
+                    }
+                  ]
+                },
+                "column": "amount",
+                "style": {
+                  "tone": "danger",
+                  "text": true,
+                  "size": "lg",
+                  "icon": true
+                }
               }
             ]
           }

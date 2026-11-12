@@ -106,7 +106,7 @@ import {
   type ActionBranch, type FieldButtonAction, type FieldButtonActionType,
 } from './field-buttons'
 import { DISMISSED_RESPONSE, promptButton } from './form-messages'
-import { FORM_STATE_KEY, FORM_WHOLE_TARGET, declaredSectionKeys, flagKey, parseTarget, sectionBoundaryKeys, stateRuleFlag, targetFieldKeys, type FormUiState } from './form-state'
+import { FORM_STATE_KEY, FORM_WHOLE_TARGET, declaredSectionKeys, flagKey, parseColumnTarget, parseTarget, readFormState, sectionBoundaryKeys, stateRuleFlag, targetFieldKeys, type FormUiState } from './form-state'
 import { CONTROLS_KEY, formContextPath } from './form-params'
 import { sectionConditionValue } from './sections'
 import { OPTIONS_KEY, readDeepPath } from './data-actions'
@@ -641,6 +641,29 @@ export function ruleHiddenFieldKeys(layout: unknown, fields: Array<{ key: string
   const { hidden } = alwaysRuleEffects(layout, values, options)
   const boundaries = sectionBoundaryKeys(fields)
   for (const target of hidden) for (const key of targetFieldKeys(layout, target, boundaries)) out.add(key)
+  return out
+}
+
+/**
+ * Whole columns hidden for these values (`column:<list>.<column>` targets):
+ * Always rules recomputed (a rule reading the user skipped without one) plus
+ * the state's hidden targets (event rules; the server's state is sanitized
+ * first). List key → its hidden columns; a repeating section key → its
+ * inner controls hidden in every item. Hidden columns follow hidden-field
+ * semantics: not shown, not required or checked, the values kept.
+ */
+export function ruleHiddenColumns(layout: unknown, values: Record<string, unknown>, options: { user?: Record<string, unknown> | null; hidden?: Iterable<string> } = {}): Map<string, Set<string>> {
+  const out = new Map<string, Set<string>>()
+  const add = (target: string) => {
+    const c = parseColumnTarget(target)
+    if (!c) return
+    if (!out.has(c.field)) out.set(c.field, new Set())
+    out.get(c.field)!.add(c.column)
+  }
+  for (const t of readFormState(layout, values).hidden) add(t)
+  const hasRules = isPlainObject(layout) && Array.isArray(layout.rules) && layout.rules.some((r) => isPlainObject(r) && JSON.stringify(r.then ?? []).includes('"column:'))
+  const always = options.hidden ?? (hasRules ? alwaysRuleEffects(layout, values, { user: options.user ?? null }).hidden : [])
+  for (const t of always) add(t)
   return out
 }
 
@@ -1463,7 +1486,7 @@ export function describeRuleAction(def: RulesDefinition, a: FieldButtonAction, s
 
 function describeOneAction(def: RulesDefinition, a: FieldButtonAction, sample?: RuleScope): string {
   const shown = (template: string) => (sample && template.includes('{{') ? `“${textOf(resolveRuleTemplate(template, sample))}”` : template || '""')
-  const targets = (list?: string[]) => (list ?? []).map((t) => { if (t === FORM_WHOLE_TARGET) return 'the whole form'; const p = parseTarget(t); return p ? (p.kind === 'page' ? ((def.layout.pages ?? []).find((x) => x.id === p.id)?.title ?? p.id) : p.kind === 'section' && sectionTitle(def, p.id) ? `section ${sectionTitle(def, p.id)}` : fieldName(def, p.id)) : t }).join(', ') || '…'
+  const targets = (list?: string[]) => (list ?? []).map((t) => { if (t === FORM_WHOLE_TARGET) return 'the whole form'; const p = parseTarget(t); if (p?.kind === 'column') { const [list, col] = p.id.split('.'); return `column ${columnName(def, list, col)} of ${fieldName(def, list)}` } return p ? (p.kind === 'page' ? ((def.layout.pages ?? []).find((x) => x.id === p.id)?.title ?? p.id) : p.kind === 'section' && sectionTitle(def, p.id) ? `section ${sectionTitle(def, p.id)}` : fieldName(def, p.id)) : t }).join(', ') || '…'
   switch (a.type) {
     case 'collapse_expand': return `${a.mode === 'collapse' ? 'Collapse' : a.mode === 'expand' ? 'Expand' : 'Toggle'} ${targets(a.targets)}`
     case 'load_part': return `Load ${targets(a.targets)}`

@@ -9,7 +9,7 @@ import {
   type ListColumn, type ListColumnType, type ListFieldConfig, type ListRowFormConfig, type ListRowFormItem, type ListRowValidation, type ListTotal, type ListValidation,
 } from '@/lib/forms/list-field'
 import { GroupEditor } from './data-table-properties'
-import { RowStylesEditor } from './style-editor'
+import { CellRulesEditor, ControlTextStyleEditor, RowStylesEditor } from './style-editor'
 import type { LookupConfig } from '@/lib/forms/lookup'
 import { cn } from '@/lib/utils'
 import { designerInputClass as inputClass } from './designer-controls'
@@ -459,6 +459,8 @@ function ListColumnsEditor({ config, onPatch, idBase, tagBase, depth, renderLook
                     <ValidationsEditor items={column.validations ?? []} subjects={subjects} label="Validation (the message shows on this cell)" idBase={cid('v')} tagBase={`lcv-${tagBase}-${i}`}
                       onChange={(next, tag) => setColumn(i, { validations: next }, tag)} />
                   )}
+                  <ControlTextStyleEditor value={column.text_style} idBase={cid('ts')} labelName="Header" valueName="Cells"
+                    onChange={(next, tag) => setColumn(i, { text_style: next }, tag ? `lcts-${tagBase}-${i}-${tag}` : undefined)} />
                 </div>
               )}
             </div>
@@ -497,6 +499,9 @@ function ListColumnsEditor({ config, onPatch, idBase, tagBase, depth, renderLook
 
       <RowStylesEditor items={config.row_styles ?? []} subjects={subjects} columns={columns} idBase={`${idBase}-rs`} tagBase={`lrs-${tagBase}`}
         onChange={(next, tag) => set({ row_styles: next }, tag)} />
+
+      <CellRulesEditor items={config.cell_rules ?? []} subjects={subjects} columns={columns} tagBase={`lcr-${tagBase}`}
+        onChange={(next, tag) => set({ cell_rules: next }, tag)} />
 
     </>
   )

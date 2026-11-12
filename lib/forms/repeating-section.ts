@@ -123,6 +123,15 @@ export interface RepeatingSectionConfig {
   /** Ask before removing an item. */
   confirm_remove?: boolean
   totals?: RepeatingSectionTotal[]
+  /**
+   * The inner control that identifies an item (an order line's id): on
+   * submit, an item whose key matches an item the form opened with keeps the
+   * stored value of every control an item rule makes read only (Always rules)
+   * — whatever the browser sent. Without one, items are matched by position
+   * only when they cannot be reordered (allow_reorder false) and the count is
+   * unchanged.
+   */
+  key_field?: string
 }
 
 type FieldsNormalizer = (raw: unknown) => TaskFieldDef[]
@@ -187,6 +196,7 @@ export function normalizeRepeatingSectionConfig(raw: unknown, normalizeFields: F
     totals.push(total)
   }
   if (totals.length) config.totals = totals
+  if (typeof r.key_field === 'string' && byKey.has(r.key_field) && !['list', 'repeating_section'].includes(byKey.get(r.key_field)!.type)) config.key_field = r.key_field
   return config
 }
 
@@ -493,4 +503,27 @@ export function repeatingListConfig(config: RepeatingSectionConfig | undefined):
 export function asListField<T extends Pick<TaskFieldDef, 'type' | 'repeating_section'>>(field: T): T {
   if (field.type !== 'repeating_section') return field
   return { ...field, type: 'list', list: repeatingListConfig(field.repeating_section) }
+}
+
+/**
+ * A List / repeating section field as it shows while form rules hide some
+ * of its columns (`column:<field>.<column>` — ruleHiddenColumns): a List's
+ * hidden columns are marked `hidden` (no header, no cells, left out of the
+ * row pop-out; the values stay in the rows), a repeating section's hidden
+ * controls are left out of every item's grid (their values kept). The field
+ * itself when nothing is hidden.
+ */
+export function withHiddenColumns<T extends Pick<TaskFieldDef, 'type' | 'list' | 'repeating_section'>>(field: T, hidden: ReadonlySet<string> | undefined | null): T {
+  if (!hidden?.size) return field
+  if (field.type === 'list' && field.list) {
+    if (!field.list.columns.some((c) => hidden.has(c.key) && !c.hidden)) return field
+    return { ...field, list: { ...field.list, columns: field.list.columns.map((c) => (hidden.has(c.key) ? { ...c, hidden: true } : c)) } }
+  }
+  if (field.type === 'repeating_section' && field.repeating_section) {
+    const config = field.repeating_section
+    const layout = innerFormLayout(config)
+    const rows = layout.rows.map((r) => ({ ...r, cells: r.cells.filter((c) => !hidden.has(c.field_key)) })).filter((r) => r.cells.length > 0 || r.section !== undefined)
+    return { ...field, repeating_section: { ...config, layout: { ...(config.layout ?? {}), rows } } }
+  }
+  return field
 }

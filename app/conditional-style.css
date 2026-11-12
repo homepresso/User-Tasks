@@ -7,6 +7,41 @@
    wins over the controls' own text utilities. Error messages
    ([role="alert"]) and anything marked data-cs-keep keep their own look. */
 
+/* ─── Text styles (lib/forms/text-style.ts) ───
+   Static styles on a control's label / value (data-ts-*) and the size, font
+   and exact colour of conditional styles (data-cs-size / -font / -color).
+   Values arrive only as custom properties built from whitelisted tokens
+   (sizes, curated font stacks, theme tokens, hex colours checked by regex
+   and kept legible: --*-color-dark is the dark-mode variant). Static styles
+   come first so a conditional style on the same element wins. */
+
+[data-ts-size],
+[data-ts-size] :where(label, legend, input, textarea, select, output, p, dd, dt, td, th, li, h3, h4, a, button, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  font-size: var(--ts-size);
+}
+[data-ts-font],
+[data-ts-font] :where(label, legend, input, textarea, select, output, p, dd, dt, td, th, li, h3, h4, a, button, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  font-family: var(--ts-font);
+}
+[data-ts-color] { --ts-c: var(--ts-color-light); }
+[data-theme-mode="dark"] [data-ts-color] { --ts-c: var(--ts-color-dark, var(--ts-color-light)); }
+[data-ts-color],
+[data-ts-color] :where(label, legend, input, textarea, select, output, p, dd, dt, td, th, li, h3, h4, a, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  color: var(--ts-c);
+}
+[data-ts-bold],
+[data-ts-bold] :where(label, legend, input, textarea, select, output, p, dd, dt, td, th, li, a, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  font-weight: 600;
+}
+[data-ts-italic],
+[data-ts-italic] :where(label, legend, input, textarea, select, output, p, dd, dt, td, th, li, a, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  font-style: italic;
+}
+[data-ts-underline],
+[data-ts-underline] :where(input, textarea, select, output, p, dd, td, th, label, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  text-decoration-line: underline;
+}
+
 [data-cs] {
   --cs-fg: var(--theme-card-text);
   --cs-wash: var(--ds-bg-muted);
@@ -60,3 +95,19 @@
 
 /* A section (fieldset): the border itself, so the legend keeps its gap. */
 fieldset[data-cs-border] { outline: none; border: 2px solid var(--cs-line); }
+
+/* Conditional size, font and exact colour (after the tone's text colour: an exact colour wins). */
+[data-cs-size],
+[data-cs-size] :where(label, legend, input, textarea, select, output, p, dd, dt, td, th, li, h3, h4, a, button, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  font-size: var(--cs-size);
+}
+[data-cs-font],
+[data-cs-font] :where(label, legend, input, textarea, select, output, p, dd, dt, td, th, li, h3, h4, a, button, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  font-family: var(--cs-font);
+}
+[data-cs-color] { --cs-c: var(--cs-color-light); }
+[data-theme-mode="dark"] [data-cs-color] { --cs-c: var(--cs-color-dark, var(--cs-color-light)); }
+[data-cs-color],
+[data-cs-color] :where(label, legend, input, textarea, select, output, p, dd, dt, td, th, li, h3, h4, a, [data-cs-value]):not([role="alert"], [data-cs-keep], [data-cs-keep] *) {
+  color: var(--cs-c);
+}

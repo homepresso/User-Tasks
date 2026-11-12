@@ -1665,6 +1665,51 @@ Colour a field or a section while a condition holds — InfoPath's conditional f
 
 In JSON: \`{ "type": "set_style", "targets": ["field:<key>" | "section:<key>"], "style": { "tone"?: "success" | "warning" | "danger" | "info" | "neutral" | "accent", "background"?, "text"?, "bold"?, "italic"?, "underline"?, "strike"?, "border"?, "icon"? } }\` (each switch \`true\` or left out; a tone alone shades and colours). \`set_style\` belongs to **Always** rules. A List's \`row_styles\` is \`[{ "if", "style", "column"? }]\` (up to 20).
 
+A style may also change the **font size**, **font** and **text colour** (Size, Font and Colour under the tone): \`"size"\` (\`xs\` … \`2xl\` or \`"<n>px"\`, 8–48), \`"font"\` (one of the curated fonts below) and \`"color"\` (a theme colour or \`#rrggbb\`, which wins over the tone's text colour).
+
+### Text styles: font size, font and colour
+
+Every field has a **Text style** section in its properties, split into the **Label** and the **Value** (for a heading: the heading and its description; for a Label field: its text). Each part takes:
+
+- **Size** — Extra small, Small, Normal, Large, Extra large, Huge, or an exact size in pixels (8–48).
+- **Font** — the theme default, Sans serif, Serif, Monospace, or one of the fonts InfoPath forms use: Calibri, Segoe UI, Arial, Verdana, Tahoma, Times New Roman, Georgia, Courier New. Each is a safe web stack, so a device without the font gets a close match.
+- **Colour** — a theme colour (red, amber, green, blue, brand, text, muted grey), which reads well in every theme, light and dark, or a **custom colour**. A custom colour is adjusted where needed to stay readable (WCAG AA) on light cards, and a separate dark-mode colour is worked out for dark mode.
+- **Bold**, **Italic**, **Underline**.
+
+A List column has the same section, as **Header** and **Cells**; the row pop-out and phone cards use it for the column's label and value. The controls inside a repeating section are fields, so they have it too.
+
+Only these values are stored — sizes, font names and colours are checked against a fixed list or a strict pattern, never CSS — and styles change only how the form looks.
+
+\`\`\`json title="A field with a large serif label and a custom-coloured value"
+{ "key": "total", "label": "Total", "type": "currency", "currency": "USD",
+  "text_style": { "label": { "size": "lg", "font": "georgia", "bold": true }, "value": { "color": "#1f4e79", "size": "16px" } } }
+\`\`\`
+
+### Hide or lock one cell of a List row
+
+InfoPath can hide or disable one control in one row of a repeating table. A List does this with **Cell rules** (under Row styles): **When** a condition holds for a row — the same subjects as validations: \`row.<column>\`, \`parent.<column>\`, \`form.<field>\`, \`user.*\` — **Then** hide the cell, make it read only, or both, for **one column**.
+
+- **Hidden cell:** the cell is empty; the header and the other rows' cells stay, so the columns still line up. On phones' cards and in the row pop-out the field is left out. A hidden cell is not required and not checked; its value is kept.
+- **Read-only cell:** the value shows but can't be edited, in the table, on cards or in the row pop-out, and it is not required. **The server enforces it:** a row the form opened with keeps the value the cell had when the form opened, if the cell was read only then and is read only for the submitted values. Rows are matched by the List's **key column**; without one, rows are matched by position, but only while the row count is unchanged. Set a key column when people can remove rows. A new row takes whatever a default or a rule puts in its locked cells, and a column that a form rule writes (Set row values, Update a row…) is left as sent.
+- **Repeating sections:** use **Rules for each item** on the section — Show / hide, Make read only and Style run in each item with \`{{item.<key>}}\` as that item. A **Key control** on the section lets the server keep the saved value of every control an item rule makes read only; without one, items are matched by position, and only when they can't be reordered.
+
+\`\`\`json title="Cell rules: lock Amount and hide Note on approved rows"
+{ "key_column": "line_id",
+  "cell_rules": [
+    { "if": { "match": "all", "conditions": [{ "column": "row.status", "operator": "equals", "value": "Approved" }] }, "column": "amount", "read_only": true },
+    { "if": { "match": "all", "conditions": [{ "column": "row.status", "operator": "equals", "value": "Approved" }] }, "column": "note", "hide": true } ] }
+\`\`\`
+
+### Hide a whole List column
+
+To hide a column in every row, including its header, use a form rule: **Then → Show / hide fields** and pick **Column: <List> › <column>** (target \`column:<list>.<column>\`). The table closes up with no gap, and phone cards and the row pop-out leave the field out. For a repeating section, **In every item: <section> › <control>** hides that control in all items. A hidden column follows the same rules as a hidden field: it is not required or checked, and its values are kept.
+
+\`\`\`json title="Hide the Discount column for retail customers"
+{ "id": "r_disc", "name": "Hide discount for retail", "event": "always",
+  "if": { "match": "all", "conditions": [{ "column": "customer_type", "operator": "equals", "value": "Retail" }] },
+  "then": [{ "type": "show_hide", "mode": "hide", "targets": ["column:lines.discount"] }] }
+\`\`\`
+
 ### Before submit on steps, bar buttons and read-only fields
 
 - **Steps.** A **Before submit** rule runs when the form is submitted, not when a step's **Next** is pressed, so an error aimed at a field on another step no longer stops **Next** silently. When it blocks the submission, the form goes to the step holding the field and shows the error there. Tick **Also check on this step** on the rule to run it on **Next** too (for that step's fields). A step's **Next** never blocks on an error of another step's field.

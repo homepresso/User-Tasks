@@ -9,6 +9,7 @@ import { normalizeTaskFields, valueFields } from "@/lib/task-field-schema"
 import { flatFieldStyles, listStagingKeys } from "@/lib/forms/form-rules"
 import { ToneIcon } from "@/components/forms/conditional-style"
 import { styleAttributes } from "@/lib/forms/conditional-style"
+import { mergeStyleProps, valueStyleProps } from "@/lib/forms/text-style"
 import { RepeatingSectionValueView, formatFieldValue } from "@/components/forms/form-renderer"
 import { lookupDisplayValue } from "@/components/forms/lookup-field"
 import { AttachmentList } from "@/components/forms/attachments-field"
@@ -66,7 +67,7 @@ export function SubmissionDialog({ submission, onClose }: { submission: { id: st
                 {shownFields.map((f) => (
                   <div key={f.key} className="contents">
                     <dt className="text-fg-muted">{fieldStyles.get(f.key)?.icon && <ToneIcon tone={fieldStyles.get(f.key)!.tone ?? "neutral"} size={12} className="mr-1 align-[-2px]" />}{f.label}</dt>
-                    <dd className="break-words" {...styleAttributes(fieldStyles.get(f.key))} {...(fieldStyles.get(f.key) ? { "data-cs-box": "" } : {})}>{f.type === "data_table" ? <DataTableValueView field={f} value={values[f.key]} /> : f.type === "list" ? <ListValueView field={f} value={values[f.key]} narrow formValues={values} /> : f.type === "repeating_section" ? <RepeatingSectionValueView field={f} value={values[f.key]} formValues={values} /> : f.type === "attachments" ? <AttachmentList value={values[f.key]} /> : f.type === "image" ? <ImageValueView value={values[f.key]} label={f.label} /> : f.type === "signature" ? <SignatureView value={values[f.key]} /> : hasControlValueView(f) ? <ControlValueView field={f} value={values[f.key]} values={values} /> : f.type === "lookup" ? lookupDisplayValue(f, values[f.key], values[lookupItemKey(f.key)], values[`${f.key}_label`]) : formatFieldValue(f, values[f.key])}</dd>
+                    <dd className="break-words" {...mergeStyleProps(valueStyleProps(f), styleAttributes(fieldStyles.get(f.key)))} {...(fieldStyles.get(f.key) ? { "data-cs-box": "" } : {})}>{f.type === "data_table" ? <DataTableValueView field={f} value={values[f.key]} /> : f.type === "list" ? <ListValueView field={f} value={values[f.key]} narrow formValues={values} /> : f.type === "repeating_section" ? <RepeatingSectionValueView field={f} value={values[f.key]} formValues={values} /> : f.type === "attachments" ? <AttachmentList value={values[f.key]} /> : f.type === "image" ? <ImageValueView value={values[f.key]} label={f.label} /> : f.type === "signature" ? <SignatureView value={values[f.key]} /> : hasControlValueView(f) ? <ControlValueView field={f} value={values[f.key]} values={values} /> : f.type === "lookup" ? lookupDisplayValue(f, values[f.key], values[lookupItemKey(f.key)], values[`${f.key}_label`]) : formatFieldValue(f, values[f.key])}</dd>
                   </div>
                 ))}
                 {extraKeys.map((k) => (

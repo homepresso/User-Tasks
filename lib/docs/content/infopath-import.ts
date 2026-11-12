@@ -63,7 +63,10 @@ When you upload the same file again (matched by its file name), UserTasks offers
 | Row arithmetic in a repeating table | A calculated column, e.g. \`quantity * unit_price\` |
 | Conditional formatting: hide | **Always** rule: hide while the condition holds |
 | Conditional formatting: read-only / disable | **Always** rule: read only (fields) or disable (buttons) |
-| Conditional formatting: font colour, shading, bold, italic, underline, strikethrough | **Always** rule with **Set style** (colours snap to the theme's tones and the report gives the original colour); in a repeating table, a List **row style** on that cell |
+| Conditional formatting: font colour, font size, font, shading, bold, italic, underline, strikethrough | **Always** rule with **Set style** (colours snap to the theme's tones and the report gives the original colour); in a repeating table, a List **row style** on that cell |
+| Conditional formatting on a control in a repeating table: hide / disable, reading the row | A List **cell rule**: that row's cell is hidden (an empty cell; the column stays) or read only (the server keeps the saved value) |
+| Conditional formatting hiding a repeating table's column (its header or control) on a form condition | **Always** rule hiding the whole column (\`column:<list>.<column>\`): the header and every cell, the table closes up |
+| Font size, font, colour, bold, italic, underline in the view | The field's **Text style** (label and value) or the List column's (header and cells); fonts map to web-safe stacks, and the view's usual font and size are left to the theme |
 | Data validation on a repeating field | A List column validation (per row) or a rule on each Repeating section item |
 | User roles, \`get-Role()\` | Conditions on the person's workspace roles (\`user.roles contains "Supervisor"\`) |
 | Data validation | **Always** rule with a field error |
@@ -96,7 +99,7 @@ Each of these is listed in the report. Behaviour is kept as a **turned-off rule*
 - **Data connections** (SharePoint lists, web services, databases, XML files). Create a data table or an [integration](/docs/integrations) with the same name and import again: query rules then use it, and drop-downs fed by it get their options from the table. Until then those drop-downs are text fields.
 - **Form code** (script or managed code). It is never imported or run.
 - **Certificates.** Digital signatures become electronic signatures; certificates aren't carried over.
-- **Font sizes and families** (the form theme sets them), and formatting that hides or locks one cell of a repeating table (use a Repeating section for per-item behaviour).
+- **Fonts outside the web-safe set** fall back to the nearest one (or the theme's font).
 - A few XPath forms: \`position()\` / \`last()\` in formulas, predicates other than one \`=\` comparison, \`xdMath:Eval\` outside a sum or average, and reads of secondary data sources (\`GetDOM\`).
 - Signatures inside repeating sections (sign the whole form instead), and nesting deeper than 3 levels.
 - **Rules that convert in part.** The actions that translate run; the report marks the rule *in part* and its notes say what is left.

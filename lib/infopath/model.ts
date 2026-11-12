@@ -49,6 +49,16 @@ export interface IpFormatting {
   style?: string
 }
 
+/** Inline text styling read from the view (raw CSS values; mapped by lib/forms/text-style.ts in generate.ts). */
+export interface IpTextStyle {
+  size?: string
+  family?: string
+  color?: string
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+}
+
 export interface IpControl {
   /** xd:CtrlId (CTRL12) or a generated id. */
   id: string
@@ -102,6 +112,13 @@ export interface IpControl {
   list_style?: 'bulleted' | 'numbered' | 'plain'
   /** Choice section: the id of the choice group (the xsl:choose) it is an alternative of. */
   choice_group?: string
+  /** The control's own text styling (its style attribute and enclosing font / span / strong…). */
+  text_style?: IpTextStyle
+  /** The styling of the static text taken as its label. */
+  label_style?: IpTextStyle
+  /** Repeating table: each header cell's text styling and conditional formatting, in order. */
+  header_styles?: Array<IpTextStyle | undefined>
+  header_formatting?: IpFormatting[][]
 }
 
 /** Static text in a view: a heading / label / instruction (not bound). */
@@ -111,6 +128,7 @@ export interface IpText {
   heading: boolean
   row: number
   col: number
+  style?: IpTextStyle
 }
 
 export type IpViewItem = IpControl | IpText
