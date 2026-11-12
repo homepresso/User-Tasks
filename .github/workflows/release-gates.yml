@@ -42,9 +42,9 @@ jobs:
       # The image built from this commit below, never the published one.
       USERTASKS_IMAGE: usertasks:local
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -75,13 +75,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: azure/setup-helm@v5
         with:
           version: v3.18.4
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -119,7 +119,7 @@ jobs:
     timeout-minutes: 60
     needs: helm-lint
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: azure/setup-helm@v5
         with:
@@ -129,7 +129,7 @@ jobs:
         with:
           install_only: true
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -151,13 +151,13 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: azure/setup-helm@v5
         with:
           version: v3.18.4
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -198,9 +198,9 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -246,7 +246,7 @@ jobs:
           E2E_S3_ENDPOINT: http://127.0.0.1:9010
           E2E_REPORT: ${{ runner.temp }}/instance-migration.json
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: instance-migration-report
