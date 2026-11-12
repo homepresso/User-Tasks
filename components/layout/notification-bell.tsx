@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
 import {
   AlarmClock, Bell, BellOff, CheckCheck, CheckCircle2, ClipboardList, Mail, MailOpen, MessageSquareWarning, Package, Sparkles, Square, CheckSquare, Trash2, TriangleAlert,
-  TrendingUp, UsersRound, type LucideIcon,
+  TrendingUp, UsersRound, Eye, type LucideIcon,
 } from "lucide-react"
 import { useNotifications } from "@/hooks/use-notifications"
 import { deleteNotifications, markAllNotificationsRead, setNotificationsRead } from "@/app/actions/notifications"
@@ -23,7 +23,7 @@ import { OPEN_JOBS_PANEL_EVENT } from "@/components/jobs/jobs-provider"
 import { AGENT_OPEN_EVENT } from "@/lib/assistants/history"
 
 /** The fields of a notification row this panel reads. */
-interface Note { id: string; type: string; title: string; body?: string | null; is_read: boolean; created_at: string; task_id?: string | null; job_id?: string | null }
+interface Note { id: string; type: string; title: string; body?: string | null; is_read: boolean; created_at: string; task_id?: string | null; job_id?: string | null; form_id?: string | null }
 
 const TYPE_ICONS: Record<string, { icon: LucideIcon; className: string }> = {
   task_assigned: { icon: ClipboardList, className: "text-fg-muted" },
@@ -37,6 +37,7 @@ const TYPE_ICONS: Record<string, { icon: LucideIcon; className: string }> = {
   agent_confirm: { icon: MessageSquareWarning, className: "text-warning" },
   agent_question: { icon: MessageSquareWarning, className: "text-primary-text" },
   agent_failed: { icon: TriangleAlert, className: "text-danger" },
+  form_draft_shared: { icon: Eye, className: "text-primary-text" },
 }
 
 /**
@@ -45,6 +46,8 @@ const TYPE_ICONS: Record<string, { icon: LucideIcon; className: string }> = {
  */
 function resolveHref(n: Note): string | null {
   if (n.task_id) return `/tasks/${n.task_id}`
+  // "Ana shared a form draft with you" → the draft preview (lib/services/form-design-drafts).
+  if (n.type === "form_draft_shared" && n.form_id) return `/forms/${n.form_id}/draft-preview`
   return null
 }
 

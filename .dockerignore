@@ -14,3 +14,4 @@ supabase/.temp
 *.tsbuildinfo
 deploy/compose/.state
 scripts/screenshots/.out
+.usertasks-first-login

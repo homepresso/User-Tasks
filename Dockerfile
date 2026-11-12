@@ -33,17 +33,23 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Type check (before the optional packages below are removed; see there).
-# tsc needs more than Node's default heap for this codebase.
-RUN npx next typegen && NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit -p .
+# Type check, off by default: it adds several minutes and up to 4 GB of
+# memory, and CI type-checks every commit already (npm run typecheck). Release
+# images build with --build-arg TYPECHECK=true (.github/workflows/release-gates.yml,
+# npm run bundle). It runs before the optional packages below are removed
+# (see there); tsc needs more than Node's default heap for this codebase.
+ARG TYPECHECK=false
+RUN if [ "$TYPECHECK" = "true" ]; then \
+      npx next typegen && NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit -p .; \
+    fi
 # Optional packages: see docs/optional-drivers.md (and lib/optional-drivers,
 # whose test checks these lists). They are chosen in this stage, before
 # `next build`: a missing one is replaced by a stub in the bundle, so adding
 # it later needs a rebuild, not an extra layer on top of this image. The type
-# check runs first, with every package still installed (so their real types
-# are checked: a removed package would fail it with "Cannot find module"),
-# then the packages left out are removed and `next build` skips its own
-# duplicate type check (NEXT_BUILD_TYPECHECK=false).
+# check (TYPECHECK=true) runs first, with every package still installed (so
+# their real types are checked: a removed package would fail it with "Cannot
+# find module"), then the packages left out are removed and `next build`
+# skips its own duplicate type check (NEXT_BUILD_TYPECHECK=false).
 # Snowflake, Oracle and MongoDB drivers are optionalDependencies and are left
 # out of the image unless INCLUDE_OPTIONAL_DB_DRIVERS=true. (`npm ci
 # --omit=optional` is not used: it would also drop the native binaries Next.js,
@@ -76,7 +82,13 @@ RUN if [ "$INCLUDE_OPTIONAL_DB_DRIVERS" != "true" ]; then \
  && if [ "$INCLUDE_OCR" != "true" ]; then \
       rm -rf node_modules/tesseract.js node_modules/tesseract.js-core; \
     fi
-RUN NEXT_BUILD_TYPECHECK=false npm run build \
+# Static pages are rendered by NEXT_BUILD_CPUS worker processes (Next's
+# default is one per CPU less one, each a Node process of up to ~0.9 GB):
+# two keeps that phase small at no measurable cost in time (724 pages in
+# ~6 s). The compile before it (Turbopack) is the peak: about 10 GB, see
+# docs/deployment-profiles.md#memory.
+ARG NEXT_BUILD_CPUS=2
+RUN NEXT_BUILD_TYPECHECK=false NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS npm run build \
  && node scripts/build-worker.mjs .next/standalone/worker.cjs \
  && node packages/admin/scripts/build.mjs .next/standalone/admin.cjs
 

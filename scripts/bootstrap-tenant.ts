@@ -9,11 +9,14 @@
  * Docker image: `node admin.cjs bootstrap …`): the default Supabase stack
  * needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, a
  * Supabase-free install DB_PROVIDER=postgres + DATABASE_URL and
- * AUTH_PROVIDER=builtin. Export them in the shell, or load a file with
- * `set -a; . ./.env.local; set +a`. After it succeeds, sign in at /login and
- * finish setup at /onboarding.
+ * AUTH_PROVIDER=builtin. `.env.local` and `.env` in the current folder are
+ * loaded automatically (variables already set in the shell win), so the same
+ * command works in PowerShell, cmd, bash and zsh. After it succeeds, sign in
+ * at /login and finish setup at /onboarding. (Or skip this script: a new
+ * install opens /setup in the browser.)
  */
-import { runBootstrap } from '../packages/admin/src/bootstrap'
+import { checkBootstrapInput, runBootstrap } from '../packages/admin/src/bootstrap'
+import { loadLocalEnv, missingEnvMessage, missingProviderEnv } from '../packages/admin/src/local-env'
 
 function parseArgs(argv: string[]): Record<string, string> {
   const args: Record<string, string> = {}
@@ -39,14 +42,19 @@ function fail(message: string): never {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2))
-  const code = await runBootstrap({
+  const dir = process.cwd()
+  const loaded = loadLocalEnv(dir)
+  const input = {
     email: String(args.email ?? '').trim(),
     password: String(args.password ?? process.env.BOOTSTRAP_PASSWORD ?? ''),
     org: String(args.org ?? '').trim(),
     name: args.name,
     apiKeyName: args['api-key'],
     ifMissing: 'if-missing' in args,
-  }, { out: (line) => console.log(line), err: (line) => console.error(`bootstrap: ${line}`) })
+  }
+  const missing = missingProviderEnv(process.env)
+  if (!checkBootstrapInput(input) && missing.length) fail(missingEnvMessage(missing, dir, loaded))
+  const code = await runBootstrap(input, { out: (line) => console.log(line), err: (line) => console.error(`bootstrap: ${line}`) })
   process.exit(code)
 }
 

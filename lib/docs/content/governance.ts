@@ -615,8 +615,15 @@ Reading the theme is open to every member. Changing it, applying a template or u
 | Apply a template | \`POST /workspace-theme/apply-preset\` | \`workspace_theme_apply_preset\` | \`usertasks workspace-theme apply-preset <id>\` |
 | Upload a font | \`POST /workspace-theme/fonts\` | \`workspace_theme_font_upload\` | \`usertasks workspace-theme upload-font\` |
 
+Save the theme to a file:
+
 \`\`\`bash
-usertasks workspace-theme get -o json > theme.json       # edit, then:
+usertasks workspace-theme get -o json > theme.json
+\`\`\`
+
+Edit it, then save it back, apply a template or upload a font:
+
+\`\`\`bash
 usertasks workspace-theme update -f theme.json
 usertasks workspace-theme apply-preset night-drive
 curl -X POST "$URL/api/v1/workspace-theme/fonts" -H "Authorization: Bearer $KEY" -F file=@AcmeSans.woff2 -F family="Acme Sans"

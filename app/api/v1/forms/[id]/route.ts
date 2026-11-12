@@ -2,9 +2,9 @@ import { apiRoute } from '@/lib/api/route'
 import { deleteFormEndpoint, getFormEndpoint, updateFormEndpoint } from '@/lib/api-schemas/forms'
 import { deleteForm, getForm, updateForm } from '@/lib/services/forms'
 
-/** GET /api/v1/forms/{id} — form with fields, layout, theme and usages. */
-export const GET = apiRoute(getFormEndpoint, async ({ ctx, params }) =>
-  ({ form: await getForm(ctx, params.id) }))
+/** GET /api/v1/forms/{id} — form with fields, layout, theme and usages (published; ?version=draft for editors). */
+export const GET = apiRoute(getFormEndpoint, async ({ ctx, params, query }) =>
+  ({ form: await getForm(ctx, params.id, { version: query.version }) }))
 
 /** PATCH /api/v1/forms/{id} — partial update; a content change bumps the version. */
 export const PATCH = apiRoute(updateFormEndpoint, async ({ ctx, params, body }) =>

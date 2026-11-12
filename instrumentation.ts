@@ -12,6 +12,9 @@
  *    serverless functions don't stay up between requests, so Vercel
  *    deployments use pg_cron or Vercel Cron (external) instead.
  *
+ * 4. Self-hosted only: when the install has no workspaces and no users yet,
+ *    logs the first-run setup code (lib/setup/state.ts), in the background.
+ *
  * Neither runs during `next build`.
  */
 export async function register() {
@@ -21,7 +24,17 @@ export async function register() {
   await bootstrapEncryptionKey()
   const { bootstrapKms } = await import('./lib/providers/kms/bootstrap')
   await bootstrapKms()
+  // Self-hosted, brand-new install: print the setup code (never blocks
+  // startup; cloud never checks). Inline, after the runtime check above, so
+  // the edge build drops it.
+  void (async () => {
+    const { setupDb, setupNeeded } = await import('./lib/setup/server')
+    if (!(await setupNeeded({ fresh: true }))) return
+    const { announceSetupCode } = await import('./lib/setup/state')
+    await announceSetupCode(setupDb(), { startup: true })
+  })().catch((error: Error) => console.warn(`[setup] ${error.message}`))
   if (process.env.VERCEL) return
   const { startSchedulerWorker } = await import('./lib/scheduler/runtime')
   void startSchedulerWorker().catch((error: Error) => console.error(`[scheduler] worker failed to start: ${error.message}`))
 }
+

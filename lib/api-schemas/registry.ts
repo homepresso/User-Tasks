@@ -20,6 +20,8 @@ export interface CliMetadata {
   verb: string
   /** Path params (in order) taken as positional CLI arguments. */
   positional?: string[]
+  /** Query params whose flag differs from the name (a name that is a global flag, e.g. version → content-version). */
+  flags?: Record<string, string>
 }
 
 export interface EndpointDef<

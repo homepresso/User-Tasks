@@ -48,7 +48,7 @@ When you upload the same file again (matched by its file name), UserTasks offers
 | Check box | Checkbox (yes/no) |
 | File attachment | Attachments |
 | Person / group picker | Person picker (several people) |
-| Calculated value (expression box) | Label with an expression |
+| Calculated value (expression box) | Label with an expression, keeping its number, currency or percent format |
 | Button | Button, with its rules on **Button clicked** |
 | Repeating table | List (editable table), a column for each control in the row; a repeating table inside it becomes a nested List (up to 3 levels) |
 | Repeating section | Repeating section: a card per item with the same controls and layout; nested sections nest (up to 3 levels) |
@@ -99,6 +99,8 @@ Each of these is listed in the report. Behaviour is kept as a **turned-off rule*
 - **Font sizes and families** (the form theme sets them), and formatting that hides or locks one cell of a repeating table (use a Repeating section for per-item behaviour).
 - A few XPath forms: \`position()\` / \`last()\` in formulas, predicates other than one \`=\` comparison, \`xdMath:Eval\` outside a sum or average, and reads of secondary data sources (\`GetDOM\`).
 - Signatures inside repeating sections (sign the whole form instead), and nesting deeper than 3 levels.
+- **Rules that convert in part.** The actions that translate run; the report marks the rule *in part* and its notes say what is left.
+- **Person fields on a public form.** Anonymous visitors on a public link don't see Person fields (there is no one to look up), so give a public form a text or email field instead.
 
 ## Limits
 

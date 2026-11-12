@@ -30,9 +30,11 @@ const ERROR_MESSAGES: Record<string, string> = {
  * session cookies; the browser never sees a token. Sign-in options come from
  * the configured auth provider (names and buttons only).
  */
-export function LoginForm({ options, defaultOrg = "", signupHref = null }: {
+export function LoginForm({ options, defaultOrg = "", singleOrg = null, signupHref = null }: {
   options: LoginOptions
   defaultOrg?: string
+  /** Self-hosted with one organisation: shown by name instead of the organisation field (which "Change" brings back). */
+  singleOrg?: { slug: string; name: string } | null
   /** Cloud edition: the self-signup link (`/start`, carrying `?redirect=`). Null on self-hosted, where sign-in is invite-only. */
   signupHref?: string | null
 }) {
@@ -42,6 +44,7 @@ export function LoginForm({ options, defaultOrg = "", signupHref = null }: {
   const inviteToken = searchParams.get("invite") ?? ""
 
   const [tenant, setTenant] = useState(orgParam)
+  const [editOrg, setEditOrg] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(ERROR_MESSAGES[searchParams.get("error") ?? ""] ?? null)
@@ -104,7 +107,17 @@ export function LoginForm({ options, defaultOrg = "", signupHref = null }: {
 
   const ssoOptions = options.sso
   const showPassword = options.password
-  const orgField = (
+  const orgFixed = !!singleOrg && !editOrg && !inviteToken && tenant === singleOrg.slug
+  const orgField = orgFixed ? (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-panel px-4 py-3">
+      <p className="min-w-0 text-sm text-fg-muted">
+        Organisation <strong className="ml-1 font-semibold text-fg">{singleOrg.name}</strong>
+      </p>
+      <button type="button" className="shrink-0 text-xs font-medium text-primary-text hover:underline" onClick={() => setEditOrg(true)}>
+        Change
+      </button>
+    </div>
+  ) : (
     <Field
       label="Organisation"
       optional={!showPassword}
@@ -124,7 +137,7 @@ export function LoginForm({ options, defaultOrg = "", signupHref = null }: {
       <div className="mb-8">
         <h1 className="font-display text-2xl font-semibold text-fg">Sign in</h1>
         <p className="mt-1 text-sm text-fg-muted">
-          Enter your organisation, email and password. New users with an invitation are set up automatically.
+          {orgFixed ? "Enter your email and password." : "Enter your organisation, email and password."} New users with an invitation are set up automatically.
         </p>
       </div>
 

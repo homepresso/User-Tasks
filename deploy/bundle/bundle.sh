@@ -139,7 +139,8 @@ cmd_up() {
     admin kms rewrap --yes
   fi
   echo "UserTasks is up on an isolated network (nothing is published on the host)."
-  echo "First workspace: ./bundle.sh admin bootstrap --email you@corp.example --org \"Your org\" (password from BOOTSTRAP_PASSWORD)"
+  echo "First workspace: open /setup in a browser with the code from ./bundle.sh admin setup-code,"
+  echo "  or: ./bundle.sh admin bootstrap --email you@corp.example --org \"Your org\" (password from BOOTSTRAP_PASSWORD)"
 }
 
 cmd_smoke() {

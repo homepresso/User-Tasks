@@ -195,6 +195,15 @@ describe('POST /api/workflows/execute-stream — start a test run', () => {
     expect(call[7]).toEqual({ initiator: { userId: USER, via: 'test' } })
   })
 
+  it('"Use form drafts" (form_drafts: true) reaches the engine only for testers with forms.edit', async () => {
+    session.perms[A] = [...session.perms[A], 'forms.edit']
+    expect((await stream({ workflow_id: WF_A, form_drafts: true })).status).toBe(200)
+    expect(vi.mocked(executeWorkflow).mock.calls[0][7]).toEqual({ initiator: { userId: USER, via: 'test' }, testFormDrafts: true })
+    session.perms[A] = session.perms[A].filter((p: string) => p !== 'forms.edit')
+    expect((await stream({ workflow_id: WF_A, form_drafts: true })).status).toBe(200)
+    expect(vi.mocked(executeWorkflow).mock.calls[1][7]).toEqual({ initiator: { userId: USER, via: 'test' } })
+  })
+
   it('403 without workflows.edit (streaming and JSON)', async () => {
     session.perms[A] = ['workflows.view', 'workflows.activate']
     expect((await stream({ workflow_id: WF_A })).status).toBe(403)

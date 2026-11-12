@@ -3,13 +3,13 @@
 import type { Command } from 'commander'
 import { UsertasksClient, apiKeyAuth, oauthAuth, type TokenProvider } from '@user-tasks/sdk'
 import { ConfigStore, defaultConfigPath } from './config'
-import { CliAuthError, CliUsageError } from './exit-codes'
+import { CliAuthError } from './exit-codes'
 import type { Io } from './io'
 import { profileTokenStore } from './oauth'
 import { render } from './output'
-import { resolveSettings, type GlobalFlags, type ResolvedSettings } from './settings'
+import { DEFAULT_SERVER_URL, resolveSettings, type GlobalFlags, type ResolvedSettings } from './settings'
 
-export const CLI_VERSION = '0.1.1'
+export const CLI_VERSION = '0.1.3'
 
 export class Runtime {
   readonly store: ConfigStore
@@ -31,11 +31,9 @@ export class Runtime {
     })
   }
 
+  /** The server to talk to: --url, USERTASKS_URL or the profile's URL, else a local install (DEFAULT_SERVER_URL). */
   requireUrl(settings: ResolvedSettings): string {
-    if (!settings.url) {
-      throw new CliUsageError(`No server URL for profile "${settings.profileName}". Pass --url <server>, set USERTASKS_URL, or run \`usertasks login --url <server>\`.`)
-    }
-    return settings.url
+    return settings.url ?? DEFAULT_SERVER_URL
   }
 
   /** Client for the resolved server; `auth` overrides the resolved credential. */

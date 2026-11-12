@@ -1095,16 +1095,11 @@ await ut.POST('/tasks/{id}/action', {
     ],
     snippet: {
       title: 'Test the approval matrix before you publish it',
-      body: 'Decision tables are testable from the CLI or API, so a rule change can be checked in CI before it reaches a live approval.',
+      body: 'Decision tables are testable from the CLI or API, so a rule change can be checked in CI before it reaches a live approval. Below: ask who approves a 72k purchase in Finance, follow approvals and escalations as they happen, and approve from a script (or your own UI).',
       language: 'shell',
-      code: `# Who approves a 72k purchase in Finance?
-usertasks decision-tables test <matrix-id> \\
+      code: `usertasks decision-tables test <matrix-id> \\
   --set values:='{"amount":72000,"department":"Finance"}'
-
-# Follow approvals and escalations as they happen
 usertasks logs tail --type 'task.*'
-
-# Approve from a script (or your own UI)
 usertasks tasks complete <task-id> --outcome Approve --set approved_amount:=72000`,
     },
     screenshot: { name: 'decision-table', alt: 'A UserTasks decision table with amount bands and the approvers each band requires', caption: 'An approval matrix as a decision table: ordered rules, typed inputs and outputs.' },
@@ -1152,20 +1147,9 @@ usertasks tasks complete <task-id> --outcome Approve --set approved_amount:=7200
     ],
     snippet: {
       title: 'Run an agent, or let your assistant drive the engine',
-      body: 'Execute an agent on demand from the CLI, or connect an MCP client with an API key or OAuth.',
+      body: 'Execute an agent on demand from the CLI (add --set async:=true to queue it), or connect an MCP client such as Claude Desktop or Cursor to https://usertasks.com/api/mcp with an API key or OAuth.',
       language: 'shell',
-      code: `# Run an agent on demand (add --set async:=true to queue it)
-usertasks agents execute <agent-id> --set message="Classify invoice INV-1042"
-
-# Connect an MCP client (Claude Desktop, Cursor, …)
-{
-  "mcpServers": {
-    "usertasks": {
-      "url": "https://usertasks.com/api/mcp",
-      "headers": { "Authorization": "Bearer <your-api-key>" }
-    }
-  }
-}`,
+      code: `usertasks agents execute <agent-id> --set message="Classify invoice INV-1042"`,
     },
     screenshot: { name: 'run-detail', alt: 'A UserTasks run detail page showing the path taken and the status and duration of each step', caption: 'Every run keeps its path, each step’s status and duration, and the error if one failed.' },
     faqs: [
@@ -1296,9 +1280,9 @@ usertasks --profile prod config apply ./config`,
     ],
     snippet: {
       title: 'Connect the site, import the rebuilt workflow',
-      body: 'The SharePoint connector uses a Microsoft Entra app registration with Microsoft Graph permissions. Workflows are plain JSON you can review and version.',
+      body: 'The SharePoint connector (listed by connectors catalog) uses a Microsoft Entra app registration with Microsoft Graph permissions. Workflows are plain JSON you can review and version.',
       language: 'shell',
-      code: `usertasks connectors catalog                 # includes SharePoint
+      code: `usertasks connectors catalog
 usertasks connectors create -f sharepoint-hr-site.yaml
 usertasks connectors test <id>
 
@@ -1372,14 +1356,12 @@ usertasks workflows publish <id> --set notes="Replaces the SharePoint 2013 leave
     ],
     snippet: {
       title: 'One inbox during the parallel run',
-      body: 'While some processes still run on the old platform, post their human steps to UserTasks so people work from one task list.',
+      body: 'While some processes still run on the old platform, post their human steps to UserTasks so people work from one task list. Rebuilt workflows are files you review and promote.',
       language: 'shell',
       code: `usertasks tasks ingest \\
   --set title="Approve PO-88213 (legacy workflow)" \\
   --set assignee_email=ap.lead@example.com \\
   --set idempotency_key=legacy-po-88213
-
-# Rebuilt workflows are files you review and promote
 usertasks workflows create -f purchase-order-approval.json
 usertasks --profile prod config diff ./config --exit-code`,
     },
@@ -1450,13 +1432,10 @@ usertasks --profile prod config diff ./config --exit-code`,
     ],
     snippet: {
       title: 'Rebuild the data contract first',
-      body: 'Start with the data and integration layer the application depends on, then build the workflow and screens on top of it.',
+      body: 'Start with the data and integration layer the application depends on (the database the K2 SmartObjects read from), then build the workflow and rules on top of it as reviewable files.',
       language: 'shell',
-      code: `# The database the K2 SmartObjects read from
-usertasks integrations create -f erp-sql.yaml
+      code: `usertasks integrations create -f erp-sql.yaml
 usertasks references create -f get-vendor.yaml
-
-# Workflow and rules as reviewable files
 usertasks decision-tables import -f vendor-approval-matrix.json
 usertasks workflows create -f vendor-onboarding.json`,
     },

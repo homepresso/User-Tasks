@@ -4820,7 +4820,19 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       "id"
     ],
     "pathFlags": [],
-    "query": [],
+    "query": [
+      {
+        "name": "version",
+        "flag": "content-version",
+        "description": "published (default) or draft (forms.edit): the working draft's content",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "published",
+          "draft"
+        ]
+      }
+    ],
     "body": null,
     "paginated": false,
     "envelope": true,
@@ -5052,6 +5064,230 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         }
       ]
     },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getFormDraft",
+    "method": "GET",
+    "path": "/forms/{id}/draft",
+    "resource": "forms",
+    "verb": "draft",
+    "summary": "Get a form's working draft (content, who saved it, publish problems)",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "saveFormDraft",
+    "method": "PUT",
+    "path": "/forms/{id}/draft",
+    "resource": "forms",
+    "verb": "draft-save",
+    "summary": "Save the form's working draft (not visible to others until published)",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "fields",
+          "type": "array",
+          "required": false,
+          "description": "Field definitions (omitted: kept from the draft, or the published form for a new draft)"
+        },
+        {
+          "name": "layout",
+          "required": false,
+          "description": "Grid layout"
+        },
+        {
+          "name": "theme",
+          "required": false,
+          "description": "Theme reference"
+        },
+        {
+          "name": "buttons",
+          "required": false,
+          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+        },
+        {
+          "name": "header",
+          "required": false,
+          "description": "Header: { enabled, image (default = the UserTasks mark, workspace_logo, upload, none), image_url? (an uploaded header image), title?, subtitle? ({{field}} placeholders), align? (left, center), banner? (the mini theme banner colour) }."
+        },
+        {
+          "name": "expected_updated_at",
+          "required": false,
+          "description": "The draft's updated_at you last read (null: you saw no draft): 409 when someone saved or started it since. Omitted: last save wins."
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "discardFormDraft",
+    "method": "DELETE",
+    "path": "/forms/{id}/draft",
+    "resource": "forms",
+    "verb": "draft-discard",
+    "summary": "Discard the form's draft (the published version is untouched; reviewers lose access)",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "compareFormDraft",
+    "method": "GET",
+    "path": "/forms/{id}/draft/compare",
+    "resource": "forms",
+    "verb": "draft-compare",
+    "summary": "Compare the draft with the published version",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "publishFormDraft",
+    "method": "POST",
+    "path": "/forms/{id}/publish",
+    "resource": "forms",
+    "verb": "publish",
+    "summary": "Publish the form's draft as a new version",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "note",
+          "required": false,
+          "description": "What changed (stored on the new version, shown in the version history)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listFormDraftReviewers",
+    "method": "GET",
+    "path": "/forms/{id}/draft/reviewers",
+    "resource": "forms",
+    "verb": "draft-reviewers",
+    "summary": "Who the form's draft is shared with",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "reviewers",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "addFormDraftReviewers",
+    "method": "POST",
+    "path": "/forms/{id}/draft/reviewers",
+    "resource": "forms",
+    "verb": "draft-share",
+    "summary": "Share the form's draft with people and teams (read-only preview)",
+    "permission": "forms.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "reviewers",
+          "type": "array",
+          "required": true,
+          "description": "People and teams who may preview the draft (at most 50)"
+        },
+        {
+          "name": "note",
+          "required": false,
+          "description": "A note for them (shown in the notification)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "removeFormDraftReviewer",
+    "method": "DELETE",
+    "path": "/forms/{id}/draft/reviewers/{reviewerId}",
+    "resource": "forms",
+    "verb": "draft-unshare",
+    "summary": "Stop sharing the form's draft with a person or team",
+    "permission": "forms.edit",
+    "positional": [
+      "id",
+      "reviewerId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "restoreFormVersionAsDraft",
+    "method": "POST",
+    "path": "/forms/{id}/versions/{version}/restore",
+    "resource": "forms",
+    "verb": "version-restore",
+    "summary": "Restore a version as the form's draft",
+    "permission": "forms.edit",
+    "positional": [
+      "id",
+      "version"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
     "paginated": false,
     "envelope": true,
     "destructive": false

@@ -248,11 +248,12 @@ async function create(values: Record<string, string | boolean | string[] | undef
     // 1. Images.
     const buildArgs = driverBuildArgs((values['build-arg'] as string[] | undefined) ?? [])
     if (values.build) {
-      run('docker', ['buildx', 'build', '--platform', platform, '--load', '-t', image, ...Object.entries(buildArgs).flatMap(([k, v]) => ['--build-arg', `${k}=${v}`]), ROOT])
+      // A release image: type-checked in the build (the Dockerfile skips it by default).
+      run('docker', ['buildx', 'build', '--platform', platform, '--load', '-t', image, '--build-arg', 'TYPECHECK=true', ...Object.entries(buildArgs).flatMap(([k, v]) => ['--build-arg', `${k}=${v}`]), ROOT])
     } else if (Object.keys(buildArgs).length) {
       throw new Error('--build-arg needs --build')
     }
-    if (run('docker', ['image', 'inspect', image], { quiet: true, allowFail: true }).status !== 0) throw new Error(`image ${image} not found: docker build -t ${image} . (or pass --build)`)
+    if (run('docker', ['image', 'inspect', image], { quiet: true, allowFail: true }).status !== 0) throw new Error(`image ${image} not found: docker build --build-arg TYPECHECK=true -t ${image} . (or pass --build)`)
     const optional = imageOptionalPackages(image)
     if (optional.missing.length) {
       const args = [...new Set(optional.missing.map((n) => (OPTIONAL_PACKAGES as Record<string, { dockerArg: { name: string } | null }>)[n].dockerArg?.name).filter(Boolean))]

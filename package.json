@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,6 +20,8 @@
     "scheduler": "tsx scripts/scheduler.ts",
     "auth": "tsx scripts/auth.ts",
     "admin": "tsx packages/admin/src/bin.ts",
+    "setup-code": "tsx packages/admin/src/bin.ts setup-code",
+    "setup:local": "tsx scripts/setup-local.ts",
     "stack": "tsx scripts/stack.ts",
     "helm:gate": "tsx scripts/helm-gate.ts",
     "helm:options": "tsx scripts/helm-options.ts",

@@ -7,7 +7,7 @@ import { Screenshot } from '@/components/docs/doc-blocks'
 
 export const metadata: Metadata = pageMetadata({
   path: '/docs',
-  title: 'UserTasks documentation — headless workflow engine',
+  title: 'UserTasks documentation — the open source process platform',
   description: 'Guides and reference for the UserTasks workflow engine: designer, nodes, expressions, tasks, integrations, decision tables, agents, governance, REST API, MCP, CLI, log export and self-hosting.',
   socialTitle: 'UserTasks documentation',
 })

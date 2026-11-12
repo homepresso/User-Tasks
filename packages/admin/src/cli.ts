@@ -7,7 +7,9 @@ import { AREA_LABELS, areaName, catalogueBadges, catalogueEntry, filterCatalogue
 import { API_NOTE, doctorApi, runDoctor, type DoctorReport, type RpcClient } from '@/lib/admin/doctor'
 import { INSTANCE_ADMINS_SETTING, parseAdminEmails } from '@/lib/admin/instance-admins'
 import { ALLOW_UI_SWITCHING_SETTING, switchingGate } from '@/lib/admin/switch-runtime'
-import { ensureStorageBuckets, runBootstrap } from './bootstrap'
+import { checkBootstrapInput, ensureStorageBuckets, runBootstrap } from './bootstrap'
+import { runSetupCode } from './setup-code'
+import { loadLocalEnv, missingEnvMessage, missingProviderEnv } from './local-env'
 import { loadMigrations } from './db/migrations'
 import { computeStatus, describeTarget, migrate, readApplied, repair } from './db/runner'
 import { connect, decodeSettings, defaultActor, encodeSetting, loadInstanceConfig, notifyConfigChanged, readSettingRows, upsertSettingRow } from './instance'
@@ -70,6 +72,7 @@ Usage:
   usertasks-admin housekeeping run [--dry-run] [--json]
   usertasks-admin bootstrap --email <email> --password <password> --org <name> [--name <full name>]
                             [--api-key <key name>] [--if-missing]
+  usertasks-admin setup-code [status]   (first-run /setup code: print a new one, or show whether setup is needed)
   usertasks-admin storage init
   usertasks-admin db migrate [--dry-run] [--include-all] [--owner <role>] [--dir <path>]
   usertasks-admin db status [--dir <path>]
@@ -77,7 +80,8 @@ Usage:
 
 Areas: database, auth, storage, realtime, scheduler, email, secrets, cache, kms.
 Global: --db-url <url> (default MIGRATION_DATABASE_URL, then DATABASE_URL), --actor <name>.
-Backups: --backup-dir, else BACKUP_DIR, else ./backups/switches (private: 0700).`
+Backups: --backup-dir, else BACKUP_DIR, else ./backups/switches (private: 0700).
+bootstrap and setup-code also read .env.local and .env from the current folder (variables already set win).`
 
 export interface CliIO {
   out: (line: string) => void
@@ -164,6 +168,7 @@ export type Command =
   | { kind: 'housekeeping'; action: HousekeepingAction; args: string[] }
   | { kind: 'db'; action: 'migrate' | 'status' | 'repair'; rest: string[] }
   | { kind: 'bootstrap' }
+  | { kind: 'setup-code'; action: 'new' | 'status' }
   | { kind: 'storage-init' }
   | { kind: 'kms'; action: 'status' | 'rotate' | 'rewrap' | 'rewrap-keys' | 'prune' }
 
@@ -287,6 +292,9 @@ export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.en
     case 'bootstrap':
       if (sub) throw new UsageError(`Unexpected argument: ${sub}`)
       return { command: { kind: 'bootstrap' }, values }
+    case 'setup-code':
+      if (rest.length || (sub && sub !== 'status')) throw new UsageError(`Unknown command: setup-code ${[sub, ...rest].join(' ')}`)
+      return { command: { kind: 'setup-code', action: sub === 'status' ? 'status' : 'new' }, values }
     case 'storage':
       if (sub !== 'init' || rest.length) throw new UsageError(sub ? `Unknown command: storage ${sub}` : 'storage needs a command: init')
       return { command: { kind: 'storage-init' }, values }
@@ -556,16 +564,23 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
     case 'storage-init':
       return ensureStorageBuckets(io)
 
-    case 'bootstrap':
+    case 'bootstrap': {
       // The password may come from the environment instead of argv (process lists).
-      return runBootstrap({
+      const input = {
         email: values.email ?? '',
         password: values.password ?? io.env.BOOTSTRAP_PASSWORD ?? '',
         org: values.org ?? '',
         name: values.name,
         apiKeyName: values['api-key'],
         ifMissing: values['if-missing'] === true,
-      }, io)
+      }
+      if (!checkBootstrapInput(input) && !providerEnvReady(io)) return 2
+      return runBootstrap(input, io)
+    }
+
+    case 'setup-code':
+      if (!providerEnvReady(io)) return 2
+      return runSetupCode(command.action, io)
   }
 }
 
@@ -609,4 +624,17 @@ async function runDb(action: 'migrate' | 'status' | 'repair', rest: string[], va
   } finally {
     await db.end()
   }
+}
+
+/**
+ * bootstrap / setup-code from a source checkout: load .env.local and .env
+ * (never overriding what's set), then say plainly what's missing — the
+ * usual cause is running from another folder.
+ */
+export function providerEnvReady(io: CliIO, dir: string = process.cwd()): boolean {
+  const loaded = loadLocalEnv(dir, io.env)
+  const missing = missingProviderEnv(io.env)
+  if (!missing.length) return true
+  io.err(missingEnvMessage(missing, dir, loaded))
+  return false
 }

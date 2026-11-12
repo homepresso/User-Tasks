@@ -53,8 +53,8 @@ const nextConfig: NextConfig = {
   // also type-checks this codebase. CI and the release gates run
   // `tsc --noEmit` before every deploy, so the hosted build skips the
   // duplicate check. Set NEXT_BUILD_TYPECHECK=true to force it. The Docker
-  // build type-checks before removing the optional packages it leaves out,
-  // then builds with NEXT_BUILD_TYPECHECK=false.
+  // build (with TYPECHECK=true) type-checks before removing the optional
+  // packages it leaves out, then builds with NEXT_BUILD_TYPECHECK=false.
   typescript: {
     ignoreBuildErrors: process.env.NEXT_BUILD_TYPECHECK === "false"
       || (Boolean(process.env.VERCEL) && process.env.NEXT_BUILD_TYPECHECK !== "true"),
@@ -66,8 +66,9 @@ const nextConfig: NextConfig = {
   // Prebuilt Vercel deploys get a fresh id per build; NEXT_DEPLOYMENT_ID wins.
   deploymentId: process.env.NEXT_DEPLOYMENT_ID || (process.env.VERCEL ? `ut-${Date.now().toString(36)}` : undefined),
   experimental: {
-    // Fewer static-generation workers on Vercel keeps peak memory in bounds.
-    ...(process.env.VERCEL ? { cpus: 1 } : {}),
+    // Fewer static-generation workers keeps peak memory in bounds: one on
+    // Vercel, NEXT_BUILD_CPUS when set (the Docker build sets 2).
+    ...(process.env.VERCEL ? { cpus: 1 } : Number(process.env.NEXT_BUILD_CPUS) > 0 ? { cpus: Number(process.env.NEXT_BUILD_CPUS) } : {}),
     serverActions: {
       // Was 1gb — a DoS amplifier. Document uploads cap well below this; raise
       // deliberately if a real payload exceeds it.

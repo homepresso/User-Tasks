@@ -134,6 +134,10 @@ export interface DesignerPageChrome {
   readOnly?: boolean
   /** After a successful save (the designer stays open on the saved form). */
   onSaved?: () => void
+  /** A notice under the toolbar (the draft banner). */
+  banner?: (api: DesignerPageApi) => React.ReactNode
+  /** Toolbar buttons after the save action (Publish). */
+  toolbarExtra?: (api: DesignerPageApi) => React.ReactNode
 }
 
 export interface FormDesignerDialogProps {
@@ -920,6 +924,7 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                   </span>
                 </Tooltip>
               ))}
+              {page?.toolbarExtra?.(pageApi)}
               {page?.menu && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -931,6 +936,7 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
             </div>
           </div>
         </TooltipProvider>
+        {page?.banner?.(pageApi)}
 
         {/* Panels: palette + outline | canvas + status bar | properties (the shell docks the Agent beside them) */}
         <div className="relative flex min-h-0 flex-1 gap-2">

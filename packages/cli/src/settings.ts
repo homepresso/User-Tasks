@@ -67,6 +67,9 @@ export function parseOutputFormat(value: string): OutputFormat {
   return lower as OutputFormat
 }
 
+/** The server used when no --url, USERTASKS_URL or profile URL is set: a local install. */
+export const DEFAULT_SERVER_URL = 'http://localhost:3000'
+
 const nonEmpty = (value: string | undefined) => (value && value.trim() ? value.trim() : undefined)
 
 export function resolveSettings(input: { flags: GlobalFlags; env: NodeJS.ProcessEnv; config: ConfigFile; stdoutIsTTY: boolean }): ResolvedSettings {

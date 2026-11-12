@@ -15,7 +15,14 @@
  * bumps `version` and stores an immutable snapshot in form_versions. Name,
  * description and tag edits don't. Published workflow versions pin the
  * version they were published with (lib/forms/definition pinFormVersions);
- * drafts and test runs follow the latest.
+ * workflow drafts and test runs follow the latest PUBLISHED version.
+ *
+ * Drafts (lib/services/form-design-drafts.ts, migration 20270110000000):
+ * the designer saves into a separate working draft; this table keeps the
+ * published content, which is what every read here returns unless a caller
+ * with forms.edit asks for the draft (getForm { version: 'draft' }).
+ * updateForm itself still publishes directly (REST PATCH, MCP forms_update,
+ * config-as-code, packages, the wizard, InfoPath re-imports).
  *
  * Deleting a form (or a form theme) that a workflow still uses is refused
  * with the list of usages.
@@ -81,6 +88,8 @@ export interface FormVersionRow {
   form_id: string
   version: number
   name: string
+  /** The note given when a draft was published (null for other versions). */
+  note?: string | null
   fields: unknown[]
   layout: unknown | null
   theme: FormThemeRef
@@ -146,6 +155,8 @@ export interface FormWriteOptions {
   capture?: boolean
   /** Skip the workspace's pre-publish accessibility gate (config-as-code / package imports). */
   skipAccessibilityGate?: boolean
+  /** Publishing a draft: the note stored on the new version (form_versions.note). */
+  versionNote?: string | null
 }
 
 // ── validation ──────────────────────────────────────────────────────────────
@@ -332,6 +343,11 @@ async function assertDataTargets(ctx: ServiceContext, db: AnySupabaseClient, sto
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/** PostgREST / Postgres "column does not exist" (a migration not applied yet). */
+export function isMissingColumn(error: { code?: string; message?: string } | null | undefined): boolean {
+  return error?.code === '42703' || error?.code === 'PGRST204' || /column .* does not exist|Could not find the '.*' column/i.test(String(error?.message ?? ''))
+}
+
 function cleanRetention(value: unknown): number | null | undefined {
   if (value === undefined) return undefined
   if (value === null || value === '') return null
@@ -382,7 +398,7 @@ function summarize(row: any) {
   }
 }
 
-export type FormSummary = ReturnType<typeof summarize> & { usage_count: number }
+export type FormSummary = ReturnType<typeof summarize> & { usage_count: number; has_draft: boolean; draft_updated_at: string | null }
 
 export async function listForms(ctx: ServiceContext, filters: { search?: string; tag?: string } = {}, page: Page) {
   requirePerm(ctx, 'forms.view')
@@ -396,7 +412,12 @@ export async function listForms(ctx: ServiceContext, filters: { search?: string;
   const { data, count, error } = await applyPage(query, page)
   if (error) throw dbError(error)
   const usage = await usageIndex(db, ctx.tenantId)
-  const forms: FormSummary[] = ((data ?? []) as any[]).map((row) => ({ ...summarize(row), usage_count: (usage.get(row.id) ?? []).length }))
+  const drafted = await (await import('./form-design-drafts')).draftedFormIds(ctx, ((data ?? []) as any[]).map((row) => String(row.id)))
+  const forms: FormSummary[] = ((data ?? []) as any[]).map((row) => ({
+    ...summarize(row), usage_count: (usage.get(row.id) ?? []).length,
+    // "Draft changes": the form has unpublished edits (when the drafts migration is applied).
+    has_draft: drafted.has(String(row.id)), draft_updated_at: drafted.get(String(row.id)) ?? null,
+  }))
   return { forms, total: (count ?? forms.length) as number }
 }
 
@@ -440,21 +461,37 @@ async function menuFormFacts(ctx: ServiceContext, ids: string[]): Promise<{ bloc
   }
 }
 
-export async function getForm(ctx: ServiceContext, formId: string) {
+/**
+ * A form with its usages. The content is the PUBLISHED version. Callers
+ * with forms.edit also get `draft` (who last saved the working draft and
+ * when, or null) and, with { version: 'draft' }, the draft's content in
+ * place of the published one (`content` says which it is).
+ */
+export async function getForm(ctx: ServiceContext, formId: string, options: { version?: 'published' | 'draft' } = {}) {
   requirePerm(ctx, 'forms.view')
+  if (options.version === 'draft') requirePerm(ctx, 'forms.edit')
   const db = getDb(ctx)
   const form = await loadForm(db, ctx.tenantId, formId)
   const usages = (await usageIndex(db, ctx.tenantId)).get(formId) ?? []
-  return { ...form, usages }
+  if (!hasPerm(ctx, 'forms.edit')) return { ...form, usages }
+  const drafts = await import('./form-design-drafts')
+  const draft = await drafts.loadDesignDraft(ctx, formId)
+  const summary = draft ? await drafts.draftSummary(ctx, draft) : null
+  if (options.version === 'draft' && draft) {
+    return { ...form, fields: draft.fields, layout: draft.layout, theme: draft.theme, buttons: draft.buttons, header: draft.header, usages, draft: summary, content: 'draft' as const }
+  }
+  return { ...form, usages, draft: summary, content: 'published' as const }
 }
 
 export async function listFormVersions(ctx: ServiceContext, formId: string, page: Page) {
   requirePerm(ctx, 'forms.view')
   const db = getDb(ctx) as any
   await loadForm(db, ctx.tenantId, formId)
-  const query = db.from('form_versions').select('id, form_id, version, name, created_by, created_at', { count: 'exact' })
-    .eq('tenant_id', ctx.tenantId).eq('form_id', formId).order('version', { ascending: false })
-  const { data, count, error } = await applyPage(query, page)
+  const select = (columns: string) => applyPage(db.from('form_versions').select(columns, { count: 'exact' })
+    .eq('tenant_id', ctx.tenantId).eq('form_id', formId).order('version', { ascending: false }), page)
+  let { data, count, error } = await select('id, form_id, version, name, note, created_by, created_at')
+  // Before the drafts migration form_versions has no note column.
+  if (error && isMissingColumn(error)) ({ data, count, error } = await select('id, form_id, version, name, created_by, created_at'))
   if (error) throw dbError(error)
   return { versions: (data ?? []) as Array<Omit<FormVersionRow, 'fields' | 'layout' | 'theme'>>, total: (count ?? (data ?? []).length) as number }
 }
@@ -520,8 +557,10 @@ function collectUsages(nodes: unknown, _triggerConfig: unknown, add: (formId: st
 
 // ── forms: writes ───────────────────────────────────────────────────────────
 
-async function insertVersion(db: AnySupabaseClient, ctx: ServiceContext, form: FormRow) {
+async function insertVersion(db: AnySupabaseClient, ctx: ServiceContext, form: FormRow, note?: string | null) {
   const { error } = await (db as any).from('form_versions').insert({
+    // form_versions.note arrives with the drafts migration; only a draft publish (which needs it) sets one.
+    ...(note ? { note } : {}),
     tenant_id: ctx.tenantId,
     form_id: form.id,
     version: form.version,
@@ -624,7 +663,7 @@ export async function updateForm(ctx: ServiceContext, formId: string, input: For
   if (error) throw dbError(error, 'Failed to update form')
   if (!data) throw ServiceError.conflict('The form was changed by someone else; reload and try again')
   const form = data as FormRow
-  if (versionChanged) await insertVersion(db, ctx, form)
+  if (versionChanged) await insertVersion(db, ctx, form, options.versionNote ?? null)
   if (options.capture !== false) {
     const changedFields = changed.filter((k) => k !== 'version')
     // Listing a form in (or removing it from) the Forms menu on its own is a toggle in the audit log.
@@ -850,7 +889,7 @@ export async function resolveThemeOverrides(db: AnySupabaseClient, tenantId: str
  * inside a published snapshot, else the latest), falling back to the cached
  * copy on the node when the form is gone; otherwise the node's own form.
  */
-export async function resolveRuntimeForm(db: AnySupabaseClient, tenantId: string, config: Record<string, any>): Promise<ResolvedRuntimeForm> {
+export async function resolveRuntimeForm(db: AnySupabaseClient, tenantId: string, config: Record<string, any>, options: { useDraft?: boolean } = {}): Promise<ResolvedRuntimeForm> {
   const own = normalizeFormDefinition({ fields: config?.fields, layout: config?.form_layout, theme: config?.form_theme, buttons: config?.form_buttons, header: config?.form_header })
   let resolved: ResolvedRuntimeForm = { ...own, form_id: null, form_name: null, version: null, theme_overrides: null }
   const formId = typeof config?.form_id === 'string' ? config.form_id : null
@@ -864,6 +903,11 @@ export async function resolveRuntimeForm(db: AnySupabaseClient, tenantId: string
     if (!row) {
       const { data } = await (db as any).from('forms').select('name, fields, layout, theme, buttons, header, version').eq('tenant_id', tenantId).eq('id', formId).maybeSingle()
       row = data
+      // A designer test run with "Use form drafts": the working draft, when there is one (never a pinned step).
+      if (row && options.useDraft) {
+        const { data: draft, error } = await (db as any).from('form_design_drafts').select('fields, layout, theme, buttons, header').eq('tenant_id', tenantId).eq('form_id', formId).maybeSingle()
+        if (!error && draft) row = { ...row, ...draft }
+      }
     }
     if (row) {
       resolved = { ...normalizeFormDefinition(row), form_id: formId, form_name: row.name, version: row.version, theme_overrides: null }

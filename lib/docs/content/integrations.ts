@@ -351,10 +351,10 @@ The API takes \`reference_mode\` (\`all\`, \`none\` or \`selected\`) and \`refer
     description: 'Pre-built integrations for AI providers, communication, cloud storage, databases, payments and productivity tools.',
     tocDepth: 2,
     body: `
-A connector is a pre-configured integration for a known service. It asks only for that service's settings and credentials, tests the connection with a service-specific probe, and creates ready-made references. Connectors can be enabled, disabled and tested like any integration:
+A connector is a pre-configured integration for a known service. It asks only for that service's settings and credentials, tests the connection with a service-specific probe, and creates ready-made references. Connectors can be enabled, disabled and tested like any integration. \`connectors catalog\` lists what is available:
 
 \`\`\`bash
-usertasks connectors catalog            # what is available
+usertasks connectors catalog
 usertasks connectors create -f slack.yaml
 usertasks connectors test <id>
 \`\`\`
@@ -506,10 +506,15 @@ Migration \`20261206000000_esign.sql\` adds \`esign_envelopes\` (the send ledger
     body: `
 Import an API description instead of defining references by hand. UserTasks reads OpenAPI 2 (Swagger), OpenAPI 3 or a Postman collection (JSON or YAML), creates an integration from the first server URL and security scheme, and one reference per operation with typed inputs from its parameters and request body.
 
+Send the document as the body:
+
 \`\`\`bash
-# send the document as the body…
 usertasks integrations import-openapi -f petstore.yaml
-# …or wrap it to choose the name, base URL, auth and a subset of operations
+\`\`\`
+
+Or wrap it to choose the name, base URL, auth and a subset of operations:
+
+\`\`\`bash
 usertasks integrations import-openapi --set spec=@petstore.yaml --set name="Pet store" \\
   --set base_url=https://petstore.example.com/v2 --set selected_reference_indexes:='[0,2,5]'
 \`\`\`
@@ -543,10 +548,19 @@ An inbound webhook belongs to a workflow with a **Webhook** or **Middleware** tr
 
 \`\`\`bash
 usertasks webhooks create <workflow-id> --set slug=invoice-intake
-# returns the webhook and its secret once — store it
+\`\`\`
+
+This returns the webhook and its secret once — store it. Callers then POST to it:
+
+\`\`\`bash
 curl -X POST "$USERTASKS_URL/api/webhooks/inbound?hook=<slug>" \\
   -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d @invoice.json
-usertasks webhooks rotate <webhook-id>     # new secret; the old one stops working
+\`\`\`
+
+Rotating issues a new secret; the old one stops working:
+
+\`\`\`bash
+usertasks webhooks rotate <webhook-id>
 \`\`\`
 
 - **Webhook** trigger — responds as soon as the run is queued.

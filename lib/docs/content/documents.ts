@@ -1295,21 +1295,24 @@ Without it, a step that needs OCR fails with a message that names the package, t
 
 ### Air-gapped and locked-down installs
 
-Download the language files on a connected machine and serve them from inside your network:
+Download the language files on a connected machine and serve them from inside your network. On the connected machine, download one file per language you will use:
 
 \`\`\`bash
-# connected machine: one file per language you will use
 mkdir tessdata && cd tessdata
 curl -fLO https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz
 curl -fLO https://cdn.jsdelivr.net/npm/@tesseract.js-data/deu/4.0.0_best_int/deu.traineddata.gz
 \`\`\`
 
-Copy the folder to the server (or a volume mounted into the container) and set:
+Copy the folder to the server (or a volume mounted into the container) and set \`DOCUMENT_OCR_LANG_PATH\` to the local folder holding the \`<lang>.traineddata.gz\` files:
 
-\`\`\`bash
-DOCUMENT_OCR_LANG_PATH=/opt/usertasks/tessdata     # a local folder holding <lang>.traineddata.gz
-# or an internal web server:
-# DOCUMENT_OCR_LANG_PATH=https://files.corp.example/tessdata
+\`\`\`ini
+DOCUMENT_OCR_LANG_PATH=/opt/usertasks/tessdata
+\`\`\`
+
+Or point it at an internal web server:
+
+\`\`\`ini
+DOCUMENT_OCR_LANG_PATH=https://files.corp.example/tessdata
 \`\`\`
 
 With \`DOCUMENT_OCR_LANG_PATH\` set, nothing is downloaded from the internet. The same files are published as the npm packages \`@tesseract.js-data/<lang>\`, so an internal npm mirror is another source. Build the image with \`INCLUDE_OCR=true\` before you carry it across: an optional package cannot be added offline. See [Air-gapped installs](/docs/self-hosting/air-gapped).
@@ -1318,12 +1321,13 @@ With \`DOCUMENT_OCR_LANG_PATH\` set, nothing is downloaded from the internet. Th
 
 Instead of a key per workspace, a self-hosted instance can use one resource for every workspace that keeps **Instance default**:
 
-\`\`\`bash
+\`\`\`ini
 DOCUMENT_OCR_PROVIDER=azure_document_intelligence
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://northwind-ocr.cognitiveservices.azure.com
 AZURE_DOCUMENT_INTELLIGENCE_KEY=<key>
-# AZURE_DOCUMENT_INTELLIGENCE_API_VERSION=2024-11-30       # default
 \`\`\`
+
+\`AZURE_DOCUMENT_INTELLIGENCE_API_VERSION\` is optional and defaults to \`2024-11-30\`.
 
 Each page image is posted to the \`prebuilt-read\` model and the result polled until it is ready; the confidence is the mean of the word confidences. The endpoint must be \`https://\`. No optional package is needed. Azure detects the language itself; when the first OCR language is not \`eng\`, its first two letters are sent as a locale hint. Page images leave the instance for your Azure resource: choose the region and resource accordingly.
 

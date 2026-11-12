@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'UserTasks',
     short_name: 'UserTasks',
-    description: 'Open-source headless workflow engine.',
+    description: 'The open source process platform.',
     start_url: '/tasks',
     display: 'standalone',
     background_color: '#FAF8F3',

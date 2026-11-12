@@ -86,11 +86,10 @@ export function SharePage({ user, submissions, enabled }: { user: { name: string
         <section id="contribute" className="scroll-mt-8 border-t border-[#1B1916]/[0.07] bg-[#FFFFFF]/50">
           <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
             <SectionHeading eyebrow="Or" title="Contribute an official package with a pull request">
-              Official packages are folders in the repository&apos;s <code className="font-mono">gallery/packages</code>: a gallery.json (metadata, sample input, expected run), a README and the config-as-code assets. CI validates every package and verifies it end to end on a local stack; maintainers sign releases with the UserTasks Gallery key.
+              Official packages are folders in the repository&apos;s <code className="font-mono">gallery/packages</code>: a gallery.json (metadata, sample input, expected run), a README and the config-as-code assets. Export the assets, add gallery/packages/my-package/gallery.json and README.md, then validate, verify and open the pull request. CI validates every package and verifies it end to end on a local stack; maintainers sign releases with the UserTasks Gallery key.
             </SectionHeading>
             <div className="mt-8 grid gap-5 lg:grid-cols-2">
               <Snippet language="shell" code={`usertasks config export --workflow <id> --out gallery/packages/my-package/assets
-# add gallery/packages/my-package/gallery.json and README.md
 npm run gallery:build -- --validate my-package
 npm run gallery:build -- --out /tmp/g my-package && npm run gallery:verify -- --dir /tmp/g my-package
 git checkout -b gallery/my-package && git commit -am "Gallery: my package" && git push`} />

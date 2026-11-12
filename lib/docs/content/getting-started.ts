@@ -53,13 +53,17 @@ Start the workflow from the designer, by calling its webhook, or from the API. O
 
 ## 4. Do the same from a terminal
 
+The CLI needs Node.js 20 or later (22 LTS recommended). \`usertasks login\` opens your browser and logs in to \`http://localhost:3000\`.
+
 \`\`\`bash
-npm install -g @user-tasks/cli          # Node.js 20+
-usertasks login --url https://usertasks.com   # opens your browser
+npm install -g @user-tasks/cli
+usertasks login
 usertasks workflows list
 usertasks workflows start --set workflow_id=<id> --set variables:='{"amount": 1200}'
 usertasks logs tail --category workflow
 \`\`\`
+
+Without \`--url\` the CLI talks to a local install at \`http://localhost:3000\`. For another server, add \`--url\`, for example \`usertasks login --url https://tasks.example.com\` or \`--url https://usertasks.com\` for the cloud.
 
 ## Next steps
 
@@ -74,60 +78,76 @@ usertasks logs tail --category workflow
   {
     slug: 'quickstart/self-host',
     title: 'Quickstart: self-host',
-    description: 'Run UserTasks on your own machine or servers with Supabase, create the first workspace and sign in.',
+    description: 'Run UserTasks on your own machine with Supabase, create your admin account at /setup and sign in.',
     body: `
 UserTasks is a Next.js application backed by Supabase (Postgres, Auth, Storage, Vault, pg_cron and pg_net). You run the app; Supabase can be hosted on supabase.com or self-hosted. This page gets a local install running. For production, read [Self-hosting](/docs/self-hosting).
 
 > [!TIP]
 > Every install starts on Supabase with no provider settings. Supabase is an excellent platform and our recommended way to run UserTasks. If you'd like files, email, secrets, sign-in or the database in AWS, Azure, Google Cloud or your own network, you can move one area at a time with \`usertasks-admin switch\` whenever you're ready. See [Choose your topology](/docs/topologies).
 
+New to the terminal? [Quick start on your computer (beginner)](/docs/self-hosting/quick-start) walks through every step, from installing Git, Node.js and Docker Desktop.
+
 ## Requirements
 
-- Node.js 20 or later
-- Docker (for a local Supabase stack) or a Supabase project
-- The Supabase CLI (\`npx supabase\` works)
+- Git, and Node.js 22 LTS (recommended; 20.9 or later works)
+- Docker (for a local Supabase stack), or a Supabase project
 
-## 1. Database
+## 1. Database and configuration
 
 \`\`\`bash
 git clone <repository-url> usertasks && cd usertasks
-npm install
-npx supabase init                            # first time only
-npx supabase start && npx supabase db reset  # applies supabase/migrations
+npm run setup:local
 \`\`\`
 
-\`supabase start\` prints the API URL, anon key and service-role key you need next.
+\`npm run setup:local\` runs \`npm install\`, starts the local Supabase in Docker (applying \`supabase/migrations\` to a new database, or only the new migrations to an existing one), writes \`.env.local\` with the local URL and keys plus fresh \`ENCRYPTION_KEY\` and \`CRON_SECRET\` values, and sets up the background-job secrets of step 5 in the local Vault. It never overwrites values already in \`.env.local\` and is safe to run again. Works in PowerShell, cmd, bash and zsh.
 
-## 2. Configuration
+## 2. Configuration by hand (optional)
+
+Using a hosted Supabase project, or prefer to do it yourself? Apply the migrations (\`npx supabase link --project-ref <ref> && npx supabase db push\`, or \`npx supabase start\` for a local stack) and:
 
 \`\`\`bash
 cp .env.example .env.local
 \`\`\`
 
-Fill in at least \`NEXT_PUBLIC_SUPABASE_URL\`, \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`, \`SUPABASE_SERVICE_ROLE_KEY\`, \`NEXT_PUBLIC_APP_URL\`, \`CRON_SECRET\` and \`ENCRYPTION_KEY\`. Every variable is described in [Environment variables](/docs/self-hosting/environment).
+Fill in at least \`NEXT_PUBLIC_SUPABASE_URL\`, \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`, \`SUPABASE_SERVICE_ROLE_KEY\` (a local stack prints them with \`npx supabase status -o env\`), \`NEXT_PUBLIC_APP_URL\`, \`CRON_SECRET\` (\`openssl rand -hex 32\`) and \`ENCRYPTION_KEY\` (\`openssl rand -base64 32\`). Every variable is described in [Environment variables](/docs/self-hosting/environment).
 
-## 3. First workspace and owner
-
-Self-signup is off in self-hosted mode. Create the first workspace from the command line:
+## 3. Run
 
 \`\`\`bash
-set -a; . ./.env.local; set +a
+npm run dev
+\`\`\`
+
+Or, for a production build:
+
+\`\`\`bash
+npm run build && npm start
+\`\`\`
+
+## 4. Create your admin account
+
+Self-signup is off in self-hosted mode. Instead, open http://localhost:3000: while the install has no workspace yet, you're sent to the **Create your admin account** screen at \`/setup\`. It asks for:
+
+- the organisation name (the slug made from it is what you type on the login page)
+- your name, email and password
+- the **setup code**
+
+The setup code is printed in the terminal running \`npm run dev\`:
+
+\`\`\`text
+UserTasks setup code: ABCD-EFGH-JKLM (open /setup to create the admin account)
+\`\`\`
+
+You're signed in and taken to \`/onboarding\`. Invite more people from **Settings → Members & invites**. [Create your admin account](/docs/self-hosting/admin-account) explains the setup code, including how to make a new one.
+
+Prefer the command line? This creates the workspace and owner without \`/setup\` and prints the workspace slug. Run it in the UserTasks folder: it reads \`.env.local\` by itself (variables set in your shell win), in bash, zsh, PowerShell or cmd alike:
+
+\`\`\`bash
 npm run bootstrap -- --email admin@example.com --password 'a-strong-password' --org "Acme Inc"
 \`\`\`
 
-The script prints the workspace slug.
-
-## 4. Run
-
-\`\`\`bash
-npm run dev            # or: npm run build && npm start
-\`\`\`
-
-Open http://localhost:3000, sign in with the slug, email and password, and finish setup at \`/onboarding\`. Invite more people from **Settings → Invitations**.
-
 ## 5. Turn on background work
 
-Schedules, the run queue, SLAs, reminders, log shipping and sync jobs run when pg_cron calls the app. Add two Vault secrets (the URL must be reachable from the database; for a local stack use \`http://host.docker.internal:3000\`):
+Schedules, the run queue, SLAs, reminders, log shipping and sync jobs run when pg_cron calls the app. \`npm run setup:local\` does this for a local stack. Otherwise add two Vault secrets (the URL must be reachable from the database; for a local stack use \`http://host.docker.internal:3000\`):
 
 \`\`\`sql
 select vault.create_secret('<same value as CRON_SECRET>', 'cron_secret', 'Bearer secret for usertasks cron endpoints');
@@ -139,12 +159,14 @@ select vault.create_secret('http://host.docker.internal:3000', 'app_base_url', '
 
 ## Docker
 
+Copy the example file, fill in \`.env\`, then start the stack:
+
 \`\`\`bash
-cp .env.example .env   # fill it in
+cp .env.example .env
 docker compose up --build
 \`\`\`
 
-The image runs the app only; the database stays in Supabase. See [Self-hosting](/docs/self-hosting#docker) for build arguments and optional database drivers.
+The image runs the app only; the database stays in Supabase. Read the setup code with \`docker compose logs app | grep "setup code"\`. See [Self-hosting](/docs/self-hosting#docker) for build arguments and optional database drivers, and [Install step by step](/docs/self-hosting/install) for every other way to run it, Supabase-free ones included.
 `,
   },
   {

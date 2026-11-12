@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null)
-  const { workflow_id, resume_event_id, form_submission } = (body ?? {}) as Record<string, any>
+  const { workflow_id, resume_event_id, form_submission, form_drafts } = (body ?? {}) as Record<string, any>
   let variables = (body as { variables?: Record<string, unknown> } | null)?.variables
 
   // Authorise before anything runs: 401 signed out, 404 not in the caller's
@@ -27,6 +27,8 @@ export async function POST(request: NextRequest) {
   let resumeRunId: string | null = null
   let resumeEventId: string | undefined
   let actorId: string | null
+  // "Use form drafts" (Test runner toggle): linked forms' working drafts, for testers who can edit forms.
+  let testFormDrafts = false
   let preLogs: Array<{ level: string; message: string; metadata?: Record<string, unknown> }> = []
   try {
     if (resume_event_id) {
@@ -45,6 +47,10 @@ export async function POST(request: NextRequest) {
       const authorized = await authorizeWorkflowExecute({ workflowId: workflow_id, test: true })
       workflowId = authorized.workflow.id
       actorId = authorized.ctx.actorId
+      if (form_drafts === true) {
+        const { hasPerm } = await import('@/lib/services/context')
+        testFormDrafts = hasPerm(authorized.ctx, 'forms.edit')
+      }
       // A workflow that starts from a form never test-runs before that form
       // is submitted: a "Form submitted" trigger needs a test submission
       // (server-built payload), a start form values that pass its checks.
@@ -52,6 +58,7 @@ export async function POST(request: NextRequest) {
       const prepared = await prepareTestStart(authorized.ctx, workflowId, { variables, form_submission })
       variables = prepared.variables
       preLogs = prepared.logs
+      if (testFormDrafts) preLogs = [...preLogs, { level: 'info', message: 'Using form drafts: User Task steps that link a reusable form use its unpublished draft, when it has one.' }]
     } else {
       return NextResponse.json({ error: 'workflow_id or resume_event_id required' }, { status: 400 })
     }
@@ -117,7 +124,7 @@ export async function POST(request: NextRequest) {
               engineSend,
               undefined,
               undefined,
-              { initiator },
+              { initiator, ...(testFormDrafts ? { testFormDrafts } : {}) },
             )
             send({ type: 'done', data: { ...engineDone, ...result, run_id: result.run_id } } as NodeEvent)
           }
@@ -160,7 +167,7 @@ export async function POST(request: NextRequest) {
         collectEvent,
         undefined,
         undefined,
-        { initiator },
+        { initiator, ...(testFormDrafts ? { testFormDrafts } : {}) },
       )
     }
     return NextResponse.json({ events, result: { ...engineDone, ...result, run_id: result?.run_id } })

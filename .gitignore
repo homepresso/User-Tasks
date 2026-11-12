@@ -59,3 +59,6 @@ supabase/.temp
 !deploy/aws/rds-global-bundle.pem
 # Air-gapped bundles (npm run bundle -- create)
 /dist/bundle/
+
+# npm run stack -- up: the generated first sign-in password
+.usertasks-first-login

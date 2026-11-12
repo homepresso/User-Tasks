@@ -24,7 +24,7 @@ interface Operation {
   'x-usertasks-stream'?: boolean
   'x-usertasks-async'?: boolean
   'x-usertasks-download'?: boolean
-  'x-usertasks-cli'?: { resource: string; verb: string; positional?: string[]; listKey?: string }
+  'x-usertasks-cli'?: { resource: string; verb: string; positional?: string[]; listKey?: string; flags?: Record<string, string> }
 }
 export interface OpenApiDoc { paths: Record<string, Partial<Record<(typeof METHODS)[number], Operation>>> }
 
@@ -75,7 +75,7 @@ export function buildCommandSpecs(doc: OpenApiDoc): CommandSpec[] {
       const query: QueryParamSpec[] = queryParams
         .filter((p) => !(paginated && PAGINATION.has(p.name)) && !(cursor && p.name === 'limit'))
         .map((p) => {
-          const flag = p.name.replace(/_/g, '-')
+          const flag = cli.flags?.[p.name] ?? p.name.replace(/_/g, '-')
           if (GLOBAL_FLAGS.has(flag)) throw new Error(`${op.operationId}: query param "${p.name}" collides with a global CLI flag`)
           const enumValues = Array.isArray(p.schema?.enum) ? (p.schema.enum as unknown[]).map(String) : undefined
           return {

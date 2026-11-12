@@ -15,6 +15,7 @@ import { TUTORIAL_PAGES } from './content/tutorials'
 import { API_PAGES, CLI_PAGES, SDK_PAGES } from './content/developers'
 import { OBSERVABILITY_PAGES, PROJECT_PAGES, SELF_HOSTING_PAGES } from './content/operations'
 import { SERVICE_PAGES, TOPOLOGY_PAGES } from './content/deploy'
+import { SELF_HOSTING_GUIDE_PAGES } from './content/self-hosting-guide'
 
 /** The form wizard, survey controls and InfoPath import pages right after Forms. */
 function withFormWizard(pages: DocPageDef[]): DocPageDef[] {
@@ -40,7 +41,8 @@ export const DOC_SECTIONS: DocSectionDef[] = [
   { title: 'Observability', pages: OBSERVABILITY_PAGES },
   { title: 'Deploy anywhere', pages: TOPOLOGY_PAGES },
   { title: 'Choosing services', pages: SERVICE_PAGES },
-  { title: 'Self-hosting', pages: SELF_HOSTING_PAGES },
+  // The overview page first, then the step-by-step guide, then the reference pages.
+  { title: 'Self-hosting', pages: [SELF_HOSTING_PAGES[0], ...SELF_HOSTING_GUIDE_PAGES, ...SELF_HOSTING_PAGES.slice(1)] },
   { title: 'Project', pages: PROJECT_PAGES },
 ]
 

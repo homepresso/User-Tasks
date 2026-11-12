@@ -459,7 +459,7 @@ export function LandingPage() {
                 </div>
                 <div className="space-y-3">
                   <Snippet code={`npm install -g ${CLI_PACKAGE}\nusertasks login\nusertasks workflows list`} />
-                  <p className="text-sm text-[#C9BFAE]">Then the <Link href="/docs/cli" className="font-semibold text-[#F0C27B] hover:text-white">CLI guide</Link>, the <Link href="/docs/api" className="font-semibold text-[#F0C27B] hover:text-white">REST API</Link> and <Link href="/docs/config-as-code" className="font-semibold text-[#F0C27B] hover:text-white">config as code</Link>.</p>
+                  <p className="text-sm text-[#C9BFAE]"><code className="font-mono">usertasks login</code> connects to your local install at http://localhost:3000. Then the <Link href="/docs/cli" className="font-semibold text-[#F0C27B] hover:text-white">CLI guide</Link>, the <Link href="/docs/api" className="font-semibold text-[#F0C27B] hover:text-white">REST API</Link> and <Link href="/docs/config-as-code" className="font-semibold text-[#F0C27B] hover:text-white">config as code</Link>.</p>
                 </div>
               </div>
             </div>

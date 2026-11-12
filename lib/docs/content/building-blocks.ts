@@ -213,9 +213,11 @@ A report picks a **source**, columns, filters, joins, grouping and aggregates, a
 
 \`\`\`bash
 usertasks reports create -f runs-by-status.json
-usertasks reports preview -f runs-by-status.json   # run a definition without saving it
-usertasks reports export <id> > report.json      # portable definition
+usertasks reports preview -f runs-by-status.json
+usertasks reports export <id> > report.json
 \`\`\`
+
+\`reports preview\` runs a definition without saving it; \`reports export\` writes a portable definition.
 
 Aggregations run in the database, and exports are produced on the server, so large reports stay fast.
 

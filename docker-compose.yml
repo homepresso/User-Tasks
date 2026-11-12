@@ -19,8 +19,18 @@
 # environment. The profile only decides which containers start; .env decides
 # which providers the app uses.
 
+# One image for the app, migrate and worker containers. Only the app service
+# builds it (a build on each would make Compose start three identical builds);
+# the others run the image it tags. USERTASKS_IMAGE runs a prebuilt image instead
+# (with `up --no-build`, or `npm run stack -- up --no-build`).
 x-app-image: &app-image
   image: ${USERTASKS_IMAGE:-usertasks:local}
+  env_file:
+    # USERTASKS_ENV_FILE: another env file (npm run stack uses one per profile).
+    - path: ${USERTASKS_ENV_FILE:-.env}
+      required: false
+
+x-app-build: &app-build
   build:
     context: .
     args:
@@ -41,14 +51,14 @@ x-app-image: &app-image
       # GIT_COMMIT=$(git rev-parse HEAD) BUILD_TIME=$(date -u +%FT%TZ) docker compose build
       GIT_COMMIT: ${GIT_COMMIT:-}
       BUILD_TIME: ${BUILD_TIME:-}
-  env_file:
-    # USERTASKS_ENV_FILE: another env file (npm run stack uses one per profile).
-    - path: ${USERTASKS_ENV_FILE:-.env}
-      required: false
+      # tsc in the build: adds minutes and memory; CI and release images use true.
+      TYPECHECK: ${TYPECHECK:-false}
+      # Static-page workers in `next build` (peak memory; docs/deployment-profiles.md).
+      NEXT_BUILD_CPUS: ${NEXT_BUILD_CPUS:-2}
 
 services:
   app:
-    <<: *app-image
+    <<: [*app-image, *app-build]
     ports:
       - "${APP_PORT:-3000}:3000"
     restart: unless-stopped

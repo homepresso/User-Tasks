@@ -23,7 +23,7 @@ internet access, install from the [air-gapped bundle](setup-air-gapped.md).
 ## 1. Image
 
 Build the image from the repository and push it to your registry
-(`docker build -t registry.example.com/usertasks:0.1.0 . && docker push …`),
+(`docker build --build-arg TYPECHECK=true -t registry.example.com/usertasks:0.1.0 . && docker push …`),
 or load it from the air-gapped bundle. The image decides which
 [optional drivers](optional-drivers.md) exist: the storage, email, secrets
 and KMS SDKs are in by default (`INCLUDE_STORAGE_SDKS`, `INCLUDE_PROVIDER_SDKS`),

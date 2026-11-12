@@ -9,14 +9,19 @@
  *  - Only an allowlist of tools is exposed (types.ts DESIGNER_READ_TOOLS /
  *    DESIGNER_WRITE_TOOLS), and of those only the ones the person's
  *    permissions allow (requiredToolPermission) — the model never sees the
- *    rest. No delete, publish, toggle, run, row, secret or settings tool.
+ *    rest. No delete, toggle, run, secret or settings tool; the only
+ *    publish is forms_publish (a form's draft), behind its confirmation card.
  *  - Write tools are mode 'write': the engine shows a confirmation card and
  *    runs them only after the person confirms.
  *  - Drafts only: arguments that would publish or activate are removed from
  *    the schema the model sees AND from the arguments before the call
- *    (workflows: is_active / publish; custom actions: status forced to
- *    'draft', no enable / host / data grants; form controls: module upload
- *    only, a new control is disabled right after it is created).
+ *    (workflows: is_active / publish; forms_update: save_to forced to
+ *    'draft', so a form edit lands in its working draft and people keep the
+ *    published version until the person publishes (forms_publish, which the
+ *    Agent proposes only when asked, and which they confirm); custom
+ *    actions: status forced to 'draft', no enable / host / data grants;
+ *    form controls: module upload only, a new control is disabled right
+ *    after it is created).
  */
 import { formDesignerHref } from '@/lib/forms/designer-links'
 import { getMcpToolCatalog, type McpContext, type McpToolServer } from '@/lib/mcp/server'
@@ -38,6 +43,7 @@ import { hasAnimatedSuccessPage, withDefaultSuccessPage } from '@/lib/forms/succ
 export const FORBIDDEN_ARGS: Record<string, readonly string[]> = {
   workflows_create: ['is_active', 'publish', 'publish_notes'],
   workflows_update: ['is_active', 'publish', 'publish_notes'],
+  forms_update: ['save_to'],
   workflow_activities_create: ['status'],
   workflow_activities_update: ['status', 'enabled', 'approved_hosts', 'data_grants'],
   form_controls_create: ['url', 'manifest_url', 'package_base64'],
@@ -52,6 +58,8 @@ export const FORBIDDEN_ARGS: Record<string, readonly string[]> = {
 /** Arguments forced on, per tool (drafts). */
 const FORCED_ARGS: Record<string, Record<string, unknown>> = {
   workflows_create: { is_active: false },
+  // Form edits go to the form's working draft (lib/services/form-design-drafts); forms_publish publishes it.
+  forms_update: { save_to: 'draft' },
   workflow_activities_create: { status: 'draft' },
   // A new workflow agent starts inactive (an admin turns it on after testing it in the playground).
   agents_create: { is_active: false },
@@ -245,7 +253,8 @@ async function describeWrite(tool: string, args: Record<string, any>, read: (nam
   if (!creating) {
     const getter: Record<string, [string, Record<string, any>]> = {
       workflows_update: ['workflows_get_definition', { workflow_id: args.workflow_id }],
-      forms_update: ['forms_get', { form_id: args.form_id }],
+      forms_update: ['forms_get', { form_id: args.form_id, version: 'draft' }],
+      forms_publish: ['forms_get', { form_id: args.form_id }],
       data_tables_update_schema: ['data_tables_get', { table_id: args.table_id }],
       decision_tables_update: ['decision_tables_get', { decision_table_id: args.decision_table_id }],
       workflow_activities_update: ['workflow_activities_get', { workflow_activity_id: args.workflow_activity_id }],
@@ -262,7 +271,7 @@ async function describeWrite(tool: string, args: Record<string, any>, read: (nam
       currentName = current?.name ? String(current.name) : null
     }
   }
-  const title = tool === 'integrations_test' ? 'Test the connection' : creating ? `Create ${noun} “${String(args.name ?? 'Untitled')}”` : `Update ${noun}${currentName ? ` “${currentName}”` : ''}`
+  const title = tool === 'integrations_test' ? 'Test the connection' : tool === 'forms_publish' ? `Publish form${currentName ? ` “${currentName}”` : ''}` : creating ? `Create ${noun} “${String(args.name ?? 'Untitled')}”` : `Update ${noun}${currentName ? ` “${currentName}”` : ''}`
   if (!creating && args.name && args.name !== currentName) lines.push(`Rename to “${args.name}”`)
 
   const diff = (label: string, before: string[], after: string[]) => {
@@ -306,7 +315,18 @@ async function describeWrite(tool: string, args: Record<string, any>, read: (nam
         lines.push(changes.length ? `Theme: ${settings.length ? `${settings.length} setting${settings.length === 1 ? '' : 's'} (${quote(settings.map((c) => c.path), 6)})` : changes[0].after}` : 'Theme: no change')
         if (changes.length) preview = themeChangesPreview(changes)
       }
-      if (!creating) warnings.push('Forms have no draft: people filling this form see the new version (published workflows stay on theirs)')
+      if (!creating && args.save_to === 'draft') lines.push('Saved to the form’s draft — people keep seeing the published version until you publish it')
+      else if (!creating) warnings.push('People filling this form see the new version (published workflows stay on theirs)')
+      break
+    }
+    case 'forms_publish': {
+      const compare = await read('forms_draft_compare', { form_id: args.form_id }).catch(() => null)
+      const changes: string[] = Array.isArray(compare?.diff?.lines) ? compare.diff.lines : []
+      if (compare && compare.has_draft === false) throw new Error('This form has no draft to publish')
+      for (const line of changes.slice(0, 8)) lines.push(line)
+      if (compare?.published_version) lines.push(`Becomes version ${Number(compare.published_version) + 1}`)
+      if (args.note) lines.push(`Note: “${String(args.note).slice(0, 140)}”`)
+      warnings.push('Everyone filling this form sees the new version at once (published workflows stay on theirs); draft reviewers lose access')
       break
     }
     case 'data_tables_create':

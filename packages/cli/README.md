@@ -1,17 +1,19 @@
 # @user-tasks/cli
 
 `usertasks` is the command-line interface for UserTasks,
-the open-source headless workflow engine. It talks only to the public REST API (`/api/v1`), so
+the open source process platform. It talks only to the public REST API (`/api/v1`), so
 the server enforces the same permissions as for any other API client.
 
 ```bash
 npm install -g @user-tasks/cli    # Node.js 20+
-usertasks login --url https://tasks.example.com
+usertasks login                       # a local install at http://localhost:3000
 usertasks whoami
 usertasks workflows list
 ```
 
 ## Logging in
+
+Without `--url`, `USERTASKS_URL` or a saved profile, the CLI talks to `http://localhost:3000` (a local install). Pass `--url https://tasks.example.com` for any other server.
 
 | Command | What it does |
 |---|---|

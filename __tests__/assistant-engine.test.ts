@@ -132,7 +132,7 @@ const FORMS_DESIGNER = ['forms.view', 'forms.edit', 'forms.submit']
 const ALL_BUILD = ['workflows.view', 'workflows.create', 'workflows.edit', 'workflows.activate', 'workflows.delete', 'forms.view', 'forms.edit', 'forms.delete', 'data.view', 'data.create', 'data.edit_schema', 'data.manage_rows', 'data.delete', 'extensibility.view', 'extensibility.create', 'extensibility.edit', 'extensibility.delete']
 
 describe('designer tools', () => {
-  it('only what the permissions allow; never publish / toggle / run / secret tools, and no deletes except data rows', () => {
+  it('only what the permissions allow; never publish (except a form draft, confirmed) / toggle / run / secret tools, and no deletes except data rows', () => {
     const viewer = allowedDesignerToolNames(new Set(VIEWER))
     expect(viewer.filter((n) => (DESIGNER_WRITE_TOOLS as readonly string[]).includes(n))).toEqual([])
     expect(viewer.filter((n) => /^(workflows|forms|decision|workflow_activities|form_controls)/.test(n))).toEqual([])
@@ -141,7 +141,10 @@ describe('designer tools', () => {
     expect(forms).not.toContain('workflows_create')
     expect(forms).not.toContain('data_tables_create')
     const all = allowedDesignerToolNames(new Set(ALL_BUILD))
-    expect(all.filter((n) => /delete|publish|toggle|start|run_action|secrets|anonymous|submit|migrate/.test(n) && n !== 'data_rows_bulk_delete')).toEqual([])
+    expect(all.filter((n) => /delete|publish|toggle|start|run_action|secrets|anonymous|submit|migrate/.test(n) && n !== 'data_rows_bulk_delete' && n !== 'forms_publish')).toEqual([])
+    // Publishing a form's draft is a write: the person confirms it on a card.
+    expect(forms).toContain('forms_publish')
+    expect(DESIGNER_WRITE_TOOLS as readonly string[]).toContain('forms_publish')
     // Row writes need data.manage_rows (row reads data.view).
     expect(all.filter((n) => n.startsWith('data_rows_') && n !== 'data_rows_query' && n !== 'data_rows_get')).toEqual(ALL_BUILD.includes('data.manage_rows') ? ['data_rows_create', 'data_rows_update', 'data_rows_bulk_delete', 'data_rows_import'] : [])
     // A new form control is disabled right after creation: that needs edit as well as create.

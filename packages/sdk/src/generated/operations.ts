@@ -985,6 +985,61 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "getFormDraft",
+    "method": "GET",
+    "path": "/forms/{id}/draft",
+    "envelope": true
+  },
+  {
+    "operationId": "saveFormDraft",
+    "method": "PUT",
+    "path": "/forms/{id}/draft",
+    "envelope": true
+  },
+  {
+    "operationId": "discardFormDraft",
+    "method": "DELETE",
+    "path": "/forms/{id}/draft",
+    "envelope": true
+  },
+  {
+    "operationId": "compareFormDraft",
+    "method": "GET",
+    "path": "/forms/{id}/draft/compare",
+    "envelope": true
+  },
+  {
+    "operationId": "publishFormDraft",
+    "method": "POST",
+    "path": "/forms/{id}/publish",
+    "envelope": true
+  },
+  {
+    "operationId": "listFormDraftReviewers",
+    "method": "GET",
+    "path": "/forms/{id}/draft/reviewers",
+    "envelope": true,
+    "listKey": "reviewers"
+  },
+  {
+    "operationId": "addFormDraftReviewers",
+    "method": "POST",
+    "path": "/forms/{id}/draft/reviewers",
+    "envelope": true
+  },
+  {
+    "operationId": "removeFormDraftReviewer",
+    "method": "DELETE",
+    "path": "/forms/{id}/draft/reviewers/{reviewerId}",
+    "envelope": true
+  },
+  {
+    "operationId": "restoreFormVersionAsDraft",
+    "method": "POST",
+    "path": "/forms/{id}/versions/{version}/restore",
+    "envelope": true
+  },
+  {
     "operationId": "listFormThemes",
     "method": "GET",
     "path": "/form-themes",

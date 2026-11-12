@@ -49,9 +49,17 @@ describe('login --api-key', () => {
     expect(new ConfigStore(configPath).read().profiles).toEqual({})
   })
 
-  it('requires a server URL and a key', async () => {
-    expect(await harness().run('login', '--api-key', 'ut_good')).toBe(EXIT.usage)
+  it('requires a key', async () => {
     expect(await harness({ stdin: '' }).run('login', '--url', 'https://tasks.test', '--api-key', '-')).toBe(EXIT.usage)
+  })
+
+  it('without --url logs in to a local install (http://localhost:3000) and says so', async () => {
+    const configPath = tempConfigPath()
+    const h = harness({ configPath, responder: meResponder() })
+    expect(await h.run('login', '--api-key', 'ut_good')).toBe(0)
+    expect(h.requests[0].url.toString()).toBe('http://localhost:3000/api/v1/me')
+    expect(h.stderr()).toContain('No --url given: logging in to http://localhost:3000')
+    expect(new ConfigStore(configPath).read().profiles.default.url).toBe('http://localhost:3000')
   })
 })
 

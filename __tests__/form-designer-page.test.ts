@@ -138,9 +138,10 @@ describe('one designer, two frames', () => {
     expect(src).toMatch(/else if \(isPage\) \{\s*setSaved\(\{ key: formDefinitionKey\(definition\)/)
     expect(src).toContain("const dirty = formDefinitionKey(definition) !== baselineKey")
     expect(src).toContain("e.key.toLowerCase() !== 's'")
-    // The library's versioning: each save of fields / layout / theme is the next version.
-    expect(pageAction()).toMatch(/label: form \? `Save version \$\{form\.version \+ 1\}` : 'Create form'/)
-    expect(pageAction()).toContain('await updateForm(form.id, content)')
+    // Drafts (lib/services/form-design-drafts): Save draft writes the shared draft; without the migration it is the next version, as before.
+    expect(pageAction()).toMatch(/label: form \? \(draftsOn \? 'Save draft' : `Save version \$\{form\.version \+ 1\}`\) : 'Create form'/)
+    expect(pageAction()).toContain('await saveFormDesignDraft(form.id, { ...content, ...(draftsOn ? { expected_updated_at: draftStamp.current } : {}) })')
+    expect(pageAction()).toContain("if (result.data.mode === 'live')")
     expect(pageAction()).toContain('router.replace(formDesignerHref(result.data.id))')
   })
 })
@@ -219,7 +220,7 @@ describe('the Agent on the page', () => {
   it('a confirmed Agent change reloads the page designer on the new version', () => {
     const src = pageAction()
     expect(src).toContain("if (change.kind !== 'form' || !formId || change.id !== formId) return")
-    expect(src).toContain('void refetch().then(() => setAgentRev((r) => r + 1))')
+    expect(src).toContain('void Promise.all([refetch(), refetchDraft()]).then(() => setAgentRev((r) => r + 1))')
     expect(src).toContain('key={loadedKey}')
   })
 })

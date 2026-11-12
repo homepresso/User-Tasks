@@ -8,6 +8,7 @@ import { getHostWorkspace, loginUrlFor, originForSubdomain } from "@/lib/workspa
 import { sanitizeRedirect } from "@/lib/safe-redirect"
 import { isCloud } from "@/lib/deployment"
 import { signupHref } from "@/lib/signup-link"
+import { redirectToSetupIfNeeded, singleOrganisation } from "@/lib/setup/server"
 
 export const metadata = pageMetadata("Sign in")
 
@@ -19,6 +20,8 @@ const FALLBACK: LoginOptions = { provider: "supabase", password: true, sso: [] }
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // On a workspace address: sign in where every auth flow lives (the apex,
   // when sessions are shared across subdomains), back to this address after.
+  // A brand-new self-hosted install has nobody to sign in yet: /setup first.
+  await redirectToSetupIfNeeded()
   const host = await getHostWorkspace()
   const query = await searchParams
   let defaultOrg = ""
@@ -35,13 +38,17 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     if (/^https?:\/\//.test(target)) redirect(target)
     defaultOrg = host.tenant.slug
   }
-  const options = await getLoginOptions().catch((error) => {
-    console.error("[auth] login options unavailable:", (error as Error).message)
-    return FALLBACK
-  })
+  const [options, onlyOrg] = await Promise.all([
+    getLoginOptions().catch((error) => {
+      console.error("[auth] login options unavailable:", (error as Error).message)
+      return FALLBACK
+    }),
+    // Self-hosted with one organisation: sign in to it without typing its slug.
+    defaultOrg ? null : singleOrganisation(),
+  ])
   return (
     <Suspense>
-      <LoginForm options={options} defaultOrg={defaultOrg} signupHref={signup} />
+      <LoginForm options={options} defaultOrg={defaultOrg || onlyOrg?.slug || ""} singleOrg={onlyOrg} signupHref={signup} />
     </Suspense>
   )
 }

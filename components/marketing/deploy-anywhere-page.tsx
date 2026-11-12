@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react"
 import Link from "next/link"
 import { ProductHero } from "@/components/marketing/product-hero"
 import { ArrowRight, Check, CloudCog, GitCompareArrows, History, RotateCcw, ShieldCheck, Undo2, Zap } from "lucide-react"
-import { MarketingFooter, MarketingHeader, SectionHeading, Snippet } from "@/components/marketing/marketing-ui"
+import { InlineCode, MarketingFooter, MarketingHeader, SectionHeading, Snippet } from "@/components/marketing/marketing-ui"
 import { TopologyDiagram } from "@/components/topology/topology-diagram"
 import { AREAS, AREA_LABEL, DEPLOY_ANYWHERE, getTopology } from "@/lib/topologies"
 
@@ -44,15 +44,10 @@ const SAFETY = [
   { icon: Undo2, title: "Rollback", body: "usertasks-admin rollback restores settings and undoes data changes where it can — URLs, accounts, pg_cron jobs, data keys." },
 ]
 
-const SWITCH_SNIPPET = `# every area: provider and health
-usertasks-admin status
-
-# plan, then run: files to S3, email to SES
+const SWITCH_SNIPPET = `usertasks-admin status
 usertasks-admin switch storage --to s3 --dry-run
 usertasks-admin switch storage --to s3 --yes
 usertasks-admin switch email --to ses --yes
-
-# every switch, with rollback ids
 usertasks-admin history`
 
 const FAQS = [
@@ -165,7 +160,7 @@ export function DeployAnywherePage() {
           title={<>Start on Supabase. <span className="mkt-gradient-text">Move each piece when you’re ready.</span></>}
           intro={<>UserTasks splits its infrastructure into eleven areas — database, auth, storage, realtime, scheduler, email, secrets, KMS, cache, log export and directory sync — and each one has its own provider. Supabase is an excellent platform and our recommended way to run UserTasks: deploy on it with nothing else to configure. If you&rsquo;d like to use other services, move areas to <strong className="text-white">AWS</strong>, <strong className="text-white">Azure</strong>, <strong className="text-white">Google Cloud</strong> or <strong className="text-white">your own servers</strong> whenever you&rsquo;re ready, one checked, reversible switch at a time.</>}
           primary={{ href: "/docs/topologies", label: "Choose your topology" }}
-          secondary={{ href: "/docs/quickstart/self-host", label: "Self-host quickstart" }}
+          secondary={{ href: "/docs/self-hosting/choose", label: "Self-hosting guide" }}
         />
         <section className="relative">
           <div className="mx-auto max-w-6xl px-4 pb-6 pt-14 sm:px-6">
@@ -204,7 +199,7 @@ export function DeployAnywherePage() {
               <div>
                 <Snippet code={SWITCH_SNIPPET} />
                 <p className="mt-3 text-sm leading-6 text-(color:--mkt-muted)">
-                  The same command for every area. <Link href="/docs/self-hosting/switching-providers" className="font-semibold text-(color:--mkt-bronze) hover:underline">How a switch runs</Link>
+                  <InlineCode>status</InlineCode> shows every area&apos;s provider and health; the switch commands plan, then move files to S3 and email to SES; <InlineCode>history</InlineCode> lists every switch with its rollback id. The same command for every area. <Link href="/docs/self-hosting/switching-providers" className="font-semibold text-(color:--mkt-bronze) hover:underline">How a switch runs</Link>
                 </p>
               </div>
             </div>
@@ -253,7 +248,7 @@ export function DeployAnywherePage() {
           when="Everything inside your network, with no SaaS and no outbound internet. The reference profile runs on a network with no route out, and its smoke test proves the app can’t reach the internet."
           points={["PostgreSQL, built-in auth with Keycloak or AD FS, MinIO, SMTP, Valkey", "Vault Transit for keys, syslog or Splunk for logs, LDAP for the directory", "Docker Compose or Kubernetes with the same image"]}
           diagram="on-prem"
-          docs={[{ href: "/docs/topologies/on-premises", label: "On-premises and air-gapped" }, { href: "/on-premises-workflow-automation", label: "On-premises workflow automation" }]}
+          docs={[{ href: "/docs/topologies/on-premises", label: "On-premises and air-gapped" }, { href: "/docs/self-hosting/install", label: "Install step by step" }, { href: "/on-premises-workflow-automation", label: "On-premises workflow automation" }]}
         />
 
         {/* Area grid */}
@@ -347,6 +342,7 @@ export function DeployAnywherePage() {
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link href="/docs/topologies" className="inline-flex items-center justify-center gap-2 rounded-lg bg-(color:--mkt-primary) px-6 py-3 font-semibold text-(color:--mkt-paper) hover:bg-(color:--mkt-primary-hover)">Choose your topology <ArrowRight size={16} aria-hidden="true" /></Link>
               <Link href="/docs/services" className="inline-flex items-center justify-center rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">Choosing each service</Link>
+              <Link href="/docs/self-hosting/install" className="inline-flex items-center justify-center rounded-lg border border-(color:--mkt-ink)/15 px-6 py-3 font-medium text-(color:--mkt-ink-soft) hover:border-(color:--mkt-ink)/30">Install step by step</Link>
             </div>
           </div>
         </section>

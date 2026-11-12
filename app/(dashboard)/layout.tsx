@@ -8,6 +8,7 @@ import { themeFontsHref, themeStylesheet } from '@/lib/theme/to-css'
 import { resolveStorageUrl } from '@/lib/storage/refs'
 import { APP_NAME, TITLE_TEMPLATE } from '@/lib/page-title'
 import { enforceHostWorkspace } from '@/lib/workspace-host'
+import { redirectToSetupIfNeeded } from '@/lib/setup/server'
 
 export async function generateMetadata(): Promise<Metadata> {
   const theme = await loadSessionWorkspaceTheme()
@@ -26,6 +27,8 @@ export default async function DashboardLayout({
   // sign in, non-member → no access, another current workspace → switch
   // (lib/workspace-host.ts). Elsewhere a no-op.
   await enforceHostWorkspace()
+  // Self-hosted with no workspaces and no users yet: /setup (cached; cloud never checks).
+  await redirectToSetupIfNeeded()
   // The workspace theme is rendered on the server so the first paint (the
   // loading shell included) already has the right colours, fonts and sizes.
   const theme = await loadSessionWorkspaceTheme()

@@ -32,7 +32,7 @@ On a connected machine, build or pull them, then copy them into the
 isolated network:
 
 ```bash
-docker build -t registry.internal/usertasks:<version> .
+docker build --build-arg TYPECHECK=true -t registry.internal/usertasks:<version> .
 docker save registry.internal/usertasks:<version> | gzip > usertasks.tar.gz
 ```
 

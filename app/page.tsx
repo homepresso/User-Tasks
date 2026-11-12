@@ -5,11 +5,12 @@ import { isCloud, publicBaseUrl } from "@/lib/deployment"
 import { repositoryUrl } from "@/lib/site-links"
 import { enforceHostWorkspace } from "@/lib/workspace-host"
 import { siteGraph } from "@/lib/seo/site"
+import { redirectToSetupIfNeeded } from "@/lib/setup/server"
 
 export const metadata = {
   title: "UserTasks: The Open Source Process Platform",
   description:
-    "UserTasks is an open-source headless workflow engine: a visual designer for complex workflows, human tasks, grid forms, document actions, integrations with any system, decision tables, AI agents in workflows and Agent, an AI co-worker in every screen, on any model, driven from a REST API, an MCP server and a CLI — with log export to Splunk, Datadog, OpenTelemetry and webhooks.",
+    "UserTasks is the open source process platform: a visual designer for complex workflows, human tasks, grid forms, document actions, integrations with any system, decision tables, AI agents in workflows and Agent, an AI co-worker in every screen, on any model, driven from a REST API, an MCP server and a CLI — with log export to Splunk, Datadog, OpenTelemetry and webhooks.",
   keywords: [
     "headless workflow engine",
     "open source workflow engine",
@@ -48,6 +49,8 @@ export default async function Home() {
     redirect("/home")
   }
   if (!isCloud()) {
+    // A brand-new self-hosted install: create the admin account first.
+    await redirectToSetupIfNeeded()
     redirect("/login")
   }
 

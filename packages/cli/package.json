@@ -1,6 +1,6 @@
 {
   "name": "@user-tasks/cli",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "Command-line interface for UserTasks: every REST endpoint as a command, browser login and config as code",
   "keywords": [
     "usertasks",

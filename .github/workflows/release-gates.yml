@@ -50,7 +50,7 @@ jobs:
       - run: npm ci
 
       - name: Build the image
-        run: docker build -t usertasks:local .
+        run: docker build --build-arg TYPECHECK=true -t usertasks:local .
 
       - name: Up
         run: npm run stack -- up --profile ${{ matrix.profile }} --env deploy/compose/.state/ci.env --project usertasks-ci --no-build ${{ matrix.flags }}
@@ -135,7 +135,7 @@ jobs:
       - run: npm ci
 
       - name: Build the image
-        run: docker build -t usertasks:local .
+        run: docker build --build-arg TYPECHECK=true -t usertasks:local .
 
       - name: Helm gate (kind)
         run: npm run helm:gate -- --image usertasks:local
@@ -163,7 +163,7 @@ jobs:
       - run: npm ci
 
       - name: Build the image
-        run: docker build -t usertasks:local .
+        run: docker build --build-arg TYPECHECK=true -t usertasks:local .
 
       - name: Create the bundle (throwaway signing key)
         run: |

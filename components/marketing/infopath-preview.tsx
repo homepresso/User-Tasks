@@ -28,10 +28,11 @@ const LIGHT = {
   "--theme-surface-border": "var(--mkt-line)",
   colorScheme: "light",
 } as CSSProperties
-const TYPE_LABEL: Record<string, string> = {
-  text: "Text", textarea: "Long text", number: "Number", currency: "Currency", email: "Email", url: "URL", date: "Date", datetime: "Date & time",
-  boolean: "Yes / no", choice: "Choice", multi_choice: "Multi-select", user: "Person", attachments: "Attachments", list: "List (repeating rows)", label: "Calculated",
-}
+/** Sample templates on this site, written for UserTasks (no personal data). */
+const SAMPLES = [
+  { file: "/samples/expense-report.xsn", name: "Expense Report.xsn", label: "expense report" },
+  { file: "/samples/site-inspection.xsn", name: "Site Inspection.xsn", label: "site inspection" },
+] as const
 
 type State = { kind: "idle" } | { kind: "busy"; name: string } | { kind: "error"; message: string } | { kind: "done"; file: File; summary: PublicInfoPathSummary }
 
@@ -61,10 +62,10 @@ export function InfoPathPreview() {
     }
   }
 
-  const trySample = async () => {
-    const res = await fetch("/samples/expense-report.xsn")
+  const trySample = async (sample: (typeof SAMPLES)[number]) => {
+    const res = await fetch(sample.file)
     if (!res.ok) return
-    await analyse(new File([await res.blob()], "Expense Report.xsn", { type: "application/vnd.ms-infopath" }))
+    await analyse(new File([await res.blob()], sample.name, { type: "application/vnd.ms-infopath" }))
   }
 
   const create = async () => {
@@ -104,7 +105,11 @@ export function InfoPathPreview() {
               <p className="text-lg font-semibold text-white">Drop your InfoPath form here</p>
               <p className="max-w-md text-sm leading-6 text-[#C9BFAE]">An .xsn form template, up to 4 MB. We read it to show you the result, then forget it: nothing is stored.</p>
               <span className="mt-1 inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white"><FileUp className="size-4" aria-hidden="true" />Choose a file</span>
-              <button type="button" onClick={(e) => { e.stopPropagation(); void trySample() }} className="text-sm font-semibold text-[#F0C27B] underline-offset-4 hover:underline" data-testid="infopath-sample">No file to hand? Try a sample expense report</button>
+              <p className="text-sm text-[#C9BFAE]">No file to hand? Try a sample:{" "}
+                {SAMPLES.map((sample, i) => (
+                  <span key={sample.file}>{i > 0 && " or "}<button type="button" onClick={(e) => { e.stopPropagation(); void trySample(sample) }} className="font-semibold text-[#F0C27B] underline-offset-4 hover:underline" data-testid={i === 0 ? "infopath-sample" : `infopath-sample-${i + 1}`}>{sample.label}</button></span>
+                ))}
+              </p>
               {state.kind === "error" && <p role="alert" className="mt-2 flex max-w-md items-start gap-2 rounded-xl border border-[#E07A5F]/40 bg-[#E07A5F]/10 px-3 py-2 text-left text-sm text-[#F6C9BC]"><AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />{state.message}</p>}
             </>
           )}
@@ -136,13 +141,25 @@ function Result({ summary, fileName, tab, setTab, onCreate, going, onReset }: {
       </div>
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Tile label="Views → forms" value={`${c.views} → ${summary.views.length}`} />
-        <Tile label="Fields" value={String(c.fields)} hint={c.repeating ? `${c.repeating} repeating table${c.repeating === 1 ? "" : "s"} → Lists` : undefined} />
+        <Tile label="Fields" value={String(c.fields)} hint={c.repeating ? `${c.repeating} repeating table${c.repeating === 1 ? "" : "s"} or section${c.repeating === 1 ? "" : "s"}` : undefined} />
         <Tile label="Rules" value={`${c.rules.converted} of ${c.rules.total}`} hint={c.rules.partial ? `${c.rules.partial} in part` : "convert automatically"} />
         <Tile label="Validation & formulas" value={`${c.validations.converted + c.calculations.converted} of ${c.validations.total + c.calculations.total}`} hint={c.formatting.total ? `${c.formatting.converted} of ${c.formatting.total} formatting rules` : undefined} />
       </dl>
       <p className="rounded-xl bg-[#7FA98A]/15 px-3 py-2 text-sm text-[#CFE3D3]" data-testid="infopath-public-headline">
-        <Check className="mr-1.5 inline size-4 align-[-3px]" aria-hidden="true" /><strong className="text-white">{converted} of {behaviour}</strong> rules, validations and formulas convert automatically.{summary.attention.length ? ` ${summary.attention.length} item${summary.attention.length === 1 ? " needs" : "s need"} a person afterwards — kept as notes, never dropped.` : ""}
+        <Check className="mr-1.5 inline size-4 align-[-3px]" aria-hidden="true" /><strong className="text-white">{converted} of {behaviour}</strong> rules, validations, formulas and formatting rules convert automatically.{summary.attention.length ? ` ${summary.attention.length} item${summary.attention.length === 1 ? " needs" : "s need"} a person afterwards — kept as notes, never dropped.` : ""}
       </p>
+      {summary.features.length > 0 && (
+        <div data-testid="infopath-public-features">
+          <p className="text-2xs uppercase tracking-wider text-[#A89E8C]">What converts</p>
+          <ul className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
+            {summary.features.map((f) => (
+              <li key={f.key} className="rounded-full border border-white/12 bg-white/[0.05] px-2.5 py-1 text-[#E6DDCC]" title={f.items?.join(", ")}>
+                <strong className="text-white">{f.count}</strong> {f.label}{f.items?.length ? <span className="text-[#A89E8C]"> ({f.items.join(", ")})</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div role="tablist" aria-label="Preview" className="flex gap-1 rounded-xl bg-white/[0.06] p-1 text-sm">
         {([["preview", "Preview"], ["fields", "Fields per view"], ["attention", `Needs a person (${summary.attention.length})`]] as const).map(([id, label]) => (
           <button key={id} role="tab" type="button" aria-selected={tab === id} onClick={() => setTab(id)} className={`flex-1 rounded-lg px-3 py-1.5 font-semibold ${tab === id ? "bg-[#F4EFE4] text-[#1B1406]" : "text-[#D9D0BF] hover:text-white"}`}>{label}</button>
@@ -157,7 +174,7 @@ function Result({ summary, fileName, tab, setTab, onCreate, going, onReset }: {
               <section key={v.name}>
                 <h3 className="flex items-center gap-2 text-sm font-semibold"><ListChecks className="size-4 text-(color:--mkt-bronze)" aria-hidden="true" />{v.name}{v.default && <span className="rounded-full bg-(color:--mkt-gold)/20 px-2 text-2xs font-semibold">default view</span>}</h3>
                 <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
-                  {v.fields.map((f, i) => <li key={i} className="flex justify-between gap-2 border-b border-(color:--mkt-ink)/[0.06] py-1"><span>{f.label}{f.required && <span className="text-(color:--mkt-coral)"> *</span>}{f.columns && <span className="text-(color:--mkt-muted)"> ({f.columns.join(", ")})</span>}</span><span className="shrink-0 text-(color:--mkt-muted)">{TYPE_LABEL[f.type] ?? f.type}</span></li>)}
+                  {v.fields.map((f, i) => <li key={i} className="flex justify-between gap-2 border-b border-(color:--mkt-ink)/[0.06] py-1"><span>{f.label}{f.required && <span className="text-(color:--mkt-coral)"> *</span>}{f.columns && <span className="text-(color:--mkt-muted)"> ({f.columns.join(", ")})</span>}</span><span className="shrink-0 text-(color:--mkt-muted)">{f.type_label ?? f.type}</span></li>)}
                 </ul>
               </section>
             ))}

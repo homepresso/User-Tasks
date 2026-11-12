@@ -246,6 +246,7 @@ export function FormsLibrary() {
                       <div className="flex min-w-0 items-center gap-2 max-sm:flex-wrap max-sm:gap-y-1">
                         <span className="truncate font-medium max-sm:basis-full" title={form.name}>{form.name}</span>
                         <Tag mono>v{form.version}</Tag>
+                        {form.has_draft && <Tag className="text-warning" data-form-has-draft="" title={form.draft_updated_at ? `Unpublished changes, last saved ${new Date(form.draft_updated_at).toLocaleString()}` : 'Unpublished changes'}>Draft changes</Tag>}
                         {form.available_in_menu && <Tag className="text-primary-text" data-form-available>In the Forms menu</Tag>}
                         {form.form_page_of && <Tag data-form-page-of={form.form_page_of.workflow_id}>Form page</Tag>}
                       </div>

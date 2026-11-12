@@ -352,6 +352,14 @@ interface ExecutionContext {
   logs: LogEntry[];
   onEvent?: (event: NodeEvent) => void;
   isTest?: boolean;
+  /**
+   * A designer test run with "Use form drafts": User Task steps linking a
+   * reusable form use its working draft (lib/services/form-design-drafts)
+   * instead of the published version. Test runs only; set by the Test
+   * runner route (forms.edit), kept across a resume in the engine-owned
+   * `_test_form_drafts` variable.
+   */
+  testFormDrafts?: boolean;
   nodeMap?: Map<string, WorkflowNode>;
   edgesBySource?: Map<string, WorkflowEdge[]>;
   metrics?: {
@@ -916,7 +924,7 @@ export async function executeWorkflow(
    * workflow_started_by / workflow_started_via; none means a system start
    * (the owner). Callers' variables never set those.
    */
-  options?: { supabase?: SupabaseClient; initiator?: RunInitiator },
+  options?: { supabase?: SupabaseClient; initiator?: RunInitiator; testFormDrafts?: boolean },
 ): Promise<{
   status: string;
   node_results: Record<string, any>;
@@ -930,6 +938,9 @@ export async function executeWorkflow(
 }> {
   const supabase = options?.supabase ?? createEngineClient();
   const startVariables = stripInitiatorVariables(initialVariables);
+  // Engine-owned: only the Test runner's option sets it (never a caller's variables).
+  delete startVariables._test_form_drafts;
+  const testFormDrafts = Boolean(test && options?.testFormDrafts);
 
   // Fetch workflow, and the pinned published version in parallel when available.
   // The draft definition (nodes/edges) is only needed when no version will be used.
@@ -1059,6 +1070,7 @@ export async function executeWorkflow(
       _workflow_inputs: Object.keys({ ...userVarDefaults, ...startVariables }).filter(
         (key) => !key.startsWith("_"),
       ),
+      ...(testFormDrafts ? { _test_form_drafts: true } : {}),
     },
     liveBindings: {},
     nodeResults: {},
@@ -1067,6 +1079,7 @@ export async function executeWorkflow(
     logs: [],
     onEvent,
     isTest: test,
+    testFormDrafts,
     metrics: {
       startedAt: Date.now(),
       nodeVisits: 0,
@@ -1895,6 +1908,8 @@ export async function resumeWorkflow(
     // server event is simulated, not a real task). From the SAVED engine-owned
     // variable: a task's values cannot switch it.
     isTest: savedVariables.workflow_started_via === "test",
+    // From the saved variables too (a task's values cannot switch it on).
+    testFormDrafts: savedVariables.workflow_started_via === "test" && savedVariables._test_form_drafts === true,
     metrics: {
       startedAt: Date.now(),
       nodeVisits: 0,
@@ -4733,7 +4748,7 @@ async function runNodeAction(
       const workflowActorId = resolveWorkflowActorId();
       // The step's form: a linked reusable form (pinned version in a
       // published snapshot, else the latest) or the node's own fields.
-      const runtimeForm = await resolveRuntimeForm(supabase, tenantId, config);
+      const runtimeForm = await resolveRuntimeForm(supabase, tenantId, config, { useDraft: Boolean(ctx.isTest && ctx.testFormDrafts) });
       // Lookup filters / reference inputs may use workflow {{variables}}:
       // resolved now; {{task_data.<key>}} / {{search}} stay for the lookup.
       const taskFields = (

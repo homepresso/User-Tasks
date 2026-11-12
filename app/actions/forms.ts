@@ -35,6 +35,40 @@ export async function updateForm(formId: string, input: forms.FormUpdateInput) {
   return run('updateForm', 'Could not save the form.', (ctx) => forms.updateForm(ctx, formId, input))
 }
 
+/**
+ * The designer's Save: writes the form's working draft (not visible to
+ * others). Before the drafts migration it publishes a new version, as
+ * before — the result's mode says which happened.
+ */
+export async function saveFormDesignDraft(formId: string, input: { fields?: unknown; layout?: unknown; theme?: unknown; buttons?: unknown; header?: unknown; expected_updated_at?: string | null }) {
+  return run('saveFormDesignDraft', 'Could not save the draft.', async (ctx) => (await import('@/lib/services/form-design-drafts')).saveDesignDraft(ctx, formId, input))
+}
+
+/** Publish the draft as a new version (same checks as a save; blocked with the problems). */
+export async function publishFormDesignDraft(formId: string, note?: string | null) {
+  return run('publishFormDesignDraft', 'Could not publish the form.', async (ctx) => (await import('@/lib/services/form-design-drafts')).publishDesignDraft(ctx, formId, { note }))
+}
+
+/** Discard the draft (the published form is untouched; reviewers lose access). */
+export async function discardFormDesignDraft(formId: string) {
+  return run('discardFormDesignDraft', 'Could not discard the draft.', async (ctx) => (await import('@/lib/services/form-design-drafts')).discardDesignDraft(ctx, formId))
+}
+
+/** Version history → Restore as draft. */
+export async function restoreFormVersionAsDraft(formId: string, version: number) {
+  return run('restoreFormVersionAsDraft', 'Could not restore the version.', async (ctx) => (await import('@/lib/services/form-design-drafts')).restoreFormVersionAsDraft(ctx, formId, version))
+}
+
+/** Share draft: let people / teams preview the draft (they are notified). */
+export async function shareFormDesignDraft(formId: string, input: { principals: Array<{ type: 'user' | 'team'; id: string }>; note?: string | null }) {
+  return run('shareFormDesignDraft', 'Could not share the draft.', async (ctx) => (await import('@/lib/services/form-design-drafts')).addDraftReviewers(ctx, formId, input))
+}
+
+/** Stop sharing the draft with one reviewer. */
+export async function unshareFormDesignDraft(formId: string, reviewerId: string) {
+  return run('unshareFormDesignDraft', 'Could not remove the reviewer.', async (ctx) => (await import('@/lib/services/form-design-drafts')).removeDraftReviewer(ctx, formId, { id: reviewerId }))
+}
+
 export async function duplicateForm(formId: string, name?: string) {
   return run('duplicateForm', 'Could not duplicate the form.', (ctx) => forms.duplicateForm(ctx, formId, name))
 }

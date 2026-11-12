@@ -14,10 +14,29 @@ can move to AWS, Azure, Google Cloud or your own servers with
 [Choose your topology](topologies/README.md) helps you decide where each one
 should run, and [Choosing each service](services/README.md) lists the options.
 
+Requirements: Node.js 22 LTS (20.9 or later works, with an `EBADENGINE`
+warning from one package) and Docker. Building the Docker image needs about
+10 GB of memory for Docker ([Deployment profiles: Memory](deployment-profiles.md#memory));
+running from source doesn't build anything in Docker.
+
+Just want it running on your own computer? From a checkout, `npm run setup:local`
+does everything below for a local Supabase in Docker (sections 1–3: start the
+stack, apply migrations, write `.env.local` with fresh secrets, store the cron
+secret in Vault), then `npm run dev`. It works in PowerShell, cmd, bash and
+zsh, is safe to re-run, never overwrites values already in `.env.local` and
+never prints secrets; `--reset` (after a confirmation) rebuilds the local
+database from scratch. Beginners: [/docs/self-hosting/quick-start](/docs/self-hosting/quick-start).
+
+New to self-hosting? The step-by-step guide on the docs site walks through
+choosing how to run it, installing, creating your admin account at `/setup`,
+inviting people, the CLI, updates, backups and troubleshooting:
+[/docs/self-hosting/choose](/docs/self-hosting/choose).
+
 ## 1. Supabase project
 
 1. Create a project on supabase.com, or run a local stack with
-   `npx supabase init` (first time only) and then `npx supabase start`.
+   `npx supabase start` (`supabase/config.toml` is in the repository, so no
+   `supabase init`; `npm run setup:local` does this and the steps below).
 2. Enable the `pg_cron` and `pg_net` extensions (Database → Extensions).
    The cron migration also runs `create extension if not exists` for both.
 3. Apply the migrations. Hosted project:
@@ -27,7 +46,10 @@ should run, and [Choosing each service](services/README.md) lists the options.
    npx supabase db push
    ```
 
-   Local stack: `npx supabase db reset` applies `supabase/migrations/`.
+   Local stack: `npx supabase start` applies `supabase/migrations/` to a new
+   database; `npx supabase migration up` applies new ones to an existing
+   database (data kept) and `npx supabase db reset` rebuilds it from scratch
+   (data lost).
 
    This builds the whole schema from scratch: baseline, `auth.users`
    trigger, pg_cron jobs, the public `task-files` and `logos` Storage buckets
@@ -40,7 +62,8 @@ should run, and [Choosing each service](services/README.md) lists the options.
 ## 2. Environment
 
 Copy `.env.example` to `.env.local` (for `npm run dev` / `npm start`) or to
-`.env` (for Docker Compose) and fill it in. The minimum is:
+`.env` (for Docker Compose) and fill it in (`npm run setup:local` writes
+`.env.local` for a local stack). The minimum is:
 
 | Variable | Notes |
 |----------|-------|
@@ -54,7 +77,8 @@ Copy `.env.example` to `.env.local` (for `npm run dev` / `npm start`) or to
 `DEPLOYMENT_MODE` defaults to `self_hosted` when unset. In that mode the
 marketing pages, contact form and self-signup are disabled, `/robots.txt`
 disallows all crawling, the sitemap is empty, and `/` redirects to `/tasks`
-(signed in) or `/login`. Some of these routes are statically rendered, so
+(signed in) or `/login` — or to `/setup` while the install has no admin
+account yet ([First admin account](#4-first-admin-account)). Some of these routes are statically rendered, so
 set `DEPLOYMENT_MODE` (and the app URL, used for Open Graph and sitemap
 links) at build time as well as at runtime.
 
@@ -140,7 +164,9 @@ select vault.create_secret('https://tasks.example.com', 'app_base_url',
   'Public base URL of the UserTasks app');
 ```
 
-Or let the app do it from its own configuration:
+For a local stack, `npm run setup:local` stores both (`app_base_url` =
+`http://host.docker.internal:3000`, `cron_secret` = `CRON_SECRET` from
+`.env.local`). Or let the app do it from its own configuration:
 `DATABASE_URL=… npm run scheduler -- install-pg-cron` (idempotent). Without
 pg_cron or Vault, use the built-in worker or an external scheduler instead —
 see [Infrastructure and providers](infrastructure.md#scheduler).
@@ -221,16 +247,80 @@ and recent calls in `net._http_response`.
 deletions). They are a fallback for Vercel deployments only; pg_cron is the
 primary scheduler and the only one that runs the per-minute queues.
 
-## 4. First tenant
+## 4. First admin account
 
-Self-signup is disabled in `self_hosted` mode. Create the first organisation
-and its owner from the command line, with the app's environment
-(`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for the default
-stack; `DB_PROVIDER=postgres`, `DATABASE_URL` and `AUTH_PROVIDER=builtin`
-on your own PostgreSQL):
+Self-signup is disabled in `self_hosted` mode. A new install has no
+workspaces and no users, so the app sends every visitor (`/`, `/login`,
+the app pages) to the **Create your admin account** screen at `/setup`.
+Open the app's address and fill it in:
+
+- **Organisation name.** The URL slug is made from it, shown, and can be
+  edited. People type the slug in the **Organisation** field on the login
+  page.
+- **Your name, email and password.** The password needs at least 8
+  characters and at most 72 bytes.
+- **Setup code** (below).
+
+Submitting creates the workspace and its owner (the same provisioning as
+`npm run bootstrap`), signs you in and opens `/onboarding`. After that
+`/setup` redirects to `/login`. Invite further users from
+Settings → Members & invites. The cloud edition has no `/setup`.
+
+### The setup code
+
+The setup code stops a stranger from claiming a fresh install that is
+reachable from the internet. The server prints it to its log at startup,
+and again whenever `/setup` is opened while setup is needed:
+
+```text
+UserTasks setup code: ABCD-EFGH-JKLM (open /setup to create the admin account)
+```
+
+Where to find it:
+
+| Running with | Where |
+|---|---|
+| `npm run dev` / `npm start` | The terminal running it |
+| Docker Compose | `docker compose logs app \| grep "setup code"` |
+| Kubernetes (Helm) | `kubectl -n <namespace> logs -l app.kubernetes.io/instance=<release>,app.kubernetes.io/component=app --tail=-1 \| grep "setup code"`: the app has two replicas by default and only one prints the code |
+| Air-gapped bundle | `./bundle.sh admin setup-code` |
+
+`usertasks-admin setup-code` makes a fresh code at any time, and the old
+one stops working. `usertasks-admin setup-code status` says whether setup
+is still needed and when the current code was made.
 
 ```bash
-set -a; . ./.env.local; set +a
+npm run setup-code                                           # source checkout (= npm run admin -- setup-code)
+docker compose exec app node admin.cjs setup-code            # Docker image
+kubectl -n usertasks exec deploy/usertasks -- node admin.cjs setup-code   # Helm release "usertasks" (else deploy/<release>-usertasks)
+```
+
+To choose the code up front (handy for Docker and Helm), set
+`USERTASKS_SETUP_CODE`. It needs at least 8 characters; case, dashes and
+spaces don't matter. When it is set, the log says the code comes from that
+variable instead of printing it.
+
+Only a hash of the code is stored. A restart while setup is still needed
+prints a new code, unless another replica made one in the last minute: then
+the log points you to that replica's log or to `usertasks-admin setup-code`.
+Wrong codes are rate-limited per IP, and the code stops working once setup
+is complete.
+
+### From the command line
+
+The command-line bootstrap creates the first organisation and its owner
+without `/setup` (scripted installs, CI). It needs the app's environment
+(`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for the default
+stack; `DB_PROVIDER=postgres`, `DATABASE_URL` and `AUTH_PROVIDER=builtin` on
+your own PostgreSQL). Run it from the UserTasks folder (the one with
+`package.json`): `npm run bootstrap`, `usertasks-admin bootstrap` and
+`usertasks-admin setup-code` read `.env.local`, then `.env`, from the
+current folder, and variables already set in the shell win. Other commands
+(`db migrate`, `switch`, …) don't read these files and need `DATABASE_URL`
+set explicitly. Missing variables are named in the error, with a hint when
+the folder has no `package.json` or no `.env.local`.
+
+```bash
 npm run bootstrap -- --email admin@example.com --password 'a-strong-password' --org "Acme Inc" [--name "Ada Lovelace"]
 # in the Docker image (the password may come from BOOTSTRAP_PASSWORD instead of argv)
 docker compose exec -e BOOTSTRAP_PASSWORD=… app node admin.cjs bootstrap --email admin@example.com --org "Acme Inc"
@@ -243,8 +333,23 @@ that), `--if-missing` makes it a no-op when the account exists, and
 once (for provisioning scripts).
 
 The script prints the organisation slug. Sign in at `/login` with that slug,
-the email and the password, then finish setup at `/onboarding`. Invite
-further users from Settings → Invitations.
+the email and the password, then finish setup at `/onboarding`.
+
+On Windows the npm scripts work the same in PowerShell and cmd. `cd` into
+the folder with `package.json` first (`Test-Path package.json` in
+PowerShell, `dir package.json` in cmd); `npm run …` from another folder
+fails in npm itself with `ENOENT … package.json`. Quote a password with
+special characters in single quotes in PowerShell and double quotes in cmd.
+If the settings still aren't found, pass the file to Node directly
+(Node.js 20.6+; tsx passes the flag on):
+
+```bash
+npx tsx --env-file=.env.local scripts/bootstrap-tenant.ts --email admin@example.com --password 'a-strong-password' --org "Acme Inc"
+```
+
+`docker compose exec app node admin.cjs bootstrap …` and
+`docker compose exec app node admin.cjs setup-code` work the same from any
+shell.
 
 ### More workspaces from automation (instance admin API)
 
@@ -286,8 +391,10 @@ curl -X POST https://tasks.example.com/api/v1/admin/workspaces \
 ```bash
 npm ci
 npm run build
-npm start          # serves on port 3000
+npm start
 ```
+
+`npm start` serves on port 3000.
 
 ### Docker
 
@@ -296,8 +403,10 @@ is set inside the image build; ordinary `npm run build` and Vercel builds are
 unaffected). `docker-compose.yml` has two profiles: the default (`supabase`)
 runs the app only, against your Supabase project:
 
+Copy `.env.example` to `.env` and fill it in, then build and start:
+
 ```bash
-cp .env.example .env   # fill it in
+cp .env.example .env
 docker compose up --build
 ```
 

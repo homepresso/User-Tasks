@@ -89,10 +89,10 @@ function sampleCalls(pkg: GalleryPackage, entry: CatalogWorkflow | undefined) {
   -H "Authorization: Bearer $USERTASKS_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"workflow_id":"<workflow id>","variables":${vars}}'`
-  const cli = `usertasks workflows inputs <workflow id>          # the start form: keys, types, required
+  const cli = `usertasks workflows inputs <workflow id>
 usertasks workflows run <workflow id> ${inputs}${Object.keys(pkg.sample_input).length > 4 ? " …" : ""} --wait`
   const webhook = entry?.trigger_type === "webhook_received" || entry?.trigger_type === "middleware_received"
-    ? `usertasks webhooks create <workflow id>          # prints the hook slug and secret once
+    ? `usertasks webhooks create <workflow id>
 curl -X POST "$USERTASKS_URL/api/webhooks/inbound?hook=<slug>" \\
   -H "Authorization: Bearer <webhook secret>" -H "Content-Type: application/json" \\
   -d '${vars}'`
@@ -299,8 +299,8 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
             </SectionHeading>
             <div className="mt-8 grid gap-5 lg:grid-cols-2">
               <div className="min-w-0"><p className="mb-2 text-sm font-semibold">REST</p><Snippet code={calls.start} language="shell" /></div>
-              <div className="min-w-0"><p className="mb-2 text-sm font-semibold">CLI</p><Snippet code={calls.cli} language="shell" /></div>
-              {calls.webhook && <div className="min-w-0 lg:col-span-2"><p className="mb-2 text-sm font-semibold">Inbound webhook{entry?.trigger_type === "middleware_received" ? " (synchronous: the response is the workflow result)" : ""}</p><Snippet code={calls.webhook} language="shell" /></div>}
+              <div className="min-w-0"><p className="mb-2 text-sm font-semibold">CLI</p><Snippet code={calls.cli} language="shell" /><p className="mt-2 text-xs leading-5 text-[#6E6759]"><code className="font-mono">workflows inputs</code> shows the start form: keys, types and which are required.</p></div>
+              {calls.webhook && <div className="min-w-0 lg:col-span-2"><p className="mb-2 text-sm font-semibold">Inbound webhook{entry?.trigger_type === "middleware_received" ? " (synchronous: the response is the workflow result)" : ""}</p><Snippet code={calls.webhook} language="shell" /><p className="mt-2 text-xs leading-5 text-[#6E6759]"><code className="font-mono">webhooks create</code> prints the hook slug and its secret once: keep the secret for the Authorization header.</p></div>}
             </div>
           </div>
         </section>
@@ -401,11 +401,12 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
               <div className="min-w-0">
                 <h3 className="mb-2 flex items-center gap-2 font-semibold"><Terminal size={16} className="text-[#8A6D45]" aria-hidden="true" /> With the CLI</h3>
                 <Snippet language="shell" code={`curl -fLO ${baseUrl}${pkg.file.file}
-usertasks packages inspect ${pkg.file.file_name}       # offline: checksum, hashes, signature
+usertasks packages inspect ${pkg.file.file_name}
 usertasks packages install ${pkg.file.file_name} --dry-run
-usertasks packages install ${pkg.file.file_name}       # prompts for each requirement
-usertasks packages install ${pkg.file.file_name} --keep-incomplete --yes   # in CI; finish with:
-usertasks packages complete ${pkg.slug} -f values.yaml`} />
+usertasks packages install ${pkg.file.file_name}`} />
+                <p className="mt-2 text-sm leading-6 text-[#4A463E]"><code className="font-mono">inspect</code> checks the checksum, hashes and signature offline; <code className="font-mono">install</code> prompts for each requirement. In CI, install without prompts and finish setup from a values file:</p>
+                <div className="mt-2"><Snippet language="shell" code={`usertasks packages install ${pkg.file.file_name} --keep-incomplete --yes
+usertasks packages complete ${pkg.slug} -f values.yaml`} /></div>
               </div>
               <div className="rounded-xl border border-[#1B1916]/[0.08] bg-[#F1EDE3] p-4 text-sm">
                 <p className="flex items-center gap-2 font-semibold"><Fingerprint size={15} className="text-[#8A6D45]" aria-hidden="true" /> Verify the download</p>

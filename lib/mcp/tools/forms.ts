@@ -4,6 +4,7 @@ import { mcpErr, mcpOk } from '../server'
 import { z } from 'zod'
 import { fromMcpContext } from '@/lib/services/context'
 import * as forms from '@/lib/services/forms'
+import * as drafts from '@/lib/services/form-design-drafts'
 import { getFormGovernance, setFormLegalHold } from '@/lib/services/form-governance'
 import * as wizard from '@/lib/services/form-wizard'
 import { analyzeInfoPathFile, decodeBase64File, importInfoPathFile } from '@/lib/services/infopath-import'
@@ -56,9 +57,10 @@ export function registerFormTools(server: McpToolServer, ctx: McpContext) {
     return { forms: rows, count: rows.length, total }
   }))
 
-  server.tool('forms_get', 'Get a reusable form with its fields, grid layout, theme reference, current version and usages (workflow drafts follow the latest version; active published versions are pinned).', {
+  server.tool('forms_get', 'Get a reusable form with its fields, grid layout, theme reference, current version and usages (workflow drafts follow the latest version; active published versions are pinned). The content is the PUBLISHED version; editors also get draft (who last saved the working draft, or null) and may pass version: "draft" for the draft\'s content.', {
     form_id: z.string().describe('Form ID'),
-  }, async (args) => run(async () => ({ form: await forms.getForm(svc(), args.form_id) })))
+    version: z.enum(['published', 'draft']).optional().describe('published (default) or draft (forms.edit): the working draft\'s content when there is one (content says which)'),
+  }, async (args) => run(async () => ({ form: await forms.getForm(svc(), args.form_id, { version: args.version }) })))
 
   server.tool('forms_create', 'Create a reusable task form (version 1). Link it from a user_task node with config.form_id (the designer keeps a cached copy of the fields on the node).', {
     name: z.string().describe('Form name (1-120 characters)'),
@@ -95,7 +97,7 @@ export function registerFormTools(server: McpToolServer, ctx: McpContext) {
     return { dry_run: Boolean(args.dry_run), ...rest }
   }))
 
-  server.tool('forms_update', 'Update a reusable form. Supply only what changes. A change to fields, layout or theme creates a new version (published workflows stay pinned to theirs); name, description and tag edits do not.', {
+  server.tool('forms_update', 'Update a reusable form. Supply only what changes. A change to fields, layout or theme creates a new version (published workflows stay pinned to theirs); name, description and tag edits do not. save_to: "draft" puts the content change in the form\'s working draft instead (not visible to others until forms_publish); settings (name, description, tags, menu, system name) still apply at once.', {
     form_id: z.string().describe('Form ID'),
     name: z.string().optional().describe('New name'),
     description: z.string().nullable().optional().describe('New description (null clears it)'),
@@ -107,10 +109,72 @@ export function registerFormTools(server: McpToolServer, ctx: McpContext) {
     header: jsonObject.nullable().optional().describe(HEADER_HELP),
     available_in_menu: z.boolean().optional().describe(AVAILABLE_HELP),
     system_name: z.string().optional().describe(SYSTEM_NAME_HELP),
+    save_to: z.enum(['published', 'draft']).optional().describe('published (default): a content change is a new version at once. draft: it is saved to the working draft (forms_publish publishes it)'),
   }, async (args) => run(async () => {
-    const { form_id: id, ...input } = args
-    return { updated: true, form: await forms.updateForm(svc(), id, input) }
+    const { form_id: id, save_to: saveTo, ...input } = args
+    if (saveTo !== 'draft') return { updated: true, form: await forms.updateForm(svc(), id, input) }
+    const { fields, layout, theme, buttons, header, ...settings } = input
+    const ctx = svc()
+    const hasSettings = Object.values(settings).some((v) => v !== undefined)
+    const form = hasSettings ? await forms.updateForm(ctx, id, settings) : null
+    const hasContent = [fields, layout, theme, buttons, header].some((v) => v !== undefined)
+    const draft = hasContent ? await drafts.saveDesignDraft(ctx, id, { fields, layout, theme, buttons, header }) : null
+    return { updated: true, ...(draft?.mode === 'draft' ? { saved_to: 'draft', draft: draft.draft, publish_problems: draft.publish_problems } : draft ? { saved_to: 'published', form: draft.form } : {}), ...(form && !(draft?.mode === 'live') ? { form } : {}) }
   }))
+
+  // ── drafts (lib/services/form-design-drafts.ts) ──
+  const DRAFT_HELP = 'A form has a published version (what everyone sees) and at most one working draft shared by its editors. Publishing makes the draft a new version (same validation as a save) and clears it.'
+
+  server.tool('forms_draft_get', `Get a form's working draft: its content, who saved it and when, the version it started from and publish_problems (what would block publishing); draft is null when there are no unpublished changes; available is false until drafts are enabled on the server. ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+  }, async (args) => run(() => drafts.getDesignDraft(svc(), args.form_id)))
+
+  server.tool('forms_draft_save', `Save a form's working draft (create or replace; omitted parts are kept). Others keep seeing the published version until forms_publish. Returns mode draft (or live when drafts are not enabled on the server: then the change was published as a new version) and publish_problems. ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+    fields: z.array(jsonObject).optional().describe(FIELDS_HELP),
+    layout: jsonObject.nullable().optional().describe(LAYOUT_HELP + CONTEXT_HELP),
+    theme: jsonObject.optional().describe(THEME_HELP),
+    buttons: z.array(jsonObject).nullable().optional().describe(BUTTONS_HELP),
+    header: jsonObject.nullable().optional().describe(HEADER_HELP),
+  }, async (args) => run(async () => {
+    const { form_id: id, ...content } = args
+    return drafts.saveDesignDraft(svc(), id, content)
+  }))
+
+  server.tool('forms_publish', `Publish a form's draft as a new version: everyone filling the form sees it (published workflows keep their pinned version). Same validation and permission checks as a save — refused with the problem when the draft has one. Clears the draft; its reviewers lose access. Audited. ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+    note: z.string().max(1000).optional().describe('What changed (stored on the version)'),
+  }, async (args) => run(() => drafts.publishDesignDraft(svc(), args.form_id, { note: args.note ?? null })))
+
+  server.tool('forms_draft_discard', `Discard a form's draft (every unpublished change; the published version is untouched, reviewers lose access). ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+  }, async (args) => run(() => drafts.discardDesignDraft(svc(), args.form_id)))
+
+  server.tool('forms_draft_compare', `Compare a form's draft with the published version: fields added / removed / changed, rules, layout, theme, buttons, header, and readable lines. ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+  }, async (args) => run(() => drafts.compareDesignDraft(svc(), args.form_id)))
+
+  server.tool('forms_draft_reviewers_list', `Who a form's draft is shared with (people and teams who may preview it, read only). ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+  }, async (args) => run(() => drafts.listDraftReviewers(svc(), args.form_id)))
+
+  server.tool('forms_draft_reviewers_add', `Share a form's draft with people and teams: they may open the draft preview (/forms/<id>/draft-preview) read only, without Edit forms, and are notified. Access ends when the draft is published or discarded. ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+    reviewers: z.array(z.object({ type: z.enum(['user', 'team']), id: z.string() })).min(1).max(50).describe('People (type user, a user id) and teams (type team, a team id)'),
+    note: z.string().max(1000).optional().describe('A note for them (shown in the notification)'),
+  }, async (args) => run(() => drafts.addDraftReviewers(svc(), args.form_id, { principals: args.reviewers, note: args.note ?? null })))
+
+  server.tool('forms_draft_reviewers_remove', `Stop sharing a form's draft with one reviewer (reviewer_id from forms_draft_reviewers_list, or type + principal_id). ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+    reviewer_id: z.string().optional().describe('Reviewer id'),
+    type: z.enum(['user', 'team']).optional().describe('With principal_id instead of reviewer_id'),
+    principal_id: z.string().optional().describe('User or team id'),
+  }, async (args) => run(() => drafts.removeDraftReviewer(svc(), args.form_id, { id: args.reviewer_id, type: args.type, principal_id: args.principal_id })))
+
+  server.tool('forms_version_restore', `Restore a form version as its draft (replacing any draft): nothing changes for others until forms_publish. ${DRAFT_HELP}`, {
+    form_id: z.string().describe('Form ID'),
+    version: z.number().int().describe('Version number'),
+  }, async (args) => run(() => drafts.restoreFormVersionAsDraft(svc(), args.form_id, args.version)))
 
   server.tool('forms_wizard_create', MCP_CORE_TOOL_DESCRIPTIONS.forms_wizard_create, {
     spec: jsonObject.describe('The wizard spec: { name, description?, template?, questions [{ id, kind, label, help?, required?, options?, currency?, show_if? { question, op, value? }, score? { correct, points? } }], look? { theme, header, layout single | steps | one_at_a_time, success }, audience? { internal, who everyone | selected, role_ids, team_ids, show_in_menu, public_link, multiple_responses, opens_at?, closes_at? }, approval? { mode, stages [{ id, name, assignee { kind person, user_id } | { kind manager, fallback_user_id } | { kind team, team_id } | { kind group, group_id }, outcomes [approve, decline, changes] }], notify_requester, due_days }, results? { charts, role_ids, team_ids } }'),

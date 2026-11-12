@@ -49,7 +49,7 @@ export default function AuthLayout({
           <p>
             <Wordmark size={36} />
           </p>
-          <p className="mt-3 text-sm text-fg-muted">Open-source headless workflow engine</p>
+          <p className="mt-3 text-sm text-fg-muted">The open source process platform</p>
         </div>
 
         <div className="max-w-lg space-y-8">
@@ -89,7 +89,7 @@ export default function AuthLayout({
             <p className="flex justify-center">
               <Wordmark size={32} />
             </p>
-            <p className="mt-2 text-xs text-fg-muted">Open-source headless workflow engine</p>
+            <p className="mt-2 text-xs text-fg-muted">The open source process platform</p>
           </div>
           {children}
         </div>

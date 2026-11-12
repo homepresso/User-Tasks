@@ -46,7 +46,17 @@ describe('public InfoPath preview endpoint', () => {
     expect(summary.preview.fields.length).toBeGreaterThan(5)
     const text = JSON.stringify(summary)
     for (const raw of ['my:', 'xdXDocument', 'GetDOM', 'Lists/Projects', '../', '"hash"', '"source"', 'Original']) expect(text, raw).not.toContain(raw)
-    expect(summary.preview.layout.rules).toBeUndefined()
+    // Only "Always" rules that restyle, hide, lock or flag go to the preview — no notes, nothing that calls out.
+    expect(summary.preview.layout.rules.length).toBeGreaterThan(0)
+    for (const r of summary.preview.layout.rules) {
+      expect(r.event).toBe('always')
+      expect(r.description).toBeUndefined()
+      for (const a of r.then) expect(['show_hide', 'enable_disable', 'read_only', 'set_style', 'field_error']).toContain(a.type)
+    }
+    // Every field type has a readable label; the counts and the "what converts" list are there.
+    for (const f of summary.views[0].fields) expect(f.type_label, f.type).toMatch(/^[A-Z]/)
+    expect(summary.counts.formatting).toEqual({ total: 3, converted: 3 })
+    expect(summary.features.map((f: { key: string }) => f.key)).toEqual(expect.arrayContaining(['lists', 'calculated_columns', 'styles', 'functions']))
     // Logs hold counts only.
     const logged = JSON.stringify(log.mock.calls)
     expect(logged).toContain('"views":1')
@@ -87,6 +97,57 @@ describe('public InfoPath preview endpoint', () => {
     const big = writeCab([{ name: 'manifest.xsf', data: '<a/>' }, { name: 'pad.xml', data: 'x'.repeat(PUBLIC_INFOPATH_LIMITS.maxTotalBytes + 10) }])
     expect(big.length).toBeLessThan(PUBLIC_INFOPATH_LIMITS.maxInputBytes)
     expect(() => publicInfoPathSummary(big)).toThrow(/unpack/)
+  })
+})
+
+describe('public preview of the new mappings (site inspection sample)', () => {
+  it('summarises repeating sections, nested Lists, pictures, signatures, styles, roles and XPath functions', () => {
+    const s = publicInfoPathSummary(fixtureXsn('site-inspection'), 'Site Inspection.xsn')
+    expect(s.counts).toMatchObject({ fields: 17, repeating: 2, rules: { total: 1, converted: 1 }, validations: { total: 3, converted: 3 }, calculations: { total: 2, converted: 2 }, formatting: { total: 4, converted: 4 } })
+    const features = Object.fromEntries(s.features.map((f) => [f.key, f]))
+    for (const k of ['lists', 'nested_lists', 'repeating_sections', 'images', 'display_images', 'signatures', 'rich_text', 'text_lists', 'people', 'choice_groups', 'styles', 'list_validations', 'roles', 'functions'] as const) expect(features[k]?.count, k).toBeGreaterThan(0)
+    expect(features.repeating_sections.count).toBe(2)
+    expect(features.functions.items).toEqual(expect.arrayContaining(['COUNTIF', 'SUBSTRING_BEFORE']))
+    expect(s.attention).toEqual([])
+    const labels = Object.fromEntries(s.views[0].fields.map((f) => [f.label, f.type_label]))
+    expect(labels).toMatchObject({ Hazards: 'Repeating section', Checks: 'List (repeating table)', 'Site photo': 'Image', Sketch: 'Signature', Notes: 'Rich text', 'Follow-up actions': 'Text list', 'Site owner': 'Person picker', Regions: 'Multi-select' })
+    expect(s.views[0].fields.find((f) => f.label === 'Hazards')?.columns).toEqual(['Hazard', 'Level', 'Photo', 'Control measure'])
+  })
+
+  it('previews the new controls as a real form: display image, Image, Signature, nested List, Repeating section, choice group, styles', () => {
+    const p = publicInfoPathSummary(fixtureXsn('site-inspection'), 'Site Inspection.xsn').preview!
+    const byType = (t: string) => p.fields.filter((f) => (f.type as string) === t) as Array<Record<string, any>>
+    expect(byType('display_image')[0].display_image.src).toMatch(/^data:image\/png;base64,/)
+    expect(byType('image')).toHaveLength(1)
+    expect(byType('signature')).toHaveLength(1)
+    expect(byType('list')[0].list.columns.find((c: { type: string }) => c.type === 'list')).toBeTruthy()
+    expect(byType('list')[0].list.row_styles).toHaveLength(1)
+    const rs = byType('repeating_section')[0].repeating_section
+    expect(rs.fields.map((f: { type: string }) => f.type)).toEqual(['text', 'choice', 'image', 'repeating_section'])
+    expect(rs.layout.rules.every((r: { event: string; description?: string }) => r.event === 'always' && !r.description)).toBe(true)
+    expect(p.layout.choice_groups).toHaveLength(1)
+    expect(p.layout.rules!.map((r) => r.name)).toEqual(['Style: Status (Failed in red)', 'Style: Status (Pending shaded)'])
+    // The form_load role rule (sets a value) stays out of a static preview.
+    expect(JSON.stringify(p)).not.toContain('user.roles')
+    for (const raw of ['my:', 'xdXDocument', 'get-Role', 'help_text', '"source"']) expect(JSON.stringify(p), raw).not.toContain(raw)
+  })
+
+  it('labels every field type', async () => {
+    const { TASK_FIELD_TYPES } = await import('@/lib/task-field-schema')
+    const { publicTypeLabel } = await import('@/lib/infopath/public-summary')
+    for (const t of TASK_FIELD_TYPES) expect(publicTypeLabel(t), t).not.toBe(t)
+    expect(publicTypeLabel('repeating_section')).toBe('Repeating section')
+    expect(publicTypeLabel('display_image')).toBe('Display image')
+  })
+
+  it('serves both samples on the page, and they analyse through the endpoint', async () => {
+    const { readFileSync } = await import('node:fs')
+    vi.spyOn(console, 'info').mockImplementation(() => {})
+    for (const [file, fields] of [['expense-report.xsn', 11], ['site-inspection.xsn', 17]] as const) {
+      const res = await POST(await upload(readFileSync(`public/samples/${file}`), { name: file }))
+      expect(res.status, file).toBe(200)
+      expect((await res.json()).summary.counts.fields).toBe(fields)
+    }
   })
 })
 

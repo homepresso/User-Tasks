@@ -147,8 +147,9 @@ Any workflow can also be started directly — whatever its trigger — with \`PO
 
 \`\`\`bash
 usertasks workflows start --set workflow_id=<id> --set variables:='{"invoice_number":"INV-1042","amount":12400}'
-# add --set async:=true to queue the run and return immediately with a run id
 \`\`\`
+
+Add \`--set async:=true\` to queue the run and return immediately with a run id.
 
 ## Webhooks
 
@@ -541,12 +542,20 @@ Queue jobs are retried automatically with backoff before they are marked dead; \
 Editing a workflow changes its **draft**. Publishing freezes the draft as a numbered **version** and makes it the one new runs use; runs already in progress finish on the version they started with, unless you [migrate them](#migrating-live-instances).
 
 \`\`\`bash
-usertasks workflows definition <id> -o json > wf.json     # the draft, ready to edit
-usertasks workflows update <id> -f wf.json                # save the draft (changed: false if identical)
+usertasks workflows definition <id> -o json > wf.json
+usertasks workflows update <id> -f wf.json
 usertasks workflows publish <id> --set notes="Add CFO step"
-usertasks workflows versions <id>                         # history with notes
-usertasks workflows version <id> <version-id> -o json     # one version's definition
+usertasks workflows versions <id>
+usertasks workflows version <id> <version-id> -o json
 \`\`\`
+
+| Command | What it does |
+|---|---|
+| \`workflows definition\` | writes the draft to a file, ready to edit |
+| \`workflows update\` | saves the draft (\`changed: false\` if identical) |
+| \`workflows publish\` | publishes the draft as a new version, with notes |
+| \`workflows versions\` | lists the version history with notes |
+| \`workflows version\` | prints one version's definition |
 
 ::image cli-edit-workflow | Terminal: editing and publishing a workflow with the CLI | The edit round trip from a terminal: export the draft, change it, save and publish.
 
@@ -568,11 +577,13 @@ Any active, published workflow can be started by hand, whatever its trigger. Its
 From a terminal, \`usertasks workflows run\` reads the inputs, converts each \`--input key=value\` to the input's type and asks for missing required inputs. Without a terminal (scripts, CI) it lists the missing inputs and exits with code 2 instead.
 
 \`\`\`bash
-usertasks workflows inputs <id>                                       # the inputs: key, type, required, default
+usertasks workflows inputs <id>
 usertasks workflows run <id> --input customer="Acme Ltd" --input amount=1200
-usertasks workflows run <id> -f inputs.json --wait                    # run now, print status and step outputs
-usertasks workflows run <id> --input customer=Acme --priority 80      # queued ahead of other jobs
+usertasks workflows run <id> -f inputs.json --wait
+usertasks workflows run <id> --input customer=Acme --priority 80
 \`\`\`
+
+In order: list the inputs (key, type, required, default); queue a run with two inputs; run now from a file and print the status and step outputs (\`--wait\`); queue a run ahead of other jobs (\`--priority 80\`).
 
 Over REST, \`GET /api/v1/workflows/{id}/inputs\` returns the fields (\`key\`, \`label\`, \`type\`, \`required\`, \`default\`, \`description\`, \`options\`) and \`POST /api/v1/workflows/start\` starts the run:
 
@@ -619,12 +630,14 @@ Both runs are audited and emit a \`workflow.run.migrated\` event with the ids of
 Every instance is planned and migrated on its own. An instance whose target node does not exist is **blocked** and left alone, and one that moved on in the meantime (its task was completed, or someone resumed it) is reported as a **conflict** and left alone. The review warns about variables the target path uses that the instance does not have, and about resumes that were already queued.
 
 \`\`\`bash
-usertasks workflows instances <id>                                  # live instances, current node, version
+usertasks workflows instances <id>
 usertasks workflows migrate-instances <id> --to <version-id> --all --dry-run
 usertasks workflows migrate-instances <id> --to <version-id> --from <old-version-id> \\
-  --map review=screen                                                # instances at "review" continue at "screen"
+  --map review=screen
 usertasks workflows migrate-instances <id> --to <version-id> --run <run-id> --target approve
 \`\`\`
+
+In order: list live instances with their current node and version; dry-run a migration of all of them; migrate the instances on an old version, with those at \`review\` continuing at \`screen\`; move a single run to the \`approve\` node.
 
 ::image cli-migrate-instances | Terminal: listing live instances and dry-running a migration with the CLI | Listing live instances and planning a migration from a terminal.
 

@@ -74,11 +74,13 @@ Add destinations in **Settings → Log Export**, with \`/api/v1/log-destinations
 
 \`\`\`bash
 usertasks log-destinations create -f splunk.json
-usertasks log-destinations test <id>                       # one system.test event through the real path
-usertasks log-destinations status <id>                     # status, lag, last success / error
+usertasks log-destinations test <id>
+usertasks log-destinations status <id>
 usertasks log-destinations update <id> --set enabled:=false
 usertasks log-destinations reset-cursor <id> --set from=now
 \`\`\`
+
+\`log-destinations test\` sends one \`system.test\` event through the real path; \`log-destinations status\` shows the status, lag and last success or error.
 
 ::image cli-log-destinations | Terminal: create a Splunk HEC destination and check its status | A destination created from a file and its delivery status.
 
@@ -278,7 +280,17 @@ Workflow step log levels map \`trace\` → debug, \`warning\` → warn and \`fat
 
 \`\`\`bash
 curl -H "Authorization: Bearer $USERTASKS_API_KEY" "$USERTASKS_URL/api/v1/events?since=1h&category=workflow&limit=500"
-# → { "events": [...], "next_cursor": "48213", "has_more": true }
+\`\`\`
+
+It returns:
+
+\`\`\`json
+{ "events": [...], "next_cursor": "48213", "has_more": true }
+\`\`\`
+
+Pass \`next_cursor\` as \`after\` for the next page:
+
+\`\`\`bash
 curl -H "Authorization: Bearer $USERTASKS_API_KEY" "$USERTASKS_URL/api/v1/events?after=48213&limit=500"
 \`\`\`
 
@@ -289,12 +301,21 @@ Filters: \`category\`, \`type\` (globs), \`severity\` (minimum), \`workflow_id\`
 \`\`\`bash
 curl -N -H "Authorization: Bearer $USERTASKS_API_KEY" -H "Last-Event-ID: 48213" \\
   "$USERTASKS_URL/api/v1/events/stream?severity=warn"
-# id: 48214
-# event: workflow.run.failed
-# data: {"id":48214,"type":"workflow.run.failed",...}
-# : heartbeat            (every 15 s when idle)
-# event: reconnect       (before the server's time limit; resume with the last id)
 \`\`\`
+
+The stream looks like this:
+
+\`\`\`text
+id: 48214
+event: workflow.run.failed
+data: {"id":48214,"type":"workflow.run.failed",...}
+
+: heartbeat
+
+event: reconnect
+\`\`\`
+
+A \`: heartbeat\` comment arrives every 15 s when the stream is idle, and \`event: reconnect\` before the server's time limit; resume with the last id.
 
 - Each message is named after its event type, so browser \`EventSource\` clients add a listener per type; curl, the SDK and the CLI see every message.
 - The stream resumes from \`Last-Event-ID\` (or \`?after=\`); without either it starts at the newest event, or at \`since=\`.
@@ -342,11 +363,20 @@ Slow endpoints have an async variant. Add \`?async=true\` or the header \`Prefer
 \`\`\`bash
 curl -X POST "$URL/api/v1/config/apply" -H "Authorization: Bearer $KEY" \\
   -H "Prefer: respond-async" -H "Content-Type: application/json" -d @files.json
-# 202 { "success": true, "data": { "job": { "id": "…", "status": "queued", … } } }
+\`\`\`
 
-curl "$URL/api/v1/jobs/$JOB" -H "Authorization: Bearer $KEY"          # status, progress
-curl "$URL/api/v1/jobs/$JOB/result" -H "Authorization: Bearer $KEY"   # what the synchronous call returns
-curl -OJ "$URL/api/v1/jobs/$JOB/download" -H "Authorization: Bearer $KEY"   # file results
+It returns \`202\` with:
+
+\`\`\`json
+{ "success": true, "data": { "job": { "id": "…", "status": "queued", … } } }
+\`\`\`
+
+Then follow the job: its status and progress, the result (what the synchronous call returns), and file results:
+
+\`\`\`bash
+curl "$URL/api/v1/jobs/$JOB" -H "Authorization: Bearer $KEY"
+curl "$URL/api/v1/jobs/$JOB/result" -H "Authorization: Bearer $KEY"
+curl -OJ "$URL/api/v1/jobs/$JOB/download" -H "Authorization: Bearer $KEY"
 \`\`\`
 
 Async endpoints: \`GET /config/export\`, \`POST /config/apply\`, \`POST /packages/{id}/versions\`, \`POST /package-installs\`, \`POST /package-installs/{id}/upgrade\`, \`POST /package-installs/{id}/uninstall\`, \`POST /data-tables/{id}/rows/bulk-delete\`, \`POST /references/bulk-delete\`, \`POST /workflows/{id}/instances/migrate\` (marked \`x-usertasks-async\` in the OpenAPI document). An \`Idempotency-Key\` header returns the same job for a repeated request. Without the flag every endpoint answers synchronously, as before.
@@ -388,9 +418,12 @@ export const SELF_HOSTING_PAGES: DocPageDef[] = [
   {
     slug: 'self-hosting',
     title: 'Self-hosting',
-    description: 'Run UserTasks on your own infrastructure: Supabase, environment, pg_cron and Vault, first tenant, Node or Docker, optional drivers and a security checklist.',
+    description: 'Run UserTasks on your own infrastructure: the step-by-step guide, deployment modes, Supabase, environment, pg_cron and Vault, the first admin account, Node or Docker, optional drivers and a security checklist.',
     body: `
-This guide is maintained with the code (\`docs/self-hosting.md\` in the repository). For a quick local install, see the [self-host quickstart](/docs/quickstart/self-host).
+> [!TIP]
+> **New to self-hosting?** Follow the guide in order: [Choose how to run it](/docs/self-hosting/choose), [Requirements](/docs/self-hosting/requirements), [Install step by step](/docs/self-hosting/install), [Create your admin account](/docs/self-hosting/admin-account), [Sign in and invite people](/docs/self-hosting/invite-people), [Use the CLI with your server](/docs/self-hosting/cli), [Updates and backups](/docs/self-hosting/updates-and-backups) and [Troubleshooting](/docs/self-hosting/troubleshooting). This page is the reference behind it.
+
+This reference is maintained with the code (\`docs/self-hosting.md\` in the repository). For a quick local install, see the [self-host quickstart](/docs/quickstart/self-host).
 
 ## Deployment modes
 
@@ -398,9 +431,10 @@ This guide is maintained with the code (\`docs/self-hosting.md\` in the reposito
 
 | | \`self_hosted\` (default) | \`cloud\` |
 |---|---|---|
-| \`/\` | Redirects to \`/home\` or \`/login\` | Product site |
+| \`/\` | Redirects to \`/home\` or \`/login\` (to \`/setup\` until the admin account exists) | Product site |
 | Marketing pages, \`/contact\` | 404 | Served |
-| Self-signup | Disabled; use \`npm run bootstrap\` and invitations | Enabled |
+| Self-signup | Disabled: the first admin account is created at [\`/setup\`](/docs/self-hosting/admin-account) (or with \`npm run bootstrap\`), everyone else by invitation | Enabled |
+| \`/setup\` | Until the first workspace and user exist, then redirects to \`/login\` | 404 |
 | \`robots.txt\` / sitemap | Disallow all / empty | Normal |
 | \`/docs\` | Served | Served |
 

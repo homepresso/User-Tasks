@@ -25,7 +25,7 @@ export const INFOPATH_PAGE = {
   title: 'Bring your InfoPath forms to UserTasks',
   metaTitle: 'Migrate InfoPath Forms: Upload an .xsn, Get Working Forms | UserTasks',
   description:
-    'Upload a Microsoft InfoPath form template (.xsn) and see it rebuilt as UserTasks forms: one form per view, repeating tables as Lists, rules, validation and formulas converted where they translate, and a clear list of what needs a person. Free preview, nothing stored.',
+    'Upload a Microsoft InfoPath form template (.xsn) and see it rebuilt as UserTasks forms: one form per view, with repeating tables and sections, pictures, signatures, conditional formatting, rules, validation and formulas converted, and a clear list of what needs a person. Free preview, nothing stored.',
 }
 
 export const DOCUMENTS_PAGE = {

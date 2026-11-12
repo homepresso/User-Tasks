@@ -6,7 +6,7 @@ import type { OAuthCredentials } from '../config'
 import { CliUsageError } from '../exit-codes'
 import { browserLogin, buildOAuthCredentials, signupHint } from '../oauth'
 import type { Runtime } from '../runtime'
-import { normaliseServerUrl } from '../settings'
+import { DEFAULT_SERVER_URL, normaliseServerUrl } from '../settings'
 
 interface Me {
   tenant: { id: string; name: string | null; slug: string | null }
@@ -81,6 +81,7 @@ export function registerAuthCommands(program: Command, runtime: Runtime) {
     .action(async (opts: { apiKey?: string | true; scopes?: string; browser: boolean }, self: Command) => {
       const settings = runtime.settings(self)
       const url = normaliseServerUrl(runtime.requireUrl(settings))
+      if (!settings.url) runtime.info(self, `No --url given: logging in to ${DEFAULT_SERVER_URL} (a local install). Pass --url <server> for another server.`)
 
       if (opts.apiKey !== undefined) {
         const key = await readApiKey(runtime, opts.apiKey)

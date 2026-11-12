@@ -22,6 +22,7 @@ const OPEN_READS: Record<string, string> = {
   'forms.signInPage': 'The form sign-in page look (public branding)',
   'forms.friendlyLink': "A form's friendly link (its system name) for the share / open buttons; names only",
   'forms.qr': "A QR code image of a form's link; links only",
+  'forms.draftPreview': 'A form draft preview: the service answers only editors (forms.edit) and the people / teams the draft is shared with (getDraftPreview), 404 for anyone else',
   'forms.controlRuntime': 'Custom form control runtime metadata (enabled controls only) that rendering a form needs',
   'governance.roleOptions': 'Role names for pickers (assignment, sharing); no permissions',
   'governance.teamOptions': 'Team names for pickers',

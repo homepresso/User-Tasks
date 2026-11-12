@@ -33,18 +33,22 @@ const MAPS: Array<[string, string]> = [
   ["Sections and optional sections", "Sections and optional sections, with their show conditions"],
   ["Layout tables", "Rows of up to four columns, in the same order"],
   ["“Cannot be blank”, patterns, ranges", "Required, pattern, min / max and length checks, enforced on the server"],
-  ["Default values and formulas", "Defaults, form-load rules and calculated labels (sum, count, concat, today, arithmetic…)"],
+  ["Default values and formulas", "Defaults, form-load rules and calculated values that keep their number, currency or percent format"],
+  ["XPath functions", "substring-before / after, translate, normalize-space, starts-with, Nz, Avg, Max, Min, xdUtil:Concat; sum and count with a filter become SUMIF / COUNTIF; xdMath:Eval becomes a calculated List column"],
   ["Rules on fields, buttons and form load", "Form rules: set values, show messages, hide, make read only, go to step"],
-  ["Data validation", "Field errors that block submit, in the browser and again on the server"],
-  ["Conditional formatting", "“Always” rules that hide, lock or colour while the condition holds — colours snap to your theme"],
-  ["User roles", "Conditions on the person's workspace roles"],
+  ["Data validation", "Field errors that block submit, in the browser and again on the server; on repeating fields, List column and row validations"],
+  ["Conditional formatting", "“Always” rules that hide, lock or style while the condition holds: font colour, shading, bold, italic, underline, strikethrough, with colours snapped to your theme; in a repeating table, List row styles"],
+  ["User roles, get-Role(), user names", "Conditions on the person's workspace roles; userName() and get-DisplayName() become the signed-in person's email and name"],
 ]
 
 const LEFT_OUT = [
-  "Data connections (SharePoint lists, web services, databases): give them a data table or an API integration with the same name and they connect",
-  "Form code (JScript, C#) is never run",
-  "Certificates on digital signatures (they become electronic signatures)",
-  "Font sizes, and a few rare XPath functions such as position()",
+  "Data connections (SharePoint lists, web services, databases) without a data table or API integration of the same name: create one and import again, and they connect",
+  "Secondary data sources read in formulas (GetDOM), position() and last() in formulas, and filters other than one “=” comparison",
+  "Form code (JScript, C#, managed code) is never run",
+  "Certificates on digital signatures (they become electronic signatures), and signatures inside repeating sections",
+  "Hiding or locking one cell of a repeating table, font sizes, and nesting deeper than 3 levels",
+  "Person fields on a form shared publicly: anonymous visitors don't see them",
+  "Rules that convert only in part: the converted actions run, the rest is in the rule's notes",
 ]
 
 const STEPS = [
@@ -66,7 +70,7 @@ const EOL_SOURCES = [
 ]
 
 const FAQS = [
-  { question: "What is the UserTasks InfoPath importer?", answer: "It is a converter built into UserTasks, an open-source forms and workflow platform. It reads a Microsoft InfoPath form template (.xsn) and rebuilds each view as a UserTasks form, converting fields, repeating tables, rules, validation and formulas where they translate, and listing everything else in a report." },
+  { question: "What is the UserTasks InfoPath importer?", answer: "It is a converter built into UserTasks, an open-source forms and workflow platform. It reads a Microsoft InfoPath form template (.xsn) and rebuilds each view as a UserTasks form, converting fields, repeating tables and sections, pictures, signatures, conditional formatting, rules, validation and formulas where they translate, and listing everything else in a report." },
   { question: "When did InfoPath support end?", answer: "InfoPath 2013 reached the end of extended support on July 14, 2026. On the same date Microsoft removed InfoPath Forms Services from SharePoint Online, and extended support for InfoPath Forms Services in SharePoint Server 2016, 2019 and Subscription Edition ended. Publishing new forms to SharePoint Online was blocked from May 18, 2026." },
   { question: "Is my file stored?", answer: "No. The preview on this page reads the file in memory, sends back a summary and forgets it. Nothing is written to disk or a database, and our logs record only counts (how many views, fields and rules), never names or content. When you choose “Create these forms”, the file waits in your own browser until the importer opens it." },
   { question: "Which InfoPath versions work?", answer: "Form templates from InfoPath 2007, 2010 and 2013, including browser-enabled forms for SharePoint and InfoPath Forms Services. Templates are CAB archives with MSZIP compression, which is what InfoPath saves. A template re-packed with LZX compression is refused with a message: save it again from InfoPath Designer, or upload a .zip of its source files." },
@@ -96,7 +100,7 @@ export function InfoPathPage() {
           eyebrow={INFOPATH_PAGE.eyebrow}
           icon={FileStack}
           title={<>Bring your InfoPath forms <span className="mkt-gradient-text">to UserTasks.</span></>}
-          intro={<>InfoPath is retired, but your forms still do real work. Drop in an .xsn and see it rebuilt: every view a form, repeating tables as Lists, and the rules, validation and formulas that translate — <strong className="text-white">converted for you</strong>. What doesn't is listed plainly, never lost.</>}
+          intro={<>InfoPath is retired, but your forms still do real work. Drop in an .xsn and see it rebuilt: every view a form, repeating tables as Lists, repeating sections, pictures, signatures, conditional formatting, and the rules, validation and formulas — <strong className="text-white">converted for you</strong>. What doesn't is listed plainly, never lost.</>}
           primary={{ href: "#try", label: "Try it with your form" }}
           secondary={{ href: "/docs/tasks/import-infopath", label: "Read how it maps" }}
           bullets={["Free preview, no account", "Nothing stored", "One form per view, or views as steps"]}
@@ -149,7 +153,7 @@ export function InfoPathPage() {
 
         <section id="maps" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <SectionHeading eyebrow="What maps" title="Fields, repeating tables, rules, validation and formulas.">
+            <SectionHeading eyebrow="What maps" title="Fields, repeating tables and sections, formatting, rules, validation and formulas.">
               The importer reads the template&apos;s data source for types and required fields, each view for controls, labels and layout, and the manifest for rules, validation and calculations. XPath conditions and formulas become UserTasks conditions and expression functions.
             </SectionHeading>
             <div className="mt-10 overflow-hidden rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)">

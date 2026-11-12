@@ -83,6 +83,7 @@ export const OPEN_ROUTES: Readonly<Record<string, string>> = {
   '/settings/workspace-dns': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure)',
   '/settings/gallery-review': 'Gallery moderators only — enforced server-side (requireModerator)',
   '/dev/ui': 'Style guide; notFound() in production',
+  '/forms/[id]/draft-preview': 'A form draft preview: editors (forms.edit) and the people / teams it is shared with — enforced server-side (getDraftPreview), 404 for anyone else',
   '/agents/[id]/runs/[runId]': 'One agent run: readable with agents.view or by the person it acted for / who started it (RLS on agent_runs)',
 }
 

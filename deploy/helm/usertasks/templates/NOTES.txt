@@ -20,7 +20,10 @@ Open it:
 
 {{- if not .Values.bootstrap.enabled }}
 
-Create the first workspace and its owner:
+Create the first workspace and its owner: open {{ .Values.appUrl }}/setup and enter
+the setup code from the app's log (or set USERTASKS_SETUP_CODE). A new code at any time:
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "usertasks.fullname" . }} -- node admin.cjs setup-code
+Or from the command line:
   kubectl -n {{ .Release.Namespace }} exec -it deploy/{{ include "usertasks.fullname" . }} -- \
     sh -c 'BOOTSTRAP_PASSWORD=… node admin.cjs bootstrap --email you@example.com --org "Your org"'
 {{- end }}

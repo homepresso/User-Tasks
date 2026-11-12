@@ -56,6 +56,58 @@ export const reads = {
     run: async (ctx, { id: formId }) => forms.getForm(ctx, formId),
   }),
 
+  /** The form designer: the working draft (content, who saved it, publish problems) and whether drafts are on (forms.edit). */
+  'forms.designDraft': defineRead({
+    args: z.object({ id }),
+    perm: 'forms.edit',
+    run: async (ctx, { id: formId }) => (await import('../form-design-drafts')).getDesignDraft(ctx, formId),
+  }),
+
+  /** "Compare with published": what the draft changes (forms.edit). */
+  'forms.draftCompare': defineRead({
+    args: z.object({ id }),
+    perm: 'forms.edit',
+    run: async (ctx, { id: formId }) => (await import('../form-design-drafts')).compareDesignDraft(ctx, formId),
+  }),
+
+  /** Who the draft is shared with (forms.edit). */
+  'forms.draftReviewers': defineRead({
+    args: z.object({ id }),
+    perm: 'forms.edit',
+    run: async (ctx, { id: formId }) => (await import('../form-design-drafts')).listDraftReviewers(ctx, formId),
+  }),
+
+  /** People and teams of the workspace for "Share draft" (forms.edit). */
+  'forms.draftReviewerTargets': defineRead({
+    args: NO_ARGS,
+    perm: 'forms.edit',
+    run: async (ctx) => {
+      const { serviceRoleClient } = await import('../_shared')
+      const db = await serviceRoleClient(ctx) as any
+      const [members, teams] = await Promise.all([
+        db.from('user_memberships').select('user_id').eq('tenant_id', ctx.tenantId).eq('is_active', true).limit(2000),
+        db.from('teams').select('id, name').eq('tenant_id', ctx.tenantId).order('name').limit(500),
+      ])
+      const ids = ((members.data ?? []) as any[]).map((m) => String(m.user_id))
+      const { data: users } = ids.length ? await db.from('users').select('id, display_name, email').in('id', ids).is('deleted_at', null) : { data: [] }
+      return {
+        users: ((users ?? []) as any[]).map((u) => ({ id: String(u.id), name: String(u.display_name || u.email || 'Someone'), email: (u.email ?? null) as string | null }))
+          .sort((x, y) => x.name.localeCompare(y.name)),
+        teams: ((teams.data ?? []) as any[]).map((t) => ({ id: String(t.id), name: String(t.name ?? 'Team') })),
+      }
+    },
+  }),
+
+  /**
+   * The draft preview (/forms/<id>/draft-preview): editors (forms.edit) and
+   * the people / teams the draft is shared with — no forms.view needed; the
+   * service checks the reviewer rows and answers 404 to everyone else.
+   */
+  'forms.draftPreview': defineRead({
+    args: z.object({ id }),
+    run: async (ctx, { id: formId }) => (await import('../form-design-drafts')).getDraftPreview(ctx, formId),
+  }),
+
   'forms.versions': defineRead({
     args: z.object({ id }),
     perm: VIEW,

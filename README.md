@@ -87,7 +87,7 @@ workspace with `scripts/screenshots/` (see its README).
 
 ## Quick start
 
-Requirements: Node.js 20 or later, and a Supabase project (hosted, or local
+Requirements: Node.js 22 LTS (20.9 or later works), and a Supabase project (hosted, or local
 via the Supabase CLI and Docker).
 
 Every install starts here, on Supabase, with no provider settings. Supabase
@@ -104,29 +104,71 @@ the worker); see [Deployment profiles](docs/deployment-profiles.md).
 `supabase/migrations/` builds a fresh database from scratch (a baseline schema
 plus a few follow-up migrations); see [docs/migrations.md](docs/migrations.md).
 
+On your own computer (needs Git, Node.js 22 LTS and Docker Desktop; works in
+PowerShell, cmd, bash and zsh):
+
 ```bash
-git clone https://github.com/homepresso/User-Tasks.git usertasks && cd usertasks
-npm install
-
-# 1. Database: either a local stack...
-npx supabase init                            # first time only
-npx supabase start && npx supabase db reset  # applies supabase/migrations
-# ...or a hosted project
-npx supabase link --project-ref <ref> && npx supabase db push
-
-# 2. Configuration
-cp .env.example .env.local                   # fill in the Supabase URL and keys
-
-# 3. First organisation and owner account
-set -a; . ./.env.local; set +a
-npm run bootstrap -- --email admin@example.com --password 'a-strong-password' --org "Acme Inc"
-
-# 4. Run
+git clone https://github.com/homepresso/User-Tasks.git usertasks
+cd usertasks
+npm run setup:local
 npm run dev
 ```
 
-Open http://localhost:3000, sign in with the organisation slug printed by
-`bootstrap`, your email and password, and finish setup at `/onboarding`.
+`npm run setup:local` runs `npm install`, starts the local Supabase in Docker,
+applies the migrations and writes `.env.local`; `npm run dev` prints
+"UserTasks setup code: XXXX-XXXX-XXXX". `npm run setup:local` is safe to re-run: it never overwrites values already in
+`.env.local`, never prints secrets, and only wipes the local database with
+`--reset` (after asking). New to the terminal? The
+[beginner's quick start](https://usertasks.com/docs/self-hosting/quick-start)
+walks through every step. To stop: Ctrl+C, then `npx supabase stop`; to start
+again: `npx supabase start`, then `npm run dev` (data is kept).
+
+By hand, or with a hosted Supabase project:
+
+1. Install the packages and start a database, either a local stack
+   (`npx supabase start` applies supabase/migrations to a new database, and
+   `npx supabase status -o env` prints the URL and keys for step 2):
+
+   ```bash
+   npm install
+   npx supabase start
+   npx supabase status -o env
+   ```
+
+   or a hosted project:
+
+   ```bash
+   npx supabase link --project-ref <ref> && npx supabase db push
+   ```
+
+2. Configuration: copy `.env.example` and fill in the Supabase URL and keys,
+   `ENCRYPTION_KEY` (`openssl rand -base64 32`) and `CRON_SECRET`
+   (`openssl rand -hex 32`):
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. First organisation and owner account: open http://localhost:3000/setup
+   after step 4 (setup code in the `npm run dev` output), or create it from the
+   command line (reads `.env.local` itself; variables set in the shell win):
+
+   ```bash
+   npm run bootstrap -- --email admin@example.com --password 'a-strong-password' --org "Acme Inc"
+   ```
+
+4. Run:
+
+   ```bash
+   npm run dev
+   ```
+
+Open http://localhost:3000. A new install sends you to `/setup` to create the
+admin account with the setup code from the `npm run dev` output (or
+`npm run setup-code`); if you used `bootstrap`, sign in with the organisation
+slug it printed, your email and password. Either way you finish at
+`/onboarding`. Windows notes and troubleshooting:
+[docs/self-hosting.md](docs/self-hosting.md#from-the-command-line).
 
 Every environment variable is listed and explained in
 [`.env.example`](.env.example).

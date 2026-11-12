@@ -57,6 +57,7 @@ const OPEN_ACTIONS: Record<string, string> = {
   'auth.getRealtimeTokenAction': "The caller's own realtime token (RLS bounds what it can read and write)",
   'auth.verifyEmailAction': 'Pre-auth with the verification token',
   'beta-signup.betaSignup': 'Public cloud signup, rate limited',
+  'setup.completeFirstRunSetup': 'Self-hosted first run only (no tenants and no users), guarded by the one-time setup code, rate limited',
   'forms.checkFormLink': 'Whether a form link exists (no form data)',
   'gallery-moderation.canModerateGalleryAction': 'A capability probe (yes / no)',
   'gallery-moderation.withdrawSubmissionAction': "The caller's own gallery submission (filtered by submitter_id)",

@@ -4,6 +4,7 @@
  *
  *   npm run stack -- init  [--profile <p>] [--port 3000] [--email you@example.com] [--force]
  *   npm run stack -- up    [--profile <p>] [--email … --org … [--password …]] [--no-build] [--pgbouncer] [--keycloak]
+ *                          [--skip-memory-check]
  *                          [--kms env|vault_transit|aws_kms|azure_key_vault|gcp_kms]
  *   npm run stack -- smoke [--profile <p>]
  *   npm run stack -- down  [--profile <p>] [--volumes]
@@ -32,15 +33,27 @@
  * fresh secrets (refuses to overwrite without --force). `up` runs init when
  * the file is missing, builds and starts the stack (`docker compose up
  * --wait`), and creates the first workspace when --email and --org are
- * given (a generated password is printed when --password is not).
+ * given. First sign-in: without --email, `up` ends by printing the address
+ * of /setup and the setup code (USERTASKS_SETUP_CODE, which init generates);
+ * with --email and --org and no --password, the generated password goes to
+ * .usertasks-first-login (owner-only) and the console names the file, never
+ * the password.
+ *
+ * Before building the image, `up` checks the memory Docker has (docker info):
+ * below BUILD_MEMORY_GB the build is killed part-way, so it stops with how to
+ * raise it (--skip-memory-check, or USERTASKS_SKIP_MEMORY_CHECK=1, skips it).
  */
 import { execFileSync, spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
+import { generateSetupCode } from '../lib/setup/code'
+import { firstLoginText, loginHint, memoryCheckMessage, setupHint } from './stack-helpers'
 
 const ROOT = path.resolve(__dirname, '..')
+/** Where `up --email --org` leaves a generated password (git- and docker-ignored). */
+const FIRST_LOGIN_FILE = path.join(ROOT, '.usertasks-first-login')
 const STATE = path.join(ROOT, 'deploy/compose/.state')
 
 type ProfileName = 'standalone' | 'onprem' | 'azure' | 'gcp' | 'aws'
@@ -246,6 +259,7 @@ const { values, positionals } = parseArgs({
     org: { type: 'string' },
     force: { type: 'boolean' },
     'no-build': { type: 'boolean' },
+    'skip-memory-check': { type: 'boolean' },
     pgbouncer: { type: 'boolean' },
     keycloak: { type: 'boolean' },
     kms: { type: 'string' },
@@ -301,6 +315,7 @@ function init(): void {
     .replace(/^(APP_URL|NEXT_PUBLIC_APP_URL)=.*$/gm, (_, key: string) => `${key}=http://localhost:${port}`)
     .replace(/^APP_PORT=.*$/m, `APP_PORT=${port}`)
   if (values.email) text = text.replace(/^INSTANCE_ADMIN_EMAILS=.*$/m, `INSTANCE_ADMIN_EMAILS=${values.email}`)
+  text = text.replace(/^# ?USERTASKS_SETUP_CODE=.*$/m, `USERTASKS_SETUP_CODE=${generateSetupCode()}`)
   if (values.pgbouncer) text = text.replace(/^DATABASE_URL=(.*)@postgres:5432/m, 'DATABASE_URL=$1@pgbouncer:5432')
   // The aws profile's own overrides are its KMS stand-in (LocalStack); --kms picks another.
   const kmsChoice = (values.kms as KmsChoice | undefined) ?? profile.kms
@@ -393,7 +408,19 @@ function ensureDataKey(): void {
   process.stdout.write(adminExec(['kms', 'rewrap', '--yes']).stdout)
 }
 
+function checkDockerMemory(): void {
+  if (values['skip-memory-check'] || process.env.USERTASKS_SKIP_MEMORY_CHECK === '1') return
+  const res = spawnSync('docker', ['info', '--format', '{{.MemTotal}}'], { encoding: 'utf8' })
+  if (res.status !== 0) return // compose reports a Docker that isn't running more clearly
+  const message = memoryCheckMessage(Number(res.stdout.trim()))
+  if (message) {
+    console.error(message)
+    process.exit(1)
+  }
+}
+
 function up(): void {
+  if (!values['no-build']) checkDockerMemory()
   if (!existsSync(envFile)) init()
   if (profile.certs) ensureCerts()
   compose(['up', '-d', '--wait', ...(values['no-build'] ? [] : ['--build'])])
@@ -402,12 +429,22 @@ function up(): void {
   console.log(name === 'onprem'
     ? '\nUserTasks is up on an isolated network (nothing is published on the host; `npm run stack -- smoke --profile onprem` tests it from inside).'
     : `\nUserTasks is up: ${env.APP_URL ?? 'http://localhost:3000'}${profile.smoke.SMOKE_MAIL === 'mailpit' ? ` (Mailpit: http://localhost:${env.MAILPIT_PORT ?? '8025'})` : ''}`)
+  const appUrl = env.APP_URL ?? 'http://localhost:3000'
   if (values.email && values.org) {
+    const generated = !values.password && !process.env.BOOTSTRAP_PASSWORD
     const password = values.password ?? process.env.BOOTSTRAP_PASSWORD ?? randomBytes(12).toString('base64url')
-    bootstrap(values.email, values.org, password)
-    if (!values.password && !process.env.BOOTSTRAP_PASSWORD) console.log(`Password (shown once): ${password}`)
+    const boot = bootstrap(values.email, values.org, password)
+    const existed = /Already bootstrapped/.test(boot.stdout)
+    if (generated && !existed) {
+      writeFileSync(FIRST_LOGIN_FILE, `${firstLoginText(appUrl, values.email, values.org, password)}\n`, { mode: 0o600 })
+      chmodSync(FIRST_LOGIN_FILE, 0o600)
+    }
+    const file = path.relative(process.cwd(), FIRST_LOGIN_FILE) || FIRST_LOGIN_FILE
+    console.log(`\n${loginHint(appUrl, values.email, existed ? 'existing' : generated ? file : 'chosen')}`)
   } else {
-    console.log('Create the first workspace: npm run stack -- up --email you@example.com --org "Your org"  (or: docker compose exec app node admin.cjs bootstrap …)')
+    // Only while the install has no account yet: after that there's nothing to set up.
+    const status = adminExec(['setup-code', 'status'], {}, true).stdout
+    console.log(`\n${/Setup is complete/.test(status) ? `Sign in at ${appUrl}/login.` : setupHint(appUrl, env.USERTASKS_SETUP_CODE)}`)
   }
 }
 

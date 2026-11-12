@@ -8,7 +8,8 @@ import { Library, Link2, PencilRuler, Search, Unlink, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePermissions } from '@/lib/permissions-context'
 import { serverRead } from '@/lib/server-read'
-import { createForm, createFormTheme, updateForm } from '@/app/actions/forms'
+import { createForm, createFormTheme, saveFormDesignDraft } from '@/app/actions/forms'
+import { designDraftKey, useDesignDraft } from './designer/form-draft-controls'
 import { formDefinitionKey, nodeFormPatch, normalizeFormDefinition, readNodeForm, readNodeFormLink, type FormDefinition, type FormLink } from '@/lib/forms/definition'
 import { findFieldReferences, renameFieldReferences, type RefNode } from '@/lib/forms/references'
 import { TASK_FIELD_TYPE_LABELS, valueFields } from '@/lib/task-field-schema'
@@ -62,6 +63,9 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
       return result.data as (FormDefinition & { id: string; name: string; version: number; fields: unknown; layout: unknown; theme: unknown }) | null
     },
   })
+  // The linked form's working draft (editors): the designer opens on it and "Save to the form" saves into it.
+  const { data: linkedDraft } = useDesignDraft(link?.form_id ?? null, canEdit && Boolean(link?.form_id))
+  const draftsOn = Boolean(linkedDraft?.available)
   const { data: savedThemes = [] } = useQuery({
     queryKey: ['form-themes'],
     enabled: canView,
@@ -98,13 +102,21 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
           run: async (next, ctx) => { applyRenames(ctx); onPatch(nodeFormPatch(next, null)); return null },
         },
         {
-          id: 'save-linked', label: `Save to "${link.form_name ?? 'form'}" (new version)`, hidden: !canEdit,
+          id: 'save-linked', label: draftsOn ? `Save to "${link.form_name ?? 'form'}" draft` : `Save to "${link.form_name ?? 'form'}" (new version)`, hidden: !canEdit,
           run: async (next, ctx) => {
-            const result = await updateForm(link.form_id, { fields: next.fields, layout: next.layout, theme: next.theme, buttons: next.buttons ?? null, header: next.header ?? null })
+            const content = { fields: next.fields, layout: next.layout, theme: next.theme, buttons: next.buttons ?? null, header: next.header ?? null }
+            const result = await saveFormDesignDraft(link.form_id, { ...content, ...(draftsOn ? { expected_updated_at: linkedDraft?.draft?.updated_at ?? null } : {}) })
             if (!result.ok) return result.error
             applyRenames(ctx)
-            onPatch(nodeFormPatch(normalizeFormDefinition(result.data), { form_id: link.form_id, form_name: result.data.name, cached_version: result.data.version }))
-            await queryClient.invalidateQueries({ queryKey: ['form', link.form_id] })
+            if (result.data.mode === 'live') {
+              // No drafts on this server: a new version, which this (unpinned) step follows.
+              onPatch(nodeFormPatch(normalizeFormDefinition(result.data.form), { form_id: link.form_id, form_name: result.data.form.name, cached_version: result.data.form.version }))
+            }
+            // A draft: the step keeps the published form until the draft is published on the form's page.
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ['form', link.form_id] }),
+              queryClient.invalidateQueries({ queryKey: designDraftKey(link.form_id) }),
+            ])
             return null
           },
         },
@@ -121,7 +133,8 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
     .sort((a, b) => Number(Boolean(b.read_only)) - Number(Boolean(a.read_only)))
   // Editable fields without a prefill stay behind "Prefill other fields" (the assignee fills them).
   const hiddenPrefill = showAllPrefill ? 0 : prefillable.filter((f) => !f.read_only && !String((node.config?.field_values ?? {})[f.key] ?? '')).length
-  const initialForDesigner: FormDefinition = link && linkedForm ? normalizeFormDefinition({ fields: linkedForm.fields, layout: linkedForm.layout, theme: linkedForm.theme, buttons: (linkedForm as { buttons?: unknown }).buttons, header: (linkedForm as { header?: unknown }).header }) : def
+  const linkedSource = linkedDraft?.draft ?? linkedForm
+  const initialForDesigner: FormDefinition = link && linkedSource ? normalizeFormDefinition({ fields: linkedSource.fields, layout: linkedSource.layout, theme: linkedSource.theme, buttons: (linkedSource as { buttons?: unknown }).buttons, header: (linkedSource as { header?: unknown }).header }) : def
 
   return (
     <div className="space-y-2" data-testid="node-form-section">
@@ -239,7 +252,9 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
         open={designerOpen}
         onClose={() => setDesignerOpen(false)}
         title={`Design form — ${node.label || 'step'}`}
-        subtitle={link ? <>Linked to <strong>{link.form_name}</strong> · saving to the form creates a new version</> : variant === 'user_task' ? 'What the assignee fills in. Values return to the workflow as {{task_data.<key>}}.' : 'The fields the triggering task carries ({{task.data.<key>}}).'}
+        subtitle={link ? (draftsOn
+          ? <>Linked to <strong>{link.form_name}</strong> · saving to the form saves its draft{linkedDraft?.draft ? ' (opened from the draft)' : ''} — publish it on the form&apos;s page; this step uses the published form until then</>
+          : <>Linked to <strong>{link.form_name}</strong> · saving to the form creates a new version</>) : variant === 'user_task' ? 'What the assignee fills in. Values return to the workflow as {{task_data.<key>}}.' : 'The fields the triggering task carries ({{task.data.<key>}}).'}
         initial={initialForDesigner}
         actions={actions}
         savedThemes={savedThemes}

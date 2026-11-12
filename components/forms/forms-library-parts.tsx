@@ -30,6 +30,9 @@ export interface FormListItem {
   available_in_menu?: boolean
   /** Friendly link name (/form/<system_name>). */
   system_name?: string | null
+  /** Unpublished edits (a working draft; lib/services/form-design-drafts). */
+  has_draft?: boolean
+  draft_updated_at?: string | null
 }
 
 export interface FormDetail {

@@ -29,8 +29,8 @@ export const USE_CASES_INDEX = {
 }
 
 export const OPEN_SOURCE_PAGE = {
-  title: 'UserTasks is going open source — what changes',
-  description: 'Why UserTasks is refocusing on an open-source, enterprise headless workflow engine: what we are keeping, what we are retiring, and what it means for existing workspaces.',
+  title: 'Open source (Apache-2.0): run UserTasks locally with Git, Docker and npm',
+  description: 'UserTasks is open source under Apache-2.0. Clone it from GitHub and run it locally from source with Supabase, as a Docker stack without Supabase, or drive it with the CLI from npm — then create your admin account in the browser.',
 }
 
 export const CONTACT_PAGE = {

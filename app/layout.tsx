@@ -46,16 +46,16 @@ export const metadata: Metadata = {
   // template (lib/page-title), and the landing page (app/page.tsx), docs and
   // marketing pages carry their own full titles.
   title: "UserTasks",
-  description: "An open-source headless workflow engine: visual designer, integrations, human tasks, decision tables, optional AI agents, and reports — all driven by an API, an MCP server and a CLI, with governance and log export built in.",
+  description: "The open source process platform: visual workflow designer, forms, integrations, human tasks, decision tables, optional AI agents, and reports — all driven by an API, an MCP server and a CLI, with governance and log export built in.",
   openGraph: {
-    title: "UserTasks — Open-Source Headless Workflow Engine",
+    title: "UserTasks — The Open Source Process Platform",
     description: "Workflows, integrations, human tasks, decision tables, and reports you drive through an API and MCP server. Self-host it or use the cloud edition.",
     siteName: "UserTasks",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "UserTasks — Open-Source Headless Workflow Engine",
+    title: "UserTasks — The Open Source Process Platform",
     description: "Workflows, human tasks, and decision tables you drive through an API and MCP.",
   },
   // Icons come from the app/icon.svg + app/apple-icon.png file conventions

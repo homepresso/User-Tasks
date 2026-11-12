@@ -37,7 +37,7 @@ Official UserTasks bundles are signed with the **UserTasks Release** key:
 ## 1. Build it (connected machine)
 
 ```bash
-docker build -t usertasks:0.1.0 .
+docker build --build-arg TYPECHECK=true -t usertasks:0.1.0 .
 npm ci
 npm run bundle -- create --image usertasks:0.1.0 --signing-key ~/keys/usertasks-bundle.pem
 #   dist/bundle/usertasks-bundle-0.1.0-linux-amd64.tar (+ .sha256)

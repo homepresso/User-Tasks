@@ -477,7 +477,7 @@ export type AssistantEvent =
 /** Designer tools that change something (confirmation first, drafts only). */
 export const DESIGNER_WRITE_TOOLS = [
   'workflows_create', 'workflows_update',
-  'forms_create', 'forms_update',
+  'forms_create', 'forms_update', 'forms_publish',
   'data_tables_create', 'data_tables_update_schema',
   'decision_tables_create', 'decision_tables_update',
   'workflow_activities_create', 'workflow_activities_update',
@@ -492,7 +492,7 @@ export const DESIGNER_WRITE_TOOLS = [
 /** Designer tools that only read. */
 export const DESIGNER_READ_TOOLS = [
   'workflows_catalog', 'workflows_list', 'workflows_get', 'workflows_get_definition', 'workflows_preflight', 'workflows_validate',
-  'forms_list', 'forms_get', 'forms_check_accessibility',
+  'forms_list', 'forms_get', 'forms_check_accessibility', 'forms_draft_compare',
   'data_tables_list', 'data_tables_get', 'data_rows_query', 'data_rows_get',
   'reports_list', 'reports_get', 'reports_preview', 'reports_sources_list', 'reports_source_get',
   'agents_list', 'agents_get',

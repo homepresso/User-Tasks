@@ -513,9 +513,9 @@ usertasks forms submissions <form id> -o json`} />
               <div className="min-w-0">
                 <Snippet code={`cd form-control-starter/lit-ts
 npm install
-npm run dev       # harness on localhost:5180
-npm run package   # release/ut-star-rating-1.0.0.zip
-# upload it in Extensibility → Form controls`} />
+npm run dev
+npm run package`} />
+                <p className="mt-3 text-sm leading-6 text-(color:--mkt-text)"><code className="font-mono text-ui">npm run dev</code> opens the harness on localhost:5180; <code className="font-mono text-ui">npm run package</code> writes release/ut-star-rating-1.0.0.zip. Upload it in Extensibility → Form controls.</p>
               </div>
             </div>
             <figure className="mt-10">

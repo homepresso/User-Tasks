@@ -461,7 +461,7 @@ Prefer code? \`usertasks forms create -f customer-return.json\` (or \`POST /api/
 
 The same designer opens in two places:
 
-- **A reusable form** (**Build › Forms**, then **Edit** on a form, or **New form**) opens on its own page, \`/automations/forms/<id>\`, like the workflow designer. The toolbar has the way back to **Forms**, the form's name (select it to rename; renaming doesn't create a version), its version, **In menu** and its tags, **Undo** / **Redo**, **Design** | **Preview**, **Open form**, **Save version N** (**⌘S** / **Ctrl+S**) and **⋯** (copy link, QR code & embed, submissions, access and sharing, form settings, **Edit with the wizard** for a wizard form, duplicate, export, delete). The **Outline** under the palette lists the steps or tabs, fields and sections; select one to select it on the grid. A status bar under the grid shows the fields, rules and submissions, the accessibility score and whether there are unsaved changes. The properties panel adds a **Form** tab (name, description, tags, friendly link name, **Available forms**) and an **Access** tab (who may submit it, the public link, retention). Without **Edit forms** the page is read only. When the Agent is open, it docks beside the designer and works on the open form; a change you confirm reloads the designer on the new version. On a phone the page says **Open on desktop to edit** and shows the form read only.
+- **A reusable form** (**Build › Forms**, then **Edit** on a form, or **New form**) opens on its own page, \`/automations/forms/<id>\`, like the workflow designer. The toolbar has the way back to **Forms**, the form's name (select it to rename; renaming doesn't create a version), its version, **Draft** when it has unpublished changes, **In menu** and its tags, **Undo** / **Redo**, **Design** | **Preview**, **Open form**, **Save draft** (**⌘S** / **Ctrl+S**), **Publish** and **⋯** (copy link, QR code & embed, submissions, access and sharing, form settings, **Version history**, **Share draft…**, **Preview the draft**, **Edit with the wizard** for a wizard form, duplicate, export, delete). Saving keeps your changes in the form's draft until you publish them — see [Drafts and publishing](#drafts-and-publishing). The **Outline** under the palette lists the steps or tabs, fields and sections; select one to select it on the grid. A status bar under the grid shows the fields, rules and submissions, the accessibility score and whether there are unsaved changes. The properties panel adds a **Form** tab (name, description, tags, friendly link name, **Available forms**) and an **Access** tab (who may submit it, the public link, retention). Without **Edit forms** the page is read only. When the Agent is open, it docks beside the designer and works on the open form; a change you confirm is saved to the draft and reloads the designer on it. On a phone the page says **Open on desktop to edit** and shows the form read only.
 - **A workflow's own forms** (a User Task's form, a start form) open in a dialog over the workflow designer: open a **User Task** and choose **Form → Design form**.
 
 Either way, the designer has three parts:
@@ -2117,18 +2117,52 @@ When a workflow starts from a form, testing and running it uses that form, not a
 - **Save & Test** with a **Form submitted** trigger draws the linked form exactly as its page does — header, grid, theme, lookups with real suggestions, validation and its buttons. Pressing a button sends a *test* submission: the server checks it like a real one (per-field errors come back on the form) and starts a test run with the same \`{{form.<key>}}\` payload, \`form_source\` = \`test\`. Nothing is stored — no submission, no \`form.submitted\` event, no other workflow started; the log says what the button would have done.
 - With a **start form**, Save & Test shows its grid and theme over the inputs.
 - **Test cases** remember each form's values and button: selecting a case refills the form, **Duplicate Selected** copies it, **Run Selected** shows the form and waits for its button, and **Run All (saved values)** reruns each case's last accepted submission (cases never submitted are skipped as *Needs form input*). **Show as fields** switches to the raw values.
+- User Tasks that link a reusable form show its published version; tick **Use form drafts** to test with the forms' unpublished drafts ([Drafts and publishing](#test-with-the-draft)).
 - **Run** (workflow list and page) opens the same form. For a Form submitted workflow, submitting it is a real submission — stored, attributed to you, with its button behaviours — that starts the workflow through its trigger. For a start form it is a normal manual run.
 
 ## Reusable forms
 
 **Build › Forms** is the library: search and filter by tag, create, edit, duplicate and delete forms, and see which workflow steps use each one. **Edit** opens the form's designer page. In a step's designer dialog, **Save as reusable form** saves the form to the library and links the step to it; **Use a saved form** links an existing one.
 
-- A linked step shows **Linked to form "…" vN**. Saving in the designer can create a new version of the form or **Detach and save here** (the step keeps a local copy). **Detach** on the step does the same without opening the designer.
-- Every change to a form's fields, layout or theme creates a new version; name, description and tag changes don't.
-- **Drafts follow the latest version** of a linked form. **Publishing pins** the version in use, so a published workflow keeps its form until you publish again.
+- A linked step shows **Linked to form "…" vN**. Saving in the step's designer saves to the form's draft (**Save to "…" draft**), or **Detach and save here** (the step keeps a local copy). **Detach** on the step does the same without opening the designer.
+- Every published change to a form's fields, layout or theme creates a new version; name, description and tag changes don't.
+- **Workflow drafts follow the latest published version** of a linked form. **Publishing the workflow pins** the version in use, so a published workflow keeps its form until you publish the workflow again.
 - A form that workflows use can't be deleted; the error lists where it is used.
 
 Forms need the **View forms**, **Edit forms** and **Delete forms** permissions (Owner, Admin and Manager have all three). Member and Viewer don't see the form library; they open and submit the forms they are given with **Submit forms**. They travel with config-as-code, GitHub sync and packages (a workflow that links a form brings it, and its saved theme, along), and have REST (\`/api/v1/forms\`, \`/api/v1/form-themes\`), MCP (\`forms_*\`, \`form_themes_*\`) and CLI (\`usertasks forms …\`) commands.
+
+## Drafts and publishing
+
+A reusable form has a **published version** — what everyone sees — and at most one **draft** with the changes that aren't published yet.
+
+- **Save draft** (**⌘S**) in the designer saves your changes to fields, layout, theme, buttons and header into the draft. Nobody else sees them: form pages and links (\`/f/<id>\`, \`/form/<name>\`, public links), the **Forms** menu, start forms, task forms in running workflows, workflow drafts and test runs, and the default REST and MCP reads all keep the published version. Name, description, tags and the **Form** / **Access** settings are not part of the draft: they apply at once.
+- A yellow banner says **Draft — not visible to others · Last saved 2 min ago by Ana**. There is one draft per form, shared by everyone with **Edit forms**: another editor opening the form gets the same draft, and the banner shows **Ana is editing the draft** when someone else saved it in the last 10 minutes. If someone saved the draft after you opened it, your save is refused with a message to reload, so nobody overwrites anyone by accident. The **Forms** library marks forms with a draft **Draft changes**.
+- **Publish** (enabled once the draft is saved) shows what changes and takes an optional **note**. The draft becomes the next version: \`version\` goes up, the snapshot is kept in the version history with the note and who published it, and the draft is cleared. Publishing runs the same checks as saving always did — field problems, buttons, table changes, data sources and the workspace's accessibility minimum — and refuses with the problem; the banner counts the problems while you work. Published workflows keep the version they pinned. Each publish is in the audit log (and the event stream as \`audit.form.publish\`).
+- **Discard** (in the banner) throws the draft away for everyone after you confirm; the published version stays.
+- **Compare** lists what the draft changes against the published version: fields added, removed or changed (and which settings), rules added, removed or changed, and whether the layout, theme, buttons or header changed.
+- **⋯ → Version history** lists every published version with its date and note. **Restore as draft** copies a version into the draft (replacing it) — publish it to roll back.
+- A **new** form is published as version 1 when you first create it (nothing uses it yet); every save after that goes to the draft.
+
+### Share a draft for review
+
+**Share draft** (in the banner or **⋯**) brings people in before you publish. Pick people and teams with the same picker as task invites, and add a note. They get a notification (**Ana shared a form draft with you**) and, when named directly, an email, linking to the **draft preview** (\`/forms/<id>/draft-preview\`). Members of a team of up to 25 people are notified; larger teams can still open the link.
+
+The preview draws the draft as its page will, read only for the design: reviewers can fill it in to try it, and the buttons check the answers and say what would happen — **nothing is submitted**, no submission is stored and no workflow starts (uploads are off, as in the designer's Preview). Reviewers don't need **Edit forms**. Access is checked on the server every time and ends when the draft is published or discarded, or when you remove them in **Share draft**. Comments on a draft aren't supported yet: reviewers reply in your usual channel.
+
+### Test with the draft
+
+- The designer's **Preview** always shows what you are editing — the draft.
+- In a workflow's **Save & Test**, User Tasks that link a reusable form show its **published** version, like the workflow itself. Tick **Use form drafts** (shown to people with **Edit forms** when the workflow links a form) to test with each form's draft instead. Real runs never use a draft, and published workflows stay on their pinned version. A **Form submitted** trigger's test submission always uses the published form.
+
+### Drafts in the API, MCP, CLI and the Agent
+
+- REST: \`GET /api/v1/forms/{id}\` returns the published version (editors also get \`draft\`: who saved it last and when); \`?version=draft\` returns the draft's content. \`GET\` / \`PUT\` / \`DELETE /forms/{id}/draft\` read, save and discard it, \`GET /forms/{id}/draft/compare\` compares, \`POST /forms/{id}/publish\` publishes (\`{ "note": "…" }\`), \`/forms/{id}/draft/reviewers\` shares, and \`POST /forms/{id}/versions/{n}/restore\` restores a version as the draft. \`PATCH /forms/{id}\` still publishes directly, as before.
+- MCP: \`forms_draft_get\`, \`forms_draft_save\`, \`forms_publish\`, \`forms_draft_discard\`, \`forms_draft_compare\`, \`forms_draft_reviewers_list\` / \`_add\` / \`_remove\`, \`forms_version_restore\`; \`forms_get\` takes \`version: "draft"\` and \`forms_update\` takes \`save_to: "draft"\`.
+- CLI: \`usertasks forms draft-save <id> -f form.json\`, \`usertasks forms publish <id> --set note="Adds the cost center"\`, \`usertasks forms draft-compare <id>\`, \`usertasks forms get <id> --content-version draft\` and the rest.
+- The **Agent** saves the form edits you confirm into the draft and asks before publishing; it publishes (with a confirmation card) only when you tell it to.
+- **Config-as-code, GitHub sync, packages, the form wizard and InfoPath import publish directly**, as they always have: applying a manifest makes a new version (a draft someone is working on stays, and its banner says the published version moved on). InfoPath imports create published forms.
+
+Drafts need the database migration \`20270110000000_form_design_drafts.sql\`. Until it is applied, **Save** publishes a new version straight away, exactly as before, and the draft actions aren't shown.
 
 ## Themes: the workspace theme and mini themes
 
@@ -2489,15 +2523,24 @@ Completing a task from outside the app does exactly what the outcome button does
 
 ## REST
 
-\`\`\`bash
-# tasks assigned to the calling user (user-context key or OAuth token)
-curl -H "Authorization: Bearer $USERTASKS_API_KEY" "$USERTASKS_URL/api/v1/tasks/assigned"
+List the tasks assigned to the calling user (with a user-context key or OAuth token):
 
-# complete one
+\`\`\`bash
+curl -H "Authorization: Bearer $USERTASKS_API_KEY" "$USERTASKS_URL/api/v1/tasks/assigned"
+\`\`\`
+
+Complete one:
+
+\`\`\`bash
 curl -X POST "$USERTASKS_URL/api/v1/tasks/<task-id>/action" \\
   -H "Authorization: Bearer $USERTASKS_API_KEY" -H "Content-Type: application/json" \\
   -d '{"action":"complete","outcome":"Approved","outcome_notes":"Within budget","values":{"cost_centre":"OPS","amount":12400}}'
-# → { "success": true, "data": { "action": "completed", "outcome": "Approved", "workflow_resumed": true, "workflow_status": "queued", "run_id": "…" } }
+\`\`\`
+
+It returns:
+
+\`\`\`json
+{ "success": true, "data": { "action": "completed", "outcome": "Approved", "workflow_resumed": true, "workflow_status": "queued", "run_id": "…" } }
 \`\`\`
 
 \`action\` is one of \`accept\`, \`hold\`, \`reject\`, \`complete\`, \`escalate\` or \`redirect\` (with \`target_user_id(s)\` or \`target_email(s)\`). On a multi-assignee task, \`complete\` may return \`{ "action": "waiting", "responses": 1, "needed": 2 }\` until the completion rule is met.

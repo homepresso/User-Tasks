@@ -61,7 +61,7 @@ export const RESOURCES: MenuItem[] = [
   { href: '/docs/api', title: 'API & MCP', description: 'REST, OData, MCP server and the SDK', icon: 'code' },
   { href: '/docs/cli', title: 'CLI', description: 'Every operation from your terminal', icon: 'terminal' },
   { href: '/deploy-anywhere', title: 'Self-hosting', description: 'Docker, Kubernetes, your cloud or air-gapped', icon: 'server' },
-  { href: '/open-source', title: 'Open source', description: 'Apache-2.0, and why it matters', icon: 'github' },
+  { href: '/open-source', title: 'Open source', description: 'Apache-2.0: run it locally in minutes', icon: 'github' },
   { href: '/contact', title: 'Contact', description: 'Talk to the team about your process', icon: 'mail' },
 ]
 
@@ -72,6 +72,7 @@ export const GUIDES: Array<{ href: string; label: string }> = [
   { href: '/use-cases/nintex-migration', label: 'Moving from Nintex' },
   { href: '/use-cases/k2-migration', label: 'Moving from K2' },
   { href: '/on-premises-workflow-automation', label: 'On-premises & air-gapped' },
+  { href: '/docs/self-hosting/choose', label: 'Self-hosting guide' },
   { href: '/open-source-workflow-engine', label: 'Open-source workflow engine' },
   { href: '/workflow-automation', label: 'Workflow automation' },
   { href: '/bpm-workflow-automation', label: 'BPM' },

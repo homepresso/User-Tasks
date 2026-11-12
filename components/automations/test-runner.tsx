@@ -37,6 +37,8 @@ import { canAskAgentToFix, failureAttachment, FIX_PROMPT } from '@/lib/assistant
 import { formStartGate, NEEDS_FORM_INPUT, rememberSubmission, runAllCaseDecision, runSelectedDecision, TEST_START_LABEL } from '@/lib/automations/test-form-start'
 import type { FormButton } from '@/lib/forms/buttons'
 import { formCardWidth } from '@/lib/forms/form-width'
+import { linkedFormIds } from '@/lib/forms/definition'
+import { usePermissions } from '@/lib/permissions-context'
 import {
   caseFormValues as caseFormValuesOf, copyCaseInputs, fieldText, formDefaultValues, parseFieldText, plainFieldKeys, startFormKind, valueChips, withCaseFormValue,
   type StartFormCase, type WorkflowStartForm,
@@ -195,6 +197,11 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
   const runningAllRef = useRef(false)
   const [autoCompleteTasks, setAutoCompleteTasks] = useState(true)
   const autoCompleteRef = useRef(true)
+  // "Use form drafts": User Tasks linking a reusable form show its unpublished draft (testers with Edit forms).
+  // Off by default — a test run uses the published forms, as real runs of the workflow draft do.
+  const { can } = usePermissions()
+  const linksForms = useMemo(() => linkedFormIds(nodes).size > 0, [nodes])
+  const [useFormDrafts, setUseFormDrafts] = useState(false)
   /** The step the current case is paused at (mirrors the prompt state for synchronous reads). */
   const pausePromptRef = useRef<(TestPausePrompt & { eventId: string; fields?: TaskFieldDef[]; values?: Record<string, unknown> }) | null>(null)
   /** The case being executed (whose saved task values apply). */
@@ -314,7 +321,7 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
       const resp = await fetch('/api/workflows/execute-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-        body: JSON.stringify(formSubmission ? { workflow_id: workflowId, form_submission: formSubmission } : { workflow_id: workflowId, variables }),
+        body: JSON.stringify({ ...(formSubmission ? { workflow_id: workflowId, form_submission: formSubmission } : { workflow_id: workflowId, variables }), ...(useFormDrafts ? { form_drafts: true } : {}) }),
       })
 
       if (resp.status === 422) {
@@ -1225,6 +1232,14 @@ export function TestRunner({ workflowId, nodes, edges, userVariables, swimlanes 
                 title={runsBlocked ? 'Fix the configuration issues above (or choose Run anyway)' : gate.kind === 'loading' ? 'Loading the start form…' : formStart && view === 'form' ? 'Opens this case’s form: the test starts when you press its button' : undefined}>
                 {running && !runningAll ? 'Running…' : 'Run selected'}
               </Button>
+
+              {linksForms && can('forms.edit') && (
+                <label className="flex select-none items-center gap-1.5 text-xs text-fg-muted" data-test-form-drafts=""
+                  title="Off: User Task steps show their linked forms as published (what the workflow uses). On: they show each form's unpublished draft, when it has one">
+                  <input type="checkbox" checked={useFormDrafts} disabled={running} onChange={(e) => setUseFormDrafts(e.target.checked)} />
+                  Use form drafts
+                </label>
+              )}
 
               {testCases.length > 1 && (
                 <label className="flex select-none items-center gap-1.5 text-xs text-fg-muted"

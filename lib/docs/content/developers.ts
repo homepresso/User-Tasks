@@ -59,11 +59,16 @@ Update endpoints accept their own GET response as the body: read-only fields are
 
 ## Starting work
 
+Start a workflow and wait for the result:
+
 \`\`\`bash
-# start a workflow and wait for the result…
 curl -X POST "$USERTASKS_URL/api/v1/workflows/start" -H "Authorization: Bearer $USERTASKS_API_KEY" \\
   -H "Content-Type: application/json" -d '{"workflow_id":"<id>","variables":{"amount":1200}}'
-# …or queue it and poll the run
+\`\`\`
+
+Or queue it and poll the run:
+
+\`\`\`bash
 curl -X POST "$USERTASKS_URL/api/v1/workflows/start" … -d '{"workflow_id":"<id>","async":true}'
 curl "$USERTASKS_URL/api/v1/workflows/runs/<run-id>" -H "Authorization: Bearer $USERTASKS_API_KEY"
 \`\`\`
@@ -153,20 +158,29 @@ export const CLI_PAGES: DocPageDef[] = [
 
 ## Install
 
+The CLI needs Node.js 20 or later (22 LTS recommended).
+
 \`\`\`bash
-npm install -g @user-tasks/cli     # Node.js 20+
+npm install -g @user-tasks/cli
 usertasks --version
 \`\`\`
 
 ## Log in
 
 \`\`\`bash
-usertasks login --url https://tasks.example.com          # opens your browser (OAuth + PKCE, loopback redirect)
-usertasks login --url https://tasks.example.com --api-key -  < key.txt   # or store an API key
+usertasks login
+usertasks login --url https://tasks.example.com
+usertasks login --url https://tasks.example.com --api-key -  < key.txt
 usertasks whoami
 \`\`\`
 
-**New to UserTasks?** On usertasks.com you don't need an account first: the login page has a **Create a free workspace** link, and after sign-up the browser goes straight back to the CLI login. Self-hosted servers stay invite-only.
+- \`usertasks login\` logs in to a local install at \`http://localhost:3000\`. It opens your browser (OAuth + PKCE, loopback redirect).
+- \`--url\` logs in to any other server.
+- \`--api-key -\` stores an API key read from stdin instead.
+
+Without \`--url\` (or \`USERTASKS_URL\`, or a saved profile) the CLI uses \`http://localhost:3000\`, a local install.
+
+**New to UserTasks?** On usertasks.com you don't need an account first: the login page has a **Create a free workspace** link, and after sign-up the browser goes straight back to the CLI login. Self-hosted servers stay invite-only: the first admin account is created on the server's [\`/setup\`](/docs/self-hosting/admin-account) screen, and [Use the CLI with your server](/docs/self-hosting/cli) covers logging in to your own install.
 
 Browser logins refresh automatically and request every scope except \`keys:write\`; add it with \`--scopes …,keys:write\` if the CLI must create API keys (those keys must expire within 90 days). \`usertasks logout\` revokes the tokens.
 
@@ -180,9 +194,11 @@ Each login is saved as a profile (server URL and credential). Profiles live in \
 usertasks login --url https://dev.example.com --profile dev
 usertasks login --url https://tasks.example.com --profile prod
 usertasks --profile dev workflows list
-usertasks profiles use prod           # default from now on (or USERTASKS_PROFILE)
+usertasks profiles use prod
 usertasks profiles list
 \`\`\`
+
+\`profiles use\` makes a profile the default from now on; \`USERTASKS_PROFILE\` does the same for one shell.
 
 ## Create, update, delete
 
@@ -254,15 +270,21 @@ Run \`usertasks <resource> --help\` or \`usertasks <resource> <verb> --help\` fo
     body: `
 ## Edit a workflow from your editor
 
+Export the draft definition:
+
 \`\`\`bash
 usertasks workflows definition <id> -o json > wf.json
-# edit wf.json: add a node to "nodes" and an edge to "edges", change variables…
-usertasks workflows update <id> -f wf.json          # saves the draft; changed: false if nothing differs
+\`\`\`
+
+Edit \`wf.json\`: add a node to \`"nodes"\` and an edge to \`"edges"\`, change variables and so on. Then save the draft, publish it and list the versions:
+
+\`\`\`bash
+usertasks workflows update <id> -f wf.json
 usertasks workflows publish <id> --set notes="Add CFO approval over 50k"
 usertasks workflows versions <id>
 \`\`\`
 
-Runs keep using the previous version until you publish.
+\`update\` saves the draft and reports \`changed: false\` if nothing differs. Runs keep using the previous version until you publish.
 
 ::image cli-edit-workflow | Terminal: workflow edit round trip | Export the draft, edit, update and publish.
 
@@ -273,8 +295,10 @@ usertasks --profile dev config export ./config --format yaml
 git add config && git commit -m "Invoice approval v2"
 usertasks --profile prod config diff ./config --source-label dev
 usertasks --profile prod config apply ./config --source-label dev
-usertasks --profile prod config apply ./config --source-label dev   # again: everything unchanged
+usertasks --profile prod config apply ./config --source-label dev
 \`\`\`
+
+Running the same apply a second time reports everything unchanged.
 
 Secrets are exported as \`__SECRET__\`. Replace them with \`\${env:VAR}\` or \`\${file:path}\`; the CLI substitutes them on your machine before upload. Apply never deletes. Use one \`--source-label\` per source workspace so ids map correctly.
 
@@ -298,7 +322,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
+        with: { node-version: 22 }
       - run: npm install -g @user-tasks/cli
       - run: usertasks config diff ./config --source-label dev --exit-code   # exit 7 = changes
         if: github.event_name == 'pull_request'
@@ -310,11 +334,13 @@ jobs:
 ## Watch production
 
 \`\`\`bash
-usertasks logs tail --severity error                       # everything that fails
-usertasks logs tail --type 'workflow.run.*' --workflow <id>  # one workflow's runs
+usertasks logs tail --severity error
+usertasks logs tail --type 'workflow.run.*' --workflow <id>
 usertasks logs tail -o json | jq 'select(.type == "integration.call") | .attributes.status'
 usertasks logs export --since 24h --category audit,security > audit.ndjson
 \`\`\`
+
+The first command follows everything that fails; the second follows one workflow's runs.
 
 ## Ship logs to Splunk
 
@@ -338,8 +364,9 @@ usertasks log-destinations status <id>
 
 ## Bulk operations with jq
 
+Complete every low-priority task assigned to you:
+
 \`\`\`bash
-# complete every low-priority task assigned to me
 usertasks tasks assigned --all -o json | jq -r '.[] | select(.priority == "low") | .id' |
   xargs -I{} usertasks tasks complete {} --outcome Approved --notes "Bulk approved"
 \`\`\`
@@ -438,10 +465,12 @@ The same layout is used by the CLI, the \`/api/v1/config/export\` and \`/api/v1/
 - **Dependencies** — references between assets (a workflow's decision table, reference or agent) are rewritten to the target workspace's ids.
 
 \`\`\`bash
-usertasks config new workflow "Vendor onboarding" --dir ./config   # scaffold a file with a fresh id
-usertasks config diff ./config --exit-code                          # exit 7 when apply would change something
+usertasks config new workflow "Vendor onboarding" --dir ./config
+usertasks config diff ./config --exit-code
 usertasks config apply ./config --dry-run
 \`\`\`
+
+\`config new\` scaffolds a file with a fresh id. \`config diff --exit-code\` exits with 7 when apply would change something.
 
 See the [CLI recipes](/docs/cli/recipes#promote-configuration-from-dev-to-prod) for a full dev → prod flow and a CI example.
 
@@ -455,10 +484,12 @@ Every list of artifacts in the app has an **Import** button, and each row or det
 The same export and import works on every other surface:
 
 \`\`\`bash
-usertasks config export ./out --ids <workflow-id> --with-dependencies     # one asset and what it needs
-usertasks config export ./out --ids <table-id> --include-rows             # a data table with its rows
+usertasks config export ./out --ids <workflow-id> --with-dependencies
+usertasks config export ./out --ids <table-id> --include-rows
 usertasks config apply ./out --dry-run && usertasks config apply ./out --rows-mode merge
 \`\`\`
+
+The first export takes one asset and what it needs; the second takes a data table with its rows.
 
 - **REST**: \`GET /api/v1/config/export?ids=…&with_dependencies=true&include_rows=true\` and \`POST /api/v1/config/apply\` (with \`rows_mode\`).
 - **MCP**: \`config_export\` (\`ids\`, \`with_dependencies\`, \`include_rows\`) and \`config_apply\` (\`dry_run\`, \`rows_mode\`).
@@ -475,13 +506,13 @@ API keys, OAuth apps, webhooks, people and runtime data are never exported. [Exp
 
 \`\`\`bash
 usertasks github-sync status
-usertasks github-sync sync                     # full resync (or --set kind=commit for pending changes)
+usertasks github-sync sync
 usertasks github-sync runs
 usertasks github-sync deploy --set ref=main --set dry_run:=true
 usertasks github-sync deployments
 \`\`\`
 
-Every sync and deployment runs in the background and returns an id to poll; results appear as \`system.sync.github.*\` events. Permissions: \`sync.view\`, \`sync.manage\`, \`sync.deploy\`.
+\`github-sync sync\` runs a full resync; add \`--set kind=commit\` to commit only the pending changes. Every sync and deployment runs in the background and returns an id to poll; results appear as \`system.sync.github.*\` events. Permissions: \`sync.view\`, \`sync.manage\`, \`sync.deploy\`.
 `,
   },
   {
@@ -529,15 +560,22 @@ What travels is the same configuration [config as code](/docs/config-as-code) ex
 From the CLI:
 
 \`\`\`bash
-usertasks packages assets invoice --type workflow          # search every packageable asset
+usertasks packages assets invoice --type workflow
 usertasks packages create "Invoice approval" --from "Invoice approval" --readme README.md
-usertasks packages add invoice-approval --search vendor --type data_table   # choose from the matches
+usertasks packages add invoice-approval --search vendor --type data_table
 usertasks packages set-data invoice-approval Vendors rows
 usertasks packages update invoice-approval --set description="AP approvals" --set readme=@README.md
-usertasks packages show invoice-approval                   # items, why each is included, data modes, requirements
+usertasks packages show invoice-approval
 usertasks packages build invoice-approval --bump minor --notes "Clearer approval step"
-usertasks packages inspect invoice-approval-1.1.0.utpkg      # offline: checksum, file hashes, signature
+usertasks packages inspect invoice-approval-1.1.0.utpkg
 \`\`\`
+
+| Command | What it does |
+|---|---|
+| \`packages assets\` | searches every packageable asset |
+| \`packages add --search\` | lets you choose from the matches |
+| \`packages show\` | lists the items, why each is included, data modes and requirements |
+| \`packages inspect\` | checks a file offline: checksum, file hashes, signature |
 
 ## Changing what a package contains
 
@@ -552,12 +590,14 @@ Open a package under **Packages → Authored here** and expand **Items**: everyt
 From the CLI, REST and MCP:
 
 \`\`\`bash
-usertasks packages items purchase-requests                          # grouped, uses / used by, unpublished changes
-usertasks packages add-items purchase-requests --set 'items:=[{"type":"workflow","id":"…"}]' --set dry_run:=true   # what it brings in
+usertasks packages items purchase-requests
+usertasks packages add-items purchase-requests --set 'items:=[{"type":"workflow","id":"…"}]' --set dry_run:=true
 usertasks packages add-items purchase-requests --set 'items:=[{"type":"workflow","id":"…"}]'
-usertasks packages remove-items purchase-requests --set 'items:=[{"type":"form","id":"…"}]' --set dry_run:=true    # what still uses it
+usertasks packages remove-items purchase-requests --set 'items:=[{"type":"form","id":"…"}]' --set dry_run:=true
 usertasks packages build purchase-requests --bump minor --update-install
 \`\`\`
+
+\`packages items\` shows the items grouped, with uses / used by and unpublished changes. With \`dry_run:=true\`, \`add-items\` shows what an item brings in and \`remove-items\` shows what still uses it.
 
 \`GET /api/v1/packages/{id}/items\`, \`POST /api/v1/packages/{id}/items\` (\`with_dependencies\`, \`dry_run\`), \`POST /api/v1/packages/{id}/items/remove\` (409 while other items use them, unless \`force\`), \`POST /api/v1/packages/{id}/versions\` with \`update_install\`; MCP \`packages_items_list\`, \`packages_items_add\`, \`packages_items_remove\` and \`packages_build\` with \`update_install\`. In the Agent panel, ask for it in words (*“add the expense workflow to Purchase requests”*): the **package_items** card shows what an add brings with it and what still uses a removed item before you confirm, then builds the next version.
 
@@ -662,9 +702,11 @@ The workspace's default email template is never removed.
 When it is done you get a summary per artifact. Integrations, email templates and similar items are deleted immediately; workflows, decision tables and data tables are removed by the background deletion worker within a minute.
 
 \`\`\`bash
-usertasks packages uninstall invoice-approval --dry-run                       # the plan; exits 7 when something blocks it
+usertasks packages uninstall invoice-approval --dry-run
 usertasks packages uninstall invoice-approval --delete-data --force --cancel-runs --yes
 \`\`\`
+
+\`--dry-run\` prints the plan and exits with 7 when something blocks it.
 
 ### Items on an installed package
 
@@ -684,11 +726,13 @@ Each entry records when and who, the channel (app, CLI, API or MCP), where the f
 History needs \`packages.view\`. Installs from before history was introduced are reconstructed from the audit log (marked as such, without a plan).
 
 \`\`\`bash
-usertasks packages history                                   # newest first
+usertasks packages history
 usertasks packages history invoice-approval --action upgrade,uninstall --since 2026-10-01
 usertasks packages history --status failed --user ada@northwind.example
-usertasks package-events get <event id> -o json              # one event with its plan
+usertasks package-events get <event id> -o json
 \`\`\`
+
+\`packages history\` lists newest first; \`package-events get\` shows one event with its plan.
 
 REST: \`GET /api/v1/package-events?package=&action=&status=&channel=&actor=&since=&until=\` and \`GET /api/v1/package-events/{id}\`; MCP: \`packages_history\`, \`packages_history_get\`.
 
@@ -743,12 +787,15 @@ Owner, Admin and Manager have all three by default.
 
 ## Promotion in CI
 
-Build once in dev, promote the same signed file:
+Build once in dev, promote the same signed file. In dev:
 
 \`\`\`bash
-# dev
 usertasks --profile dev packages build invoice-approval --bump patch --out invoice-approval.utpkg
-# test, then prod: plan, then install with this environment's values
+\`\`\`
+
+In test, then prod: plan, then install with that environment's values.
+
+\`\`\`bash
 usertasks --profile test packages install invoice-approval.utpkg --dry-run
 usertasks --profile test packages install invoice-approval.utpkg -f env/test.values.yaml --yes
 usertasks --profile prod packages install invoice-approval.utpkg -f env/prod.values.yaml --yes

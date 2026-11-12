@@ -55,13 +55,20 @@ fresh secrets, builds and starts the stack, waits until it is healthy, and
 creates the first workspace:
 
 ```bash
-npm run stack -- up --email admin@example.com --org "Acme Inc"   # prints a generated password
+npm run stack -- up --email admin@example.com --org "Acme Inc"
 ```
 
-By hand, the same steps are:
+The generated password goes to `.usertasks-first-login` (readable only by
+you; git- and docker-ignored), and the console names the file without
+printing the password. Without `--email`/`--org`, `up` ends by printing the
+`/setup` address and the setup code: `init` writes a generated
+`USERTASKS_SETUP_CODE` to `.env`. Building the image needs about 10 GB of
+memory for Docker; see [Memory](#memory).
+
+By hand, the same steps are (replace every `<generate>` in `.env` first):
 
 ```bash
-cp deploy/compose/standalone.env.example .env   # replace every <generate>
+cp deploy/compose/standalone.env.example .env
 docker compose --profile standalone up -d --build --wait
 docker compose exec -e BOOTSTRAP_PASSWORD=… app node admin.cjs bootstrap --email admin@example.com --org "Acme Inc"
 ```
@@ -76,7 +83,38 @@ The standalone profile has some options:
   `postgres:5432`.
 - **Host ports:** use `APP_PORT`, `MAILPIT_PORT` and `MINIO_CONSOLE_PORT`.
 - **Prebuilt image:** set `USERTASKS_IMAGE=registry.example.com/usertasks:1.2.3`
-  and pass `--no-build`.
+  and pass `--no-build`. No build means no memory check and minutes saved.
+
+### Memory
+
+Building the image (`npm run stack -- up`, `docker compose up --build`,
+`docker build`) needs about **10 GB of memory for Docker**
+(`lib/docker-build-memory.ts`, which the stack's check and the docs use).
+Nearly all of it is `next build`'s compile ("Creating an optimized
+production build": Turbopack, native memory outside Node's heap). Measured
+(November 2026): a peak of 10.1–11.0 GB resident on a 10-core machine; inside
+Docker with about 4 GB free the build is `Killed` (`ResourceExhausted:
+cannot allocate memory`) after 1.5 minutes, and still after 8 minutes when
+pinned to 2 cores (`taskset`). Turbopack's `turbopackMemoryLimit` (2.5 GB)
+lowered the peak by only ~5%; webpack has no equivalent of the build's
+Turbopack aliases for optional drivers and ran out of a 2.5 GB heap. The
+static-page phase after it is small (two workers of ~0.9 GB). Running the
+finished stack needs about 2 GB.
+
+The way round the build is a prebuilt image (`USERTASKS_IMAGE=… npm run stack
+-- up --no-build`): no compile, no memory check. No image is published yet.
+
+- `npm run stack -- up` reads `docker info --format '{{.MemTotal}}'` first and
+  stops with the Docker Desktop steps (Settings → Resources → Memory) when
+  it's lower. `--skip-memory-check` (or `USERTASKS_SKIP_MEMORY_CHECK=1`)
+  builds anyway.
+- Only the `app` service builds the image; `migrate` and `worker` run the
+  image it tags (`docker compose build --print` shows one target).
+- The image build skips `tsc` unless `TYPECHECK=true` (several minutes and
+  up to 4 GB more); CI type-checks every commit, and the release gates and
+  `npm run bundle -- create --build` build with `TYPECHECK=true`.
+- `NEXT_BUILD_CPUS` (default 2 in Docker) sets the static-page workers, each
+  a Node process.
 
 Other `npm run stack` commands:
 

@@ -4,7 +4,7 @@
  */
 
 import { Command, CommanderError, Option } from 'commander'
-import { UsertasksApiError, UsertasksOAuthError } from '@user-tasks/sdk'
+import { UsertasksApiError, UsertasksNetworkError, UsertasksOAuthError } from '@user-tasks/sdk'
 import { registerApiCommand } from './commands/api'
 import { registerAuthCommands } from './commands/auth'
 import { registerCompletionCommand } from './commands/completion'
@@ -80,6 +80,20 @@ export function missingScopeHint(error: UsertasksApiError): string | null {
   return `re-run: usertasks login --scopes ${scopes.join(',')}`
 }
 
+/** The server origin when a request never reached it (connection refused, DNS, timeout), else null. */
+export function unreachableServer(error: UsertasksNetworkError): string | null {
+  const match = /^(?:GET|POST|PUT|PATCH|DELETE|HEAD) (https?:\/\/[^/\s]+)/.exec(error.message)
+  if (!match) return null
+  const codes = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNRESET', 'ETIMEDOUT', 'EHOSTUNREACH', 'UND_ERR_CONNECT_TIMEOUT'])
+  let cause: unknown = error.cause
+  for (let i = 0; i < 4 && cause; i++) {
+    const code = (cause as { code?: unknown }).code
+    if (typeof code === 'string' && codes.has(code)) return match[1]
+    cause = (cause as { cause?: unknown }).cause
+  }
+  return /fetch failed|ECONNREFUSED|ENOTFOUND|timed? ?out/i.test(error.message) ? match[1] : null
+}
+
 function reportError(runtime: Runtime, error: unknown, debug: boolean) {
   const write = (text: string) => runtime.io.stderr.write(`${text}\n`)
   if (error instanceof UsertasksApiError) {
@@ -96,6 +110,11 @@ function reportError(runtime: Runtime, error: unknown, debug: boolean) {
   } else if (error instanceof UsertasksOAuthError) {
     write(`error: ${error.description ?? error.error} (${error.error})`)
     if (error.error === 'login_required' || error.error === 'invalid_grant') write('  hint: your session has ended; run `usertasks login` again')
+  } else if (error instanceof UsertasksNetworkError && unreachableServer(error)) {
+    const origin = unreachableServer(error)
+    write(`error: can't reach UserTasks at ${origin}. Is it running?`)
+    write('  hint: start it (for example `npm run dev` or `docker compose up -d`), or pass --url <server> for another server')
+    write(`  details: ${error.message}`)
   } else {
     write(`error: ${error instanceof Error ? error.message : String(error)}`)
   }
