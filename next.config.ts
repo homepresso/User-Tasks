@@ -7,6 +7,7 @@ import { OUTPUT_FILE_TRACING_INCLUDES, TESSERACT_WORKER_FILES } from "./lib/func
 import { missingStubPath, optionalPackageNames } from "./lib/optional-drivers";
 import { USE_CASE_REDIRECTS } from "./lib/use-cases";
 import { TASK_QUEUE_REDIRECT } from "./lib/tasks/unified-list";
+import { generateExtensionRegistry } from "./lib/extensions/build/codegen";
 
 // Defense-in-depth headers (see lib/csp.ts for the policy and why). The CSP
 // here is evaluated when the server starts / the build runs; proxy.ts
@@ -41,6 +42,17 @@ const isInstalled = (pkg: string) => existsSync(path.join(process.cwd(), "node_m
 const missingDriverAliases = Object.fromEntries(
   optionalPackageNames().filter((pkg) => !isInstalled(pkg)).map((pkg) => [pkg, missingStubPath(pkg)]),
 );
+// Extensions compiled into this build (lib/extensions/build/codegen.ts):
+// USERTASKS_EXTENSIONS lists npm packages or in-repo paths; the generated
+// registry modules import them. Unset = the committed empty registry, so the
+// public build is unchanged. Runs on every `next build` / `next dev` (so
+// `npm run build`, `vercel build` and the Docker build all pick it up); an
+// incompatible extension (engines.usertasks) fails the build here.
+const extensionRegistry = generateExtensionRegistry({ root: process.cwd() });
+if (extensionRegistry.extensions.length) {
+  console.log(`Extensions: ${extensionRegistry.extensions.map((e) => `${e.id}@${e.version}`).join(", ")}`);
+}
+
 // The Docker image's server bundle (NEXT_OUTPUT_STANDALONE=true).
 const STANDALONE = process.env.NEXT_OUTPUT_STANDALONE === "true";
 const OPTIONAL_EXTERNALS =[...optionalPackageNames("storage"), ...optionalPackageNames("provider"), ...optionalPackageNames("document")].filter(isInstalled);
@@ -86,9 +98,19 @@ const nextConfig: NextConfig = {
   // The project directory is the root. Without it Turbopack infers the root
   // from the outermost lockfile, so a checkout nested inside another (a git
   // worktree) traces the outer checkout's node_modules.
-  turbopack: { root: process.cwd(), resolveAlias: missingDriverAliases },
-  // Workspace package shipped as TypeScript source (the postgres db provider).
-  transpilePackages: ["@user-tasks/pg-query"],
+  // Extensions in node_modules import the extension SDK by name: resolve it to
+  // core's copy (tsconfig paths cover files inside the project).
+  turbopack: {
+    root: process.cwd(),
+    resolveAlias: {
+      ...missingDriverAliases,
+      "@user-tasks/extension-sdk/ui": "./lib/extensions/sdk/ui.tsx",
+      "@user-tasks/extension-sdk": "./lib/extensions/sdk/index.ts",
+    },
+  },
+  // Workspace package shipped as TypeScript source (the postgres db provider),
+  // and extension packages (TypeScript sources from a private registry).
+  transpilePackages: ["@user-tasks/pg-query", ...extensionRegistry.transpilePackages],
   // The QuickJS sandbox embeds its WebAssembly binary in a JS string; when the
   // production build minifies it, the string becomes a template literal with
   // octal escapes that Node refuses to parse ("Failed to load chunk"). Load

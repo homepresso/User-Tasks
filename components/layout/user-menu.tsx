@@ -5,6 +5,9 @@ import { BookOpen, LogOut, MessageSquareHeart, Rocket, Settings, User } from "lu
 import { useOnboarding } from "@/components/onboarding/getting-started/onboarding-provider"
 import { signOutAndRedirect } from "@/lib/auth-client"
 import { useCurrentWorkspaceName } from "./workspace-switcher"
+import { useExtensionUserMenu } from "@/components/extensions/extension-menus"
+import { useExtensionAction } from "@/components/extensions/use-extension-action"
+import { ExtIcon } from "@/components/extensions/ext-icon"
 import { Avatar } from "@/components/ui/avatar"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -30,7 +33,12 @@ export function UserMenu({ user, currentTenantId }: UserMenuProps) {
   const workspaceName = useCurrentWorkspaceName(currentTenantId)
   const guide = useOnboarding()
   const label = `Account: ${user.display_name}${workspaceName ? `, ${workspaceName}` : ""}`
+  // Items contributed by extensions enabled in this workspace.
+  const extensionItems = useExtensionUserMenu()
+  const extensionAction = useExtensionAction()
   return (
+    <>
+    {extensionAction.confirmDialog}
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -61,6 +69,17 @@ export function UserMenu({ user, currentTenantId }: UserMenuProps) {
         <DropdownMenuItem asChild>
           <Link href="/settings" className="cursor-pointer"><MenuRow icon={<Settings />}>Settings</MenuRow></Link>
         </DropdownMenuItem>
+        {extensionItems.map((item) => item.action ? (
+          <DropdownMenuItem key={item.key} danger={item.danger} icon={<ExtIcon icon={item.icon} />} onSelect={() => extensionAction.run({ extensionId: item.extensionId, action: item.action!.name, confirm: item.action!.confirm, label: item.label })}>
+            {item.label}
+          </DropdownMenuItem>
+        ) : item.href ? (
+          <DropdownMenuItem key={item.key} asChild>
+            {item.external
+              ? <a href={item.href} target="_blank" rel="noopener noreferrer" className="cursor-pointer"><MenuRow icon={<ExtIcon icon={item.icon} />}>{item.label}</MenuRow></a>
+              : <Link href={item.href} className="cursor-pointer"><MenuRow icon={<ExtIcon icon={item.icon} />}>{item.label}</MenuRow></Link>}
+          </DropdownMenuItem>
+        ) : null)}
         <DropdownMenuItem asChild>
           <a href="/docs" target="_blank" rel="noopener noreferrer" className="cursor-pointer"><MenuRow icon={<BookOpen />}>Help &amp; docs</MenuRow></a>
         </DropdownMenuItem>
@@ -83,6 +102,7 @@ export function UserMenu({ user, currentTenantId }: UserMenuProps) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   )
 }
 

@@ -81,10 +81,14 @@ export const OPEN_ROUTES: Readonly<Record<string, string>> = {
   '/settings': 'Settings home: personal profile and preferences; workspace tabs gate on settings.view / settings.edit',
   '/settings/infrastructure': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure), not a workspace permission',
   '/settings/workspace-dns': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure)',
+  '/settings/licence': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure); every licence action re-checks',
   '/settings/gallery-review': 'Gallery moderators only — enforced server-side (requireModerator)',
   '/dev/ui': 'Style guide; notFound() in production',
   '/forms/[id]/draft-preview': 'A form draft preview: editors (forms.edit) and the people / teams it is shared with — enforced server-side (getDraftPreview), 404 for anyone else',
   '/agents/[id]/runs/[runId]': 'One agent run: readable with agents.view or by the person it acted for / who started it (RLS on agent_runs)',
+  '/settings/extensions': 'Extensions in this build: reading needs settings.view, enabling / disabling settings.edit — enforced server-side (lib/services/extensions)',
+  '/settings/extensions/[ext]/[page]': 'One typed settings page of an extension: workspace pages need settings.view / settings.edit, instance pages an instance admin, personal pages any member — enforced server-side (lib/services/extensions)',
+  '/x/[ext]/[[...path]]': "An extension's custom page: the extension must be enabled and licensed in the workspace and the page's manifest guard (permission, licence feature, setting) must pass — checked server-side before rendering, not found otherwise",
 }
 
 const AGENT_RUN_PAGE = /^\/agents\/[0-9a-f-]{36}\/runs\/[0-9a-f-]{36}\/?$/i

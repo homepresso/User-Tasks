@@ -170,7 +170,8 @@ export async function runTick(options: TickOptions): Promise<TickSummary> {
   const tickDeadline = started + budgetMs
   const concurrency = Math.max(1, options.concurrency ?? tickConcurrency())
   const holder = options.holder ?? `tick-${minute.toISOString()}-${Math.random().toString(36).slice(2, 8)}`
-  const jobs = options.jobs ?? JOBS
+  // Extension jobs (ext.<id>.<name>, extension-events) join the core registry; none in the public build.
+  const jobs = options.jobs ?? [...JOBS, ...(await import('@/lib/extensions/jobs')).extensionJobDefinitions()]
 
   const summary: TickSummary = { ok: true, minute: minute.toISOString(), lock: 'unavailable', due: [], jobs: [], duration_ms: 0 }
 

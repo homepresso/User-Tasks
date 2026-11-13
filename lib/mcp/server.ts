@@ -32,6 +32,7 @@ import { registerConfigTools } from './tools/config'
 import { registerPackageTools } from './tools/packages'
 import { registerOrgTools } from './tools/org'
 import { registerProjectTools } from './tools/projects'
+import { registerExtensionTools } from './tools/extensions'
 import { checkToolPermission, auditToolCall } from './authz'
 
 export interface McpContext {
@@ -92,6 +93,7 @@ const TOOL_REGISTRARS: Array<{ label: string; register: ToolRegistrar }> = [
   { label: 'document_ocr', register: registerDocumentOcrTools },
   { label: 'config', register: registerConfigTools },
   { label: 'packages', register: registerPackageTools },
+  { label: 'extensions', register: registerExtensionTools },
 ]
 
 export const MCP_TOOL_CATEGORIES = TOOL_REGISTRARS.map(({ label }) => label)

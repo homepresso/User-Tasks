@@ -102,7 +102,14 @@ export type ServiceErrorCode =
   | 'conflict'
   | 'insufficient_scope'
   | 'rate_limited'
+  | 'payment_required'
   | 'internal'
+  /** Paid extension not licensed (lib/licensing). */
+  | 'extension_not_licensed'
+  /** Paid extension's licence expired more than 24 hours ago (lib/licensing). */
+  | 'extension_licence_expired'
+  /** A licence limit (e.g. sharepoint.farms) is reached (lib/licensing). */
+  | 'extension_limit_reached'
 
 const STATUS_BY_CODE: Record<ServiceErrorCode, number> = {
   unauthorized: 401,
@@ -112,7 +119,12 @@ const STATUS_BY_CODE: Record<ServiceErrorCode, number> = {
   conflict: 409,
   insufficient_scope: 403,
   rate_limited: 429,
+  /** Extension not licensed (lib/extensions/entitlement-port). */
+  payment_required: 402,
   internal: 500,
+  extension_not_licensed: 402,
+  extension_licence_expired: 402,
+  extension_limit_reached: 402,
 }
 
 /** Expected, user-facing service failure. Message is safe to return to callers. */

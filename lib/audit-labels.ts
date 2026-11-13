@@ -25,6 +25,7 @@ export const AUDIT_OBJECT_TYPE_LABELS: Record<string, string> = {
   org: 'Organization',
   api_key: 'API key',
   webhook: 'Webhook',
+  licence: 'Licence',
 }
 
 export const AUDIT_ACTION_LABELS: Record<string, string> = {

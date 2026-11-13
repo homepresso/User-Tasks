@@ -110,6 +110,7 @@ export interface ConnectorDefinition {
 }
 
 // ─── Import all definitions ───
+import { getLoadedExtensions } from '@/lib/extensions/registry'
 import { slackConnector } from './definitions/slack'
 import { sendgridConnector } from './definitions/sendgrid'
 import { openaiConnector } from './definitions/openai'
@@ -230,8 +231,27 @@ export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
   sapOdataConnector,
 ]
 
+/** A built-in connector, or one an extension in the build defines (`ext.<id>.<key>`). */
 export function getConnectorDefinition(key: string): ConnectorDefinition | undefined {
-  return CONNECTOR_CATALOG.find(c => c.key === key)
+  const core = CONNECTOR_CATALOG.find(c => c.key === key)
+  if (core || !key.startsWith('ext.')) return core
+  for (const ext of getLoadedExtensions()) {
+    const found = ext.connectors.find((c) => c.key === key)
+    if (found) return found
+  }
+  return undefined
+}
+
+/**
+ * The built-in catalog plus the connectors of these extensions (the ones a
+ * workspace may use; all extensions in the build when omitted).
+ */
+export function connectorCatalogWith(extensionIds?: Iterable<string>): ConnectorDefinition[] {
+  const loaded = getLoadedExtensions()
+  if (!loaded.length) return CONNECTOR_CATALOG
+  const ids = extensionIds ? new Set(extensionIds) : null
+  const extra = loaded.filter((e) => !ids || ids.has(e.manifest.id)).flatMap((e) => e.connectors)
+  return extra.length ? [...CONNECTOR_CATALOG, ...extra] : CONNECTOR_CATALOG
 }
 
 export const CONNECTOR_CATEGORIES: { value: ConnectorCategory; label: string }[] = [

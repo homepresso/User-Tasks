@@ -1,3 +1,5 @@
+import { extensionCatalogEntry, extensionNodeCatalog } from './extensions/nodes'
+
 export type NodeType =
   // Triggers
   | 'task_created'
@@ -111,6 +113,8 @@ export type NodeType =
   | 'add_user_to_role'
   | 'remove_user_from_role'
   | 'check_permission'
+  // Extension nodes and triggers (lib/extensions/nodes.ts): ext.<extension id>.<key>
+  | `ext.${string}`
 
 export interface WorkflowNode {
   id: string
@@ -302,7 +306,7 @@ export function nodeColorCategory(type: string): NodeColorCategory {
   if (HUMAN_TYPES.has(type)) return 'human'
   if (type === 'run_agent' || type.startsWith('media_')) return 'ai'
   if (LOGIC_ACTION_TYPES.has(type)) return 'logic'
-  const category = NODE_CATALOG.find((n) => n.type === type)?.category
+  const category = nodeCatalogEntry(type)?.category
   switch (category) {
     case 'trigger': return 'trigger'
     case 'logic': return 'logic'
@@ -323,8 +327,33 @@ export function nodeColorTextVar(category: NodeColorCategory): string {
   return `var(--ds-node-${category}-text, var(--theme-chart-${NODE_COLOR_CHART_SLOT[category]}-text))`
 }
 
+export type NodeCatalogEntry = (typeof NODE_CATALOG)[number]
+
+/**
+ * The catalog entry of a built-in or extension node type. Extension entries
+ * come from the manifests compiled into the build (none in the public build).
+ */
+export function nodeCatalogEntry(type: string): NodeCatalogEntry | undefined {
+  const core = NODE_CATALOG.find((n) => n.type === type)
+  if (core || !type.startsWith('ext.')) return core
+  const ext = extensionCatalogEntry(type)
+  return ext ? { type: ext.type, label: ext.label, icon: ext.icon, category: ext.category, color: ext.color, description: ext.description } : undefined
+}
+
+/** Built-in nodes plus every extension node and trigger in the build. */
+export function fullNodeCatalog(): NodeCatalogEntry[] {
+  const ext = extensionNodeCatalog()
+  if (!ext.length) return NODE_CATALOG
+  return [...NODE_CATALOG, ...ext.map((e) => ({ type: e.type, label: e.label, icon: e.icon, category: e.category, color: e.color, description: e.description }))]
+}
+
+/** A trigger node type: built-in (catalog category trigger) or an extension trigger. */
+export function isTriggerNodeType(type: string): boolean {
+  return nodeCatalogEntry(type)?.category === 'trigger'
+}
+
 export function createDefaultNode(type: NodeType, x: number = 250, y: number = 100): WorkflowNode {
-  const catalog = NODE_CATALOG.find(n => n.type === type)
+  const catalog = nodeCatalogEntry(type)
   const config: Record<string, any> = {}
   if (type === 'section_group') {
     config.width = 500

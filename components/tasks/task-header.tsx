@@ -1,5 +1,6 @@
 'use client'
 
+import { ExtensionMenuItems } from '@/components/extensions/item-actions'
 import { PriorityBadge } from '@/components/ui/priority-badge'
 import { Badge, StatusPill, type Tone } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,7 +30,7 @@ import { useOnBehalf } from './on-behalf'
 import { TaskInviteControls } from './invite-viewers'
 import { CollaboratorBar } from './collaborator-bar'
 import { formatAbsolute, formatRelative } from '@/lib/format/date'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { rerouteTask } from '@/app/actions/task-queue'
 import { useTenantUsers } from '@/hooks/use-tenant-users'
@@ -124,6 +125,8 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed'
   const isDone = task.status === 'completed'
+  // The task as extension row actions see it (appliesWhen reads item.<field>).
+  const extensionItems = useMemo(() => [{ ...(task as Record<string, unknown>), assignee_name: assigneeName ?? null }], [task, assigneeName])
   // Redirect / escalate are the assignee's (managers reassign from My team).
   const onBehalf = useOnBehalf()
   // Only the assignee (on a collaborative task, any of them) accepts, declines,
@@ -269,6 +272,8 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
           {!canRedirect && canManagerReassign && (
             <DropdownMenuItem icon={<UserPlus />} onSelect={() => setAssignOpen(true)} data-task-manager-reassign>Reassign…</DropdownMenuItem>
           )}
+          {/* Actions contributed by extensions for tasks. */}
+          <ExtensionMenuItems objectType="task" items={extensionItems} />
         </DropdownMenuContent>
       </DropdownMenu>
     </>

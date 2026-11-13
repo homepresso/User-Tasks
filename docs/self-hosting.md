@@ -588,6 +588,14 @@ them with `usertasks-admin fonts seed <family>…` (or `--dir` on a connected
 machine, then `usertasks-admin fonts import`); see
 [Air-gapped installs](/docs/self-hosting/air-gapped#google-fonts).
 
+### Licences for paid extensions
+
+The Enterprise build's paid extensions (for example SharePoint) need a
+licence. Instance admins install it in Settings → Licence, with
+`usertasks-admin licence install <file>`, or through `USERTASKS_LICENCE` /
+`USERTASKS_LICENCE_FILE`. Licensed extensions stop 24 hours after the licence
+expires. See [Licences for paid extensions](licensing.md).
+
 ## 6. Security checklist
 
 - Keep `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ENCRYPTION_KEY` and

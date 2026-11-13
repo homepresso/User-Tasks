@@ -1,5 +1,6 @@
 'use client'
 
+import { useExtensionNodeCatalog } from '@/components/extensions/extensions-provider'
 import { useState, useEffect, useReducer, useId } from "react"
 import { useDraggable } from "@dnd-kit/core"
 import { NODE_CATALOG, nodeColorCategory, nodeColorTextVar, type NodeType } from "@/lib/workflow-schema"
@@ -189,6 +190,7 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
   }
 
   const q = search.toLowerCase()
+  const extensionNodes = useExtensionNodeCatalog()
 
   // Get favorite items for the favorites section
   const favoriteItems = NODE_CATALOG.filter(n => favorites.has(n.type))
@@ -273,6 +275,33 @@ export function NodePalette({ onAddNode, onAddCustomActivity, tenantId, disabled
           isFavorite={false}
           onAddNode={() => onAddCustomActivity?.(activity.id)}
           dragData={{ customActivityId: activity.id }}
+        />
+      )),
+    })
+  }
+  // Nodes and triggers of the extensions usable in this workspace, one group per extension.
+  const byExtension = new Map<string, typeof extensionNodes>()
+  for (const entry of extensionNodes) {
+    if (q && !entry.label.toLowerCase().includes(q) && !entry.description.toLowerCase().includes(q)) continue
+    byExtension.set(entry.extensionId, [...(byExtension.get(entry.extensionId) ?? []), entry])
+  }
+  for (const [extensionId, entries] of byExtension) {
+    groups.push({
+      key: `ext:${extensionId}`,
+      label: entries[0].extensionName,
+      count: entries.length,
+      items: entries.map((entry) => (
+        <DraggablePaletteItem
+          key={entry.type}
+          type={entry.type}
+          label={entry.label}
+          description={entry.description}
+          icon={paletteIconName(entry.icon)}
+          color={nodeColorTextVar(nodeColorCategory(entry.type))}
+          isDisabled={disabledNodeTypes.includes(entry.type)}
+          isFavorite={favorites.has(entry.type)}
+          onAddNode={onAddNode}
+          onToggleFavorite={() => toggleFavorite(entry.type)}
         />
       )),
     })

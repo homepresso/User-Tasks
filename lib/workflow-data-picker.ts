@@ -14,6 +14,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
+import { extensionCatalogEntry } from './extensions/nodes'
 import { documentNodeRoots } from '@/lib/documents/schemas'
 import { mediaNodeRoots } from '@/lib/media/schemas'
 import {
@@ -706,20 +707,7 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = [], linke
     }
     case 'custom_activity': {
       // Typed outputs of the chosen function (snapshot kept fresh by the panel); legacy steps: manifest.outputs.
-      const outputs = Array.isArray(c._action_outputs) ? c._action_outputs : Array.isArray(c.manifest?.outputs) ? c.manifest.outputs : []
-      const prefix = String(c._output_prefix ?? '').trim()
-      return outputs.flatMap((output: any) => {
-        const key = String(output?.name ?? output?.key ?? '').trim()
-        if (!key) return []
-        const declared = output?.schema && typeof output.schema === 'object' ? normalizeResponseSchema(isResponseSchema(output.schema) ? output.schema : { root: output.schema })?.root : null
-        const typed = (ACTION_FIELD_TYPES as readonly string[]).includes(String(output?.type)) ? actionFieldSchema(output as ActionField) : null
-        const schema = declared ?? typed ?? str(typeFromDeclared(output?.type))
-        const label = output?.label ?? key
-        const description = output?.description || 'Custom action output'
-        return prefix
-          ? [{ path: `${prefix}_${key}`, label, schema, description, hint: `${prefix}_${key}` }]
-          : [{ path: key, label, schema, description }]
-      })
+      return customActionRoots(c)
     }
     case 'read_csv': case 'read_excel': {
       if (c.mode === 'write') return []
@@ -791,9 +779,34 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = [], linke
       return esignNodeRoots(node.type, c)
     case 'media_transcribe': case 'media_analyze_image': case 'media_analyze_video': case 'media_redact_image': case 'media_redact_video': case 'media_generate_image': case 'media_tts': case 'media_tools':
       return mediaNodeRoots(node.type, c)
-    default:
+    default: {
+      // Extension nodes: typed outputs like a custom action; extension triggers: their declared run variables.
+      const ext = extensionCatalogEntry(node.type)
+      if (ext?.category === 'trigger') {
+        return ext.outputs.map((f) => ({ path: f.name, label: f.label ?? f.name, schema: actionFieldSchema(f), description: f.description || `${ext.label} variable` }))
+      }
+      if (ext) return customActionRoots({ ...c, _action_outputs: Array.isArray(c._action_outputs) ? c._action_outputs : ext.outputs })
       return []
+    }
   }
+}
+
+/** Typed outputs of a custom action or extension step (`_action_outputs`, legacy `manifest.outputs`). */
+function customActionRoots(c: Record<string, any>): DataRoot[] {
+  const outputs = Array.isArray(c._action_outputs) ? c._action_outputs : Array.isArray(c.manifest?.outputs) ? c.manifest.outputs : []
+  const explicit = String(c._output_prefix ?? '').trim()
+  return outputs.flatMap((output: any) => {
+    const key = String(output?.name ?? output?.key ?? '').trim()
+    if (!key) return []
+    const declared = output?.schema && typeof output.schema === 'object' ? normalizeResponseSchema(isResponseSchema(output.schema) ? output.schema : { root: output.schema })?.root : null
+    const typed = (ACTION_FIELD_TYPES as readonly string[]).includes(String(output?.type)) ? actionFieldSchema(output as ActionField) : null
+    const schema = declared ?? typed ?? str(typeFromDeclared(output?.type))
+    const label = output?.label ?? key
+    const description = output?.description || 'Custom action output'
+    return explicit
+      ? [{ path: `${explicit}_${key}`, label, schema, description, hint: `${explicit}_${key}` }]
+      : [{ path: key, label, schema, description }]
+  })
 }
 
 const TRIGGER_TYPES = new Set([

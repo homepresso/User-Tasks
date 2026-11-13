@@ -17,6 +17,8 @@ import { HeaderFormsMenu } from "./header-forms-menu"
 import { useNavCounts } from "@/hooks/use-nav-counts"
 import { formatNavBadge, navBadgeCount, navBadgeLabel } from "@/lib/nav-badges"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { useExtensionBadgeCounts, useExtensionNav, mergeNavSections, mergeByOrder } from "@/components/extensions/extension-nav"
+import { extensionLucide } from "@/components/extensions/ext-icon"
 
 /**
  * Mobile navigation (< md only; docs/design/ui-polish-spec.md §5.18):
@@ -68,6 +70,10 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
   const search = useSearchParams().toString()
   const items = useMobileNavItems()
   const counts = useNavCounts()
+  // Extension nav items flagged `mobile` (runtime destinations), from every group and section.
+  const extensionNav = useExtensionNav()
+  const extensionItems = [...mergeByOrder([], extensionNav.byGroup.primary ?? []), ...mergeNavSections([], extensionNav).flatMap((s) => s.items)].filter((i) => i.mobile)
+  const extensionBadges = useExtensionBadgeCounts(extensionItems)
 
   // Close whenever the route changes (link tapped, back button, etc.)
   useEffect(() => {
@@ -96,6 +102,16 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
                   icon={navIcon(item.icon)}
                   badgeCount={navBadgeCount(counts, item.href)}
                   badgeTone={item.href === "/tasks" ? "accent" : "neutral"}
+                />
+              </li>
+            ))}
+            {extensionItems.map((item) => (
+              <li key={item.key}>
+                <SidebarNavItem
+                  href={item.href}
+                  label={item.label}
+                  icon={typeof item.icon === "string" ? extensionLucide(item.icon) : item.icon}
+                  badgeCount={extensionBadges.get(item.key)}
                 />
               </li>
             ))}

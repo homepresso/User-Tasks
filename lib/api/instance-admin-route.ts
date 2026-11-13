@@ -8,7 +8,7 @@
  *   → Authorization: Bearer <INSTANCE_ADMIN_TOKEN> (none → 401; anything
  *     else, including a valid workspace API key or OAuth token → 403;
  *     failures are rate limited per IP separately)
- *   → zod parse of params / body → handler → `{ success: true, data }`
+ *   → zod parse of params / query / body → handler → `{ success: true, data }`
  *
  * No workspace context is built from the request: the handler gets the
  * service database client and acts at the instance level.
@@ -21,14 +21,15 @@ import type { EndpointDef } from '@/lib/api-schemas/registry'
 import { rateLimit } from '@/lib/rate-limit'
 import { clientIp } from '@/lib/scim/tokens'
 import { isServiceError } from '@/lib/services/context'
-import { apiError, validationError } from './route'
+import { apiError, searchParamsToObject, validationError } from './route'
 
 type Parsed<S> = S extends z.ZodType ? z.output<S> : Record<string, never>
 type RouteContext = { params: Promise<Record<string, string | string[] | undefined>> }
 
-export interface InstanceAdminRouteInput<P, B> {
+export interface InstanceAdminRouteInput<P, B, Q = undefined> {
   request: NextRequest
   params: Parsed<P>
+  query: Parsed<Q>
   body: Parsed<B>
   /** The caller's IP as the rate limiter saw it (for the audit trail). */
   ip: string
@@ -54,7 +55,7 @@ export function instanceAdminRoute<
   R extends z.ZodType | undefined,
 >(
   endpoint: EndpointDef<P, Q, B, R>,
-  handler: (input: InstanceAdminRouteInput<P, B>) => Promise<unknown>,
+  handler: (input: InstanceAdminRouteInput<P, B, Q>) => Promise<unknown>,
 ) {
   if (endpoint.auth !== 'instance_admin') throw new Error(`${endpoint.operationId}: instanceAdminRoute needs auth: 'instance_admin'`)
 
@@ -87,6 +88,12 @@ export function instanceAdminRoute<
         if (!parsed.success) return validationError('params', parsed.error)
         params = parsed.data
       }
+      let query: unknown = {}
+      if (endpoint.query) {
+        const parsed = endpoint.query.safeParse(searchParamsToObject(request.nextUrl.searchParams))
+        if (!parsed.success) return validationError('query', parsed.error)
+        query = parsed.data
+      }
       let body: unknown = {}
       if (endpoint.body) {
         const text = await request.text()
@@ -102,7 +109,7 @@ export function instanceAdminRoute<
         if (!parsed.success) return validationError('body', parsed.error)
         body = parsed.data
       }
-      const result = await handler({ request, params: params as Parsed<P>, body: body as Parsed<B>, ip })
+      const result = await handler({ request, params: params as Parsed<P>, query: query as Parsed<Q>, body: body as Parsed<B>, ip })
       if (result instanceof NextResponse) return result
       return NextResponse.json({ success: true, data: result ?? null }, { status: endpoint.successStatus ?? 200 })
     } catch (error) {

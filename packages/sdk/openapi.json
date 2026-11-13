@@ -138,6 +138,9 @@
       "name": "Packages"
     },
     {
+      "name": "Extensions"
+    },
+    {
       "name": "Jobs"
     },
     {
@@ -148,6 +151,9 @@
     },
     {
       "name": "Instance admin"
+    },
+    {
+      "name": "Licence"
     }
   ],
   "paths": {
@@ -66288,6 +66294,1674 @@
         }
       }
     },
+    "/extensions": {
+      "get": {
+        "operationId": "listExtensions",
+        "summary": "List the extensions in this build and their state in this workspace",
+        "tags": [
+          "Extensions"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "extensions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "version": {
+                                "type": "string"
+                              },
+                              "publisher": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "licence": {
+                                "type": "object",
+                                "properties": {
+                                  "tier": {
+                                    "type": "string",
+                                    "enum": [
+                                      "free",
+                                      "paid"
+                                    ]
+                                  },
+                                  "sku": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "description": "licensed, unlicensed, expired or not_required (free)"
+                                  },
+                                  "allowed": {
+                                    "type": "boolean"
+                                  },
+                                  "reason": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "tier",
+                                  "sku",
+                                  "state",
+                                  "allowed",
+                                  "reason"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "compatible": {
+                                "type": "boolean",
+                                "description": "engines.usertasks / extension_sdk accept this build"
+                              },
+                              "runs_here": {
+                                "type": "boolean",
+                                "description": "Compatible, built for this deployment mode and complete"
+                              },
+                              "problems": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "enabled": {
+                                "type": "boolean",
+                                "description": "Enabled in this workspace"
+                              },
+                              "enabled_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "config_version": {
+                                "type": "number"
+                              },
+                              "settings_pages": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "scope": {
+                                      "type": "string",
+                                      "enum": [
+                                        "workspace",
+                                        "instance",
+                                        "user"
+                                      ]
+                                    },
+                                    "label": {
+                                      "type": "string"
+                                    },
+                                    "group": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "scope",
+                                    "label",
+                                    "group"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "permissions": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "key": {
+                                      "type": "string"
+                                    },
+                                    "label": {
+                                      "type": "string"
+                                    },
+                                    "implied_by": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "key",
+                                    "label",
+                                    "implied_by"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "contributes": {
+                                "type": "object",
+                                "properties": {
+                                  "nodes": {
+                                    "type": "number"
+                                  },
+                                  "triggers": {
+                                    "type": "number"
+                                  },
+                                  "connectors": {
+                                    "type": "number"
+                                  },
+                                  "nav_items": {
+                                    "type": "number"
+                                  },
+                                  "settings_pages": {
+                                    "type": "number"
+                                  },
+                                  "pages": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "nodes",
+                                  "triggers",
+                                  "connectors",
+                                  "nav_items",
+                                  "settings_pages",
+                                  "pages"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "description",
+                              "version",
+                              "publisher",
+                              "licence",
+                              "compatible",
+                              "runs_here",
+                              "problems",
+                              "enabled",
+                              "enabled_at",
+                              "config_version",
+                              "settings_pages",
+                              "permissions",
+                              "contributes"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "platform_version": {
+                          "type": "string"
+                        },
+                        "problems": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "notice": {
+                          "description": "Set when the extension tables are missing (migration not applied)",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "extensions",
+                        "total",
+                        "platform_version",
+                        "problems"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.view",
+        "x-usertasks-cli": {
+          "resource": "extensions",
+          "verb": "list",
+          "listKey": "extensions"
+        }
+      }
+    },
+    "/extensions/{id}": {
+      "get": {
+        "operationId": "getExtension",
+        "summary": "Get one extension",
+        "tags": [
+          "Extensions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Extension id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "extension": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "version": {
+                              "type": "string"
+                            },
+                            "publisher": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "licence": {
+                              "type": "object",
+                              "properties": {
+                                "tier": {
+                                  "type": "string",
+                                  "enum": [
+                                    "free",
+                                    "paid"
+                                  ]
+                                },
+                                "sku": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "description": "licensed, unlicensed, expired or not_required (free)"
+                                },
+                                "allowed": {
+                                  "type": "boolean"
+                                },
+                                "reason": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "tier",
+                                "sku",
+                                "state",
+                                "allowed",
+                                "reason"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "compatible": {
+                              "type": "boolean",
+                              "description": "engines.usertasks / extension_sdk accept this build"
+                            },
+                            "runs_here": {
+                              "type": "boolean",
+                              "description": "Compatible, built for this deployment mode and complete"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enabled": {
+                              "type": "boolean",
+                              "description": "Enabled in this workspace"
+                            },
+                            "enabled_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "config_version": {
+                              "type": "number"
+                            },
+                            "settings_pages": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "scope": {
+                                    "type": "string",
+                                    "enum": [
+                                      "workspace",
+                                      "instance",
+                                      "user"
+                                    ]
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "group": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "scope",
+                                  "label",
+                                  "group"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "permissions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "implied_by": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "label",
+                                  "implied_by"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "contributes": {
+                              "type": "object",
+                              "properties": {
+                                "nodes": {
+                                  "type": "number"
+                                },
+                                "triggers": {
+                                  "type": "number"
+                                },
+                                "connectors": {
+                                  "type": "number"
+                                },
+                                "nav_items": {
+                                  "type": "number"
+                                },
+                                "settings_pages": {
+                                  "type": "number"
+                                },
+                                "pages": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "nodes",
+                                "triggers",
+                                "connectors",
+                                "nav_items",
+                                "settings_pages",
+                                "pages"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "description",
+                            "version",
+                            "publisher",
+                            "licence",
+                            "compatible",
+                            "runs_here",
+                            "problems",
+                            "enabled",
+                            "enabled_at",
+                            "config_version",
+                            "settings_pages",
+                            "permissions",
+                            "contributes"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "extension"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.view",
+        "x-usertasks-cli": {
+          "resource": "extensions",
+          "verb": "get",
+          "positional": [
+            "id"
+          ]
+        }
+      }
+    },
+    "/extensions/{id}/enable": {
+      "post": {
+        "operationId": "enableExtension",
+        "summary": "Enable an extension in this workspace",
+        "description": "402 when a paid extension is not licensed, 409 when it cannot run in this build. Gives the workspace system roles the extension's default permissions. Audited.",
+        "tags": [
+          "Extensions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Extension id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "extension": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "version": {
+                              "type": "string"
+                            },
+                            "publisher": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "licence": {
+                              "type": "object",
+                              "properties": {
+                                "tier": {
+                                  "type": "string",
+                                  "enum": [
+                                    "free",
+                                    "paid"
+                                  ]
+                                },
+                                "sku": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "description": "licensed, unlicensed, expired or not_required (free)"
+                                },
+                                "allowed": {
+                                  "type": "boolean"
+                                },
+                                "reason": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "tier",
+                                "sku",
+                                "state",
+                                "allowed",
+                                "reason"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "compatible": {
+                              "type": "boolean",
+                              "description": "engines.usertasks / extension_sdk accept this build"
+                            },
+                            "runs_here": {
+                              "type": "boolean",
+                              "description": "Compatible, built for this deployment mode and complete"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enabled": {
+                              "type": "boolean",
+                              "description": "Enabled in this workspace"
+                            },
+                            "enabled_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "config_version": {
+                              "type": "number"
+                            },
+                            "settings_pages": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "scope": {
+                                    "type": "string",
+                                    "enum": [
+                                      "workspace",
+                                      "instance",
+                                      "user"
+                                    ]
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "group": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "scope",
+                                  "label",
+                                  "group"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "permissions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "implied_by": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "label",
+                                  "implied_by"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "contributes": {
+                              "type": "object",
+                              "properties": {
+                                "nodes": {
+                                  "type": "number"
+                                },
+                                "triggers": {
+                                  "type": "number"
+                                },
+                                "connectors": {
+                                  "type": "number"
+                                },
+                                "nav_items": {
+                                  "type": "number"
+                                },
+                                "settings_pages": {
+                                  "type": "number"
+                                },
+                                "pages": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "nodes",
+                                "triggers",
+                                "connectors",
+                                "nav_items",
+                                "settings_pages",
+                                "pages"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "description",
+                            "version",
+                            "publisher",
+                            "licence",
+                            "compatible",
+                            "runs_here",
+                            "problems",
+                            "enabled",
+                            "enabled_at",
+                            "config_version",
+                            "settings_pages",
+                            "permissions",
+                            "contributes"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "extension"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "extensions",
+          "verb": "enable",
+          "positional": [
+            "id"
+          ]
+        }
+      }
+    },
+    "/extensions/{id}/disable": {
+      "post": {
+        "operationId": "disableExtension",
+        "summary": "Disable an extension in this workspace (settings and data are kept)",
+        "tags": [
+          "Extensions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Extension id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "extension": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "version": {
+                              "type": "string"
+                            },
+                            "publisher": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "licence": {
+                              "type": "object",
+                              "properties": {
+                                "tier": {
+                                  "type": "string",
+                                  "enum": [
+                                    "free",
+                                    "paid"
+                                  ]
+                                },
+                                "sku": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "description": "licensed, unlicensed, expired or not_required (free)"
+                                },
+                                "allowed": {
+                                  "type": "boolean"
+                                },
+                                "reason": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "tier",
+                                "sku",
+                                "state",
+                                "allowed",
+                                "reason"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "compatible": {
+                              "type": "boolean",
+                              "description": "engines.usertasks / extension_sdk accept this build"
+                            },
+                            "runs_here": {
+                              "type": "boolean",
+                              "description": "Compatible, built for this deployment mode and complete"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enabled": {
+                              "type": "boolean",
+                              "description": "Enabled in this workspace"
+                            },
+                            "enabled_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "config_version": {
+                              "type": "number"
+                            },
+                            "settings_pages": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "scope": {
+                                    "type": "string",
+                                    "enum": [
+                                      "workspace",
+                                      "instance",
+                                      "user"
+                                    ]
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "group": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "scope",
+                                  "label",
+                                  "group"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "permissions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "implied_by": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "label",
+                                  "implied_by"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "contributes": {
+                              "type": "object",
+                              "properties": {
+                                "nodes": {
+                                  "type": "number"
+                                },
+                                "triggers": {
+                                  "type": "number"
+                                },
+                                "connectors": {
+                                  "type": "number"
+                                },
+                                "nav_items": {
+                                  "type": "number"
+                                },
+                                "settings_pages": {
+                                  "type": "number"
+                                },
+                                "pages": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "nodes",
+                                "triggers",
+                                "connectors",
+                                "nav_items",
+                                "settings_pages",
+                                "pages"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "description",
+                            "version",
+                            "publisher",
+                            "licence",
+                            "compatible",
+                            "runs_here",
+                            "problems",
+                            "enabled",
+                            "enabled_at",
+                            "config_version",
+                            "settings_pages",
+                            "permissions",
+                            "contributes"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "extension"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "extensions",
+          "verb": "disable",
+          "positional": [
+            "id"
+          ]
+        }
+      }
+    },
+    "/extensions/{id}/settings/{page}": {
+      "get": {
+        "operationId": "getExtensionSettings",
+        "summary": "Read one settings page of an extension (schema and values; secrets never returned)",
+        "description": "Workspace pages need settings.view; personal pages a user API key; instance pages are only available in Settings → Extensions.",
+        "tags": [
+          "Extensions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Extension id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "page",
+            "in": "path",
+            "required": true,
+            "description": "Settings page id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,62}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "extension_id": {
+                          "type": "string"
+                        },
+                        "page": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "scope": {
+                              "type": "string",
+                              "enum": [
+                                "workspace",
+                                "instance",
+                                "user"
+                              ]
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "schema": {
+                              "description": "Sections of typed fields (manifest settings schema)"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "scope",
+                            "label",
+                            "description",
+                            "schema"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "values": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {},
+                          "description": "Current values (defaults filled in); secret / certificate fields are never returned"
+                        },
+                        "secrets_set": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Secret / certificate fields that have a value"
+                        },
+                        "config_version": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "extension_id",
+                        "page",
+                        "values",
+                        "secrets_set",
+                        "config_version"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "extensions",
+          "verb": "settings",
+          "positional": [
+            "id",
+            "page"
+          ]
+        }
+      },
+      "put": {
+        "operationId": "updateExtensionSettings",
+        "summary": "Change one settings page of an extension",
+        "description": "Validated against the page schema on the server. Secret and certificate fields: a string sets, null clears, absent keeps. Workspace pages need settings.edit. Audited and versioned.",
+        "tags": [
+          "Extensions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Extension id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{1,40}$"
+            }
+          },
+          {
+            "name": "page",
+            "in": "path",
+            "required": true,
+            "description": "Settings page id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,62}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {},
+                    "description": "Field key → value"
+                  }
+                },
+                "required": [
+                  "values"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "extension_id": {
+                          "type": "string"
+                        },
+                        "page": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "scope": {
+                              "type": "string",
+                              "enum": [
+                                "workspace",
+                                "instance",
+                                "user"
+                              ]
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "schema": {
+                              "description": "Sections of typed fields (manifest settings schema)"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "scope",
+                            "label",
+                            "description",
+                            "schema"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "values": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {},
+                          "description": "Current values (defaults filled in); secret / certificate fields are never returned"
+                        },
+                        "secrets_set": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Secret / certificate fields that have a value"
+                        },
+                        "config_version": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "extension_id",
+                        "page",
+                        "values",
+                        "secrets_set",
+                        "config_version"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "extensions",
+          "verb": "configure",
+          "positional": [
+            "id",
+            "page"
+          ]
+        }
+      }
+    },
     "/jobs": {
       "get": {
         "operationId": "listJobs",
@@ -69964,6 +71638,1893 @@
           "verb": "get",
           "positional": [
             "slug"
+          ]
+        }
+      }
+    },
+    "/licence": {
+      "get": {
+        "operationId": "getLicence",
+        "summary": "Licence status: installed licences, licensed extensions, limits and usage, expiry warnings (instance admin)",
+        "description": "Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. Licensed extensions stop 24 hours after their licence expires (cutoffAt).",
+        "tags": [
+          "Licence"
+        ],
+        "security": [
+          {
+            "instanceAdminToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "instance": {
+                          "type": "object",
+                          "properties": {
+                            "instanceId": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "hostnames": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "instanceId",
+                            "hostnames"
+                          ],
+                          "additionalProperties": {}
+                        },
+                        "now": {
+                          "type": "string"
+                        },
+                        "licences": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "licenceId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "source": {
+                                "type": "string",
+                                "enum": [
+                                  "setting",
+                                  "env",
+                                  "env_file"
+                                ],
+                                "description": "setting: installed here; env: USERTASKS_LICENCE; env_file: USERTASKS_LICENCE_FILE"
+                              },
+                              "customer": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "issuedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "expiresAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "cutoffAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "description": "expiresAt + 24 hours: when the licensed extensions stop"
+                              },
+                              "updatesUntil": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "daysLeft": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "timeState": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "not_yet_valid",
+                                      "active",
+                                      "expiring",
+                                      "cutoff_pending",
+                                      "expired"
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "valid": {
+                                "type": "boolean",
+                                "description": "Genuine signature from a known key, and bound to this installation (or unbound)"
+                              },
+                              "trial": {
+                                "type": "boolean"
+                              },
+                              "bound": {
+                                "type": "object",
+                                "properties": {
+                                  "instanceIds": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "hostnames": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "instanceIds",
+                                  "hostnames"
+                                ],
+                                "additionalProperties": {}
+                              },
+                              "extensions": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "edition": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "features": {
+                                      "anyOf": [
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "edition",
+                                    "features"
+                                  ],
+                                  "additionalProperties": {}
+                                }
+                              },
+                              "limits": {
+                                "type": "object",
+                                "propertyNames": {
+                                  "type": "string"
+                                },
+                                "additionalProperties": {
+                                  "type": "number"
+                                }
+                              },
+                              "kid": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "problems": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "code": {
+                                      "type": "string"
+                                    },
+                                    "message": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "code",
+                                    "message"
+                                  ],
+                                  "additionalProperties": {}
+                                }
+                              }
+                            },
+                            "required": [
+                              "licenceId",
+                              "source",
+                              "customer",
+                              "issuedAt",
+                              "expiresAt",
+                              "cutoffAt",
+                              "updatesUntil",
+                              "daysLeft",
+                              "timeState",
+                              "valid",
+                              "trial",
+                              "bound",
+                              "extensions",
+                              "limits",
+                              "kid",
+                              "problems"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "extensions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "licensed",
+                                  "unlicensed",
+                                  "expired",
+                                  "not_required"
+                                ]
+                              },
+                              "allowed": {
+                                "type": "boolean"
+                              },
+                              "licenceId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "features": {
+                                "anyOf": [
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "limits": {
+                                "type": "object",
+                                "propertyNames": {
+                                  "type": "string"
+                                },
+                                "additionalProperties": {
+                                  "type": "number"
+                                }
+                              },
+                              "expiresAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "cutoffAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "daysLeft": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "timeState": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "trial": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "state",
+                              "allowed",
+                              "licenceId",
+                              "features",
+                              "limits",
+                              "expiresAt",
+                              "cutoffAt",
+                              "daysLeft",
+                              "timeState",
+                              "trial"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "warnings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "level": {
+                                "type": "string",
+                                "enum": [
+                                  "info",
+                                  "warn",
+                                  "error"
+                                ]
+                              },
+                              "code": {
+                                "type": "string"
+                              },
+                              "licenceId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "level",
+                              "code",
+                              "licenceId",
+                              "message"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "usage": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "anyOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "description": "Current usage per limit key (null: not counted)"
+                        }
+                      },
+                      "required": [
+                        "instance",
+                        "now",
+                        "licences",
+                        "extensions",
+                        "warnings",
+                        "usage"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the instance admin token (workspace API keys and OAuth tokens are refused)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The instance admin API is off (INSTANCE_ADMIN_TOKEN unset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "licence",
+          "verb": "status"
+        }
+      },
+      "put": {
+        "operationId": "installLicence",
+        "summary": "Install or replace a licence (instance admin)",
+        "description": "Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. The signature, key id and binding are checked; an invalid, foreign or expired licence is refused (400). A licence with the same licence_id replaces the installed one; others stay installed.",
+        "tags": [
+          "Licence"
+        ],
+        "security": [
+          {
+            "instanceAdminToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "licence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64000,
+                    "description": "The licence file contents (JSON, or base64 of it)"
+                  }
+                },
+                "required": [
+                  "licence"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "licence": {
+                          "type": "object",
+                          "properties": {
+                            "licenceId": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "source": {
+                              "type": "string",
+                              "enum": [
+                                "setting",
+                                "env",
+                                "env_file"
+                              ],
+                              "description": "setting: installed here; env: USERTASKS_LICENCE; env_file: USERTASKS_LICENCE_FILE"
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "issuedAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "expiresAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "cutoffAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "expiresAt + 24 hours: when the licensed extensions stop"
+                            },
+                            "updatesUntil": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "daysLeft": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "timeState": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "not_yet_valid",
+                                    "active",
+                                    "expiring",
+                                    "cutoff_pending",
+                                    "expired"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "valid": {
+                              "type": "boolean",
+                              "description": "Genuine signature from a known key, and bound to this installation (or unbound)"
+                            },
+                            "trial": {
+                              "type": "boolean"
+                            },
+                            "bound": {
+                              "type": "object",
+                              "properties": {
+                                "instanceIds": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "hostnames": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "instanceIds",
+                                "hostnames"
+                              ],
+                              "additionalProperties": {}
+                            },
+                            "extensions": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "edition": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "features": {
+                                    "anyOf": [
+                                      {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "edition",
+                                  "features"
+                                ],
+                                "additionalProperties": {}
+                              }
+                            },
+                            "limits": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "type": "number"
+                              }
+                            },
+                            "kid": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "message"
+                                ],
+                                "additionalProperties": {}
+                              }
+                            }
+                          },
+                          "required": [
+                            "licenceId",
+                            "source",
+                            "customer",
+                            "issuedAt",
+                            "expiresAt",
+                            "cutoffAt",
+                            "updatesUntil",
+                            "daysLeft",
+                            "timeState",
+                            "valid",
+                            "trial",
+                            "bound",
+                            "extensions",
+                            "limits",
+                            "kid",
+                            "problems"
+                          ],
+                          "additionalProperties": {}
+                        },
+                        "replaced": {
+                          "type": "boolean"
+                        },
+                        "notes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "licence",
+                        "replaced",
+                        "notes"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the instance admin token (workspace API keys and OAuth tokens are refused)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The instance admin API is off (INSTANCE_ADMIN_TOKEN unset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "licence",
+          "verb": "install"
+        }
+      },
+      "delete": {
+        "operationId": "removeLicence",
+        "summary": "Remove an installed licence (instance admin)",
+        "description": "Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. Needs licence_id, or all=true. Licences from USERTASKS_LICENCE / USERTASKS_LICENCE_FILE are removed by unsetting the variable.",
+        "tags": [
+          "Licence"
+        ],
+        "security": [
+          {
+            "instanceAdminToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "licence_id",
+            "in": "query",
+            "required": false,
+            "description": "The licence to remove",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "all",
+            "in": "query",
+            "required": false,
+            "description": "true: remove every licence installed here",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "removed": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "removed"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the instance admin token (workspace API keys and OAuth tokens are refused)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The instance admin API is off (INSTANCE_ADMIN_TOKEN unset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "licence",
+          "verb": "remove",
+          "flags": {
+            "all": "remove-all"
+          }
+        }
+      }
+    },
+    "/licence/request": {
+      "get": {
+        "operationId": "getLicenceRequest",
+        "summary": "Offline activation request: instance id, hostnames, version (instance admin)",
+        "description": "Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. Upload the returned JSON to the licensing portal from any connected machine to get a licence bound to this installation. Contains no secrets and no usage data.",
+        "tags": [
+          "Licence"
+        ],
+        "security": [
+          {
+            "instanceAdminToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "usertasks.licence_request"
+                        },
+                        "format": {
+                          "type": "number",
+                          "const": 1
+                        },
+                        "instance_id": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "hostnames": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "version": {
+                          "type": "string"
+                        },
+                        "deployment_mode": {
+                          "type": "string",
+                          "enum": [
+                            "cloud",
+                            "self_hosted"
+                          ]
+                        },
+                        "installed_licences": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "created_at": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "format",
+                        "instance_id",
+                        "hostnames",
+                        "version",
+                        "deployment_mode",
+                        "installed_licences",
+                        "created_at"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the instance admin token (workspace API keys and OAuth tokens are refused)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The instance admin API is off (INSTANCE_ADMIN_TOKEN unset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "licence",
+          "verb": "request"
+        }
+      }
+    },
+    "/licence/entitlements": {
+      "get": {
+        "operationId": "listEntitlements",
+        "summary": "List workspace entitlements to paid extensions (instance admin)",
+        "description": "Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. Cloud entitlements (tenant_entitlements): admin-managed now, fed by billing later.",
+        "tags": [
+          "Licence"
+        ],
+        "security": [
+          {
+            "instanceAdminToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "description": "Only this workspace",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "extension_id",
+            "in": "query",
+            "required": false,
+            "description": "Only this extension",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "entitlements": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "tenant_id": {
+                                "type": "string"
+                              },
+                              "extension_id": {
+                                "type": "string"
+                              },
+                              "edition": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "features": {
+                                "anyOf": [
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "limits": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "active",
+                                  "suspended",
+                                  "revoked"
+                                ]
+                              },
+                              "source": {
+                                "type": "string",
+                                "enum": [
+                                  "admin",
+                                  "trial",
+                                  "stripe",
+                                  "licence"
+                                ]
+                              },
+                              "starts_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "ends_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "notes": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "created_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "updated_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "tenant_id",
+                              "extension_id",
+                              "status",
+                              "source"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        }
+                      },
+                      "required": [
+                        "entitlements"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the instance admin token (workspace API keys and OAuth tokens are refused)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The instance admin API is off (INSTANCE_ADMIN_TOKEN unset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "entitlements",
+          "verb": "list",
+          "listKey": "entitlements"
+        }
+      },
+      "put": {
+        "operationId": "grantEntitlement",
+        "summary": "Grant or update a workspace entitlement to a paid extension (instance admin)",
+        "description": "Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. One row per workspace and extension (upsert).",
+        "tags": [
+          "Licence"
+        ],
+        "security": [
+          {
+            "instanceAdminToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tenant_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "description": "Workspace id"
+                  },
+                  "extension_id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]{0,62}$",
+                    "description": "Extension id, e.g. sharepoint"
+                  },
+                  "edition": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "features": {
+                    "description": "Features granted (omitted / empty / [\"*\"]: all)",
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  },
+                  "limits": {
+                    "description": "Numeric limits, e.g. {\"sharepoint.farms\": 2}",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  },
+                  "status": {
+                    "description": "Default active",
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "suspended",
+                      "revoked"
+                    ]
+                  },
+                  "source": {
+                    "description": "Default admin",
+                    "type": "string",
+                    "enum": [
+                      "admin",
+                      "trial",
+                      "stripe",
+                      "licence"
+                    ]
+                  },
+                  "starts_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "ends_at": {
+                    "description": "Expiry; the extension stops 24 hours after it. Omitted: no end",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "tenant_id",
+                  "extension_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "entitlement": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "tenant_id": {
+                              "type": "string"
+                            },
+                            "extension_id": {
+                              "type": "string"
+                            },
+                            "edition": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "features": {
+                              "anyOf": [
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "limits": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "number"
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "active",
+                                "suspended",
+                                "revoked"
+                              ]
+                            },
+                            "source": {
+                              "type": "string",
+                              "enum": [
+                                "admin",
+                                "trial",
+                                "stripe",
+                                "licence"
+                              ]
+                            },
+                            "starts_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "ends_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "notes": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "created_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "updated_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "tenant_id",
+                            "extension_id",
+                            "status",
+                            "source"
+                          ],
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "entitlement"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the instance admin token (workspace API keys and OAuth tokens are refused)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The instance admin API is off (INSTANCE_ADMIN_TOKEN unset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "entitlements",
+          "verb": "grant"
+        }
+      }
+    },
+    "/licence/entitlements/{tenant_id}/{extension_id}": {
+      "delete": {
+        "operationId": "revokeEntitlement",
+        "summary": "Remove a workspace entitlement (instance admin)",
+        "description": "Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited.",
+        "tags": [
+          "Licence"
+        ],
+        "security": [
+          {
+            "instanceAdminToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "description": "Workspace id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          {
+            "name": "extension_id",
+            "in": "path",
+            "required": true,
+            "description": "Extension id",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "deleted": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "deleted"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the instance admin token (workspace API keys and OAuth tokens are refused)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found, or the instance admin API is off (INSTANCE_ADMIN_TOKEN unset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "entitlements",
+          "verb": "revoke",
+          "positional": [
+            "tenant_id",
+            "extension_id"
           ]
         }
       }

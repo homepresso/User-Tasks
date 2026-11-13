@@ -10794,6 +10794,113 @@
   ]
  },
  {
+  "label": "Extensions",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/extensions",
+    "label": "List the extensions in this build and their state in this workspace",
+    "description": "List the extensions in this build and their state in this workspace Requires settings.view.",
+    "params": [],
+    "permission": "settings.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/extensions/{id}",
+    "label": "Get one extension",
+    "description": "Get one extension Requires settings.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Extension id"
+     }
+    ],
+    "permission": "settings.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/extensions/{id}/enable",
+    "label": "Enable an extension in this workspace",
+    "description": "402 when a paid extension is not licensed, 409 when it cannot run in this build. Gives the workspace system roles the extension's default permissions. Audited. Requires settings.edit.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Extension id"
+     }
+    ],
+    "permission": "settings.edit"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/extensions/{id}/disable",
+    "label": "Disable an extension in this workspace (settings and data are kept)",
+    "description": "Disable an extension in this workspace (settings and data are kept) Requires settings.edit.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Extension id"
+     }
+    ],
+    "permission": "settings.edit"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/extensions/{id}/settings/{page}",
+    "label": "Read one settings page of an extension (schema and values; secrets never returned)",
+    "description": "Workspace pages need settings.view; personal pages a user API key; instance pages are only available in Settings → Extensions.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Extension id"
+     },
+     {
+      "name": "page",
+      "type": "path",
+      "required": true,
+      "description": "Settings page id"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "PUT",
+    "path": "/api/v1/extensions/{id}/settings/{page}",
+    "label": "Change one settings page of an extension",
+    "description": "Validated against the page schema on the server. Secret and certificate fields: a string sets, null clears, absent keeps. Workspace pages need settings.edit. Audited and versioned.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Extension id"
+     },
+     {
+      "name": "page",
+      "type": "path",
+      "required": true,
+      "description": "Settings page id"
+     },
+     {
+      "name": "values",
+      "type": "body",
+      "required": true,
+      "placeholder": "{}",
+      "description": "Field key → value"
+     }
+    ],
+    "permission": null
+   }
+  ]
+ },
+ {
   "label": "Jobs",
   "endpoints": [
    {

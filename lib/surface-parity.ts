@@ -625,6 +625,19 @@ export const SURFACE_PARITY: SurfaceResource[] = [
     ],
   },
   {
+    resource: 'extensions',
+    ops: [
+      op('list', 'GET /extensions', 'extensions_list', 'extensions list'),
+      op('get', 'GET /extensions/{id}', 'extensions_get', 'extensions get'),
+      op('create', null, null, null, 'extensions are compiled into the build (USERTASKS_EXTENSIONS); a workspace enables them'),
+      op('update', 'PUT /extensions/{id}/settings/{page}', 'extensions_settings_update', 'extensions configure', 'one typed settings page; secrets write-only'),
+      op('delete', null, null, null, 'disable keeps settings and data; removing an extension is a rebuild without it'),
+      op('enable', 'POST /extensions/{id}/enable', 'extensions_enable', 'extensions enable', '402 when a paid extension is not licensed'),
+      op('disable', 'POST /extensions/{id}/disable', 'extensions_disable', 'extensions disable'),
+      op('get settings', 'GET /extensions/{id}/settings/{page}', 'extensions_settings_get', 'extensions settings'),
+    ],
+  },
+  {
     resource: 'package installs',
     ops: [
       op('list', 'GET /package-installs', 'packages_installs_list', 'packages installs'),

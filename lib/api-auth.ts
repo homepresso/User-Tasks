@@ -346,8 +346,8 @@ export async function resolveKeyPermissions(supabase: SupabaseClient, key: any):
 
   if (explicit) return expandPermissions(explicit)
 
-  // Legacy tenant-wide key: full admin for backward compatibility.
-  return [...PERMISSION_KEYS]
+  // Legacy tenant-wide key: full admin for backward compatibility (extension permissions they imply included).
+  return expandPermissions(PERMISSION_KEYS)
 }
 
 /**

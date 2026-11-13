@@ -2334,6 +2334,43 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "listExtensions",
+    "method": "GET",
+    "path": "/extensions",
+    "envelope": true,
+    "listKey": "extensions"
+  },
+  {
+    "operationId": "getExtension",
+    "method": "GET",
+    "path": "/extensions/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "enableExtension",
+    "method": "POST",
+    "path": "/extensions/{id}/enable",
+    "envelope": true
+  },
+  {
+    "operationId": "disableExtension",
+    "method": "POST",
+    "path": "/extensions/{id}/disable",
+    "envelope": true
+  },
+  {
+    "operationId": "getExtensionSettings",
+    "method": "GET",
+    "path": "/extensions/{id}/settings/{page}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateExtensionSettings",
+    "method": "PUT",
+    "path": "/extensions/{id}/settings/{page}",
+    "envelope": true
+  },
+  {
     "operationId": "listJobs",
     "method": "GET",
     "path": "/jobs",
@@ -2443,6 +2480,49 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "getAdminWorkspace",
     "method": "GET",
     "path": "/admin/workspaces/{slug}",
+    "envelope": true
+  },
+  {
+    "operationId": "getLicence",
+    "method": "GET",
+    "path": "/licence",
+    "envelope": true
+  },
+  {
+    "operationId": "installLicence",
+    "method": "PUT",
+    "path": "/licence",
+    "envelope": true
+  },
+  {
+    "operationId": "removeLicence",
+    "method": "DELETE",
+    "path": "/licence",
+    "envelope": true
+  },
+  {
+    "operationId": "getLicenceRequest",
+    "method": "GET",
+    "path": "/licence/request",
+    "envelope": true
+  },
+  {
+    "operationId": "listEntitlements",
+    "method": "GET",
+    "path": "/licence/entitlements",
+    "envelope": true,
+    "listKey": "entitlements"
+  },
+  {
+    "operationId": "grantEntitlement",
+    "method": "PUT",
+    "path": "/licence/entitlements",
+    "envelope": true
+  },
+  {
+    "operationId": "revokeEntitlement",
+    "method": "DELETE",
+    "path": "/licence/entitlements/{tenant_id}/{extension_id}",
     "envelope": true
   }
 ]

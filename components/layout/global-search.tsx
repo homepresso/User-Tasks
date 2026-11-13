@@ -19,6 +19,8 @@ import { IconButton } from "@/components/ui/icon-button"
 import { OPEN_COMMAND_EVENT, openCommandPalette } from "./command-palette-event"
 import { CREATE_ACTIONS, type CreateAction } from "./create-actions"
 import { readRecentPages, type RecentPage } from "./recent-pages"
+import { useExtensionPaletteEntries, type ExtensionMenuEntry } from "@/components/extensions/extension-menus"
+import { useExtensionAction, type ExtensionActionRequest } from "@/components/extensions/use-extension-action"
 import {
   Search, FileInput, Globe, SquareCheck, Workflow, CalendarClock, History, Database, Rows3, BarChart3, Scale, Mail,
   Bot, Network, Plug, Link2, Server, Puzzle, Package, Archive, Inbox, Paperclip, UsersRound, User, Compass,
@@ -52,6 +54,8 @@ interface Row {
   href?: string
   /** Opens in a new tab (docs, gallery). */
   external?: boolean
+  /** An extension action (runs instead of navigating). */
+  run?: ExtensionActionRequest
 }
 
 interface Group {
@@ -104,6 +108,14 @@ function actionRow(action: CreateAction): Row {
   return { key: `actions:${action.id}`, section: "actions", kind: "action", title: action.paletteLabel, href: action.href }
 }
 
+function extensionRow(section: 'pages' | 'actions', entry: ExtensionMenuEntry): Row {
+  return {
+    key: `${section}:${entry.key}`, section, kind: section === 'pages' ? 'page' : 'action', title: entry.paletteLabel,
+    ...(entry.href ? { href: entry.href, external: entry.external } : {}),
+    ...(entry.action ? { run: { extensionId: entry.extensionId, action: entry.action.name, confirm: entry.action.confirm, label: entry.label } } : {}),
+  }
+}
+
 function recentRow(page: RecentPage): Row {
   return { key: `recent:${page.href}`, section: "recent", kind: "recent", title: page.title, subtitle: page.area, href: page.href }
 }
@@ -133,6 +145,8 @@ export function CommandTrigger() {
 export function GlobalSearch() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
+  // Extension actions run here, outside the palette dialog (their confirmation is its own dialog).
+  const extensionAction = useExtensionAction()
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -167,14 +181,15 @@ export function GlobalSearch() {
           data-testid="command-palette"
         >
           <RadixDialog.Title className="sr-only">Search or jump to</RadixDialog.Title>
-          {open && <Palette query={query} setQuery={setQuery} onClose={() => { setOpen(false); setQuery("") }} />}
+          {open && <Palette query={query} setQuery={setQuery} onClose={() => { setOpen(false); setQuery("") }} runExtension={extensionAction.run} />}
         </RadixDialog.Content>
       </RadixDialog.Portal>
+      {extensionAction.confirmDialog}
     </RadixDialog.Root>
   )
 }
 
-function Palette({ query, setQuery, onClose }: { query: string; setQuery: (q: string) => void; onClose: () => void }) {
+function Palette({ query, setQuery, onClose, runExtension }: { query: string; setQuery: (q: string) => void; onClose: () => void; runExtension: (request: ExtensionActionRequest) => void }) {
   const router = useRouter()
   const { permissions, can } = usePermissions()
   const [sections, setSections] = useState<SearchSection[]>([])
@@ -197,6 +212,8 @@ function Palette({ query, setQuery, onClose }: { query: string; setQuery: (q: st
   useEffect(() => { setRecent(readRecentPages()) }, [])
 
   const actions = useMemo(() => CREATE_ACTIONS.filter((a) => can(a.requires)), [can])
+  // Extension nav items and entries (Navigate / Actions); none in a build without extensions.
+  const extensionEntries = useExtensionPaletteEntries()
 
   const search = useCallback(async (q: string) => {
     const seq = ++requestSeq.current
@@ -245,9 +262,11 @@ function Palette({ query, setQuery, onClose }: { query: string; setQuery: (q: st
       const starter = trimmed
         ? visiblePageShortcuts(permissions).filter((p) => matchScore(p.title, trimmed) > 0).slice(0, 8)
         : searchPageShortcutsStarter(permissions)
-      if (starter.length) out.push({ key: "pages", label: "Pages", more: false, rows: starter.map((p) => ({ key: `pages:${p.href}`, section: "pages", kind: "page" as const, title: p.title, subtitle: p.area, href: p.href })) })
+      const extPages = extensionEntries.navigate.filter((e) => !trimmed || matchScore(`${e.paletteLabel} ${e.keywords}`, trimmed) > 0).map((e) => extensionRow('pages', e))
+      if (starter.length || extPages.length) out.push({ key: "pages", label: "Pages", more: false, rows: [...starter.map((p) => ({ key: `pages:${p.href}`, section: "pages", kind: "page" as const, title: p.title, subtitle: p.area, href: p.href })), ...extPages] })
       const acts = actions.filter((a) => !trimmed || matchScore(`${a.paletteLabel} ${a.keywords}`, trimmed) > 0)
-      if (acts.length) out.push({ key: "actions", label: "Actions", rows: acts.map(actionRow), more: false })
+      const extActs = extensionEntries.actions.filter((e) => !trimmed || matchScore(`${e.paletteLabel} ${e.keywords}`, trimmed) > 0).map((e) => extensionRow('actions', e))
+      if (acts.length || extActs.length) out.push({ key: "actions", label: "Actions", rows: [...acts.map(actionRow), ...extActs], more: false })
       return out
     }
     for (const s of sections) out.push({ key: s.key, label: s.label, more: s.more, rows: s.hits.map((hit) => hitRow(s.key, hit)) })
@@ -255,11 +274,15 @@ function Palette({ query, setQuery, onClose }: { query: string; setQuery: (q: st
       const limit = clientLimits[key] ?? CLIENT_LIMIT
       if (all.length) out.push({ key, label, rows: all.slice(0, limit), more: all.length > limit })
     }
-    client("pages", "Pages", searchPageShortcuts(trimmed, permissions, CLIENT_MORE_LIMIT + 1).map((p) => ({
-      key: `pages:${p.href}`, section: "pages", kind: "page", title: p.title, subtitle: p.area, href: p.href,
-    })))
+    client("pages", "Pages", [
+      ...searchPageShortcuts(trimmed, permissions, CLIENT_MORE_LIMIT + 1).map((p): Row => ({
+        key: `pages:${p.href}`, section: "pages", kind: "page", title: p.title, subtitle: p.area, href: p.href,
+      })),
+      ...extensionEntries.navigate.filter((e) => matchScore(`${e.paletteLabel} ${e.keywords}`, trimmed) > 0).map((e) => extensionRow('pages', e)),
+    ])
     const acts = actions.filter((a) => matchScore(`${a.paletteLabel} ${a.keywords}`, trimmed) > 0)
-    if (acts.length) out.push({ key: "actions", label: "Actions", rows: acts.map(actionRow), more: false })
+    const extActs = extensionEntries.actions.filter((e) => matchScore(`${e.paletteLabel} ${e.keywords}`, trimmed) > 0).map((e) => extensionRow('actions', e))
+    if (acts.length || extActs.length) out.push({ key: "actions", label: "Actions", rows: [...acts.map(actionRow), ...extActs], more: false })
     if (canGallery) {
       client("gallery", "Gallery", searchGalleryIndex(gallery, trimmed, CLIENT_MORE_LIMIT + 1).map((p) => ({
         key: `gallery:${p.slug}`, section: "gallery", kind: "gallery", title: p.title, subtitle: p.summary, href: `/gallery/${p.slug}`, external: true,
@@ -269,7 +292,7 @@ function Palette({ query, setQuery, onClose }: { query: string; setQuery: (q: st
       key: `docs:${d.h}`, section: "docs", kind: "doc", title: d.t, subtitle: d.s, href: d.h, external: true,
     })))
     return out
-  }, [searching, trimmed, recent, permissions, actions, sections, clientLimits, canGallery, gallery, docs])
+  }, [searching, trimmed, recent, permissions, actions, extensionEntries, sections, clientLimits, canGallery, gallery, docs])
 
   const rowsByKey = useMemo(() => {
     const map = new Map<string, Row>()
@@ -282,6 +305,7 @@ function Palette({ query, setQuery, onClose }: { query: string; setQuery: (q: st
 
   function activate(row: Row, newTab = false) {
     if (row.kind === "more") { void showMore(row.section); return }
+    if (row.run) { onClose(); runExtension(row.run); return }
     if (!row.href) return
     onClose()
     if (row.external || newTab) window.open(row.href, "_blank", "noopener,noreferrer")

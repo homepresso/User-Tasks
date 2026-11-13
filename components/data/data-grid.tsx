@@ -1,5 +1,6 @@
 'use client'
 
+import { ExtensionToolbarActions } from '@/components/extensions/item-actions'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { insertRow, deleteRow } from '@/app/actions/data-store'
@@ -350,6 +351,8 @@ export function DataGrid({ tableId, tenantId, columns, rows }: DataGridProps) {
         {selectedRows.size > 0 && (
           <div className="flex items-center gap-1 rounded-md bg-primary-wash py-0.5 pl-3 pr-1">
             <span className="num text-ui font-medium text-primary-text">{selectedRows.size} selected</span>
+            {/* Bulk / toolbar actions contributed by extensions for data rows (the row's values plus id). */}
+            <ExtensionToolbarActions objectType="data_row" items={localRows.filter((r) => selectedRows.has(r.id)).map((r) => ({ ...(r.data as Record<string, unknown>), id: r.id }))} />
             <Button size="sm" variant="danger-ghost" leadingIcon={<Trash2 />} onClick={() => setConfirmBulk(true)} disabled={deleting}>
               Delete
             </Button>

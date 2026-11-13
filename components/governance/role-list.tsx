@@ -19,7 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Pagination } from '@/components/ui/list-controls'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { PERMISSION_GROUPS } from '@/lib/permissions'
+import { permissionGroupsWithExtensions } from '@/lib/permissions'
 import { plural } from '@/lib/format/plural'
 import { createRole, updateRole, deleteRole } from '@/app/actions/governance'
 import { RoleEditor } from './role-editor'
@@ -346,7 +346,7 @@ function RoleSheet({ role, userCount, onOpenChange, onEdit, onManage }: {
   onManage: () => void
 }) {
   const granted = new Set<string>(role?.permissions ?? [])
-  const groups = PERMISSION_GROUPS
+  const groups = permissionGroupsWithExtensions()
     .map((g) => ({ ...g, granted: g.permissions.filter((p) => granted.has(p.key)) }))
     .filter((g) => g.granted.length > 0)
   return (

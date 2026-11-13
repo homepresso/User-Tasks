@@ -5,6 +5,8 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   Accessibility,
+  Blocks,
+  BadgeCheck,
   CircleCheckBig,
   Boxes,
   Brush,
@@ -34,6 +36,10 @@ import { usePermissions } from "@/lib/permissions-context"
 import type { Permission } from "@/lib/permissions"
 import { canViewInfrastructureAction } from "@/app/actions/infrastructure"
 import { settingsTourId } from "@/lib/onboarding/tours"
+import { hasExtensions } from "@/lib/extensions/registry"
+import { resolveSettingsPages } from "@/lib/extensions/ui"
+import { useExtensionResolveContext } from "@/components/extensions/extensions-provider"
+import { extensionLucide } from "@/components/extensions/ext-icon"
 
 /**
  * The Settings frame (§5.14): a 200px grouped sub-nav beside the page, which
@@ -109,6 +115,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
       { label: "Document OCR", href: "/settings/document-ocr", icon: ScanText, permission: "settings.view" },
       { label: "Infrastructure", href: "/settings/infrastructure", icon: Server, instanceAdmin: true },
       { label: "Workspace DNS", href: "/settings/workspace-dns", icon: Globe, instanceAdmin: true },
+      { label: "Licence", href: "/settings/licence", icon: BadgeCheck, instanceAdmin: true },
       { label: "Packages", href: "/settings/packages", icon: Package, permission: "packages.view" },
       { label: "Gallery review", href: "/settings/gallery-review", icon: UsersRound, instanceAdmin: true },
     ],
@@ -136,15 +143,40 @@ function isActive(item: SettingsNavItem, pathname: string, tab: SettingsTab): bo
   return itemTab === tab
 }
 
+/**
+ * Settings → Extensions (only in a build with extensions) and the settings
+ * pages extensions contribute, each in its declared group (an existing group
+ * label, or a new group after the core ones), filtered by their guards.
+ */
+function useExtensionSettingsNav(): SettingsNavGroup[] {
+  const { can } = usePermissions()
+  const ctx = useExtensionResolveContext()
+  if (!hasExtensions()) return []
+  const groups = new Map<string, SettingsNavItem[]>()
+  if (can("settings.view")) groups.set("Infrastructure", [{ label: "Extensions", href: "/settings/extensions", icon: Blocks, permission: "settings.view" }])
+  for (const page of resolveSettingsPages(ctx)) {
+    const items = groups.get(page.group) ?? []
+    items.push({ label: page.label, href: `/settings/extensions/${page.extensionId}/${page.id}`, icon: extensionLucide(page.icon), everyone: true })
+    groups.set(page.group, items)
+  }
+  return [...groups].map(([label, items]) => ({ label, items }))
+}
+
 function useVisibleGroups(): SettingsNavGroup[] {
   const { can } = usePermissions()
   const [instanceAdmin, setInstanceAdmin] = useState(false)
+  const extensionGroups = useExtensionSettingsNav()
   useEffect(() => {
     let live = true
     canViewInfrastructureAction().then((ok) => { if (live) setInstanceAdmin(ok) }).catch(() => undefined)
     return () => { live = false }
   }, [])
-  return SETTINGS_NAV.map((group) => ({
+  const core = SETTINGS_NAV.map((group) => ({
+    ...group,
+    items: [...group.items, ...(extensionGroups.find((g) => g.label === group.label)?.items ?? [])],
+  }))
+  const extra = extensionGroups.filter((g) => !SETTINGS_NAV.some((c) => c.label === g.label))
+  return [...core, ...extra].map((group) => ({
     ...group,
     items: group.items.filter((item) => {
       if (item.instanceAdmin) return instanceAdmin

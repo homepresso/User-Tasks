@@ -1,6 +1,6 @@
 'use client'
 
-import { PERMISSION_GROUPS } from '@/lib/permissions'
+import { permissionGroupsWithExtensions } from '@/lib/permissions'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 export function RolePermissionsGrid({ selected, onToggle, onToggleGroup }: Props) {
   return (
     <div className="divide-y divide-border-subtle overflow-hidden rounded-lg border border-border">
-      {PERMISSION_GROUPS.map(group => {
+      {permissionGroupsWithExtensions().map(group => {
         const groupKeys = group.permissions.map(p => p.key)
         const selectedCount = groupKeys.filter(k => selected.has(k)).length
         const allSelected = selectedCount === groupKeys.length

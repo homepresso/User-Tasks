@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Crosshair, Maximize2, Minimize2, X } from "lucide-react"
-import { NODE_CATALOG, type WorkflowEdge, type WorkflowNode } from "@/lib/workflow-schema"
+import { fullNodeCatalog, type WorkflowEdge, type WorkflowNode } from "@/lib/workflow-schema"
 import { getSectionNodes, resolveVisibleGraph } from "@/lib/workflow-sections"
 import { nodeBox } from "@/lib/workflow-edge-routing"
 import { unionBounds } from "@/lib/canvas-zoom"
@@ -172,7 +172,7 @@ export function RuntimeCanvas({
 
   const maxX = Math.max(600, ...effectiveNodes.map((n) => nodeBox(n, sizes)).map((b) => b.x + b.width))
   const maxY = Math.max(400, ...effectiveNodes.map((n) => nodeBox(n, sizes)).map((b) => b.y + b.height), ...swimlanes.map((l) => l.y + l.height))
-  const triggerTypes = NODE_CATALOG.filter((c) => c.category === "trigger").map((c) => c.type)
+  const triggerTypes: string[] = fullNodeCatalog().filter((c) => c.category === "trigger").map((c) => c.type)
   const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null
 
   const minimapItems: MinimapItem[] = visibleBoxes().map(({ node: n, ...box }) => {

@@ -390,6 +390,7 @@ const REPO_LINKS: Record<string, string> = {
   'setup-gcp.md': '/docs/self-hosting/google-cloud',
   'setup-kubernetes.md': '/docs/self-hosting/kubernetes',
   'setup-air-gapped.md': '/docs/self-hosting/air-gapped',
+  'licensing.md': '/docs/self-hosting/licensing',
   'packages.md': '/docs/packages',
   'kubernetes-air-gapped.md': '/docs/self-hosting/kubernetes',
   'setup-aws.md': '/docs/self-hosting/aws',

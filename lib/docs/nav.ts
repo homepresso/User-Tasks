@@ -50,6 +50,7 @@ export const SECTION_META: Record<string, SectionMeta> = {
   'Governance and security': { icon: 'shield', blurb: 'Roles, teams, SSO, SCIM, API keys, audit and retention.', tab: 'guides' },
   'API and MCP': { icon: 'code', blurb: 'The REST API, every endpoint, and the MCP server for AI clients.', tab: 'api' },
   'CLI, SDK and config': { icon: 'terminal', blurb: 'The usertasks CLI, the TypeScript SDK and config as code.', tab: 'cli' },
+  Extensions: { icon: 'blocks', blurb: 'Build extensions compiled into UserTasks: manifest, workflow steps, connectors, API, jobs, menus and settings.', tab: 'cli' },
   Observability: { icon: 'activity', blurb: 'The event stream, log export destinations and background jobs.', tab: 'operate' },
   'Deploy anywhere': { icon: 'cloud', blurb: 'Reference topologies for Supabase, AWS, Azure, Google Cloud and on-premises.', tab: 'operate' },
   'Choosing services': { icon: 'layers', blurb: 'Pick the database, auth, storage, email and cache providers you run.', tab: 'operate' },

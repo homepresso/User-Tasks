@@ -5,7 +5,8 @@ import { Search, Plug, Plus, Trash2, Loader2, Grid3x3, List, ArrowUpDown, ArrowU
 import { ConnectorCard } from "./connector-card"
 import { ConnectorSetupDialog } from "./connector-setup-dialog"
 import { ConnectorDetail } from "./connector-detail"
-import { CONNECTOR_CATALOG, CONNECTOR_CATEGORIES, getConnectorDefinition } from "@/lib/connectors/registry"
+import { CONNECTOR_CATEGORIES, connectorCatalogWith, getConnectorDefinition } from "@/lib/connectors/registry"
+import { useExtensionUiState } from "@/components/extensions/extensions-provider"
 import type { ConnectorCategory } from "@/lib/connectors/registry"
 import { useRouter } from "next/navigation"
 import { deleteConnector } from "@/app/actions/connectors"
@@ -38,6 +39,9 @@ interface CatalogProps {
 }
 
 export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps) {
+  // Built-in connectors plus those of the extensions enabled in this workspace.
+  const { state: extensionState } = useExtensionUiState()
+  const catalog = useMemo(() => connectorCatalogWith(extensionState.extensions.map((e) => e.id)), [extensionState])
   const [localConnectors, setLocalConnectors] = useState(connectors)
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState<ConnectorCategory | 'all'>('all')
@@ -68,7 +72,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
   }, [localConnectors])
 
   const filtered = useMemo(() => {
-    let list = CONNECTOR_CATALOG
+    let list = catalog
     if (category !== 'all') list = list.filter(c => c.category === category)
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -79,7 +83,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
       )
     }
     return list
-  }, [search, category])
+  }, [search, category, catalog])
 
   const sorted = useMemo(() => {
     function connectorStatus(defKey: string) {
@@ -174,7 +178,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
             {enabledCount} active
           </span>
           <span className="text-xs text-fg-muted">
-            · {localConnectors.length} instance{localConnectors.length !== 1 ? 's' : ''} across {CONNECTOR_CATALOG.length} connectors
+            · {localConnectors.length} instance{localConnectors.length !== 1 ? 's' : ''} across {catalog.length} connectors
           </span>
         </div>
       </div>

@@ -12,7 +12,9 @@
  * integration and references are generated and never synced on their own.
  */
 
-import { CONNECTOR_CATALOG, getConnectorDefinition, type ConnectorCategory, type ConnectorDefinition } from '@/lib/connectors/registry'
+import { hasExtensions } from '@/lib/extensions/registry'
+import { usableExtensionIds } from '@/lib/extensions/state'
+import { CONNECTOR_CATALOG, connectorCatalogWith, getConnectorDefinition, type ConnectorCategory, type ConnectorDefinition } from '@/lib/connectors/registry'
 import { getMissingConnectorFields, validateConnectorFieldFormats, validateConnectorFields } from '@/lib/connectors/form-state'
 import { runConnectorPreflight } from '@/lib/connectors/preflight'
 import { buildConnectorTestResult } from '@/lib/connectors/test-diagnostics'
@@ -33,9 +35,11 @@ type Values = Record<string, any>
 
 const DATABASE_CONNECTOR_KEYS = ['postgres', 'mssql', 'mysql', 'oracle', 'snowflake', 'mongodb']
 
-export function listConnectorCatalog(ctx: ServiceContext, filters: { category?: ConnectorCategory } = {}) {
+export async function listConnectorCatalog(ctx: ServiceContext, filters: { category?: ConnectorCategory } = {}) {
   requirePerm(ctx, 'integrations.view')
-  const connectors = CONNECTOR_CATALOG
+  // Built-in connectors plus those of the extensions this workspace may use.
+  const catalog = hasExtensions() ? connectorCatalogWith(await usableExtensionIds(ctx.tenantId)) : CONNECTOR_CATALOG
+  const connectors = catalog
     .filter((connector) => !filters.category || connector.category === filters.category)
     .map((connector) => ({
       key: connector.key,

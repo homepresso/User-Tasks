@@ -10,6 +10,8 @@ import { resolveStorageUrl } from '@/lib/storage/refs'
 import { APP_NAME, TITLE_TEMPLATE } from '@/lib/page-title'
 import { enforceHostWorkspace } from '@/lib/workspace-host'
 import { redirectToSetupIfNeeded } from '@/lib/setup/server'
+import { ExtensionsProvider } from '@/components/extensions/extensions-provider'
+import { loadExtensionUiState } from '@/lib/extensions/ui-server'
 
 export async function generateMetadata(): Promise<Metadata> {
   const theme = await loadSessionWorkspaceTheme()
@@ -34,6 +36,9 @@ export default async function DashboardLayout({
   // loading shell included) already has the right colours, fonts and sizes.
   const theme = await loadSessionWorkspaceTheme()
   const fontHrefs = themeFontHrefs(theme)
+  // Extensions usable in this workspace (lib/extensions/ui-server): empty, with
+  // no database call, in a build without extensions.
+  const extensionUi = await loadExtensionUiState()
   return (
     <>
       {/* Theme web fonts, served from this origin (/fonts/g/…). */}
@@ -41,9 +46,11 @@ export default async function DashboardLayout({
       <style id="workspace-theme" dangerouslySetInnerHTML={{ __html: themeStylesheet(theme) }} />
       <WorkspaceThemeProvider theme={theme}>
         <DashboardAuthProvider>
-          <Suspense fallback={null}>
-            <DashboardShell>{children}</DashboardShell>
-          </Suspense>
+          <ExtensionsProvider initial={extensionUi}>
+            <Suspense fallback={null}>
+              <DashboardShell>{children}</DashboardShell>
+            </Suspense>
+          </ExtensionsProvider>
         </DashboardAuthProvider>
       </WorkspaceThemeProvider>
     </>

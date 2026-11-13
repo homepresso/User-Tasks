@@ -547,6 +547,14 @@ Copy \`.env.example\` to \`.env.local\` (for \`npm run dev\` / \`npm start\`) or
 `,
   },
   {
+    slug: 'self-hosting/licensing',
+    title: 'Licences for paid extensions',
+    description: 'Install, renew and remove licences for paid extensions (Settings → Licence, usertasks-admin licence, USERTASKS_LICENCE, the API), offline activation for air-gapped installs, warnings before expiry, and what happens at expiry: extensions stop 24 hours later and in-flight steps fail with a retryable licence error.',
+    body: `
+::include docs/licensing.md
+`,
+  },
+  {
     slug: 'self-hosting/aws',
     title: 'AWS setup',
     description: 'The AWS reference deployment: ECS on Fargate, RDS PostgreSQL with IAM database auth, ElastiCache Valkey with IAM auth, S3, SES, Secrets Manager, KMS, CloudWatch Logs and an EventBridge Scheduler tick, from the Terraform template.',

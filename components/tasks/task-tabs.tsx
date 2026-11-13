@@ -14,21 +14,25 @@ import { cn } from "@/lib/utils"
  * The Attachments tab is a mount point: components/tasks/task-attachments-tab.tsx
  * is the adapter the task-attachments feature replaces.
  */
-export type TaskTab = "details" | "form" | "comments" | "attachments"
+export type TaskTab = "details" | "form" | "comments" | "attachments" | `ext:${string}`
 
 export const TASK_TABS: readonly TaskTab[] = ["details", "form", "comments", "attachments"]
+
+/** Detail tabs contributed by extensions (`ext:<extension>:<tab>`), after the core ones. */
+export interface ExtensionTaskTab { value: `ext:${string}`; label: string }
 
 export function parseTaskTab(value: string | null | undefined, allowed: readonly TaskTab[]): TaskTab | null {
   return value && (allowed as readonly string[]).includes(value) ? (value as TaskTab) : null
 }
 
 /** The tab items, in order; Form only when the task has one. Counts are left off while unknown. */
-export function taskTabs({ hasForm, comments, attachments }: { hasForm: boolean; comments?: number; attachments?: number }): TabItem<TaskTab>[] {
+export function taskTabs({ hasForm, comments, attachments, extensionTabs = [] }: { hasForm: boolean; comments?: number; attachments?: number; extensionTabs?: readonly ExtensionTaskTab[] }): TabItem<TaskTab>[] {
   return [
     { value: "details", label: "Details" },
     ...(hasForm ? [{ value: "form" as const, label: "Form" }] : []),
     { value: "comments", label: "Comments", count: comments },
     { value: "attachments", label: "Attachments", count: attachments },
+    ...extensionTabs.map((t) => ({ value: t.value, label: t.label })),
   ]
 }
 
@@ -46,7 +50,10 @@ export function TaskTabs({ taskId, tabs, defaultTab, className, children }: {
 
   // Read ?tab= after hydration (no useSearchParams Suspense bailout); follow back / forward.
   useEffect(() => {
-    const read = () => setFromUrl(parseTaskTab(new URLSearchParams(window.location.search).get("tab"), TASK_TABS))
+    const read = () => {
+      const raw = new URLSearchParams(window.location.search).get("tab")
+      setFromUrl(raw?.startsWith("ext:") ? (raw as TaskTab) : parseTaskTab(raw, TASK_TABS))
+    }
     read()
     window.addEventListener("popstate", read)
     return () => window.removeEventListener("popstate", read)

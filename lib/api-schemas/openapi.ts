@@ -117,6 +117,7 @@ function buildOperation(endpoint: EndpointDef) {
     ...(endpoint.cli
       ? { 'x-usertasks-cli': { ...endpoint.cli, ...(endpoint.listKey ? { listKey: endpoint.listKey } : {}) } }
       : {}),
+    ...(endpoint.extension ? { 'x-usertasks-extension': endpoint.extension } : {}),
   }
 }
 
@@ -143,13 +144,18 @@ function describe(endpoint: EndpointDef): string | undefined {
   return endpoint.description ? `${endpoint.description} ${ROUND_TRIP_NOTE}` : ROUND_TRIP_NOTE
 }
 
-export function buildOpenApiDocument() {
+/**
+ * The document for `endpoints` (default: the core registry). The served
+ * document adds the endpoints of the extensions compiled into the build
+ * (app/api/v1/openapi.json); the checked-in file is core only.
+ */
+export function buildOpenApiDocument(endpoints: readonly EndpointDef[] = API_ENDPOINTS) {
   const paths: Record<string, Record<string, unknown>> = {}
-  for (const endpoint of API_ENDPOINTS) {
+  for (const endpoint of endpoints) {
     const item = (paths[endpoint.path] ??= {})
     item[endpoint.method.toLowerCase()] = buildOperation(endpoint)
   }
-  const tags = Array.from(new Set(API_ENDPOINTS.flatMap((endpoint) => endpoint.tags))).map((name) => ({ name }))
+  const tags = Array.from(new Set(endpoints.flatMap((endpoint) => endpoint.tags))).map((name) => ({ name }))
 
   return {
     openapi: '3.1.0',
@@ -194,6 +200,6 @@ export function buildOpenApiDocument() {
 }
 
 /** Canonical serialisation used for both the served and the checked-in file. */
-export function serializeOpenApiDocument(): string {
-  return `${JSON.stringify(buildOpenApiDocument(), null, 2)}\n`
+export function serializeOpenApiDocument(endpoints: readonly EndpointDef[] = API_ENDPOINTS): string {
+  return `${JSON.stringify(buildOpenApiDocument(endpoints), null, 2)}\n`
 }

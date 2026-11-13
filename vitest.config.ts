@@ -42,6 +42,9 @@ export default defineConfig({
       '@': path.resolve(__dirname),
       // Package tests run against sources, not the built dist/.
       '@user-tasks/sdk': path.resolve(__dirname, 'packages/sdk/src/index.ts'),
+      // Extensions import only the extension SDK (lib/extensions/sdk).
+      '@user-tasks/extension-sdk/ui': path.resolve(__dirname, 'lib/extensions/sdk/ui.tsx'),
+      '@user-tasks/extension-sdk': path.resolve(__dirname, 'lib/extensions/sdk/index.ts'),
     },
   },
 })

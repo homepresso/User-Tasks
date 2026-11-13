@@ -40,3 +40,9 @@ deploy/compose/.state
 # Seeds for the maintainer's own test accounts (personal email aliases)
 scripts/seed/approval-use-case.ts
 scripts/seed/local-fixture.ts
+
+# Paid extensions live in the private usertasks-extensions repository and are
+# never committed here (core never imports them: __tests__/extensions-build).
+# Backstop in case one is copied in by mistake: only the free example ships.
+extensions/**
+!extensions/example-hello/**

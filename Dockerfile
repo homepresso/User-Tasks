@@ -88,7 +88,12 @@ RUN if [ "$INCLUDE_OPTIONAL_DB_DRIVERS" != "true" ]; then \
 # ~6 s). The compile before it (Turbopack) is the peak: about 10 GB, see
 # docs/deployment-profiles.md#memory.
 ARG NEXT_BUILD_CPUS=2
-RUN NEXT_BUILD_TYPECHECK=false NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS npm run build \
+# Extensions compiled in (lib/extensions/build/codegen.ts): a comma list of
+# installed packages or in-repo paths. Empty (the public image) = none. An
+# Enterprise image is built FROM a context that also installs the private
+# extension packages and sets this.
+ARG USERTASKS_EXTENSIONS=
+RUN USERTASKS_EXTENSIONS=$USERTASKS_EXTENSIONS NEXT_BUILD_TYPECHECK=false NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS npm run build \
  && node scripts/build-worker.mjs .next/standalone/worker.cjs \
  && node packages/admin/scripts/build.mjs .next/standalone/admin.cjs
 

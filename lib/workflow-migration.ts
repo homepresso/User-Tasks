@@ -6,7 +6,7 @@
  * logic is unit-tested directly and shared with the UI wizard.
  */
 
-import { NODE_CATALOG } from '@/lib/workflow-schema'
+import { NODE_CATALOG, isTriggerNodeType as isCatalogTrigger } from '@/lib/workflow-schema'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow node configs are free-form */
 
@@ -26,7 +26,7 @@ const TRIGGER_TYPES = new Set(NODE_CATALOG.filter((n) => n.category === 'trigger
 
 /** Trigger nodes start a run; a migrated run must continue at a step after them. */
 export function isTriggerNodeType(type: string | null | undefined): boolean {
-  return !!type && TRIGGER_TYPES.has(type)
+  return !!type && (TRIGGER_TYPES.has(type) || (type.startsWith('ext.') && isCatalogTrigger(type)))
 }
 
 /** Nodes a run can continue at (no triggers, no section containers). */

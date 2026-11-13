@@ -35,7 +35,7 @@
  */
 
 import type { WorkflowEdge, WorkflowNode } from './workflow-schema'
-import { NODE_CATALOG } from './workflow-schema'
+import { fullNodeCatalog } from './workflow-schema'
 import { branchIndexOf, getBranchLabels, orderOutgoingEdges } from './workflow-branches'
 import { CHIP_AREA, DEFAULT_NODE_WIDTH, nodeBox, type SizeMap } from './workflow-edge-routing'
 import { SECTION_HEADER_HEIGHT } from './workflow-sections'
@@ -85,7 +85,7 @@ export const LAYOUT = {
   MIN_PITCH: 120,
 } as const
 
-const TRIGGER_TYPES = new Set<string>(NODE_CATALOG.filter((n) => n.category === 'trigger').map((n) => n.type))
+const triggerTypes = () => new Set<string>(fullNodeCatalog().filter((n) => n.category === 'trigger').map((n) => n.type))
 
 const snap = (v: number) => Math.round(v / LAYOUT.GRID) * LAYOUT.GRID
 const snapUp = (v: number, step: number = LAYOUT.GRID) => Math.ceil(v / step - 1e-9) * step
@@ -152,6 +152,7 @@ export function layoutWorkflow(input: LayoutInput): LayoutResult {
     const chips = n.type !== 'section_group' && getBranchLabels(n).length > 0
     H.push(box.height + (chips ? CHIP_AREA : 0))
   }
+  const TRIGGER_TYPES = triggerTypes()
   const isTrigger = L.map((n) => TRIGGER_TYPES.has(n.type))
 
   // Resolve edges onto layout nodes.

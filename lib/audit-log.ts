@@ -48,6 +48,8 @@ export type AuditObjectType =
   | 'org_unit'
   | 'project'
   | 'org'
+  | 'extension'
+  | 'licence'
 
 export type AuditAction =
   | 'create'

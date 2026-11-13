@@ -13,6 +13,7 @@ import { GOVERNANCE_PAGES } from './content/governance'
 import { AI_ASSISTANT_PAGES } from './content/ai-assistants'
 import { TUTORIAL_PAGES } from './content/tutorials'
 import { API_PAGES, CLI_PAGES, SDK_PAGES } from './content/developers'
+import { EXTENSION_PAGES } from './content/extensions'
 import { OBSERVABILITY_PAGES, PROJECT_PAGES, SELF_HOSTING_PAGES } from './content/operations'
 import { SERVICE_PAGES, TOPOLOGY_PAGES } from './content/deploy'
 import { SELF_HOSTING_GUIDE_PAGES } from './content/self-hosting-guide'
@@ -38,6 +39,7 @@ export const DOC_SECTIONS: DocSectionDef[] = [
   { title: 'Governance and security', pages: GOVERNANCE_PAGES },
   { title: 'API and MCP', pages: API_PAGES, links: [{ title: 'API Explorer', href: '/docs/api-explorer' }] },
   { title: 'CLI, SDK and config', pages: [...CLI_PAGES, ...SDK_PAGES] },
+  { title: 'Extensions', pages: EXTENSION_PAGES },
   { title: 'Observability', pages: OBSERVABILITY_PAGES },
   { title: 'Deploy anywhere', pages: TOPOLOGY_PAGES },
   { title: 'Choosing services', pages: SERVICE_PAGES },

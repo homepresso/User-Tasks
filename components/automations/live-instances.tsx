@@ -33,7 +33,7 @@ import { serverRead } from '@/lib/server-read'
 import { usePermissions } from '@/lib/permissions-context'
 import { formatAbsolute, formatRelative } from '@/lib/format/date'
 import { plural } from '@/lib/format/plural'
-import { NODE_CATALOG, type WorkflowEdge, type WorkflowNode } from '@/lib/workflow-schema'
+import { nodeCatalogEntry, type WorkflowEdge, type WorkflowNode } from '@/lib/workflow-schema'
 import type { RunOverlay } from '@/lib/workflow-run-overlay'
 import { RuntimeCanvas } from './runtime-canvas'
 import { migratableNodes } from '@/lib/workflow-migration'
@@ -68,7 +68,7 @@ function isError<T extends object>(value: T | { error: string }): value is { err
 }
 
 export function NodeTypeIcon({ type, size = 12 }: { type: string | null | undefined; size?: number }) {
-  const catalog = NODE_CATALOG.find((n) => n.type === type)
+  const catalog = type ? nodeCatalogEntry(type) : undefined
   const Icon = NODE_ICON_MAP[catalog?.icon ?? 'Plus'] ?? Plus
   return (
     <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded" style={{ backgroundColor: `color-mix(in srgb, ${catalog?.color ?? 'var(--theme-muted-text)'} 15%, transparent)`, color: catalog?.color ?? 'var(--theme-muted-text)' }}>
@@ -461,7 +461,7 @@ export function MigrateInstancesWizard({ workflowId, runIds, onClose, onDone }: 
                       <option value="">Choose a step…</option>
                       {targetChoices.map((n: any) => (
                         <option key={n.id} value={n.id}>
-                          {n.label ?? n.id} · {NODE_CATALOG.find((c) => c.type === n.type)?.label ?? n.type}{(() => { const summary = n.config ? getNodeConfigSummary(normalizeDataTableConfig({ type: n.type, config: n.config }), { tableNames }) : null; return summary ? ` · ${summary}` : '' })()}{n.id === s.id ? ' (same node)' : ''}
+                          {n.label ?? n.id} · {nodeCatalogEntry(n.type)?.label ?? n.type}{(() => { const summary = n.config ? getNodeConfigSummary(normalizeDataTableConfig({ type: n.type, config: n.config }), { tableNames }) : null; return summary ? ` · ${summary}` : '' })()}{n.id === s.id ? ' (same node)' : ''}
                         </option>
                       ))}
                     </Select>

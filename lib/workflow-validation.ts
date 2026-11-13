@@ -1,6 +1,7 @@
 import type { WorkflowNode } from './workflow-schema'
 import { WORKFLOW_UPDATABLE_TASK_FIELDS } from './task-fields'
 import { NODE_CATALOG } from './workflow-schema'
+import { extensionCatalogEntry, looksLikeExtensionNodeType } from './extensions/nodes'
 import { normalizeScheduleConfig } from './workflow-schedule'
 import { setVariableValidationErrors } from './workflow-set-variable'
 import { taskDataFieldSlug } from './task-data'
@@ -39,11 +40,31 @@ export interface WorkflowValidationEnv {
   entraGroups?: boolean
 }
 
+/**
+ * Extension nodes and triggers (ext.<id>.<key>): installed in this build,
+ * and every required input mapped (or defaulted). Whether the workspace has
+ * the extension enabled and licensed is checked when the step runs.
+ */
+function validateExtensionNode(node: WorkflowNode): string[] {
+  const entry = extensionCatalogEntry(node.type)
+  if (!entry) return [`${node.type} is not installed in this build (extension missing)`]
+  const mappings = (node.config?.input_mappings ?? {}) as Record<string, unknown>
+  const source = entry.category === 'trigger' ? (node.config ?? {}) : mappings
+  const errors: string[] = []
+  for (const field of entry.inputs) {
+    if (!field.required || field.default !== undefined) continue
+    const value = source[field.name]
+    if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) errors.push(`${field.label ?? field.name} is required`)
+  }
+  return errors
+}
+
 export function validateNode(node: WorkflowNode, env: WorkflowValidationEnv = {}): string[] {
   const c = node.config
   const errors: string[] = []
 
   if (TRIGGER_TYPES.includes(node.type)) return validateTriggerNode(node)
+  if (looksLikeExtensionNodeType(node.type)) return validateExtensionNode(node)
 
   switch (node.type) {
     case 'condition':

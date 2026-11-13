@@ -171,6 +171,14 @@ npm install -g --offline ./npm/user-tasks-cli-0.1.0.tgz
 usertasks login --url https://tasks.corp.example
 ```
 
+## Licences for paid extensions
+
+Paid extensions in the Enterprise bundle stay switched off until a licence
+enables them. Licences are verified offline. Get one bound to this install
+with `usertasks-admin licence request`: carry the request file to a connected
+machine, upload it in the licensing portal, then run `usertasks-admin licence
+install <file>`. See [Licences for paid extensions](licensing.md).
+
 ## Updates
 
 Build a new bundle with the same signing key, verify it, `load`, then

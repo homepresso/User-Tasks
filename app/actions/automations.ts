@@ -180,6 +180,15 @@ export async function publishWorkflow(workflowId: string, notes?: string): Promi
   const { data: workflow } = await supabase.from('workflows').select('*').eq('id', workflowId).single()
   if (!workflow) throw new Error('Workflow not found')
 
+  // Extension steps (ext.<id>.*): installed, enabled and licensed, or no publish.
+  const workflowNodes = ((workflow as { nodes?: unknown }).nodes ?? []) as Array<{ type?: unknown; label?: unknown }>
+  const workflowTenantId = ((workflow as { tenant_id?: string | null }).tenant_id ?? tenantId) as string | null | undefined
+  if (workflowTenantId && workflowNodes.some((n) => typeof n?.type === 'string' && n.type.startsWith('ext.'))) {
+    const { workflowExtensionPublishBlock } = await import('@/lib/extensions/workflow-gate')
+    const extensionBlock = await workflowExtensionPublishBlock(workflowTenantId, workflowNodes)
+    if (extensionBlock) return { error: extensionBlock }
+  }
+
   // Get next version number (use maybeSingle to handle first publish)
   const { data: lastVersion } = await (supabase as any)
     .from('workflow_versions')

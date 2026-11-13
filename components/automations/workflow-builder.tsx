@@ -7,7 +7,7 @@ import { AGENT_RERUN_TEST_EVENT } from "@/components/assistants/agent-store"
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable, useSensor, useSensors, PointerSensor } from "@dnd-kit/core"
 import type { WorkflowNode, WorkflowEdge, NodeType } from "@/lib/workflow-schema"
-import { createDefaultNode, NODE_CATALOG, nodeColorCategory, nodeColorTextVar, nodeColorVar } from "@/lib/workflow-schema"
+import { createDefaultNode, fullNodeCatalog, nodeCatalogEntry, nodeColorCategory, nodeColorTextVar, nodeColorVar } from "@/lib/workflow-schema"
 import { actionManifestOf, withActionOutputs } from "@/lib/custom-actions/manifest"
 import { NodePalette } from "./node-palette"
 import { CanvasNode } from "./canvas-node"
@@ -468,7 +468,7 @@ export function WorkflowBuilder({
   // A newly selected step's settings start at the top of the inspector.
   useEffect(() => { document.getElementById("inspector-panel-configure")?.scrollTo({ top: 0 }) }, [selectedNodeId])
 
-  const TRIGGER_TYPES = NODE_CATALOG.filter(n => n.category === 'trigger').map(n => n.type)
+  const TRIGGER_TYPES: string[] = fullNodeCatalog().filter(n => n.category === 'trigger').map(n => n.type)
 
   // Derive effective trigger type from actual canvas nodes (not the static DB value)
   const effectiveTriggerType = nodes.find(n => TRIGGER_TYPES.includes(n.type))?.type ?? triggerType
@@ -1480,7 +1480,7 @@ export function WorkflowBuilder({
         easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
       }}>
         {draggingFromPalette && (() => {
-          const catalog = NODE_CATALOG.find((n) => n.type === draggingFromPalette)
+          const catalog = nodeCatalogEntry(String(draggingFromPalette))
           if (!catalog) return null
           const Icon = paletteIconMap[catalog.icon] ?? Plus
           const category = nodeColorCategory(catalog.type)

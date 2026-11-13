@@ -40,6 +40,7 @@
     "starter:build": "tsx scripts/build-form-control-starter.ts",
     "action-starter:build": "tsx scripts/build-action-starter.ts",
     "check:server-chunks": "node scripts/check-server-chunks.mjs",
+    "extensions:gen": "tsx scripts/extensions-codegen.ts",
     "check:function-size": "tsx scripts/function-size.ts",
     "vercel:build": "MAX_UNCOMPRESSED_LAMBDA_SIZE=104857600 vercel build --prod --yes && tsx scripts/function-size.ts --vercel"
   },

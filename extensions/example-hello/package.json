@@ -1,0 +1,10 @@
+{
+  "name": "@user-tasks/extension-example-hello",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "Example UserTasks extension (free). Build it in with USERTASKS_EXTENSIONS=./extensions/example-hello.",
+  "usertasks": {
+    "extension": { "manifest": "./manifest.ts", "server": "./server.ts", "pages": "./pages.tsx" }
+  }
+}

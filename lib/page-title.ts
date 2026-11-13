@@ -133,7 +133,16 @@ export const ROUTES: readonly RouteEntry[] = [
   { pattern: '/settings/document-ocr', label: 'Document OCR' },
   { pattern: '/settings/assistants', label: 'Agent' },
   { pattern: '/settings/infrastructure', label: 'Infrastructure' },
+  { pattern: '/settings/licence', label: 'Licence' },
   { pattern: '/settings/gallery-review', label: 'Gallery review' },
+  { pattern: '/settings/extensions', label: 'Extensions' },
+  { pattern: '/settings/extensions/[id]', label: 'Extension', hidden: true },
+  { pattern: '/settings/extensions/[id]/[id]', label: 'Extension settings' },
+  // Extension custom pages (/x/<extension>/…): the page names itself in its PageHeader.
+  { pattern: '/x', label: 'Extensions', hidden: true },
+  { pattern: '/x/[id]', label: 'Extension', root: true },
+  { pattern: '/x/[id]/[id]', label: 'Extension page' },
+  { pattern: '/x/[id]/[id]/[id]', label: 'Extension page' },
 ]
 
 /** Query-scoped pages: a tab that is its own destination in the menu. */

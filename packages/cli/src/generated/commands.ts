@@ -11549,6 +11549,125 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": false
   },
   {
+    "operationId": "listExtensions",
+    "method": "GET",
+    "path": "/extensions",
+    "resource": "extensions",
+    "verb": "list",
+    "summary": "List the extensions in this build and their state in this workspace",
+    "permission": "settings.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "extensions",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getExtension",
+    "method": "GET",
+    "path": "/extensions/{id}",
+    "resource": "extensions",
+    "verb": "get",
+    "summary": "Get one extension",
+    "permission": "settings.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "enableExtension",
+    "method": "POST",
+    "path": "/extensions/{id}/enable",
+    "resource": "extensions",
+    "verb": "enable",
+    "summary": "Enable an extension in this workspace",
+    "permission": "settings.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "disableExtension",
+    "method": "POST",
+    "path": "/extensions/{id}/disable",
+    "resource": "extensions",
+    "verb": "disable",
+    "summary": "Disable an extension in this workspace (settings and data are kept)",
+    "permission": "settings.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getExtensionSettings",
+    "method": "GET",
+    "path": "/extensions/{id}/settings/{page}",
+    "resource": "extensions",
+    "verb": "settings",
+    "summary": "Read one settings page of an extension (schema and values; secrets never returned)",
+    "permission": null,
+    "positional": [
+      "id",
+      "page"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateExtensionSettings",
+    "method": "PUT",
+    "path": "/extensions/{id}/settings/{page}",
+    "resource": "extensions",
+    "verb": "configure",
+    "summary": "Change one settings page of an extension",
+    "permission": null,
+    "positional": [
+      "id",
+      "page"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "values",
+          "type": "object",
+          "required": true,
+          "description": "Field key → value"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
     "operationId": "listJobs",
     "method": "GET",
     "path": "/jobs",
@@ -12089,5 +12208,222 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "paginated": false,
     "envelope": true,
     "destructive": false
+  },
+  {
+    "operationId": "getLicence",
+    "method": "GET",
+    "path": "/licence",
+    "resource": "licence",
+    "verb": "status",
+    "summary": "Licence status: installed licences, licensed extensions, limits and usage, expiry warnings (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "installLicence",
+    "method": "PUT",
+    "path": "/licence",
+    "resource": "licence",
+    "verb": "install",
+    "summary": "Install or replace a licence (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "licence",
+          "type": "string",
+          "required": true,
+          "description": "The licence file contents (JSON, or base64 of it)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "removeLicence",
+    "method": "DELETE",
+    "path": "/licence",
+    "resource": "licence",
+    "verb": "remove",
+    "summary": "Remove an installed licence (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "licence_id",
+        "flag": "licence-id",
+        "description": "The licence to remove",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "all",
+        "flag": "remove-all",
+        "description": "true: remove every licence installed here",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "getLicenceRequest",
+    "method": "GET",
+    "path": "/licence/request",
+    "resource": "licence",
+    "verb": "request",
+    "summary": "Offline activation request: instance id, hostnames, version (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listEntitlements",
+    "method": "GET",
+    "path": "/licence/entitlements",
+    "resource": "entitlements",
+    "verb": "list",
+    "summary": "List workspace entitlements to paid extensions (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "tenant_id",
+        "flag": "tenant-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "extension_id",
+        "flag": "extension-id",
+        "description": "Only this extension",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "entitlements",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "grantEntitlement",
+    "method": "PUT",
+    "path": "/licence/entitlements",
+    "resource": "entitlements",
+    "verb": "grant",
+    "summary": "Grant or update a workspace entitlement to a paid extension (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "tenant_id",
+          "type": "string",
+          "required": true,
+          "description": "Workspace id"
+        },
+        {
+          "name": "extension_id",
+          "type": "string",
+          "required": true,
+          "description": "Extension id, e.g. sharepoint"
+        },
+        {
+          "name": "edition",
+          "required": false
+        },
+        {
+          "name": "features",
+          "type": "array",
+          "required": false,
+          "description": "Features granted (omitted / empty / [\"*\"]: all)"
+        },
+        {
+          "name": "limits",
+          "type": "object",
+          "required": false,
+          "description": "Numeric limits, e.g. {\"sharepoint.farms\": 2}"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "description": "Default active"
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": false,
+          "description": "Default admin"
+        },
+        {
+          "name": "starts_at",
+          "required": false
+        },
+        {
+          "name": "ends_at",
+          "required": false,
+          "description": "Expiry; the extension stops 24 hours after it. Omitted: no end"
+        },
+        {
+          "name": "notes",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "revokeEntitlement",
+    "method": "DELETE",
+    "path": "/licence/entitlements/{tenant_id}/{extension_id}",
+    "resource": "entitlements",
+    "verb": "revoke",
+    "summary": "Remove a workspace entitlement (instance admin)",
+    "permission": null,
+    "positional": [
+      "tenant_id",
+      "extension_id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
   }
 ]

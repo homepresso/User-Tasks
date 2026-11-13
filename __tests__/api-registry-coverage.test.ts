@@ -9,9 +9,17 @@ const ROOT = join(__dirname, '..')
 const V1_DIR = join(ROOT, 'app', 'api', 'v1')
 const METHOD_EXPORT = /export\s+(?:async\s+function|const)\s+(GET|POST|PUT|PATCH|DELETE)\b/g
 
+/**
+ * The extension catch-all (/api/v1/ext/<id>/…) dispatches to the endpoints of
+ * the extensions compiled into the build (lib/extensions/api.ts); they are
+ * added to the served OpenAPI document at runtime, not to API_ENDPOINTS.
+ */
+const EXTENSION_DISPATCH_DIR = join(V1_DIR, 'ext')
+
 function findRouteFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const full = join(dir, name)
+    if (full === EXTENSION_DISPATCH_DIR) return []
     if (statSync(full).isDirectory()) return findRouteFiles(full)
     return name === 'route.ts' ? [full] : []
   })

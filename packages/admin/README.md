@@ -22,6 +22,12 @@ node admin.cjs <command>            # in the Docker image (/app/admin.cjs)
 | `ui-switching status \| on \| off` | Cloud edition: allow provider changes from Settings → Infrastructure (`instance.allow_ui_switching`) |
 | `bootstrap --email … --org … [--password …] [--api-key <name>] [--if-missing]` | First workspace and owner through the configured providers (password also from `BOOTSTRAP_PASSWORD`); `--api-key` prints a tenant key once |
 | `storage init` | Create the app's buckets on the configured storage provider |
+| `licence status [--json]` | Installed licences for paid extensions (setting and `USERTASKS_LICENCE` / `USERTASKS_LICENCE_FILE`): validity, expiry and the 24-hour cutoff, extensions, limits, warnings (exit 1 on an expired or invalid licence) |
+| `licence install <file>` | Install or replace a licence (signature, key id, binding and dates checked; invalid, foreign or expired ones are refused) |
+| `licence remove <licence-id>` / `licence remove --all` | Remove installed licences |
+| `licence request [--out <file>] [--json]` | Offline activation request (instance id, hostnames, version) for the licensing portal |
+| `entitlements list [--tenant <id>] [--ext <id>] [--json]` | Cloud workspace entitlements to paid extensions |
+| `entitlements grant --tenant <id> --ext <id> [--until <ISO date>] [--features a,b] [--limits key=n,…]` / `entitlements revoke --tenant <id> --ext <id>` | Grant / remove a workspace entitlement (`tenant_entitlements`) |
 | `db migrate [--dry-run] [--include-all] [--owner <role>]` | Apply `supabase/migrations` to any PostgreSQL 15+ |
 | `db status` / `db repair --status applied\|reverted <version>…` | Migration history |
 

@@ -24,7 +24,7 @@ import bcrypt from 'bcryptjs'
 import { randomBytes } from 'crypto'
 import { invalidateCredentialCache } from '@/lib/api-auth-cache'
 import { normalizeApiKeyScopes } from '@/lib/api-key-permissions'
-import { PERMISSION_KEYS } from '@/lib/permissions'
+import { PERMISSION_KEYS, isStorablePermission } from '@/lib/permissions'
 import { rateLimit } from '@/lib/rate-limit'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { applyPage, audit, dbError, type Page } from './_shared'
@@ -181,7 +181,7 @@ export async function createApiKey(ctx: ServiceContext, input: ApiKeyCreateInput
   let permissions: string[] | null
   if (Array.isArray(input.permissions)) {
     const requested = Array.from(new Set(input.permissions.map((p) => String(p ?? '').trim()).filter(Boolean)))
-    const unknown = requested.filter((p) => !VALID_PERMISSIONS.has(p))
+    const unknown = requested.filter((p) => !VALID_PERMISSIONS.has(p) && !isStorablePermission(p))
     if (unknown.length) throw ServiceError.validation(`Unknown permissions: ${unknown.join(', ')}`)
     const excess = requested.filter((p) => !held.includes(p))
     if (excess.length) throw ServiceError.forbidden(`Forbidden: a new key cannot hold permissions the caller lacks: ${excess.join(', ')}`)

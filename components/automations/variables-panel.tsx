@@ -243,7 +243,7 @@ export function VariablesPanel({ open, onClose, nodes, edges, selectedNodeId, on
         if (vars.length) groups.push({ group: `📌 ${nodeLabel}`, vars })
       }
 
-      if (node.type === 'custom_activity') {
+      if (node.type === 'custom_activity' || node.type.startsWith('ext.')) {
         const outputs = Array.isArray(c.manifest?.outputs) ? c.manifest.outputs : []
         const customPrefix = c._output_prefix || c.custom_activity_key || nodeLabel.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30)
         const vars = outputs.flatMap((output: any) => {

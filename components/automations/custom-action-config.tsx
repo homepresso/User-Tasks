@@ -45,8 +45,8 @@ function Chip({ children, tone = 'muted' }: { children: React.ReactNode; tone?: 
   return <span className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-2xs font-medium', t.bg, t.text)}>{children}</span>
 }
 
-/** One generated input editor. */
-function InputEditor({ field, value, onChange, extraVariables }: {
+/** One generated input editor (also used for extension nodes). */
+export function InputEditor({ field, value, onChange, extraVariables }: {
   field: ActionField
   value: string
   onChange: (value: string) => void
@@ -99,7 +99,7 @@ function InputEditor({ field, value, onChange, extraVariables }: {
   )
 }
 
-function OutputRow({ field, prefix, depth = 0 }: { field: ActionField; prefix: string; depth?: number }) {
+export function OutputRow({ field, prefix, depth = 0 }: { field: ActionField; prefix: string; depth?: number }) {
   const nested = field.type === 'array' ? field.items?.fields : field.type === 'object' ? field.fields : undefined
   return (
     <div className="space-y-1" style={{ marginLeft: depth * 12 }}>

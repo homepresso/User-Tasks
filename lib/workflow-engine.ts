@@ -43,6 +43,7 @@ import {
 import { evaluateDecisionTable } from "./decision-table-engine";
 import { ActionRunError, executeStoredAction, loadStoredAction } from "./custom-actions/execute";
 import { actionManifestOf, operationOf } from "./custom-actions/manifest";
+import { isExtensionTriggerType } from "./extensions/nodes";
 import { evaluateOperator, normalizeOperator } from "./conditions";
 import { normalizeTaskFieldValue, WORKFLOW_UPDATABLE_TASK_FIELDS } from "./task-fields";
 import { resolveTaskDescriptionTemplate } from "./task-description";
@@ -213,6 +214,23 @@ export const DEFERRED_RETRY_ATTEMPTS = 240;
 
 /** Run statuses a resume may claim. */
 const RESUMABLE_RUN_STATUSES = ["waiting_for_event", "paused"];
+
+/**
+ * pause_variables key of a run parked because an extension step's licence
+ * expired (past the 24-hour cutoff): the step's node id. Resume re-runs that
+ * step (instead of continuing after it) — see parkLicenceBlockedRun.
+ */
+const LICENCE_BLOCKED_KEY = "_licence_blocked_node_id";
+
+/** An extension step refused because its licence expired (lib/licensing LicenceExpiredError: retryable). */
+function isLicenceExpiredStepError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === "extension_licence_expired" &&
+    (error as { retryable?: unknown }).retryable === true
+  );
+}
 
 /** Run columns resumeWorkflow needs (not the SLA/title columns). */
 const RESUME_RUN_COLUMNS =
@@ -1004,6 +1022,16 @@ export async function executeWorkflow(
     return { status: "completed", node_results: {} };
   }
 
+  // New runs of workflows with extension steps (ext.<id>.*) start only while
+  // those extensions are licensed: an expired (past the 24-hour cutoff) or
+  // missing licence refuses the run with a 402 ServiceError
+  // (extension_licence_expired / extension_not_licensed); a queued start
+  // fails its job, which Workflow queue → Retry restarts after renewal.
+  if (nodes.some((n) => typeof n?.type === "string" && n.type.startsWith("ext."))) {
+    const { assertWorkflowExtensionsLicensed } = await import("./extensions/workflow-gate");
+    await assertWorkflowExtensionsLicensed(workflow.tenant_id, nodes);
+  }
+
   // Canonical task data object: full row + data (template values) +
   // responses/timeline/computed fields — everything designers can bind as
   // {{task.*}}. Superset of the raw row, so existing references are unchanged.
@@ -1101,7 +1129,7 @@ export async function executeWorkflow(
     const startNodes = nodes.filter(
       (n) =>
         !targetIds.has(n.id) &&
-        (TRIGGER_TYPES as readonly string[]).includes(n.type),
+        ((TRIGGER_TYPES as readonly string[]).includes(n.type) || isExtensionTriggerType(n.type)),
     );
 
     if (startNodes.length === 0 && nodes.length > 0) {
@@ -1248,6 +1276,13 @@ export async function executeWorkflow(
       };
     }
 
+    if (isLicenceExpiredStepError(error) && runId) {
+      return {
+        ...(await parkLicenceBlockedRun(supabase, ctx, workflowId, runId, error, errMsg)),
+        logs: ctx.logs,
+      };
+    }
+
     const failLog = { level: "error", message: `Workflow failed: ${errMsg}` };
     ctx.logs.push(failLog);
     ctx.onEvent?.({ type: "log", data: failLog });
@@ -1306,6 +1341,66 @@ async function finishRun(
     // run_count/last_run_at are recorded when the run starts (executeWorkflow).
     flushLogs(supabase, ctx, workflowId, runId),
   ]);
+}
+
+/**
+ * Park a run whose extension step was refused because the extension's licence
+ * expired more than 24 hours ago: the step is recorded as failed (code
+ * extension_licence_expired, retryable), the run keeps all its data and is
+ * set to `paused` at that step with the reason in `error`. Resuming it
+ * (Runs → Resume, POST /workflows/runs/{id}/action resume, MCP) after the
+ * licence is renewed re-runs the step and continues; until then it stays
+ * paused (a still-expired licence parks it again).
+ */
+async function parkLicenceBlockedRun(
+  supabase: SupabaseClient,
+  ctx: ExecutionContext,
+  workflowId: string,
+  runId: string,
+  error: unknown,
+  errMsg: string,
+): Promise<{
+  status: string;
+  node_results: Record<string, any>;
+  error: string;
+  error_code: "extension_licence_expired";
+  retryable: true;
+  run_id: string;
+  paused_node_id?: string;
+}> {
+  const nodeId = (error as { __recordedForNode?: string }).__recordedForNode;
+  const parkLog: LogEntry = {
+    level: "error",
+    message: `Workflow paused: ${errMsg} Renew the licence, then resume the run to retry this step.`,
+    ...(nodeId ? { node_id: nodeId } : {}),
+    metadata: { code: "extension_licence_expired", retryable: true },
+  };
+  ctx.logs.push(parkLog);
+  ctx.onEvent?.({ type: "log", data: parkLog });
+  markJoinPlaceholders(ctx);
+  await updateWorkflowRunCompat(supabase, runId, {
+    status: "paused",
+    error: errMsg,
+    event_id: null,
+    paused_at: new Date().toISOString(),
+    paused_node_id: nodeId ?? null,
+    pause_variables: { ...pauseVariablesOf(ctx), ...(nodeId ? { [LICENCE_BLOCKED_KEY]: nodeId } : {}) },
+    ...runStateForStorage(ctx),
+  });
+  await flushLogs(supabase, ctx, workflowId, runId);
+  ctx.onEvent?.({
+    type: "done",
+    data: { status: "paused", error: errMsg, code: "extension_licence_expired", retryable: true, paused_node_id: nodeId ?? null },
+  });
+  return {
+    status: "paused",
+    node_results: ctx.nodeResults,
+    error: errMsg,
+    error_code: "extension_licence_expired",
+    retryable: true,
+    run_id: runId,
+    ...(nodeId ? { paused_node_id: nodeId } : {}),
+  };
 }
 
 /**
@@ -1847,6 +1942,8 @@ export async function resumeWorkflow(
         paused_at: null,
         paused_node_id: null,
         pause_variables: null,
+        // A run parked by an expired extension licence carries its reason.
+        error: null,
       } as any)
       .eq("id", runId),
   ]);
@@ -1943,8 +2040,12 @@ export async function resumeWorkflow(
   );
 
   try {
-    // Check for manual "Go To Activity" redirect
-    const gotoNodeId = returnVariables._goto_node_id;
+    // Check for manual "Go To Activity" redirect. A run parked by an expired
+    // extension licence re-runs the step that was refused.
+    const licenceBlockedNodeId =
+      pausedNodeId && savedVariables[LICENCE_BLOCKED_KEY] === pausedNodeId ? pausedNodeId : undefined;
+    delete ctx.variables[LICENCE_BLOCKED_KEY];
+    const gotoNodeId = returnVariables._goto_node_id ?? licenceBlockedNodeId;
     if (gotoNodeId) {
       delete ctx.variables._goto_node_id;
       const gotoNode = getNodeById(ctx, nodes, gotoNodeId);
@@ -2069,6 +2170,10 @@ export async function resumeWorkflow(
     if (errMsg.startsWith(END_MARKER)) {
       await finishRun(supabase, ctx, workflow.id, runId, {});
       return { status: "completed", node_results: ctx.nodeResults };
+    }
+
+    if (isLicenceExpiredStepError(error)) {
+      return parkLicenceBlockedRun(supabase, ctx, workflow.id, runId, error, errMsg);
     }
 
     // Failure
@@ -3352,7 +3457,8 @@ function clearJoinPlaceholders(ctx: ExecutionContext) {
 /** pause_variables: the run's variables plus, when needed, the parallel state. */
 function pauseVariablesOf(ctx: ExecutionContext): Record<string, unknown> {
   const rt = ctx.parallel;
-  const { [PARALLEL_STATE_KEY]: _drop, ...variables } = ctx.variables;
+  // The licence-blocked marker is engine-owned: only parkLicenceBlockedRun sets it.
+  const { [PARALLEL_STATE_KEY]: _drop, [LICENCE_BLOCKED_KEY]: _blocked, ...variables } = ctx.variables;
   if (!rt || !parallelStateIsActive(rt.state)) return variables;
   rt.state.wait_events = rt.state.waits.map((w) => w.event_id);
   rt.state.rev += 1;
@@ -3774,6 +3880,9 @@ async function executeNode(
         status: "error",
         error: errMsg,
         duration_ms: dur,
+        ...(isLicenceExpiredStepError(error)
+          ? { code: "extension_licence_expired", retryable: true }
+          : {}),
       };
       traceNodeVisit(ctx, node, "error");
       ctx.onEvent?.({
@@ -3794,6 +3903,10 @@ async function executeNode(
       if (typeof error === "object" && error !== null)
         (error as any).__recordedForNode = node.id;
     }
+
+    // An expired licence parks the run at this step (retryable after
+    // renewal); continuing past it would skip the step for good.
+    if (isLicenceExpiredStepError(error)) throw error;
 
     // Check if node is configured to continue on error
     if (node.onError === "continue") {
@@ -7641,6 +7754,25 @@ async function runNodeAction(
     }
 
     default:
+      // Extension nodes (ext.<id>.<key>): the one generic dispatch hook
+      // (lib/extensions/node-runtime.ts). Built-in nodes never reach it.
+      if (node.type.startsWith("ext.")) {
+        const { runExtensionNode } = await import("./extensions/node-runtime");
+        return runExtensionNode({
+          node,
+          tenantId,
+          supabase,
+          runId: ctx.runId ?? null,
+          workflowId: ctx.workflowId ?? null,
+          isTest: Boolean(ctx.isTest),
+          variables: ctx.variables,
+          actorId: (ctx.variables?.started_by_user_id as string | undefined) ?? null,
+          resolve: (expression: string) => resolveExpression(expression, ctx),
+          setVar,
+          prefix: _prefix,
+          log: (level, message, metadata) => ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level, message, metadata }),
+        });
+      }
       return { skipped: true, reason: `Unknown node type: ${node.type}` };
   }
 }
@@ -7903,6 +8035,10 @@ function summarizeOutput(nodeType: string, output: any): any {
       return rest;
     }
     default:
+      // Extension nodes: their typed outputs (lib/extensions/node-runtime.ts).
+      if (nodeType.startsWith("ext.") && output && typeof output === "object" && "outputs" in output) {
+        return { extension: output.extension ?? null, outputs: output.outputs, count: output.output_count ?? null };
+      }
       return { ok: true };
   }
 }

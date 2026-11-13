@@ -11,7 +11,7 @@ import { navIcon } from "./nav-icons"
 import { HeaderFormsMenu } from "./header-forms-menu"
 import { useWorkspaceBrand } from "@/components/providers/theme-provider"
 import { LogoMark } from "@/components/brand/logo"
-import { NAV_PRIMARY, NAV_SETTINGS, resolveNavGroups, type NavGroupId } from "@/lib/constants"
+import { NAV_PRIMARY, NAV_SETTINGS, resolveNavGroups } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/stores/app-store"
 import { usePermissions } from "@/lib/permissions-context"
@@ -21,6 +21,7 @@ import { useNavCounts, useNavCountsSync } from "@/hooks/use-nav-counts"
 import { navBadgeCount } from "@/lib/nav-badges"
 import { Tooltip } from "@/components/ui/tooltip"
 import { GettingStartedLauncher } from "@/components/onboarding/getting-started/launcher"
+import { coreShellItem, mergeByOrder, mergeNavSections, useExtensionBadgeCounts, useExtensionNav, type ShellNavItem } from "@/components/extensions/extension-nav"
 
 /**
  * The side menu (docs/design/ui-polish-spec.md §4.1): the Forms dropdown at
@@ -43,7 +44,8 @@ const GROUPS_KEY = "usertasks.nav.groups"
 
 /** Which groups are folded away (remembered per browser). */
 export function useNavGroupState() {
-  const [folded, setFolded] = useState<Partial<Record<NavGroupId, boolean>>>({})
+  // Core group ids (build, operate, people, govern) and extension sections (ext:<extension>:<section>).
+  const [folded, setFolded] = useState<Partial<Record<string, boolean>>>({})
   useEffect(() => {
     try {
       const raw = localStorage.getItem(GROUPS_KEY)
@@ -51,7 +53,7 @@ export function useNavGroupState() {
       if (raw) setFolded(JSON.parse(raw))
     } catch {}
   }, [])
-  const toggle = (id: NavGroupId) => setFolded((current) => {
+  const toggle = (id: string) => setFolded((current) => {
     const next = { ...current, [id]: !current[id] }
     try { localStorage.setItem(GROUPS_KEY, JSON.stringify(next)) } catch {}
     return next
@@ -76,15 +78,21 @@ export function Sidebar({ user }: SidebarProps) {
     return !item.requiredPermission || can(item.requiredPermission as Parameters<typeof can>[0])
   }
 
-  const renderItem = (item: (typeof NAV_PRIMARY)[number]) => (
+  // Extension nav items and sections (none in a build without extensions).
+  const extensionNav = useExtensionNav(isManager)
+  const primary = mergeByOrder(NAV_PRIMARY.filter(visible).map(coreShellItem), extensionNav.byGroup.primary ?? [])
+  const sections = mergeNavSections(resolveNavGroups(can, visible), extensionNav)
+  const extensionBadges = useExtensionBadgeCounts([...primary, ...sections.flatMap((s) => s.items)])
+
+  const renderItem = (item: ShellNavItem) => (
     <SidebarNavItem
-      key={item.href}
+      key={item.key}
       href={item.href}
       label={item.label}
-      icon={navIcon(item.icon)}
+      icon={typeof item.icon === "string" ? navIcon(item.icon) : item.icon}
       enabled={item.enabled}
       collapsed={collapsed}
-      badgeCount={navBadgeCount(navCounts, item.href)}
+      badgeCount={item.badge ? extensionBadges.get(item.key) : navBadgeCount(navCounts, item.href)}
       badgeTone={BADGE_TONE[item.href]}
     />
   )
@@ -120,8 +128,8 @@ export function Sidebar({ user }: SidebarProps) {
 
         <nav aria-label="Primary" className={cn("min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin py-3", collapsed ? "px-2" : "px-3")}>
           <ul className="space-y-0.5">
-            {NAV_PRIMARY.filter(visible).map((item) => (
-              <li key={item.href}>
+            {primary.map((item) => (
+              <li key={item.key}>
                 {renderItem(item)}
                 {item.href === "/tasks" && !collapsed && openTasks.length > 0 && (
                   <ul className="mt-0.5 space-y-0.5 pl-6" aria-label="Open tasks">
@@ -155,12 +163,12 @@ export function Sidebar({ user }: SidebarProps) {
             {!can("forms.view") && <li><SidebarFormsMenu collapsed={collapsed} /></li>}
           </ul>
 
-          {resolveNavGroups(can, visible).map((group) => {
+          {sections.map((group) => {
             const items = group.items
             const isFolded = !collapsed && !!folded[group.id]
             // A folded group still shows the page you're on.
             const shown = isFolded ? items.filter((item) => isNavItemActive(item.href, pathname, searchParams)) : items
-            const listId = `nav-group-${group.id}`
+            const listId = `nav-group-${group.id.replace(/[^a-z0-9-]/gi, '-')}`
             return (
               <section key={group.id} aria-labelledby={collapsed ? undefined : `${listId}-label`} className={collapsed ? "mt-3 border-t border-[color:var(--theme-sidebar-border)] pt-3" : "mt-6"}>
                 {!collapsed && (
@@ -178,7 +186,7 @@ export function Sidebar({ user }: SidebarProps) {
                   </button>
                 )}
                 <ul id={listId} className="space-y-0.5">
-                  {shown.map((item) => <li key={item.href}>{renderItem(item)}</li>)}
+                  {shown.map((item) => <li key={item.key}>{renderItem(item)}</li>)}
                 </ul>
               </section>
             )
@@ -187,7 +195,7 @@ export function Sidebar({ user }: SidebarProps) {
 
         <div className={cn("shrink-0 border-t border-[color:var(--theme-sidebar-border)] py-2", collapsed ? "px-2" : "px-3")}>
           <GettingStartedLauncher collapsed={collapsed} />
-          {visible(NAV_SETTINGS) && renderItem(NAV_SETTINGS)}
+          {visible(NAV_SETTINGS) && renderItem(coreShellItem(NAV_SETTINGS))}
           <div className={cn("mt-0.5 flex gap-0.5", collapsed ? "flex-col" : "items-center")}>
             <Tooltip content="Help & docs" side="right" enabled={collapsed}>
               <a

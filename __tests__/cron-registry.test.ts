@@ -119,6 +119,8 @@ describe('JOBS registry', () => {
       'process-retention': 'daily 03:00 UTC',
       'cleanup-logs': 'daily 04:00 UTC',
       'housekeeping-daily': 'daily 03:30 UTC',
+      // Licence expiry notices (lib/jobs/licence-check), new with paid-extension licensing.
+      'licence-check': 'daily 06:00 UTC',
     })
   })
 

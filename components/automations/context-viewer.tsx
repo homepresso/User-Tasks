@@ -138,7 +138,7 @@ export function ContextViewer({ nodes, triggerType }: ContextViewerProps) {
       }
     }
 
-    if (n.type === 'custom_activity') {
+    if (n.type === 'custom_activity' || n.type.startsWith('ext.')) {
       const outputs = Array.isArray(n.config.manifest?.outputs) ? n.config.manifest.outputs : []
       const prefix = n.config._output_prefix || n.config.custom_activity_key || n.label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30)
       for (const output of outputs) {

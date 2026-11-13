@@ -1,5 +1,6 @@
 "use client"
 
+import { ExtensionNodeConfig } from './extension-node-config'
 import { AddTaskAttachmentConfig } from "@/components/task-attachments/add-task-attachment-config"
 import { useState, useMemo, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
@@ -25,7 +26,7 @@ import { InlineNotice } from "@/components/ui/inline-notice"
 import { validateWorkflowWiring } from "@/lib/workflow-wiring"
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-schema"
-import { NODE_CATALOG, nodeColorCategory, nodeColorVar } from "@/lib/workflow-schema"
+import { nodeCatalogEntry, nodeColorCategory, nodeColorVar } from "@/lib/workflow-schema"
 import { Plus, X, ChevronDown, ChevronRight, Database, ArrowUp, ArrowDown } from "lucide-react"
 import { useLinkedForms } from "./linked-forms"
 import { VariableInput, TriggerTypeProvider } from "./variable-input"
@@ -186,7 +187,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
   const linkedForms = useLinkedForms()
   // Hooks MUST run before the empty-state return — an early return above
   // them changes the hook count between renders (React "static flag" error).
-  const catalog = useMemo(() => NODE_CATALOG.find((n) => n.type === node?.type), [node?.type])
+  const catalog = useMemo(() => (node?.type ? nodeCatalogEntry(node.type) : undefined), [node?.type])
   const dataTriggerNode = useMemo(() => allNodes?.find((n) => n.type === 'data_table_event'), [allNodes])
   const dataTriggerColumns = useMemo(
     () => (dataTriggerNode?.config?._table_columns ?? []) as { key: string; label?: string }[],
@@ -242,7 +243,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           pushVar('outputs', group)
           for (const output of (c._decision_outputs ?? []) as { key: string }[]) pushVar(output.key, group)
         }
-        if (n.type === 'custom_activity') {
+        if (n.type === 'custom_activity' || n.type.startsWith('ext.')) {
           const group = `🧩 ${n.label}`
           const outputs = Array.isArray(n.config._action_outputs) ? n.config._action_outputs : Array.isArray(n.config.manifest?.outputs) ? n.config.manifest.outputs : []
           const actionPrefix = String(n.config._output_prefix ?? '').trim()
@@ -628,7 +629,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
 
 
       {/* ─── A trigger that starts from the start form: its form page ("Publish as form page") ─── */}
-      {workflowId && node.type !== "form_submitted" && NODE_CATALOG.some((c) => c.type === node.type && c.category === "trigger") && (
+      {workflowId && node.type !== "form_submitted" && nodeCatalogEntry(node.type)?.category === "trigger" && (
         <StartFormPageSection workflowId={workflowId} />
       )}
 
@@ -1491,6 +1492,11 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       {/* ─── Update Data Table ─── */}
       {node.type === "update_data_table" && (
         <UpdateDataTableConfig config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} />
+      )}
+
+      {/* ─── Extension nodes and triggers (ext.<id>.<key>): panel generated from the manifest ─── */}
+      {node.type.startsWith("ext.") && (
+        <ExtensionNodeConfig node={node} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} />
       )}
 
       {node.type === "custom_activity" && (
@@ -4639,7 +4645,7 @@ function GoToActivityConfig({ config, onUpdate, onBatchUpdate, allNodes, current
           value={targetId}
           placeholder="Select an activity..."
           options={availableNodes.map(n => {
-            const cat = NODE_CATALOG.find(c => c.type === n.type)
+            const cat = nodeCatalogEntry(n.type)
             return { value: n.id, label: n.label, hint: cat?.label ?? n.type }
           })}
           onChange={(nextId) => {

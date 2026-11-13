@@ -38,6 +38,8 @@ import { taskCompletionEndpoints } from './task-completion'
 import { formSignInPageEndpoints } from './form-sign-in-page'
 import { documentOcrEndpoints } from './document-ocr'
 import { instanceAdminEndpoints } from './instance-admin'
+import { extensionEndpoints } from './extensions'
+import { licenceEndpoints } from './licence'
 
 /** Every /api/v1 endpoint, in documentation order. */
 export const API_ENDPOINTS: readonly EndpointDef[] = [
@@ -77,8 +79,10 @@ export const API_ENDPOINTS: readonly EndpointDef[] = [
   ...directorySyncEndpoints,
   ...configEndpoints,
   ...packageEndpoints,
+  ...extensionEndpoints,
   ...jobEndpoints,
   ...eventEndpoints,
   ...logDestinationEndpoints,
   ...instanceAdminEndpoints,
+  ...licenceEndpoints,
 ]

@@ -16,6 +16,7 @@ import { cleanupExpiredLogs } from '@/lib/jobs/cleanup-logs'
 import { refreshExpiringConnectorTokens } from '@/lib/jobs/oauth-refresh'
 import { sweepCacheStore } from '@/lib/jobs/cache-sweep'
 import { runHousekeepingJob } from '@/lib/jobs/housekeeping'
+import { runLicenceCheck } from '@/lib/jobs/licence-check'
 import { hasDueUserJobs, processUserJobs, purgeExpiredUserJobs } from '@/lib/user-jobs/runner'
 import { runProviderSwitchesJob } from '@/lib/jobs/provider-switches'
 import { purgeFormFiles } from '@/lib/services/form-files'
@@ -333,6 +334,15 @@ export const JOBS: JobDefinition[] = [
     budgetMs: 45_000,
     isEnabled: always,
     run: (ctx) => runHousekeepingJob({ supabase: ctx.supabase, daily: true, budgetMs: remaining(ctx) - 2_000 }),
+  },
+  {
+    // Licence expiry notices to instance admins (30 / 14 / 7 / 1 days, expired, stopped) — lib/jobs/licence-check.ts.
+    name: 'licence-check',
+    cadence: { daily: '06:00' },
+    endpoint: '/api/cron/licence-check',
+    budgetMs: 30_000,
+    isEnabled: always,
+    run: () => runLicenceCheck(),
   },
 ]
 

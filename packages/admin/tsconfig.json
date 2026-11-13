@@ -21,6 +21,12 @@
     "paths": {
       "@/*": [
         "../../*"
+      ],
+      "@user-tasks/extension-sdk": [
+        "../../lib/extensions/sdk/index.ts"
+      ],
+      "@user-tasks/extension-sdk/*": [
+        "../../lib/extensions/sdk/*"
       ]
     }
   },

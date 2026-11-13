@@ -10,7 +10,7 @@ import { mcpOk, mcpErr } from '../server'
 import { messageOf } from './_util'
 import { getWorkflowInputs, startWorkflow } from '@/lib/services/workflow-start'
 import { canAccessWorkflow } from '@/lib/api-key-permissions'
-import { NODE_CATALOG } from '@/lib/workflow-schema'
+import { fullNodeCatalog } from '@/lib/workflow-schema'
 import { validateWorkflow } from '@/lib/workflow-validation'
 import { MCP_BUILD_ORDER_SENTENCE, MCP_CORE_TOOL_DESCRIPTIONS, MCP_WORKFLOW_RECIPES_GUIDANCE } from '@/lib/mcp/descriptions'
 import { normalizeScaffoldWorkflow } from '@/lib/portability/normalize'
@@ -362,11 +362,13 @@ export function registerWorkflowTools(server: McpToolServer, ctx: McpContext) {
   const scopedWorkflowIds = ctx.scopes?.workflow_ids ?? []
 
   server.tool('workflows_catalog', 'List workflow trigger types, node types, and MCP guidance for prompt-building workflows end to end.', {}, async () => {
-    const trigger_types = NODE_CATALOG
+    // Built-in nodes plus the nodes and triggers of the extensions in this build (ext.<id>.<key>).
+    const catalog = fullNodeCatalog()
+    const trigger_types = catalog
       .filter((node) => node.category === 'trigger')
       .map((node) => ({ type: node.type, label: node.label, description: node.description }))
 
-    const node_types = NODE_CATALOG
+    const node_types = catalog
       .filter((node) => node.category !== 'trigger' && node.category !== 'section')
       .map((node) => ({
         type: node.type,

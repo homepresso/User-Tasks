@@ -1,5 +1,6 @@
 "use client"
 
+import { ExtensionMenuItems } from '@/components/extensions/item-actions'
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -301,6 +302,8 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
           <DropdownMenuItem icon={<TagIcon />} onSelect={() => toggleEditTags(wf.id)}>
             Edit tags
           </DropdownMenuItem>
+          {/* Actions contributed by extensions for workflows. */}
+          <ExtensionMenuItems objectType="workflow" items={[wf as unknown as Record<string, unknown>]} />
         </DropdownMenuContent>
       </DropdownMenu>
     )

@@ -589,6 +589,19 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | add items | `POST /packages/{id}/items` | `packages_items_add` | `packages add-items` | dry_run lists the dependencies they bring in; with_dependencies (default true) |
 | remove items | `POST /packages/{id}/items/remove` | `packages_items_remove` | `packages remove-items` | 409 while other items use them unless force; dry_run lists the dependents |
 
+## Extensions
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /extensions` | `extensions_list` | `extensions list` |  |
+| get | `GET /extensions/{id}` | `extensions_get` | `extensions get` |  |
+| create | — | — | — | extensions are compiled into the build (USERTASKS_EXTENSIONS); a workspace enables them |
+| update | `PUT /extensions/{id}/settings/{page}` | `extensions_settings_update` | `extensions configure` | one typed settings page; secrets write-only |
+| delete | — | — | — | disable keeps settings and data; removing an extension is a rebuild without it |
+| enable | `POST /extensions/{id}/enable` | `extensions_enable` | `extensions enable` | 402 when a paid extension is not licensed |
+| disable | `POST /extensions/{id}/disable` | `extensions_disable` | `extensions disable` |  |
+| get settings | `GET /extensions/{id}/settings/{page}` | `extensions_settings_get` | `extensions settings` |  |
+
 ## Package installs
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |

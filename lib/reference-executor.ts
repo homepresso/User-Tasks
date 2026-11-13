@@ -9,6 +9,7 @@
  * timeout budget, 429/5xx retries, response size caps).
  */
 
+import { resolveTransportFetch } from "@/lib/integrations/transports";
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CallerContext } from "./trace";
@@ -874,9 +875,13 @@ async function executeLoadedReference(
     await attachCsrfToken(effectiveBase, headers, timeout);
   }
 
+  // Connection transport hook (auth_config._transport: NTLM, Kerberos, an
+  // extension's transport …): replaces the single fetch call; the egress
+  // guard, retries and redirects stay with connectorFetch.
+  const transportFetch = await resolveTransportFetch({ tenantId: integrationTenantId ?? null, integrationConfig: integrationConfig ?? {} });
   const send = async () => {
     try {
-      return await connectorFetch(url, { method: effectiveMethod, headers, body: prepared as BodyInit | undefined }, { timeoutMs: timeout });
+      return await connectorFetch(url, { method: effectiveMethod, headers, body: prepared as BodyInit | undefined }, { timeoutMs: timeout, fetchImpl: transportFetch });
     } catch (error: any) {
       if (error?.name === "EgressBlockedError") throw error;
       // Transport failure (DNS, refused, timeout): fail the step with the target named.

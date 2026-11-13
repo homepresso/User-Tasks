@@ -11,6 +11,9 @@ import {
 import { CREATE_ACTIONS } from "./create-actions"
 import { HeaderFormsPanel, HeaderFormsPanelBody } from "./header-forms-menu"
 import { useAvailableFormsState } from "./available-forms-menu"
+import { useExtensionCreateEntries } from "@/components/extensions/extension-menus"
+import { useExtensionAction } from "@/components/extensions/use-extension-action"
+import { ExtIcon } from "@/components/extensions/ext-icon"
 
 /**
  * "+ New" in the top bar (docs/design/ui-polish-spec.md §4.2): Task,
@@ -25,8 +28,11 @@ export function NewMenu() {
   const [formsOpen, setFormsOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const actions = CREATE_ACTIONS.filter((a) => can(a.requires))
+  // Entries contributed by extensions enabled in this workspace (none in a build without extensions).
+  const extensionEntries = useExtensionCreateEntries()
+  const extensionAction = useExtensionAction()
   const canFill = can("forms.submit")
-  if (actions.length === 0 && !canFill) return null
+  if (actions.length === 0 && extensionEntries.length === 0 && !canFill) return null
 
   return (
     <>
@@ -37,7 +43,7 @@ export function NewMenu() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          {actions.length > 0 && <DropdownMenuLabel>Create</DropdownMenuLabel>}
+          {(actions.length > 0 || extensionEntries.length > 0) && <DropdownMenuLabel>Create</DropdownMenuLabel>}
           {actions.map((action) => {
             const Icon = action.icon
             return (
@@ -46,9 +52,22 @@ export function NewMenu() {
               </DropdownMenuItem>
             )
           })}
+          {extensionEntries.map((entry) => (
+            <DropdownMenuItem
+              key={entry.key}
+              icon={<ExtIcon icon={entry.icon} />}
+              onSelect={() => {
+                if (entry.action) extensionAction.run({ extensionId: entry.extensionId, action: entry.action.name, confirm: entry.action.confirm, label: entry.label })
+                else if (entry.href) router.push(entry.href)
+              }}
+              data-new-menu-item={entry.key}
+            >
+              {entry.label}
+            </DropdownMenuItem>
+          ))}
           {canFill && (
             <>
-              {actions.length > 0 && <DropdownMenuSeparator />}
+              {(actions.length > 0 || extensionEntries.length > 0) && <DropdownMenuSeparator />}
               <DropdownMenuItem
                 icon={<FileInput />}
                 // Opens after the menu has closed and returned focus.
@@ -61,6 +80,7 @@ export function NewMenu() {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+      {extensionAction.confirmDialog}
       {formsOpen && (
         <HeaderFormsPanel
           anchor={triggerRef}

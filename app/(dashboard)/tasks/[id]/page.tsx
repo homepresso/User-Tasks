@@ -1,5 +1,6 @@
 "use client"
 
+import { ExtensionDetailTab, useExtensionDetailTabs } from '@/components/extensions/detail-tabs'
 import { use, useEffect, useMemo, useState } from 'react'
 import { serverRead } from '@/lib/server-read'
 import { RecentActivity } from '@/components/timeline/run-timeline'
@@ -171,6 +172,9 @@ function TaskDetailContent({
   const { treeData, tenant, assigneeName, assignerName, workflowSource } = data
   const metadata = (treeData.task.metadata ?? {}) as Record<string, unknown>
   const fields = useMemo(() => normalizeTaskFields(metadata.fields), [metadata.fields])
+  // Detail tabs contributed by extensions (the task as their data sources see it).
+  const extensionTaskItem = useMemo(() => ({ ...(treeData.task as Record<string, unknown>), assignee_name: assigneeName ?? null }), [treeData.task, assigneeName])
+  const extensionTabs = useExtensionDetailTabs('task', extensionTaskItem)
   const formLayout = useMemo(() => normalizeFormLayout(metadata.form_layout, fields.map((f) => f.key)), [metadata.form_layout, fields])
   const formTheme = useMemo(() => parseFormThemeOverrides(metadata.form_theme), [metadata.form_theme])
   // Form width (lib/forms/form-width.ts): wide / full / custom % size the task column; narrow narrows only the card.
@@ -422,7 +426,7 @@ function TaskDetailContent({
   )
 
   const assignedToMe = Boolean(userId) && (treeData.task.assignee_id === userId || (collaborators ?? []).some((c: { user_id?: string; id?: string }) => (c.user_id ?? c.id) === userId))
-  const tabs = taskTabs({ hasForm, comments: commentCount, attachments: attachmentCount })
+  const tabs = taskTabs({ hasForm, comments: commentCount, attachments: attachmentCount, extensionTabs })
   const defaultTab: TaskTab = hasForm && isOpen && assignedToMe ? 'form' : 'details'
 
   return (
@@ -459,6 +463,10 @@ function TaskDetailContent({
               {tab === 'form' && form}
               {tab === 'comments' && <div className="w-full">{timeline}</div>}
               {tab === 'attachments' && <TaskAttachmentsTab taskId={id} tenantId={treeData.task.tenant_id} canEdit={isOpen && onBehalf.canAct} />}
+              {tab.startsWith('ext:') && (() => {
+                const extTab = extensionTabs.find((t) => t.value === tab)
+                return extTab && extensionTaskItem ? <ExtensionDetailTab tab={extTab} objectType="task" item={extensionTaskItem} /> : null
+              })()}
             </div>
           )}
         </TaskTabs>

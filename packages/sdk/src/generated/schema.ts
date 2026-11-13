@@ -5024,6 +5024,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/extensions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the extensions in this build and their state in this workspace */
+        get: operations["listExtensions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/extensions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one extension */
+        get: operations["getExtension"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/extensions/{id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable an extension in this workspace
+         * @description 402 when a paid extension is not licensed, 409 when it cannot run in this build. Gives the workspace system roles the extension's default permissions. Audited.
+         */
+        post: operations["enableExtension"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/extensions/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable an extension in this workspace (settings and data are kept) */
+        post: operations["disableExtension"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/extensions/{id}/settings/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read one settings page of an extension (schema and values; secrets never returned)
+         * @description Workspace pages need settings.view; personal pages a user API key; instance pages are only available in Settings → Extensions.
+         */
+        get: operations["getExtensionSettings"];
+        /**
+         * Change one settings page of an extension
+         * @description Validated against the page schema on the server. Secret and certificate fields: a string sets, null clears, absent keeps. Workspace pages need settings.edit. Audited and versioned.
+         */
+        put: operations["updateExtensionSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs": {
         parameters: {
             query?: never;
@@ -5313,6 +5408,98 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/licence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Licence status: installed licences, licensed extensions, limits and usage, expiry warnings (instance admin)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. Licensed extensions stop 24 hours after their licence expires (cutoffAt).
+         */
+        get: operations["getLicence"];
+        /**
+         * Install or replace a licence (instance admin)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. The signature, key id and binding are checked; an invalid, foreign or expired licence is refused (400). A licence with the same licence_id replaces the installed one; others stay installed.
+         */
+        put: operations["installLicence"];
+        post?: never;
+        /**
+         * Remove an installed licence (instance admin)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. Needs licence_id, or all=true. Licences from USERTASKS_LICENCE / USERTASKS_LICENCE_FILE are removed by unsetting the variable.
+         */
+        delete: operations["removeLicence"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/licence/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Offline activation request: instance id, hostnames, version (instance admin)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. Upload the returned JSON to the licensing portal from any connected machine to get a licence bound to this installation. Contains no secrets and no usage data.
+         */
+        get: operations["getLicenceRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/licence/entitlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List workspace entitlements to paid extensions (instance admin)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. Cloud entitlements (tenant_entitlements): admin-managed now, fed by billing later.
+         */
+        get: operations["listEntitlements"];
+        /**
+         * Grant or update a workspace entitlement to a paid extension (instance admin)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited. One row per workspace and extension (upsert).
+         */
+        put: operations["grantEntitlement"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/licence/entitlements/{tenant_id}/{extension_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a workspace entitlement (instance admin)
+         * @description Authorization: Bearer <INSTANCE_ADMIN_TOKEN> only (workspace API keys and OAuth tokens get 403). Off (404) unless the server sets INSTANCE_ADMIN_TOKEN. Rate-limited per IP; audited.
+         */
+        delete: operations["revokeEntitlement"];
         options?: never;
         head?: never;
         patch?: never;
@@ -36740,6 +36927,613 @@ export interface operations {
             };
         };
     };
+    listExtensions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            extensions: {
+                                id: string;
+                                name: string;
+                                description: string | null;
+                                version: string;
+                                publisher: {
+                                    id: string;
+                                    name: string;
+                                };
+                                licence: {
+                                    /** @enum {string} */
+                                    tier: "free" | "paid";
+                                    sku: string | null;
+                                    /** @description licensed, unlicensed, expired or not_required (free) */
+                                    state: string;
+                                    allowed: boolean;
+                                    reason: string | null;
+                                };
+                                /** @description engines.usertasks / extension_sdk accept this build */
+                                compatible: boolean;
+                                /** @description Compatible, built for this deployment mode and complete */
+                                runs_here: boolean;
+                                problems: string[];
+                                /** @description Enabled in this workspace */
+                                enabled: boolean;
+                                enabled_at: string | null;
+                                config_version: number;
+                                settings_pages: {
+                                    id: string;
+                                    /** @enum {string} */
+                                    scope: "workspace" | "instance" | "user";
+                                    label: string;
+                                    group: string;
+                                }[];
+                                permissions: {
+                                    key: string;
+                                    label: string;
+                                    implied_by: string[];
+                                }[];
+                                contributes: {
+                                    nodes: number;
+                                    triggers: number;
+                                    connectors: number;
+                                    nav_items: number;
+                                    settings_pages: number;
+                                    pages: number;
+                                };
+                            }[];
+                            total: number;
+                            platform_version: string;
+                            problems: string[];
+                            /** @description Set when the extension tables are missing (migration not applied) */
+                            notice?: string;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getExtension: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Extension id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            extension: {
+                                id: string;
+                                name: string;
+                                description: string | null;
+                                version: string;
+                                publisher: {
+                                    id: string;
+                                    name: string;
+                                };
+                                licence: {
+                                    /** @enum {string} */
+                                    tier: "free" | "paid";
+                                    sku: string | null;
+                                    /** @description licensed, unlicensed, expired or not_required (free) */
+                                    state: string;
+                                    allowed: boolean;
+                                    reason: string | null;
+                                };
+                                /** @description engines.usertasks / extension_sdk accept this build */
+                                compatible: boolean;
+                                /** @description Compatible, built for this deployment mode and complete */
+                                runs_here: boolean;
+                                problems: string[];
+                                /** @description Enabled in this workspace */
+                                enabled: boolean;
+                                enabled_at: string | null;
+                                config_version: number;
+                                settings_pages: {
+                                    id: string;
+                                    /** @enum {string} */
+                                    scope: "workspace" | "instance" | "user";
+                                    label: string;
+                                    group: string;
+                                }[];
+                                permissions: {
+                                    key: string;
+                                    label: string;
+                                    implied_by: string[];
+                                }[];
+                                contributes: {
+                                    nodes: number;
+                                    triggers: number;
+                                    connectors: number;
+                                    nav_items: number;
+                                    settings_pages: number;
+                                    pages: number;
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    enableExtension: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Extension id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            extension: {
+                                id: string;
+                                name: string;
+                                description: string | null;
+                                version: string;
+                                publisher: {
+                                    id: string;
+                                    name: string;
+                                };
+                                licence: {
+                                    /** @enum {string} */
+                                    tier: "free" | "paid";
+                                    sku: string | null;
+                                    /** @description licensed, unlicensed, expired or not_required (free) */
+                                    state: string;
+                                    allowed: boolean;
+                                    reason: string | null;
+                                };
+                                /** @description engines.usertasks / extension_sdk accept this build */
+                                compatible: boolean;
+                                /** @description Compatible, built for this deployment mode and complete */
+                                runs_here: boolean;
+                                problems: string[];
+                                /** @description Enabled in this workspace */
+                                enabled: boolean;
+                                enabled_at: string | null;
+                                config_version: number;
+                                settings_pages: {
+                                    id: string;
+                                    /** @enum {string} */
+                                    scope: "workspace" | "instance" | "user";
+                                    label: string;
+                                    group: string;
+                                }[];
+                                permissions: {
+                                    key: string;
+                                    label: string;
+                                    implied_by: string[];
+                                }[];
+                                contributes: {
+                                    nodes: number;
+                                    triggers: number;
+                                    connectors: number;
+                                    nav_items: number;
+                                    settings_pages: number;
+                                    pages: number;
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    disableExtension: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Extension id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            extension: {
+                                id: string;
+                                name: string;
+                                description: string | null;
+                                version: string;
+                                publisher: {
+                                    id: string;
+                                    name: string;
+                                };
+                                licence: {
+                                    /** @enum {string} */
+                                    tier: "free" | "paid";
+                                    sku: string | null;
+                                    /** @description licensed, unlicensed, expired or not_required (free) */
+                                    state: string;
+                                    allowed: boolean;
+                                    reason: string | null;
+                                };
+                                /** @description engines.usertasks / extension_sdk accept this build */
+                                compatible: boolean;
+                                /** @description Compatible, built for this deployment mode and complete */
+                                runs_here: boolean;
+                                problems: string[];
+                                /** @description Enabled in this workspace */
+                                enabled: boolean;
+                                enabled_at: string | null;
+                                config_version: number;
+                                settings_pages: {
+                                    id: string;
+                                    /** @enum {string} */
+                                    scope: "workspace" | "instance" | "user";
+                                    label: string;
+                                    group: string;
+                                }[];
+                                permissions: {
+                                    key: string;
+                                    label: string;
+                                    implied_by: string[];
+                                }[];
+                                contributes: {
+                                    nodes: number;
+                                    triggers: number;
+                                    connectors: number;
+                                    nav_items: number;
+                                    settings_pages: number;
+                                    pages: number;
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getExtensionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Extension id */
+                id: string;
+                /** @description Settings page id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            extension_id: string;
+                            page: {
+                                id: string;
+                                /** @enum {string} */
+                                scope: "workspace" | "instance" | "user";
+                                label: string;
+                                description: string | null;
+                                /** @description Sections of typed fields (manifest settings schema) */
+                                schema: unknown;
+                            };
+                            /** @description Current values (defaults filled in); secret / certificate fields are never returned */
+                            values: {
+                                [key: string]: unknown;
+                            };
+                            /** @description Secret / certificate fields that have a value */
+                            secrets_set: string[];
+                            config_version: number;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateExtensionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Extension id */
+                id: string;
+                /** @description Settings page id */
+                page: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Field key → value */
+                    values: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            extension_id: string;
+                            page: {
+                                id: string;
+                                /** @enum {string} */
+                                scope: "workspace" | "instance" | "user";
+                                label: string;
+                                description: string | null;
+                                /** @description Sections of typed fields (manifest settings schema) */
+                                schema: unknown;
+                            };
+                            /** @description Current values (defaults filled in); secret / certificate fields are never returned */
+                            values: {
+                                [key: string]: unknown;
+                            };
+                            /** @description Secret / certificate fields that have a value */
+                            secrets_set: string[];
+                            config_version: number;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listJobs: {
         parameters: {
             query?: {
@@ -38324,6 +39118,730 @@ export interface operations {
                             } & {
                                 [key: string]: unknown;
                             };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found, or the instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getLicence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            instance: {
+                                instanceId: string | null;
+                                hostnames: string[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            now: string;
+                            licences: ({
+                                licenceId: string | null;
+                                /**
+                                 * @description setting: installed here; env: USERTASKS_LICENCE; env_file: USERTASKS_LICENCE_FILE
+                                 * @enum {string}
+                                 */
+                                source: "setting" | "env" | "env_file";
+                                customer: string | null;
+                                issuedAt: string | null;
+                                expiresAt: string | null;
+                                /** @description expiresAt + 24 hours: when the licensed extensions stop */
+                                cutoffAt: string | null;
+                                updatesUntil: string | null;
+                                daysLeft: number | null;
+                                timeState: ("not_yet_valid" | "active" | "expiring" | "cutoff_pending" | "expired") | null;
+                                /** @description Genuine signature from a known key, and bound to this installation (or unbound) */
+                                valid: boolean;
+                                trial: boolean;
+                                bound: {
+                                    instanceIds: string[];
+                                    hostnames: string[];
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                                extensions: ({
+                                    id: string;
+                                    edition: string | null;
+                                    features: string[] | null;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                limits: {
+                                    [key: string]: number;
+                                };
+                                kid: string | null;
+                                problems: ({
+                                    code: string;
+                                    message: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            extensions: ({
+                                id: string;
+                                /** @enum {string} */
+                                state: "licensed" | "unlicensed" | "expired" | "not_required";
+                                allowed: boolean;
+                                licenceId: string | null;
+                                features: string[] | null;
+                                limits: {
+                                    [key: string]: number;
+                                };
+                                expiresAt: string | null;
+                                cutoffAt: string | null;
+                                daysLeft: number | null;
+                                timeState: string | null;
+                                trial: boolean;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            warnings: ({
+                                /** @enum {string} */
+                                level: "info" | "warn" | "error";
+                                code: string;
+                                licenceId: string | null;
+                                message: string;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            /** @description Current usage per limit key (null: not counted) */
+                            usage: {
+                                [key: string]: number | null;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    installLicence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The licence file contents (JSON, or base64 of it) */
+                    licence: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            licence: {
+                                licenceId: string | null;
+                                /**
+                                 * @description setting: installed here; env: USERTASKS_LICENCE; env_file: USERTASKS_LICENCE_FILE
+                                 * @enum {string}
+                                 */
+                                source: "setting" | "env" | "env_file";
+                                customer: string | null;
+                                issuedAt: string | null;
+                                expiresAt: string | null;
+                                /** @description expiresAt + 24 hours: when the licensed extensions stop */
+                                cutoffAt: string | null;
+                                updatesUntil: string | null;
+                                daysLeft: number | null;
+                                timeState: ("not_yet_valid" | "active" | "expiring" | "cutoff_pending" | "expired") | null;
+                                /** @description Genuine signature from a known key, and bound to this installation (or unbound) */
+                                valid: boolean;
+                                trial: boolean;
+                                bound: {
+                                    instanceIds: string[];
+                                    hostnames: string[];
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                                extensions: ({
+                                    id: string;
+                                    edition: string | null;
+                                    features: string[] | null;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                limits: {
+                                    [key: string]: number;
+                                };
+                                kid: string | null;
+                                problems: ({
+                                    code: string;
+                                    message: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            replaced: boolean;
+                            notes: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    removeLicence: {
+        parameters: {
+            query?: {
+                /** @description The licence to remove */
+                licence_id?: string;
+                /** @description true: remove every licence installed here */
+                all?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            removed: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getLicenceRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @constant */
+                            kind: "usertasks.licence_request";
+                            /** @constant */
+                            format: 1;
+                            instance_id: string | null;
+                            hostnames: string[];
+                            version: string;
+                            /** @enum {string} */
+                            deployment_mode: "cloud" | "self_hosted";
+                            installed_licences: string[];
+                            created_at: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listEntitlements: {
+        parameters: {
+            query?: {
+                /** @description Only this workspace */
+                tenant_id?: string;
+                /** @description Only this extension */
+                extension_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            entitlements: ({
+                                id?: string;
+                                tenant_id: string;
+                                extension_id: string;
+                                edition?: string | null;
+                                features?: string[] | null;
+                                limits?: {
+                                    [key: string]: number;
+                                } | null;
+                                /** @enum {string} */
+                                status: "active" | "suspended" | "revoked";
+                                /** @enum {string} */
+                                source: "admin" | "trial" | "stripe" | "licence";
+                                starts_at?: string | null;
+                                ends_at?: string | null;
+                                notes?: string | null;
+                                created_at?: string | null;
+                                updated_at?: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    grantEntitlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: uuid
+                     * @description Workspace id
+                     */
+                    tenant_id: string;
+                    /** @description Extension id, e.g. sharepoint */
+                    extension_id: string;
+                    edition?: string | null;
+                    /** @description Features granted (omitted / empty / ["*"]: all) */
+                    features?: string[];
+                    /** @description Numeric limits, e.g. {"sharepoint.farms": 2} */
+                    limits?: {
+                        [key: string]: number;
+                    };
+                    /**
+                     * @description Default active
+                     * @enum {string}
+                     */
+                    status?: "active" | "suspended" | "revoked";
+                    /**
+                     * @description Default admin
+                     * @enum {string}
+                     */
+                    source?: "admin" | "trial" | "stripe" | "licence";
+                    starts_at?: string | null;
+                    /** @description Expiry; the extension stops 24 hours after it. Omitted: no end */
+                    ends_at?: string | null;
+                    notes?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            entitlement: {
+                                id?: string;
+                                tenant_id: string;
+                                extension_id: string;
+                                edition?: string | null;
+                                features?: string[] | null;
+                                limits?: {
+                                    [key: string]: number;
+                                } | null;
+                                /** @enum {string} */
+                                status: "active" | "suspended" | "revoked";
+                                /** @enum {string} */
+                                source: "admin" | "trial" | "stripe" | "licence";
+                                starts_at?: string | null;
+                                ends_at?: string | null;
+                                notes?: string | null;
+                                created_at?: string | null;
+                                updated_at?: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not the instance admin token (workspace API keys and OAuth tokens are refused) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The instance admin API is off (INSTANCE_ADMIN_TOKEN unset) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    revokeEntitlement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace id */
+                tenant_id: string;
+                /** @description Extension id */
+                extension_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            deleted: boolean;
                         } & {
                             [key: string]: unknown;
                         };

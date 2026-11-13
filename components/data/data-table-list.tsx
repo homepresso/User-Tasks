@@ -1,5 +1,6 @@
 'use client'
 
+import { ExtensionToolbarActions } from '@/components/extensions/item-actions'
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -253,6 +254,8 @@ export function DataTableList({ tables }: DataTableListProps) {
           <div className="ml-auto flex items-center gap-1 rounded-md bg-primary-wash py-0.5 pl-3 pr-1">
             <span className="num mr-1 text-ui font-medium text-primary-text">{selected.size} selected</span>
             <ExportAssetButton ids={[...selected]} name={plural(selected.size, 'table')} allowRows variant="ghost" size="sm" />
+            {/* Bulk / toolbar actions contributed by extensions for data tables. */}
+            <ExtensionToolbarActions objectType="data_table" items={localTables.filter((t) => selected.has(t.id)) as unknown as Array<Record<string, unknown>>} />
             <Button size="sm" variant="ghost" leadingIcon={<Shield />} onClick={() => setShowBulkPermissions(true)}>
               Permissions
             </Button>

@@ -26,6 +26,7 @@ import { GOVERNANCE_PAGES } from './content/governance'
 import { AI_ASSISTANT_PAGES } from './content/ai-assistants'
 import { TUTORIAL_PAGES } from './content/tutorials'
 import { API_PAGES, CLI_PAGES, SDK_PAGES } from './content/developers'
+import { EXTENSION_PAGES } from './content/extensions'
 import { OBSERVABILITY_PAGES, PROJECT_PAGES, SELF_HOSTING_PAGES } from './content/operations'
 import { SERVICE_PAGES, TOPOLOGY_PAGES } from './content/deploy'
 import { SELF_HOSTING_GUIDE_PAGES } from './content/self-hosting-guide'
@@ -56,6 +57,7 @@ const SOURCES: Array<[DocPageDef | DocPageDef[], string]> = [
   [AI_ASSISTANT_PAGES, `${CONTENT}/ai-assistants.ts`],
   [TUTORIAL_PAGES, `${CONTENT}/tutorials.ts`],
   [[...API_PAGES, ...CLI_PAGES, ...SDK_PAGES], `${CONTENT}/developers.ts`],
+  [EXTENSION_PAGES, `${CONTENT}/extensions.ts`],
   [[...OBSERVABILITY_PAGES, ...PROJECT_PAGES, ...SELF_HOSTING_PAGES], `${CONTENT}/operations.ts`],
   [[...SERVICE_PAGES, ...TOPOLOGY_PAGES], `${CONTENT}/deploy.ts`],
   [SELF_HOSTING_GUIDE_PAGES, `${CONTENT}/self-hosting-guide.ts`],

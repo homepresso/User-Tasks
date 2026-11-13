@@ -12,6 +12,7 @@ import { BreadcrumbsProvider } from '@/lib/breadcrumbs-context'
 import { useDashboardAuth } from '@/lib/dashboard-auth-context'
 import { canAccessPath } from '@/lib/route-permissions'
 import { LastSeenHeartbeat } from './last-seen-heartbeat'
+import { LicenceBanner } from './licence-banner'
 import { NotAuthorizedView } from './route-states'
 import { LogoMark } from '@/components/brand/logo'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,6 +20,7 @@ import { BusyBar } from '@/components/ui/busy-bar'
 import { JobsProvider } from '@/components/jobs/jobs-provider'
 import { AssistantHost } from '@/components/assistants/assistant-host'
 import { OnboardingProvider } from '@/components/onboarding/getting-started/onboarding-provider'
+import { ExtensionActionHost } from '@/components/extensions/action-host'
 
 /**
  * The dashboard frame (docs/design/ui-polish-spec.md §4.4): sidebar, top bar
@@ -70,6 +72,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             />
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <Topbar user={profile} currentTenantId={profile.current_tenant_id} onMenuClick={() => setMobileNavOpen(true)} />
+              {/* Licence expiry / invalid licence: instance admins only (empty for everyone else). */}
+              <LicenceBanner />
               <main
                 key={pathname}
                 id="main"
@@ -84,6 +88,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <AssistantHost />
           </div>
           <GlobalSearch />
+          {/* Runs actions contributed by extensions (row menus, bulk bars). */}
+          <ExtensionActionHost />
           </OnboardingProvider>
         </JobsProvider>
       </BreadcrumbsProvider>

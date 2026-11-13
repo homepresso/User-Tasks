@@ -1,0 +1,135 @@
+{
+  "manifest_version": 1,
+  "id": "example-hello",
+  "name": "Hello (example extension)",
+  "description": "A free example extension that exercises every contribution point of the UserTasks extension framework: a workflow node and trigger, a connector with its own transport, REST and public routes, a job, an event subscription, an MCP tool, a migration, and declarative nav, menus, row actions, tabs, widgets, notifications and settings.",
+  "version": "1.0.0",
+  "publisher": { "id": "usertasks", "name": "UserTasks" },
+  "engines": { "usertasks": ">=0.1.0 <2.0.0", "extension_sdk": "^1.0.0" },
+  "licence": { "tier": "free", "features": ["greetings", "digest"] },
+  "deployments": ["cloud", "self_hosted"],
+  "icon": "hand",
+  "capabilities": {
+    "db": true,
+    "egress": [],
+    "inbound_public_routes": ["/ping", "/hooks/*"],
+    "secrets": ["api_token", "signing_secret", "client_certificate"]
+  },
+  "permissions": [
+    { "key": "view", "label": "View greetings", "description": "See greetings, the Hello pages and widgets", "default_roles": ["owner", "admin", "manager", "member", "viewer"], "implied_by": ["tasks.view_own"] },
+    { "key": "manage", "label": "Manage greetings", "description": "Send greetings and change the Hello settings", "default_roles": ["owner", "admin"], "implied_by": ["settings.edit"] }
+  ],
+  "contributes": {
+    "nodes": [
+      {
+        "key": "greet",
+        "label": "Say Hello",
+        "description": "Build a greeting for a name (example extension)",
+        "icon": "hand",
+        "category": "action",
+        "feature": "greetings",
+        "inputs": [
+          { "name": "name", "label": "Name", "type": "string", "required": true, "example": "Ada" },
+          { "name": "punctuation", "label": "Punctuation", "type": "select", "default": "!", "options": [{ "value": "!", "label": "Excited (!)" }, { "value": ".", "label": "Calm (.)" }] },
+          { "name": "repeat", "label": "Repeat", "type": "integer", "default": 1 }
+        ],
+        "outputs": [
+          { "name": "greeting", "label": "Greeting", "type": "string" },
+          { "name": "length", "label": "Length", "type": "integer" }
+        ]
+      }
+    ],
+    "triggers": [
+      {
+        "key": "greeting_received",
+        "label": "Greeting Received",
+        "description": "When a greeting is posted to the Hello API (example extension)",
+        "icon": "message-square",
+        "config": [{ "name": "name_filter", "label": "Only for name", "type": "string" }],
+        "variables": [
+          { "name": "greeting_name", "label": "Name", "type": "string" },
+          { "name": "greeting_text", "label": "Greeting", "type": "string" }
+        ]
+      }
+    ],
+    "connectors": ["echo"],
+    "ui": {
+      "navSections": [{ "id": "hello", "label": "Hello", "order": 350, "when": { "permission": "ext.example-hello.view" } }],
+      "navItems": [
+        { "id": "home", "label": "Hello home", "icon": "hand", "target": { "page": "" }, "group": "ext:hello", "order": 100, "badge": { "source": "greeting_count" }, "mobile": true },
+        { "id": "new", "label": "New greeting", "icon": "message-square-plus", "target": { "page": "new" }, "group": "ext:hello", "order": 200, "when": { "permission": "ext.example-hello.manage" } },
+        { "id": "digest", "label": "Greeting digest", "icon": "newspaper", "target": { "page": "digest" }, "group": "operate", "order": 450, "when": { "permission": "ext.example-hello.view", "feature": "digest" } }
+      ],
+      "createEntries": [
+        { "id": "greeting", "label": "Greeting", "paletteLabel": "New greeting", "keywords": ["hello", "greet"], "icon": "message-square-plus", "target": { "page": "new" }, "when": { "permission": "ext.example-hello.manage" } }
+      ],
+      "paletteEntries": [
+        { "id": "say-hello", "label": "Say hello to the team", "keywords": ["hello", "wave"], "target": { "action": "say_hello" }, "section": "actions", "when": { "permission": "ext.example-hello.manage" } },
+        { "id": "open-hello", "label": "Hello home", "keywords": ["greetings"], "target": { "page": "" }, "section": "navigate", "when": { "permission": "ext.example-hello.view" } }
+      ],
+      "userMenu": [
+        { "id": "hello-preferences", "label": "Hello preferences", "icon": "hand", "target": { "settings": "preferences" }, "when": { "permission": "ext.example-hello.view" } }
+      ],
+      "itemActions": [
+        { "id": "greet-assignee", "label": "Say hello to assignee", "icon": "hand", "objectTypes": ["task"], "target": { "action": "greet_task" }, "placement": "menu", "appliesWhen": "item.assignee_id != null", "when": { "permission": "ext.example-hello.manage" } },
+        { "id": "greet-workflow", "label": "Greet workflow owner", "icon": "hand", "objectTypes": ["workflow"], "target": { "action": "greet_item" }, "placement": "both", "when": { "permission": "ext.example-hello.manage" } },
+        { "id": "greet-form", "label": "Greet form", "icon": "hand", "objectTypes": ["form"], "target": { "action": "greet_item" }, "when": { "permission": "ext.example-hello.manage" } },
+        { "id": "greet-table", "label": "Greet data table", "icon": "hand", "objectTypes": ["data_table"], "target": { "action": "greet_item" }, "when": { "permission": "ext.example-hello.manage" } },
+        { "id": "greet-rows", "label": "Greet rows", "icon": "hand", "objectTypes": ["data_row"], "target": { "action": "greet_item", "confirm": "Send a greeting for every selected row?" }, "placement": "both", "bulk": true, "when": { "permission": "ext.example-hello.manage" } }
+      ],
+      "detailTabs": [
+        { "id": "hello", "objectTypes": ["task"], "label": "Hello", "order": 900, "source": "task_tab", "when": { "permission": "ext.example-hello.view" } }
+      ],
+      "widgets": [
+        { "id": "greetings-today", "title": "Greetings today", "description": "Greetings sent in this workspace today", "render": "metric", "source": "greeting_count", "size": { "w": 3, "h": 2 }, "when": { "permission": "ext.example-hello.view" } },
+        { "id": "recent-greetings", "title": "Recent greetings", "render": "list", "source": "recent_greetings", "size": { "w": 4, "h": 3 }, "when": { "permission": "ext.example-hello.view" } }
+      ],
+      "notificationTypes": [
+        { "key": "greeting_sent", "label": "A greeting was sent to you", "defaultChannels": ["in_app"], "userConfigurable": true }
+      ],
+      "settingsPages": [
+        {
+          "id": "general", "scope": "workspace", "group": "Workspace", "label": "Hello", "icon": "hand", "order": 900,
+          "description": "Greeting text and connection settings for the Hello example extension.",
+          "when": { "permission": "settings.view" },
+          "schema": {
+            "sections": [
+              { "id": "greeting", "title": "Greeting", "fields": [
+                { "key": "greeting_word", "label": "Greeting word", "type": "text", "required": true, "default": "Hello", "maxLength": 40, "pattern": { "regex": "^[A-Za-z ]+$", "message": "Letters and spaces only" } },
+                { "key": "default_punctuation", "label": "Default punctuation", "type": "select", "default": "!", "options": [{ "value": "!", "label": "Excited (!)" }, { "value": ".", "label": "Calm (.)" }] },
+                { "key": "show_digest", "label": "Show the digest page", "type": "boolean", "default": true }
+              ] },
+              { "id": "connection", "title": "Connection", "description": "Example secret and certificate fields: stored encrypted, never shown again.", "fields": [
+                { "key": "endpoint_url", "label": "Endpoint URL", "type": "url", "placeholder": "https://hello.example.com" },
+                { "key": "api_token", "label": "API token", "type": "secret", "requiredWhen": { "field": "endpoint_url", "notEquals": "" } },
+                { "key": "signing_secret", "label": "Webhook signing secret", "type": "secret", "help": "HMAC-SHA256 secret for POST /ext-public/example-hello/hooks/greeting" },
+                { "key": "client_certificate", "label": "Client certificate (PEM)", "type": "certificate" }
+              ] }
+            ],
+            "actions": [{ "id": "test", "label": "Test connection", "action": "test_connection" }]
+          }
+        },
+        {
+          "id": "instance", "scope": "instance", "group": "Infrastructure", "label": "Hello (instance)", "icon": "hand",
+          "when": { "instanceAdmin": true },
+          "schema": { "sections": [{ "id": "instance", "title": "Instance", "fields": [
+            { "key": "max_greetings_per_day", "label": "Greetings per workspace per day", "type": "number", "default": 1000, "min": 1, "max": 100000 }
+          ] }] }
+        },
+        {
+          "id": "preferences", "scope": "user", "group": "Account", "label": "Hello preferences", "icon": "hand",
+          "when": { "permission": "ext.example-hello.view" },
+          "schema": { "sections": [{ "id": "me", "title": "My greetings", "fields": [
+            { "key": "wave_emoji", "label": "Add a wave to my greetings", "type": "boolean", "default": false },
+            { "key": "nickname", "label": "Nickname", "type": "text", "maxLength": 40 }
+          ] }] }
+        }
+      ],
+      "pages": [
+        { "path": "", "title": "Hello", "when": { "permission": "ext.example-hello.view" } },
+        { "path": "new", "title": "New greeting", "when": { "permission": "ext.example-hello.manage" } },
+        { "path": "digest", "title": "Greeting digest", "when": { "permission": "ext.example-hello.view", "setting": "show_digest" } }
+      ]
+    }
+  }
+}

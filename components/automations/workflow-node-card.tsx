@@ -2,7 +2,7 @@
 
 import { NodeBrandIcon } from '@/lib/connectors/connector-brand'
 import { useState } from "react"
-import { NODE_CATALOG, nodeColorCategory, nodeColorTextVar, nodeColorVar, type NodeColorCategory, type PortSide, type WorkflowNode } from "@/lib/workflow-schema"
+import { nodeCatalogEntry, nodeColorCategory, nodeColorTextVar, nodeColorVar, type NodeColorCategory, type PortSide, type WorkflowNode } from "@/lib/workflow-schema"
 import { getBranchLabels } from "@/lib/workflow-branches"
 import { branchChipMaxWidth, branchPortOffsets, CHIP_HEIGHT, CHIP_OFFSET, COLLAPSED_NODE_WIDTH, DEFAULT_NODE_WIDTH } from "@/lib/workflow-edge-routing"
 import { validateNode } from "@/lib/workflow-validation"
@@ -74,7 +74,7 @@ export interface NodeCardModel {
 }
 
 export function nodeCardModel(node: WorkflowNode, lookups: SummaryLookups = {}): NodeCardModel {
-  const catalog = NODE_CATALOG.find((n) => n.type === node.type)
+  const catalog = nodeCatalogEntry(node.type)
   const config = node.config ?? {}
   const safe = config.__safe === true
   const manifest = config.manifest ?? { inputs: [], outputs: [] }

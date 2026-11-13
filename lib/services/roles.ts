@@ -7,7 +7,8 @@
  * team.view_members, every change needs team.change_roles. System roles
  * (seeded per tenant) keep their name and cannot be deleted; their
  * description and permissions stay editable, as in the role editor.
- * Permission lists are filtered to known PERMISSION_KEYS.
+ * Permission lists are filtered to known PERMISSION_KEYS (plus extension
+ * permissions `ext.<id>.<key>`, lib/extensions/permissions).
  *
  * Role changes write both the governance log (permission_audit_log, shown on
  * the governance page) and the unified object audit log, and roles are a
@@ -15,7 +16,7 @@
  */
 
 import { invalidateCredentialCache } from '@/lib/api-auth-cache'
-import { PERMISSION_KEYS } from '@/lib/permissions'
+import { isStorablePermission } from '@/lib/permissions'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { applyPage, audit, dbError, ilikeTerm, syncChange, type Page } from './_shared'
 import { toKeySlug } from '@/lib/utils/slug'
@@ -24,7 +25,6 @@ import { toKeySlug } from '@/lib/utils/slug'
 
 const ROLE_COLUMNS = 'id, name, slug, description, permissions, is_system, base_role, created_at, updated_at'
 const USER_COLUMNS = 'id, display_name, email, role, timezone, available_hours_week, created_at'
-const VALID_PERMISSIONS = new Set<string>(PERMISSION_KEYS)
 export const BULK_ROLE_LIMIT = 500
 
 export interface RoleRow {
@@ -57,7 +57,7 @@ function cleanName(raw: unknown): string {
 /** Known permission keys only, de-duplicated (unknown keys are dropped, as in the UI). */
 export function cleanPermissions(raw: unknown): string[] {
   if (!Array.isArray(raw)) return []
-  return Array.from(new Set(raw.map((p) => String(p ?? '').trim()).filter((p) => VALID_PERMISSIONS.has(p))))
+  return Array.from(new Set(raw.map((p) => String(p ?? '').trim()).filter((p) => isStorablePermission(p))))
 }
 
 const isUniqueViolation = (error: { code?: string; message?: string } | null) =>

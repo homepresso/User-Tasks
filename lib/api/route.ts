@@ -54,7 +54,7 @@ export function validationError(where: string, error: z.ZodError) {
 }
 
 /** URLSearchParams → plain object; repeated keys become arrays. */
-function searchParamsToObject(params: URLSearchParams): Record<string, string | string[]> {
+export function searchParamsToObject(params: URLSearchParams): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {}
   for (const [key, value] of params) {
     const existing = out[key]

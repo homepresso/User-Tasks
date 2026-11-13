@@ -1,5 +1,6 @@
 "use client"
 
+import { ExtensionWidgets } from '@/components/extensions/extension-widgets'
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, LayoutGrid, Plus, RotateCcw, Sparkles, X } from "lucide-react"
@@ -193,6 +194,8 @@ export function HomeDashboard() {
         ) : (
           <LayoutSkeleton />
         )}
+        {/* Widgets contributed by extensions enabled in this workspace (none in a build without extensions). */}
+        {!editing && <ExtensionWidgets />}
       </div>
     </HomeContext.Provider>
   )

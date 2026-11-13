@@ -1,5 +1,6 @@
 'use client'
 
+import { ExtensionMenuItems } from '@/components/extensions/item-actions'
 import { FavoriteStar } from '@/components/home/favorite-star'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -380,6 +381,8 @@ function FormRowMenu({ form, canSubmit, canEdit, canDelete, onCopyLink, onQr, on
         {canEdit && <DropdownMenuItem icon={<Copy />} onSelect={onDuplicate}>Duplicate</DropdownMenuItem>}
         {canEdit && <DropdownMenuItem icon={<Settings2 />} onSelect={onSettings} data-testid="form-details-button">Settings</DropdownMenuItem>}
         <DropdownMenuItem icon={<Download />} onSelect={onExport} data-testid="export-asset">Export…</DropdownMenuItem>
+        {/* Actions contributed by extensions for forms. */}
+        <ExtensionMenuItems objectType="form" items={[form as unknown as Record<string, unknown>]} />
         {canDelete && (
           <>
             <DropdownMenuSeparator />

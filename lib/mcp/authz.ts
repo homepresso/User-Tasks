@@ -1,3 +1,4 @@
+import { extensionToolPermission } from '@/lib/extensions/mcp-permissions'
 import type { McpContext } from './server'
 import { mcpErr } from './server'
 import { writeAudit, type AuditObjectType, type AuditAction } from '@/lib/audit-log'
@@ -243,6 +244,10 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   packages_items_remove: 'packages.manage',
   packages_install_detach: 'packages.install',
   packages_install_adopt: 'packages.install',
+  // extensions (lib/services/extensions; extension-contributed tools: see requiredToolPermission)
+  extensions_enable: 'settings.edit',
+  extensions_disable: 'settings.edit',
+  extensions_settings_update: 'settings.edit',
 }
 
 // Read tool name → required view permission (same keys as the matching
@@ -455,11 +460,14 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   packages_history: 'packages.view',
   packages_history_get: 'packages.view',
   packages_items_list: 'packages.view',
+  extensions_list: 'settings.view',
+  extensions_get: 'settings.view',
+  extensions_settings_get: 'settings.view',
 }
 
 /** Permission a tool needs (mutation or read), or undefined for an unclassified tool. */
 export function requiredToolPermission(toolName: string): Permission | undefined {
-  return TOOL_PERMISSIONS[toolName] ?? READ_TOOL_PERMISSIONS[toolName]
+  return TOOL_PERMISSIONS[toolName] ?? READ_TOOL_PERMISSIONS[toolName] ?? (toolName.startsWith('ext_') ? extensionToolPermission(toolName) as Permission | undefined : undefined)
 }
 
 // Tools whose service layer (lib/services/*) writes its own, richer audit row;
@@ -472,6 +480,9 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'tasks_attachments_complete',
   'tasks_attachments_delete',
   'packages_create',
+  'extensions_enable',
+  'extensions_disable',
+  'extensions_settings_update',
   'packages_update',
   'packages_delete',
   'packages_build',

@@ -24,6 +24,7 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
     const state = {
       op: 'select' as 'select' | 'insert' | 'update' | 'delete',
       conflict: undefined as string[] | undefined,
+      ignoreDuplicates: false,
       payload: undefined as any,
       filters: [] as Filter[],
       single: false as false | 'single' | 'maybe',
@@ -38,15 +39,17 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
     const execute = () => {
       let data: any
       if (state.op === 'insert') {
-        const items = (Array.isArray(state.payload) ? state.payload : [state.payload]).map((item: Row) => {
-          // upsert(…, { onConflict }) replaces the row with the same key columns.
+        const items = (Array.isArray(state.payload) ? state.payload : [state.payload]).flatMap((item: Row) => {
+          // upsert(…, { onConflict }) replaces the row with the same key columns
+          // (or, with ignoreDuplicates, keeps it and returns nothing for it).
           if (state.conflict) {
             const existing = rows().find((row) => state.conflict!.every((col) => row[col] === item[col]))
-            if (existing) return clone(Object.assign(existing, clone(item)))
+            if (existing && state.ignoreDuplicates) return []
+            if (existing) return [clone(Object.assign(existing, clone(item)))]
           }
           const row = { id: item.id ?? (options.uuids ? crypto.randomUUID() : `${table}_${nextId++}`), ...clone(item) }
           rows().push(row)
-          return clone(row)
+          return [clone(row)]
         })
         data = items
       } else if (state.op === 'update') {
@@ -84,8 +87,8 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
       select(_columns?: string, options?: { count?: string }) { if (options?.count) state.count = true; return api },
       insert(payload: unknown) { state.op = 'insert'; state.payload = payload; calls.push({ table, op: 'insert', payload: clone(payload) }); return api },
       update(payload: unknown) { state.op = 'update'; state.payload = payload; calls.push({ table, op: 'update', payload: clone(payload) }); return api },
-      upsert(payload: unknown, opts?: { onConflict?: string }) {
-        state.op = 'insert'; state.payload = payload
+      upsert(payload: unknown, opts?: { onConflict?: string; ignoreDuplicates?: boolean }) {
+        state.op = 'insert'; state.payload = payload; state.ignoreDuplicates = opts?.ignoreDuplicates === true
         state.conflict = opts?.onConflict?.split(',').map((c) => c.trim())
         calls.push({ table, op: 'upsert', payload: clone(payload) }); return api
       },

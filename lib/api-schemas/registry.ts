@@ -89,6 +89,8 @@ export interface EndpointDef<
    * prepareRoundTripBody).
    */
   roundTrip?: RoundTripOptions
+  /** Set by core for an extension's endpoint (/ext/<id>/…): `x-usertasks-extension` in OpenAPI. */
+  extension?: string
 }
 
 export interface MultipartOptions {

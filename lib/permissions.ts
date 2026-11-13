@@ -1,3 +1,5 @@
+import { extensionPermissionGroups, extensionPermissionsImpliedBy, hasExtensionImplications, isExtensionPermission, looksLikeExtensionPermission } from './extensions/permissions'
+
 /* ── Permission keys ── */
 
 export const PERMISSION_PAYLOAD_VERSION = 20
@@ -150,10 +152,17 @@ export const IMPLIED_PERMISSIONS: Partial<Record<Permission, readonly Permission
   'workflows.view_runs': ['workflows.view_queue'],
 }
 
-/** The permissions plus every permission they imply (deduplicated, input order first). */
+/**
+ * The permissions plus every permission they imply (deduplicated, input
+ * order first). Extension permissions (`ext.<id>.<key>`) whose manifest says
+ * a held core permission implies them are added too (lib/extensions/permissions).
+ */
 export function expandPermissions(perms: Iterable<string>): string[] {
   const out = new Set<string>(perms)
   for (const p of [...out]) for (const implied of IMPLIED_PERMISSIONS[p as Permission] ?? []) out.add(implied)
+  if (hasExtensionImplications()) {
+    for (const p of [...out]) for (const implied of extensionPermissionsImpliedBy(p)) out.add(implied)
+  }
   return [...out]
 }
 
@@ -163,7 +172,31 @@ export function holdsPermission(perms: { has(p: string): boolean }, permission: 
   for (const [broader, implied] of Object.entries(IMPLIED_PERMISSIONS)) {
     if ((implied as readonly string[]).includes(permission) && perms.has(broader)) return true
   }
+  if (permission.startsWith('ext.') && hasExtensionImplications()) {
+    for (const def of extensionImpliers(permission)) if (perms.has(def)) return true
+  }
   return false
+}
+
+function extensionImpliers(permission: string): string[] {
+  const out: string[] = []
+  for (const core of PERMISSION_KEYS) if (extensionPermissionsImpliedBy(core).includes(permission)) out.push(core)
+  return out
+}
+
+/**
+ * Keys a role or API key may store: core keys, extension permissions in the
+ * build, and well-formed `ext.<id>.<key>` keys (an extension removed from the
+ * build keeps its grants for when it returns).
+ */
+export function isStorablePermission(key: string): boolean {
+  return (PERMISSION_KEYS as readonly string[]).includes(key) || isExtensionPermission(key) || looksLikeExtensionPermission(key)
+}
+
+/** Role editor groups: the core groups, then one group per installed extension. */
+export function permissionGroupsWithExtensions(): Array<{ key: string; label: string; permissions: Array<{ key: string; label: string; description: string }> }> {
+  const ext = extensionPermissionGroups()
+  return ext.length ? [...PERMISSION_GROUPS, ...ext] : PERMISSION_GROUPS
 }
 
 /* ── Permission check functions (shared, no server deps) ── */

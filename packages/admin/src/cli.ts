@@ -10,6 +10,7 @@ import { ALLOW_UI_SWITCHING_SETTING, switchingGate } from '@/lib/admin/switch-ru
 import { checkBootstrapInput, ensureStorageBuckets, runBootstrap } from './bootstrap'
 import { runSetupCode } from './setup-code'
 import { runFonts } from './fonts-cli'
+import { licenceStatusLine, runEntitlements, runLicence, sqlLicenceStore, type EntitlementsAction, type LicenceAction } from './licence-cli'
 import { loadLocalEnv, missingEnvMessage, missingProviderEnv } from './local-env'
 import { loadMigrations } from './db/migrations'
 import { computeStatus, describeTarget, migrate, readApplied, repair } from './db/runner'
@@ -78,9 +79,19 @@ Usage:
   usertasks-admin fonts status [--json]                    (self-hosted Google Fonts: remote fetching, families stored)
   usertasks-admin fonts seed <family>... [--featured] [--dir <folder>]   (fetch into storage, or a folder for air-gapped)
   usertasks-admin fonts import <folder>                    (load a seeded folder; no internet needed)
+  usertasks-admin licence status [--json]                  (installed licences, expiry, limits; warnings)
+  usertasks-admin licence install <file>                   (install or replace a licence; signature and binding checked)
+  usertasks-admin licence remove <licence-id> | --all
+  usertasks-admin licence request [--out <file>] [--json]  (offline activation request: instance id, hostnames)
+  usertasks-admin entitlements list [--tenant <workspace id>] [--ext <extension>] [--json]
+  usertasks-admin entitlements grant --tenant <workspace id> --ext <extension> [--until <ISO date>]
+                                     [--features a,b] [--limits sharepoint.farms=2,…]
+  usertasks-admin entitlements revoke --tenant <workspace id> --ext <extension>
   usertasks-admin db migrate [--dry-run] [--include-all] [--owner <role>] [--dir <path>]
   usertasks-admin db status [--dir <path>]
   usertasks-admin db repair --status applied|reverted <version>... [--dir <path>]
+  usertasks-admin ext status [--ext <id>]                 (extensions compiled into this build and their migrations)
+  usertasks-admin ext migrate [--ext <id>] [--dry-run]    (apply extension migrations: ext_<id>__* tables, linted)
 
 Areas: database, auth, storage, realtime, scheduler, email, secrets, cache, kms.
 Global: --db-url <url> (default MIGRATION_DATABASE_URL, then DATABASE_URL), --actor <name>.
@@ -151,6 +162,13 @@ const OPTIONS = {
   batch: { type: 'string' },
   restart: { type: 'boolean' },
   featured: { type: 'boolean' },
+  all: { type: 'boolean' },
+  out: { type: 'string' },
+  tenant: { type: 'string' },
+  ext: { type: 'string' },
+  until: { type: 'string' },
+  features: { type: 'string' },
+  limits: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
 } as const
 
@@ -172,11 +190,14 @@ export type Command =
   | { kind: 'ui-switching'; action: 'status' | 'on' | 'off' }
   | { kind: 'housekeeping'; action: HousekeepingAction; args: string[] }
   | { kind: 'db'; action: 'migrate' | 'status' | 'repair'; rest: string[] }
+  | { kind: 'ext'; action: 'migrate' | 'status' }
   | { kind: 'bootstrap' }
   | { kind: 'setup-code'; action: 'new' | 'status' }
   | { kind: 'storage-init' }
   | { kind: 'fonts'; action: 'status' | 'seed' | 'import'; args: string[] }
   | { kind: 'kms'; action: 'status' | 'rotate' | 'rewrap' | 'rewrap-keys' | 'prune' }
+  | { kind: 'licence'; action: LicenceAction; args: string[] }
+  | { kind: 'entitlements'; action: EntitlementsAction }
 
 function pairs(list: string[] | undefined, flag: string): Record<string, string> {
   const out: Record<string, string> = {}
@@ -319,9 +340,29 @@ export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.en
       if (values.batch !== undefined && !/^\d+$/.test(values.batch)) throw new UsageError('--batch must be a number')
       return { command: { kind: 'kms', action: sub as (typeof actions)[number] }, values }
     }
+    case 'licence':
+    case 'license': {
+      const action = (sub ?? 'status') as LicenceAction
+      if (!['status', 'install', 'remove', 'request'].includes(action)) throw new UsageError(`Unknown command: licence ${sub}`)
+      if (action === 'install' && rest.length !== 1) throw new UsageError('licence install needs one licence file')
+      if (action === 'remove' && (rest.length > 1 || (!rest.length && !values.all) || (rest.length && values.all))) throw new UsageError('licence remove needs one licence id, or --all')
+      if ((action === 'status' || action === 'request') && rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
+      if (values.all && action !== 'remove') throw new UsageError('--all applies to licence remove only')
+      return { command: { kind: 'licence', action, args: rest }, values }
+    }
+    case 'entitlements': {
+      const action = (sub ?? 'list') as EntitlementsAction
+      if (!['list', 'grant', 'revoke'].includes(action)) throw new UsageError(`Unknown command: entitlements ${sub}`)
+      if (rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
+      if (action !== 'list' && (!values.tenant || !values.ext)) throw new UsageError(`entitlements ${action} needs --tenant <workspace id> and --ext <extension id>`)
+      return { command: { kind: 'entitlements', action }, values }
+    }
     case 'db':
       if (!['migrate', 'status', 'repair'].includes(sub ?? '')) throw new UsageError(sub ? `Unknown command: db ${sub}` : 'db needs a command: migrate, status or repair')
       return { command: { kind: 'db', action: sub as 'migrate' | 'status' | 'repair', rest }, values }
+    case 'ext':
+      if (!['migrate', 'status'].includes(sub ?? '')) throw new UsageError(sub ? `Unknown command: ext ${sub}` : 'ext needs a command: migrate or status')
+      return { command: { kind: 'ext', action: sub as 'migrate' | 'status' }, values }
     default:
       throw new UsageError(`Unknown command: ${verb}`)
   }
@@ -439,13 +480,15 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
           migration = snap?.latest_migration ?? null
           housekeeping = await rpcHousekeeping(api.rpc).status().catch(() => null)
         }
+        const licenceStore = db ? sqlLicenceStore(db) : api ? sqlLicenceStore(serviceSqlClient(api.rpc as unknown as ServiceApiClient)) : null
+        const licence = licenceStore ? await licenceStatusLine(licenceStore, io.env).catch(() => null) : null
         const rows = PROVIDER_AREAS.map((area) => {
           const p = config.providers[area]
           const entry = catalogueEntry(area, p.id)
           return { area: areaName(area), provider: p.id, source: p.source, badges: entry ? catalogueBadges(entry) : [], health: report.areas[area] }
         })
         if (values.json) {
-          io.out(JSON.stringify({ cli: VERSION, postgres: pgVersion, migration, areas: rows, checks: report.checks, housekeeping: housekeeping && { settings: housekeeping.settings, last_run: housekeeping.runs[0] ?? null, findings: housekeepingFindings(housekeeping) } }, null, 2))
+          io.out(JSON.stringify({ cli: VERSION, postgres: pgVersion, migration, areas: rows, checks: report.checks, housekeeping: housekeeping && { settings: housekeeping.settings, last_run: housekeeping.runs[0] ?? null, findings: housekeepingFindings(housekeeping) }, licence: licence && { summary: licence.line, licences: licence.licences, warnings: licence.warnings } }, null, 2))
           return report.ok ? 0 : 1
         }
         io.out(`usertasks-admin ${VERSION}${pgVersion ? ` · ${pgVersion === 'Supabase API' ? pgVersion : `PostgreSQL ${pgVersion}`}` : ' · no database access (no DATABASE_URL or Supabase service-role key): config from the environment only'}${migration ? ` · migration ${migration}` : ''}`)
@@ -454,6 +497,10 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
         }
         if (db || api) io.out(`  ${'housekeeping'.padEnd(10)} ${housekeeping ? housekeepingSummary(housekeeping) : 'not installed (apply migration 20261109500000: usertasks-admin db migrate)'}`)
         for (const f of housekeeping ? housekeepingFindings(housekeeping) : []) if (f.level === 'warn') io.out(`  WARN ${f.name}: ${f.detail}`)
+        if (licence) {
+          io.out(`  ${'licence'.padEnd(10)} ${licence.line}`)
+          for (const w of licence.warnings) if (w.level !== 'info') io.out(`  ${w.level === 'error' ? 'ERROR' : 'WARN'} licence: ${w.message}`)
+        }
         for (const w of warnings) io.err(`warning: ${w}`)
         const failing = report.checks.filter((c) => c.status === 'fail')
         for (const c of failing) io.out(`  FAIL ${areaName(c.area)} ${c.name}: ${c.detail}`)
@@ -571,12 +618,29 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
     case 'db':
       return runDb(command.action, command.rest, values, url, io)
 
+    case 'ext':
+      return runExt(command.action, values, url, io)
+
     case 'kms':
       if (!url) return needDb('reach the app database')
       return withDb(url, (db) => runKms(command.action, db!, values, io), io.err)
 
     case 'storage-init':
       return ensureStorageBuckets(io)
+
+    case 'licence': {
+      const code = await withStore(url, io, (db) => runLicence(command.action, command.args, {
+        json: values.json, all: values.all, out: values.out, actor: values.actor || defaultActor(),
+      }, sqlLicenceStore(db), io))
+      return code ?? needDb('read and write the installed licences (instance settings)')
+    }
+
+    case 'entitlements': {
+      const code = await withStore(url, io, (db) => runEntitlements(command.action, {
+        json: values.json, tenant: values.tenant, ext: values.ext, until: values.until, features: values.features, limits: values.limits, actor: values.actor || defaultActor(),
+      }, sqlLicenceStore(db), io))
+      return code ?? needDb('read and write workspace entitlements')
+    }
 
     case 'fonts':
       return runFonts(command.action, command.args, values, io)
@@ -638,6 +702,46 @@ async function runDb(action: 'migrate' | 'status' | 'repair', rest: string[], va
     if (values['dry-run']) io.out(result.pending.length ? `Would apply ${result.pending.length}: ${result.pending.join(', ')}` : 'Up to date.')
     else io.out(result.applied.length ? `Applied ${result.applied.length} migration(s).` : 'Up to date.')
     return 0
+  } finally {
+    await db.end()
+  }
+}
+
+/** Extensions in this build: problems, and their migrations (status / apply). */
+async function runExt(action: 'migrate' | 'status', values: ParsedValues, url: string | undefined, io: CliIO): Promise<number> {
+  const [{ getServerExtensions, extensionProblems }, { getExtensionManifests }, ext] = await Promise.all([
+    import('@/lib/extensions/server-registry'),
+    import('@/lib/extensions/registry'),
+    import('@/lib/admin/ops/extension-migrations'),
+  ])
+  for (const problem of extensionProblems()) io.err(`problem: ${problem}`)
+  const manifests = getExtensionManifests().filter((m) => !values.ext || m.id === values.ext)
+  if (!manifests.length) {
+    io.out(values.ext ? `Extension "${values.ext}" is not in this build.` : 'No extensions in this build (USERTASKS_EXTENSIONS was empty).')
+    return values.ext ? 1 : 0
+  }
+  if (!url) { io.err('Set DATABASE_URL (or MIGRATION_DATABASE_URL) to the database to migrate.'); return 2 }
+  const servers = new Map(getServerExtensions().map((s) => [s.id, s]))
+  const db = await connect(url)
+  try {
+    let failed = 0
+    for (const manifest of manifests) {
+      const files = ext.extensionMigrationFiles(manifest.id, servers.get(manifest.id)?.migrations ?? [])
+      io.out(`${manifest.id}@${manifest.version}: ${files.length} migration(s)`)
+      if (action === 'status') {
+        for (const row of ext.extensionMigrationStatus(files, await ext.readExtensionApplied(db, manifest.id))) io.out(`  ${row.version}  ${row.state.padEnd(12)}  ${row.name}`)
+        continue
+      }
+      try {
+        const result = await ext.migrateExtension(db, manifest.id, files, { dryRun: values['dry-run'], owner: values.owner, log: (line) => io.out(`  ${line}`) })
+        for (const w of result.warnings) io.err(`warning: ${w}`)
+        io.out(values['dry-run'] ? `  would apply ${result.pending.length}` : `  applied ${result.applied.length}`)
+      } catch (error) {
+        failed++
+        io.err((error as Error).message)
+      }
+    }
+    return failed ? 1 : 0
   } finally {
     await db.end()
   }

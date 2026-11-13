@@ -335,6 +335,11 @@ export async function publishWorkflow(ctx: ServiceContext, workflowId: string, n
   if (!workflow) throw ServiceError.notFound('Workflow not found')
   validateGraph(String(workflow.trigger_type ?? ''), workflow.nodes ?? [], workflow.edges ?? [])
   await assertActivatable(ctx, workflowId)
+  // Extension steps (ext.<id>.*): installed, enabled and licensed, or no publish (402 / 403).
+  if ((workflow.nodes ?? []).some((n: { type?: unknown }) => typeof n?.type === 'string' && n.type.startsWith('ext.'))) {
+    const { assertWorkflowExtensionsPublishable } = await import('@/lib/extensions/workflow-gate')
+    await assertWorkflowExtensionsPublishable(ctx.tenantId, workflow.nodes)
+  }
 
   const { data: last, error: lastError } = await db.from('workflow_versions')
     .select('version_number').eq('workflow_id', workflowId).eq('tenant_id', ctx.tenantId)

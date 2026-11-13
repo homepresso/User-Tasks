@@ -120,7 +120,8 @@ export function computeStatus(files: MigrationFile[], applied: AppliedMigration[
   return rows.sort((a, b) => compareVersions(a.version, b.version))
 }
 
-async function withLock<T>(db: Client, timeoutMs: number, fn: () => Promise<T>): Promise<T> {
+/** Runs `fn` holding the migrations advisory lock (core and extension runs share it). */
+export async function withLock<T>(db: Client, timeoutMs: number, fn: () => Promise<T>): Promise<T> {
   const deadline = Date.now() + timeoutMs
   for (;;) {
     const { rows } = await db.query<{ ok: boolean }>('SELECT pg_try_advisory_lock(hashtext($1)) AS ok', [LOCK_KEY])
