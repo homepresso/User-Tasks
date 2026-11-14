@@ -3,7 +3,8 @@
  * controller (LDAPS with the DC's CA): objectGUID ids, the
  * userAccountControl disabled bit, nested groups through
  * LDAP_MATCHING_RULE_IN_CHAIN, uSNChanged delta syncs, and sign-in with the
- * userPrincipalName or sAMAccountName and the AD password.
+ * userPrincipalName, sAMAccountName or DOMAIN\sAMAccountName and the AD
+ * password; a second sync with nothing new changes nothing.
  *
  * Needs EVENT_STREAM_DB_URL and a DC, e.g.
  *   docker run -d --privileged --hostname dc1 -p 6361:636 -e REALM=CORP.DIRSYNC.TEST -e DOMAIN=CORP \
@@ -167,6 +168,16 @@ describe.skipIf(!DB_URL || !AD_URL)('Active Directory sync + bind login (Samba A
     expect(rows[0].config.delta_cursor).toMatch(/^usn:\d+$/)
   })
 
+  it('a second sync with nothing new in the directory changes nothing', async () => {
+    let mode = ''
+    const stats = await sync.runDirectorySync(db, tenantId, 'ldap', { onMode: (m) => { mode = m } })
+    expect(mode).toBe('delta')
+    expect(stats).toMatchObject({
+      users_seen: 0, users_created: 0, users_linked: 0, users_deactivated: 0,
+      groups_created: 0, groups_updated: 0, memberships_added: 0, memberships_removed: 0,
+    })
+  })
+
   it('delta sync by uSNChanged: a rename and a disabled account', async () => {
     const before = (await pg.query(`SELECT config FROM public.tenant_connectors WHERE tenant_id = $1 AND connector_key = 'ldap_directory'`, [tenantId])).rows[0].config.delta_cursor
     await admin.modify(`CN=ada,${OU}`, new Change({ operation: 'replace', modification: new Attribute({ type: 'displayName', values: ['Countess Lovelace'] }) }))
@@ -179,6 +190,9 @@ describe.skipIf(!DB_URL || !AD_URL)('Active Directory sync + bind login (Samba A
     expect((await localUser(`ada@${DOMAIN}`))!.display_name).toBe('Countess Lovelace')
     const bob = (await localUser(`bob@${DOMAIN}`))!
     expect((await pg.query('SELECT is_active FROM public.user_memberships WHERE user_id = $1 AND tenant_id = $2', [bob.id, tenantId])).rows[0].is_active).toBe(false)
+    // A disabled account leaves the teams of its groups too.
+    expect(await teamMembers(`Platform ${RUN}`)).toEqual([])
+    expect(await teamMembers(`Engineering ${RUN}`)).toEqual([`ada@${DOMAIN}`])
     const after = (await pg.query(`SELECT config FROM public.tenant_connectors WHERE tenant_id = $1 AND connector_key = 'ldap_directory'`, [tenantId])).rows[0].config.delta_cursor
     expect(Number(after.slice(4))).toBeGreaterThan(Number(before.slice(4)))
   })
@@ -188,6 +202,8 @@ describe.skipIf(!DB_URL || !AD_URL)('Active Directory sync + bind login (Samba A
     resetRequest()
     expect((await login.tryLdapLogin(SLUG, `ada${RUN}`, 'Passw0rd-Ada!1')).status).toBe('signed_in')
     expect((await login.tryLdapLogin(SLUG, `ada@${DOMAIN}`, 'Passw0rd-Ada!1')).status).toBe('signed_in')
+    // Down-level logon name (NETBIOS\sAMAccountName).
+    expect((await login.tryLdapLogin(SLUG, `CORP\\ada${RUN}`, 'Passw0rd-Ada!1')).status).toBe('signed_in')
     expect(await login.tryLdapLogin(SLUG, `ada${RUN}`, 'wrong-password')).toMatchObject({ status: 'failed', code: 'invalid_credentials' })
     expect(await login.tryLdapLogin(SLUG, `bob${RUN}`, 'Passw0rd-Bob!1')).toMatchObject({ status: 'failed', code: 'invalid_credentials' })
   })

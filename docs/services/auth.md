@@ -41,6 +41,20 @@ OIDC presets: `entra`, `entra_multitenant`, `entra_external_id`, `google`,
   ACS URL. `npm run auth -- redirect-uris` prints them.
 - Set `allowedDomains` for Entra ID, AD FS and SAML IdPs, which don't
   attest email ownership.
+- `roleMapping` maps IdP groups to roles on every sign-in; add
+  `enforceRoleMapping` so leaving the group also takes the role away.
+- `usertasks-admin doctor --area auth` (also on Settings → Infrastructure)
+  checks each IdP: OIDC discovery and signing keys, SAML metadata,
+  certificates and an https ACS.
+
+## Active Directory and AD FS
+
+AD FS works with the `adfs` OIDC preset (an application group) or the
+`adfs` SAML preset (a relying party trust), next to Active Directory
+directory sync and LDAP bind login. AD FS needs an https `APP_URL` for SAML.
+For the PowerShell, claim rules, group → role mapping and the matching key
+that keeps one account per person, see
+[Active Directory and AD FS](active-directory.md).
 
 ```bash
 usertasks-admin switch auth --to builtin --map google=oidc:google,azure=oidc:entra --dry-run

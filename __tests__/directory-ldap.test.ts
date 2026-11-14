@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   AD_IN_CHAIN_OID,
   createLdapClient,
+  downLevelLogonName,
   escapeLdapFilterValue,
   formatObjectGuid,
   normalizeDn,
@@ -132,7 +133,8 @@ describe('LDAP client', () => {
     expect(group).toEqual({ externalId: '33221100-5544-7766-8899-aabbccddeeff', displayName: 'Engineering', description: 'Eng' })
     expect(await client.listGroupMemberIds(group.externalId)).toEqual(['f4c56d2b-e1f0-42d8-a40b-1a6c3d2e1f00'])
     const chain = dir.calls.find((c) => String(c.options?.filter).includes(AD_IN_CHAIN_OID))!
-    expect(chain.options!.filter).toBe(`(&(&(objectCategory=person)(objectClass=user))(memberOf:${AD_IN_CHAIN_OID}:=CN=Engineering,OU=Groups,DC=corp,DC=example,DC=com))`)
+    // Enabled accounts only (userAccountControl ACCOUNTDISABLE bit clear).
+    expect(chain.options!.filter).toBe(`(&(&(objectCategory=person)(objectClass=user))(memberOf:${AD_IN_CHAIN_OID}:=CN=Engineering,OU=Groups,DC=corp,DC=example,DC=com)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))`)
     // objectGUID is binary; searches are paged.
     const userSearch = dir.calls.find((c) => c.op === 'search' && c.options?.filter === '(&(objectCategory=person)(objectClass=user))')!
     expect(userSearch.options!.explicitBufferAttributes).toEqual(['objectGUID'])
@@ -191,6 +193,25 @@ describe('LDAP client', () => {
     expect(await client.findLoginUser('   ')).toBeNull()
   })
 
+  it('Active Directory: a DOMAIN\\user login looks up the sAMAccountName only', async () => {
+    const dir = fakeDirectory(() => [{ dn: 'CN=Ada,OU=People,DC=corp,DC=example,DC=com', objectGUID: guid('2b6dc5f4f0e1d842a40b1a6c3d2e1f00'), sAMAccountName: 'ada', mail: 'ada@corp.example.com', userAccountControl: '512' }])
+    const client = createLdapClient({ settings: AD, bindPassword: 'pw', connect: dir.factory })
+    expect((await client.findLoginUser('CORP\\ada'))?.dn).toBe('CN=Ada,OU=People,DC=corp,DC=example,DC=com')
+    const last = dir.calls.filter((c) => c.op === 'search').at(-1)!
+    expect(last.options!.filter).toBe('(&(&(objectCategory=person)(objectClass=user))(|(sAMAccountName=ada)))')
+    // Default AD login attributes: mail, userPrincipalName, sAMAccountName.
+    await client.findLoginUser('ada@corp.example.com')
+    expect(dir.calls.filter((c) => c.op === 'search').at(-1)!.options!.filter)
+      .toBe('(&(&(objectCategory=person)(objectClass=user))(|(mail=ada@corp.example.com)(userPrincipalName=ada@corp.example.com)(sAMAccountName=ada@corp.example.com)))')
+    expect(downLevelLogonName('CONTOSO\\jdoe')).toBe('jdoe')
+    expect(downLevelLogonName(' contoso\\j.doe ')).toBe('j.doe')
+    for (const other of ['jdoe', 'jdoe@contoso.com', 'a\\b\\c', '\\jdoe', 'CONTOSO\\', 'CON TOSO\\jdoe']) expect(downLevelLogonName(other), other).toBeNull()
+    // Generic directories take the name as typed.
+    const generic = fakeDirectory(() => [])
+    await createLdapClient({ settings: OPENLDAP, bindPassword: 'pw', connect: generic.factory }).findLoginUser('CORP\\ada')
+    expect(generic.calls.filter((c) => c.op === 'search').at(-1)!.options!.filter).toBe('(&(objectClass=inetOrgPerson)(|(mail=CORP\\5cada)(uid=CORP\\5cada)))')
+  })
+
   it('verifies passwords with a bind as the user, refusing empty passwords before the server', async () => {
     const invalid = Object.assign(new Error('Invalid Credentials'), { name: 'InvalidCredentialsError', code: 49 })
     const dir = fakeDirectory(() => [], { bindError: (_dn, pw) => (pw === 'right' ? null : invalid) })
@@ -209,7 +230,17 @@ describe('LDAP client', () => {
     await expect(createLdapClient({ settings: AD, bindPassword: 'x', connect: badBind.factory }).listUsers())
       .rejects.toMatchObject({ code: 'invalid_credentials', message: expect.stringContaining('service account') })
     const badTls = fakeDirectory(() => [], { bindError: () => Object.assign(new Error('self-signed certificate in certificate chain'), { code: 'SELF_SIGNED_CERT_IN_CHAIN' }) })
-    await expect(createLdapClient({ settings: AD, bindPassword: 'x', connect: badTls.factory }).listUsers()).rejects.toMatchObject({ code: 'tls' })
+    await expect(createLdapClient({ settings: AD, bindPassword: 'x', connect: badTls.factory }).listUsers())
+      .rejects.toMatchObject({ code: 'tls', message: expect.stringContaining('add the certificate of the CA') })
+    const badName = fakeDirectory(() => [], { bindError: () => Object.assign(new Error("Hostname/IP does not match certificate's altnames: IP: 127.0.0.1 is not in the cert's list"), { code: 'ERR_TLS_CERT_ALTNAME_INVALID' }) })
+    await expect(createLdapClient({ settings: AD, bindPassword: 'x', connect: badName.factory }).listUsers())
+      .rejects.toMatchObject({ code: 'tls', message: expect.stringContaining('tls_server_name') })
+    // AD requiring LDAP signing refuses simple binds over plain ldap:// (result code 8).
+    const signing = fakeDirectory(() => [], {
+      bindError: () => Object.assign(new Error('00002028: LdapErr: DSID-0C090360, comment: The server requires binds to turn on integrity checking if SSL\\TLS are not already active on the connection, data 0, v65f4'), { name: 'StrongAuthRequiredError', code: 8 }),
+    })
+    await expect(createLdapClient({ settings: { ...AD, url: 'ldap://dc1.corp.example.com' }, bindPassword: 'x', connect: signing.factory }).listUsers())
+      .rejects.toMatchObject({ code: 'tls', message: expect.stringContaining('use ldaps:// (port 636) or StartTLS') })
   })
 
   it('warns about plaintext and unverified connections in the test result', async () => {

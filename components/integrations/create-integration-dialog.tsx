@@ -11,9 +11,11 @@ import { Plus, X, Globe, Zap, Network, ArrowRightLeft, Upload, Image } from "luc
 import { cn } from "@/lib/utils"
 import { uploadIntegrationIcon } from "@/app/actions/uploads"
 import { InlineNotice } from "@/components/ui/inline-notice"
+import { HttpCredentialsWarning } from "./http-credentials-warning"
 import { resolveStorageUrl } from "@/lib/storage/refs"
 import { useSubmitGuard } from "@/hooks/use-submit-guard"
 import { SubmitButton } from "@/components/ui/submit-button"
+import { EMPTY_WINDOWS_AUTH, WindowsAuthFields, windowsAuthToConfig, type WindowsAuthFormValue } from "./windows-auth-fields"
 
 const INTEGRATION_TYPES = [
   { value: "rest_api", label: "REST API", icon: Globe, description: "Connect to any REST endpoint" },
@@ -30,6 +32,8 @@ export function CreateIntegrationDialog() {
   const [open, setOpen] = useState(false)
   const [type, setType] = useState("rest_api")
   const [authType, setAuthType] = useState("none")
+  const [baseUrlDraft, setBaseUrlDraft] = useState("")
+  const [windowsAuth, setWindowsAuth] = useState<WindowsAuthFormValue>(EMPTY_WINDOWS_AUTH)
   const [dbType, setDbType] = useState("postgres")
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [testing, setTesting] = useState(false)
@@ -190,6 +194,7 @@ export function CreateIntegrationDialog() {
                   <Input
                       name="base_url"
                       required
+                      onChange={(event) => setBaseUrlDraft(event.target.value)}
                       placeholder={
                         type === "odata"
                           ? "https://services.example.com/odata/v4"
@@ -210,8 +215,13 @@ export function CreateIntegrationDialog() {
                       <option value="bearer">Bearer Token</option>
                       <option value="basic">Basic Auth (user:pass)</option>
                       <option value="oauth2">OAuth 2.0 (configure after creation)</option>
+                      <option value="windows">Windows (NTLM / Kerberos)</option>
                     </Select>
                 </Field>
+                <HttpCredentialsWarning baseUrl={baseUrlDraft} authType={authType} />
+                {authType === "windows" && (
+                  <WindowsAuthFields value={windowsAuth} onChange={setWindowsAuth} />
+                )}
                 {authType === "bearer" && (
                   <Field label="Bearer token">
                     <Input name="auth_value" type="password" required placeholder="Access token" autoComplete="off" />
@@ -377,6 +387,7 @@ export function CreateIntegrationDialog() {
                         username: String(formData.get("basic_username") ?? ""),
                         password: String(formData.get("basic_password") ?? ""),
                       }
+                      if (selectedAuthType === "windows") authConfig = windowsAuthToConfig(windowsAuth, false)
                       testConfig = {
                         base_url: formData.get("base_url"),
                         auth_type: selectedAuthType,

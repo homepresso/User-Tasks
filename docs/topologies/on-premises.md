@@ -56,7 +56,8 @@ VAULT_TRANSIT_KEY=usertasks
 CACHE_PROVIDER=redis
 CACHE_REDIS_URL=rediss://valkey.corp.example:6379
 NODE_EXTRA_CA_CERTS=/etc/ssl/corp-ca.pem
-ALLOW_PRIVATE_EGRESS=true           # integrations, LDAP and log destinations on private addresses
+EGRESS_PRIVATE_ALLOW=*.corp.example,10.0.0.0/8   # integrations, LDAP and log destinations on private addresses
+# EGRESS_HTTP_ALLOW=spsites         # only for services published over plain http://
 ```
 
 The full walkthrough (images, configuration, first workspace, checks) is
@@ -79,8 +80,10 @@ The full walkthrough (images, configuration, first workspace, checks) is
   image at build time, and the docs site is part of the app (`/docs`). The
   reference profile's smoke test fails if the app can reach the internet.
 - **Integrations and agents** reach only what you allow. Private addresses
-  need `ALLOW_PRIVATE_EGRESS=true`, and cloud metadata addresses stay
-  blocked.
+  need an entry in `EGRESS_PRIVATE_ALLOW` (hostnames, `*.domain` wildcards,
+  CIDRs; or the broad `ALLOW_PRIVATE_EGRESS=true`), and cloud metadata
+  addresses stay blocked. See
+  [Connecting to on-premises systems](../self-hosting.md#connecting-to-on-premises-systems).
 - **Private CA.** Mount it and set `NODE_EXTRA_CA_CERTS` for the database,
   SMTP, the IdP, Vault, LDAP and log destinations.
 - **Kubernetes.** The Helm chart (`deploy/helm/usertasks`, also in the

@@ -117,6 +117,8 @@ export interface LoginOptions {
   provider: ProviderId<'auth'>
   password: boolean
   sso: SsoOption[]
+  /** A workspace signs in with directory (LDAP / Active Directory) passwords: the form also takes user names. */
+  directoryLogin?: boolean
 }
 
 export interface CallbackResult {

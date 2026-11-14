@@ -14810,7 +14810,7 @@ export interface operations {
                     name: string;
                     /** @enum {string} */
                     type: "rest_api" | "odata" | "webhook" | "database";
-                    /** @description REST/OData/webhook: { base_url, auth_type: none|api_key|bearer|basic|oauth2, auth_config: { token | key_name+key_value | username+password }, headers }. Database: { db_config: { db_type, host, port, database, username, password, ssl } } */
+                    /** @description REST/OData/webhook: { base_url, auth_type: none|api_key|bearer|basic|oauth2|windows, auth_config: { token | key_name+key_value | username+password | windows: mode (negotiate|ntlm|kerberos), username (DOMAIN\user or UPN), password, spn?, ca_bundle? (PEM), proxy_url? }, headers }. Database: { db_config: { db_type, host, port, database, username, password, ssl } } */
                     config: {
                         [key: string]: unknown;
                     };

@@ -94,6 +94,8 @@ federate or bind it as well. Hook resources stay after `helm uninstall`
 | `providers.<area>.options` | `{}` | Provider options by name (see Configuration) |
 | `logExport.allowInstanceIdentity` | `false` | `LOG_EXPORT_ALLOW_INSTANCE_IDENTITY` |
 | `logExport.endpoints.<name>` | `{}` | `LOG_EXPORT_<NAME>`: `datadog_url`, `event_hubs_url`, `gcp_logging_url`, `gcp_pubsub_url`, `azure_authority_url`, `gcp_token_url` |
+| `security.egressPrivateAllow` | `[]` | `EGRESS_PRIVATE_ALLOW`: on-premises hosts (`spsites`, `*.contoso.local`) and CIDRs (`10.0.0.0/8`) connectors, LDAP and log destinations may reach |
+| `security.egressHttpAllow` | `[]` | `EGRESS_HTTP_ALLOW`: hosts a connector may call over plain `http://` (default: HTTPS required) |
 | `security.allowPrivateEgress` | `false` | `ALLOW_PRIVATE_EGRESS` (LDAP / AD directory sync, log destinations and integrations on private addresses) |
 | `security.customActionsDisabled` | `false` | `CUSTOM_ACTIONS_DISABLED`: stop every custom workflow action (they always run in a QuickJS WebAssembly sandbox) |
 | `security.enableCustomActivityCode` | `false` | Deprecated, no effect (was `ENABLE_CUSTOM_ACTIVITY_CODE`; custom actions no longer need switching on). Still accepted so existing values files validate |

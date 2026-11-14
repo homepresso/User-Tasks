@@ -10,7 +10,8 @@ const SECRET_NOTE = 'Secrets are returned masked as "__SECRET__"; send the senti
 export const integrationTypeSchema = z.enum(['rest_api', 'odata', 'webhook', 'database'])
 
 export const integrationConfigSchema = looseObject.describe(
-  'REST/OData/webhook: { base_url, auth_type: none|api_key|bearer|basic|oauth2, auth_config: { token | key_name+key_value | username+password }, headers }. '
+  'REST/OData/webhook: { base_url, auth_type: none|api_key|bearer|basic|oauth2|windows, auth_config: { token | key_name+key_value | username+password '
+  + '| windows: mode (negotiate|ntlm|kerberos), username (DOMAIN\\user or UPN), password, spn?, ca_bundle? (PEM), proxy_url? }, headers }. '
   + 'Database: { db_config: { db_type, host, port, database, username, password, ssl } }',
 )
 

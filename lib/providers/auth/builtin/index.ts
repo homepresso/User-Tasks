@@ -278,10 +278,12 @@ export function createBuiltinAuthProvider(id: Exclude<ProviderId<'auth'>, 'supab
 
     async loginOptions() {
       const idps = await getSsoProviders()
+      const directoryLogin = id === 'builtin' && await directoryLoginAvailable()
       return {
         provider: id,
         password: id === 'builtin',
         sso: idps.map((idp) => ({ id: idp.id, ...ssoDisplay(idp) })),
+        ...(directoryLogin ? { directoryLogin } : {}),
       }
     },
 
@@ -340,5 +342,15 @@ export function createBuiltinAuthProvider(id: Exclude<ProviderId<'auth'>, 'supab
         }))
       },
     },
+  }
+}
+
+/** LDAP bind login is on for some workspace (never fails the login page). */
+async function directoryLoginAvailable(): Promise<boolean> {
+  try {
+    const [{ getServiceDb }, { ldapBindLoginEnabled }] = await Promise.all([import('@/lib/providers/db'), import('@/lib/directory-sync/connection')])
+    return await ldapBindLoginEnabled(getServiceDb() as never)
+  } catch {
+    return false
   }
 }

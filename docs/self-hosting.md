@@ -596,6 +596,91 @@ licence. Instance admins install it in Settings → Licence, with
 `USERTASKS_LICENCE_FILE`. Licensed extensions stop 24 hours after the licence
 expires. See [Licences for paid extensions](licensing.md).
 
+### Connecting to on-premises systems
+
+Connectors (REST / OData / webhook integrations, Windows-authenticated
+SharePoint and other on-premises HTTP services, database and SFTP connectors,
+workflow HTTP requests, log destinations) are checked by the egress guard on
+every call and every redirect. By default they may only reach public
+addresses over HTTPS: private (10/8, 172.16/12, 192.168/16, 100.64/10,
+fc00::/7), loopback and link-local addresses are blocked, and plain
+`http://` base URLs are refused (loopback excepted). Cloud metadata endpoints
+(169.254.169.254, fd00:ec2::254, the ECS / EKS credential endpoints,
+100.100.100.200) are **always** blocked, whatever you configure.
+
+On a self-hosted server you open exactly the systems you need. These settings
+have **no effect in the cloud edition** (`DEPLOYMENT_MODE=cloud`).
+
+**1. HTTPS with your internal CA (recommended).** Most on-premises services
+already have a certificate from an internal CA. Keep `https://` and either
+paste the CA bundle on the connection (Windows authentication connections
+have a **CA bundle** field) or trust it server-wide with
+`NODE_EXTRA_CA_CERTS=/path/to/internal-ca.pem`.
+
+**2. The private network allowlist** — `EGRESS_PRIVATE_ALLOW`, a comma
+separated list of:
+
+| Entry | Matches |
+|---|---|
+| `spsites` | exactly that hostname |
+| `*.contoso.local` | any name under `contoso.local` (not `contoso.local` itself) |
+| `10.0.0.0/8`, `192.168.10.0/24` | any target whose resolved address is in the range |
+| `fd00:1234::/32` | IPv6 ranges the same way |
+| `10.1.2.3` | one address (= `/32`, or `/128` for IPv6) |
+
+A private target is allowed when its **hostname** matches an entry, or when
+the **address it resolves to** is inside a listed CIDR. The decision is made
+on the resolved addresses, at connect time, so a name cannot be re-pointed
+(DNS rebinding) at another address after the check: a listed hostname that
+resolves to a metadata address is still blocked. Loopback (127.0.0.0/8,
+::1) and link-local (169.254.0.0/16, fe80::/10) addresses need a CIDR entry
+that covers them — a hostname entry is not enough. Ranges broader than `/8`
+are refused.
+
+```bash
+# SharePoint farm and file shares in the contoso.local domain, plus the 10.x network
+EGRESS_PRIVATE_ALLOW=*.contoso.local,spsites,10.0.0.0/8
+```
+
+The same list can be kept in the database instead of the environment (the
+environment wins when both are set):
+
+```bash
+npm run admin -- egress allow-private '*.contoso.local' spsites 10.0.0.0/8
+npm run admin -- egress show
+npm run admin -- egress remove-private 10.0.0.0/8      # or --all
+```
+
+The app picks a change up within about 30 seconds. **Settings →
+Infrastructure → Network access** shows the effective lists (read-only).
+
+**3. Plain HTTP for specific hosts** — `EGRESS_HTTP_ALLOW`, same syntax.
+Some SharePoint farms are only published over `http://` (e.g.
+`http://spsites`). List them to allow an `http://` base URL; anything not
+listed must use HTTPS:
+
+```bash
+EGRESS_HTTP_ALLOW=spsites,*.contoso.local
+# or: npm run admin -- egress allow-http spsites '*.contoso.local'
+```
+
+A host on a private address must also be in the private network allowlist.
+The list applies to connector base URLs and to plain-`http://` log
+destinations. Over
+plain HTTP, Windows authentication (NTLM / Kerberos) is a challenge-response
+and never sends the password; Basic, Bearer and API-key credentials travel in
+clear text — the connection form warns when you combine them with
+`http://`. Prefer HTTPS for those.
+
+**`ALLOW_PRIVATE_EGRESS=true`** still works and opens *every* private range
+(and plain `http://` log destinations) to every connector. It is broad: any
+workspace administrator can then point an integration at any internal
+service. Prefer the allowlist, which names the hosts and networks you mean.
+
+When a call is blocked, the error says which setting to change, for example
+`Connection to spsites is not allowed: resolves to a private address
+(10.20.0.15) is blocked; add the host or its network to EGRESS_PRIVATE_ALLOW …`.
+
 ## 6. Security checklist
 
 - Keep `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ENCRYPTION_KEY` and
@@ -605,6 +690,7 @@ expires. See [Licences for paid extensions](licensing.md).
   longer used). Set `CUSTOM_ACTIONS_DISABLED=true` to switch them off on a
   server, and `CUSTOM_ACTION_MAX_TIMEOUT_MS` to lower the per-run time limit
   (see [Custom workflow actions](/docs/workflows/custom-actions#security-model)).
-- Leave `ALLOW_PRIVATE_EGRESS` off unless workflows must call services on
-  your private network.
+- Leave `ALLOW_PRIVATE_EGRESS` off. To reach services on your private
+  network, list them in `EGRESS_PRIVATE_ALLOW` (see
+  [Connecting to on-premises systems](#connecting-to-on-premises-systems)).
 - Serve the app over HTTPS; it sends HSTS and a strict CSP by default.

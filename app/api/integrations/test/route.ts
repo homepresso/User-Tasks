@@ -8,6 +8,7 @@ import { isSupportedDbType, testConnection as testDbConnection } from "@/lib/db-
 import type { DbConnectionConfig } from "@/lib/db-connector"
 import { decryptSensitiveFields } from "@/lib/secret-fields"
 import { applyAuthHeaders } from "@/lib/integrations/attach-auth"
+import { resolveTransportFetch } from "@/lib/integrations/transports"
 import { getCurrentTenantId, getOwnedIntegration } from "@/lib/integrations/auth"
 
 export async function POST(request: NextRequest) {
@@ -119,7 +120,9 @@ export async function POST(request: NextRequest) {
 
       const target = new URL(baseUrl)
       for (const [k, v] of Object.entries(query)) target.searchParams.set(k, v)
-      const resp = await connectorFetch(target.toString(), { headers }, { timeoutMs: 10_000, maxAttempts: 1 })
+      // Windows (NTLM / Kerberos) and extension transports: the same fetch the runtime uses.
+      const fetchImpl = await resolveTransportFetch({ tenantId, integrationConfig: config })
+      const resp = await connectorFetch(target.toString(), { headers }, { timeoutMs: 10_000, maxAttempts: 1, fetchImpl })
       await resp.body?.cancel().catch(() => {})
 
       return NextResponse.json({

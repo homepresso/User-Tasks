@@ -11,7 +11,11 @@
 
 import { parseApiSpec } from '@/lib/api-spec-parser'
 import { connectorFetch } from '@/lib/integrations/http'
+import { assertHttpAllowed, EgressBlockedError, httpUrlProblem } from '@/lib/egress-guard'
+import { loadEgressPolicy } from '@/lib/egress-policy'
 import { applyAuthHeaders } from '@/lib/integrations/attach-auth'
+import { resolveTransportFetch } from '@/lib/integrations/transports'
+import { validateWindowsAuthConfig } from '@/lib/integrations/windows-auth/config'
 import { processDeletionQueueBatch } from '@/lib/deletion-queue'
 import { decryptSensitiveFields, encryptSensitiveFields } from '@/lib/secret-fields'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
@@ -24,21 +28,36 @@ import { buildReferenceInsert, MAX_REFERENCES_PER_IMPORT, type ReferenceInput } 
 
 export const CREATABLE_INTEGRATION_TYPES = ['rest_api', 'odata', 'webhook', 'database'] as const
 export type CreatableIntegrationType = (typeof CREATABLE_INTEGRATION_TYPES)[number]
-export const INTEGRATION_AUTH_TYPES = ['none', 'api_key', 'bearer', 'basic', 'oauth2'] as const
+export const INTEGRATION_AUTH_TYPES = ['none', 'api_key', 'bearer', 'basic', 'oauth2', 'windows'] as const
 
 const LIST_COLUMNS = 'id, name, type, is_active, tags, last_test_status, last_tested_at, last_test_message, created_at, updated_at'
 
-/** Validate a base URL: absolute http(s), HTTPS unless loopback, no credentials/fragment. Returns it normalised. */
+/**
+ * Validate a base URL: absolute http(s), HTTPS unless loopback or (self-hosted)
+ * listed in EGRESS_HTTP_ALLOW, no credentials/fragment. Returns it normalised.
+ * Synchronous: a host that could only match an EGRESS_HTTP_ALLOW CIDR after a
+ * DNS lookup passes here and is decided by assertBaseUrlProtocol.
+ */
 export function validateBaseUrl(raw: unknown, field = 'base_url'): string {
   const baseUrl = String(raw ?? '').trim().replace(/\/+$/, '')
   let parsed: URL
   try { parsed = new URL(baseUrl) } catch { throw ServiceError.validation(`${field} must be a valid absolute URL`) }
-  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)
-  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && loopback)) {
-    throw ServiceError.validation(`${field} must use HTTPS outside local development`)
-  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw ServiceError.validation(`${field} must use HTTPS`)
+  const httpProblem = httpUrlProblem(parsed)
+  if (httpProblem) throw ServiceError.validation(`${field}: ${httpProblem}`)
   if (parsed.username || parsed.password || parsed.hash) throw ServiceError.validation(`${field} cannot contain credentials or a fragment`)
   return baseUrl
+}
+
+/** The full http:// rule for a base URL (resolves DNS for EGRESS_HTTP_ALLOW CIDRs). */
+export async function assertBaseUrlProtocol(baseUrl: unknown, field = 'config.base_url'): Promise<void> {
+  if (typeof baseUrl !== 'string' || !/^http:/i.test(baseUrl.trim())) return
+  try {
+    await assertHttpAllowed(baseUrl.trim())
+  } catch (error) {
+    if (error instanceof EgressBlockedError) throw ServiceError.validation(`${field}: ${error.message}`)
+    throw error
+  }
 }
 
 /** Validate (and normalise) a non-database integration config. Database configs pass through. */
@@ -47,7 +66,29 @@ export function validateIntegrationConfig(type: string, config: Record<string, a
   if (type === 'database') return config
   const authType = String(config.auth_type ?? 'none')
   if (!(INTEGRATION_AUTH_TYPES as readonly string[]).includes(authType)) throw ServiceError.validation('config.auth_type is not supported')
-  return { ...config, base_url: validateBaseUrl(config.base_url, 'config.base_url') }
+  const out = { ...config, base_url: validateBaseUrl(config.base_url, 'config.base_url') }
+  return authType === 'windows' ? withValidWindowsAuth(out) : out
+}
+
+/**
+ * auth_type windows: validate and normalise auth_config (mode, DOMAIN\user or
+ * UPN, password, SPN, CA bundle, proxy). Run after '__SECRET__' placeholders
+ * are resolved, so a kept password counts as set.
+ */
+export function withValidWindowsAuth(config: Record<string, any>): Record<string, any> {
+  const checked = validateWindowsAuthConfig(config.auth_config)
+  if (!checked.ok) throw ServiceError.validation(checked.errors.join('; '))
+  const { spn, ca_bundle, proxy_url, ...required } = checked.config
+  return {
+    ...config,
+    auth_config: {
+      ...(config.auth_config?._transport ? { _transport: config.auth_config._transport } : {}),
+      ...required,
+      ...(spn ? { spn } : {}),
+      ...(ca_bundle ? { ca_bundle } : {}),
+      ...(proxy_url ? { proxy_url } : {}),
+    },
+  }
 }
 
 function validateName(name: unknown): string {
@@ -107,7 +148,9 @@ export interface IntegrationCreateInput {
 async function insertIntegration(ctx: ServiceContext, input: IntegrationCreateInput) {
   const name = validateName(input.name)
   if (!(CREATABLE_INTEGRATION_TYPES as readonly string[]).includes(input.type)) throw ServiceError.validation('Unsupported integration type')
+  await loadEgressPolicy()
   const config = validateIntegrationConfig(input.type, input.config ?? {})
+  if (input.type !== 'database') await assertBaseUrlProtocol(config.base_url)
   const { data, error } = await ctx.supabase.from('integrations').insert({
     tenant_id: ctx.tenantId,
     name,
@@ -276,8 +319,11 @@ export async function updateIntegration(ctx: ServiceContext, integrationId: stri
     // Only re-validate the URL when it changes, so legacy rows stay editable.
     const storedUrl = String(existing.config?.base_url ?? '').replace(/\/+$/, '')
     if (existing.type !== 'database' && config?.base_url !== undefined && String(config.base_url).trim().replace(/\/+$/, '') !== storedUrl) {
+      await loadEgressPolicy()
       config = { ...config, base_url: validateBaseUrl(config.base_url, 'config.base_url') }
+      await assertBaseUrlProtocol(config.base_url)
     }
+    if (existing.type !== 'database' && config?.auth_type === 'windows') config = withValidWindowsAuth(config)
     // Idempotent for values an edit form round-trips already encrypted
     updates.config = encryptSensitiveFields(config)
   }
@@ -334,8 +380,9 @@ export async function testIntegration(ctx: ServiceContext, integrationId: string
     await applyAuthHeaders(config, headers, { supabase: ctx.supabase, integrationId, tenantId: ctx.tenantId }, query)
     const target = new URL(config.base_url)
     for (const [k, v] of Object.entries(query)) target.searchParams.set(k, v)
-    // Egress-guarded on every redirect hop.
-    const resp = await connectorFetch(target.toString(), { headers }, { timeoutMs: 10_000, maxAttempts: 1 })
+    // Egress-guarded on every redirect hop; Windows (NTLM / Kerberos) and extension transports apply.
+    const fetchImpl = await resolveTransportFetch({ tenantId: ctx.tenantId, integrationConfig: config })
+    const resp = await connectorFetch(target.toString(), { headers }, { timeoutMs: 10_000, maxAttempts: 1, fetchImpl })
     await resp.body?.cancel().catch(() => {})
     const status = resp.ok ? 'success' : 'error'
     const message = resp.ok ? `${resp.status} OK` : `${resp.status} ${resp.statusText}`

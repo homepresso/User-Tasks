@@ -27,7 +27,7 @@ import {
   logDestinationFilters,
   type LogDestinationType,
 } from '@/lib/api-schemas/log-destinations'
-import { assertSafeEgressHost, assertSafeEgressUrl, EgressBlockedError } from '@/lib/egress-guard'
+import { assertHttpAllowed, assertSafeEgressHost, assertSafeEgressUrl, EgressBlockedError } from '@/lib/egress-guard'
 import { deliverEvents } from '@/lib/log-export/deliver'
 import { decryptSecret, encryptSecret } from '@/lib/secret-crypto'
 import { instanceIdentityAllowed } from '@/lib/log-export/cloud-auth'
@@ -184,7 +184,11 @@ export async function checkDestinationUrls(type: LogDestinationType, config: Rec
   }
   for (const url of destinationUrls(type, config)) {
     if (!/^https:\/\//i.test(url) && process.env.ALLOW_PRIVATE_EGRESS !== 'true') {
-      throw ServiceError.validation(`${url}: destinations must use https (plain http is allowed only with ALLOW_PRIVATE_EGRESS=true)`)
+      try {
+        await assertHttpAllowed(url)
+      } catch {
+        throw ServiceError.validation(`${url}: destinations must use https (plain http is allowed only for hosts in EGRESS_HTTP_ALLOW, or with ALLOW_PRIVATE_EGRESS=true)`)
+      }
     }
     try {
       await assertSafeEgressUrl(url)

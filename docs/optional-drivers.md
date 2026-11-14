@@ -47,6 +47,13 @@ with.
 
 None of them needs a compiler, a system library or a licence key.
 
+One more package is **not** listed in `package.json` at all: `kerberos`
+(Apache-2.0, native, builds against MIT krb5), for Kerberos in
+[Windows authentication](/docs/integrations/windows-auth). It is loaded at
+run time from `node_modules` when present (no stub, no rebuild needed), and
+NTLM works without it. Install it yourself with `npm install kerberos` plus
+`libkrb5-dev` / `krb5-devel`.
+
 ## Installed by default?
 
 | Package group | From source (`npm ci` / `npm install`) | Docker image built from the `Dockerfile` | Vercel |

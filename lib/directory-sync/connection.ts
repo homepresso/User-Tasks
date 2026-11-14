@@ -140,6 +140,21 @@ export async function getDirectoryConnection(
   return rowToConnection(data, provider, Boolean(opts?.includeCredentials))
 }
 
+/**
+ * Whether any workspace has LDAP bind login on (an enabled LDAP connector with
+ * settings.bind_login): the login form then accepts a directory user name
+ * (sAMAccountName, DOMAIN\user) instead of insisting on an email address.
+ */
+export async function ldapBindLoginEnabled(supabase: SupabaseClient): Promise<boolean> {
+  const { data } = await (supabase as any)
+    .from('tenant_connectors')
+    .select('config')
+    .eq('connector_key', DIRECTORY_CONNECTOR_KEYS.ldap)
+    .eq('is_enabled', true)
+    .limit(1000)
+  return ((data ?? []) as Array<{ config?: { settings?: { bind_login?: unknown } } }>).some((row) => row.config?.settings?.bind_login === true)
+}
+
 /** A toggle's stored value: explicit, else kept, else ON for a brand-new connector row (absent = OFF). */
 export function orgToggle(key: 'import_org_units' | 'import_profiles', value: boolean | undefined, previous: Record<string, any>, isNew: boolean): Record<string, boolean> {
   if (value !== undefined) return { [key]: Boolean(value) }

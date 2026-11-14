@@ -1,5 +1,6 @@
 import { applyAuthHeaders } from '@/lib/integrations/attach-auth'
 import { connectorFetch } from '@/lib/integrations/http'
+import { resolveTransportFetch } from '@/lib/integrations/transports'
 import { mintFromRefreshToken } from '@/lib/integrations/token-mint'
 import { decryptSensitiveFields } from '@/lib/secret-fields'
 import { isTeamsWebhookUrl } from './definitions/ms-teams'
@@ -103,11 +104,13 @@ async function performProbe(
   }
 
   // Egress guard on every hop (redirects re-checked), bounded time, no retry storm.
+  // A connection transport (Windows auth, an extension's) performs the request.
+  const fetchImpl = await resolveTransportFetch({ tenantId: null, integrationConfig: integrationConfig as unknown as Record<string, unknown> })
   return connectorFetch(url, {
     method: request.method ?? 'GET',
     headers,
     body: request.body,
-  }, { timeoutMs: TEST_TIMEOUT_MS, maxAttempts: 1 })
+  }, { timeoutMs: TEST_TIMEOUT_MS, maxAttempts: 1, fetchImpl })
 }
 
 /**

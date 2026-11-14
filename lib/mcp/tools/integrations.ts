@@ -89,7 +89,7 @@ export function registerIntegrationTools(server: McpToolServer, ctx: McpContext)
   server.tool('integrations_create', 'Create a new integration. Integrations become the parent container for callable references that MCP can use in workflows, agents, and composite objects.', {
     name: z.string().describe('Integration name'),
     type: z.enum(['rest_api', 'odata', 'database', 'webhook']).describe('Integration type'),
-    config: z.string().describe('JSON string. For REST/OData/webhook: {"base_url": "https://...", "auth_type": "none"|"bearer"|"api_key"|"basic"|"oauth2", "auth_config": {"token": "...", "key_name": "...", "key_value": "...", "username": "...", "password": "..."}, "headers": {}}. For database: {"db_config": {"db_type": "postgres"|"mssql", "host": "...", "port": 5432, "database": "...", "username": "...", "password": "...", "ssl": true}}'),
+    config: z.string().describe('JSON string. For REST/OData/webhook: {"base_url": "https://...", "auth_type": "none"|"bearer"|"api_key"|"basic"|"oauth2"|"windows", "auth_config": {"token": "...", "key_name": "...", "key_value": "...", "username": "...", "password": "..."}, "headers": {}}; windows (NTLM/Kerberos) auth_config: {"mode": "negotiate"|"ntlm"|"kerberos", "username": "DOMAIN\\\\user or user@domain", "password": "...", "spn"?, "ca_bundle"? (PEM), "proxy_url"?}. For database: {"db_config": {"db_type": "postgres"|"mssql", "host": "...", "port": 5432, "database": "...", "username": "...", "password": "...", "ssl": true}}'),
   }, async (args) => {
     const configArg = parseJsonArg<Record<string, unknown>>(args.config, 'config')
     if (!configArg.ok) return mcpErr(configArg.error)

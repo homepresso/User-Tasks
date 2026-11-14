@@ -20,7 +20,9 @@ import { emailDomainAllowed, mapGroupsToRole, type SsoIdpConfig } from './config
  *  4. else refused.
  *
  * The allowed-domain check applies to every path. Group → role mapping is
- * re-applied on each sign-in when roleMapping is set.
+ * re-applied on each sign-in when roleMapping is set; with
+ * enforceRoleMapping, a sign-in whose groups map to nothing resets the role
+ * to defaultRole.
  */
 
 export interface ExternalIdentity {
@@ -91,16 +93,34 @@ export async function resolveExternalAccount(identity: ExternalIdentity): Promis
     const mapped = mapGroupsToRole(identity.groups, idp.roleMapping)
     if (created) {
       await grantTenantRole(userId, idp.defaultOrg, mapped ?? idp.defaultRole, { setHome: true })
-    } else if (mapped) {
-      await grantTenantRole(userId, idp.defaultOrg, mapped, { replace: true })
+    } else {
+      // Mapped role on every sign-in; with enforceRoleMapping, no mapped group
+      // means back to defaultRole. A workspace owner is never replaced by a
+      // claim rule (unless the mapping itself says owner).
+      const target = mapped ?? (idp.roleMapping && idp.enforceRoleMapping ? idp.defaultRole : null)
+      if (target && (target === 'owner' || !(await holdsOwnerRole(userId, idp.defaultOrg)))) {
+        await grantTenantRole(userId, idp.defaultOrg, target, { replace: true })
+      }
     }
   }
 
   return { user: { id: userId, ...(email ? { email } : {}), user_metadata: identity.name ? { full_name: identity.name } : {} }, created }
 }
 
+async function holdsOwnerRole(userId: string, orgSlug: string): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- service-role rows are untyped
+  const db = getServiceDb() as any
+  const { data: tenant } = await db.from('tenants').select('id').eq('slug', orgSlug.toLowerCase()).maybeSingle()
+  if (!tenant) return false
+  const { data: rows } = await db.from('user_roles').select('role_id').eq('tenant_id', tenant.id).eq('user_id', userId)
+  const roleIds = ((rows ?? []) as Array<{ role_id: string }>).map((r) => r.role_id)
+  if (roleIds.length === 0) return false
+  const { data: owners } = await db.from('roles').select('id').in('id', roleIds).eq('slug', 'owner').eq('is_system', true)
+  return ((owners ?? []) as unknown[]).length > 0
+}
+
 /** Keep a small, non-sensitive subset of the claims for audit / debugging. */
 function pickClaims(claims: Record<string, unknown>): Record<string, unknown> {
-  const keep = ['iss', 'sub', 'email', 'name', 'preferred_username', 'tid', 'hd', 'oid', 'nameID', 'nameIDFormat', 'sessionIndex']
+  const keep = ['iss', 'sub', 'email', 'name', 'preferred_username', 'upn', 'tid', 'hd', 'oid', 'nameID', 'nameIDFormat', 'sessionIndex']
   return Object.fromEntries(keep.filter((k) => claims[k] !== undefined).map((k) => [k, claims[k]]))
 }

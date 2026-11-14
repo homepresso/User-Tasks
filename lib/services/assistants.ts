@@ -118,7 +118,8 @@ export async function validateBaseUrl(raw: unknown): Promise<string | null> {
   try {
     await assertSafeEgressUrl(value)
   } catch (error) {
-    throw ServiceError.validation(`base_url is not allowed: ${(error as Error).message}${/private|loopback|local/i.test((error as Error).message) ? ' (self-hosted: set ALLOW_PRIVATE_EGRESS=true to reach a server on your network)' : ''}`)
+    // The guard's message names the setting to change (EGRESS_PRIVATE_ALLOW).
+    throw ServiceError.validation(`base_url is not allowed: ${(error as Error).message}`)
   }
   return value
 }

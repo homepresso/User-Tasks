@@ -33,6 +33,12 @@ auth provider, and runs under any scheduler.
   id>/<name>` references. A workspace can't reference another workspace's
   secrets or the instance's.
 - LDAP bind login needs built-in auth. Supabase Auth installs can sync but
-  not bind.
+  not bind. With bind login on, the login field also takes user names
+  (`jdoe`, `CONTOSO\jdoe`).
+- Active Directory: use LDAPS or StartTLS (Windows Server 2025 refuses
+  unsigned simple binds), a read-only bind account, and a user filter scoped
+  to the people who use UserTasks. Disabled accounts lose access and leave
+  their teams; a second sync with nothing new changes nothing. Step by step:
+  [Active Directory and AD FS](active-directory.md).
 
 Reference: [Directory sync](../infrastructure.md#directory-sync).

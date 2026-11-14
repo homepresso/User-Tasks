@@ -598,20 +598,38 @@ export async function runDirectorySync(
     await report({ phase: 'groups', message: `Syncing ${directoryGroups.length} groups…`, groups_done: 0, groups_total: directoryGroups.length })
     let groupsDone = 0
 
+    // Current names of the linked teams: unchanged groups are not rewritten
+    // (and not counted), so a sync with nothing new reports no updates.
+    const linkedTeams = new Map<string, { name: string | null; description: string | null }>()
+    const linkedTeamIds = directoryGroups.map((g) => groupLinks.get(g.externalId)?.local_id).filter((id): id is string => Boolean(id))
+    for (const ids of chunk(linkedTeamIds, CHUNK)) {
+      const { data } = await (supabase as any).from('teams').select('id, name, description').in('id', ids)
+      for (const row of (data ?? []) as any[]) linkedTeams.set(String(row.id), { name: row.name ?? null, description: row.description ?? null })
+    }
+    const seenGroupLinkIds: string[] = []
+
     for (const group of directoryGroups) {
       let teamId: string
       const link = groupLinks.get(group.externalId)
       if (link) {
         teamId = link.local_id
-        await (supabase as any)
-          .from('teams')
-          .update({ name: group.displayName, description: group.description })
-          .eq('id', teamId)
-        await (supabase as any)
-          .from('directory_links')
-          .update({ display_name: group.displayName, last_seen_at: nowIso })
-          .eq('id', link.id)
-        stats.groups_updated++
+        const team = linkedTeams.get(teamId)
+        const changed = !team || team.name !== group.displayName || (team.description ?? null) !== (group.description ?? null)
+        if (changed) {
+          await (supabase as any)
+            .from('teams')
+            .update({ name: group.displayName, description: group.description })
+            .eq('id', teamId)
+          stats.groups_updated++
+        }
+        if (changed || link.display_name !== group.displayName) {
+          await (supabase as any)
+            .from('directory_links')
+            .update({ display_name: group.displayName, last_seen_at: nowIso })
+            .eq('id', link.id)
+        } else if (link.id) {
+          seenGroupLinkIds.push(link.id)
+        }
       } else {
         const { data: team, error } = await (supabase as any)
           .from('teams')
@@ -667,6 +685,9 @@ export async function runDirectorySync(
       if (groupsDone % 10 === 0) {
         await report({ phase: 'groups', message: `Synced ${groupsDone} of ${directoryGroups.length} groups…`, groups_done: groupsDone, groups_total: directoryGroups.length })
       }
+    }
+    for (const ids of chunk(seenGroupLinkIds, CHUNK)) {
+      await (supabase as any).from('directory_links').update({ last_seen_at: nowIso }).in('id', ids)
     }
   }
 

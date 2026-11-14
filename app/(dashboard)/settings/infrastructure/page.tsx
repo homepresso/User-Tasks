@@ -3,6 +3,7 @@ import { getSessionDbWithUser } from '@/lib/providers/db/session'
 import { loadInfrastructureView, viewerCanSeeInfrastructure } from '@/lib/admin/infrastructure'
 import { InfrastructureView } from '@/components/settings/infrastructure-view'
 import { instancePrices } from '@/lib/agents/costs'
+import { loadEgressPolicy, summariseEgressPolicy } from '@/lib/egress-policy'
 
 /**
  * Settings → Infrastructure: the provider per area, health from the doctor
@@ -19,5 +20,6 @@ export default async function InfrastructurePage({ searchParams }: { searchParam
   const refresh = (await searchParams).refresh === '1'
   const view = await loadInfrastructureView({ refresh })
   const aiPrices = await instancePrices()
-  return <InfrastructureView view={view} aiPrices={aiPrices} />
+  const egress = summariseEgressPolicy(await loadEgressPolicy())
+  return <InfrastructureView view={view} aiPrices={aiPrices} egress={egress} />
 }

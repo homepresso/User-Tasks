@@ -83,6 +83,8 @@ export async function signInAction(input: SignInInput): Promise<AuthActionResult
     }
     if (ldap.status === 'failed') return { ok: false, error: ldap.message, code: ldap.code }
   }
+  // Only the directory knows user names (jdoe, DOMAIN\jdoe); local accounts sign in with an email.
+  if (!EMAIL_RE.test(email)) return { ok: false, error: 'Invalid user name or password.', code: 'invalid_credentials' }
 
   // 1. Existing account.
   let signInError: unknown = null

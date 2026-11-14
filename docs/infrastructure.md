@@ -1103,8 +1103,12 @@ workspace admin cannot point a connector at an instance secret.
 
 **LDAP bind login** (built-in auth): with the LDAP connection's `bind_login`
 on, the organisation's login page verifies passwords with a bind as the
-user's DN; unknown names fall through to built-in passwords. Supabase Auth
-installs can use directory sync but not bind login.
+user's DN; unknown names fall through to built-in passwords. The login field
+then also takes user names: on Active Directory the email, the
+userPrincipalName, the sAMAccountName or `DOMAIN\sAMAccountName`. Supabase
+Auth installs can use directory sync but not bind login. Active Directory
+end to end (bind account, LDAPS, filters, AD FS sign-in, one account per
+person): [Active Directory and AD FS](services/active-directory.md).
 
 SCIM tokens live in `scim_tokens` (SHA-256 only), SCIM resources in
 `scim_resources` / `scim_group_members` (migration
@@ -1228,7 +1232,8 @@ Fields for every IdP:
 | `defaultOrg` | none | organisation (slug) new accounts join; without it they only get a personal workspace |
 | `defaultRole` | `viewer` | role for new accounts in `defaultOrg` |
 | `groupsClaim` | `groups` / preset | claim or attribute listing groups or roles |
-| `roleMapping` | none | `{ "<group>": "<role>" }`; the highest mapped role in `defaultOrg` is applied on every sign-in |
+| `roleMapping` | none | `{ "<group>": "<role>" }`; the highest mapped role in `defaultOrg` is applied on every sign-in (group names match case-insensitively). A workspace owner is never replaced by a mapped role other than `owner` |
+| `enforceRoleMapping` | `false` | with `roleMapping`: a sign-in whose groups map to no role sets the account back to `defaultRole` (without it, leaving the group keeps the mapped role until an admin changes it) |
 
 Directory sync (Settings → SSO & Directory: Entra ID, Okta, LDAP / Active
 Directory, Google Workspace, SCIM) keeps working: synced users have accounts
@@ -1259,7 +1264,7 @@ AD FS send no such claim, so set `allowedDomains` (or `trustEmail`).
 | `authentik` | `baseUrl`, `slug` | OAuth2/OpenID provider + application. |
 | `zitadel` | `domain` | ZITADEL Cloud or self-hosted. |
 | `dex` | `baseUrl` (the issuer) | Requests the `groups` scope when `groupsClaim` is set. |
-| `adfs` | `baseUrl` | AD FS 2016+ application group (server application + web API). |
+| `adfs` | `baseUrl` | AD FS 2016+ application group (server application + web API with claim rules). Reads groups from AD FS's `group` (Group claim type), `role` and `groups` claims, the name from `unique_name` (or `given_name` + `family_name`), and the email from `email`, else `upn`. Step by step: [Active Directory and AD FS](services/active-directory.md). |
 | `cognito` | `userPoolId`, `domain` (hosted UI / managed login domain, optional), `region` (optional) | Amazon Cognito user pool. The issuer is `https://cognito-idp.<region>.amazonaws.com/<userPoolId>`; with `domain` (`acme.auth.eu-west-1.amazoncognito.com` or a custom domain) sign-in, token and userinfo go there. Groups come from `cognito:groups` (map them with `roleMapping`). App client: confidential, authorization code grant, scopes `openid email profile`, callback URL above. |
 | `generic` | `issuer` | any other OpenID Connect provider (Authelia, Gluu, Ping, OneLogin, JumpCloud …). |
 
@@ -1297,7 +1302,7 @@ new accounts and linking.
 
 | Preset | Attributes | Setup |
 |--------|-----------|-------|
-| `adfs` | `…/claims/emailaddress`, `…/claims/name`, `…/claims/Group` | Relying party trust from our metadata URL; claim rules for E-Mail Address, Name, Group; NameID = email. `metadataUrl`: `https://<adfs>/FederationMetadata/2007-06/FederationMetadata.xml`. |
+| `adfs` | `…/claims/emailaddress`, `…/claims/name`, `…/claims/Group` | Relying party trust from our SP metadata; claim rules for E-Mail Address, Name, Group; NameID = email. `metadataUrl`: `https://<adfs>/FederationMetadata/2007-06/FederationMetadata.xml`. AD FS only accepts an https ACS (`APP_URL` must be https). Step by step: [Active Directory and AD FS](services/active-directory.md). |
 | `entra` | `…/claims/emailaddress`, `…/identity/claims/displayname`, `…/claims/groups` | Enterprise application → SAML; Identifier = entity id, Reply URL = ACS; `metadataUrl` = App Federation Metadata Url. |
 | `okta` | `email`, `name`, `groups` | SAML 2.0 app: Single sign-on URL = ACS, Audience URI = entity id; attribute statements `email`, `name`; group attribute `groups`. |
 | `google` | `email`, `name`, `groups` | Workspace custom SAML app: ACS URL, Entity ID, Name ID = primary email; download the IdP metadata into `metadataXml`. |

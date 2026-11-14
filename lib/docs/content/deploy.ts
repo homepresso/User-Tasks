@@ -135,4 +135,10 @@ export const SERVICE_PAGES: DocPageDef[] = [
     description: 'Entra ID, Okta, LDAP / Active Directory, Google Workspace or inbound SCIM 2.0 per workspace, and LDAP bind login with built-in auth.',
     body: include('docs/services/directory-sync.md'),
   },
+  {
+    slug: 'services/active-directory',
+    title: 'Active Directory and AD FS',
+    description: 'Step by step: AD FS sign-in with OpenID Connect or SAML (PowerShell, claim rules, group → role mapping), Active Directory sync over LDAPS with a least-privilege bind account, LDAP bind login, one account per person, and troubleshooting.',
+    body: include('docs/services/active-directory.md'),
+  },
 ]

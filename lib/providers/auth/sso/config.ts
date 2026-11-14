@@ -58,6 +58,13 @@ const provisioningFields = {
   groupsClaim: z.string().optional(),
   /** IdP group value → system role slug in defaultOrg; applied on every sign-in (highest role wins). */
   roleMapping: z.record(z.string(), z.string()).optional(),
+  /**
+   * With roleMapping: a sign-in whose groups map to no role sets the account
+   * back to defaultRole in defaultOrg (default false: a mapped role is only
+   * ever raised or replaced by another mapped role, so removing someone from
+   * the AD group does not take admin away until an admin changes the role).
+   */
+  enforceRoleMapping: z.boolean().default(false),
 }
 
 export const OidcIdpSchema = z.object({
@@ -212,7 +219,19 @@ export function oidcIssuer(idp: OidcIdpConfig): string {
 
 /** The claim that lists the user's groups: groupsClaim, else the preset's (Cognito: cognito:groups), else groups. */
 export function oidcGroupsClaim(idp: OidcIdpConfig): string {
-  return idp.groupsClaim ?? (idp.preset === 'cognito' ? 'cognito:groups' : 'groups')
+  return idp.groupsClaim ?? (idp.preset === 'cognito' ? 'cognito:groups' : idp.preset === 'adfs' ? 'group' : 'groups')
+}
+
+/**
+ * Every claim group values are read from. AD FS writes the
+ * http://schemas.xmlsoap.org/claims/Group claim type as `group` and the role
+ * claim type as `role` in its JWTs (rules issuing either are common), so the
+ * adfs preset reads both, plus `groups`, unless groupsClaim names one.
+ */
+export function oidcGroupsClaims(idp: OidcIdpConfig): string[] {
+  if (idp.groupsClaim) return [idp.groupsClaim]
+  if (idp.preset === 'adfs') return ['group', 'groups', 'role']
+  return [oidcGroupsClaim(idp)]
 }
 
 /**

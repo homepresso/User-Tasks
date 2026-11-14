@@ -7,6 +7,7 @@ import { decryptSecret, encryptSecret, isEncrypted } from '@/lib/secret-crypto'
 import { isBootstrapSetting, isCredentialKey } from '@/lib/config/instance-settings'
 import { isSecretRef } from '@/lib/config/secret-refs'
 import { validateHousekeepingSetting } from '@/lib/config/housekeeping'
+import { validateEgressSetting } from '@/lib/egress-policy'
 import { apiData, apiOf, isMissingObject, NeedsDirectConnectionError, type ServiceApiClient } from './service-sql'
 
 /**
@@ -104,6 +105,7 @@ export function validateSetting(key: string, value: unknown): void {
     }
   }
   validateHousekeepingSetting(key, value)
+  validateEgressSetting(key, value)
 }
 
 /** Stored form of a setting (secrets encrypted; refused without ENCRYPTION_KEY). */

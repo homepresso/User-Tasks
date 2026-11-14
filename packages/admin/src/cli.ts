@@ -10,6 +10,7 @@ import { ALLOW_UI_SWITCHING_SETTING, switchingGate } from '@/lib/admin/switch-ru
 import { checkBootstrapInput, ensureStorageBuckets, runBootstrap } from './bootstrap'
 import { runSetupCode } from './setup-code'
 import { runFonts } from './fonts-cli'
+import { EGRESS_ACTIONS, runEgressCommand, type EgressAction } from './egress-cli'
 import { licenceStatusLine, runEntitlements, runLicence, sqlLicenceStore, type EntitlementsAction, type LicenceAction } from './licence-cli'
 import { loadLocalEnv, missingEnvMessage, missingProviderEnv } from './local-env'
 import { loadMigrations } from './db/migrations'
@@ -67,6 +68,9 @@ Usage:
   usertasks-admin history [--limit <n>] [--json]
   usertasks-admin instance-admins list | add <email>... | remove <email>...
   usertasks-admin ui-switching status | on | off   (cloud edition: allow provider changes from Settings → Infrastructure)
+  usertasks-admin egress show [--json]                     (connectors: private-network allowlist and plain-http hosts, self-hosted)
+  usertasks-admin egress allow-private <host|*.domain|CIDR>... | remove-private <entry>... | --all
+  usertasks-admin egress allow-http <host|*.domain|CIDR>...    | remove-http <entry>... | --all
   usertasks-admin housekeeping show [--json]
   usertasks-admin housekeeping set <setting> <value|default>
       enabled true|false · interval_minutes 15|30|60|…|1440 · cron_history_hours 1–2160 (or 12h, 1d)
@@ -189,6 +193,7 @@ export type Command =
   | { kind: 'instance-admins'; action: 'list' | 'add' | 'remove'; emails: string[] }
   | { kind: 'ui-switching'; action: 'status' | 'on' | 'off' }
   | { kind: 'housekeeping'; action: HousekeepingAction; args: string[] }
+  | { kind: 'egress'; action: EgressAction; args: string[] }
   | { kind: 'db'; action: 'migrate' | 'status' | 'repair'; rest: string[] }
   | { kind: 'ext'; action: 'migrate' | 'status' }
   | { kind: 'bootstrap' }
@@ -305,6 +310,14 @@ export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.en
       if (!['status', 'on', 'off'].includes(action)) throw new UsageError(`Unknown command: ui-switching ${sub}`)
       if (rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
       return { command: { kind: 'ui-switching', action }, values }
+    }
+    case 'egress': {
+      const action = (sub ?? 'show') as EgressAction
+      if (!(EGRESS_ACTIONS as readonly string[]).includes(action)) throw new UsageError(`Unknown command: egress ${sub}`)
+      if (action === 'show' && rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
+      if (action.startsWith('allow') && !rest.length) throw new UsageError(`egress ${action} needs one or more hostnames, *.domain wildcards or CIDRs`)
+      if (action.startsWith('remove') && !rest.length && !values.all) throw new UsageError(`egress ${action} needs entries to remove (or --all)`)
+      return { command: { kind: 'egress', action, args: rest }, values }
     }
     case 'housekeeping': {
       const action = (sub ?? 'show') as HousekeepingAction
@@ -606,6 +619,11 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
         io.out(result.enabled ? 'Provider changes from Settings → Infrastructure: allowed (with this environment).' : `Provider changes from Settings → Infrastructure: off — ${result.reason}`)
         return 0
       })
+      return code ?? needDb('read and write instance settings')
+    }
+
+    case 'egress': {
+      const code = await withStore(url, io, (db) => runEgressCommand(command.action, command.args, db, io, { json: values.json, all: values.all }))
       return code ?? needDb('read and write instance settings')
     }
 

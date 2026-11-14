@@ -7,7 +7,11 @@ import { assertSafeEgressUrl, EgressBlockedError } from '@/lib/egress-guard'
  *  - Egress: every hop goes through assertSafeEgressUrl. Redirects are
  *    followed manually so a public URL cannot bounce the request (with its
  *    credentials) to a private or metadata address; credential headers are
- *    dropped when a redirect leaves the original origin.
+ *    dropped when a redirect leaves the original origin. A hop the
+ *    private-network allowlist admits (EGRESS_PRIVATE_ALLOW) is sent with a
+ *    fetch that re-checks DNS answers at connect time (no rebinding window),
+ *    unless the caller supplied its own transport (which must do the same,
+ *    as the Windows transport does).
  *  - Timeouts: one budget for the whole call, retries included.
  *  - Retries: 429 is retried for every method (rate-limited requests are not
  *    processed); 502/503/504 and network errors only for idempotent methods
@@ -58,6 +62,13 @@ export interface ConnectorFetchOptions {
   sleep?: (ms: number) => Promise<void>
   /** Skip the egress guard — only for fixed, first-party provider endpoints that are not user-supplied. */
   skipEgressCheck?: boolean
+}
+
+let guardedFetchPromise: Promise<typeof fetch> | null = null
+/** Connect-time-checked fetch for allowlisted private targets (loaded on first use: node:http code). */
+function guardedFetch(): Promise<typeof fetch> {
+  guardedFetchPromise ??= import('./windows-auth/transport').then((m) => m.createGuardedFetch())
+  return guardedFetchPromise
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -128,6 +139,7 @@ function isAbortError(error: unknown): boolean {
  */
 export async function connectorFetch(rawUrl: string, init: RequestInit = {}, options: ConnectorFetchOptions = {}): Promise<Response> {
   const doFetch = options.fetchImpl ?? fetch
+  const customTransport = Boolean(options.fetchImpl)
   const sleep = options.sleep ?? defaultSleep
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const deadline = Date.now() + timeoutMs
@@ -147,6 +159,7 @@ export async function connectorFetch(rawUrl: string, init: RequestInit = {}, opt
         maxRedirects,
         signal: AbortSignal.timeout(remaining),
         skipEgressCheck: options.skipEgressCheck === true,
+        customTransport,
       })
     } catch (error) {
       if (error instanceof EgressBlockedError) throw error
@@ -175,14 +188,15 @@ async function fetchFollowingRedirects(
   doFetch: typeof fetch,
   rawUrl: string,
   init: RequestInit,
-  opts: { maxRedirects: number; signal: AbortSignal; skipEgressCheck: boolean },
+  opts: { maxRedirects: number; signal: AbortSignal; skipEgressCheck: boolean; customTransport?: boolean },
 ): Promise<Response> {
   let current = rawUrl
   let currentInit: RequestInit = { ...init, redirect: 'manual', signal: opts.signal }
   const origin = (() => { try { return new URL(rawUrl).origin } catch { return '' } })()
   for (let hop = 0; hop <= opts.maxRedirects; hop++) {
-    if (!opts.skipEgressCheck || hop > 0) await assertSafeEgressUrl(current)
-    const res = await doFetch(current, currentInit)
+    const check = !opts.skipEgressCheck || hop > 0 ? await assertSafeEgressUrl(current) : null
+    const hopFetch = check?.private === 'allowlist' && !opts.customTransport ? await guardedFetch() : doFetch
+    const res = await hopFetch(current, currentInit)
     const location = res.headers.get('location')
     if (res.status < 300 || res.status >= 400 || !location || res.status === 304) return res
     await res.body?.cancel().catch(() => {})

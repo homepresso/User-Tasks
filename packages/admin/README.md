@@ -19,6 +19,9 @@ node admin.cjs <command>            # in the Docker image (/app/admin.cjs)
 | `rollback <switch-id> [--dry-run] [--yes]` | Undo a switch (config and, where possible, data) |
 | `history [--limit <n>] [--json]` | The switch log |
 | `instance-admins list \| add <email>… \| remove <email>…` | Who may open Settings → Infrastructure (with `INSTANCE_ADMIN_EMAILS`) |
+| `egress show [--json]` | Connectors' on-premises network policy (self-hosted): private-network allowlist and plain-http hosts, and where each is set |
+| `egress allow-private <host\|*.domain\|CIDR>…` / `egress remove-private <entry>… \| --all` | Edit `instance.egress_private_allow` (`EGRESS_PRIVATE_ALLOW` wins when set) |
+| `egress allow-http <host\|*.domain\|CIDR>…` / `egress remove-http <entry>… \| --all` | Edit `instance.egress_http_allow` (`EGRESS_HTTP_ALLOW` wins when set) |
 | `ui-switching status \| on \| off` | Cloud edition: allow provider changes from Settings → Infrastructure (`instance.allow_ui_switching`) |
 | `bootstrap --email … --org … [--password …] [--api-key <name>] [--if-missing]` | First workspace and owner through the configured providers (password also from `BOOTSTRAP_PASSWORD`); `--api-key` prints a tenant key once |
 | `storage init` | Create the app's buckets on the configured storage provider |

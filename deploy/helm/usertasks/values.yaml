@@ -121,8 +121,15 @@ logExport:
 # Directory sync is per workspace; LDAP / AD on a private address and log
 # destinations on the LAN need private egress.
 security:
-  # ALLOW_PRIVATE_EGRESS: integrations, LDAP and log destinations on private
-  # addresses (cloud metadata addresses stay blocked).
+  # EGRESS_PRIVATE_ALLOW: on-premises targets connectors may reach —
+  # hostnames, "*.domain" wildcards and CIDRs, e.g. ["*.contoso.local",
+  # "10.0.0.0/8"]. Cloud metadata addresses stay blocked.
+  egressPrivateAllow: []
+  # EGRESS_HTTP_ALLOW: hosts a connector base URL may use over plain http://
+  # (same syntax; default none = HTTPS required).
+  egressHttpAllow: []
+  # ALLOW_PRIVATE_EGRESS: every private address for integrations, LDAP and
+  # log destinations (broad back-compat switch; prefer egressPrivateAllow).
   allowPrivateEgress: false
   # CUSTOM_ACTIONS_DISABLED: stop every custom workflow action on this
   # release (they always run in a QuickJS WebAssembly sandbox otherwise).

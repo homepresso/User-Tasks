@@ -871,14 +871,13 @@ async function executeLoadedReference(
   const wantsCsrf =
     integrationConfig?.auth_config?._csrf === "fetch" ||
     String(findHeader(integrationConfig?.headers ?? {}, "x-csrf-token") ?? "").toLowerCase() === "fetch";
-  if (wantsCsrf && !["GET", "HEAD", "OPTIONS"].includes(effectiveMethod)) {
-    await attachCsrfToken(effectiveBase, headers, timeout);
-  }
-
-  // Connection transport hook (auth_config._transport: NTLM, Kerberos, an
-  // extension's transport …): replaces the single fetch call; the egress
-  // guard, retries and redirects stay with connectorFetch.
+  // Connection transport hook (auth_config._transport or auth_type windows:
+  // NTLM, Kerberos, an extension's transport …): replaces the single fetch
+  // call; the egress guard, retries and redirects stay with connectorFetch.
   const transportFetch = await resolveTransportFetch({ tenantId: integrationTenantId ?? null, integrationConfig: integrationConfig ?? {} });
+  if (wantsCsrf && !["GET", "HEAD", "OPTIONS"].includes(effectiveMethod)) {
+    await attachCsrfToken(effectiveBase, headers, timeout, transportFetch);
+  }
   const send = async () => {
     try {
       return await connectorFetch(url, { method: effectiveMethod, headers, body: prepared as BodyInit | undefined }, { timeoutMs: timeout, fetchImpl: transportFetch });
@@ -1048,13 +1047,13 @@ async function resolveFileBody(
   return null;
 }
 
-async function attachCsrfToken(baseUrl: string, headers: Record<string, string>, timeout: number) {
+async function attachCsrfToken(baseUrl: string, headers: Record<string, string>, timeout: number, fetchImpl?: typeof fetch) {
   const probeHeaders: Record<string, string> = {};
   for (const [k, v] of Object.entries(headers)) {
     if (/^(authorization|sap-client|accept-language|cookie)$/i.test(k)) probeHeaders[k] = v;
   }
   probeHeaders["x-csrf-token"] = "Fetch";
-  const res = await connectorFetch(baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`, { method: "GET", headers: probeHeaders }, { timeoutMs: Math.min(timeout, 15_000) });
+  const res = await connectorFetch(baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`, { method: "GET", headers: probeHeaders }, { timeoutMs: Math.min(timeout, 15_000), fetchImpl });
   await res.body?.cancel().catch(() => {});
   const token = res.headers.get("x-csrf-token");
   if (!token || token.toLowerCase() === "required") {

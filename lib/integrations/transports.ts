@@ -6,10 +6,13 @@
  * request itself (handshakes, connection-bound auth, client certificates).
  *
  * A connection names its transport in `auth_config._transport`:
- *   - a core kind registered with registerTransport() (none yet; NTLM /
- *     Kerberos land here), or
+ *   - a core kind: `windows` (built in, NTLMv2 / Negotiate / Kerberos —
+ *     lib/integrations/windows-auth), or one registered with
+ *     registerTransport(), or
  *   - `ext.<extension id>.<key>`: the extension's `transports[key]`, only
  *     when the extension is usable in the connection's workspace.
+ * `auth_type: windows` implies `_transport: windows` unless another
+ * transport is named explicitly.
  *
  * Core keeps the rules that matter around it: connectorFetch still checks
  * every hop with the egress guard, owns the timeout budget, retries and
@@ -29,6 +32,11 @@ export type CoreTransportFactory = (ctx: TransportContext) => Promise<typeof fet
 
 const coreTransports = new Map<string, CoreTransportFactory>()
 
+/** Built-in kinds, loaded on first use (keeps node:http/tls code out of unrelated bundles). */
+const builtinTransports: Record<string, () => Promise<CoreTransportFactory>> = {
+  windows: async () => (await import('./windows-auth/factory')).windowsTransportFactory,
+}
+
 export function registerTransport(kind: string, factory: CoreTransportFactory): void {
   if (!/^[a-z][a-z0-9_]{1,40}$/.test(kind)) throw new Error(`Invalid transport kind "${kind}"`)
   coreTransports.set(kind, factory)
@@ -37,7 +45,8 @@ export function registerTransport(kind: string, factory: CoreTransportFactory): 
 export function transportKindOf(integrationConfig: Record<string, unknown> | null | undefined): string | null {
   const authConfig = (integrationConfig?.auth_config ?? {}) as Record<string, unknown>
   const kind = typeof authConfig._transport === 'string' ? authConfig._transport.trim() : ''
-  return kind || null
+  if (kind) return kind
+  return integrationConfig?.auth_type === 'windows' ? 'windows' : null
 }
 
 export class TransportUnavailableError extends Error {
@@ -59,7 +68,7 @@ export async function resolveTransportFetch(ctx: TransportContext): Promise<type
     const { resolveExtensionTransport } = await import('@/lib/extensions/transports')
     return resolveExtensionTransport(kind, ctx)
   }
-  const factory = coreTransports.get(kind)
+  const factory = coreTransports.get(kind) ?? (Object.hasOwn(builtinTransports, kind) ? await builtinTransports[kind]() : undefined)
   if (!factory) throw new TransportUnavailableError(`Connection transport "${kind}" is not available in this build`)
   return factory(ctx)
 }

@@ -1681,7 +1681,8 @@ async function fetchFileResponse(url: string): Promise<{
   contentType?: string;
   fileName?: string | null;
 }> {
-  const resp = await fetch(url, {
+  // fetchFile: the app's own storage directly, anything else egress-guarded.
+  const resp = await fetchFile(url, {
     signal: AbortSignal.timeout(TIMEOUTS.LARGE_FILE),
   });
   if (!resp.ok)
@@ -5516,12 +5517,16 @@ async function runNodeAction(
             }
 
             try {
-              await fetch(baseUrl + path, {
+              // Egress-guarded on every redirect hop (private-network
+              // allowlist, metadata always blocked); credentials dropped on a
+              // cross-origin redirect; one attempt, as before.
+              const { connectorFetch } = await import("@/lib/integrations/http");
+              const resp = await connectorFetch(baseUrl + path, {
                 method: reqConfig?.method ?? "POST",
                 headers,
                 body,
-                signal: AbortSignal.timeout(TIMEOUTS.STANDARD),
-              });
+              }, { timeoutMs: TIMEOUTS.STANDARD, retry: "never" });
+              await resp.body?.cancel().catch(() => {});
             } catch (e: unknown) {
               throw new Error(
                 `Server event outbound call failed: ${toErrorMessage(e)}`,
@@ -7071,7 +7076,7 @@ async function runNodeAction(
       let resp: Response;
       try {
         // Egress-guarded on every redirect hop (no private / metadata targets
-        // unless ALLOW_PRIVATE_EGRESS); no automatic retries for this node.
+        // unless EGRESS_PRIVATE_ALLOW / ALLOW_PRIVATE_EGRESS); no automatic retries for this node.
         const { connectorFetch } = await import("@/lib/integrations/http");
         resp = await connectorFetch(baseUrl, {
           method,

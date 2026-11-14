@@ -5,6 +5,8 @@ import type { CheckStatus } from '@/lib/admin/doctor'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { HousekeepingCard } from './housekeeping-card'
 import { AiPricesCard } from './ai-prices-card'
+import { EgressPolicyCard } from './egress-policy-card'
+import type { EgressPolicySummary } from '@/lib/egress-policy'
 import type { ModelPrice } from '@/lib/agents/pricing'
 import { RollbackWindowWarning } from './provider-switch-wizard'
 import { AreaActions, SwitchLogPanel } from './switch-log-panel'
@@ -88,7 +90,7 @@ function SwitchingStatus({ switching }: { switching: View['switching'] }) {
   )
 }
 
-export function InfrastructureView({ view, aiPrices = [] }: { view: View; aiPrices?: ModelPrice[] }) {
+export function InfrastructureView({ view, aiPrices = [], egress }: { view: View; aiPrices?: ModelPrice[]; egress?: EgressPolicySummary }) {
   const muted = { color: 'var(--theme-muted-text)' }
   const card = { backgroundColor: 'var(--theme-card-bg)', borderColor: 'var(--theme-surface-border)' }
   return (
@@ -150,6 +152,8 @@ export function InfrastructureView({ view, aiPrices = [] }: { view: View; aiPric
       </div>
 
       <HousekeepingCard initial={view.housekeeping} error={view.housekeepingError} />
+
+      {egress && <EgressPolicyCard summary={egress} />}
 
       <AiPricesCard initial={aiPrices} />
 

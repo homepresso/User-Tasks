@@ -1,0 +1,30 @@
+{
+  "sub": "8Vjl4CbnejrnJwYvcpOmLqpoRP1/hdVc4vsMXDqr7rE=",
+  "aud": "180d3053-1b64-4133-a6ee-4a9f67392230",
+  "iss": "https://adfs.contoso.local/adfs",
+  "auth_time": 1794629612,
+  "sid": "S-1-5-21-305597043-4057552235-3456481556-1601",
+  "upn": "ut-test@contoso.local",
+  "unique_name": "Uta Tester",
+  "email": "ut-test@contoso.local",
+  "given_name": "Uta",
+  "family_name": "Tester",
+  "group": ["Domain Users", "UT-Admins"],
+  "groupsid": [
+    "S-1-5-21-305597043-4057552235-3456481556-513",
+    "S-1-1-0",
+    "S-1-5-32-545",
+    "S-1-5-32-574",
+    "S-1-5-32-554",
+    "S-1-5-2",
+    "S-1-5-11",
+    "S-1-5-15",
+    "S-1-5-21-305597043-4057552235-3456481556-1605",
+    "S-1-18-2"
+  ],
+  "apptype": "Confidential",
+  "appid": "180d3053-1b64-4133-a6ee-4a9f67392230",
+  "authmethod": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
+  "ver": "1.0",
+  "scp": "allatclaims email profile openid"
+}

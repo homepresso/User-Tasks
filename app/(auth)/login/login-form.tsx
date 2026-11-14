@@ -50,13 +50,15 @@ export function LoginForm({ options, defaultOrg = "", singleOrg = null, signupHr
   const [error, setError] = useState<string | null>(ERROR_MESSAGES[searchParams.get("error") ?? ""] ?? null)
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState("")
+  // LDAP / Active Directory bind login: jdoe, CONTOSO\jdoe or jdoe@corp.example.
+  const directoryLogin = options.directoryLogin === true
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
 
     if (!tenant.trim()) { setError("Organisation is required."); return }
-    if (!email.trim() || !password) { setError("Email and password are required."); return }
+    if (!email.trim() || !password) { setError(directoryLogin ? "User name and password are required." : "Email and password are required."); return }
 
     setLoading(true)
     const slug = tenant.trim().toLowerCase()
@@ -137,7 +139,9 @@ export function LoginForm({ options, defaultOrg = "", singleOrg = null, signupHr
       <div className="mb-8">
         <h1 className="font-display text-2xl font-semibold text-fg">Sign in</h1>
         <p className="mt-1 text-sm text-fg-muted">
-          {orgFixed ? "Enter your email and password." : "Enter your organisation, email and password."} New users with an invitation are set up automatically.
+          {orgFixed
+            ? (directoryLogin ? "Enter your email or user name and password." : "Enter your email and password.")
+            : (directoryLogin ? "Enter your organisation, email or user name and password." : "Enter your organisation, email and password.")} New users with an invitation are set up automatically.
         </p>
       </div>
 
@@ -153,8 +157,12 @@ export function LoginForm({ options, defaultOrg = "", singleOrg = null, signupHr
           {showPassword ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               {orgField}
-              <Field label="Email address">
-                <Input id="email" type="email" size="lg" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required autoComplete="email" />
+              <Field label={directoryLogin ? "Email or user name" : "Email address"}>
+                {directoryLogin ? (
+                  <Input id="email" type="text" size="lg" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com or DOMAIN\username" required autoComplete="username" autoCapitalize="none" spellCheck={false} />
+                ) : (
+                  <Input id="email" type="email" size="lg" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required autoComplete="email" />
+                )}
               </Field>
               <Field label="Password" labelAside={<Link href="/forgot-password" className="text-xs font-medium text-primary-text hover:underline">Forgot password?</Link>}>
                 <Input id="password" type="password" size="lg" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required autoComplete="current-password" />

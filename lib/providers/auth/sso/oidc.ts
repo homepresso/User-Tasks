@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose'
 import { randomToken, saveFlowState, takeFlowState } from '../builtin/store'
 import { AuthError } from '../types'
-import { cognitoEndpoints, oidcGroupsClaim, oidcIssuer, oidcScopes, resolveSsoSecret, type OidcIdpConfig } from './config'
+import { cognitoEndpoints, oidcGroupsClaims, oidcIssuer, oidcScopes, resolveSsoSecret, type OidcIdpConfig } from './config'
 import type { ExternalIdentity } from './accounts'
 
 /**
@@ -43,14 +43,14 @@ export function clearOidcCache(): void {
   discoveryCache.clear()
 }
 
-export async function discover(idp: OidcIdpConfig, fetchImpl: typeof fetch = fetch): Promise<{ doc: Discovery; jwks: JWTVerifyGetKey }> {
+export async function discover(idp: OidcIdpConfig, fetchImpl: typeof fetch = fetch, opts: { fresh?: boolean } = {}): Promise<{ doc: Discovery; jwks: JWTVerifyGetKey }> {
   const issuer = oidcIssuer(idp)
   const url = idp.discoveryUrl ?? `${issuer.replace(/\/+$/, '')}/.well-known/openid-configuration`
   const endpoints = cognitoEndpoints(idp)
   // Two Cognito IdPs on one pool may use different domains.
   const cacheKey = endpoints ? `${url}#${endpoints.authorization_endpoint}` : url
   const hit = discoveryCache.get(cacheKey)
-  if (hit && Date.now() - hit.at < DISCOVERY_TTL_MS) return hit
+  if (hit && !opts.fresh && Date.now() - hit.at < DISCOVERY_TTL_MS) return hit
   const res = await fetchImpl(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(10_000) }).catch((error: Error) => {
     throw new AuthError('sso_failed', `Could not reach the identity provider (${error.message})`)
   })
@@ -232,6 +232,20 @@ export function claimList(value: unknown): string[] {
   return []
 }
 
+/**
+ * Display name: nameClaim, else (AD FS, which writes the name claim type as
+ * `unique_name`) unique_name unless it is a DOMAIN\user login, else
+ * given_name + family_name, else preferred_username.
+ */
+function displayName(idp: OidcIdpConfig, claims: Record<string, unknown>): string | null {
+  const uniqueName = idp.preset === 'adfs' ? claimString(claims, 'unique_name') : null
+  // A DOMAIN\user unique_name (rules that issue the Windows account name) is a login, not a name.
+  const named = claimString(claims, idp.nameClaim) ?? (uniqueName && !uniqueName.includes('\\') ? uniqueName : null)
+  if (named) return named
+  const full = [claimString(claims, 'given_name'), claimString(claims, 'family_name')].filter(Boolean).join(' ')
+  return full || claimString(claims, 'preferred_username')
+}
+
 /** Claims → ExternalIdentity, with the per-IdP email-trust rules. */
 export function toExternalIdentity(idp: OidcIdpConfig, claims: Record<string, unknown>): ExternalIdentity {
   const issuer = String(claims.iss ?? '')
@@ -239,6 +253,8 @@ export function toExternalIdentity(idp: OidcIdpConfig, claims: Record<string, un
   const subject = idp.preset === 'entra_multitenant' ? `${claims.tid}:${claims.oid ?? claims.sub}` : String(claims.sub)
   let email = claimString(claims, idp.emailClaim)
   if (!email && idp.preset.startsWith('entra')) email = claimString(claims, 'preferred_username')
+  // AD FS: accounts without a mail attribute still have a userPrincipalName.
+  if (!email && idp.preset === 'adfs') email = claimString(claims, 'upn')
   if (email && !email.includes('@')) email = null
 
   let emailVerified = claims.email_verified === true || claims.email_verified === 'true'
@@ -258,8 +274,8 @@ export function toExternalIdentity(idp: OidcIdpConfig, claims: Record<string, un
     subject: subject || `${issuer}:${String(claims.sub)}`,
     email,
     emailVerified,
-    name: claimString(claims, idp.nameClaim) ?? claimString(claims, 'preferred_username'),
-    groups: claimList(claims[oidcGroupsClaim(idp)]),
+    name: displayName(idp, claims),
+    groups: [...new Set(oidcGroupsClaims(idp).flatMap((name) => claimList(claims[name])))],
     claims,
   }
 }

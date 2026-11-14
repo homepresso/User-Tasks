@@ -70,8 +70,9 @@ providers:
       redis_url: rediss://valkey.corp.example:6379
 
 security:
-  # LDAP / AD directory sync, log destinations and integrations on the LAN.
-  allowPrivateEgress: true
+  # LDAP / AD directory sync, log destinations and integrations on the LAN:
+  # only the hosts and networks listed (cloud metadata stays blocked).
+  egressPrivateAllow: ["*.corp.example", "10.0.0.0/8"]
 
 caBundle:
   configMap: corp-ca

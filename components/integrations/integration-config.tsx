@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation"
 import { formatRelativeDate } from "@/lib/utils"
 import { InlineNotice } from "@/components/ui/inline-notice"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { HttpCredentialsWarning } from "./http-credentials-warning"
+import { WindowsAuthFields, windowsAuthFromConfig, windowsAuthToConfig, type WindowsAuthFormValue } from "./windows-auth-fields"
 
 interface IntegrationConfigProps {
   integration: {
@@ -60,6 +62,10 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
       ? oauthCfg.scopes.join(" ")
       : (oauthCfg.scopes ?? oauthPreset?.defaultScopes?.join(" ") ?? "")
   )
+  // Windows (NTLM / Kerberos): the stored password is write-only — blank keeps it.
+  const storedAuthConfig = (integration.config as any)?.auth_type === "windows" ? (integration.config as any)?.auth_config : null
+  const hasStoredWindowsPassword = Boolean(storedAuthConfig?.password)
+  const [windowsAuth, setWindowsAuth] = useState<WindowsAuthFormValue>(() => windowsAuthFromConfig(storedAuthConfig))
   const [connecting, setConnecting] = useState(false)
   // Post-redirect flag from the callback (?oauth=connected|error).
   const [oauthFlag] = useState<string | null>(() =>
@@ -96,6 +102,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
           : { username: authValue.slice(0, sep), password: authValue.slice(sep + 1) }
       }
       if (authType === "oauth2") liveAuthConfig = oauthCfg
+      if (authType === "windows") liveAuthConfig = windowsAuthToConfig(windowsAuth, hasStoredWindowsPassword)
 
       const resp = await fetch("/api/integrations/test", {
         method: "POST",
@@ -139,6 +146,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
         ? { username: raw, password: "" }
         : { username: raw.slice(0, sep), password: raw.slice(sep + 1) }
     }
+    if (authType === "windows") newConfig.auth_config = windowsAuthToConfig(windowsAuth, hasStoredWindowsPassword)
     if (authType === "oauth2") {
       // Preserve any previously-stored oauth_config keys (e.g. connector_id,
       // provider) alongside the editable fields. Tokens live on the connector.
@@ -255,8 +263,13 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
               <option value="bearer">Bearer Token</option>
               <option value="basic">Basic Auth</option>
               <option value="oauth2">OAuth 2.0</option>
+              <option value="windows">Windows (NTLM / Kerberos)</option>
             </select>
           </div>
+          <HttpCredentialsWarning baseUrl={baseUrl} authType={authType} />
+          {authType === "windows" && (
+            <WindowsAuthFields value={windowsAuth} onChange={setWindowsAuth} hasStoredPassword={hasStoredWindowsPassword} />
+          )}
           {authType === "api_key" && (
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -384,6 +397,8 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
                 <span className="capitalize">
                   {config?.auth_type === "api_key"
                     ? `API Key (${config?.auth_config?.key_name ?? "X-API-Key"})`
+                    : config?.auth_type === "windows"
+                    ? `Windows (${config?.auth_config?.mode ?? "negotiate"})`
                     : config?.auth_type ?? "None"}
                 </span>
               </div>

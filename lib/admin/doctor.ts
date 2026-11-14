@@ -375,7 +375,7 @@ async function checkAuth(opts: DoctorOptions, add: Add): Promise<void> {
     add('store', 'fail', `The ${config.id} auth provider stores accounts in PostgreSQL and needs DATABASE_URL (or AUTH_DATABASE_URL), which is not set`)
   }
 
-  const { parseSsoProviders, oidcIssuer } = await import('@/lib/providers/auth/sso/config')
+  const { parseSsoProviders } = await import('@/lib/providers/auth/sso/config')
   let idps: ReturnType<typeof parseSsoProviders> = []
   try {
     idps = parseSsoProviders(config.options.sso_providers)
@@ -387,21 +387,13 @@ async function checkAuth(opts: DoctorOptions, add: Add): Promise<void> {
     add('sso config', 'fail', `AUTH_PROVIDER=${config.id} but no ${config.id.toUpperCase()} identity provider is configured (AUTH_SSO_PROVIDERS)`)
   }
   const origin = appUrlOrLocalhost().replace(/\/+$/, '')
+  const { checkSsoProvider } = await import('@/lib/providers/auth/sso/check')
   for (const idp of idps) {
-    if (idp.type === 'oidc') {
-      try {
-        const issuer = oidcIssuer(idp).replace(/\/+$/, '')
-        const res = await timed(fetcher(`${issuer}/.well-known/openid-configuration`), timeout, `${idp.id} discovery`)
-        const doc = res.ok ? (await res.json()) as Record<string, unknown> : null
-        const valid = Boolean(doc && typeof doc.issuer === 'string' && typeof doc.authorization_endpoint === 'string')
-        add(`oidc:${idp.id}`, valid ? 'ok' : 'fail', valid
-          ? `discovery OK (${issuer}); redirect URI ${origin}/auth/sso/${idp.id}/callback`
-          : `discovery at ${issuer} failed (HTTP ${res.status})`)
-      } catch (error) {
-        add(`oidc:${idp.id}`, 'fail', message(error))
-      }
-    } else {
-      add(`saml:${idp.id}`, 'ok', `configured; ACS ${origin}/auth/saml/${idp.id}/acs`)
+    try {
+      const result = await timed(checkSsoProvider(idp, origin, fetcher), timeout, `${idp.type}:${idp.id} check`)
+      add(`${idp.type}:${idp.id}`, !result.ok ? 'fail' : result.warnings.length ? 'warn' : 'ok', [result.detail, ...result.warnings].join(' '))
+    } catch (error) {
+      add(`${idp.type}:${idp.id}`, 'fail', message(error))
     }
   }
 }

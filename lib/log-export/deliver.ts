@@ -9,7 +9,7 @@
  * credential values never appear in it.
  */
 
-import { assertSafeEgressHost, assertSafeEgressUrl, EgressBlockedError } from '@/lib/egress-guard'
+import { assertHttpAllowed, assertSafeEgressHost, assertSafeEgressUrl, EgressBlockedError } from '@/lib/egress-guard'
 import type { LogDestinationType } from '@/lib/api-schemas/log-destinations'
 import { awsCloudWatchLogsFormatter } from './formats/aws-cloudwatch-logs'
 import { azureEventHubsFormatter } from './formats/azure-event-hubs'
@@ -107,7 +107,7 @@ export function redactSecrets(text: string, credentials: unknown): string {
 }
 
 /**
- * https (http only with ALLOW_PRIVATE_EGRESS=true) + SSRF guard; syslog:
+ * https (http only for EGRESS_HTTP_ALLOW hosts or with ALLOW_PRIVATE_EGRESS=true) + SSRF guard; syslog:
  * tls, or tcp / udp with ALLOW_PRIVATE_EGRESS=true. Throws EgressBlockedError.
  */
 export async function assertDeliverableUrl(url: string): Promise<void> {
@@ -120,7 +120,12 @@ export async function assertDeliverableUrl(url: string): Promise<void> {
     return
   }
   if (!/^https:\/\//i.test(url) && process.env.ALLOW_PRIVATE_EGRESS !== 'true') {
-    throw new EgressBlockedError(new URL(url).origin, 'destinations must use https (plain http needs ALLOW_PRIVATE_EGRESS=true)')
+    // Plain http: only for hosts listed in EGRESS_HTTP_ALLOW (self-hosted).
+    try {
+      await assertHttpAllowed(url)
+    } catch {
+      throw new EgressBlockedError(new URL(url).origin, 'destinations must use https (plain http needs the host in EGRESS_HTTP_ALLOW, or ALLOW_PRIVATE_EGRESS=true)')
+    }
   }
   await assertSafeEgressUrl(url)
 }

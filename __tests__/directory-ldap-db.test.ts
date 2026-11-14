@@ -178,6 +178,11 @@ describe.skipIf(!DB_URL || !LDAP_URL)('LDAP directory sync + bind login (OpenLDA
     expect(rows[0].config.last_full_sync_at).toBeTruthy()
   })
 
+  it('a second sync with nothing new in the directory changes nothing', async () => {
+    const stats = await sync.runDirectorySync(db, tenantId, 'ldap')
+    expect(stats).toMatchObject({ users_created: 0, users_linked: 0, users_deactivated: 0, groups_created: 0, groups_updated: 0, memberships_added: 0, memberships_removed: 0 })
+  })
+
   it('delta sync picks up changes; a full sync deprovisions entries that left the directory', async () => {
     await admin.modify(`uid=carol,ou=people,${OU}`, new Change({ operation: 'replace', modification: new Attribute({ type: 'displayName', values: ['Carol Changed'] }) }))
     let mode: string | null = null

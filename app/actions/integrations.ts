@@ -51,9 +51,13 @@ export async function createIntegration(formData: FormData) {
     if (!['https:', 'http:'].includes(parsedBaseUrl.protocol)) throw new Error('Base URL must use HTTP or HTTPS')
     if (parsedBaseUrl.username || parsedBaseUrl.password) throw new Error('Do not put credentials in the base URL')
     if (parsedBaseUrl.hash) throw new Error('Base URL cannot contain a fragment')
-    const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(parsedBaseUrl.hostname)
-    if (parsedBaseUrl.protocol !== 'https:' && !isLoopback) throw new Error('Base URL must use HTTPS outside local development')
-    if (!['none', 'api_key', 'bearer', 'basic', 'oauth2'].includes(authType)) throw new Error('Unsupported authentication type')
+    // HTTPS unless loopback or (self-hosted) listed in EGRESS_HTTP_ALLOW; the message names the setting.
+    try {
+      await integrationsService.assertBaseUrlProtocol(baseUrl, 'Base URL')
+    } catch (error) {
+      throw new Error((error as Error).message)
+    }
+    if (!['none', 'api_key', 'bearer', 'basic', 'oauth2', 'windows'].includes(authType)) throw new Error('Unsupported authentication type')
 
     config = {
       base_url: baseUrl,
@@ -77,6 +81,18 @@ export async function createIntegration(formData: FormData) {
       const password = String(formData.get('basic_password') ?? '')
       if (!username) throw new Error('Basic authentication username is required')
       config.auth_config = { username, password }
+    }
+    if (authType === 'windows') {
+      // Validated (and normalised) by the integrations service.
+      const field = (name: string) => String(formData.get(name) ?? '').trim()
+      config.auth_config = {
+        mode: field('windows_mode') || 'negotiate',
+        username: field('windows_username'),
+        password: String(formData.get('windows_password') ?? ''),
+        spn: field('windows_spn'),
+        ca_bundle: field('windows_ca_bundle'),
+        proxy_url: field('windows_proxy_url'),
+      }
     }
   }
 

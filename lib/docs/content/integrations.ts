@@ -21,7 +21,7 @@ An **integration** is a connection to one external system: its type, base URL or
 
 ## Authentication
 
-\`auth_type\` is \`none\`, \`api_key\` (header or query key), \`bearer\`, \`basic\` or \`oauth2\` (authorization code with PKCE and automatic token refresh; see [OAuth connections](/docs/integrations/oauth)). Credentials are encrypted at rest with \`ENCRYPTION_KEY\` and are **write-only**: the API and exports return \`__SECRET__\` in their place, and sending \`__SECRET__\` back on an update keeps the stored value.
+\`auth_type\` is \`none\`, \`api_key\` (header or query key), \`bearer\`, \`basic\`, \`oauth2\` (authorization code with PKCE and automatic token refresh; see [OAuth connections](/docs/integrations/oauth)) or \`windows\` (NTLMv2 or Kerberos with a service account, for on-premises services such as SharePoint Server; see [Windows authentication](/docs/integrations/windows-auth)). Credentials are encrypted at rest with \`ENCRYPTION_KEY\` and are **write-only**: the API and exports return \`__SECRET__\` in their place, and sending \`__SECRET__\` back on an update keeps the stored value.
 
 ## Creating one
 
@@ -44,7 +44,7 @@ usertasks integrations test <id>
 
 ## Safety
 
-- **Egress guard** — outbound calls to private, loopback and cloud-metadata addresses are blocked unless a self-hosted server sets \`ALLOW_PRIVATE_EGRESS=true\` (metadata endpoints stay blocked).
+- **Egress guard** — outbound calls to private, loopback and cloud-metadata addresses are blocked. A self-hosted server opens the on-premises systems it needs with \`EGRESS_PRIVATE_ALLOW\` (hostnames, \`*.domain\` wildcards, CIDRs) and allows plain \`http://\` for specific hosts with \`EGRESS_HTTP_ALLOW\`; metadata endpoints stay blocked. See [Connecting to on-premises systems](/docs/self-hosting#connecting-to-on-premises-systems).
 - **Call logs** — every call records method, host, path, status and duration with headers redacted, and emits an \`integration.call\` event (warn on 4xx, error on 5xx) for [log export](/docs/observability).
 - **Permissions** — \`integrations.view\`, \`integrations.create\`, \`integrations.edit\`, \`integrations.test\`, \`integrations.delete\` and \`integrations.manage_references\` are separate, so you can let designers use references without seeing or changing connections.
 `,
@@ -371,7 +371,7 @@ PostgreSQL, SQL Server and MySQL drivers are always installed. The Snowflake (\`
 - New PostgreSQL connectors verify the server certificate (\`verify-full\`; paste a CA for private CAs). Existing connectors keep their TLS mode.
 - MongoDB refuses \`$where\`, \`$function\`, \`$out\` and \`$merge\`. **Delete many** and **Update many** refuse an empty filter unless \`allow_all\` is true.
 - Snowflake connectors can sign in with a key pair, which is the default for new connectors.
-- A database or SFTP host on a private network needs \`ALLOW_PRIVATE_EGRESS=true\`. The host is checked on every call, not only in **Test connection**.
+- A database or SFTP host on a private network must be listed in \`EGRESS_PRIVATE_ALLOW\` on a self-hosted server (by hostname or CIDR). The host is checked on every call, not only in **Test connection**.
 
 ## SFTP
 
@@ -535,6 +535,107 @@ For services that require OAuth 2.0, an integration or connector with \`auth_typ
 
 > [!NOTE]
 > This page is about UserTasks calling **other** services. To let other applications call **UserTasks** with OAuth, see [OAuth apps and scopes](/docs/governance/oauth-apps).
+`,
+  },
+  {
+    slug: 'integrations/windows-auth',
+    title: 'Windows authentication (NTLM and Kerberos)',
+    description: 'Call on-premises Windows services (SharePoint Server, IIS, Exchange, SSRS) with a service account over NTLMv2 or Kerberos, with channel binding, an internal CA and a proxy.',
+    body: `
+Integrations with \`auth_type: windows\` sign in to on-premises services that use Windows integrated authentication: SharePoint Server, IIS sites and web services, Reporting Services, Exchange. UserTasks uses a **service account**; there is no per-user delegation.
+
+\`\`\`yaml title="sharepoint-onprem.yaml"
+name: SharePoint (on-premises)
+type: rest_api
+config:
+  base_url: https://sharepoint.contoso.com/sites/finance
+  auth_type: windows
+  auth_config:
+    mode: negotiate              # negotiate (default) | ntlm | kerberos
+    username: CONTOSO\\svc-usertasks   # or svc-usertasks@contoso.com
+    password: \${env:SP_SERVICE_PASSWORD}
+    # spn: HTTP/sharepoint.contoso.com   # Kerberos only; default HTTP/<base_url host>
+    # ca_bundle: |                        # internal CA (PEM), added to the public roots
+    #   -----BEGIN CERTIFICATE-----
+    #   …
+    # proxy_url: http://proxy.contoso.com:8080
+\`\`\`
+
+In the app, pick **Windows (NTLM / Kerberos)** under **Authentication** when you create or edit an integration. The password is encrypted at rest and write-only: the form never shows it (leave it blank to keep the stored one), and the API and exports return \`__SECRET__\`.
+
+## Modes
+
+| \`mode\` | What happens | Needs |
+|---|---|---|
+| \`negotiate\` (default) | Kerberos when a ticket can be had, otherwise NTLMv2, as Windows clients do | Nothing extra for NTLM; Kerberos as below |
+| \`ntlm\` | NTLMv2 only | User and password |
+| \`kerberos\` | Kerberos only; fails with an explanation when no ticket is available | The \`kerberos\` package and a keytab or ticket cache |
+
+Only **NTLMv2** is spoken: LM and NTLMv1 are never sent, and a server that offers only those is refused. Each response carries the server's timestamp and a message integrity code (MIC), and over HTTPS a channel binding (below).
+
+## How calls are made
+
+- **Connection-bound.** NTLM authenticates a TCP connection, not a request, so the handshake runs on one keep-alive connection, which is then reused (no handshake per call). UserTasks keeps up to 4 authenticated connections per integration and re-authenticates when the server closes one or answers 401.
+- **Bodies are sent once.** A POST or PUT starts the handshake with an empty body and sends the real body with the final step, so large uploads are not sent twice. Note that the first step is an empty request with the same method: a service that allows anonymous access would receive it.
+- **Redirects.** Redirects within the integration's origin stay signed in; a redirect to any other origin is followed without credentials.
+- **Safety rules still apply.** Every call goes through the egress guard, the timeout budget, retries and call logging like any other integration. On-premises hosts resolve to private addresses, so a self-hosted server lists them in \`EGRESS_PRIVATE_ALLOW\` (for example \`*.contoso.local\` or \`10.0.0.0/8\`; cloud metadata addresses stay blocked). A farm published only over \`http://\` also needs its host in \`EGRESS_HTTP_ALLOW\`; HTTPS with your internal CA (the **CA bundle** field) is recommended. The guard also checks the address actually dialled, and the proxy's.
+- **Proxies and load balancers** between UserTasks and the server must keep connections end to end (NTLM fails if a request lands on a different back-end connection). With \`proxy_url\` set, UserTasks opens a CONNECT tunnel through the proxy for HTTP and HTTPS alike, so the proxy must allow CONNECT to the server's port. Proxy authentication is not supported.
+
+## HTTPS, internal CAs and Extended Protection
+
+- **Certificates are always verified.** For a server whose certificate comes from an internal CA, paste the CA certificate(s) as PEM in **CA certificates** (\`ca_bundle\`). They are trusted for this integration in addition to the public roots. There is no "allow self-signed" switch. Alternatively, trust the CA for the whole server with \`NODE_EXTRA_CA_CERTS\` (a per-integration bundle takes the place of \`NODE_EXTRA_CA_CERTS\` for that integration).
+- **Extended Protection for Authentication (EPA).** Over HTTPS, the NTLM response is bound to the server's certificate (\`tls-server-end-point\` channel binding, as Windows clients send), so IIS sites with Extended Protection set to *Accept* or *Require* work. A TLS-inspecting proxy or load balancer in between breaks this binding when EPA is *Require*: terminate TLS on the server itself or set EPA to *Accept* there.
+- **Plain HTTP** works on loopback only; integration base URLs must be HTTPS elsewhere.
+
+## Kerberos (self-hosted)
+
+Node.js has no Kerberos library built in. UserTasks loads the optional [\`kerberos\`](https://www.npmjs.com/package/kerberos) package (Apache-2.0, native) when it is installed on the server; it is **not** bundled, so the build and the hosted service never depend on it. Without it, \`negotiate\` uses NTLM and \`kerberos\` fails with instructions.
+
+1. Install the system library (Debian / Ubuntu shown; on RHEL \`krb5-devel krb5-workstation\`), then the package in the UserTasks directory, and restart:
+
+   \`\`\`bash
+   sudo apt-get install -y libkrb5-dev krb5-user
+   npm install kerberos
+   \`\`\`
+
+   In a Docker image, add both to your Dockerfile (the package compiles against MIT krb5).
+
+2. Configure the realm in \`/etc/krb5.conf\` (\`default_realm\`, and \`kdc\` entries unless DNS SRV records are published).
+
+3. Create a keytab for the service account (on a domain controller, or with \`ktutil\` from its password), copy it to the server, readable only by the UserTasks user, and point MIT krb5 at it:
+
+   On Windows, as a domain admin:
+
+   \`\`\`powershell
+   ktpass /princ svc-usertasks@CONTOSO.COM /mapuser CONTOSO\\svc-usertasks /pass * /ptype KRB5_NT_PRINCIPAL /crypto AES256-SHA1 /out svc-usertasks.keytab
+   \`\`\`
+
+   On the UserTasks server, in its environment:
+
+   \`\`\`bash
+   export KRB5_CLIENT_KTNAME=/etc/usertasks/svc-usertasks.keytab
+   \`\`\`
+
+   MIT krb5 then gets and renews tickets on its own; nothing runs \`kinit\`. A ticket cache (\`KRB5CCNAME\`, filled by \`kinit\` or a sidecar) works too.
+
+4. Use the account's **UPN** as \`username\` (\`svc-usertasks@contoso.com\`) so the right principal is picked when the keytab holds several; with \`DOMAIN\\user\` the keytab's default principal is used. The password is not used for Kerberos (keep it set for NTLM fallback in \`negotiate\` mode).
+
+5. The target needs an SPN: \`HTTP/<host>\` registered on the account its application pool runs as (\`setspn -S HTTP/sharepoint.contoso.com CONTOSO\\sp-apppool\`). Set \`spn\` when the base URL host differs from the registered name (an alias or a load-balanced name).
+
+Kerberos uses the hosts' clocks: keep the UserTasks server within 5 minutes of the domain controllers.
+
+## Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| 401 on every call | Wrong user or password, the account is locked, or the site does not allow Windows authentication |
+| "closed the connection during the Windows authentication handshake" | A proxy or load balancer without connection affinity, or \`Connection: close\` from the server |
+| "does not offer Windows authentication" | The site only offers other schemes (Basic, forms): use those auth types instead |
+| \`certificate\` errors | The server's CA is not trusted: add it to \`ca_bundle\` |
+| 401 over HTTPS but not HTTP | Extended Protection with a TLS-terminating device in between (see above) |
+| "Kerberos needs the optional kerberos package" / "could not get a service ticket" | Install the package; check \`KRB5_CLIENT_KTNAME\`, the SPN, the realm in \`krb5.conf\` and that the KDC is reachable on port 88 |
+| "is not allowed: … private address" | Add the host or its network to \`EGRESS_PRIVATE_ALLOW\` on a self-hosted server (\`usertasks-admin egress allow-private\`) |
+| "plain http:// is not allowed" | Use \`https://\`, or add the host to \`EGRESS_HTTP_ALLOW\` on a self-hosted server |
 `,
   },
   {

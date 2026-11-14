@@ -40,6 +40,18 @@ export { LDAP_FLAVORS, type LdapFlavor }
 export const AD_IN_CHAIN_OID = '1.2.840.113556.1.4.1941'
 /** AD userAccountControl ACCOUNTDISABLE bit. */
 const UAC_ACCOUNT_DISABLE = 0x2
+/** AD: entries whose ACCOUNTDISABLE bit is clear (LDAP_MATCHING_RULE_BIT_AND). */
+export const AD_ENABLED_FILTER = '(!(userAccountControl:1.2.840.113556.1.4.803:=2))'
+
+/**
+ * AD login names in the down-level form DOMAIN\user → the sAMAccountName
+ * part (null for anything else). The domain part is not checked: the
+ * password is verified against the entry the name resolves to.
+ */
+export function downLevelLogonName(login: string): string | null {
+  const match = /^[^\\@\s]{1,64}\\([^\\@\s]{1,104})$/.exec(login.trim())
+  return match ? match[1] : null
+}
 
 const attr = z.string().trim().min(1).max(100).regex(/^[A-Za-z][A-Za-z0-9-]*(;[A-Za-z0-9-]+)*$/, 'an LDAP attribute name')
 const dn = z.string().trim().min(1).max(1000)
@@ -180,9 +192,19 @@ function describeLdapError(error: unknown, what: string): LdapError {
   const message = String(e?.message ?? error).slice(0, 300)
   const code = String(e?.code ?? '')
   if (e?.name === 'InvalidCredentialsError' || e?.code === 49) return new LdapError(`${what}: invalid credentials`, 'invalid_credentials')
+  // AD with LDAP signing required (the default since Windows Server 2025, and
+  // common policy before): simple binds over plain ldap:// are refused.
+  if (e?.name === 'StrongAuthRequiredError' || e?.code === 8 || /requires binds to turn on integrity checking|strong(er)? auth/i.test(message)) {
+    return new LdapError(`${what}: the directory server requires an encrypted connection (LDAP signing): use ldaps:// (port 636) or StartTLS`, 'tls')
+  }
   if (/^(ERR_TLS|ERR_SSL|CERT_|UNABLE_TO_|DEPTH_ZERO|SELF_SIGNED|ERR_OSSL)/.test(code)
     || /self[- ]signed certificate|unable to verify the first certificate|unable to get local issuer|Hostname\/IP does not match|certificate has expired/i.test(message)) {
-    return new LdapError(`${what}: TLS verification failed (${message})`, 'tls')
+    const hint = /Hostname\/IP does not match|ERR_TLS_CERT_ALTNAME/i.test(`${code} ${message}`)
+      ? ': connect with the host name on the certificate, or set tls_server_name'
+      : /self[- ]signed|unable to verify|local issuer|UNABLE_TO_|DEPTH_ZERO/i.test(`${code} ${message}`)
+        ? ': add the certificate of the CA that issued the domain controller certificate as ca_cert (PEM)'
+        : ''
+    return new LdapError(`${what}: TLS verification failed (${message})${hint}`, 'tls')
   }
   if (/^(ECONNREFUSED|ECONNRESET|ENOTFOUND|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN)$/.test(code) || /timeout|Connection closed|ECONNREFUSED|ENOTFOUND/i.test(message)) {
     return new LdapError(`${what}: could not reach the directory server (${message})`, 'connection')
@@ -501,8 +523,10 @@ export function createLdapClient(options: LdapClientOptions): LdapDirectoryClien
       const record = (await loadGroups()).find((g) => g.group.externalId === groupId)
       if (!record) return []
       if (settings.flavor === 'active_directory') {
+        // Enabled accounts only: a disabled account loses its team memberships
+        // along with its access (it comes back when re-enabled).
         const rule = settings.nested_groups ? `memberOf:${AD_IN_CHAIN_OID}:` : 'memberOf'
-        const entries = await search(settings.userBase, `(&${settings.userFilter}(${rule}=${escapeLdapFilterValue(record.dn)}))`, [settings.map.id])
+        const entries = await search(settings.userBase, `(&${settings.userFilter}(${rule}=${escapeLdapFilterValue(record.dn)})${AD_ENABLED_FILTER})`, [settings.map.id])
         return entries.map((entry) => idOf(entry, settings))
       }
       return resolveMembers(record)
@@ -553,9 +577,12 @@ export function createLdapClient(options: LdapClientOptions): LdapDirectoryClien
     },
 
     async findLoginUser(login: string) {
-      const value = escapeLdapFilterValue(login.trim())
+      // AD: CONTOSO\jdoe signs in as the sAMAccountName jdoe.
+      const downLevel = settings.flavor === 'active_directory' ? downLevelLogonName(login) : null
+      const value = escapeLdapFilterValue(downLevel ?? login.trim())
       if (!value) return null
-      const any = settings.loginAttributes.map((name) => `(${name}=${value})`).join('')
+      const attributes = downLevel ? [settings.map.username] : settings.loginAttributes
+      const any = attributes.map((name) => `(${name}=${value})`).join('')
       const entries = await search(settings.userBase, `(&${settings.userFilter}(|${any}))`, userAttributes(settings), { sizeLimit: 2, paged: false })
       if (entries.length !== 1) return null
       return entryToUser(entries[0], settings)

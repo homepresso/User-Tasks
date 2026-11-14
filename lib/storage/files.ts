@@ -2,6 +2,7 @@ import { getStorageProvider, getStorageProviderFor } from '@/lib/providers/stora
 import type { SupabaseStorageClient } from '@/lib/providers/storage/supabase'
 import { fileRefFields } from './persist'
 import { isStorageRef, parseOwnStorageUrl, resolveStorageUrl } from './refs'
+import { getPublicConfig } from '@/lib/config/public'
 
 /**
  * Server helpers for files the workflow engine and document handlers write
@@ -62,8 +63,10 @@ export function fileSource(value: unknown): string {
  * → 404). Own stored objects are read through the storage provider when it
  * isn't Supabase (no HTTP round trip to the app's own /files route, and it
  * works where APP_URL isn't reachable from the server); `storage://`
- * references are resolved first. Everything else, and every URL under the
- * default provider, is a plain fetch as before.
+ * references are resolved first. URLs on the app's own origins (Supabase
+ * URL, APP_URL) are a plain fetch as before; any other URL goes through the
+ * egress guard (safeFetch: every redirect hop checked, private targets only
+ * via EGRESS_PRIVATE_ALLOW, metadata never).
  */
 export async function fetchFile(url: string, init?: RequestInit, options: { tenantId?: string | null } = {}): Promise<Response> {
   const { formFileTarget, readWorkflowFile } = await import('@/lib/services/form-files')
@@ -95,5 +98,20 @@ export async function fetchFile(url: string, init?: RequestInit, options: { tena
       return new Response(object.body, { status: 200, headers })
     }
   }
-  return fetch(target, init)
+  // The app's own storage / file routes (configured origins) as before;
+  // anything else a workflow names is egress-guarded on every redirect hop.
+  if (isFirstPartyUrl(target)) return fetch(target, init)
+  const { safeFetch } = await import('@/lib/egress-guard')
+  return safeFetch(target, init, { maxRedirects: 5 })
+}
+
+/** Same origin as the configured Supabase URL or APP_URL (the app's own storage and file routes). */
+function isFirstPartyUrl(target: string): boolean {
+  let origin: string
+  try { origin = new URL(target).origin } catch { return false }
+  const config = getPublicConfig()
+  return [config.supabaseUrl, config.appUrl].some((base) => {
+    if (!base) return false
+    try { return new URL(base).origin === origin } catch { return false }
+  })
 }

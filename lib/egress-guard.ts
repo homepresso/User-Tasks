@@ -1,5 +1,9 @@
 import { lookup } from 'node:dns/promises'
 import net from 'node:net'
+import {
+  addressInRules, getEgressPolicy, hasCidrRules, hostMatchesRules, httpAllowedForHost, httpAllowHint, inCidr4, ipv4ToInt, ipv6Hextets,
+  loadEgressPolicy, privateAllowHint, type EgressPolicy,
+} from './egress-policy'
 
 /**
  * SSRF egress guard for user-supplied connection targets (integration base URLs,
@@ -7,9 +11,18 @@ import net from 'node:net'
  * link-local (cloud metadata), or private-range addresses — including via DNS
  * names that resolve there.
  *
- * Self-hosted deployments that legitimately connect to internal databases can
- * set ALLOW_PRIVATE_EGRESS=true to permit RFC1918/loopback targets; cloud
- * metadata endpoints stay blocked unconditionally.
+ * Self-hosted deployments reach on-premises systems through the private
+ * network allowlist (EGRESS_PRIVATE_ALLOW / instance.egress_private_allow,
+ * lib/egress-policy.ts): a private target is allowed when its hostname
+ * matches an entry or its resolved address is inside a listed CIDR.
+ * ALLOW_PRIVATE_EGRESS=true still opens every private range (broad; prefer
+ * the allowlist). Cloud metadata endpoints stay blocked unconditionally, and
+ * the cloud edition ignores the allowlist.
+ *
+ * Decisions are made on resolved addresses. Transports that dial sockets
+ * themselves check each address at connect time (assertSafeResolvedAddress
+ * in a socket lookup), so a name that passed the check cannot rebind to a
+ * blocked address before the connection is made.
  *
  * Server-only (uses node:dns) — do not import from client components.
  */
@@ -21,6 +34,11 @@ export class EgressBlockedError extends Error {
   }
 }
 
+/** How a check passed: `private` says a private address was allowed, and by what. */
+export interface EgressCheck {
+  private: null | 'allow_all' | 'allowlist'
+}
+
 const METADATA_HOSTS = new Set([
   '169.254.169.254', // AWS/GCP/Azure IMDS
   'metadata.google.internal',
@@ -28,83 +46,89 @@ const METADATA_HOSTS = new Set([
   'fd00:ec2::254', // AWS IMDSv6
 ])
 
-function ipv4ToInt(ip: string): number {
-  const parts = ip.split('.').map(Number)
-  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0
-}
+/** Cloud metadata / credential endpoints: blocked whatever the policy lists. */
+const METADATA_IPV4 = new Set([
+  '169.254.169.254', // AWS / GCP / Azure / OpenStack IMDS
+  '169.254.170.2', // ECS task metadata / credentials
+  '169.254.170.23', // EKS Pod Identity
+  '100.100.100.200', // Alibaba Cloud
+])
+const METADATA_IPV6 = [
+  [0xfd00, 0x0ec2, 0, 0, 0, 0, 0, 0x0254], // AWS IMDSv6
+  [0xfd00, 0x0ec2, 0, 0, 0, 0, 0, 0x0023], // EKS Pod Identity (IPv6)
+]
 
-function inCidr4(ip: number, base: string, maskBits: number): boolean {
-  const mask = maskBits === 0 ? 0 : (~0 << (32 - maskBits)) >>> 0
-  return (ip & mask) === (ipv4ToInt(base) & mask)
-}
+const v4Of = (hi: number, lo: number) => `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`
 
-function isPrivateIpv4(ip: string): boolean {
-  const n = ipv4ToInt(ip)
-  return (
-    inCidr4(n, '0.0.0.0', 8) ||
-    inCidr4(n, '10.0.0.0', 8) ||
-    inCidr4(n, '100.64.0.0', 10) || // CGNAT
-    inCidr4(n, '127.0.0.0', 8) ||
-    inCidr4(n, '169.254.0.0', 16) || // link-local (incl. metadata)
-    inCidr4(n, '172.16.0.0', 12) ||
-    inCidr4(n, '192.168.0.0', 16)
-  )
-}
-
-/** Expand an IPv6 literal to its 8 hextets (embedded dotted IPv4 converted); null when malformed. */
-function ipv6Hextets(ip: string): number[] | null {
-  let text = ip.toLowerCase().split('%')[0]
-  const dotted = text.match(/^(.*:)(\d+\.\d+\.\d+\.\d+)$/)
-  if (dotted) {
-    const n = ipv4ToInt(dotted[2])
-    text = `${dotted[1]}${(n >>> 16).toString(16)}:${(n & 0xffff).toString(16)}`
-  }
-  const halves = text.split('::')
-  if (halves.length > 2) return null
-  const head = halves[0] ? halves[0].split(':') : []
-  const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : []
-  const fill = halves.length === 2 ? 8 - head.length - tail.length : 0
-  if (fill < 0) return null
-  const parts = [...head, ...Array(fill).fill('0'), ...tail]
-  if (parts.length !== 8) return null
-  const out = parts.map((p) => parseInt(p, 16))
-  return out.every((n) => Number.isInteger(n) && n >= 0 && n <= 0xffff) ? out : null
-}
-
-function isPrivateIpv6(ip: string): boolean {
-  const h = ipv6Hextets(ip)
-  if (!h) return true // unparseable literal: fail closed
+/** The IPv4 address an IPv6 literal carries (mapped, compatible, NAT64, 6to4); null when none. */
+function embeddedIpv4(h: number[]): string | null {
   const allZeroUntil = (i: number) => h.slice(0, i).every((x) => x === 0)
-  if (allZeroUntil(8)) return true // ::
-  if (allZeroUntil(7) && h[7] === 1) return true // ::1
-  if ((h[0] & 0xffc0) === 0xfe80) return true // fe80::/10 link-local
-  if ((h[0] & 0xfe00) === 0xfc00) return true // fc00::/7 unique local
-  if ((h[0] & 0xffc0) === 0xfec0) return true // fec0::/10 site-local (deprecated)
-  const v4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`
-  // IPv4-mapped ::ffff:a.b.c.d (also written ::ffff:7f00:1) and IPv4-compatible ::a.b.c.d
-  if (allZeroUntil(5) && (h[5] === 0xffff || h[5] === 0)) return isPrivateIpv4(v4(h[6], h[7]))
-  // NAT64 64:ff9b::/96
-  if (h[0] === 0x64 && h[1] === 0xff9b && h.slice(2, 6).every((x) => x === 0)) return isPrivateIpv4(v4(h[6], h[7]))
-  // 6to4 2002:AABB:CCDD::/48 embeds an IPv4 address
-  if (h[0] === 0x2002) return isPrivateIpv4(v4(h[1], h[2]))
-  return false
+  if (allZeroUntil(5) && (h[5] === 0xffff || h[5] === 0) && !(allZeroUntil(7) && h[7] <= 1)) return v4Of(h[6], h[7])
+  if (h[0] === 0x64 && h[1] === 0xff9b && h.slice(2, 6).every((x) => x === 0)) return v4Of(h[6], h[7])
+  if (h[0] === 0x2002) return v4Of(h[1], h[2])
+  return null
 }
 
-function isPrivateIp(ip: string): boolean {
-  if (net.isIPv4(ip)) return isPrivateIpv4(ip)
-  if (net.isIPv6(ip)) return isPrivateIpv6(ip)
-  return false
+type AddressClass = 'metadata' | 'public' | 'private' | 'loopback' | 'link_local' | 'unspecified'
+
+function classifyIpv4(ip: string): AddressClass {
+  if (METADATA_IPV4.has(ip)) return 'metadata'
+  const n = ipv4ToInt(ip)
+  if (inCidr4(n, '0.0.0.0', 8)) return 'unspecified'
+  if (inCidr4(n, '127.0.0.0', 8)) return 'loopback'
+  if (inCidr4(n, '169.254.0.0', 16)) return 'link_local'
+  if (inCidr4(n, '10.0.0.0', 8) || inCidr4(n, '100.64.0.0', 10) || inCidr4(n, '172.16.0.0', 12) || inCidr4(n, '192.168.0.0', 16)) return 'private'
+  return 'public'
 }
 
-function isMetadataTarget(hostOrIp: string): boolean {
-  const lower = hostOrIp.toLowerCase()
-  if (METADATA_HOSTS.has(lower)) return true
-  // 169.254.0.0/16 covers IMDS regardless of the exact address
-  return net.isIPv4(lower) ? inCidr4(ipv4ToInt(lower), '169.254.0.0', 16) : false
+function classifyAddress(ip: string): AddressClass {
+  const text = ip.replace(/^\[|\]$/g, '')
+  if (net.isIPv4(text)) return classifyIpv4(text)
+  if (!net.isIPv6(text)) return 'public' // not an address (callers pass resolved addresses)
+  const h = ipv6Hextets(text)
+  if (!h) return 'unspecified' // unparseable literal: fail closed
+  if (METADATA_IPV6.some((m) => m.every((x, i) => x === h[i]))) return 'metadata'
+  const allZeroUntil = (i: number) => h.slice(0, i).every((x) => x === 0)
+  if (allZeroUntil(8)) return 'unspecified' // ::
+  if (allZeroUntil(7) && h[7] === 1) return 'loopback' // ::1
+  if ((h[0] & 0xffc0) === 0xfe80) return 'link_local' // fe80::/10
+  if ((h[0] & 0xfe00) === 0xfc00) return 'private' // fc00::/7 unique local
+  if ((h[0] & 0xffc0) === 0xfec0) return 'private' // fec0::/10 site-local (deprecated)
+  const v4 = embeddedIpv4(h)
+  return v4 ? classifyIpv4(v4) : 'public'
 }
 
-function allowPrivateEgress(): boolean {
-  return process.env.ALLOW_PRIVATE_EGRESS === 'true'
+function isMetadataName(host: string): boolean {
+  const lower = host.toLowerCase().replace(/\.$/, '')
+  return METADATA_HOSTS.has(lower) || (net.isIP(lower) !== 0 && classifyAddress(lower) === 'metadata')
+}
+
+function isInternalName(lower: string): boolean {
+  return lower === 'localhost' || lower.endsWith('.localhost') || lower.endsWith('.local') || lower.endsWith('.internal')
+}
+
+/**
+ * One address `host` resolved to → how it is allowed, or the reason it is
+ * blocked. `hostListed`: the hostname matches EGRESS_PRIVATE_ALLOW.
+ */
+function decideAddress(address: string, policy: EgressPolicy, hostListed: boolean): { ok: true; via: EgressCheck['private'] } | { ok: false; reason: string } {
+  const cls = classifyAddress(address)
+  if (cls === 'metadata') return { ok: false, reason: 'cloud metadata endpoints are blocked' }
+  if (cls === 'public') return { ok: true, via: null }
+  // Loopback / link-local / unspecified: only a CIDR entry that covers them.
+  const cidrListed = addressInRules(address, policy.privateAllow)
+  if (cls === 'private' && (hostListed || cidrListed)) return { ok: true, via: 'allowlist' }
+  if (cls !== 'private' && cidrListed) return { ok: true, via: 'allowlist' }
+  // ALLOW_PRIVATE_EGRESS (back-compat): every private range except IPv4 link-local.
+  if (policy.allowAllPrivate && !(cls === 'link_local' && net.isIPv4(address))) return { ok: true, via: 'allow_all' }
+  const what = cls === 'private' ? 'a private address' : cls === 'loopback' ? 'a loopback address' : cls === 'link_local' ? 'a link-local address' : 'an unspecified address'
+  const extra = cls !== 'private' && hostListed && policy.mode !== 'cloud' ? ' (a hostname entry does not cover loopback / link-local addresses: list the address as a CIDR)' : ''
+  return { ok: false, reason: `${what} (${address}) is blocked${extra}; ${privateAllowHint(policy)}` }
+}
+
+function merge(a: EgressCheck['private'], b: EgressCheck['private']): EgressCheck['private'] {
+  if (a === 'allowlist' || b === 'allowlist') return 'allowlist'
+  return a ?? b
 }
 
 /**
@@ -112,25 +136,30 @@ function allowPrivateEgress(): boolean {
  * blocked address. DNS names are resolved and every returned address checked,
  * so `my-rebind.attacker.com → 127.0.0.1` is caught too.
  */
-export async function assertSafeEgressHost(host: string): Promise<void> {
+export async function assertSafeEgressHost(host: string): Promise<EgressCheck> {
   const target = String(host ?? '').trim().replace(/^\[|\]$/g, '') // strip ipv6 brackets
   if (!target) throw new EgressBlockedError(host, 'empty host')
 
-  if (isMetadataTarget(target)) {
+  if (isMetadataName(target)) {
     throw new EgressBlockedError(target, 'cloud metadata endpoints are blocked')
   }
 
-  const lower = target.toLowerCase()
-  if (lower === 'localhost' || lower.endsWith('.localhost') || lower.endsWith('.local') || lower.endsWith('.internal')) {
-    if (!allowPrivateEgress()) throw new EgressBlockedError(target, 'internal hostnames are blocked')
-    return
-  }
+  const policy = await loadEgressPolicy()
+  const hostListed = hostMatchesRules(target, policy.privateAllow)
 
   if (net.isIP(target)) {
-    if (isPrivateIp(target) && !allowPrivateEgress()) {
-      throw new EgressBlockedError(target, 'private/loopback addresses are blocked')
-    }
-    return
+    const verdict = decideAddress(target, policy, false)
+    if (!verdict.ok) throw new EgressBlockedError(target, verdict.reason)
+    return { private: verdict.via }
+  }
+
+  const lower = target.toLowerCase().replace(/\.$/, '')
+  const internal = isInternalName(lower)
+  // Internal names (localhost, .local, .internal) are refused by name unless
+  // listed, ALLOW_PRIVATE_EGRESS is on, or a CIDR entry could cover their
+  // addresses (no slow mDNS lookups for names that can't be allowed anyway).
+  if (internal && !hostListed && !policy.allowAllPrivate && !policy.privateAllow.some((r) => r.kind === 'cidr')) {
+    throw new EgressBlockedError(target, `internal hostnames are blocked; ${privateAllowHint(policy)}`)
   }
 
   // DNS name — resolve all addresses and check each.
@@ -139,21 +168,85 @@ export async function assertSafeEgressHost(host: string): Promise<void> {
     addresses = await lookup(target, { all: true })
   } catch {
     // Unresolvable names can't be reached anyway; let the caller's connection
-    // attempt produce the natural error.
-    return
+    // attempt produce the natural error. Internal names stay blocked unless
+    // listed (or ALLOW_PRIVATE_EGRESS).
+    if (internal && !hostListed && !policy.allowAllPrivate) {
+      throw new EgressBlockedError(target, `internal hostnames are blocked; ${privateAllowHint(policy)}`)
+    }
+    return { private: null }
   }
+  let via: EgressCheck['private'] = null
   for (const { address } of addresses) {
-    if (isMetadataTarget(address)) {
-      throw new EgressBlockedError(target, 'cloud metadata endpoints are blocked')
+    const verdict = decideAddress(address, policy, hostListed)
+    if (!verdict.ok) {
+      throw new EgressBlockedError(target, verdict.reason.startsWith('cloud') ? verdict.reason : `resolves to ${verdict.reason}`)
     }
-    if (isPrivateIp(address) && !allowPrivateEgress()) {
-      throw new EgressBlockedError(target, `resolves to a private address (${address})`)
-    }
+    via = merge(via, verdict.via)
+  }
+  // An internal name (.local, .internal, localhost) that resolves to public
+  // addresses is still an internal name: allowed only when listed.
+  if (internal && via === null && !hostListed && !policy.allowAllPrivate) {
+    throw new EgressBlockedError(target, `internal hostnames are blocked; ${privateAllowHint(policy)}`)
+  }
+  return { private: via }
+}
+
+/**
+ * Check one address a DNS lookup returned for `host`, at connect time. Used by
+ * transports that dial sockets themselves (lib/integrations/windows-auth), so
+ * the address actually connected to obeys the same rules as
+ * assertSafeEgressHost (no DNS-rebinding window between check and connect).
+ * Synchronous: uses the policy loaded by the preceding assertSafeEgress* call.
+ */
+export function assertSafeResolvedAddress(host: string, address: string): void {
+  const policy = getEgressPolicy()
+  const verdict = decideAddress(address, policy, hostMatchesRules(host, policy.privateAllow))
+  if (!verdict.ok) {
+    throw new EgressBlockedError(host, verdict.reason.startsWith('cloud') ? verdict.reason : `resolves to ${verdict.reason}`)
   }
 }
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
+
+/**
+ * Plain http:// rule for connector base URLs: HTTPS is required except for
+ * loopback and, self-hosted, targets in EGRESS_HTTP_ALLOW (a hostname entry,
+ * or a CIDR containing the IP literal or every address the name resolves
+ * to). Throws EgressBlockedError naming the setting to change.
+ */
+export async function assertHttpAllowed(rawUrl: string): Promise<void> {
+  let url: URL
+  try { url = new URL(rawUrl) } catch { throw new EgressBlockedError(rawUrl, 'invalid URL') }
+  if (url.protocol !== 'http:') return
+  if (LOOPBACK_HOSTS.has(url.hostname)) return
+  const policy = await loadEgressPolicy()
+  const problem = `plain http:// is not allowed for ${url.hostname}; ${httpAllowHint(policy)}`
+  if (policy.mode === 'cloud') throw new EgressBlockedError(url.origin, problem)
+  if (httpAllowedForHost(url.hostname, policy)) return
+  const host = url.hostname.replace(/^\[|\]$/g, '')
+  if (!net.isIP(host) && hasCidrRules(policy.httpAllow)) {
+    const addresses = await lookup(host, { all: true }).catch(() => [])
+    if (addresses.length && addresses.every(({ address }) => addressInRules(address, policy.httpAllow))) return
+  }
+  throw new EgressBlockedError(url.origin, problem)
+}
+
+/**
+ * Synchronous form of the http:// rule for validators that can't resolve DNS:
+ * null when allowed (or when only a CIDR match after resolution could allow
+ * it — assertHttpAllowed decides that), else the error message.
+ */
+export function httpUrlProblem(url: URL, policy: EgressPolicy = getEgressPolicy()): string | null {
+  if (url.protocol !== 'http:' || LOOPBACK_HOSTS.has(url.hostname)) return null
+  if (policy.mode !== 'cloud') {
+    if (httpAllowedForHost(url.hostname, policy)) return null
+    if (net.isIP(url.hostname.replace(/^\[|\]$/g, '')) === 0 && hasCidrRules(policy.httpAllow)) return null
+  }
+  return `plain http:// is not allowed for ${url.hostname}; ${httpAllowHint(policy)}`
+}
+
 /** URL variant: validates protocol (http/https only) and the hostname. */
-export async function assertSafeEgressUrl(rawUrl: string): Promise<void> {
+export async function assertSafeEgressUrl(rawUrl: string): Promise<EgressCheck> {
   let url: URL
   try {
     url = new URL(rawUrl)
@@ -163,7 +256,7 @@ export async function assertSafeEgressUrl(rawUrl: string): Promise<void> {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new EgressBlockedError(rawUrl, `protocol ${url.protocol} is not allowed`)
   }
-  await assertSafeEgressHost(url.hostname)
+  return assertSafeEgressHost(url.hostname)
 }
 
 export interface SafeFetchOptions {
