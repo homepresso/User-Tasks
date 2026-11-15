@@ -4,12 +4,19 @@ import {
   ArrowRight, Blocks, Building2, Check, Cloud, Code2, FileInput, FileStack, FolderTree, KeyRound, ListChecks, Lock, MousePointerClick, Network,
   PackageCheck, Server, ShieldCheck, Users, Workflow, Zap, WifiOff,
 } from "lucide-react"
-import { LogoMark } from "@/components/brand/logo"
+import Image, { type StaticImageData } from "next/image"
 import { ProductHero } from "@/components/marketing/product-hero"
+import { ScreenshotFrame } from "@/components/marketing/screenshot-frame"
 import { MarketingFooter, MarketingHeader, SectionHeading } from "@/components/marketing/marketing-ui"
 import { SHAREPOINT_PAGE } from "@/lib/marketing-pages"
 import { publicBaseUrl } from "@/lib/deployment"
 import { breadcrumbNode, displayDate, faqNode, howToNode, jsonLdHtml, webPageNode } from "@/lib/seo/site"
+import shotForm from "@/public/screenshots/sharepoint-form-embedded.webp"
+import shotFormDetail from "@/public/screenshots/sharepoint-form-detail.webp"
+import shotLibrary from "@/public/screenshots/sharepoint-library-button.webp"
+import shotSetup from "@/public/screenshots/sharepoint-setup.webp"
+import shotDesigner from "@/public/screenshots/sharepoint-designer.webp"
+import shotDisplay from "@/public/screenshots/sharepoint-display-approved.webp"
 
 /**
  * /sharepoint: the paid SharePoint Server extension. The add-in model, forms
@@ -17,7 +24,9 @@ import { breadcrumbNode, displayDate, faqNode, howToNode, jsonLdHtml, webPageNod
  * the on-premises gateway, extensibility, security, requirements, pricing
  * and an FAQ. Every Microsoft date on the page comes from Microsoft's own
  * pages (SOURCES), last checked on SHAREPOINT_PAGE.updated. The SharePoint
- * screens are illustrations built from site components, not screenshots.
+ * screens are real screenshots of SharePoint Server Subscription Edition with
+ * the add-in installed (a demo "Legal" site with a Contracts library and demo
+ * data), captured in the lab and kept free of lab host and account names.
  */
 
 const THEME = {
@@ -162,7 +171,7 @@ export function SharePointPage() {
           primary={{ href: "/contact", label: "Talk to us about your farm" }}
           secondary={{ href: "#pricing", label: `${SHAREPOINT_PRICE.amount} per farm per year` }}
           bullets={["Installed from your farm's App Catalog", "No UserTasks sign-in screen", "Self-hosted or UserTasks Cloud", "Updates and support included"]}
-          visual={<SetupIllustration />}
+          visual={<HeroShot />}
         />
 
         <section id="retirement" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
@@ -213,6 +222,13 @@ export function SharePointPage() {
                 </li>
               ))}
             </ol>
+            <div className="mt-10 grid gap-8 lg:grid-cols-2">
+              <RealShot src={shotLibrary} alt="The Contracts document library in SharePoint Server with the UserTasks button in the command bar" caption="Step 2: the UserTasks button on a library's command bar" sizes="(min-width: 1152px) 540px, (min-width: 1024px) 46vw, 100vw" />
+              <RealShot src={shotSetup} alt="The UserTasks set-up screen for the Contracts library: API reference, forms and a workflow, and the events that start it" caption="Step 3: the set-up screen the button opens" sizes="(min-width: 1152px) 540px, (min-width: 1024px) 46vw, 100vw" />
+              <div className="lg:col-span-2">
+                <RealShot src={shotDesigner} alt="The Contracts workflow in the UserTasks workflow designer, embedded in a SharePoint page: legal review, finance approval over $50,000, publish, lock permissions and notify" caption="Step 4: the Contracts workflow, edited in the UserTasks designer without leaving SharePoint" sizes="(min-width: 1152px) 1104px, 100vw" />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -232,7 +248,10 @@ export function SharePointPage() {
                 ].map((t) => <li key={t} className="flex gap-2"><Check size={16} className="mt-1 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{t}</li>)}
               </ul>
             </div>
-            <FormIllustration />
+            <div className="grid gap-6">
+              <RealShot src={shotFormDetail} alt="The Contract intake form, a UserTasks New form, inside the Legal site's Contracts library page in SharePoint" caption="A UserTasks New form in place of the library's own form" sizes="(min-width: 1152px) 580px, (min-width: 1024px) 50vw, 100vw" />
+              <RealShot src={shotDisplay} alt="The UserTasks Display form of an approved contract, embedded in SharePoint" caption="The Display form of an approved contract" sizes="(min-width: 1152px) 580px, (min-width: 1024px) 50vw, 100vw" />
+            </div>
           </div>
         </section>
 
@@ -433,7 +452,7 @@ export function SharePointPage() {
               <ul className="mt-3 space-y-1.5 text-sm">
                 {SOURCES.map((source) => <li key={source.href}><a href={source.href} rel="noopener" className="text-(color:--mkt-bronze) hover:underline">{source.label}</a></li>)}
               </ul>
-              <p className="mt-3 text-xs text-(color:--mkt-muted)">Last checked <time dateTime={SHAREPOINT_PAGE.updated}>{displayDate(SHAREPOINT_PAGE.updated)}</time>. The SharePoint screens on this page are illustrations.</p>
+              <p className="mt-3 text-xs text-(color:--mkt-muted)">Last checked <time dateTime={SHAREPOINT_PAGE.updated}>{displayDate(SHAREPOINT_PAGE.updated)}</time>. The SharePoint screens on this page are real SharePoint Server Subscription Edition screens with demo data.</p>
             </div>
 
             <p className="mt-10 flex flex-wrap gap-x-5 gap-y-2 text-sm">
@@ -462,115 +481,28 @@ function Card({ icon: Icon, title, children }: { icon: typeof Lock; title: strin
   )
 }
 
-/** A generic team-site frame (no Microsoft branding): site bar, title and navigation. */
-function SiteFrame({ children, crumb }: { children: ReactNode; crumb: string }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-(color:--mkt-white) text-(color:--mkt-ink) shadow-[0_40px_100px_-30px_rgba(0,0,0,0.6)]">
-      <div className="flex items-center gap-3 bg-[#2B3A55] px-4 py-2 text-xs text-white/85">
-        <span className="font-semibold text-white">Intranet</span>
-        <span className="hidden text-white/50 sm:inline">|</span>
-        <span className="hidden sm:inline">Finance team site</span>
-        <span className="ml-auto flex size-6 items-center justify-center rounded-full bg-[#fff]/20 text-[10px] font-semibold">JD</span>
-      </div>
-      <div className="flex items-center gap-3 border-b border-(color:--mkt-line) px-4 py-3">
-        <span className="flex size-8 items-center justify-center rounded-md bg-[#3B6E8F] text-xs font-bold text-white">FT</span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold">Finance team site</span>
-          <span className="block truncate text-[11px] text-(color:--mkt-muted)">Home · Documents · {crumb}</span>
-        </span>
-      </div>
-      {children}
-    </div>
-  )
-}
+const REAL_NOTE = "Real SharePoint Server Subscription Edition screens with demo data."
 
-/** Illustration: the UserTasks button on a list's command bar and the first-time set-up screen. */
-function SetupIllustration() {
-  const rows = [
-    ["Laptop for new starter", "$1,250.00", "Pending"],
-    ["Conference travel", "$2,480.00", "Approved"],
-    ["Office chairs (6)", "$1,914.00", "Pending"],
-  ]
+/** The hero: the intake form embedded in the SharePoint page (the most important screen). */
+function HeroShot() {
   return (
-    <figure className="mkt-glow" aria-label="Illustration: the UserTasks button on a SharePoint list and the set-up screen it opens">
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-        <SiteFrame crumb="Purchase requests">
-          <div className="flex flex-wrap items-center gap-1 border-b border-(color:--mkt-line) bg-(color:--mkt-canvas) px-3 py-2 text-xs">
-            <span className="rounded px-2 py-1 text-(color:--mkt-text)">+ New</span>
-            <span className="rounded px-2 py-1 text-(color:--mkt-text)">Edit in grid view</span>
-            <span className="rounded px-2 py-1 text-(color:--mkt-text)">Share</span>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-(color:--mkt-white) px-2 py-1 font-semibold text-(color:--mkt-ink) shadow-[0_0_0_2px_var(--mkt-gold)]">
-              <LogoMark size={14} /> UserTasks
-            </span>
-          </div>
-          <div className="px-4 py-3">
-            <p className="text-base font-semibold">Purchase requests</p>
-            <table className="mt-2 w-full text-left text-xs">
-              <thead className="text-(color:--mkt-muted)"><tr><th className="py-1.5 font-medium">Title</th><th className="py-1.5 font-medium">Amount</th><th className="py-1.5 font-medium">Status</th></tr></thead>
-              <tbody>
-                {rows.map(([title, amount, status]) => (
-                  <tr key={title} className="border-t border-(color:--mkt-line)">
-                    <td className="py-2 pr-2 text-[#2B5C8A]">{title}</td>
-                    <td className="py-2 pr-2 tabular-nums">{amount}</td>
-                    <td className="py-2">{status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SiteFrame>
-        <div className="rounded-2xl border border-white/10 bg-(color:--mkt-white) p-5 text-(color:--mkt-ink) shadow-[0_40px_100px_-30px_rgba(0,0,0,0.6)]">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)"><LogoMark size={16} /> Set up UserTasks</p>
-          <p className="mt-2 font-display text-xl font-bold">Purchase requests</p>
-          <ul className="mt-4 space-y-2 text-sm">
-            {[
-              { title: "API reference", body: "Every SharePoint operation for this list", locked: true },
-              { title: "Forms", body: "New, Edit and Display, replacing the list's forms", locked: false },
-              { title: "Workflow", body: "When an item is created: approval by the budget owner", locked: false },
-            ].map((item) => (
-              <li key={item.title} className="flex items-start gap-3 rounded-xl border border-(color:--mkt-line) p-3">
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded bg-(color:--mkt-ink) text-white"><Check size={13} aria-hidden="true" /></span>
-                <span className="min-w-0">
-                  <span className="flex items-center gap-2 font-semibold">{item.title}{item.locked && <Lock size={12} className="text-(color:--mkt-muted)" aria-label="always on" />}</span>
-                  <span className="block text-xs leading-5 text-(color:--mkt-muted)">{item.body}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <span className="mkt-btn-primary mt-4 flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold">Create</span>
-        </div>
-      </div>
-      <figcaption className="mt-3 text-center text-xs text-[#A89E8C]">Illustration</figcaption>
+    <figure className="mkt-glow">
+      <ScreenshotFrame>
+        <Image src={shotForm} alt="A UserTasks form embedded in a SharePoint Server page: the Contract intake form in the Legal site's Contracts library, with SharePoint's suite bar, site header and navigation around it" sizes="(min-width: 1152px) 1104px, 100vw" loading="eager" fetchPriority="high" placeholder="blur" className="h-auto w-full" />
+      </ScreenshotFrame>
+      <figcaption className="mt-3 text-center text-xs text-[#A89E8C]">A UserTasks form embedded in a SharePoint Server page. {REAL_NOTE}</figcaption>
     </figure>
   )
 }
 
-/** Illustration: a generated New form embedded in the SharePoint page. */
-function FormIllustration() {
-  const field = (label: string, value: string, hint?: string) => (
-    <div key={label}>
-      <span className="block text-xs font-semibold text-(color:--mkt-ink-soft)">{label}</span>
-      <span className="mt-1 block rounded border border-(color:--mkt-line-strong) bg-(color:--mkt-white) px-2.5 py-1.5 text-sm">{value}</span>
-      {hint && <span className="mt-0.5 block text-[11px] text-(color:--mkt-muted)">{hint}</span>}
-    </div>
-  )
+/** A real SharePoint screenshot below the fold (lazy-loaded by next/image). */
+function RealShot({ src, alt, caption, sizes }: { src: StaticImageData; alt: string; caption: string; sizes: string }) {
   return (
-    <figure className="mkt-glow" data-reveal aria-label="Illustration: a UserTasks New item form inside a SharePoint site">
-      <SiteFrame crumb="Purchase requests › New item">
-        <div className="grid gap-3 p-5 sm:grid-cols-2">
-          {field("Title *", "Laptop for new starter")}
-          {field("Amount *", "$1,250.00", "USD")}
-          {field("Department", "Finance ▾")}
-          {field("Budget owner", "Jordan Diaz")}
-          <div className="sm:col-span-2">{field("Justification", "Replacement for a five-year-old machine")}</div>
-        </div>
-        <div className="flex items-center gap-2 border-t border-(color:--mkt-line) px-5 py-3">
-          <span className="rounded bg-[#2B5C8A] px-4 py-1.5 text-sm font-semibold text-white">Save</span>
-          <span className="rounded border border-(color:--mkt-line-strong) px-4 py-1.5 text-sm">Cancel</span>
-          <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-(color:--mkt-muted)"><LogoMark size={12} /> Form by UserTasks</span>
-        </div>
-      </SiteFrame>
-      <figcaption className="mt-3 text-center text-xs text-(color:--mkt-muted)">Illustration</figcaption>
+    <figure data-reveal>
+      <ScreenshotFrame>
+        <Image src={src} alt={alt} sizes={sizes} placeholder="blur" className="h-auto w-full" />
+      </ScreenshotFrame>
+      <figcaption className="mt-2 text-center text-xs text-(color:--mkt-muted)">{caption} (real screen, demo data).</figcaption>
     </figure>
   )
 }

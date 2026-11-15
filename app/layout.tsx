@@ -1,34 +1,38 @@
 import type { Metadata, Viewport } from "next"
-import { Inter, JetBrains_Mono, Fraunces } from "next/font/google"
+import localFont from "next/font/local"
 import Script from "next/script"
 import { QueryProvider } from "@/components/providers/query-provider"
 import { publicBaseUrl } from "@/lib/deployment"
 import { buildPublicConfig, isBuildPrerender, PUBLIC_CONFIG_PATH, publicConfigScript } from "@/lib/config/public"
 import "./globals.css"
 
+// Fonts ship with the app (app/_fonts, SIL Open Font License 1.1 — see
+// app/_fonts/LICENSES.md), so builds never download from Google: no flaky
+// network step in CI, and source builds work on air-gapped networks.
+
 // UI face (docs/design/ui-polish-spec.md §2.1): Inter, variable with the
 // optical-size axis, so 11–13px UI text and 22–28px titles each get the
 // right cut. A workspace theme's own font still wins (--theme-font-sans).
-const inter = Inter({
-  subsets: ["latin"],
-  axes: ["opsz"],
+const inter = localFont({
+  src: "./_fonts/inter-latin-opsz-wght.woff2",
+  weight: "100 900",
   display: "swap",
   variable: "--font-sans",
 })
 
 // Code, IDs, field keys and expressions: narrow and unambiguous (0/O, 1/l).
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const jetbrainsMono = localFont({
+  src: "./_fonts/jetbrains-mono-latin-wght.woff2",
+  weight: "400 500",
   display: "swap",
   variable: "--font-mono",
 })
 
 // Editorial display serif — public brand moments only (marketing heroes, the
 // docs hero, login and the form Submitted page). In-app headings use Inter.
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+const fraunces = localFont({
+  src: "./_fonts/fraunces-latin-wght.woff2",
+  weight: "500 700",
   display: "swap",
   variable: "--font-display",
 })

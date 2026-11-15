@@ -159,7 +159,7 @@ resolve_dir() {
     done
     DIR=$(cd "$(dirname "$_self")/.." 2>/dev/null && pwd) || DIR=""
   fi
-  [ -n "$DIR" ] && [ -f "$DIR/state.env" ] || die "no UserTasks install found (looked in ${DIR:-?}; set USERTASKS_DIR)"
+  if [ -z "$DIR" ] || [ ! -f "$DIR/state.env" ]; then die "no UserTasks install found (looked in ${DIR:-?}; set USERTASKS_DIR)"; fi
 }
 
 load_state() {
@@ -353,7 +353,7 @@ ask_profile() {
       A_SB_URL=$(ask "Supabase project URL (https://<ref>.supabase.co)" "${USERTASKS_SUPABASE_URL:-}"); [ -n "$A_SB_URL" ] || die "a Supabase URL is required"
       A_SB_ANON=${USERTASKS_SUPABASE_ANON_KEY:-$(ask_secret "Supabase anon (publishable) key")}
       A_SB_SERVICE=${USERTASKS_SUPABASE_SERVICE_ROLE_KEY:-$(ask_secret "Supabase service role (secret) key")}
-      [ -n "$A_SB_ANON" ] && [ -n "$A_SB_SERVICE" ] || die "the Supabase keys are required"
+      if [ -z "$A_SB_ANON" ] || [ -z "$A_SB_SERVICE" ]; then die "the Supabase keys are required"; fi
       A_DB_URL=${USERTASKS_DATABASE_URL:-$(ask_secret "Database connection string (Project settings → Database; used for migrations and backups)")}
       [ -n "$A_DB_URL" ] || die "the database connection string is required (migrations and backups use it)"
       if interactive; then say "Email: set up Resend, SMTP or Microsoft 365 later in Settings → Infrastructure (until then emails go to the log)." > /dev/tty; fi
@@ -555,7 +555,7 @@ cmd_install() {
       *) die "install: unknown option $1" ;;
     esac
   done
-  [ -n "$DIR" ] && [ -n "$_v" ] || die "install: --dir and --version are required"
+  if [ -z "$DIR" ] || [ -z "$_v" ]; then die "install: --dir and --version are required"; fi
   STATE="$DIR/state.env"; ENV_FILE="$DIR/.env"; REL="$DIR/releases/$_v"
   [ -f "$REL/manifest.json" ] || die "release $_v is not in $DIR/releases"
   lock

@@ -16,6 +16,8 @@ import { PUBLIC_PAGES } from '@/lib/seo/public-pages'
 import { getUseCase } from '@/lib/use-cases'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: () => {} }), usePathname: () => '/sharepoint' }))
+// The page shows real SharePoint screenshots through next/image; under Vitest the .webp imports are plain URLs.
+vi.mock('next/image', () => ({ default: ({ src, alt }: { src: unknown; alt: string }) => createElement('img', { src: String((src as { src?: string })?.src ?? src), alt }) }))
 
 function resolves(href: string): boolean {
   const [pathname] = href.split(/[?#]/)
@@ -75,6 +77,8 @@ describe('SharePoint solution page', () => {
     expect(html).toContain('https://support.microsoft.com/en-us/servicing/office/hotfix/sharepoint/5002945')
     expect(html).toContain('July 13, 2027')
     expect(html).toMatch(/not affiliated with or endorsed by Microsoft/)
+    expect(html).toMatch(/real SharePoint Server Subscription Edition screens with demo data/i)
+    expect(html).not.toMatch(/contoso\.local|ut-addin|>Illustration</i)
     const external = [...html.slice(html.indexOf('<main'), html.indexOf('</main>')).matchAll(/href="(https?:[^"]+)"/g)].map((m) => m[1])
     for (const href of external) expect(href, href).toMatch(/^https:\/\/(support\.microsoft\.com|learn\.microsoft\.com)\//)
     const main = html.slice(html.indexOf('<main'), html.indexOf('</main>'))
