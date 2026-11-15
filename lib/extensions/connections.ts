@@ -66,6 +66,9 @@ function summarise(row: any, config: Record<string, any>): ExtensionConnection {
     active: row.is_active !== false,
     authSummary,
     lastTest: { status: row.last_test_status ?? null, message: row.last_test_message ?? null, at: row.last_tested_at ?? null },
+    gateway: authConfig._transport === 'gateway' && typeof authConfig.gateway_id === 'string'
+      ? { id: authConfig.gateway_id, target: typeof authConfig.gateway_target === 'string' && authConfig.gateway_target ? authConfig.gateway_target : null }
+      : null,
   }
 }
 
@@ -152,6 +155,6 @@ export async function fetchWithExtensionConnection(
     await applyAuthHeaders(config, headers, { supabase: getServiceDb() as any, integrationId: String(row.id), tenantId }, query)
     for (const [k, v] of Object.entries(query)) target.searchParams.set(k, v)
   }
-  const fetchImpl = await resolveTransportFetch({ tenantId, integrationConfig: config, anonymous: options.anonymous === true })
+  const fetchImpl = await resolveTransportFetch({ tenantId, integrationConfig: config, anonymous: options.anonymous === true, integrationId: String(row.id) })
   return connectorFetch(target.toString(), { ...init, headers }, { fetchImpl, timeoutMs: options.timeoutMs, maxAttempts: options.maxAttempts, retry: options.retry })
 }

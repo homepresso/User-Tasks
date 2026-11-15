@@ -5,7 +5,7 @@ import { getProviderConfig } from '@/lib/config'
 import { configuredAppUrl } from '@/lib/config/bootstrap'
 import type { ProviderId } from '@/lib/config/schema'
 import { rateLimit as countHit } from '@/lib/rate-limit'
-import { authCookieOptions, sessionCookieOptions, requestCookieDomain, SESSION_COOKIE_NAMES, sessionCookieName, ssoFlowCookieName } from '../cookies'
+import { authCookieOptions, sessionCookieOptions, requestCookieDomain, SESSION_COOKIE_NAMES, sessionCookieName, ssoFlowCookieName, ssoFlowCookieOptions } from '../cookies'
 import { dbIdentityFor, mintSupabaseAccessToken } from '../db-identity'
 import { authSettings, type AuthSettings } from '../options'
 import { onUserCreated } from '../provisioning'
@@ -221,16 +221,17 @@ export function createBuiltinAuthProvider(id: Exclude<ProviderId<'auth'>, 'supab
       await clearSessionCookie()
     },
 
-    async startSso(idpId, { redirect, org, origin }) {
+    async startSso(idpId, { redirect, org, origin, passive, fallback, loginHint, frame }) {
       const idp = await getSsoProvider(idpId)
       if (!idp) throw new AuthError('not_supported', `Unknown sign-in provider "${idpId}"`)
       const base = linkOrigin(origin)
+      const flow = { origin: base, redirect, org, passive: passive === true, fallback: fallback ?? 'interactive', loginHint: loginHint ?? null }
       if (idp.type === 'oidc') {
-        const { url, binding } = await startOidc(idp, { origin: base, redirect, org })
-        ;(await cookieStore()).set(ssoFlowCookieName(), binding, authCookieOptions(600))
+        const { url, binding } = await startOidc(idp, flow)
+        ;(await cookieStore()).set(ssoFlowCookieName(), binding, ssoFlowCookieOptions(frame === true))
         return url
       }
-      return startSaml(idp, { origin: base, redirect, org })
+      return startSaml(idp, flow)
     },
 
     async handleCallback() {

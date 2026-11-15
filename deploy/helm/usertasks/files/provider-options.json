@@ -43,6 +43,7 @@
         "require_email_confirmation": "AUTH_REQUIRE_EMAIL_CONFIRMATION",
         "session_idle_hours": "AUTH_SESSION_IDLE_HOURS",
         "session_max_days": "AUTH_SESSION_MAX_DAYS",
+        "sso_only": "AUTH_SSO_ONLY",
         "sso_providers": "AUTH_SSO_PROVIDERS"
       },
       "secretOptions": [

@@ -90,6 +90,12 @@ export const OidcIdpSchema = z.object({
   nameClaim: z.string().default('name'),
   /** Fetch the userinfo endpoint and merge its claims (default true). */
   userinfo: z.boolean().default(true),
+  /**
+   * Sent as domain_hint (Entra ID: skips home-realm discovery and goes
+   * straight to the organisation's federated IdP, e.g. AD FS with Windows
+   * sign-in). E.g. "contoso.com".
+   */
+  domainHint: z.string().regex(/^[A-Za-z0-9.-]{1,253}$/, 'a domain name such as contoso.com').optional(),
   ...provisioningFields,
 })
 

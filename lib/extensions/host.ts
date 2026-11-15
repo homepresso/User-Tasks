@@ -21,6 +21,7 @@ import { assertEntitled, LicenceLimitError } from '@/lib/licensing/errors'
 import { checkUsageLimit } from '@/lib/licensing/limits'
 import { holdsPermission } from '@/lib/permissions'
 import { hostForms } from './forms'
+import { hostFormObjects, hostWorkflowObjects } from './objects-host'
 import { configuredAppUrl } from '@/lib/config/bootstrap'
 import { escapeLikePattern } from '@/lib/utils'
 
@@ -66,11 +67,54 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
   const db = (options.db ?? getServiceDb()) as any
   const log = logger(extensionId, tenantId)
   const held = options.permissions == null ? null : options.permissions instanceof Set ? options.permissions as ReadonlySet<string> : new Set(options.permissions as readonly string[])
+  const objectsHost = { extensionId, tenantId, actorId, db, serviceDb: getServiceDb(), permissions: held }
   return {
     extensionId,
     tenantId,
     actorId,
     appUrl: (configuredAppUrl() ?? '').trim().replace(/\/+$/, '') || null,
+    async workspaceUrl() {
+      const { workspaceUrlFor } = await import('@/lib/embedding-server')
+      return workspaceUrlFor(tenantId)
+    },
+    embedding: {
+      async url(path) {
+        const { embedUrlFor } = await import('@/lib/embedding-server')
+        return embedUrlFor(tenantId, path)
+      },
+      async origins() {
+        if (!tenantId) return { supported: false, origins: [], instanceOrigins: [], reason: 'needs a workspace' }
+        const { loadWorkspaceEmbedding } = await import('@/lib/embedding-server')
+        const e = await loadWorkspaceEmbedding(tenantId)
+        return { supported: e.supported, origins: e.origins, instanceOrigins: e.instance_origins, reason: e.reason }
+      },
+    },
+    gateways: {
+      async list() {
+        if (!tenantId) throw new Error('gateways.list needs a workspace')
+        const { listExtensionGateways } = await import('@/lib/gateway/extension')
+        return listExtensionGateways(tenantId)
+      },
+      async get(id) {
+        if (!tenantId) throw new Error('gateways.get needs a workspace')
+        const { getExtensionGateway } = await import('@/lib/gateway/extension')
+        return getExtensionGateway(tenantId, id)
+      },
+      async relayUrl(gatewayId, path) {
+        if (!tenantId) throw new Error('gateways.relayUrl needs a workspace')
+        const { extensionRelayUrl } = await import('@/lib/gateway/extension')
+        return extensionRelayUrl(tenantId, extensionId, gatewayId, path)
+      },
+    },
+    async launchUrl(path) {
+      if (!tenantId || !path.startsWith('/') || path.startsWith('//')) return path
+      const { data } = await (getServiceDb() as any).from('tenants').select('slug').eq('id', tenantId).maybeSingle()
+      if (typeof data?.slug !== 'string' || !data.slug) return path
+      const { LAUNCH_ORG_PARAM } = await import('@/lib/providers/auth/sso/auto')
+      const url = new URL(path, 'http://local.invalid')
+      url.searchParams.set(LAUNCH_ORG_PARAM, data.slug)
+      return `${url.pathname}${url.search}${url.hash}`
+    },
     db,
     config: {
       async get() {
@@ -117,9 +161,15 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
         const { listExtensionTriggerConfigs } = await import('./triggers')
         return listExtensionTriggerConfigs({ tenantId, extensionId, key })
       },
+      ...hostWorkflowObjects(objectsHost),
     },
     users: {
       findByEmail: (emails) => findMembersByEmail(tenantId, emails),
+      async current() {
+        if (!tenantId || !actorId) return null
+        const { data } = await (getServiceDb() as any).from('users').select('id, email, display_name, deleted_at').eq('id', actorId).maybeSingle()
+        return data && !data.deleted_at ? { id: String(data.id), email: String(data.email), name: String(data.display_name ?? data.email) } : null
+      },
     },
     async audit(entry) {
       if (!tenantId) return
@@ -171,7 +221,7 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
       get: (id) => getExtensionConnection(extensionId, tenantId, id),
       fetch: (id, url, init, opts) => fetchWithExtensionConnection(extensionId, tenantId, id, url, init, opts),
     },
-    forms: hostForms({ extensionId, tenantId, actorId, db: getServiceDb(), permissions: held }),
+    forms: { ...hostForms({ extensionId, tenantId, actorId, db: getServiceDb(), permissions: held }), ...hostFormObjects(objectsHost) },
     directory: {
       async requestSync(key, opts) {
         if (!tenantId) throw new Error('directory.requestSync needs a workspace')
@@ -208,6 +258,14 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
       },
     },
     logger: log,
+    elevate(reason) {
+      if (!tenantId || !actorId) throw new Error('elevate needs a workspace and a person')
+      const why = String(reason ?? '').trim().slice(0, 300)
+      if (!why) throw new Error('elevate needs a reason (it is written to the audit log)')
+      const elevated = createExtensionContext({ extensionId, tenantId, actorId, db: getServiceDb(), permissions: null })
+      // Every elevated write is the person's (actorId), and the audit summary carries the reason.
+      return { ...elevated, async audit(entry) { await elevated.audit({ ...entry, summary: `${entry.summary} (${why})`, metadata: { ...(entry.metadata ?? {}), elevated: why } }) } }
+    },
     async forWorkspace(target) {
       if (tenantId) throw new Error('forWorkspace is for instance-level contexts (public routes without auth, instance jobs)')
       if (!UUID_RE.test(String(target ?? ''))) throw new ExtensionError('invalid_request', 'Invalid workspace id', 400)
@@ -345,9 +403,12 @@ async function findMembersByEmail(tenantId: string | null, emails: string[]): Pr
 /**
  * Usage vs. a licence limit of this extension. Limit keys are namespaced
  * `<id>.<name>`; usage comes from options.usage or the extension's
- * registered counter (ServerExtension.usageCounters, instance-wide: licences
- * are per instance, so the counter runs with the service-role client and no
- * workspace). With options.unit the counter also says whether that unit is
+ * registered counter (ServerExtension.usageCounters). Scope follows where
+ * limits come from: self-hosted licences are per instance, so the counter
+ * runs with no workspace (instance-wide); in the cloud edition limits come
+ * from each workspace's own entitlement (its subscription), so the counter
+ * runs for that workspace only — one customer's farms never count against
+ * another's. With options.unit the counter also says whether that unit is
  * already counted. A key without a counter counts as 0 used.
  */
 async function extensionLimit(
@@ -364,7 +425,8 @@ async function extensionLimit(
     if (typeof opts.usage === 'number') return opts.usage
     const counter = (await import('./server-registry')).getServerExtension(extensionId)?.usageCounters?.[key]
     if (!counter) return 0
-    const instanceCtx = createExtensionContext({ extensionId, tenantId: null })
+    const { isCloud } = await import('@/lib/deployment')
+    const instanceCtx = createExtensionContext({ extensionId, tenantId: isCloud() ? tenantId : null })
     const usage = Math.max(0, Number(await counter({ ctx: instanceCtx })) || 0)
     if (opts.unit) adding = Math.max(0, (Number(await counter({ ctx: instanceCtx, unit: opts.unit })) || 0) - usage)
     return usage

@@ -5,7 +5,9 @@
  *  - prepareFormTarget   the form page opens: the provider loads the record
  *                        (values, version) and refreshes external field
  *                        properties; Person values arrive as e-mails and are
- *                        mapped to workspace members here.
+ *                        mapped to workspace members here. A display form
+ *                        (`mode: 'display'`) gets every field read-only, and
+ *                        its submissions are refused.
  *  - submitFormTarget    after core checked the values: the provider writes
  *                        the record. Its errors become ServiceErrors (field
  *                        errors per field, 409 / 412 a conflict).
@@ -19,8 +21,8 @@
  * licensed, the target's licence feature). Server-only.
  */
 
-import { applyFieldPatches, isEmailPerson, layoutDataTarget, normalizeFieldPatches, sameDataTarget, type FormDataTargetRef, type FormDataTargetState } from '@/lib/forms/data-target'
-import type { TaskFieldDef } from '@/lib/task-field-schema'
+import { applyFieldPatches, isEmailPerson, layoutDataTarget, normalizeFieldPatches, normalizeTargetLinks, sameDataTarget, type FormDataTargetRef, type FormDataTargetState } from '@/lib/forms/data-target'
+import { isDisplayField, type TaskFieldDef } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { isExtensionError, type FormTarget, type FormTargetForm, type FormTargetPerson, type FormTargetProblem } from '@/lib/extensions/sdk'
@@ -163,7 +165,11 @@ export async function prepareFormTarget(ctx: ServiceContext, form: TargetForm, r
   } catch (error) {
     throw targetError(error, label)
   }
-  const fields = applyFieldPatches(form.fields, normalizeFieldPatches(prepared?.fields, form.fields))
+  const display = prepared?.mode === 'display'
+  if (display && purpose === 'submit') throw new ServiceError('validation_error', `This form shows a record of ${label}; it can't be submitted`, { details: { code: 'display_form' } })
+  const patched = applyFieldPatches(form.fields, normalizeFieldPatches(prepared?.fields, form.fields))
+  // Display forms: everything read-only (static content stays as it is).
+  const fields = display ? patched.map((f) => (isDisplayField(f) ? f : { ...f, read_only: true, required: false })) : patched
   if (purpose === 'submit') return { fields, state: null }
   const known = new Set(fields.map((f) => f.key))
   const raw = isPlainObject(prepared?.values) ? Object.fromEntries(Object.entries(prepared!.values!).filter(([k]) => known.has(k))) : {}
@@ -176,11 +182,13 @@ export async function prepareFormTarget(ctx: ServiceContext, form: TargetForm, r
     fields,
     state: {
       label,
-      mode: record ? 'edit' : 'create',
+      mode: display ? 'display' : record ? 'edit' : 'create',
       record,
       values: mapped.values,
-      version: typeof prepared?.version === 'string' && prepared.version ? prepared.version.slice(0, 200) : null,
+      version: display ? null : typeof prepared?.version === 'string' && prepared.version ? prepared.version.slice(0, 200) : null,
       notice: notices.join(' ') || null,
+      ...(prepared?.actions ? { actions: normalizeTargetLinks(prepared.actions) } : {}),
+      ...(prepared?.files ? { files: normalizeTargetLinks(prepared.files, { httpOnly: true }) } : {}),
     },
   }
 }

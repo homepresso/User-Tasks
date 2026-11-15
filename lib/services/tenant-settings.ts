@@ -108,3 +108,40 @@ export async function completeOnboarding(ctx: ServiceContext, input: OnboardingI
   })
   return { slug }
 }
+
+/* ── trusted embedding: the workspace's approved sites ─────────────── */
+
+/**
+ * The sites (origins) that may show this workspace's embeddable pages in a
+ * frame or dialog — e.g. the workspace's SharePoint farm (lib/embedding.ts,
+ * per-workspace lists). Anyone with settings.view can read it.
+ */
+export async function getWorkspaceEmbedding(ctx: ServiceContext) {
+  requirePerm(ctx, 'settings.view')
+  const { loadWorkspaceEmbedding } = await import('@/lib/embedding-server')
+  return loadWorkspaceEmbedding(ctx.tenantId)
+}
+
+/** Replace the workspace's approved origins (settings.edit; audited). */
+export async function setWorkspaceEmbedding(ctx: ServiceContext, input: { origins?: unknown }) {
+  requirePerm(ctx, 'settings.edit')
+  const { normaliseEmbedList } = await import('@/lib/embedding')
+  if (!Array.isArray(input.origins) || !input.origins.every((o) => typeof o === 'string')) {
+    throw ServiceError.validation('origins must be a list of origins such as https://sharepoint.contoso.com')
+  }
+  let origins: string[]
+  try { origins = normaliseEmbedList(input.origins) } catch (error) { throw ServiceError.validation((error as Error).message) }
+  if (origins.length > 20) throw ServiceError.validation('At most 20 approved sites')
+  const { db, tenant } = await loadTenant(ctx, 'id, settings')
+  const settings = asObject(tenant.settings)
+  const before = asObject(settings.embedding)
+  const embedding = { ...before, frame_ancestors: origins }
+  const { error } = await (db as any).from('tenants').update({ settings: { ...settings, embedding } }).eq('id', ctx.tenantId)
+  if (error) throw dbError(error)
+  await audit(ctx, {
+    objectType: 'workspace', objectId: ctx.tenantId, action: 'update',
+    summary: origins.length ? `Trusted embedding: approved ${origins.join(', ')}` : 'Trusted embedding: no approved sites',
+    diff: { frame_ancestors: { before: before.frame_ancestors ?? [], after: origins } },
+  })
+  return getWorkspaceEmbedding(ctx)
+}

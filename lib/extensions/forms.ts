@@ -8,6 +8,9 @@
  *            caller holds its bindPermission). `layout.data_target` is set
  *            from `target`; the extension cannot bind to another extension.
  *  - list / get  forms bound to THIS extension only.
+ *  - delete  one of THIS extension's bound forms, as the caller (the normal
+ *            form service: forms.delete, usage and legal-hold checks, audit,
+ *            the target's `deleted` hook).
  *
  * Server-only.
  */
@@ -48,7 +51,7 @@ function bound(extensionId: string, row: Record<string, any>): BoundForm | null 
   }
 }
 
-export function hostForms(host: HostForms): ExtensionContext['forms'] {
+export function hostForms(host: HostForms): Pick<ExtensionContext['forms'], 'create' | 'list' | 'get' | 'delete'> {
   return {
     async create(input: FormCreateInput) {
       const { getServerExtension } = await import('./server-registry')
@@ -73,6 +76,16 @@ export function hostForms(host: HostForms): ExtensionContext['forms'] {
       if (!form) return null
       const def = normalizeFormDefinition(data)
       return { ...form, fields: def.fields, layout: def.layout }
+    },
+    async delete(id: string) {
+      if (!host.tenantId || !UUID_RE.test(String(id))) return { deleted: false }
+      const { data, error } = await host.db.from('forms').select('id, name, version, layout').eq('tenant_id', host.tenantId).eq('id', id).maybeSingle()
+      if (error) throw new Error(`forms.delete failed: ${error.message}`)
+      // Only forms bound to this extension (anything else reads as absent).
+      if (!data || !bound(host.extensionId, data)) return { deleted: false }
+      const { deleteForm } = await import('@/lib/services/forms')
+      await deleteForm(serviceContext(host), id)
+      return { deleted: true }
     },
   }
 }

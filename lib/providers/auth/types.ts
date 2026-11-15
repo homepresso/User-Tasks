@@ -1,4 +1,7 @@
 import type { ProviderId } from '@/lib/config/schema'
+import type { SsoStartOptions } from './sso/auto'
+
+export type { SsoStartOptions }
 
 /**
  * AuthProvider contract (server only). Every login, logout, password reset,
@@ -140,8 +143,12 @@ export interface AuthProvider {
   signUp(input: SignUpInput, ctx?: AuthRequestContext): Promise<SignUpResult>
   /** End this session (or every session of the user); clears the cookie. */
   signOut(options?: { everywhere?: boolean }): Promise<void>
-  /** URL to send the browser to for an SSO sign-in. */
-  startSso(idpId: string, options: { redirect: string; org: string | null; origin: string }): Promise<string>
+  /**
+   * URL to send the browser to for an SSO sign-in. `passive` asks the IdP to
+   * sign the person in without interaction (OIDC prompt=none, SAML
+   * IsPassive); see lib/providers/auth/sso/auto.ts for the fallbacks.
+   */
+  startSso(idpId: string, options: { redirect: string; org: string | null; origin: string } & SsoStartOptions): Promise<string>
   /** Finish a redirect-based sign-in (Supabase OAuth / recovery code). */
   handleCallback(request: Request): Promise<CallbackResult>
   /** Send a password-reset email. Never reveals whether the account exists. */

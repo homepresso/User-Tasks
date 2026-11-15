@@ -79,6 +79,24 @@ export function isResizeMessage(data: unknown): data is ResizeMessage {
     && typeof (data as ResizeMessage).height === 'number' && Number.isFinite((data as ResizeMessage).height)
 }
 
+/**
+ * Trusted embedding (/embed/f/<id>, lib/embedding.ts): what the form tells
+ * the page that frames it — submitted, or cancelled — so a host such as a
+ * SharePoint page can go back the way its own forms do. Only the event
+ * (never values or record data), posted to any parent: the host checks the
+ * origin.
+ */
+export const FORM_EVENT_MESSAGE_TYPE = 'usertasks:form'
+
+export interface FormEventMessage {
+  type: typeof FORM_EVENT_MESSAGE_TYPE
+  event: 'submitted' | 'cancelled'
+}
+
+export function formEventMessage(event: FormEventMessage['event']): FormEventMessage {
+  return { type: FORM_EVENT_MESSAGE_TYPE, event }
+}
+
 /** `url` with `?embed=1` added (kept once). */
 export function embedUrl(url: string): string {
   try {

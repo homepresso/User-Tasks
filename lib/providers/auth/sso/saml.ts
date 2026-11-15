@@ -8,6 +8,8 @@ import { hashToken, randomToken, rememberOnce, saveFlowState, takeFlowState } fr
 import { AuthError } from '../types'
 import { samlAttributeNames, type SamlIdpConfig } from './config'
 import type { ExternalIdentity } from './accounts'
+import { addSsoFrameSources } from './frame-sources'
+import { flowMetaFrom, InteractionRequired, withFlow, type SsoFallback, type SsoFlowMeta } from './auto'
 
 /**
  * SAML 2.0 service provider (SP-initiated and IdP-initiated SSO) on
@@ -27,6 +29,11 @@ import type { ExternalIdentity } from './accounts'
  * The ACS receives a cross-site POST from the IdP, so it can't rely on
  * cookies (SameSite=Lax); RelayState carries a single-use server-side flow
  * id instead.
+ *
+ * Passive (automatic sign-in, ./auto.ts): the AuthnRequest carries
+ * IsPassive="true"; a NoPassive (or any other non-success) status for a
+ * passive flow throws InteractionRequired — acted on only to start a
+ * non-passive flow, so an unsigned error response can't sign anyone in.
  */
 
 const FLOW_TTL_MS = 10 * 60_000
@@ -100,6 +107,7 @@ async function idpMetadata(idp: SamlIdpConfig, fetchImpl: typeof fetch): Promise
   })
   if (!res.ok) throw new AuthError('sso_failed', `Could not fetch the SAML IdP metadata (HTTP ${res.status})`)
   const meta = parseIdpMetadata(await res.text())
+  addSsoFrameSources([meta.ssoRedirectUrl])
   metadataCache.set(idp.metadataUrl, { at: Date.now(), meta })
   return meta
 }
@@ -132,7 +140,7 @@ function requestIdCache(idp: SamlIdpConfig): CacheProvider {
 
 const toPem = (cert: string) => cert.includes('BEGIN CERTIFICATE') ? cert : cert.replace(/\s+/g, '')
 
-export async function samlClient(idp: SamlIdpConfig, origin: string, fetchImpl: typeof fetch = fetch): Promise<SamlClass> {
+export async function samlClient(idp: SamlIdpConfig, origin: string, fetchImpl: typeof fetch = fetch, opts: { passive?: boolean } = {}): Promise<SamlClass> {
   const { SAML, ValidateInResponseTo } = await loadNodeSaml()
   const meta = await idpMetadata(idp, fetchImpl)
   const certs = idp.idpCert ? (Array.isArray(idp.idpCert) ? idp.idpCert : [idp.idpCert]) : meta?.signingCerts ?? []
@@ -156,6 +164,7 @@ export async function samlClient(idp: SamlIdpConfig, origin: string, fetchImpl: 
     disableRequestedAuthnContext: true,
     signatureAlgorithm: 'sha256',
     maxAssertionAgeMs: 0,
+    passive: opts.passive === true,
   }
   return new SAML(config)
 }
@@ -163,12 +172,14 @@ export async function samlClient(idp: SamlIdpConfig, origin: string, fetchImpl: 
 /** SP-initiated: redirect URL to the IdP (HTTP-Redirect binding). */
 export async function startSaml(
   idp: SamlIdpConfig,
-  { origin, redirect, org }: { origin: string; redirect: string; org: string | null },
+  { origin, redirect, org, passive = false, fallback = 'interactive', loginHint = null }: {
+    origin: string; redirect: string; org: string | null; passive?: boolean; fallback?: SsoFallback; loginHint?: string | null
+  },
   fetchImpl: typeof fetch = fetch,
 ): Promise<string> {
-  const saml = await samlClient(idp, origin, fetchImpl)
+  const saml = await samlClient(idp, origin, fetchImpl, { passive })
   const relayState = randomToken()
-  await saveFlowState(relayState, `saml_relay:${idp.id}`, { redirect, org }, FLOW_TTL_MS)
+  await saveFlowState(relayState, `saml_relay:${idp.id}`, { redirect, org, passive, fallback, loginHint }, FLOW_TTL_MS)
   return saml.getAuthorizeUrlAsync(relayState, undefined, {})
 }
 
@@ -199,16 +210,27 @@ export async function finishSaml(
   body: { SAMLResponse?: string | null; RelayState?: string | null },
   origin: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ identity: ExternalIdentity; redirect: string; org: string | null }> {
+): Promise<{ identity: ExternalIdentity; redirect: string; org: string | null; flow: SsoFlowMeta | null }> {
   if (!body.SAMLResponse) throw new AuthError('sso_failed', 'Missing SAMLResponse')
   const saml = await samlClient(idp, origin, fetchImpl)
   let profile: Profile | null
+  let failure: string | null = null
   try {
     ;({ profile } = await saml.validatePostResponseAsync({ SAMLResponse: body.SAMLResponse }))
   } catch (error) {
-    throw new AuthError('sso_failed', `The SAML response is not valid (${(error as Error).message})`)
+    profile = null
+    failure = (error as Error).message
   }
-  if (!profile) throw new AuthError('sso_failed', 'The SAML response has no assertion')
+  if (!profile) {
+    // NoPassive comes back without an assertion (signed: profile null;
+    // unsigned: "Invalid signature: NoPassive"); other statuses throw. For a
+    // passive flow (this browser's RelayState) any of these means "sign in
+    // interactively" — nothing from the response is used.
+    const flow = body.RelayState ? await takeFlowState(body.RelayState, `saml_relay:${idp.id}`) : null
+    const meta = flow ? flowMetaFrom(idp.id, flow) : null
+    if (meta?.passive) throw new InteractionRequired(meta, `The identity provider needs interaction (${failure ?? 'NoPassive'})`)
+    throw withFlow(new AuthError('sso_failed', failure ? `The SAML response is not valid (${failure})` : 'The SAML response has no assertion'), meta)
+  }
 
   // Replay protection: each assertion is accepted once.
   const assertionXml = profile.getAssertionXml?.() ?? ''
@@ -253,5 +275,6 @@ export async function finishSaml(
     },
     redirect,
     org,
+    flow: flow ? flowMetaFrom(idp.id, flow) : null,
   }
 }

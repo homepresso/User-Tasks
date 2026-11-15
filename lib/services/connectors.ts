@@ -581,7 +581,7 @@ export async function testConnector(
         const shown = fromWebhook ? '(webhook URL)' : (testUrl || '(empty)')
         return { status: 'error', message: `Invalid ${fromWebhook ? 'webhook' : 'base'} URL: ${shown}. Expected http:// or https://` }
       }
-      const probe = await runConnectorProbe(input.connector_key, config, credentials, integrationConfig)
+      const probe = await runConnectorProbe(input.connector_key, config, credentials, integrationConfig, { tenantId: ctx.tenantId })
       result = buildConnectorTestResult(input.connector_key, probe.message, probe.ok ? 'success' : 'error', probe.statusCode) as ConnectorTestResult
     }
   } catch (error: any) {

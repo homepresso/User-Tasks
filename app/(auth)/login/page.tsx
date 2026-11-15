@@ -9,6 +9,8 @@ import { sanitizeRedirect } from "@/lib/safe-redirect"
 import { isCloud } from "@/lib/deployment"
 import { signupHref } from "@/lib/signup-link"
 import { redirectToSetupIfNeeded, singleOrganisation } from "@/lib/setup/server"
+import { autoSsoPath } from "@/lib/providers/auth/sso/auto"
+import { resolveAutoSso } from "@/lib/providers/auth/sso/auto-server"
 
 export const metadata = pageMetadata("Sign in")
 
@@ -35,8 +37,22 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   if (host.kind === "workspace") {
     const back = sanitizeRedirect(typeof query.redirect === "string" ? query.redirect : null)
     const target = loginUrlFor(host.tenant, back)
-    if (/^https?:\/\//.test(target)) redirect(target)
+    // Keep "show the page" (after signing out / ?local=1) across the hop to the apex.
+    const keep = ["local", "signed_out"].filter((k) => query[k]).map((k) => `&${k}=1`).join("")
+    if (/^https?:\/\//.test(target)) redirect(`${target}${keep}`)
     defaultOrg = host.tenant.slug
+  }
+  // SSO only (workspace or instance, lib/providers/auth/sso/auto.ts): straight
+  // to the identity provider. The page still shows after an error, after
+  // signing out, and with ?local=1 (the administrators' way in when the IdP
+  // is down).
+  if (!query.error && !query.local && !query.signed_out && !query.invite) {
+    const orgHint = typeof query.org === "string" ? query.org : defaultOrg || null
+    const auto = await resolveAutoSso({ org: orgHint, purpose: "login" })
+    if (auto) {
+      const back = sanitizeRedirect(typeof query.redirect === "string" ? query.redirect : null)
+      redirect(autoSsoPath({ redirect: back, org: auto.org, purpose: "login" }))
+    }
   }
   const [options, onlyOrg] = await Promise.all([
     getLoginOptions().catch((error) => {

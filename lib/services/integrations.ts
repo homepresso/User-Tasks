@@ -66,8 +66,38 @@ export function validateIntegrationConfig(type: string, config: Record<string, a
   if (type === 'database') return config
   const authType = String(config.auth_type ?? 'none')
   if (!(INTEGRATION_AUTH_TYPES as readonly string[]).includes(authType)) throw ServiceError.validation('config.auth_type is not supported')
+  // Through an on-premises gateway the server never dials the URL: the gateway's allowlist decides.
+  if (config.auth_config?._transport === 'gateway') return withValidGatewayTransport(config)
   const out = { ...config, base_url: validateBaseUrl(config.base_url, 'config.base_url') }
   return authType === 'windows' ? withValidWindowsAuth(out) : out
+}
+
+const GATEWAY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * `_transport: gateway` (lib/gateway/transport): the base URL is a target on
+ * the customer's network (private names and plain http are normal there),
+ * so only its shape is checked; the gateway is named by id; no credentials
+ * are kept (they live on the gateway). Whether the gateway serves that
+ * origin is checked on every request against what it advertises.
+ */
+export function withValidGatewayTransport(config: Record<string, any>): Record<string, any> {
+  const baseUrl = String(config.base_url ?? '').trim().replace(/\/+$/, '')
+  let parsed: URL
+  try { parsed = new URL(baseUrl) } catch { throw ServiceError.validation('config.base_url must be a valid absolute URL') }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw ServiceError.validation('config.base_url must be an http(s) URL')
+  if (parsed.username || parsed.password || parsed.hash) throw ServiceError.validation('config.base_url cannot contain credentials or a fragment')
+  const auth = (config.auth_config ?? {}) as Record<string, any>
+  const gatewayId = String(auth.gateway_id ?? '').trim()
+  if (!GATEWAY_UUID_RE.test(gatewayId)) throw ServiceError.validation('auth_config.gateway_id must name an on-premises gateway of this workspace')
+  const target = auth.gateway_target === undefined || auth.gateway_target === null || auth.gateway_target === '' ? null : String(auth.gateway_target).trim()
+  if (target !== null && !/^[a-z][a-z0-9-]{0,39}$/.test(target)) throw ServiceError.validation('auth_config.gateway_target must be a target id configured on the gateway (lower-case letters, digits, hyphens)')
+  const { password: _password, username: _username, ...rest } = auth
+  return {
+    ...config,
+    base_url: baseUrl,
+    auth_config: { ...rest, _transport: 'gateway', gateway_id: gatewayId, ...(target ? { gateway_target: target } : {}) },
+  }
 }
 
 /**
@@ -150,7 +180,7 @@ async function insertIntegration(ctx: ServiceContext, input: IntegrationCreateIn
   if (!(CREATABLE_INTEGRATION_TYPES as readonly string[]).includes(input.type)) throw ServiceError.validation('Unsupported integration type')
   await loadEgressPolicy()
   const config = validateIntegrationConfig(input.type, input.config ?? {})
-  if (input.type !== 'database') await assertBaseUrlProtocol(config.base_url)
+  if (input.type !== 'database' && config.auth_config?._transport !== 'gateway') await assertBaseUrlProtocol(config.base_url)
   const { data, error } = await ctx.supabase.from('integrations').insert({
     tenant_id: ctx.tenantId,
     name,
@@ -318,12 +348,14 @@ export async function updateIntegration(ctx: ServiceContext, integrationId: stri
     let config = resolveSecretPlaceholders(input.config, existing.config ?? {})
     // Only re-validate the URL when it changes, so legacy rows stay editable.
     const storedUrl = String(existing.config?.base_url ?? '').replace(/\/+$/, '')
-    if (existing.type !== 'database' && config?.base_url !== undefined && String(config.base_url).trim().replace(/\/+$/, '') !== storedUrl) {
+    const viaGateway = config?.auth_config?._transport === 'gateway'
+    if (viaGateway) config = withValidGatewayTransport(config)
+    else if (existing.type !== 'database' && config?.base_url !== undefined && String(config.base_url).trim().replace(/\/+$/, '') !== storedUrl) {
       await loadEgressPolicy()
       config = { ...config, base_url: validateBaseUrl(config.base_url, 'config.base_url') }
       await assertBaseUrlProtocol(config.base_url)
     }
-    if (existing.type !== 'database' && config?.auth_type === 'windows') config = withValidWindowsAuth(config)
+    if (!viaGateway && existing.type !== 'database' && config?.auth_type === 'windows') config = withValidWindowsAuth(config)
     // Idempotent for values an edit form round-trips already encrypted
     updates.config = encryptSensitiveFields(config)
   }

@@ -22,12 +22,14 @@ import { registerFileTools } from './tools/files'
 import { registerRetentionTools } from './tools/retention'
 import { registerWebhookTools } from './tools/webhooks'
 import { registerLogDestinationTools } from './tools/log-destinations'
+import { registerGatewayTools } from './tools/gateways'
 import { registerDirectorySyncTools } from './tools/directory-sync'
 import { registerImporterTools } from './tools/importers'
 import { registerWorkspaceThemeTools } from './tools/workspace-theme'
 import { registerWorkspaceAddressTools } from './tools/workspace-address'
 import { registerTaskCompletionTools } from './tools/task-completion'
 import { registerFormSignInTools } from './tools/form-sign-in-page'
+import { registerWorkspaceSsoTools } from './tools/workspace-sso'
 import { registerDocumentOcrTools } from './tools/document-ocr'
 import { registerConfigTools } from './tools/config'
 import { registerPackageTools } from './tools/packages'
@@ -86,12 +88,14 @@ const TOOL_REGISTRARS: Array<{ label: string; register: ToolRegistrar }> = [
   { label: 'retention', register: registerRetentionTools },
   { label: 'webhooks', register: registerWebhookTools },
   { label: 'log_destinations', register: registerLogDestinationTools },
+  { label: 'gateways', register: registerGatewayTools },
   { label: 'directory_sync', register: registerDirectorySyncTools },
   { label: 'importers', register: registerImporterTools },
   { label: 'workspace_theme', register: registerWorkspaceThemeTools },
   { label: 'workspace_address', register: registerWorkspaceAddressTools },
   { label: 'task_completion', register: registerTaskCompletionTools },
   { label: 'form_sign_in_page', register: registerFormSignInTools },
+  { label: 'workspace_sso', register: registerWorkspaceSsoTools },
   { label: 'document_ocr', register: registerDocumentOcrTools },
   { label: 'config', register: registerConfigTools },
   { label: 'packages', register: registerPackageTools },

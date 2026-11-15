@@ -15,6 +15,10 @@
  *   lockout_threshold           failed passwords before a lockout (default 10)
  *   lockout_minutes             lockout duration (default 15)
  *   password_min_length         default 8
+ *   sso_only                    skip the sign-in page: /login goes straight to
+ *                               the IdP (default false; per workspace too,
+ *                               tenants.settings.sso.sso_only —
+ *                               lib/providers/auth/sso/auto.ts)
  *
  * AUTH_COOKIE_SECURE (environment only, read on every response) forces the
  * Secure cookie flag on/off; by default it is on unless APP_URL is plain http.
@@ -29,6 +33,7 @@ export const AUTH_OPTION_ENV: Record<string, string> = {
   lockout_threshold: 'AUTH_LOCKOUT_THRESHOLD',
   lockout_minutes: 'AUTH_LOCKOUT_MINUTES',
   password_min_length: 'AUTH_PASSWORD_MIN_LENGTH',
+  sso_only: 'AUTH_SSO_ONLY',
 }
 
 /** `sso_providers` carries client secrets: store it encrypted, or use secret:// refs inside it. */
@@ -42,6 +47,7 @@ export interface AuthSettings {
   lockoutThreshold: number
   lockoutMs: number
   passwordMinLength: number
+  ssoOnly: boolean
 }
 
 function bool(value: unknown, fallback: boolean): boolean {
@@ -66,5 +72,6 @@ export function authSettings(options: Record<string, unknown>): AuthSettings {
     lockoutThreshold: Math.floor(num(options.lockout_threshold, 10, 1)),
     lockoutMs: num(options.lockout_minutes, 15, 0) * 60_000,
     passwordMinLength: Math.floor(num(options.password_min_length, 8, 6)),
+    ssoOnly: bool(options.sso_only, false),
   }
 }

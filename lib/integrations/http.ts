@@ -1,4 +1,5 @@
 import { assertSafeEgressUrl, EgressBlockedError } from '@/lib/egress-guard'
+import { isRemoteTransport } from './transports'
 
 /**
  * Outbound HTTP for integrations and connectors (references, token mints,
@@ -140,6 +141,8 @@ function isAbortError(error: unknown): boolean {
 export async function connectorFetch(rawUrl: string, init: RequestInit = {}, options: ConnectorFetchOptions = {}): Promise<Response> {
   const doFetch = options.fetchImpl ?? fetch
   const customTransport = Boolean(options.fetchImpl)
+  // A remote transport (on-premises gateway) never dials from this server: its own allowlist applies.
+  const remoteTransport = isRemoteTransport(options.fetchImpl)
   const sleep = options.sleep ?? defaultSleep
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const deadline = Date.now() + timeoutMs
@@ -158,12 +161,15 @@ export async function connectorFetch(rawUrl: string, init: RequestInit = {}, opt
       res = await fetchFollowingRedirects(doFetch, rawUrl, { ...init, method }, {
         maxRedirects,
         signal: AbortSignal.timeout(remaining),
-        skipEgressCheck: options.skipEgressCheck === true,
+        skipEgressCheck: options.skipEgressCheck === true || remoteTransport,
+        skipEgressOnRedirects: remoteTransport,
         customTransport,
       })
     } catch (error) {
       if (error instanceof EgressBlockedError) throw error
       if (isAbortError(error)) throw new ConnectorTimeoutError(timeoutMs, target)
+      // A transport that says retrying would not help (e.g. the gateway is offline).
+      if ((error as { retryable?: unknown } | null)?.retryable === false) throw error
       const wait = backoffMs(attempt)
       if (idempotent && attempt < maxAttempts && Date.now() + wait < deadline) {
         await sleep(wait)
@@ -188,13 +194,13 @@ async function fetchFollowingRedirects(
   doFetch: typeof fetch,
   rawUrl: string,
   init: RequestInit,
-  opts: { maxRedirects: number; signal: AbortSignal; skipEgressCheck: boolean; customTransport?: boolean },
+  opts: { maxRedirects: number; signal: AbortSignal; skipEgressCheck: boolean; skipEgressOnRedirects?: boolean; customTransport?: boolean },
 ): Promise<Response> {
   let current = rawUrl
   let currentInit: RequestInit = { ...init, redirect: 'manual', signal: opts.signal }
   const origin = (() => { try { return new URL(rawUrl).origin } catch { return '' } })()
   for (let hop = 0; hop <= opts.maxRedirects; hop++) {
-    const check = !opts.skipEgressCheck || hop > 0 ? await assertSafeEgressUrl(current) : null
+    const check = (!opts.skipEgressCheck || hop > 0) && !opts.skipEgressOnRedirects ? await assertSafeEgressUrl(current) : null
     const hopFetch = check?.private === 'allowlist' && !opts.customTransport ? await guardedFetch() : doFetch
     const res = await hopFetch(current, currentInit)
     const location = res.headers.get('location')

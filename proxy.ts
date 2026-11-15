@@ -4,8 +4,10 @@ import { configuredAppUrl } from "@/lib/config/bootstrap"
 import { updateSession } from "@/lib/supabase/middleware"
 import { FRAME_PATH_PREFIX } from "@/lib/forms/custom-controls/frame"
 import { isFrameableFormPath } from "@/lib/forms/embed"
-import { embedFrameAncestors, framedSessionsEnabled, getEmbedPolicy, isEmbedPath, sessionCookiesAllowed } from "@/lib/embedding"
+import { embedFrameAncestors, framedSessionsEnabled, getEmbedPolicy, isEmbedPath, sessionCookiesAllowed, workspaceEmbeddingEnabled } from "@/lib/embedding"
+import { EMBED_TOKEN_PARAM, verifyEmbedToken } from "@/lib/embedding-token"
 import { authCookieSecure } from "@/lib/providers/auth/cookies"
+import { embedFrameSrc, readSsoFrameSources } from "@/lib/providers/auth/sso/frame-sources"
 import {
   HOST_WORKSPACE_HEADER, INVALID_HOST_MARK, REQUEST_PATH_HEADER, WORKSPACE_HOP_PREFIX,
   baseDomainFromEnv, classifyHost, parseWorkspaceHop, workspaceOrigin,
@@ -74,11 +76,19 @@ export async function proxy(request: NextRequest) {
   // embedded by any site (lib/forms/embed.ts: the page itself never uses a
   // session inside a frame from another origin); every other page: no framing.
   const frameable = isFrameableFormPath(request.nextUrl.pathname)
-  // Embeddable routes (/embed/…): only the approved sites (trusted embedding).
-  const embeddable = isEmbedPath(request.nextUrl.pathname) && embedPolicy.origins.length > 0
+  // Embeddable routes (/embed/…): only the approved sites (trusted embedding):
+  // the instance list, plus — per-workspace lists on — the origins a signed
+  // token names for this workspace's own address (no database lookup here).
+  const embedPath = isEmbedPath(request.nextUrl.pathname)
+  const workspaceOrigins = embedPath && host.kind === "workspace" && workspaceEmbeddingEnabled()
+    ? verifyEmbedToken(request.nextUrl.searchParams.get(EMBED_TOKEN_PARAM), host.label)
+    : []
+  const embeddable = embedPath && (embedPolicy.origins.length > 0 || workspaceOrigins.length > 0)
   response.headers.set("Content-Security-Policy", contentSecurityPolicy({
     captcha: publicForm,
-    frameAncestors: frameable ? "*" : embeddable ? embedFrameAncestors(embedPolicy) : "'none'",
+    frameAncestors: frameable ? "*" : embeddable ? embedFrameAncestors(embedPolicy, workspaceOrigins) : "'none'",
+    // Automatic sign-in's hidden frame goes to the identity provider (lib/providers/auth/sso/frame-sources.ts).
+    ...(embeddable && readSsoFrameSources().length ? { frameSrc: embedFrameSrc() } : {}),
   }))
   if (frameable || embeddable) response.headers.delete("X-Frame-Options")
   else response.headers.set("X-Frame-Options", "DENY")

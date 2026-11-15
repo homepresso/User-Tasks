@@ -83,14 +83,21 @@ export const supabaseAuthProvider: AuthProvider = {
     await (await authClient()).auth.signOut()
   },
 
-  async startSso(idpId, { redirect, org, origin }) {
+  async startSso(idpId, { redirect, org, origin, passive, fallback, loginHint }) {
     const sso = SUPABASE_SSO[idpId]
     if (!sso) throw new AuthError('not_supported', `Unknown sign-in provider "${idpId}"`)
+    // Passive (automatic sign-in, lib/providers/auth/sso/auto.ts): prompt=none
+    // at Microsoft / Google; /auth/callback follows `sso` (<idp>.<fallback>)
+    // when the provider answers with an error instead of a code.
+    const queryParams: Record<string, string> = {}
+    if (passive) queryParams.prompt = 'none'
+    if (loginHint) queryParams.login_hint = loginHint
     const { data, error } = await (await authClient()).auth.signInWithOAuth({
       provider: sso.provider,
       options: {
         ...(sso.scopes ? { scopes: sso.scopes } : {}),
-        redirectTo: callbackUrl(origin, { redirect: sanitizeRedirect(redirect), org }),
+        ...(Object.keys(queryParams).length ? { queryParams } : {}),
+        redirectTo: callbackUrl(origin, { redirect: sanitizeRedirect(redirect), org, sso: passive ? `${idpId}.${fallback ?? 'interactive'}` : null }),
         skipBrowserRedirect: true,
       },
     })

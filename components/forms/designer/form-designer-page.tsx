@@ -81,7 +81,7 @@ function DataTargetProblems({ check }: { check: TargetCheck }) {
 const EMPTY_FORM: FormDefinition = { fields: [], layout: { rows: [] }, theme: { source: 'workspace' } }
 const NEW_DRAFT: FormDetailsDraft = { name: 'Untitled form', description: '', tags: '', available: false, systemName: '' }
 
-export function FormDesignerPage({ formId }: { formId: string | null }) {
+export function FormDesignerPage({ formId, returnTo }: { formId: string | null; returnTo?: { href: string; label: string } | null }) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const jobs = useJobs()
@@ -226,8 +226,8 @@ export function FormDesignerPage({ formId }: { formId: string | null }) {
   )
 
   const chrome: DesignerPageChrome = {
-    backHref: FORMS_LIBRARY_HREF,
-    backLabel: 'Back to forms',
+    backHref: returnTo?.href ?? FORMS_LIBRARY_HREF,
+    backLabel: returnTo?.label ?? 'Back to forms',
     readOnly: !canEdit,
     pills,
     submissions: canSubmit ? submissions : null,

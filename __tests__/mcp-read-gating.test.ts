@@ -14,6 +14,9 @@ import { createMemorySupabase } from './fixtures/supabase-memory'
  * (docs/changes/cli-api.md) with it.
  */
 const EXPECTED_READ_PERMISSIONS: Record<string, string> = {
+  gateways_list: 'integrations.view',
+  gateways_get: 'integrations.view',
+  workspace_embedding_get: 'settings.view',
   events_list: 'observability.view',
   directory_sync_list: 'settings.view',
   directory_sync_get: 'settings.view',
@@ -177,6 +180,7 @@ const EXPECTED_READ_PERMISSIONS: Record<string, string> = {
   workspace_address_check: 'tasks.view_own',
   task_completion_settings_get: 'tasks.view_own',
   form_sign_in_page_get: 'tasks.view_own',
+  workspace_sso_get: 'tasks.view_own',
   tasks_next_step: 'tasks.view_own',
   workspace_theme_presets_list: 'tasks.view_own',
   document_ocr_get: 'settings.view',

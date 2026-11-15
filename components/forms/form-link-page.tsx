@@ -14,11 +14,13 @@ import { AssistantHost } from '@/components/assistants/assistant-host'
  * the member's permissions for the favourite heart and Save draft. Server
  * component.
  */
-export async function MemberFormPage({ formId, query, embed, userId }: {
+export async function MemberFormPage({ formId, query, embed, userId, trusted = false }: {
   formId: string
   query: Record<string, string | string[] | undefined>
   embed: boolean
   userId: string
+  /** Trusted embedding (/embed/f/<id>, an approved site frames it): host events on, form links stay in the frame. */
+  trusted?: boolean
 }) {
   const [theme, permissions] = await Promise.all([
     loadSessionWorkspaceTheme(),
@@ -36,7 +38,7 @@ export async function MemberFormPage({ formId, query, embed, userId }: {
             <EmbedFrame embed={embed}>
               {allowed ? (
                 <>
-                  <StandaloneForm formId={formId} query={query} surface="standalone" embed={embed} />
+                  <StandaloneForm formId={formId} query={query} surface="standalone" embed={embed} trusted={trusted} />
                   {!embed && <AssistantHost standalone />}
                 </>
               ) : (

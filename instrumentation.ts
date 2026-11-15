@@ -33,6 +33,8 @@ export async function register() {
     const { announceSetupCode } = await import('./lib/setup/state')
     await announceSetupCode(setupDb(), { startup: true })
   })().catch((error: Error) => console.warn(`[setup] ${error.message}`))
+  // Identity providers' sign-in origins for embeddable pages' frame-src (automatic sign-in in a frame).
+  void import('./lib/providers/auth/sso/auto-server').then((m) => m.warmSsoFrameSources()).catch(() => undefined)
   if (process.env.VERCEL) return
   const { startSchedulerWorker } = await import('./lib/scheduler/runtime')
   void startSchedulerWorker().catch((error: Error) => console.error(`[scheduler] worker failed to start: ${error.message}`))

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { completeOidcCallback, ssoOrigin } from '@/lib/providers/auth/sso/flow'
+import { completeOidcCallback, completionUrl, ssoOrigin } from '@/lib/providers/auth/sso/flow'
 
 /**
  * OpenID Connect redirect URI: <APP_URL>/auth/sso/<id>/callback (register it at
@@ -16,5 +16,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     userAgent: request.headers.get('user-agent'),
   }
   const target = await completeOidcCallback(idp, request, ctx)
-  return NextResponse.redirect(`${ssoOrigin(request)}${target}`, 303)
+  // A local path, or the IdP again (interactive sign-in after a passive attempt).
+  const response = NextResponse.redirect(completionUrl(ssoOrigin(request), target), 303)
+  response.headers.set('Cache-Control', 'no-store')
+  return response
 }

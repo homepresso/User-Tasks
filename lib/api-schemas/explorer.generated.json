@@ -8631,6 +8631,34 @@
   ]
  },
  {
+  "label": "Trusted embedding",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/workspace/embedding",
+    "label": "Get the sites approved to embed this workspace's pages (trusted embedding)",
+    "description": "Get the sites approved to embed this workspace's pages (trusted embedding) Requires settings.view.",
+    "params": [],
+    "permission": "settings.view"
+   },
+   {
+    "method": "PUT",
+    "path": "/api/v1/workspace/embedding",
+    "label": "Replace the sites approved to embed this workspace's pages",
+    "description": "Origins only (https://sharepoint.contoso.com, https://*.contoso.com; http:// only when named so), at most 20. Applies to embeddable pages (/embed/…) on the workspace's own address. Audited. Requires settings.edit.",
+    "params": [
+     {
+      "name": "origins",
+      "type": "body",
+      "required": true,
+      "placeholder": "[]"
+     }
+    ],
+    "permission": "settings.edit"
+   }
+  ]
+ },
+ {
   "label": "Task completion",
   "endpoints": [
    {
@@ -8738,6 +8766,45 @@
      }
     ],
     "permission": "tasks.view_own"
+   }
+  ]
+ },
+ {
+  "label": "Workspace",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/workspace/sso",
+    "label": "Get the workspace's automatic sign-in settings (any member)",
+    "description": "Automatic SSO when opened from another system, SSO only (skip the sign-in page), the identity provider, and which one is in effect. Nobody is ever signed in from what the launching system says: only the identity provider's signed answer counts.",
+    "params": [],
+    "permission": null
+   },
+   {
+    "method": "PATCH",
+    "path": "/api/v1/workspace/sso",
+    "label": "Change the workspace's automatic sign-in settings",
+    "description": "Send only what changes. idp must be one of the instance's identity providers (or null for automatic). Audited. Requires settings.edit.",
+    "params": [
+     {
+      "name": "auto_sign_in",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Sign in automatically with SSO when UserTasks is opened from another system (a SharePoint add-in button, a portal link to an extension page): no sign-in page — passive first (OIDC prompt=none, SAML IsPassive), then the identity provider's own sign-in if it needs the person. Default true; applies when an identity provider resolves"
+     },
+     {
+      "name": "sso_only",
+      "type": "body",
+      "placeholder": "false",
+      "description": "SSO only: skip the sign-in page — /login goes straight to the identity provider. Default false. /login?local=1, errors and signing out still show the page"
+     },
+     {
+      "name": "idp",
+      "type": "body",
+      "description": "The identity provider (its id) to sign in with; null = automatic: the one that provisions into this workspace (defaultOrg), else the instance's only one"
+     }
+    ],
+    "permission": "settings.edit"
    }
   ]
  },
@@ -11480,6 +11547,141 @@
       "type": "path",
       "required": true,
       "description": "Resource id"
+     }
+    ],
+    "permission": "settings.edit"
+   }
+  ]
+ },
+ {
+  "label": "On-premises gateways",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/gateways",
+    "label": "List the workspace's on-premises gateways with their instances and status",
+    "description": "List the workspace's on-premises gateways with their instances and status Requires integrations.view.",
+    "params": [
+     {
+      "name": "include_revoked",
+      "type": "query",
+      "placeholder": "true",
+      "description": "Also list revoked gateways",
+      "options": [
+       "true",
+       "false"
+      ]
+     }
+    ],
+    "permission": "integrations.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/gateways",
+    "label": "Create an on-premises gateway and its first registration token",
+    "description": "Returns the gateway and a one-time registration token for its first instance (valid 24 hours, shown once). Install the gateway on the customer's network and register it with the token. Audited. Requires settings.edit.",
+    "params": [
+     {
+      "name": "name",
+      "type": "body",
+      "required": true
+     },
+     {
+      "name": "description",
+      "type": "body"
+     }
+    ],
+    "permission": "settings.edit"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/gateways/{id}",
+    "label": "Get a gateway: instances, status, last 24 hours of requests (latency, failures) and security events",
+    "description": "Get a gateway: instances, status, last 24 hours of requests (latency, failures) and security events Requires integrations.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": "integrations.view"
+   },
+   {
+    "method": "PATCH",
+    "path": "/api/v1/gateways/{id}",
+    "label": "Rename a gateway or change its description",
+    "description": "Rename a gateway or change its description Requires settings.edit.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     },
+     {
+      "name": "name",
+      "type": "body"
+     },
+     {
+      "name": "description",
+      "type": "body"
+     }
+    ],
+    "permission": "settings.edit"
+   },
+   {
+    "method": "DELETE",
+    "path": "/api/v1/gateways/{id}",
+    "label": "Revoke a gateway: every instance key and queued request; connections using it stop working",
+    "description": "Revoke a gateway: every instance key and queued request; connections using it stop working Requires settings.edit.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": "settings.edit"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/gateways/{id}/tokens",
+    "label": "Issue a one-time registration token for another instance of a gateway (high availability, replacement)",
+    "description": "Each instance has its own key. Run two or more instances for failover. Tokens are valid 24 hours and shown once. Audited. Requires settings.edit.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     },
+     {
+      "name": "label",
+      "type": "body"
+     }
+    ],
+    "permission": "settings.edit"
+   },
+   {
+    "method": "DELETE",
+    "path": "/api/v1/gateways/{id}/instances/{instance_id}",
+    "label": "Revoke one gateway instance key (or an unused registration token); its in-flight requests fail",
+    "description": "Revoke one gateway instance key (or an unused registration token); its in-flight requests fail Requires settings.edit.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Gateway id"
+     },
+     {
+      "name": "instance_id",
+      "type": "path",
+      "required": true,
+      "description": "Instance (key) id"
      }
     ],
     "permission": "settings.edit"

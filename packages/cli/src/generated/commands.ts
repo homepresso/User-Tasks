@@ -9590,6 +9590,47 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": false
   },
   {
+    "operationId": "getWorkspaceEmbedding",
+    "method": "GET",
+    "path": "/workspace/embedding",
+    "resource": "workspace-embedding",
+    "verb": "get",
+    "summary": "Get the sites approved to embed this workspace's pages (trusted embedding)",
+    "permission": "settings.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateWorkspaceEmbedding",
+    "method": "PUT",
+    "path": "/workspace/embedding",
+    "resource": "workspace-embedding",
+    "verb": "set",
+    "summary": "Replace the sites approved to embed this workspace's pages",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "origins",
+          "type": "array",
+          "required": true
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
     "operationId": "getTaskCompletionSettings",
     "method": "GET",
     "path": "/workspace/task-completion",
@@ -9807,6 +9848,59 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "boolean",
           "required": false,
           "description": "Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getWorkspaceSso",
+    "method": "GET",
+    "path": "/workspace/sso",
+    "resource": "workspace-sso",
+    "verb": "get",
+    "summary": "Get the workspace's automatic sign-in settings (any member)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateWorkspaceSso",
+    "method": "PATCH",
+    "path": "/workspace/sso",
+    "resource": "workspace-sso",
+    "verb": "update",
+    "summary": "Change the workspace's automatic sign-in settings",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "auto_sign_in",
+          "type": "boolean",
+          "required": false,
+          "description": "Sign in automatically with SSO when UserTasks is opened from another system (a SharePoint add-in button, a portal link to an extension page): no sign-in page — passive first (OIDC prompt=none, SAML IsPassive), then the identity provider's own sign-in if it needs the person. Default true; applies when an identity provider resolves"
+        },
+        {
+          "name": "sso_only",
+          "type": "boolean",
+          "required": false,
+          "description": "SSO only: skip the sign-in page — /login goes straight to the identity provider. Default false. /login?local=1, errors and signing out still show the page"
+        },
+        {
+          "name": "idp",
+          "required": false,
+          "description": "The identity provider (its id) to sign in with; null = automatic: the one that provisions into this workspace (defaultOrg), else the instance's only one"
         }
       ]
     },
@@ -12296,6 +12390,176 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "paginated": false,
     "envelope": true,
     "destructive": false
+  },
+  {
+    "operationId": "listGateways",
+    "method": "GET",
+    "path": "/gateways",
+    "resource": "gateways",
+    "verb": "list",
+    "summary": "List the workspace's on-premises gateways with their instances and status",
+    "permission": "integrations.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "include_revoked",
+        "flag": "include-revoked",
+        "description": "Also list revoked gateways",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "gateways",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createGateway",
+    "method": "POST",
+    "path": "/gateways",
+    "resource": "gateways",
+    "verb": "create",
+    "summary": "Create an on-premises gateway and its first registration token",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getGateway",
+    "method": "GET",
+    "path": "/gateways/{id}",
+    "resource": "gateways",
+    "verb": "get",
+    "summary": "Get a gateway: instances, status, last 24 hours of requests (latency, failures) and security events",
+    "permission": "integrations.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateGateway",
+    "method": "PATCH",
+    "path": "/gateways/{id}",
+    "resource": "gateways",
+    "verb": "update",
+    "summary": "Rename a gateway or change its description",
+    "permission": "settings.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "description",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "revokeGateway",
+    "method": "DELETE",
+    "path": "/gateways/{id}",
+    "resource": "gateways",
+    "verb": "revoke",
+    "summary": "Revoke a gateway: every instance key and queued request; connections using it stop working",
+    "permission": "settings.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "createGatewayRegistrationToken",
+    "method": "POST",
+    "path": "/gateways/{id}/tokens",
+    "resource": "gateways",
+    "verb": "add-instance",
+    "summary": "Issue a one-time registration token for another instance of a gateway (high availability, replacement)",
+    "permission": "settings.edit",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "label",
+          "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "revokeGatewayInstance",
+    "method": "DELETE",
+    "path": "/gateways/{id}/instances/{instance_id}",
+    "resource": "gateways",
+    "verb": "revoke-instance",
+    "summary": "Revoke one gateway instance key (or an unused registration token); its in-flight requests fail",
+    "permission": "settings.edit",
+    "positional": [
+      "id",
+      "instance_id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
   },
   {
     "operationId": "createAdminWorkspace",

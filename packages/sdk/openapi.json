@@ -114,7 +114,13 @@
       "name": "Workspace address"
     },
     {
+      "name": "Trusted embedding"
+    },
+    {
       "name": "Task completion"
+    },
+    {
+      "name": "Workspace"
     },
     {
       "name": "Document OCR"
@@ -151,6 +157,9 @@
     },
     {
       "name": "Log export"
+    },
+    {
+      "name": "On-premises gateways"
     },
     {
       "name": "Instance admin"
@@ -48214,6 +48223,254 @@
         }
       }
     },
+    "/workspace/embedding": {
+      "get": {
+        "operationId": "getWorkspaceEmbedding",
+        "summary": "Get the sites approved to embed this workspace's pages (trusted embedding)",
+        "tags": [
+          "Trusted embedding"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "supported": {
+                          "type": "boolean",
+                          "description": "Per-workspace approved sites apply on this instance"
+                        },
+                        "reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Why not, when not supported"
+                        },
+                        "origins": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Sites (origins) that may frame this workspace's embeddable pages"
+                        },
+                        "instance_origins": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "The instance-wide list (EMBED_FRAME_ANCESTORS), applies to every workspace"
+                        },
+                        "workspace_url": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "supported",
+                        "reason",
+                        "origins",
+                        "instance_origins",
+                        "workspace_url"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.view",
+        "x-usertasks-cli": {
+          "resource": "workspace-embedding",
+          "verb": "get"
+        }
+      },
+      "put": {
+        "operationId": "updateWorkspaceEmbedding",
+        "summary": "Replace the sites approved to embed this workspace's pages",
+        "description": "Origins only (https://sharepoint.contoso.com, https://*.contoso.com; http:// only when named so), at most 20. Applies to embeddable pages (/embed/…) on the workspace's own address. Audited.",
+        "tags": [
+          "Trusted embedding"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "origins": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 300
+                    }
+                  }
+                },
+                "required": [
+                  "origins"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "supported": {
+                          "type": "boolean",
+                          "description": "Per-workspace approved sites apply on this instance"
+                        },
+                        "reason": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Why not, when not supported"
+                        },
+                        "origins": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Sites (origins) that may frame this workspace's embeddable pages"
+                        },
+                        "instance_origins": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "The instance-wide list (EMBED_FRAME_ANCESTORS), applies to every workspace"
+                        },
+                        "workspace_url": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "supported",
+                        "reason",
+                        "origins",
+                        "instance_origins",
+                        "workspace_url"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "workspace-embedding",
+          "verb": "set"
+        }
+      }
+    },
     "/workspace/task-completion": {
       "get": {
         "operationId": "getTaskCompletionSettings",
@@ -49165,6 +49422,296 @@
         "x-permission": "settings.edit",
         "x-usertasks-cli": {
           "resource": "form-sign-in-page",
+          "verb": "update"
+        }
+      }
+    },
+    "/workspace/sso": {
+      "get": {
+        "operationId": "getWorkspaceSso",
+        "summary": "Get the workspace's automatic sign-in settings (any member)",
+        "description": "Automatic SSO when opened from another system, SSO only (skip the sign-in page), the identity provider, and which one is in effect. Nobody is ever signed in from what the launching system says: only the identity provider's signed answer counts.",
+        "tags": [
+          "Workspace"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "auto_sign_in": {
+                          "type": "boolean",
+                          "description": "Sign in automatically with SSO when UserTasks is opened from another system (a SharePoint add-in button, a portal link to an extension page): no sign-in page — passive first (OIDC prompt=none, SAML IsPassive), then the identity provider's own sign-in if it needs the person. Default true; applies when an identity provider resolves"
+                        },
+                        "sso_only": {
+                          "type": "boolean",
+                          "description": "SSO only: skip the sign-in page — /login goes straight to the identity provider. Default false. /login?local=1, errors and signing out still show the page"
+                        },
+                        "idp": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The identity provider (its id) to sign in with; null = automatic: the one that provisions into this workspace (defaultOrg), else the instance's only one"
+                        },
+                        "instance_sso_only": {
+                          "type": "boolean",
+                          "description": "The instance skips the sign-in page for every workspace (AUTH_SSO_ONLY)"
+                        },
+                        "providers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "description": "Identity providers automatic sign-in can use on this instance"
+                        },
+                        "effective_idp": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The identity provider signed-out visitors are sent to now; null = none applies (the sign-in page shows)"
+                        }
+                      },
+                      "required": [
+                        "auto_sign_in",
+                        "sso_only",
+                        "idp",
+                        "instance_sso_only",
+                        "providers",
+                        "effective_idp"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "workspace-sso",
+          "verb": "get"
+        }
+      },
+      "patch": {
+        "operationId": "updateWorkspaceSso",
+        "summary": "Change the workspace's automatic sign-in settings",
+        "description": "Send only what changes. idp must be one of the instance's identity providers (or null for automatic). Audited.",
+        "tags": [
+          "Workspace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "auto_sign_in": {
+                    "type": "boolean",
+                    "description": "Sign in automatically with SSO when UserTasks is opened from another system (a SharePoint add-in button, a portal link to an extension page): no sign-in page — passive first (OIDC prompt=none, SAML IsPassive), then the identity provider's own sign-in if it needs the person. Default true; applies when an identity provider resolves"
+                  },
+                  "sso_only": {
+                    "type": "boolean",
+                    "description": "SSO only: skip the sign-in page — /login goes straight to the identity provider. Default false. /login?local=1, errors and signing out still show the page"
+                  },
+                  "idp": {
+                    "description": "The identity provider (its id) to sign in with; null = automatic: the one that provisions into this workspace (defaultOrg), else the instance's only one",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 40
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "auto_sign_in": {
+                          "type": "boolean",
+                          "description": "Sign in automatically with SSO when UserTasks is opened from another system (a SharePoint add-in button, a portal link to an extension page): no sign-in page — passive first (OIDC prompt=none, SAML IsPassive), then the identity provider's own sign-in if it needs the person. Default true; applies when an identity provider resolves"
+                        },
+                        "sso_only": {
+                          "type": "boolean",
+                          "description": "SSO only: skip the sign-in page — /login goes straight to the identity provider. Default false. /login?local=1, errors and signing out still show the page"
+                        },
+                        "idp": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The identity provider (its id) to sign in with; null = automatic: the one that provisions into this workspace (defaultOrg), else the instance's only one"
+                        },
+                        "instance_sso_only": {
+                          "type": "boolean",
+                          "description": "The instance skips the sign-in page for every workspace (AUTH_SSO_ONLY)"
+                        },
+                        "providers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "description": "Identity providers automatic sign-in can use on this instance"
+                        },
+                        "effective_idp": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The identity provider signed-out visitors are sent to now; null = none applies (the sign-in page shows)"
+                        }
+                      },
+                      "required": [
+                        "auto_sign_in",
+                        "sso_only",
+                        "idp",
+                        "instance_sso_only",
+                        "providers",
+                        "effective_idp"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "workspace-sso",
           "verb": "update"
         }
       }
@@ -72870,6 +73417,1523 @@
           "verb": "test",
           "positional": [
             "id"
+          ]
+        }
+      }
+    },
+    "/gateways": {
+      "get": {
+        "operationId": "listGateways",
+        "summary": "List the workspace's on-premises gateways with their instances and status",
+        "tags": [
+          "On-premises gateways"
+        ],
+        "parameters": [
+          {
+            "name": "include_revoked",
+            "in": "query",
+            "required": false,
+            "description": "Also list revoked gateways",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "gateways": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "active",
+                                  "revoked"
+                                ]
+                              },
+                              "online": {
+                                "type": "boolean"
+                              },
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "online",
+                                  "offline",
+                                  "never_connected",
+                                  "revoked"
+                                ]
+                              },
+                              "targets": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "origin": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "origin"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "description": "Targets the gateway advertises (from its own configuration)"
+                              },
+                              "relay_url": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "description": "Where the gateway takes inbound callbacks on the customer's network (null = relay off)"
+                              },
+                              "version": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "latest_version": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "last_seen_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "instances": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "label": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "pending",
+                                        "active",
+                                        "rotated",
+                                        "revoked"
+                                      ]
+                                    },
+                                    "online": {
+                                      "type": "boolean"
+                                    },
+                                    "fingerprint": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ],
+                                      "description": "Short fingerprint of the instance's Ed25519 public key"
+                                    },
+                                    "instance_name": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "hostname": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "version": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "update_available": {
+                                      "type": "boolean"
+                                    },
+                                    "last_seen_at": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "token_expires_at": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ],
+                                      "description": "Pending instances: when the registration token expires"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "label",
+                                    "status",
+                                    "online",
+                                    "fingerprint",
+                                    "instance_name",
+                                    "hostname",
+                                    "version",
+                                    "update_available",
+                                    "last_seen_at",
+                                    "token_expires_at"
+                                  ],
+                                  "additionalProperties": {}
+                                }
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "description",
+                              "status",
+                              "online",
+                              "state",
+                              "targets",
+                              "relay_url",
+                              "version",
+                              "latest_version",
+                              "last_seen_at",
+                              "instances"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "configured": {
+                          "type": "boolean",
+                          "description": "The server can sign gateway answers (ENCRYPTION_KEY or GATEWAY_SIGNING_KEY set)"
+                        }
+                      },
+                      "required": [
+                        "gateways",
+                        "configured"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "integrations.view",
+        "x-usertasks-cli": {
+          "resource": "gateways",
+          "verb": "list",
+          "listKey": "gateways"
+        }
+      },
+      "post": {
+        "operationId": "createGateway",
+        "summary": "Create an on-premises gateway and its first registration token",
+        "description": "Returns the gateway and a one-time registration token for its first instance (valid 24 hours, shown once). Install the gateway on the customer's network and register it with the token. Audited.",
+        "tags": [
+          "On-premises gateways"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "gateway": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "description": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "active",
+                                "revoked"
+                              ]
+                            },
+                            "online": {
+                              "type": "boolean"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "online",
+                                "offline",
+                                "never_connected",
+                                "revoked"
+                              ]
+                            },
+                            "targets": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "origin": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "origin"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "description": "Targets the gateway advertises (from its own configuration)"
+                            },
+                            "relay_url": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "Where the gateway takes inbound callbacks on the customer's network (null = relay off)"
+                            },
+                            "version": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "latest_version": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "last_seen_at": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "instances": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "pending",
+                                      "active",
+                                      "rotated",
+                                      "revoked"
+                                    ]
+                                  },
+                                  "online": {
+                                    "type": "boolean"
+                                  },
+                                  "fingerprint": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "description": "Short fingerprint of the instance's Ed25519 public key"
+                                  },
+                                  "instance_name": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "hostname": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "version": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "update_available": {
+                                    "type": "boolean"
+                                  },
+                                  "last_seen_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "token_expires_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ],
+                                    "description": "Pending instances: when the registration token expires"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "label",
+                                  "status",
+                                  "online",
+                                  "fingerprint",
+                                  "instance_name",
+                                  "hostname",
+                                  "version",
+                                  "update_available",
+                                  "last_seen_at",
+                                  "token_expires_at"
+                                ],
+                                "additionalProperties": {}
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "description",
+                            "status",
+                            "online",
+                            "state",
+                            "targets",
+                            "relay_url",
+                            "version",
+                            "latest_version",
+                            "last_seen_at",
+                            "instances"
+                          ],
+                          "additionalProperties": {}
+                        },
+                        "registration": {
+                          "type": "object",
+                          "properties": {
+                            "key_id": {
+                              "type": "string"
+                            },
+                            "token": {
+                              "type": "string",
+                              "description": "One-time registration token (shown once, valid 24 hours)"
+                            },
+                            "expires_at": {
+                              "type": "string"
+                            },
+                            "commands": {
+                              "type": "object",
+                              "properties": {
+                                "windows": {
+                                  "type": "string"
+                                },
+                                "docker": {
+                                  "type": "string"
+                                },
+                                "cli": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "windows",
+                                "docker",
+                                "cli"
+                              ],
+                              "additionalProperties": {}
+                            }
+                          },
+                          "required": [
+                            "key_id",
+                            "token",
+                            "expires_at",
+                            "commands"
+                          ],
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "gateway",
+                        "registration"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "gateways",
+          "verb": "create"
+        }
+      }
+    },
+    "/gateways/{id}": {
+      "get": {
+        "operationId": "getGateway",
+        "summary": "Get a gateway: instances, status, last 24 hours of requests (latency, failures) and security events",
+        "tags": [
+          "On-premises gateways"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "integrations.view",
+        "x-usertasks-cli": {
+          "resource": "gateways",
+          "verb": "get",
+          "positional": [
+            "id"
+          ]
+        }
+      },
+      "patch": {
+        "operationId": "updateGateway",
+        "summary": "Rename a gateway or change its description",
+        "description": "The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.",
+        "tags": [
+          "On-premises gateways"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "active",
+                            "revoked"
+                          ]
+                        },
+                        "online": {
+                          "type": "boolean"
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "online",
+                            "offline",
+                            "never_connected",
+                            "revoked"
+                          ]
+                        },
+                        "targets": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "origin": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "origin"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "description": "Targets the gateway advertises (from its own configuration)"
+                        },
+                        "relay_url": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Where the gateway takes inbound callbacks on the customer's network (null = relay off)"
+                        },
+                        "version": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "latest_version": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "last_seen_at": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "instances": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "active",
+                                  "rotated",
+                                  "revoked"
+                                ]
+                              },
+                              "online": {
+                                "type": "boolean"
+                              },
+                              "fingerprint": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "description": "Short fingerprint of the instance's Ed25519 public key"
+                              },
+                              "instance_name": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "hostname": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "version": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "update_available": {
+                                "type": "boolean"
+                              },
+                              "last_seen_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "token_expires_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "description": "Pending instances: when the registration token expires"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "label",
+                              "status",
+                              "online",
+                              "fingerprint",
+                              "instance_name",
+                              "hostname",
+                              "version",
+                              "update_available",
+                              "last_seen_at",
+                              "token_expires_at"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "description",
+                        "status",
+                        "online",
+                        "state",
+                        "targets",
+                        "relay_url",
+                        "version",
+                        "latest_version",
+                        "last_seen_at",
+                        "instances"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "gateways",
+          "verb": "update",
+          "positional": [
+            "id"
+          ]
+        }
+      },
+      "delete": {
+        "operationId": "revokeGateway",
+        "summary": "Revoke a gateway: every instance key and queued request; connections using it stop working",
+        "tags": [
+          "On-premises gateways"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "revoked": {
+                          "type": "boolean"
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "revoked",
+                        "id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "gateways",
+          "verb": "revoke",
+          "positional": [
+            "id"
+          ]
+        }
+      }
+    },
+    "/gateways/{id}/tokens": {
+      "post": {
+        "operationId": "createGatewayRegistrationToken",
+        "summary": "Issue a one-time registration token for another instance of a gateway (high availability, replacement)",
+        "description": "Each instance has its own key. Run two or more instances for failover. Tokens are valid 24 hours and shown once. Audited.",
+        "tags": [
+          "On-premises gateways"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Resource id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "key_id": {
+                          "type": "string"
+                        },
+                        "token": {
+                          "type": "string",
+                          "description": "One-time registration token (shown once, valid 24 hours)"
+                        },
+                        "expires_at": {
+                          "type": "string"
+                        },
+                        "commands": {
+                          "type": "object",
+                          "properties": {
+                            "windows": {
+                              "type": "string"
+                            },
+                            "docker": {
+                              "type": "string"
+                            },
+                            "cli": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "windows",
+                            "docker",
+                            "cli"
+                          ],
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "key_id",
+                        "token",
+                        "expires_at",
+                        "commands"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "gateways",
+          "verb": "add-instance",
+          "positional": [
+            "id"
+          ]
+        }
+      }
+    },
+    "/gateways/{id}/instances/{instance_id}": {
+      "delete": {
+        "operationId": "revokeGatewayInstance",
+        "summary": "Revoke one gateway instance key (or an unused registration token); its in-flight requests fail",
+        "tags": [
+          "On-premises gateways"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Gateway id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "instance_id",
+            "in": "path",
+            "required": true,
+            "description": "Instance (key) id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "revoked": {
+                          "type": "boolean"
+                        },
+                        "key_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "revoked",
+                        "key_id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "gateways",
+          "verb": "revoke-instance",
+          "positional": [
+            "id",
+            "instance_id"
           ]
         }
       }

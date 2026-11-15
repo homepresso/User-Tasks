@@ -1876,6 +1876,18 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "getWorkspaceEmbedding",
+    "method": "GET",
+    "path": "/workspace/embedding",
+    "envelope": true
+  },
+  {
+    "operationId": "updateWorkspaceEmbedding",
+    "method": "PUT",
+    "path": "/workspace/embedding",
+    "envelope": true
+  },
+  {
     "operationId": "getTaskCompletionSettings",
     "method": "GET",
     "path": "/workspace/task-completion",
@@ -1903,6 +1915,18 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "updateFormSignInPage",
     "method": "PATCH",
     "path": "/workspace/form-sign-in-page",
+    "envelope": true
+  },
+  {
+    "operationId": "getWorkspaceSso",
+    "method": "GET",
+    "path": "/workspace/sso",
+    "envelope": true
+  },
+  {
+    "operationId": "updateWorkspaceSso",
+    "method": "PATCH",
+    "path": "/workspace/sso",
     "envelope": true
   },
   {
@@ -2507,6 +2531,49 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "testLogDestination",
     "method": "POST",
     "path": "/log-destinations/{id}/test",
+    "envelope": true
+  },
+  {
+    "operationId": "listGateways",
+    "method": "GET",
+    "path": "/gateways",
+    "envelope": true,
+    "listKey": "gateways"
+  },
+  {
+    "operationId": "createGateway",
+    "method": "POST",
+    "path": "/gateways",
+    "envelope": true
+  },
+  {
+    "operationId": "getGateway",
+    "method": "GET",
+    "path": "/gateways/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateGateway",
+    "method": "PATCH",
+    "path": "/gateways/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "revokeGateway",
+    "method": "DELETE",
+    "path": "/gateways/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "createGatewayRegistrationToken",
+    "method": "POST",
+    "path": "/gateways/{id}/tokens",
+    "envelope": true
+  },
+  {
+    "operationId": "revokeGatewayInstance",
+    "method": "DELETE",
+    "path": "/gateways/{id}/instances/{instance_id}",
     "envelope": true
   },
   {

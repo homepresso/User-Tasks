@@ -9,7 +9,6 @@ import {
   KeyRound,
   RefreshCw,
   Settings2,
-  ShieldCheck,
   Unplug,
 } from 'lucide-react'
 import { usePermissions } from '@/lib/permissions-context'
@@ -31,6 +30,7 @@ import { LdapForm } from './ldap-form'
 import { useJobs } from '@/components/jobs/jobs-provider'
 import { GoogleConnectCard, ScimCard } from './google-scim'
 import { DirectorySourcesCard } from './sources'
+import { SingleSignOnCard } from './single-sign-on'
 import { errText, OptionCheckbox, OrgImportOptions, PROVIDER_META, providerLabel, SummaryItem, unwrap } from './shared'
 
 type DirectoryStatus = Awaited<ReturnType<typeof getDirectorySyncStatus>>
@@ -131,22 +131,7 @@ export default function SsoDirectoryPage() {
 
       <SyncHistoryCard runs={runs} />
 
-      <Card>
-        <h3 className="text-sm font-semibold mb-1 flex items-center gap-2">
-          <ShieldCheck size={14} style={{ color: 'var(--theme-primary-text)' }} />
-          Single sign-on
-        </h3>
-        <p className="text-xs text-fg-muted">
-          Sign-in is handled by the instance&apos;s auth provider (Supabase Auth, or built-in auth with OIDC / SAML
-          identity providers). Directory sync here handles provisioning — synced users sign in with their work
-          account, and with built-in auth an LDAP connection can also let them sign in with their directory password.
-        </p>
-        <p className="text-xs mt-2 text-fg-muted">
-          Microsoft note: on the app registration used for <em>sign-in</em>, add the <code>email</code> and{' '}
-          <code>xms_edov</code> optional claims so Microsoft reports verified emails — that is what links a
-          sign-in to the account provisioned by directory sync instead of creating a duplicate.
-        </p>
-      </Card>
+      <SingleSignOnCard canEdit={canEdit} />
     </div>
   )
 }

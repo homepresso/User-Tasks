@@ -20,6 +20,7 @@ import { homeEndpoints } from './home'
 import { integrationEndpoints } from './integrations'
 import { jobEndpoints } from './jobs'
 import { logDestinationEndpoints } from './log-destinations'
+import { gatewayEndpoints } from './gateways'
 import { packageEndpoints } from './packages'
 import { reportEndpoints } from './reports'
 import { retentionEndpoints } from './retention-policies'
@@ -33,9 +34,10 @@ import { workflowActivityEndpoints } from './workflow-activities'
 import { webhookEndpoints } from './webhooks'
 import { workflowEndpoints } from './workflows'
 import { workspaceThemeEndpoints } from './workspace-theme'
-import { workspaceAddressEndpoints } from './workspace-address'
+import { workspaceAddressEndpoints, workspaceEmbeddingEndpoints } from './workspace-address'
 import { taskCompletionEndpoints } from './task-completion'
 import { formSignInPageEndpoints } from './form-sign-in-page'
+import { workspaceSsoEndpoints } from './workspace-sso'
 import { documentOcrEndpoints } from './document-ocr'
 import { instanceAdminEndpoints } from './instance-admin'
 import { extensionEndpoints } from './extensions'
@@ -71,8 +73,10 @@ export const API_ENDPOINTS: readonly EndpointDef[] = [
   ...projectEndpoints,
   ...workspaceThemeEndpoints,
   ...workspaceAddressEndpoints,
+  ...workspaceEmbeddingEndpoints,
   ...taskCompletionEndpoints,
   ...formSignInPageEndpoints,
+  ...workspaceSsoEndpoints,
   ...documentOcrEndpoints,
   ...apiKeyEndpoints,
   ...webhookEndpoints,
@@ -85,6 +89,7 @@ export const API_ENDPOINTS: readonly EndpointDef[] = [
   ...jobEndpoints,
   ...eventEndpoints,
   ...logDestinationEndpoints,
+  ...gatewayEndpoints,
   ...instanceAdminEndpoints,
   ...licenceEndpoints,
 ]

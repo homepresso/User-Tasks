@@ -6,7 +6,7 @@ import { PERMISSION_PAYLOAD_VERSION } from '@/lib/permissions'
 import { getMySession } from '@/app/actions/session'
 import { signOutAction } from '@/app/actions/sign-out'
 import { clearAllAgentHistory } from '@/lib/assistants/history'
-import { AUTH_CHANNEL, DASHBOARD_AUTH_CACHE_KEY } from '@/lib/auth-client'
+import { AUTH_CHANNEL, DASHBOARD_AUTH_CACHE_KEY, SIGNED_OUT_PATH } from '@/lib/auth-client'
 
 /*
  * Session state comes from the server: the session cookies are httpOnly
@@ -186,6 +186,9 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
             // Back to this page after signing in (links from other systems, e.g. an extension's
             // button in SharePoint); the sign-in page only accepts same-origin paths.
             const here = `${window.location.pathname}${window.location.search}`
+            // Extension pages opened from another system (/x/…): the automatic sign-in route decides — the
+            // workspace's SSO without a sign-in page when it applies, else the sign-in page (lib/providers/auth/sso/auto.ts).
+            if (window.location.pathname.startsWith('/x/')) { window.location.replace(`/auth/auto-sso?redirect=${encodeURIComponent(here)}`); return }
             router.replace(here === '/' || here === '/home' ? '/login' : `/login?redirect=${encodeURIComponent(here)}`)
             return
           }
@@ -206,7 +209,7 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
       setPermissions([])
       setUserRole(null)
       setLoading(true)
-      router.replace('/login')
+      router.replace(SIGNED_OUT_PATH)
     }
 
     // Sign-out in another tab (lib/auth-client).

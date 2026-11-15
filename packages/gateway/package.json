@@ -1,0 +1,20 @@
+{
+  "name": "@user-tasks/gateway",
+  "version": "1.0.0",
+  "description": "UserTasks on-premises gateway: an outbound-only agent that carries UserTasks connector requests to systems on your network (SharePoint Server, internal APIs) and relays their callbacks",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": { "usertasks-gateway": "dist/usertasks-gateway.mjs" },
+  "files": ["dist", "install", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.5.1",
+    "typescript": "^5"
+  }
+}

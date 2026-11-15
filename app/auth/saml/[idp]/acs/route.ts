@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { completeSamlResponse, ssoOrigin } from '@/lib/providers/auth/sso/flow'
+import { completeSamlResponse, completionUrl, ssoOrigin } from '@/lib/providers/auth/sso/flow'
 
 /**
  * SAML Assertion Consumer Service (HTTP-POST binding):
@@ -25,5 +25,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     userAgent: request.headers.get('user-agent'),
   }
   const target = await completeSamlResponse(idp, body, request, ctx)
-  return NextResponse.redirect(`${origin}${target}`, 303)
+  // A local path, or the IdP again (interactive sign-in after a passive attempt).
+  const response = NextResponse.redirect(completionUrl(origin, target), 303)
+  response.headers.set('Cache-Control', 'no-store')
+  return response
 }

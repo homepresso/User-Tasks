@@ -21,7 +21,23 @@ import type { AuthDb } from './builtin/db'
 export async function onUserCreated(
   db: AuthDb,
   user: { id: string; email: string; displayName?: string | null; provider?: 'email' | 'google' | 'azure_ad' | 'saml' },
+  options: { homeTenantId?: string | null } = {},
 ): Promise<boolean> {
+  // Brought in by an organisation (SSO defaultOrg, a pending directory entry): the account is created in that
+  // workspace, without a personal one (provision_auth_user_in, migration 20270114400000; older databases
+  // without it keep the personal workspace and the caller moves the account's home).
+  if (options.homeTenantId) {
+    const { rows: has } = await db.query<{ ok: boolean }>(
+      "SELECT to_regprocedure('public.provision_auth_user_in(uuid,text,text,text,uuid)') IS NOT NULL AS ok",
+    )
+    if (has[0]?.ok) {
+      const { rows } = await db.query<{ created: boolean }>(
+        'SELECT public.provision_auth_user_in($1, $2, $3, $4, $5) AS created',
+        [user.id, user.email.toLowerCase(), user.displayName ?? null, user.provider ?? 'email', options.homeTenantId],
+      )
+      return Boolean(rows[0]?.created)
+    }
+  }
   const { rows } = await db.query<{ created: boolean }>(
     'SELECT public.provision_auth_user($1, $2, $3, $4) AS created',
     [user.id, user.email.toLowerCase(), user.displayName ?? null, user.provider ?? 'email'],

@@ -4,6 +4,7 @@ import type { McpContext } from '../server'
 import { mcpOk, mcpErr } from '../server'
 import { fromMcpContext } from '@/lib/services/context'
 import * as address from '@/lib/services/workspace-address'
+import { getWorkspaceEmbedding, setWorkspaceEmbedding } from '@/lib/services/tenant-settings'
 import { messageOf } from './_util'
 
 /*
@@ -36,4 +37,11 @@ export function registerWorkspaceAddressTools(server: McpToolServer, ctx: McpCon
   server.tool('workspace_address_set', `Change (or, with null, remove) the workspace address (settings.edit). ${RULES} Links to the old address keep redirecting for a year; removing the address breaks them. Audited.`, {
     subdomain: z.string().nullable().describe('The new subdomain, or null to remove it'),
   }, async (args) => run(async () => ({ address: await address.setWorkspaceSubdomain(svc(), args.subdomain) })))
+
+  server.tool('workspace_embedding_get', 'Trusted embedding: the sites (origins) approved to show this workspace\'s embeddable pages in a frame or dialog (e.g. the SharePoint add-in dialog), the instance-wide list, and whether per-workspace lists apply on this instance.', {},
+    async () => run(async () => getWorkspaceEmbedding(svc())))
+
+  server.tool('workspace_embedding_set', 'Replace the sites approved to embed this workspace\'s pages (settings.edit): origins such as https://sharepoint.contoso.com or https://*.contoso.com (http:// only when named so), at most 20; applies on the workspace\'s own address. Audited.', {
+    origins: z.array(z.string()).describe('Origins, scheme + host (+ port), no paths'),
+  }, async (args) => run(async () => setWorkspaceEmbedding(svc(), { origins: args.origins })))
 }

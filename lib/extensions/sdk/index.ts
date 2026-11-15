@@ -117,6 +117,47 @@ export interface ExtensionContext {
    * page, a callback). null when none is configured.
    */
   appUrl: string | null
+  /**
+   * The workspace's own address (https://<subdomain>.<base domain>, scheme
+   * and port as APP_URL) when workspace addresses are on and the workspace
+   * has one — the address to give browsers for this workspace on a
+   * multi-tenant instance (the cloud edition). null otherwise: use appUrl.
+   */
+  workspaceUrl(): Promise<string | null>
+  /**
+   * Trusted embedding. `url(path)` turns an embeddable path (/embed/…) into
+   * the URL to send a browser to: on the workspace's own address with a
+   * short-lived signed token listing the sites the workspace approved
+   * (per-workspace lists, lib/embedding-token.ts), or the path unchanged when
+   * the instance-wide list applies. `origins()` reads what is approved.
+   */
+  embedding: {
+    url(path: string): Promise<string>
+    origins(): Promise<{ supported: boolean; origins: string[]; instanceOrigins: string[]; reason: string | null }>
+  }
+  /**
+   * The workspace's on-premises gateways (lib/gateway): read-only. Use a
+   * gateway connection through ctx.connections like any other; these are
+   * for status ("gateway offline") and for addresses systems on the
+   * customer's network should call back on (`relayUrl(gatewayId, path)` =
+   * the gateway's relay listener + `/relay/ext-public/<this extension>/<path>`;
+   * the gateway forwards it, signed, to the extension's public route).
+   */
+  gateways: {
+    list(): Promise<ExtensionGateway[]>
+    get(id: string): Promise<ExtensionGateway | null>
+    relayUrl(gatewayId: string, path: string): Promise<string | null>
+  }
+  /**
+   * A page path (/x/<id>/…, /embed/x/<id>/…) as the URL to send a browser
+   * to when another system opens it (an add-in button, a portal tile): the
+   * path with this workspace as the sign-in hint (`ut_org`), so a signed-out
+   * visitor is signed in straight away with the workspace's SSO (automatic
+   * sign-in, no sign-in page) when the workspace allows it. The hint only
+   * chooses which identity provider to ask — never who is signed in.
+   * Without a workspace: the path unchanged.
+   */
+  launchUrl(path: string): Promise<string>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js client typing is per-schema
   db: any
   /** Per-workspace configuration (tenant_extensions.config) and secrets. */
@@ -152,13 +193,51 @@ export interface ExtensionContext {
      * what to watch and how often, and to record what each workflow uses.
      */
     triggerConfigs(key: string): Promise<Array<{ workflowId: string; name: string; versionId: string | null; config: Record<string, unknown> }>>
+    /**
+     * Every workflow (drafts and inactive ones too) whose trigger is one of
+     * this extension's triggers (optionally one key): status, runs, last
+     * editor and the trigger settings of the draft — e.g. "everything
+     * bound to this record". Empty without workflows.view.
+     */
+    list(options?: { trigger?: string }): Promise<ExtensionWorkflowSummary[]>
+    /** Publish the draft and activate (workflows.activate), as the caller. Only this extension's workflows. */
+    publish(workflowId: string): Promise<{ id: string; version: number | null }>
+    /** Activate / deactivate (workflows.activate), as the caller. */
+    setActive(workflowId: string, active: boolean): Promise<void>
+    /** Queue the workflow for deletion (workflows.delete), as the caller. */
+    delete(workflowId: string): Promise<void>
+    /**
+     * Replace the workflow's tags that start with `prefix` (the extension's
+     * own, e.g. "sharepoint:"), keep all others: a badge and filter in the
+     * Automations list. Tags are lower-case, at most 40 characters.
+     */
+    setTags(workflowId: string, tags: string[], options: { prefix: string }): Promise<void>
+    /**
+     * Recent runs of the extension's trigger workflows whose trigger data
+     * matches every `match` key (top-level fields, compared as text) — e.g.
+     * the runs for one record. Newest first, at most 50. Empty without
+     * workflows.view.
+     */
+    runs(options: { trigger?: string; match: Record<string, string | number>; limit?: number }): Promise<ExtensionWorkflowRun[]>
   }
+  /**
+   * The same person with full workspace permissions, for an action the
+   * extension has authorised itself against an outside system (e.g. the
+   * person manages this list in SharePoint). The extension must scope what
+   * it does to that authorisation. Every audit entry written through the
+   * returned context carries the reason. Needs a person (actorId).
+   */
+  elevate(reason: string): ExtensionContext
   /**
    * Workspace members by e-mail (case-insensitive; active members only; id,
    * e-mail and display name) — to map an external system's user to a
    * UserTasks user.
    */
-  users: { findByEmail(emails: string[]): Promise<Array<{ id: string; email: string; name: string }>> }
+  users: {
+    findByEmail(emails: string[]): Promise<Array<{ id: string; email: string; name: string }>>
+    /** The signed-in person (actorId): their account e-mail (as verified at sign-in) and display name; null for system callers. */
+    current(): Promise<{ id: string; email: string; name: string } | null>
+  }
   /** Write an audit row (object_audit_log) attributed to the actor. */
   audit(entry: { action: string; summary: string; objectId?: string | null; metadata?: Record<string, unknown> }): Promise<void>
   /**
@@ -213,12 +292,19 @@ export interface ExtensionContext {
    * (ServerExtension.formTargets). `create` makes a form in the workspace as
    * the caller (forms.edit and the target's bindPermission; validated like
    * any form) and returns the designer URL to open; `list` / `get` see only
-   * forms bound to this extension.
+   * forms bound to this extension. `delete` removes one of THIS extension's
+   * bound forms as the caller (forms.delete; refused like any form delete
+   * while a workflow step uses it or it is on legal hold).
    */
   forms: {
     create(input: FormCreateInput): Promise<{ id: string; name: string; version: number; designerUrl: string; pageUrl: string }>
     list(options?: { key?: string }): Promise<BoundForm[]>
     get(id: string): Promise<(BoundForm & { fields: TaskFieldDef[]; layout: unknown }) | null>
+    delete(id: string): Promise<{ deleted: boolean }>
+    /** Replace the form's tags that start with `prefix`, keep all others (see workflows.setTags). */
+    setTags(id: string, tags: string[], options: { prefix: string }): Promise<void>
+    /** The last person who changed each form (display name), from the audit log. */
+    editors(ids: string[]): Promise<Map<string, string | null>>
   }
   /**
    * Directory sources (manifest contributes.directorySources): queue a sync
@@ -271,6 +357,46 @@ export interface FormCreateInput {
 }
 
 /** A form bound to one of the extension's targets. */
+/** One workflow on an extension trigger (ctx.workflows.list). */
+export interface ExtensionWorkflowSummary {
+  id: string
+  name: string
+  /** The trigger key (without ext.<id>.). */
+  trigger: string
+  /** The trigger node's settings in the draft. */
+  config: Record<string, unknown>
+  /** draft = never published; active / disabled = published and on / off. */
+  status: 'draft' | 'active' | 'disabled'
+  published: boolean
+  active: boolean
+  hasUnpublishedChanges: boolean
+  runCount: number
+  lastRunAt: string | null
+  tags: string[]
+  updatedAt: string | null
+  /** Display name of the last person who changed it (audit log), when known. */
+  updatedBy: string | null
+  /** The designer (/automations/<id>). */
+  path: string
+}
+
+/** One run started by an extension trigger (ctx.workflows.runs). */
+export interface ExtensionWorkflowRun {
+  workflowId: string
+  workflowName: string | null
+  /** null while queued (not started yet). */
+  runId: string | null
+  /** The run's status (running, completed, failed, paused …), else the queue's (pending, processing …). */
+  status: string
+  /** The trigger data's `event`, when it has one. */
+  event: string | null
+  queuedAt: string | null
+  startedAt: string | null
+  completedAt: string | null
+  /** The run page (/automations/runs/<id>), null while queued. */
+  path: string | null
+}
+
 export interface BoundForm {
   id: string
   name: string
@@ -445,6 +571,32 @@ export interface ExtensionConnection {
   /** Non-secret auth settings (e.g. { mode, username } for windows) — never passwords, tokens or keys. */
   authSummary: Record<string, string>
   lastTest: { status: string | null; message: string | null; at: string | null }
+  /**
+   * Set when the connection goes through one of the workspace's on-premises
+   * gateways (`transport: 'gateway'`): its id and the gateway target the
+   * connection names (null = found by origin). The target's credentials live
+   * on the gateway, not in UserTasks.
+   */
+  gateway: { id: string; target: string | null } | null
+}
+
+/** An on-premises gateway of the workspace (ctx.gateways). */
+export interface ExtensionGateway {
+  id: string
+  name: string
+  /** At least one instance is connected. */
+  online: boolean
+  state: 'online' | 'offline' | 'never_connected' | 'revoked'
+  /** Targets it advertises from its own configuration: what connections through it may reach. */
+  targets: Array<{ id: string; origin: string }>
+  /**
+   * Where the gateway takes inbound callbacks on the customer's network
+   * (its relay listener), null when the relay is off. Systems that cannot
+   * reach UserTasks call this address instead (ctx.gateways.relayUrl).
+   */
+  relayUrl: string | null
+  version: string | null
+  lastSeenAt: string | null
 }
 
 export interface ConnectionFetchOptions {
@@ -503,7 +655,20 @@ export interface PublicRoute {
   auth: { kind: 'none' } | { kind: 'api_key'; permission?: string } | { kind: 'signature'; header: string; secretKey: string; tenantParam: string }
   /** Requests per client address and window (default 120 per minute; at most 6000). */
   rateLimit?: { max: number; windowMs: number }
-  handler(input: { ctx: ExtensionContext; request: Request; params: Record<string, string>; body: string }): Promise<Response>
+  /**
+   * `via` is set when the call came through a workspace's on-premises
+   * gateway relay (the gateway took it on the customer's network and
+   * forwarded it, signed): the handler may require that what it resolves
+   * (e.g. a receiver registration) belongs to `via.tenantId`.
+   */
+  handler(input: { ctx: ExtensionContext; request: Request; params: Record<string, string>; body: string; via?: PublicRouteVia }): Promise<Response>
+}
+
+/** How a public route call reached UserTasks when not directly (see PublicRoute.handler). */
+export interface PublicRouteVia {
+  kind: 'gateway'
+  gatewayId: string
+  tenantId: string
 }
 
 export interface ExtensionJob {
@@ -610,6 +775,16 @@ export interface FormTargetPrepared {
   fields?: Record<string, Partial<Pick<TaskFieldDef, typeof FIELD_PATCH_KEYS[number]>>>
   /** A short text shown above the fields ("Editing item 12 of Requests"). */
   notice?: string | null
+  /**
+   * `display`: a display form — the page shows the record read-only (core
+   * marks every field read-only and hides the submit buttons) and core
+   * refuses submissions. Return it for `purpose: 'submit'` too.
+   */
+  mode?: 'display' | null
+  /** Buttons on the page (e.g. "Edit" → the record's edit form): app paths (`/f/<id>?…`) or http(s) URLs; `target` self (app paths' default) / top / blank (http(s) default). */
+  actions?: Array<{ label: string; url: string; primary?: boolean; target?: 'self' | 'top' | 'blank' }> | null
+  /** The record's files in the external system (attachments), shown as links (http(s) only). */
+  files?: Array<{ label: string; url: string }> | null
 }
 
 /** A person chosen in a Person field, as `submit` sees it. */

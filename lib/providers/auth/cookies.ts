@@ -135,4 +135,21 @@ export function ssoFlowCookieName(secure = authCookieSecure()): string {
   return secure ? '__Host-ut_sso' : 'ut_sso'
 }
 
+/**
+ * Flags for the SSO flow-binding cookie (10 minutes). SameSite=Lax, except
+ * for a flow that runs inside a cross-site frame (automatic sign-in in a
+ * trusted-embedding dialog, lib/providers/auth/sso/auto.ts): browsers
+ * neither store nor send Lax cookies there, so that flow's cookie is
+ * SameSite=None (Secure only — never on plain http). Safe because the cookie
+ * is not a credential: it is a random value whose hash is stored with the
+ * flow's state, proving that the callback comes back to the browser that
+ * started it (login CSRF). An attacker can't read it (HttpOnly, __Host-) nor
+ * make a victim's browser present a value matching a flow the attacker
+ * started; sending it cross-site therefore grants nothing.
+ */
+export function ssoFlowCookieOptions(frame: boolean, maxAgeSeconds = 600): AuthCookieOptions {
+  const options = authCookieOptions(maxAgeSeconds)
+  return frame && options.secure ? { ...options, sameSite: 'none' } : options
+}
+
 export const SSO_FLOW_COOKIE_NAMES = ['__Host-ut_sso', 'ut_sso'] as const

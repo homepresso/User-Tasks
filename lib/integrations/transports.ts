@@ -12,7 +12,11 @@
  *   - `ext.<extension id>.<key>`: the extension's `transports[key]`, only
  *     when the extension is usable in the connection's workspace.
  * `auth_type: windows` implies `_transport: windows` unless another
- * transport is named explicitly.
+ * transport is named explicitly. `gateway` (built in, lib/gateway/transport)
+ * sends the request through one of the workspace's on-premises gateways: a
+ * REMOTE transport — the server never dials the URL itself, so connectorFetch
+ * skips its own egress check and the gateway's allowlist applies instead
+ * (markRemoteTransport / isRemoteTransport).
  *
  * Core keeps the rules that matter around it: connectorFetch still checks
  * every hop with the egress guard, owns the timeout budget, retries and
@@ -32,6 +36,8 @@ export interface TransportContext {
    * are refused rather than risk sending credentials.
    */
   anonymous?: boolean
+  /** The integrations row the request is made for (audit trail of remote transports). */
+  integrationId?: string | null
 }
 
 export type CoreTransportFactory = (ctx: TransportContext) => Promise<typeof fetch>
@@ -41,6 +47,26 @@ const coreTransports = new Map<string, CoreTransportFactory>()
 /** Built-in kinds, loaded on first use (keeps node:http/tls code out of unrelated bundles). */
 const builtinTransports: Record<string, () => Promise<CoreTransportFactory>> = {
   windows: async () => (await import('./windows-auth/factory')).windowsTransportFactory,
+  gateway: async () => (await import('@/lib/gateway/transport')).gatewayTransportFactory,
+}
+
+/** Transports that may be asked for anonymous requests (they keep TLS trust / routing but drop credentials). */
+const ANONYMOUS_CAPABLE = new Set(['windows', 'gateway'])
+
+const REMOTE = Symbol.for('usertasks.transport.remote')
+
+/**
+ * Mark a transport fetch as remote: the request is carried elsewhere (an
+ * on-premises gateway) and never dialled from this server, so the server's
+ * egress guard does not apply to it (the remote side enforces its own).
+ */
+export function markRemoteTransport<T extends typeof fetch>(fn: T): T {
+  Object.defineProperty(fn, REMOTE, { value: true })
+  return fn
+}
+
+export function isRemoteTransport(fn: unknown): boolean {
+  return typeof fn === 'function' && (fn as unknown as Record<symbol, unknown>)[REMOTE] === true
 }
 
 export function registerTransport(kind: string, factory: CoreTransportFactory): void {
@@ -70,7 +96,7 @@ export class TransportUnavailableError extends Error {
 export async function resolveTransportFetch(ctx: TransportContext): Promise<typeof fetch | undefined> {
   const kind = transportKindOf(ctx.integrationConfig)
   if (!kind) return undefined
-  if (ctx.anonymous && kind !== 'windows') throw new TransportUnavailableError(`Connection transport "${kind}" cannot send anonymous requests`)
+  if (ctx.anonymous && !ANONYMOUS_CAPABLE.has(kind)) throw new TransportUnavailableError(`Connection transport "${kind}" cannot send anonymous requests`)
   if (kind.startsWith('ext.')) {
     const { resolveExtensionTransport } = await import('@/lib/extensions/transports')
     return resolveExtensionTransport(kind, ctx)

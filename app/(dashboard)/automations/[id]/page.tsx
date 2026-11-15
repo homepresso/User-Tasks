@@ -19,6 +19,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { plural } from '@/lib/format/plural'
 import { useAssistantChanges, type AssistantChange } from '@/lib/assistants/client-registry'
+import { useSearchParams } from 'next/navigation'
+import { returnToFrom } from '@/lib/navigation/return-to'
 
 const LiveInstancesPanel = dynamic(() => import('@/components/automations/live-instances').then((m) => m.LiveInstancesPanel))
 
@@ -29,6 +31,8 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
   const [showExport, setShowExport] = useState(false)
   const [showFormLink, setShowFormLink] = useState(false)
   const { can } = usePermissions()
+  const searchParams = useSearchParams()
+  const returnTo = returnToFrom((name) => searchParams?.get(name))
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['workflow', id],
@@ -108,7 +112,8 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
         publishedVersionNumber={publishedVersionNumber}
         hasUnpublishedChanges={workflow.has_unpublished_changes ?? true}
         workflowName={workflow.name}
-        backHref="/automations"
+        backHref={returnTo?.href ?? "/automations"}
+        backLabel={returnTo?.label}
         menuItems={menuItems}
         notice={notice}
       />

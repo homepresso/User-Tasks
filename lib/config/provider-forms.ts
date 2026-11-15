@@ -109,6 +109,7 @@ const COMMON: Partial<Record<ProviderArea, F[]>> = {
     num('lockout_threshold', 'Failed sign-ins before lockout', { placeholder: '10', min: 1 }),
     num('lockout_minutes', 'Lockout (minutes)', { placeholder: '15' }),
     num('password_min_length', 'Minimum password length', { placeholder: '8', min: 6 }),
+    bool('sso_only', 'SSO only: skip the sign-in page', { help: 'Default off. /login goes straight to the identity provider (each workspace can also turn this on); /login?local=1 still shows the page' }),
   ],
   scheduler: [
     text('oidc_audience', 'OIDC audience', { help: 'Expected aud of Google-signed ID tokens (Cloud Scheduler)' }),

@@ -6,7 +6,7 @@ import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { FormRenderer } from '@/components/forms/form-renderer'
 import { FormThemeScope } from '@/components/forms/form-theme-scope'
 import { FormLoading } from '@/components/forms/form-loading'
@@ -30,6 +30,7 @@ import type { FormLookupSource } from '@/components/forms/lookup-field'
 import { AnonymousCaptcha, AnonymousHoneypot, submitAnonymous } from '@/components/forms/anonymous-form-parts'
 import { useAssistantSurface } from '@/lib/assistants/client-registry'
 import type { FormDataTargetState } from '@/lib/forms/data-target'
+import { formEventMessage, type FormEventMessage } from '@/lib/forms/embed'
 
 const DRAFT_STORAGE = 'usertasks.form-draft.'
 
@@ -60,19 +61,62 @@ function cleanQuery(query: Record<string, string | string[] | undefined> | undef
   return Object.keys(out).length ? out : null
 }
 
-/** What record a bound form edits (or that it creates one), above the fields. */
+/** What record a bound form edits (or that it creates one, or shows), above the fields. */
 function DataTargetNotice({ target }: { target: FormDataTargetState }) {
   const where = target.label ?? 'the connected system'
+  const record = target.record
+    ? (target.record.url ? <a className="font-medium underline text-primary-text" href={target.record.url} target="_blank" rel="noreferrer">{target.record.label ?? target.record.id}</a> : <span className="font-medium text-fg">{target.record.label ?? target.record.id}</span>)
+    : null
   return (
     <div className="mb-3 rounded-lg border px-3 py-2 text-xs border-border text-fg-muted" role="status" data-form-target={target.mode}>
-      {target.mode === 'edit' && target.record ? (
-        <span>Editing {target.record.url ? <a className="font-medium underline text-primary-text" href={target.record.url} target="_blank" rel="noreferrer">{target.record.label ?? target.record.id}</a> : <span className="font-medium text-fg">{target.record.label ?? target.record.id}</span>} in {where}.</span>
+      {target.mode === 'display' ? (
+        <span>{record ? <>Viewing {record} in {where}.</> : <>Viewing a record of {where}.</>}</span>
+      ) : target.mode === 'edit' && record ? (
+        <span>Editing {record} in {where}.</span>
       ) : (
         <span>Submitting creates a new record in {where}.</span>
       )}
       {target.notice && <span className="mt-1 block">{target.notice}</span>}
+      {target.files && target.files.length > 0 && (
+        <span className="mt-1 block" data-form-target-files>
+          Files:{' '}
+          {target.files.map((file, i) => (
+            <span key={`${file.url}-${i}`}>{i > 0 && ', '}<a className="underline text-primary-text" href={file.url} target="_blank" rel="noreferrer">{file.label}</a></span>
+          ))}
+        </span>
+      )}
     </div>
   )
+}
+
+/**
+ * A display form's buttons (e.g. "Edit"): links the provider offers, in
+ * place of the submit buttons. In a trusted-embedding frame a form path
+ * (/f/<id>) stays in the frame (/embed/f/<id>).
+ */
+function DataTargetActions({ actions, trusted }: { actions: NonNullable<FormDataTargetState['actions']>; trusted: boolean }) {
+  if (!actions.length) return null
+  return (
+    <div className="mt-4 flex flex-wrap gap-2" data-form-target-actions>
+      {actions.map((action, i) => {
+        const http = /^https?:/i.test(action.url)
+        const target = action.target ?? (http ? 'blank' : 'self')
+        const href = trusted && target === 'self' && /^\/f\//.test(action.url) ? `/embed${action.url}` : action.url
+        return (
+          <a key={`${action.url}-${i}`} href={href} className={buttonVariants({ variant: action.primary ? 'primary' : 'secondary', size: 'md' })}
+            {...(target === 'blank' ? { target: '_blank', rel: 'noreferrer' } : target === 'top' ? { target: '_top' } : {})}>
+            {action.label}
+          </a>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Tell the framing page what happened (no values or record data — just the event; lib/forms/embed.ts). */
+function notifyHost(event: FormEventMessage['event']) {
+  if (typeof window === 'undefined' || window.parent === window) return
+  try { window.parent.postMessage(formEventMessage(event), '*') } catch { /* parent gone */ }
 }
 
 function newKey(): string {
@@ -91,7 +135,7 @@ function newKey(): string {
  * the final step; with "Resume later" on, unsent answers and the step are
  * kept in this browser until the form is submitted or discarded.
  */
-export function StandaloneForm({ formId, query, anonymous, surface = 'app', embed = false }: {
+export function StandaloneForm({ formId, query, anonymous, surface = 'app', embed = false, trusted = false }: {
   formId: string
   /**
    * `app`: inside the dashboard shell (/fill/<id>, opened from the app's own
@@ -103,6 +147,13 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   surface?: 'app' | 'standalone'
   /** Embedded in another site (?embed=1 or framed): no page canvas behind the card. */
   embed?: boolean
+  /**
+   * Trusted embedding (/embed/f/<id>, framed by an approved site such as a
+   * SharePoint page hosting the form): after a submission or Cancel the
+   * framing page is told (`{ type: 'usertasks:form', event }`) so it can go
+   * back like the host system's own forms; form links stay in the frame.
+   */
+  trusted?: boolean
   /** The page's URL query: the form's URL parameters are read from it (lib/forms/form-params.ts); anything else is ignored. */
   query?: Record<string, string | string[] | undefined>
   /**
@@ -185,7 +236,9 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   // Public form links: no drafts, favourites or Home for anonymous visitors (null form id → nothing is read).
   const drafts = useFormDraft(anonymous ? null : form?.id ?? null, form?.layout)
   const [draftDecided, setDraftDecided] = useState(false)
-  const offerDraft = !anonymous && drafts.draft && !draftDecided && !dirty ? drafts.draft : null
+  // A display form (data target mode `display`): the record read-only, no drafts or submit buttons.
+  const displayOnly = form?.target?.mode === 'display'
+  const offerDraft = !anonymous && !displayOnly && drafts.draft && !draftDecided && !dirty ? drafts.draft : null
   const standalone = surface === 'standalone' || Boolean(anonymous)
   // A form link page has no shell to title the tab: the form's name does.
   useEffect(() => {
@@ -244,6 +297,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         setValues({}); setErrors({}); setConfirmCancel(false)
         forgetDraft()
         keyRef.current = newKey()
+        if (trusted) notifyHost('cancelled')
         finish(planned)
         return
       }
@@ -266,6 +320,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         forgetDraft()
         if (!anonymous) drafts.submitted()
         setDraftDecided(true)
+        if (trusted) notifyHost('submitted')
         // A bound record changed: read it again (fresh values and version for the next save).
         if (form!.target) void refetch()
         if (!result.data.effects.success_screen && !result.data.effects.redirect && !result.data.effects.close) {
@@ -293,7 +348,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         <div>
           {/* The heart / Save draft icons sit in the header's top-right corner, on the title's row. */}
           <FormHeaderBlock header={form.header ?? (form.theme_overrides?.header?.enabled ? null : { enabled: true, image: 'none', title: form.name, align: 'left' })} values={withFormContext(form.layout, shown)} overrides={form.theme_overrides}
-            actions={!anonymous && !closed && !effects?.success_screen ? (
+            actions={!anonymous && !displayOnly && !closed && !effects?.success_screen ? (
               <FormHeaderActions form={form} drafts={drafts} inHeader
                 onSave={() => { setDraftDecided(true); void drafts.save(values, params?.parsed.values ?? null) }} />
             ) : null} />
@@ -351,7 +406,9 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
                     <Button size="sm" variant="destructive" onClick={() => void press(form.buttons.find((b) => b.kind === 'cancel')!)} data-confirm-cancel>Discard</Button>
                   </div>
                 )}
-                <FormButtonBar buttons={form.buttons.filter((b) => b.kind !== 'draft')} placement={form.theme_overrides?.button_placement} busy={busy} onClick={(b) => void press(b)} />
+                {displayOnly
+                  ? <DataTargetActions actions={form.target?.actions ?? []} trusted={trusted} />
+                  : <FormButtonBar buttons={form.buttons.filter((b) => b.kind !== 'draft')} placement={form.theme_overrides?.button_placement} busy={busy} onClick={(b) => void press(b)} />}
               </FormStepActions>
               </FormPagesProvider>
             </FormLookupProvider>

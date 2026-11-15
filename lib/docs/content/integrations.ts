@@ -678,4 +678,45 @@ Use a \`webhook\` integration (or an HTTP Request node) to call other systems. F
 To stream UserTasks events to your own endpoint with HMAC signatures, use a [log destination](/docs/observability/destinations#webhook-signatures) instead.
 `,
   },
+  {
+    slug: 'integrations/gateways',
+    title: 'On-premises gateways',
+    description: 'Reach systems behind your firewall (SharePoint Server, internal APIs) from UserTasks Cloud: an outbound-only gateway on your network, with its own allowlist and credentials.',
+    body: `
+An **on-premises gateway** lets UserTasks reach systems on your network — SharePoint Server, internal REST APIs — when UserTasks cannot open a connection to them (UserTasks Cloud, or a self-hosted instance in another network). You run the gateway on a server inside your network; it connects **out** to UserTasks over HTTPS and nothing connects in.
+
+## How it works
+
+1. A connection names a gateway instead of dialling its address itself. When a workflow step, a form or an API call uses the connection, UserTasks puts the request in a queue for that gateway.
+2. The gateway holds a long-lived poll to UserTasks, takes the request, checks it against **its own configuration** and sends it to the target with the target's credentials (Windows NTLM / Negotiate / Kerberos, your CA, your proxy).
+3. The answer goes back to UserTasks the same way.
+
+UserTasks never sends a URL: it names a **target** you configured on the gateway (\`sharepoint\` → \`https://sharepoint.contoso.com\`) and a path. The gateway refuses every other host, path prefix or method, so it is never a general proxy into your network. Credentials for the targets stay on the gateway.
+
+Systems that call UserTasks back (SharePoint remote event receivers and add-in events) can call the gateway's **relay** on your network instead; the gateway forwards those calls, signed, to UserTasks.
+
+## Set up
+
+1. **Settings → On-premises gateways → Add gateway.** Copy the one-time registration token (valid 24 hours).
+2. On a Windows server that reaches your systems and the internet over HTTPS: extract the gateway release and run, elevated,
+   \`.\\Install-UserTasksGateway.ps1 -CloudUrl https://<workspace>.usertasks.com -Token utgwr_…\`
+   It installs the **UserTasksGateway** Windows service (Node.js 20 included, checksums verified), creates the instance's key on the machine and registers it. Or run the Docker image (\`register-and-run\`).
+3. Edit \`C:\\ProgramData\\UserTasks Gateway\\gateway.json\`: your **targets** (id, origin, credentials from a file or environment variable — never in the file itself), optional path prefixes and methods, and the **relay** if systems must call back. Start the service.
+4. Create the connection with **Through an on-premises gateway** and the gateway's id (and target id). The site address must be one of the gateway's targets.
+
+## High availability
+
+Add a second instance (**Add instance**: another one-time token) on another server with the same \`gateway.json\`. Instances share the queue: any instance takes the next request; if one stops, the others carry on. A request an instance was running when it disappeared is retried on another instance when it was a read (GET); other requests fail rather than run twice. For the relay, put the instances behind one name (DNS or your load balancer; \`/healthz\` answers 200 while the instance is connected) and use it as \`relay.publicUrl\`.
+
+## Security
+
+- Outbound HTTPS only (an extra CA for TLS-inspecting proxies and an outbound proxy are supported). Every gateway request is signed with the instance's own Ed25519 key (timestamp + nonce: replays are refused); every UserTasks answer is signed too, so a proxy that terminates TLS can neither inject nor replay work.
+- Each instance has its own key, generated on the server. **Revoke** an instance (or the whole gateway) in Settings: it is refused at once and its running requests fail. Keys rotate automatically (\`keyRotationDays\`, default 90) or with \`usertasks-gateway rotate-key\`.
+- Requests and answers are capped (50 MB by default, configurable lower on the gateway); every request is kept 30 days as an audit trail (target, method, path, status, timing — no bodies), and refused signatures, replays and allowlist refusals show as events.
+
+## Status and upgrades
+
+Settings shows each gateway as **online**, **offline** or **not connected yet**, each instance's version, last contact and load, the last 24 hours of requests (failures, p50 / p95 latency) and the events. A connection through an offline gateway fails at once with "gateway offline". When a newer gateway is available the instance logs it and Settings says **Update available**: run \`Install-UserTasksGateway.ps1 -Upgrade\` (or pull the new image), one instance at a time.
+`,
+  },
 ]

@@ -136,7 +136,13 @@ export function frameAncestorsSource(value: string | undefined): string {
   return "'none'"
 }
 
-export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefined; isDev: boolean; storagePublicBases?: Record<string, string>; storageUploadSources?: string[]; captcha?: boolean; /** `'none'` (default), `*` for form link pages (lib/forms/embed.ts), or `'self' <origins>` for embeddable routes (lib/embedding.ts). */ frameAncestors?: string }): string {
+/** frame-src: `'self'` followed by origins only — anything else is just `'self'`. */
+export function frameSrcSource(value: string | undefined): string {
+  if (value && /^'self'(?: https?:\/\/[a-z0-9.[\]:-]+)+$/i.test(value)) return value
+  return "'self'"
+}
+
+export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefined; isDev: boolean; storagePublicBases?: Record<string, string>; storageUploadSources?: string[]; captcha?: boolean; /** `'none'` (default), `*` for form link pages (lib/forms/embed.ts), or `'self' <origins>` for embeddable routes (lib/embedding.ts). */ frameAncestors?: string; /** frame-src for embeddable routes (automatic sign-in's hidden frame, lib/providers/auth/sso/frame-sources.ts); unset = none (default-src 'self'). */ frameSrc?: string }): string {
   // Stored files: Supabase public URLs (https is already allowed; a loopback
   // http stack — `supabase start` — needs its origin) and direct store URLs.
   const loopbackSupabase = supabaseConnectSources(opts.supabaseUrl).filter((s) => s.startsWith('http://'))
@@ -151,7 +157,7 @@ export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefin
     `connect-src 'self' ${[...new Set([...supabaseConnectSources(opts.supabaseUrl), ...(opts.storageUploadSources ?? [])])].join(' ')}${captcha(CAPTCHA_SOURCES.connect)}`,
     `media-src 'self' blob: data:${media}`,
     "worker-src 'self' blob:",
-    ...(opts.captcha ? [`frame-src 'self'${captcha(CAPTCHA_SOURCES.frame)}`] : []),
+    ...(opts.captcha || opts.frameSrc ? [`frame-src ${frameSrcSource(opts.frameSrc)}${captcha(CAPTCHA_SOURCES.frame)}`] : []),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -160,7 +166,7 @@ export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefin
 }
 
 /** The policy for the current runtime config (lib/config). */
-export function contentSecurityPolicy(options: { captcha?: boolean; frameAncestors?: string } = {}): string {
+export function contentSecurityPolicy(options: { captcha?: boolean; frameAncestors?: string; frameSrc?: string } = {}): string {
   let storagePublicBases: Record<string, string> | undefined
   let uploadSources: string[] = []
   try {
@@ -177,5 +183,6 @@ export function contentSecurityPolicy(options: { captcha?: boolean; frameAncesto
     storageUploadSources: uploadSources,
     captcha: options.captcha === true,
     frameAncestors: options.frameAncestors,
+    frameSrc: options.frameSrc,
   })
 }

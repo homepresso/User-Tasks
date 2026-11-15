@@ -27,9 +27,34 @@ import { readSettingsCacheStale } from './config/settings-cache'
  *    framed GET navigation of an embeddable route itself. Cross-site POSTs,
  *    subresource loads and fetches therefore stay signed out exactly as
  *    before; server actions additionally keep Next's Origin check.
+ *  - Automatic sign-in inside a frame (lib/providers/auth/sso/auto.ts,
+ *    components/embed/embed-sign-in.tsx): a signed-out embeddable page runs
+ *    a passive SSO round trip in a hidden frame. Its SSO flow-binding cookie
+ *    is SameSite=None (Secure) so the frame can store and send it; that
+ *    cookie is a random per-flow value checked against the flow's stored
+ *    hash (login-CSRF protection), not a credential, and is not one of the
+ *    session cookies stripped below. The session it ends with is issued like
+ *    any other (SameSite=None under the rules above). The round trip ends on
+ *    /embed/auth/sso-done, an embeddable route, which only tells its parent
+ *    or opener (same origin, postMessage) "signed in: yes / no". Nothing in
+ *    the frame — and nothing the embedding site sends — names the user: only
+ *    the IdP's signed answer does.
+ *    Embeddable pages carry `frame-src 'self' <IdP sign-in origins>`
+ *    (lib/providers/auth/sso/frame-sources.ts) so that hidden frame may
+ *    reach the identity provider; other pages keep default-src 'self'.
  *
- * The environment wins over the instance setting. The cloud edition reads
- * the same setting (instance-wide); per-workspace lists are not supported.
+ * The environment wins over the instance setting.
+ *
+ * Per-workspace lists (multi-tenant instances such as the cloud edition,
+ * EMBED_WORKSPACE_ORIGINS=true): each workspace approves its own sites
+ * (tenants.settings.embedding.frame_ancestors, Settings → Trusted
+ * embedding). The proxy never reads the database for it: UserTasks sends
+ * browsers to embeddable pages with a short-lived signed token listing that
+ * workspace's origins, valid only on that workspace's own address
+ * (lib/embedding-token.ts). With the switch on, framed sessions apply
+ * instance-wide (the proxy cannot tell which workspaces embed), and so does
+ * the cookie stripping below — which keeps the CSRF properties of SameSite=
+ * Lax for every request, embedding or not.
  *
  * Dependency-free apart from the settings cache, so proxy.ts can import it.
  */
@@ -121,6 +146,13 @@ export function resolveEmbedPolicy(env: Record<string, string | undefined>, sett
   return { origins: [], source: 'none', invalid: [] }
 }
 
+export const EMBED_WORKSPACE_ORIGINS_ENV = 'EMBED_WORKSPACE_ORIGINS'
+
+/** Per-workspace embedding is on for this instance (EMBED_WORKSPACE_ORIGINS=true). */
+export function workspaceEmbeddingEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return /^(1|true|yes|on)$/i.test(String(env[EMBED_WORKSPACE_ORIGINS_ENV] ?? '').trim())
+}
+
 /** Synchronous: environment + the last loaded instance settings. */
 export function getEmbedPolicy(): EmbedPolicy {
   return resolveEmbedPolicy(process.env, readSettingsCacheStale())
@@ -131,17 +163,22 @@ export function isEmbedPath(pathname: string): boolean {
   return pathname.startsWith(EMBED_PATH_PREFIX)
 }
 
-/** `frame-ancestors` for an embeddable route: `'self'` + the origins, or `'none'` when none are configured. */
-export function embedFrameAncestors(policy: EmbedPolicy = getEmbedPolicy()): string {
-  return policy.origins.length ? `'self' ${policy.origins.join(' ')}` : "'none'"
+/**
+ * `frame-ancestors` for an embeddable route: `'self'` + the instance origins
+ * and the workspace's (from a verified token), or `'none'` when there are none.
+ */
+export function embedFrameAncestors(policy: EmbedPolicy = getEmbedPolicy(), workspaceOrigins: string[] = []): string {
+  const all = [...policy.origins, ...workspaceOrigins.filter((o) => !policy.origins.includes(o))]
+  return all.length ? `'self' ${all.join(' ')}` : "'none'"
 }
 
 /**
  * Session cookies are SameSite=None (framed sessions) when trusted
- * embedding is configured and the cookies are Secure.
+ * embedding is configured (instance origins, or per-workspace lists on) and
+ * the cookies are Secure.
  */
-export function framedSessionsEnabled(secure: boolean, policy: EmbedPolicy = getEmbedPolicy()): boolean {
-  return secure && policy.origins.length > 0
+export function framedSessionsEnabled(secure: boolean, policy: EmbedPolicy = getEmbedPolicy(), env: Record<string, string | undefined> = process.env): boolean {
+  return secure && (policy.origins.length > 0 || workspaceEmbeddingEnabled(env))
 }
 
 const SAFE_METHODS = new Set(['GET', 'HEAD'])

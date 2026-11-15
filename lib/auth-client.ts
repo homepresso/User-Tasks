@@ -23,7 +23,10 @@ export function broadcastSignedOut(): void {
   }
 }
 
-export async function signOutAndRedirect(to = '/login'): Promise<void> {
+/** Where sign-out lands: the sign-in page, which then never sends the browser straight back to the IdP (SSO only). */
+export const SIGNED_OUT_PATH = '/login?signed_out=1'
+
+export async function signOutAndRedirect(to = SIGNED_OUT_PATH): Promise<void> {
   await signOutAction().catch(() => null)
   try { sessionStorage.removeItem(DASHBOARD_AUTH_CACHE_KEY) } catch {}
   // The persisted query cache (components/providers/query-provider.tsx) is the

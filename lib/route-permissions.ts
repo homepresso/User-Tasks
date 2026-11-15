@@ -26,6 +26,8 @@ export const ROUTE_RULES: RouteRule[] = [
   { prefix: '/settings/mcp', allOf: ['settings.view'] },
   { prefix: '/settings/logs', allOf: ['settings.view'] },
   { prefix: '/settings/log-export', allOf: ['observability.view'] },
+  { prefix: '/settings/gateways', allOf: ['integrations.view'] },
+  { prefix: '/settings/embedding', allOf: ['settings.view'] },
   { prefix: '/settings/document-ocr', allOf: ['settings.view'] },
   { prefix: '/settings/assistants', allOf: ['assistants.manage'] },
   { prefix: '/settings/packages', allOf: ['packages.view'] },

@@ -484,6 +484,18 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | export | `GET /config/export` | `config_export` | `config export` | one log destination (no credentials): config export with ids=<id> |
 | import | `POST /config/apply` | `config_apply` | `config apply` | config apply of the exported log destination (dry run first) |
 
+## On-premises gateways
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /gateways` | `gateways_list` | `gateways list` |  |
+| get | `GET /gateways/{id}` | `gateways_get` | `gateways get` |  |
+| create | `POST /gateways` | `gateways_create` | `gateways create` | returns a one-time registration token |
+| update | `PATCH /gateways/{id}` | `gateways_update` | `gateways update` | name and description |
+| delete | `DELETE /gateways/{id}` | `gateways_revoke` | `gateways revoke` | revokes (the record stays for the audit trail) |
+| add instance | `POST /gateways/{id}/tokens` | `gateways_add_instance` | `gateways add-instance` |  |
+| revoke instance | `DELETE /gateways/{id}/instances/{instance_id}` | `gateways_revoke_instance` | `gateways revoke-instance` |  |
+
 ## Directory connections
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
@@ -558,6 +570,16 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | delete | `PATCH /workspace/address` | `workspace_address_set` | `workspace-address set` | subdomain null removes the address |
 | check | `GET /workspace/address/check` | `workspace_address_check` | `workspace-address check` |  |
 
+## Workspace embedding
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | one list per workspace: get returns it |
+| get | `GET /workspace/embedding` | `workspace_embedding_get` | `workspace-embedding get` |  |
+| create | — | — | — | set replaces the list |
+| update | `PUT /workspace/embedding` | `workspace_embedding_set` | `workspace-embedding set` | settings.edit; audited |
+| delete | `PUT /workspace/embedding` | `workspace_embedding_set` | `workspace-embedding set` | an empty list removes every approved site |
+
 ## Task completed screen
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
@@ -578,6 +600,16 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | create | — | — | — | every workspace has it (the defaults until changed) |
 | update | `PATCH /workspace/form-sign-in-page` | `form_sign_in_page_update` | `form-sign-in-page update` | settings.edit; the logo is uploaded in Settings → Forms |
 | delete | — | — | — | update back to the defaults (the settings card has Reset to defaults) |
+
+## Workspace single sign-on
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | one setting per workspace: get returns it |
+| get | `GET /workspace/sso` | `workspace_sso_get` | `workspace-sso get` |  |
+| create | — | — | — | every workspace has it (the defaults until changed) |
+| update | `PATCH /workspace/sso` | `workspace_sso_update` | `workspace-sso update` | settings.edit; the identity providers themselves are instance settings (auth.sso_providers) |
+| delete | — | — | — | update back to the defaults (auto_sign_in true, sso_only false, idp null) |
 
 ## Document OCR
 

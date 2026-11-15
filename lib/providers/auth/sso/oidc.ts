@@ -4,6 +4,8 @@ import { randomToken, saveFlowState, takeFlowState } from '../builtin/store'
 import { AuthError } from '../types'
 import { cognitoEndpoints, oidcGroupsClaims, oidcIssuer, oidcScopes, resolveSsoSecret, type OidcIdpConfig } from './config'
 import type { ExternalIdentity } from './accounts'
+import { addSsoFrameSources } from './frame-sources'
+import { flowMetaFrom, InteractionRequired, SILENT_SIGN_IN_ERRORS, withFlow, type SsoFallback, type SsoFlowMeta } from './auto'
 
 /**
  * OpenID Connect relying party (authorization code flow with PKCE S256,
@@ -19,7 +21,12 @@ import type { ExternalIdentity } from './accounts'
  *    nbf with 60 s skew, nonce;
  *  - userinfo merged when the IdP has the endpoint (sub must match);
  *  - Entra multi-tenant: issuer checked against the token's own tid (and the
- *    allowedTenants list); Google Workspace: hd enforced.
+ *    allowedTenants list); Google Workspace: hd enforced;
+ *  - passive (automatic sign-in, ./auto.ts): prompt=none; an IdP answer of
+ *    login_required / interaction_required / consent_required /
+ *    account_selection_required throws InteractionRequired (the caller
+ *    follows the flow's fallback). The error is only acted on after state and
+ *    browser binding checked out, and only ever starts a non-passive flow.
  */
 
 const FLOW_TTL_MS = 10 * 60_000
@@ -65,6 +72,7 @@ export async function discover(idp: OidcIdpConfig, fetchImpl: typeof fetch = fet
     throw new AuthError('sso_failed', `Identity provider issuer mismatch: expected ${issuer}, discovery says ${doc.issuer}`)
   }
   if (endpoints) Object.assign(doc, endpoints)
+  addSsoFrameSources([doc.authorization_endpoint])
   const entry = { at: Date.now(), doc, jwks: createRemoteJWKSet(new URL(doc.jwks_uri), { timeoutDuration: 10_000 }) }
   discoveryCache.set(cacheKey, entry)
   return entry
@@ -83,7 +91,9 @@ export function oidcRedirectUri(origin: string, idp: { id: string }): string {
 /** Authorization URL + the browser-binding cookie value for the flow. */
 export async function startOidc(
   idp: OidcIdpConfig,
-  { origin, redirect, org }: { origin: string; redirect: string; org: string | null },
+  { origin, redirect, org, passive = false, fallback = 'interactive', loginHint = null }: {
+    origin: string; redirect: string; org: string | null; passive?: boolean; fallback?: SsoFallback; loginHint?: string | null
+  },
   fetchImpl: typeof fetch = fetch,
 ): Promise<{ url: string; binding: string }> {
   const { doc } = await discover(idp, fetchImpl)
@@ -91,7 +101,7 @@ export async function startOidc(
   const nonce = randomToken()
   const verifier = randomToken(48)
   const binding = randomToken()
-  await saveFlowState(state, 'oidc', { idp: idp.id, nonce, verifier, redirect, org, binding: s256(binding) }, FLOW_TTL_MS)
+  await saveFlowState(state, 'oidc', { idp: idp.id, nonce, verifier, redirect, org, binding: s256(binding), passive, fallback, loginHint }, FLOW_TTL_MS)
 
   const url = new URL(doc.authorization_endpoint)
   url.searchParams.set('response_type', 'code')
@@ -103,6 +113,9 @@ export async function startOidc(
   url.searchParams.set('code_challenge', s256(verifier))
   url.searchParams.set('code_challenge_method', 'S256')
   if (idp.preset === 'google' && idp.hostedDomain?.length === 1) url.searchParams.set('hd', idp.hostedDomain[0])
+  if (passive) url.searchParams.set('prompt', 'none')
+  if (loginHint) url.searchParams.set('login_hint', loginHint)
+  if (idp.domainHint) url.searchParams.set('domain_hint', idp.domainHint)
   return { url: url.toString(), binding }
 }
 
@@ -121,14 +134,32 @@ export async function finishOidc(
   idp: OidcIdpConfig,
   input: OidcCallbackInput,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ identity: ExternalIdentity; redirect: string; org: string | null }> {
+): Promise<{ identity: ExternalIdentity; redirect: string; org: string | null; flow: SsoFlowMeta }> {
   if (!input.state) throw new AuthError('sso_failed', 'Missing state')
   const flow = await takeFlowState(input.state, 'oidc')
   if (!flow || flow.idp !== idp.id) throw new AuthError('sso_failed', 'This sign-in link has expired or was already used. Please try again.')
+  // Failures from here on follow the flow's fallback (where the error is shown — never a sign-in).
+  const meta = flowMetaFrom(idp.id, flow)
   if (!input.binding || s256(input.binding) !== flow.binding) {
-    throw new AuthError('sso_failed', 'This sign-in was started in another browser. Please try again.')
+    throw withFlow(new AuthError('sso_failed', 'This sign-in was started in another browser (or the browser refused its cookie). Please try again.'), meta)
   }
-  if (input.error) throw new AuthError('sso_failed', `Sign-in was cancelled or refused: ${input.errorDescription || input.error}`)
+  try {
+    return { ...(await finishVerifiedFlow(idp, input, flow, fetchImpl)), flow: meta }
+  } catch (error) {
+    throw withFlow(error, meta)
+  }
+}
+
+async function finishVerifiedFlow(
+  idp: OidcIdpConfig,
+  input: OidcCallbackInput,
+  flow: Record<string, unknown>,
+  fetchImpl: typeof fetch,
+): Promise<{ identity: ExternalIdentity; redirect: string; org: string | null }> {
+  if (input.error) {
+    if (flow.passive === true && SILENT_SIGN_IN_ERRORS.has(input.error)) throw new InteractionRequired(flowMetaFrom(idp.id, flow), `The identity provider needs interaction (${input.error})`)
+    throw new AuthError('sso_failed', `Sign-in was cancelled or refused: ${input.errorDescription || input.error}`)
+  }
   if (!input.code) throw new AuthError('sso_failed', 'Missing authorization code')
 
   const { doc, jwks } = await discover(idp, fetchImpl)

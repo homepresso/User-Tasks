@@ -4,15 +4,22 @@ import { EmbedProvider } from '@/components/embed/embed-provider'
 import { frameContext } from '@/lib/forms/embed'
 import { getExtensionManifest } from '@/lib/extensions/registry'
 import { renderEmbeddedExtensionPage } from '@/lib/extensions/page-host'
+import { EmbedAutoSignIn } from '@/components/embed/embed-sign-in'
+import { autoSsoPath, cleanOrgHint, LAUNCH_ORG_PARAM, SSO_DONE_PATH } from '@/lib/providers/auth/sso/auto'
+import { resolveAutoSso } from '@/lib/providers/auth/sso/auto-server'
 
 /**
  * Trusted embedding (lib/embedding.ts): /embed/x/<extension id>/<path> serves
  * an extension page the manifest declares `embeddable`, without the app
  * shell, for a frame or dialog on an approved site (frame-ancestors from
- * EMBED_FRAME_ANCESTORS, set by proxy.ts). Same checks as /x/. Signed out:
- * at the top level → /login and back; inside a frame (sign-in pages are
- * never framable) → open UserTasks in a new tab to sign in, then reload.
- * At the top level the sign-in returns to the full app page (/x/…).
+ * EMBED_FRAME_ANCESTORS, set by proxy.ts). Same checks as /x/. Signed out,
+ * with automatic sign-in for the workspace (lib/providers/auth/sso/auto.ts,
+ * workspace from ?ut_org=, the address or the only one): at the top level →
+ * the IdP and back to this /embed/ page, no sign-in page; inside a frame → a silent attempt in a
+ * hidden frame, then a popup (components/embed/embed-sign-in.tsx). Without
+ * it: top level → /login and back; frame (sign-in pages are never framable)
+ * → open UserTasks in a new tab to sign in, then reload. At the top level
+ * the sign-in returns to the full app page (/x/…).
  */
 
 export const dynamic = 'force-dynamic'
@@ -36,8 +43,24 @@ export default async function EmbeddedExtensionPageRoute({ params, searchParams 
   if (result.kind === 'signed_out') {
     const h = await headers()
     const where = frameContext((name) => h.get(name))
-    if (where === 'top') redirect(`/login?redirect=${encodeURIComponent(appPath)}`)
-    const loginHref = `/login?redirect=${encodeURIComponent(appPath)}`
+    // Automatic sign-in with the workspace's IdP (lib/providers/auth/sso/auto.ts).
+    const orgHint = cleanOrgHint(query[LAUNCH_ORG_PARAM])
+    const auto = await resolveAutoSso({ org: orgHint, purpose: 'launch' })
+    // Top level (e.g. the SharePoint launch page opened full page): an automatic sign-in comes back to this
+    // chrome-less page itself; the sign-in page (no automatic sign-in) returns to the full app page.
+    if (where === 'top') redirect(auto ? autoSsoPath({ redirect: `/embed${appPath}`, org: auto.org }) : `/login?redirect=${encodeURIComponent(appPath)}`)
+    const loginHref = auto ? autoSsoPath({ redirect: appPath, org: auto.org }) : `/login?redirect=${encodeURIComponent(appPath)}`
+    if (auto) {
+      return (
+        <EmbedAutoSignIn
+          idpName={auto.idpName}
+          silentUrl={autoSsoPath({ redirect: SSO_DONE_PATH, org: auto.org, mode: 'frame' })}
+          popupUrl={autoSsoPath({ redirect: SSO_DONE_PATH, org: auto.org, mode: 'popup' })}
+          newTabHref={loginHref}
+          reloadHref={`/embed${appPath}`}
+        />
+      )
+    }
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
         <h1 className="text-lg font-semibold">Sign in to UserTasks</h1>

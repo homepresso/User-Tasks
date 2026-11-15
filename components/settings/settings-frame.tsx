@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   Accessibility,
+  Frame,
   Blocks,
   BadgeCheck,
   CircleCheckBig,
@@ -97,6 +98,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
       { label: "SSO & directory", href: "/settings/sso", icon: KeyRound, permission: "settings.view" },
       { label: "API keys", href: "/settings/api-keys", icon: Key, permission: "settings.manage_api_keys" },
       { label: "OAuth apps", href: "/settings/oauth-apps", icon: Boxes, permission: "settings.manage_api_keys" },
+      { label: "Trusted embedding", href: "/settings/embedding", icon: Frame, permission: "settings.view" },
     ],
   },
   {
@@ -115,6 +117,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
       { label: "Agent", href: "/settings/assistants", icon: Sparkles, permission: "assistants.manage" },
       { label: "Document OCR", href: "/settings/document-ocr", icon: ScanText, permission: "settings.view" },
       { label: "Setup wizard", href: "/settings/setup", icon: Wand2, instanceAdmin: true },
+      { label: "On-premises gateways", href: "/settings/gateways", icon: Network, permission: "integrations.view" },
       { label: "Infrastructure", href: "/settings/infrastructure", icon: Server, instanceAdmin: true },
       { label: "Workspace DNS", href: "/settings/workspace-dns", icon: Globe, instanceAdmin: true },
       { label: "Licence", href: "/settings/licence", icon: BadgeCheck, instanceAdmin: true },

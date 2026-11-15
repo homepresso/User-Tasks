@@ -683,18 +683,43 @@ When a call is blocked, the error says which setting to change, for example
 
 ### Trusted embedding
 
-Some integrations show UserTasks inside another site — for example a dialog in SharePoint opened by the UserTasks add-in. UserTasks pages refuse to be framed (\`frame-ancestors 'none'\`, \`X-Frame-Options: DENY\`) unless you approve the sites:
+Some integrations show UserTasks inside another site — for example a dialog in SharePoint opened by the UserTasks add-in. UserTasks pages refuse to be framed (`frame-ancestors 'none'`, `X-Frame-Options: DENY`) unless you approve the sites:
 
-\`\`\`bash
+```bash
 EMBED_FRAME_ANCESTORS="https://intranet.contoso.com https://*.sharepoint.contoso.com"
 # or, stored in the database (the environment wins):
 usertasks-admin embed allow https://intranet.contoso.com
 usertasks-admin embed show
-\`\`\`
+```
 
-Entries are origins (scheme, host, optional port; \`https://*.domain\` for subdomains; \`http://\` only when you list it so). A bare \`*\`, paths and CSP keywords are refused. Only the embeddable pages (\`/embed/…\`, declared by extensions) are opened to these sites — \`frame-ancestors 'self' <origins>\` and no \`X-Frame-Options\`; every other page stays unframable.
+Entries are origins (scheme, host, optional port; `https://*.domain` for subdomains; `http://` only when you list it so). A bare `*`, paths and CSP keywords are refused. Only the embeddable pages (`/embed/…`, declared by extensions) are opened to these sites — `frame-ancestors 'self' <origins>` and no `X-Frame-Options`; every other page stays unframable.
 
-**Signed in inside the frame.** A frame from another site only gets the session cookie when it is \`SameSite=None; Secure\`. With origins configured and UserTasks on https, session cookies are issued that way (at the next sign-in). To keep the protection SameSite=Lax gave against cross-site request forgery, the server then drops the session cookie from every cross-site request Lax would not have carried it on — cross-site form posts, fetches, images, frames of other pages — and keeps it only for top-level navigations (as before) and the framed loading of an embeddable page (Fetch Metadata headers; for browsers without them, unsafe requests from another origin). Server actions keep their own origin check. Browsers that block third-party cookies (Safari; Chrome or Firefox with strict settings) show "Open UserTasks" inside the frame instead — the page then opens in a new tab. On plain http (development) cookies stay Lax and framed pages ask to open a new tab.
+**Signed in inside the frame.** A frame from another site only gets the session cookie when it is `SameSite=None; Secure`. With origins configured and UserTasks on https, session cookies are issued that way (at the next sign-in). To keep the protection SameSite=Lax gave against cross-site request forgery, the server then drops the session cookie from every cross-site request Lax would not have carried it on — cross-site form posts, fetches, images, frames of other pages — and keeps it only for top-level navigations (as before) and the framed loading of an embeddable page (Fetch Metadata headers; for browsers without them, unsafe requests from another origin). Server actions keep their own origin check. Browsers that block third-party cookies (Safari; Chrome or Firefox with strict settings) show "Open UserTasks" inside the frame instead — the page then opens in a new tab. On plain http (development) cookies stay Lax and framed pages ask to open a new tab. The one other cookie that may be `SameSite=None` is the SSO flow-binding cookie of an automatic sign-in that runs inside a frame (below): it is a random, single-flow value, not a credential, so sending it cross-site grants nothing.
+
+### Automatic sign-in
+
+When UserTasks is opened from another system — the UserTasks button in SharePoint, a portal link to an extension page — people who are signed in to your identity provider should land in UserTasks without seeing a sign-in page. With SSO configured (built-in auth with OIDC / SAML identity providers, `AUTH_SSO_PROVIDERS`), that is the default:
+
+1. UserTasks asks the identity provider **passively** first — OIDC `prompt=none`, SAML `IsPassive="true"`. An IdP that can sign the person in by itself (AD FS with Windows Integrated Authentication on the intranet, an Entra ID or Okta session) answers at once, and the person is in.
+2. If the IdP needs the person (`login_required` / `interaction_required`, SAML `NoPassive`), UserTasks continues with the IdP's own sign-in — still no UserTasks sign-in page — and returns to the page that was opened.
+3. Inside a frame (a dialog or web part on another site), where IdP pages can't be shown, the passive attempt runs in a hidden frame (embeddable pages allow frames to the IdP's sign-in origin only); if it can't finish, a **Sign in with …** button opens a small popup that completes the sign-in and closes, then the frame reloads signed in. Browsers that block cookies in embedded windows are first asked for storage access (**Continue**), else offered "Open UserTasks" in a new tab.
+
+**No identity is taken from the launching system.** A SharePoint add-in launch (and most portal links) carries no signed statement of who the user is; a user name in such a request could be forged by anyone, so UserTasks never signs anybody in from it. Only the identity provider's signed answer (ID token / SAML assertion), checked exactly as for any SSO sign-in, decides who is signed in. People brought in by a directory source (e.g. SharePoint site users and groups) become UserTasks users at that first SSO sign-in, with their workspace membership and groups (that is when their seat is counted). Someone an organisation brought in — the IdP's `defaultOrg`, or a directory source's pending entry — is created in that workspace and lands there; no personal workspace is created for them.
+
+**Per workspace** (**Settings → SSO & Directory → Single sign-on**, `PATCH /api/v1/workspace/sso`, `usertasks workspace-sso update`, MCP `workspace_sso_update`):
+
+| Setting | Default | |
+|---|---|---|
+| `auto_sign_in` | on | Sign in automatically with SSO when opened from another system |
+| `sso_only` | off | Skip the sign-in page: `/login` goes straight to the identity provider |
+| `idp` | automatic | Which identity provider: automatic = the one whose `defaultOrg` is this workspace, else the instance's only one |
+
+`AUTH_SSO_ONLY=true` (or `auth.sso_only`) skips the sign-in page for every workspace. The page still shows after signing out, after an SSO error and at **`/login?local=1`** — keep a password administrator for the day the IdP is down. Signing out of UserTasks never signs anyone out of the identity provider, so opening UserTasks from SharePoint again signs the person straight back in (by design).
+
+Which workspace: the workspace address, else the add-in's workspace hint (`?ut_org=<slug>`, added by extensions with `ctx.launchUrl`), else the instance's only workspace. With Supabase Auth (the cloud edition) a workspace chooses its provider explicitly (`idp: "microsoft"` with Entra ID; AD FS federated with Entra ID works through it — set `domainHint` on configured Entra IdPs to skip home-realm discovery).
+
+**AD FS with Windows sign-in.** For browsers on domain-joined machines to be signed in silently, AD FS must offer Windows Integrated Authentication on the intranet (`Set-AdfsGlobalAuthenticationPolicy -PrimaryIntranetAuthenticationProvider WindowsAuthentication,FormsAuthentication`) to Chromium browsers — add their user agents, e.g. `Set-AdfsProperties -WIASupportedUserAgents ((Get-AdfsProperties).WIASupportedUserAgents + '=~Windows\s*NT.*Edg/' + '=~Windows\s*NT.*Chrome')` — and browsers must send Kerberos to AD FS (its address in the Local intranet zone, or the `AuthServerAllowlist` policy for Edge / Chrome). AD FS answers `prompt=none` with redirects only (Windows sign-in, or `login_required` when it can't), so the silent attempt never shows an AD FS page. Inside frames a session also needs the browser to allow cookies in embedded windows: Edge and Chrome with third-party cookies blocked refuse them, and the dialog then asks for storage access (one **Continue** click) — or open UserTasks full page (the SharePoint add-in's launch does).
+
 
 ## 6. Security checklist
 

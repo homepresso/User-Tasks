@@ -14,7 +14,9 @@ import { emailDomainAllowed, mapGroupsToRole, type SsoIdpConfig } from './config
  *  2. else, with linkByEmail and a verified email, the account with that
  *     email (built-in credentials, or a profile created by directory sync /
  *     an earlier Supabase install) — and the identity is linked to it;
- *  3. else, with jit, a new account: personal workspace (onUserCreated), SSO-
+ *  3. else, with jit, a new account — created in the organisation that brought
+ *     the person in (defaultOrg, else a directory source's workspace; no
+ *     personal workspace then), otherwise with a personal workspace — SSO-
  *     only credentials (no password), linked identity, plus defaultOrg
  *     membership with defaultRole or the mapped role;
  *  4. else, without jit, a new account all the same when a directory source
@@ -90,8 +92,11 @@ export async function resolveExternalAccount(identity: ExternalIdentity): Promis
       throw new AuthError('sso_failed', 'Your identity provider did not supply a verified email address.')
     }
     const id = randomUUID()
+    // Brought in by an organisation (the IdP's defaultOrg, else a directory source's workspace): created in
+    // that workspace, no personal workspace — they arrive from its SharePoint, portal or invitation.
+    const homeTenantId = await organisationHome(idp.defaultOrg ?? null, directoryKeys)
     await db.transaction(async (tx) => {
-      await onUserCreated(tx, { id, email, displayName: identity.name, provider: idp.type === 'saml' ? 'saml' : idp.preset === 'google' ? 'google' : idp.preset.startsWith('entra') ? 'azure_ad' : 'email' })
+      await onUserCreated(tx, { id, email, displayName: identity.name, provider: idp.type === 'saml' ? 'saml' : idp.preset === 'google' ? 'google' : idp.preset.startsWith('entra') ? 'azure_ad' : 'email' }, { homeTenantId })
       await insertCredential({ userId: id, email, passwordHash: null, emailConfirmed: true, metadata: { full_name: identity.name, sso: providerKey } }, tx)
     })
     userId = id
@@ -130,6 +135,19 @@ export async function resolveExternalAccount(identity: ExternalIdentity): Promis
   }
 
   return { user: { id: userId, ...(email ? { email } : {}), user_metadata: identity.name ? { full_name: identity.name } : {} }, created }
+}
+
+/** The workspace a new SSO account belongs to: the IdP's defaultOrg, else the first workspace whose directory lists the person. */
+async function organisationHome(defaultOrg: string | null, directoryKeys: string[]): Promise<string | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- service-role rows are untyped
+  const service = getServiceDb() as any
+  if (defaultOrg) {
+    const { data } = await service.from('tenants').select('id').eq('slug', defaultOrg.toLowerCase()).is('deleted_at', null).maybeSingle()
+    if (data?.id) return String(data.id)
+  }
+  if (!directoryKeys.length) return null
+  const tenants = await directorySources().then((m) => m.pendingDirectoryTenants(service, directoryKeys)).catch(() => [] as string[])
+  return tenants[0] ?? null
 }
 
 /** Directory sources (extension-contributed people and groups), loaded only when needed. */

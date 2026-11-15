@@ -4023,6 +4023,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspace/embedding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the sites approved to embed this workspace's pages (trusted embedding) */
+        get: operations["getWorkspaceEmbedding"];
+        /**
+         * Replace the sites approved to embed this workspace's pages
+         * @description Origins only (https://sharepoint.contoso.com, https://*.contoso.com; http:// only when named so), at most 20. Applies to embeddable pages (/embed/…) on the workspace's own address. Audited.
+         */
+        put: operations["updateWorkspaceEmbedding"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspace/task-completion": {
         parameters: {
             query?: never;
@@ -4089,6 +4110,30 @@ export interface paths {
          * @description Send only the settings to change; the rest are kept. An empty string clears logo_url, support_link_url and accent_color. heading and button_label can't be empty. Audited.
          */
         patch: operations["updateFormSignInPage"];
+        trace?: never;
+    };
+    "/workspace/sso": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the workspace's automatic sign-in settings (any member)
+         * @description Automatic SSO when opened from another system, SSO only (skip the sign-in page), the identity provider, and which one is in effect. Nobody is ever signed in from what the launching system says: only the identity provider's signed answer counts.
+         */
+        get: operations["getWorkspaceSso"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change the workspace's automatic sign-in settings
+         * @description Send only what changes. idp must be one of the instance's identity providers (or null for automatic). Audited.
+         */
+        patch: operations["updateWorkspaceSso"];
         trace?: never;
     };
     "/document-ocr": {
@@ -5482,6 +5527,86 @@ export interface paths {
          */
         post: operations["testLogDestination"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gateways": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the workspace's on-premises gateways with their instances and status */
+        get: operations["listGateways"];
+        put?: never;
+        /**
+         * Create an on-premises gateway and its first registration token
+         * @description Returns the gateway and a one-time registration token for its first instance (valid 24 hours, shown once). Install the gateway on the customer's network and register it with the token. Audited.
+         */
+        post: operations["createGateway"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gateways/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a gateway: instances, status, last 24 hours of requests (latency, failures) and security events */
+        get: operations["getGateway"];
+        put?: never;
+        post?: never;
+        /** Revoke a gateway: every instance key and queued request; connections using it stop working */
+        delete: operations["revokeGateway"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a gateway or change its description
+         * @description The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         */
+        patch: operations["updateGateway"];
+        trace?: never;
+    };
+    "/gateways/{id}/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue a one-time registration token for another instance of a gateway (high availability, replacement)
+         * @description Each instance has its own key. Run two or more instances for failover. Tokens are valid 24 hours and shown once. Audited.
+         */
+        post: operations["createGatewayRegistrationToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gateways/{id}/instances/{instance_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke one gateway instance key (or an unused registration token); its in-flight requests fail */
+        delete: operations["revokeGatewayInstance"];
         options?: never;
         head?: never;
         patch?: never;
@@ -29685,6 +29810,125 @@ export interface operations {
             };
         };
     };
+    getWorkspaceEmbedding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Per-workspace approved sites apply on this instance */
+                            supported: boolean;
+                            /** @description Why not, when not supported */
+                            reason: string | null;
+                            /** @description Sites (origins) that may frame this workspace's embeddable pages */
+                            origins: string[];
+                            /** @description The instance-wide list (EMBED_FRAME_ANCESTORS), applies to every workspace */
+                            instance_origins: string[];
+                            workspace_url: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateWorkspaceEmbedding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    origins: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Per-workspace approved sites apply on this instance */
+                            supported: boolean;
+                            /** @description Why not, when not supported */
+                            reason: string | null;
+                            /** @description Sites (origins) that may frame this workspace's embeddable pages */
+                            origins: string[];
+                            /** @description The instance-wide list (EMBED_FRAME_ANCESTORS), applies to every workspace */
+                            instance_origins: string[];
+                            workspace_url: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getTaskCompletionSettings: {
         parameters: {
             query?: never;
@@ -30085,6 +30329,142 @@ export interface operations {
                             accent_color: string | null;
                             /** @description Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false */
                             use_workspace_theme: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWorkspaceSso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Sign in automatically with SSO when UserTasks is opened from another system (a SharePoint add-in button, a portal link to an extension page): no sign-in page — passive first (OIDC prompt=none, SAML IsPassive), then the identity provider's own sign-in if it needs the person. Default true; applies when an identity provider resolves */
+                            auto_sign_in: boolean;
+                            /** @description SSO only: skip the sign-in page — /login goes straight to the identity provider. Default false. /login?local=1, errors and signing out still show the page */
+                            sso_only: boolean;
+                            /** @description The identity provider (its id) to sign in with; null = automatic: the one that provisions into this workspace (defaultOrg), else the instance's only one */
+                            idp: string | null;
+                            /** @description The instance skips the sign-in page for every workspace (AUTH_SSO_ONLY) */
+                            instance_sso_only: boolean;
+                            /** @description Identity providers automatic sign-in can use on this instance */
+                            providers: {
+                                id: string;
+                                name: string;
+                            }[];
+                            /** @description The identity provider signed-out visitors are sent to now; null = none applies (the sign-in page shows) */
+                            effective_idp: string | null;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateWorkspaceSso: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Sign in automatically with SSO when UserTasks is opened from another system (a SharePoint add-in button, a portal link to an extension page): no sign-in page — passive first (OIDC prompt=none, SAML IsPassive), then the identity provider's own sign-in if it needs the person. Default true; applies when an identity provider resolves */
+                    auto_sign_in?: boolean;
+                    /** @description SSO only: skip the sign-in page — /login goes straight to the identity provider. Default false. /login?local=1, errors and signing out still show the page */
+                    sso_only?: boolean;
+                    /** @description The identity provider (its id) to sign in with; null = automatic: the one that provisions into this workspace (defaultOrg), else the instance's only one */
+                    idp?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            /** @description Sign in automatically with SSO when UserTasks is opened from another system (a SharePoint add-in button, a portal link to an extension page): no sign-in page — passive first (OIDC prompt=none, SAML IsPassive), then the identity provider's own sign-in if it needs the person. Default true; applies when an identity provider resolves */
+                            auto_sign_in: boolean;
+                            /** @description SSO only: skip the sign-in page — /login goes straight to the identity provider. Default false. /login?local=1, errors and signing out still show the page */
+                            sso_only: boolean;
+                            /** @description The identity provider (its id) to sign in with; null = automatic: the one that provisions into this workspace (defaultOrg), else the instance's only one */
+                            idp: string | null;
+                            /** @description The instance skips the sign-in page for every workspace (AUTH_SSO_ONLY) */
+                            instance_sso_only: boolean;
+                            /** @description Identity providers automatic sign-in can use on this instance */
+                            providers: {
+                                id: string;
+                                name: string;
+                            }[];
+                            /** @description The identity provider signed-out visitors are sent to now; null = none applies (the sign-in page shows) */
+                            effective_idp: string | null;
                         };
                     };
                 };
@@ -39673,6 +40053,608 @@ export interface operations {
                             retryable: boolean;
                         } & {
                             [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listGateways: {
+        parameters: {
+            query?: {
+                /** @description Also list revoked gateways */
+                include_revoked?: "true" | "false";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            gateways: ({
+                                id: string;
+                                name: string;
+                                description: string | null;
+                                /** @enum {string} */
+                                status: "active" | "revoked";
+                                online: boolean;
+                                /** @enum {string} */
+                                state: "online" | "offline" | "never_connected" | "revoked";
+                                /** @description Targets the gateway advertises (from its own configuration) */
+                                targets: {
+                                    id: string;
+                                    origin: string;
+                                }[];
+                                /** @description Where the gateway takes inbound callbacks on the customer's network (null = relay off) */
+                                relay_url: string | null;
+                                version: string | null;
+                                latest_version: string | null;
+                                last_seen_at: string | null;
+                                instances: ({
+                                    id: string;
+                                    label: string | null;
+                                    /** @enum {string} */
+                                    status: "pending" | "active" | "rotated" | "revoked";
+                                    online: boolean;
+                                    /** @description Short fingerprint of the instance's Ed25519 public key */
+                                    fingerprint: string | null;
+                                    instance_name: string | null;
+                                    hostname: string | null;
+                                    version: string | null;
+                                    update_available: boolean;
+                                    last_seen_at: string | null;
+                                    /** @description Pending instances: when the registration token expires */
+                                    token_expires_at: string | null;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            /** @description The server can sign gateway answers (ENCRYPTION_KEY or GATEWAY_SIGNING_KEY set) */
+                            configured: boolean;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createGateway: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    description?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            gateway: {
+                                id: string;
+                                name: string;
+                                description: string | null;
+                                /** @enum {string} */
+                                status: "active" | "revoked";
+                                online: boolean;
+                                /** @enum {string} */
+                                state: "online" | "offline" | "never_connected" | "revoked";
+                                /** @description Targets the gateway advertises (from its own configuration) */
+                                targets: {
+                                    id: string;
+                                    origin: string;
+                                }[];
+                                /** @description Where the gateway takes inbound callbacks on the customer's network (null = relay off) */
+                                relay_url: string | null;
+                                version: string | null;
+                                latest_version: string | null;
+                                last_seen_at: string | null;
+                                instances: ({
+                                    id: string;
+                                    label: string | null;
+                                    /** @enum {string} */
+                                    status: "pending" | "active" | "rotated" | "revoked";
+                                    online: boolean;
+                                    /** @description Short fingerprint of the instance's Ed25519 public key */
+                                    fingerprint: string | null;
+                                    instance_name: string | null;
+                                    hostname: string | null;
+                                    version: string | null;
+                                    update_available: boolean;
+                                    last_seen_at: string | null;
+                                    /** @description Pending instances: when the registration token expires */
+                                    token_expires_at: string | null;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            registration: {
+                                key_id: string;
+                                /** @description One-time registration token (shown once, valid 24 hours) */
+                                token: string;
+                                expires_at: string;
+                                commands: {
+                                    windows: string;
+                                    docker: string;
+                                    cli: string;
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getGateway: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    revokeGateway: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            revoked: boolean;
+                            id: string;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateGateway: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    description?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            id: string;
+                            name: string;
+                            description: string | null;
+                            /** @enum {string} */
+                            status: "active" | "revoked";
+                            online: boolean;
+                            /** @enum {string} */
+                            state: "online" | "offline" | "never_connected" | "revoked";
+                            /** @description Targets the gateway advertises (from its own configuration) */
+                            targets: {
+                                id: string;
+                                origin: string;
+                            }[];
+                            /** @description Where the gateway takes inbound callbacks on the customer's network (null = relay off) */
+                            relay_url: string | null;
+                            version: string | null;
+                            latest_version: string | null;
+                            last_seen_at: string | null;
+                            instances: ({
+                                id: string;
+                                label: string | null;
+                                /** @enum {string} */
+                                status: "pending" | "active" | "rotated" | "revoked";
+                                online: boolean;
+                                /** @description Short fingerprint of the instance's Ed25519 public key */
+                                fingerprint: string | null;
+                                instance_name: string | null;
+                                hostname: string | null;
+                                version: string | null;
+                                update_available: boolean;
+                                last_seen_at: string | null;
+                                /** @description Pending instances: when the registration token expires */
+                                token_expires_at: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createGatewayRegistrationToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    label?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            key_id: string;
+                            /** @description One-time registration token (shown once, valid 24 hours) */
+                            token: string;
+                            expires_at: string;
+                            commands: {
+                                windows: string;
+                                docker: string;
+                                cli: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    revokeGatewayInstance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Gateway id */
+                id: string;
+                /** @description Instance (key) id */
+                instance_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            revoked: boolean;
+                            key_id: string;
                         };
                     };
                 };

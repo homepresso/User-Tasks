@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { applyAuthHeaders } from '@/lib/integrations/attach-auth'
 import { connectorFetch } from '@/lib/integrations/http'
 import { resolveTransportFetch } from '@/lib/integrations/transports'
@@ -105,7 +106,7 @@ async function performProbe(
 
   // Egress guard on every hop (redirects re-checked), bounded time, no retry storm.
   // A connection transport (Windows auth, an extension's) performs the request.
-  const fetchImpl = await resolveTransportFetch({ tenantId: null, integrationConfig: integrationConfig as unknown as Record<string, unknown> })
+  const fetchImpl = await resolveTransportFetch({ tenantId: probeWorkspace.getStore() ?? null, integrationConfig: integrationConfig as unknown as Record<string, unknown> })
   return connectorFetch(url, {
     method: request.method ?? 'GET',
     headers,
@@ -557,7 +558,23 @@ async function probeEsign(connectorKey: string, integrationConfig: IntegrationCo
   }
 }
 
+/**
+ * The workspace a probe runs for (connection transports that are scoped to a
+ * workspace — an on-premises gateway — need it).
+ */
+const probeWorkspace = new AsyncLocalStorage<string | null>()
+
 export async function runConnectorProbe(
+  connectorKey: string,
+  rawConfig: Record<string, any>,
+  rawCredentials: Record<string, any>,
+  rawIntegrationConfig: IntegrationConfig,
+  options: { tenantId?: string | null } = {},
+): Promise<ConnectorProbeResult> {
+  return probeWorkspace.run(options.tenantId ?? null, () => runConnectorProbeInner(connectorKey, rawConfig, rawCredentials, rawIntegrationConfig))
+}
+
+async function runConnectorProbeInner(
   connectorKey: string,
   rawConfig: Record<string, any>,
   rawCredentials: Record<string, any>,

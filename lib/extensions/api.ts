@@ -28,12 +28,13 @@ import { fromApiAuth, requirePerm, isServiceError } from '@/lib/services/context
 import { rateLimit } from '@/lib/rate-limit'
 import { writeAudit } from '@/lib/audit-log'
 import { getServiceDb } from '@/lib/providers/db'
-import { isExtensionError, type ExtensionEndpoint, type PublicRoute } from '@/lib/extensions/sdk'
+import { isExtensionError, type ExtensionEndpoint, type PublicRoute, type PublicRouteVia } from '@/lib/extensions/sdk'
 import { createExtensionContext, readExtensionSecret } from './host'
 import { extensionToolPrefix } from './manifest'
 import { getExtensionManifest } from './registry'
 import { getServerExtension, getServerExtensions } from './server-registry'
 import { extensionAccess } from './state'
+import { TransportUnavailableError } from '@/lib/integrations/transports'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- extension payloads */
 
@@ -86,6 +87,12 @@ export async function dispatchExtensionApi(request: NextRequest, extensionId: st
       if (isExtensionError(error)) {
         const status = error.status >= 400 && error.status <= 599 ? error.status : 500
         return apiError(error.message, status, error.code, error.details)
+      }
+      // A connection that cannot be used right now (gateway offline / revoked / not serving that
+      // address, transport not configured): the caller's problem to fix, not a 500.
+      if (error instanceof TransportUnavailableError) {
+        const code = typeof (error as { code?: unknown }).code === 'string' ? String((error as { code?: unknown }).code) : 'connection_unavailable'
+        return apiError(error.message, code === 'gateway_offline' || code === 'gateway_timeout' ? 503 : 502, code)
       }
       throw error
     }
@@ -144,7 +151,13 @@ export function publicRate(route: Pick<PublicRoute, 'rateLimit'>): { max: number
 }
 
 /** Dispatch for /ext-public/<id>/<path>. */
-export async function dispatchPublicRoute(request: NextRequest, extensionId: string, segments: string[]): Promise<Response> {
+/**
+ * `options.via`: the call reached UserTasks through a workspace's on-premises
+ * gateway relay (lib/gateway/handlers.ts) — rate limited per gateway and
+ * handed to the handler, which may insist the record it resolves belongs to
+ * that workspace.
+ */
+export async function dispatchPublicRoute(request: NextRequest, extensionId: string, segments: string[], options: { via?: PublicRouteVia } = {}): Promise<Response> {
   const path = `/${segments.join('/')}`
   const server = getExtensionManifest(extensionId) ? getServerExtension(extensionId) : null
   let route: PublicRoute | null = null
@@ -163,7 +176,8 @@ export async function dispatchPublicRoute(request: NextRequest, extensionId: str
   if (!route) return pathMatched ? json(405, 'Method not allowed', 'method_not_allowed') : json(404, 'Not found', 'not_found')
 
   // A route with its own rate counts separately; the others share the extension's budget.
-  const limited = await rateLimit(route.rateLimit ? `ext-public:${extensionId}:${route.path}:${clientKey(request)}` : `ext-public:${extensionId}:${clientKey(request)}`, publicRate(route))
+  const client = options.via ? `gateway:${options.via.gatewayId}` : clientKey(request)
+  const limited = await rateLimit(route.rateLimit ? `ext-public:${extensionId}:${route.path}:${client}` : `ext-public:${extensionId}:${client}`, publicRate(route))
   if (!limited.ok) return json(429, 'Too many requests', 'rate_limited')
 
   const declared = Number(request.headers.get('content-length') ?? 0)
@@ -209,7 +223,7 @@ export async function dispatchPublicRoute(request: NextRequest, extensionId: str
   const ctx = createExtensionContext({ extensionId, tenantId, actorId, db })
   let response: Response
   try {
-    response = await route.handler({ ctx, request, params, body })
+    response = await route.handler({ ctx, request, params, body, ...(options.via ? { via: options.via } : {}) })
   } catch (error) {
     console.error(`[ext:${extensionId}] public route ${route.path} failed:`, error)
     response = json(500, 'Internal server error', 'internal')

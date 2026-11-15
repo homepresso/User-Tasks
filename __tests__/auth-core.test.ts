@@ -59,8 +59,8 @@ describe('password policy and settings', () => {
   it('defaults: invite-only, confirmation required, 7-day idle / 30-day sessions, lockout after 10', () => {
     expect(authSettings({})).toEqual({
       allowSignup: false, requireEmailConfirmation: true, sessionIdleMs: 168 * 3600_000, sessionMaxMs: 30 * 86_400_000,
-      lockoutThreshold: 10, lockoutMs: 15 * 60_000, passwordMinLength: 8,
+      lockoutThreshold: 10, lockoutMs: 15 * 60_000, passwordMinLength: 8, ssoOnly: false,
     })
-    expect(authSettings({ allow_signup: 'true', lockout_threshold: '3', password_min_length: '2' })).toMatchObject({ allowSignup: true, lockoutThreshold: 3, passwordMinLength: 8 })
+    expect(authSettings({ allow_signup: 'true', lockout_threshold: '3', password_min_length: '2', sso_only: 'true' })).toMatchObject({ allowSignup: true, lockoutThreshold: 3, passwordMinLength: 8, ssoOnly: true })
   })
 })

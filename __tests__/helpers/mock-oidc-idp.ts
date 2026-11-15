@@ -28,6 +28,10 @@ export interface MockOidcIdp {
   url: string
   user: MockOidcUser
   tamper: null | 'nonce' | 'audience' | 'issuer' | 'expired' | 'signature'
+  /** The user has no session at the IdP: `prompt=none` is answered with error=login_required (default false). */
+  needsInteraction: boolean
+  /** The `prompt` of every authorization request, in order (null when absent). */
+  prompts: Array<string | null>
   /** Codes issued and not yet redeemed. */
   codes: Map<string, { nonce: string; challenge: string; redirectUri: string; user: MockOidcUser }>
   close(): Promise<void>
@@ -44,6 +48,8 @@ export async function startMockOidcIdp(opts: { clientId: string; clientSecret: s
     url: '',
     user: { sub: 'mock-user', email: 'mock@idp.test', email_verified: true, name: 'Mock User' },
     tamper: null,
+    needsInteraction: false,
+    prompts: [],
     codes: new Map(),
     close: async () => undefined,
   }
@@ -77,6 +83,14 @@ export async function startMockOidcIdp(opts: { clientId: string; clientSecret: s
       const p = url.searchParams
       if (p.get('client_id') !== opts.clientId || p.get('response_type') !== 'code' || p.get('code_challenge_method') !== 'S256') {
         return json(400, { error: 'invalid_request' })
+      }
+      state.prompts.push(p.get('prompt'))
+      if (p.get('prompt') === 'none' && state.needsInteraction) {
+        const back = new URL(p.get('redirect_uri') ?? '')
+        back.searchParams.set('error', 'login_required')
+        back.searchParams.set('state', p.get('state') ?? '')
+        res.writeHead(302, { location: back.toString() })
+        return res.end()
       }
       const code = randomBytes(16).toString('hex')
       state.codes.set(code, { nonce: p.get('nonce') ?? '', challenge: p.get('code_challenge') ?? '', redirectUri: p.get('redirect_uri') ?? '', user: { ...state.user } })

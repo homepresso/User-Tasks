@@ -520,6 +520,18 @@ export const SURFACE_PARITY: SurfaceResource[] = [
     ],
   },
   {
+    resource: 'on-premises gateways',
+    ops: [
+      op('list', 'GET /gateways', 'gateways_list', 'gateways list'),
+      op('get', 'GET /gateways/{id}', 'gateways_get', 'gateways get'),
+      op('create', 'POST /gateways', 'gateways_create', 'gateways create', 'returns a one-time registration token'),
+      op('update', 'PATCH /gateways/{id}', 'gateways_update', 'gateways update', 'name and description'),
+      op('delete', 'DELETE /gateways/{id}', 'gateways_revoke', 'gateways revoke', 'revokes (the record stays for the audit trail)'),
+      op('add instance', 'POST /gateways/{id}/tokens', 'gateways_add_instance', 'gateways add-instance'),
+      op('revoke instance', 'DELETE /gateways/{id}/instances/{instance_id}', 'gateways_revoke_instance', 'gateways revoke-instance'),
+    ],
+  },
+  {
     resource: 'directory connections',
     ops: [
       op('list', 'GET /directory-sync/connections', 'directory_sync_list', 'directory-sync list'),
@@ -594,6 +606,16 @@ export const SURFACE_PARITY: SurfaceResource[] = [
     ],
   },
   {
+    resource: 'workspace embedding',
+    ops: [
+      op('list', null, null, null, 'one list per workspace: get returns it'),
+      op('get', 'GET /workspace/embedding', 'workspace_embedding_get', 'workspace-embedding get'),
+      op('create', null, null, null, 'set replaces the list'),
+      op('update', 'PUT /workspace/embedding', 'workspace_embedding_set', 'workspace-embedding set', 'settings.edit; audited'),
+      op('delete', 'PUT /workspace/embedding', 'workspace_embedding_set', 'workspace-embedding set', 'an empty list removes every approved site'),
+    ],
+  },
+  {
     resource: 'task completed screen',
     ops: [
       op('list', null, null, null, 'one setting per workspace: get returns it'),
@@ -612,6 +634,16 @@ export const SURFACE_PARITY: SurfaceResource[] = [
       op('create', null, null, null, 'every workspace has it (the defaults until changed)'),
       op('update', 'PATCH /workspace/form-sign-in-page', 'form_sign_in_page_update', 'form-sign-in-page update', 'settings.edit; the logo is uploaded in Settings → Forms'),
       op('delete', null, null, null, 'update back to the defaults (the settings card has Reset to defaults)'),
+    ],
+  },
+  {
+    resource: 'workspace single sign-on',
+    ops: [
+      op('list', null, null, null, 'one setting per workspace: get returns it'),
+      op('get', 'GET /workspace/sso', 'workspace_sso_get', 'workspace-sso get'),
+      op('create', null, null, null, 'every workspace has it (the defaults until changed)'),
+      op('update', 'PATCH /workspace/sso', 'workspace_sso_update', 'workspace-sso update', 'settings.edit; the identity providers themselves are instance settings (auth.sso_providers)'),
+      op('delete', null, null, null, 'update back to the defaults (auto_sign_in true, sso_only false, idp null)'),
     ],
   },
   {

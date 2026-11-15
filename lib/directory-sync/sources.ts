@@ -662,6 +662,12 @@ export async function hasPendingDirectoryEntry(db: SupabaseClient, keys: string[
   return (await pendingEntries(db, keys)).length > 0
 }
 
+/** The workspaces whose directory sources list the person (pending) — where a first sign-in lands. */
+export async function pendingDirectoryTenants(db: SupabaseClient, keys: string[]): Promise<string[]> {
+  const entries = await pendingEntries(db, keys)
+  return [...new Set(entries.map(({ entry }) => String(entry.tenant_id)))]
+}
+
 async function seatCount(db: SupabaseClient, sourceId: string): Promise<number> {
   const { data } = await (db as any).from('directory_links').select('local_id').eq('provider', sourceId).eq('object_type', 'user').limit(100_000)
   return new Set(((data ?? []) as any[]).map((r) => String(r.local_id))).size

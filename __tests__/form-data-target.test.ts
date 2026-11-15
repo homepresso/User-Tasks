@@ -17,8 +17,15 @@ vi.mock('@/lib/providers/db', async (importOriginal) => ({
   getServiceDb: () => db.current,
 }))
 
+const deletedForms = vi.hoisted(() => ({ ids: [] as string[] }))
+vi.mock('@/lib/services/forms', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/services/forms')>()),
+  deleteForm: async (_ctx: unknown, id: string) => { deletedForms.ids.push(id); return { deleted: true as const, id } },
+}))
+
 import { defineExtension, defineServerExtension, ExtensionError, type FormTarget } from '@user-tasks/extension-sdk'
-import { applyFieldPatches, layoutDataTarget, normalizeDataTarget, normalizeFieldPatches } from '@/lib/forms/data-target'
+import { applyFieldPatches, layoutDataTarget, normalizeDataTarget, normalizeFieldPatches, normalizeTargetLinks } from '@/lib/forms/data-target'
+import { formEventMessage } from '@/lib/forms/embed'
 import { compactLayoutForSave, normalizeFormLayout } from '@/lib/forms/layout'
 import { assertTargetBinding, checkFormTarget, formTargetDeps, mapPeopleValues, prepareFormTarget, submitFormTarget, targetError } from '@/lib/services/form-targets'
 import { ServiceError, type ServiceContext } from '@/lib/services/context'
@@ -148,6 +155,35 @@ describe('prepare', () => {
     await expect(prepareFormTarget(ctx(), { id: 'f', name: 'F', version: 1, fields, layout }, { item: 9 }, 'render')).rejects.toMatchObject({ code: 'not_found', message: 'Item 9 not found' })
   })
 
+  it('display forms: every field read-only, no version, actions and files cleaned, submissions refused', async () => {
+    const withHeading: TaskFieldDef[] = [...fields, { key: 'h', label: 'Heading', type: 'heading' }]
+    provider = {
+      label: 'Acme record',
+      async prepare() {
+        return {
+          mode: 'display', values: { title: 'Hello' }, version: '"4"', record: { id: '12', label: 'Hello' },
+          actions: [{ label: 'Edit', url: '/f/abc?ItemId=12', primary: true }, { label: 'Close', url: 'https://sp.example/list', target: 'top' }, { label: 'Bad', url: 'javascript:alert(1)' }, { label: 'Proto-relative', url: '//evil.example/x' }, { label: 'Creds', url: 'https://u:p@sp.example/' }],
+          files: [{ label: 'a.pdf', url: 'https://sp.example/a.pdf' }, { label: 'local', url: '/f/x' }],
+        }
+      },
+      async submit() { return { record: { id: '1' } } },
+    }
+    const out = await prepareFormTarget(ctx(), { id: 'f', name: 'F', version: 1, fields: withHeading, layout }, { item: 12 }, 'render')
+    expect(out.state).toMatchObject({ mode: 'display', version: null, record: { id: '12' } })
+    expect(out.fields.filter((f) => f.type !== 'heading').every((f) => f.read_only === true && !f.required)).toBe(true)
+    expect(out.fields.find((f) => f.key === 'h')!.read_only).toBeUndefined()
+    expect(out.state!.actions).toEqual([{ label: 'Edit', url: '/f/abc?ItemId=12', primary: true }, { label: 'Close', url: 'https://sp.example/list', target: 'top' }])
+    expect(out.state!.files).toEqual([{ label: 'a.pdf', url: 'https://sp.example/a.pdf' }])
+    await expect(prepareFormTarget(ctx(), { id: 'f', name: 'F', version: 1, fields, layout }, { item: 12 }, 'submit')).rejects.toMatchObject({ code: 'validation_error', details: { code: 'display_form' } })
+  })
+
+  it('cleans provider links; the trusted-embedding host event carries the event only', () => {
+    expect(normalizeTargetLinks('x')).toEqual([])
+    expect(normalizeTargetLinks([{ label: ' Edit ', url: '/f/1', target: 'nope' }, { label: '', url: '/f/2' }, { label: 'x', url: '/\\\\evil' }, { label: 'sp', url: 'http://sp/a b' }])).toEqual([{ label: 'Edit', url: '/f/1' }])
+    expect(normalizeTargetLinks(Array.from({ length: 30 }, (_, i) => ({ label: `L${i}`, url: `/f/${i}` }))).length).toBe(20)
+    expect(formEventMessage('submitted')).toEqual({ type: 'usertasks:form', event: 'submitted' })
+  })
+
   it('maps people values on their own: single, multiple, unknown', async () => {
     const out = await mapPeopleValues(db.current, TENANT, fields, { owner: [{ email: 'nobody@x.test' }], team: [U2], title: 'x' })
     expect(out).toEqual({ values: { owner: null, team: [{ kind: 'user', id: U2 }], title: 'x' }, missing: ['nobody@x.test'] })
@@ -246,5 +282,12 @@ describe('registry and ctx.forms', () => {
     expect(await extCtx.forms.get('0f000000-0000-4000-8000-00000000f002')).toBeNull()
     expect((await extCtx.forms.get('0f000000-0000-4000-8000-00000000f001'))!.fields.map((f) => f.key)).toEqual(['title'])
     await expect(extCtx.forms.create({ name: 'x', fields: [], target: { key: 'missing', config: {} } })).rejects.toThrow('not declared')
+    // delete: only this extension's forms reach the form service.
+    deletedForms.ids = []
+    expect(await extCtx.forms.delete('0f000000-0000-4000-8000-00000000f002')).toEqual({ deleted: false })
+    expect(await extCtx.forms.delete('0f000000-0000-4000-8000-00000000f003')).toEqual({ deleted: false })
+    expect(await extCtx.forms.delete('nope')).toEqual({ deleted: false })
+    expect(await extCtx.forms.delete('0f000000-0000-4000-8000-00000000f001')).toEqual({ deleted: true })
+    expect(deletedForms.ids).toEqual(['0f000000-0000-4000-8000-00000000f001'])
   })
 })

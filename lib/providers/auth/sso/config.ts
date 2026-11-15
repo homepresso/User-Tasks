@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { getProviderConfig } from '@/lib/config'
 import { ConfigError } from '@/lib/config/schema'
 import { isSecretRef, resolveSecretRef, secretTtlMs } from '@/lib/config/secret-refs'
+import { writeSsoFrameSources } from './frame-sources'
 
 /**
  * SSO identity providers (AUTH_SSO_PROVIDERS / instance setting
@@ -184,9 +185,20 @@ export async function getSsoProviders(): Promise<SsoIdpConfig[]> {
   const config = await getProviderConfig('auth')
   if (config.id === 'supabase') return []
   const all = parseSsoProviders(config.options.sso_providers)
-  if (config.id === 'oidc') return all.filter((idp) => idp.type === 'oidc')
-  if (config.id === 'saml') return all.filter((idp) => idp.type === 'saml')
-  return all
+  const offered = config.id === 'oidc' ? all.filter((idp) => idp.type === 'oidc') : config.id === 'saml' ? all.filter((idp) => idp.type === 'saml') : all
+  // Their sign-in origins, for embeddable pages' frame-src (automatic sign-in in a frame).
+  writeSsoFrameSources(offered.flatMap(ssoFrameUrls))
+  return offered
+}
+
+/** The URLs an IdP's sign-in starts at (known from config; discovery / metadata add theirs). */
+export function ssoFrameUrls(idp: SsoIdpConfig): string[] {
+  if (idp.type === 'saml') return [idp.entryPoint, idp.metadataUrl].filter((u): u is string => Boolean(u))
+  const urls: string[] = []
+  try { urls.push(oidcIssuer(idp)) } catch { /* misconfigured: reported elsewhere */ }
+  const cognito = cognitoEndpoints(idp)
+  if (cognito) urls.push(cognito.authorization_endpoint)
+  return urls
 }
 
 export async function getSsoProvider(id: string): Promise<SsoIdpConfig | null> {

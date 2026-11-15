@@ -322,6 +322,16 @@
                     "object"
                   ]
                 },
+                "sso_only": {
+                  "description": "AUTH_SSO_ONLY",
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean",
+                    "array",
+                    "object"
+                  ]
+                },
                 "sso_providers": {
                   "description": "AUTH_SSO_PROVIDERS",
                   "type": [

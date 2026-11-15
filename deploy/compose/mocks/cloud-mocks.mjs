@@ -32,7 +32,10 @@
 import { createServer as createHttp } from 'node:http'
 import { createServer as createHttps } from 'node:https'
 import { readFileSync, existsSync } from 'node:fs'
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHash, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto'
+
+// One RSA signing key per run, published as the OIDC key set (sign-in checks reject an empty set, as real IdPs never serve one).
+const OIDC_JWK = { ...generateKeyPairSync('rsa', { modulusLength: 2048 }).publicKey.export({ format: 'jwk' }), kid: 'mock-oidc-1', use: 'sig', alg: 'RS256' }
 
 const SECRETS = JSON.parse(process.env.MOCK_SECRETS || '{}')
 const HTTP_PORT = Number(process.env.MOCK_HTTP_PORT || 8080)
@@ -176,7 +179,7 @@ async function handle(req, res, scheme) {
   const entra = path.match(/^\/entra\/([^/]+)\/v2\.0\/\.well-known\/openid-configuration$/)
   if (entra) return json(res, 200, oidcDiscovery(`http://${req.headers.host}/entra/${entra[1]}/v2.0`))
   if (path === '/google/.well-known/openid-configuration') return json(res, 200, oidcDiscovery(`http://${req.headers.host}/google`))
-  if (/\/keys$/.test(path)) return json(res, 200, { keys: [] })
+  if (/\/keys$/.test(path)) return json(res, 200, { keys: [OIDC_JWK] })
 
   // ── Google: metadata server ──
   if (path.startsWith('/computeMetadata/v1')) {

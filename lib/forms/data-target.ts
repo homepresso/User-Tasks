@@ -22,7 +22,11 @@
  *  - saving / deleting the form: `saved` / `deleted` let the provider record
  *    which external fields the form uses (schema-drift warnings);
  *  - the designer: `check` reports problems (fields that no longer exist
- *    externally …) shown above the canvas.
+ *    externally …) shown above the canvas;
+ *  - display forms: `prepare` may answer `mode: 'display'` — the page shows
+ *    the record read-only (every field read-only, no submit buttons, the
+ *    record's files as links, the provider's actions such as "Edit" as
+ *    buttons) and core refuses submissions of it.
  *
  * People cross the boundary as e-mail addresses (the provider never sees
  * user ids it can't use): `prepare` may return `{ email }` objects for
@@ -148,11 +152,50 @@ export function applyFieldPatches(fields: TaskFieldDef[], patches: Record<string
   })
 }
 
+/**
+ * A link a provider offers on the form page: an app path (`/f/<id>?…`) or an
+ * http(s) URL. `target`: `self` (default for app paths; inside a trusted
+ * embedding frame a form path stays in the frame), `top` (the whole window,
+ * e.g. back to the page that framed the form) or `blank` (default for
+ * http(s) URLs).
+ */
+export interface FormTargetLink { label: string; url: string; primary?: boolean; target?: 'self' | 'top' | 'blank' }
+
+const LINK_LIMITS = { items: 20, label: 120, url: 2000 } as const
+
+/**
+ * A provider's links → clean ones: an app path (starting with one `/`) or an
+ * http(s) URL, no credentials, labels bounded. `httpOnly` drops app paths
+ * (files live in the external system).
+ */
+export function normalizeTargetLinks(raw: unknown, options: { httpOnly?: boolean } = {}): FormTargetLink[] {
+  if (!Array.isArray(raw)) return []
+  const out: FormTargetLink[] = []
+  for (const item of raw) {
+    if (out.length >= LINK_LIMITS.items) break
+    if (!isPlainObject(item) || typeof item.label !== 'string' || typeof item.url !== 'string') continue
+    const label = clean(item.label.trim(), LINK_LIMITS.label)
+    const url = item.url.trim()
+    if (!label || !url || url.length > LINK_LIMITS.url || /[\s\u0000-\u001f]/.test(url)) continue
+    let ok = false
+    if (/^\/(?![/\\])/.test(url)) ok = !options.httpOnly
+    else {
+      try {
+        const parsed = new URL(url)
+        ok = (parsed.protocol === 'https:' || parsed.protocol === 'http:') && !parsed.username && !parsed.password
+      } catch { ok = false }
+    }
+    const target = item.target === 'self' || item.target === 'top' || item.target === 'blank' ? item.target : null
+    if (ok) out.push({ label, url, ...(item.primary === true ? { primary: true } : {}), ...(target ? { target } : {}) })
+  }
+  return out
+}
+
 /** What the form page gets about its data target (no provider internals). */
 export interface FormDataTargetState {
   label: string | null
-  /** create: a new record; edit: an existing one (`record`). */
-  mode: 'create' | 'edit'
+  /** create: a new record; edit: an existing one (`record`); display: the record read-only (no submission). */
+  mode: 'create' | 'edit' | 'display'
   record: { id: string; label?: string | null; url?: string | null } | null
   /** Initial values (field key → value), already in the form's value shapes. */
   values: Record<string, unknown>
@@ -160,6 +203,10 @@ export interface FormDataTargetState {
   version: string | null
   /** A short text the page shows above the fields. */
   notice: string | null
+  /** Display forms (and others): buttons the provider offers, e.g. "Edit" opening the record's edit form. */
+  actions?: FormTargetLink[]
+  /** The record's files in the external system (attachments), shown as links. */
+  files?: FormTargetLink[]
 }
 
 /** Is this an e-mail-shaped person value from a provider (`{ email }`)? */

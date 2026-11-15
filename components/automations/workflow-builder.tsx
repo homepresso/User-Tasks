@@ -149,6 +149,8 @@ interface WorkflowBuilderProps {
   /** Toolbar identity: the workflow's name and where Back goes. */
   workflowName?: string
   backHref?: string
+  /** Label of the back link (default "Back to workflows"), e.g. "Back to Expense Claims" from ?return_label. */
+  backLabel?: string
   /** Extra items at the top of the toolbar's ⋯ menu (Run, Form link, View runs, Export…). */
   menuItems?: React.ReactNode
   /** A banner under the toolbar (e.g. live instances on older versions). */
@@ -183,7 +185,7 @@ export function WorkflowBuilder({
   workflowId, tenantId, initialNodes, initialEdges, triggerType, isActive, runs, initialUserVariables, initialSwimlanes,
   customActivities = [],
   publishedVersionNumber, hasUnpublishedChanges: initialHasUnpublished,
-  workflowName, backHref, menuItems, notice,
+  workflowName, backHref, backLabel, menuItems, notice,
 }: WorkflowBuilderProps) {
   // Legacy table keys (tableId, data_table_id, …) are migrated to table_id on open.
   const [nodes, setNodes] = useState<WorkflowNode[]>(() => normalizeDataTableNodes(initialNodes))
@@ -1024,8 +1026,8 @@ export function WorkflowBuilder({
       >
         <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
           {backHref && (
-            <Tooltip content="Back to workflows">
-              <Link href={backHref} aria-label="Back to workflows" className={buttonVariants({ variant: "ghost", size: "icon-sm" })}>
+            <Tooltip content={backLabel ?? "Back to workflows"}>
+              <Link href={backHref} aria-label={backLabel ?? "Back to workflows"} className={buttonVariants({ variant: "ghost", size: "icon-sm" })}>
                 <ArrowLeft className="size-4" aria-hidden="true" />
               </Link>
             </Tooltip>
