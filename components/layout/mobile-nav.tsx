@@ -15,7 +15,7 @@ import { navIcon } from "./nav-icons"
 import { SidebarNavItem, sidebarFocus } from "./sidebar-nav-item"
 import { HeaderFormsMenu } from "./header-forms-menu"
 import { useNavCounts } from "@/hooks/use-nav-counts"
-import { formatNavBadge, navBadgeCount, navBadgeLabel } from "@/lib/nav-badges"
+import { formatNavBadge, navBadgeCount, navBadgeLabelWithUnread, navUnreadCount } from "@/lib/nav-badges"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { useExtensionBadgeCounts, useExtensionNav, mergeNavSections, mergeByOrder } from "@/components/extensions/extension-nav"
 import { extensionLucide } from "@/components/extensions/ext-icon"
@@ -102,6 +102,7 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
                   icon={navIcon(item.icon)}
                   badgeCount={navBadgeCount(counts, item.href)}
                   badgeTone={item.href === "/tasks" ? "accent" : "neutral"}
+                  unreadCount={navUnreadCount(counts, item.href)}
                 />
               </li>
             ))}
@@ -154,6 +155,7 @@ export function MobileTabBar() {
           const Icon = tab.icon
           // The Tasks tab is My tasks: its badge is the My tasks count.
           const count = navBadgeCount(counts, tab.href)
+          const unread = navUnreadCount(counts, tab.href)
           const text = formatNavBadge(count)
           return (
             <Link
@@ -161,10 +163,14 @@ export function MobileTabBar() {
               href={tab.href}
               className={cn("flex h-[calc(var(--ds-tabbar-h)-1px)] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2", active ? "text-primary-text" : "text-fg-muted")}
               aria-current={active ? "page" : undefined}
-              aria-label={count ? navBadgeLabel(tab.label, count) : undefined}
+              aria-label={count || unread ? navBadgeLabelWithUnread(tab.label, count, unread) : undefined}
             >
               <span className="relative">
                 <Icon className="size-5" aria-hidden />
+                {unread > 0 && (
+                  // Unread tasks: the list rows' accent dot, at the icon's other corner.
+                  <span aria-hidden data-nav-unread={formatNavBadge(unread)} className="absolute -left-1.5 -top-0.5 size-2 rounded-full bg-accent-text ring-2 ring-[color:var(--theme-topbar)]" />
+                )}
                 {text && (
                   <span aria-hidden data-nav-badge={text} className="num absolute -right-2.5 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-2xs font-semibold text-primary-fg">
                     {text}

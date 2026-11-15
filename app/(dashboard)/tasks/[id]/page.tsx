@@ -48,6 +48,7 @@ import { formCardWidth } from '@/lib/forms/form-width'
 import { TaskCompletedScreen, type TaskCompletedEvent } from '@/components/tasks/task-completed-screen'
 import { resolveTaskCompletion, taskCompletedOverride } from '@/lib/tasks/completion-screen'
 import { useAssistantSurface } from '@/lib/assistants/client-registry'
+import { useMarkTaskReadOnOpen } from '@/hooks/use-task-read-state'
 
 // Task tree plus tenant badge, assignee/assigner names and workflow source, read server-side.
 async function loadTaskDetail(id: string) {
@@ -72,6 +73,8 @@ export default function TaskDetailPage({
     if (!title) return
     addOpenTask({ id, title })
   }, [addOpenTask, data?.treeData?.task?.title, id])
+  // Opening the task (its page and form) marks it read (unread dot on the lists).
+  useMarkTaskReadOnOpen(id, Boolean(data?.treeData?.task?.id))
 
   const { data: events = [] } = useQuery({
     queryKey: ['task-events', id],

@@ -156,9 +156,15 @@ describe.skipIf(!DB_URL)('nav counts and form drafts (local stack)', () => {
       expect(nav.my_tasks, user).toBe(card.open)
       expect(nav.queue, user).toBe(card.queue)
     }
-    expect(await home.getNavCounts(ctx(A, ME))).toEqual({ my_tasks: 4, queue: 2, tracker: 2 })
+    expect(await home.getNavCounts(ctx(A, ME))).toEqual({ my_tasks: 4, queue: 2, tracker: 2, unread: expect.any(Number) })
     expect(await home.getNavCounts(ctx(A, TEAMER))).toMatchObject({ my_tasks: 1, queue: 1, tracker: 1 })
-    expect(await home.getNavCounts(ctx(A, OTHER))).toEqual({ my_tasks: 1, queue: 0, tracker: 0 })
+    expect(await home.getNavCounts(ctx(A, OTHER))).toEqual({ my_tasks: 1, queue: 0, tracker: 0, unread: expect.any(Number) })
+  })
+
+  it('unread (20270115300000) = task_unread_count: the top-level tasks I hold and have not opened', async () => {
+    const [{ n }] = await q('SELECT public.task_unread_count($1, $2, true) AS n', [ME, A])
+    expect(n).toBeGreaterThan(0)
+    expect((await home.getNavCounts(ctx(A, ME))).unread).toBe(n)
   })
 
   it('tracker = Task Tracker default view (assigned by me to others), open only', async () => {
@@ -178,13 +184,13 @@ describe.skipIf(!DB_URL)('nav counts and form drafts (local stack)', () => {
   })
 
   it('tenant isolation: another workspace counts nothing; signed-in callers can only ask for themselves', async () => {
-    expect(await home.getNavCounts(ctx(B, ME))).toEqual({ my_tasks: 0, queue: 0, tracker: 0 })
-    expect(await home.getNavCounts(ctx(B, OUTSIDER))).toEqual({ my_tasks: 1, queue: 0, tracker: 0 })
+    expect(await home.getNavCounts(ctx(B, ME))).toEqual({ my_tasks: 0, queue: 0, tracker: 0, unread: 0 })
+    expect(await home.getNavCounts(ctx(B, OUTSIDER))).toEqual({ my_tasks: 1, queue: 0, tracker: 0, unread: 1 })
     const own = await as(ME, 'SELECT public.nav_task_counts($1, $2) AS c', [A, ME])
     expect(own.error).toBeNull()
-    expect(own.rows[0].c).toEqual({ my_tasks: 4, queue: 2, tracker: 2 })
+    expect(own.rows[0].c).toEqual({ my_tasks: 4, queue: 2, tracker: 2, unread: expect.any(Number) })
     const spy = await as(OTHER, 'SELECT public.nav_task_counts($1, $2) AS c', [A, ME])
-    expect(spy.rows[0].c).toEqual({ my_tasks: 0, queue: 0, tracker: 0 })
+    expect(spy.rows[0].c).toEqual({ my_tasks: 0, queue: 0, tracker: 0, unread: 0 })
     const anon = await (async () => {
       await db.query('BEGIN')
       try { await db.query('SET LOCAL ROLE anon'); return await db.query('SELECT public.nav_task_counts($1, $2)', [A, ME]).then(() => null, (e) => e) } finally { await db.query('ROLLBACK') }
@@ -193,8 +199,8 @@ describe.skipIf(!DB_URL)('nav counts and form drafts (local stack)', () => {
   })
 
   it('permissions: no tasks.view_all → no tracker count; neither permission → zeros; a person is needed', async () => {
-    expect(await home.getNavCounts(ctx(A, ME, ['tasks.view_own']))).toEqual({ my_tasks: 4, queue: 2, tracker: 0 })
-    expect(await home.getNavCounts(ctx(A, ME, ['forms.submit']))).toEqual({ my_tasks: 0, queue: 0, tracker: 0 })
+    expect(await home.getNavCounts(ctx(A, ME, ['tasks.view_own']))).toEqual({ my_tasks: 4, queue: 2, tracker: 0, unread: expect.any(Number) })
+    expect(await home.getNavCounts(ctx(A, ME, ['forms.submit']))).toEqual({ my_tasks: 0, queue: 0, tracker: 0, unread: 0 })
     await expect(home.getNavCounts(ctx(A, null))).rejects.toThrow(/bound to a user/)
   })
 

@@ -60,6 +60,9 @@ import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@
 import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
+import { UnreadDot, unreadTitleClass } from "@/components/tasks/unread-dot"
+import { MarkAllReadButton } from "@/components/tasks/task-read-controls"
+import { showsUnread } from "@/lib/tasks/unread"
 import { ListRefreshButton } from "@/components/tasks/list-refresh-button"
 import { QueueRulesButton } from "@/components/tasks/queue-rules-dialog"
 import { QUEUED_STATUS, type QueueAction } from "@/lib/tasks/unified-list"
@@ -158,6 +161,8 @@ export default function TasksPage() {
   })
 
   useEffect(() => { setLocalOrder(null) }, [tasks])
+  // Unread rows in this list (the side menu's count covers every unread task in the workspace).
+  const unreadCount = (tasks ?? []).filter((t: any) => showsUnread(t)).length
 
   // IMPORTANT: all hooks must run on every render — do not place any hook
   // call below an early return. Previously `useSensors` lived after the
@@ -227,6 +232,12 @@ export default function TasksPage() {
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
             <CalendarIcon className="size-3.5 shrink-0" aria-hidden="true" />
             This week · <span className="num">{formatDay(start)} – {formatDay(end)}</span>
+            {unreadCount > 0 && (
+              <span className="inline-flex items-center gap-1.5" data-unread-summary>
+                {" · "}<span aria-hidden="true" className="size-2 rounded-full bg-accent-text" />
+                <span><span className="num">{unreadCount}</span> unread</span>
+              </span>
+            )}
           </span>
         )}
         actions={(
@@ -269,6 +280,7 @@ export default function TasksPage() {
           {filtered && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button>}
         </div>
         <div className="order-2 flex shrink-0 items-center gap-1 sm:order-3 sm:gap-2">
+          <MarkAllReadButton unreadCount={unreadCount} onDone={setQuickNotice} />
           <QueueRulesButton />
           <ListRefreshButton queryKeys={TASK_LIST_REFRESH_KEYS} className="max-sm:[&>[role=status]]:hidden" />
         </div>
@@ -417,6 +429,7 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
   }
 
   const isDone = isTaskDone(task)
+  const unread = showsUnread(task)
   const progress = taskProgress(task)
   const hasChildren = (task.child_count ?? 0) > 0
   const queueAction = (task.queue_action ?? null) as QueueAction | null
@@ -431,6 +444,7 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
         onClick={toggle}
         onDoubleClick={() => router.push(`/tasks/${task.id}`)}
         data-task-row={task.id}
+        data-unread={unread || undefined}
       >
         <TD className="w-8 pr-0">
           <Tooltip content="Drag to reorder priority">
@@ -460,7 +474,8 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
             <span className="flex w-full min-w-0 items-center gap-2">
               <ChevronDown className={cn("size-3.5 shrink-0 text-fg-subtle transition-transform duration-[var(--ds-dur-fast)]", !expanded && "-rotate-90")} aria-hidden="true" />
               <span className="shrink-0 font-mono text-xs text-fg-muted">{getTaskCode(task)}</span>
-              <span className={cn("truncate font-medium text-fg", isDone && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
+              <UnreadDot unread={unread} />
+              <span className={cn("truncate font-medium text-fg", unreadTitleClass(unread), isDone && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
             </span>
             {(task.tenant || task.assignee || hasChildren) && (
               <span className="flex w-full min-w-0 items-center gap-1.5 pl-[22px] text-xs text-fg-muted">
@@ -519,12 +534,12 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
       )}
       {mobile ? (
         <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile
-          taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} />
+          taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} unread={isDone ? undefined : unread} />
       ) : actionsOpen && (
         <tr className="border-b border-border-subtle" data-task-actions-row>
           <TableDetailCell colSpan={COLUMNS}>
             <TaskQuickActions id={actionsId} open onOpenChange={setActionsOpen} mobile={false}
-              taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} />
+              taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} unread={isDone ? undefined : unread} />
           </TableDetailCell>
         </tr>
       )}
@@ -538,6 +553,7 @@ function TaskCard({ task, onNotice }: { task: any; onNotice: (message: string) =
   const [actionsOpen, setActionsOpen] = useState(false)
   const actionsId = useId()
   const isDone = isTaskDone(task)
+  const unread = showsUnread(task)
   const progress = taskProgress(task)
   const hasChildren = (task.child_count ?? 0) > 0
   const queueAction = (task.queue_action ?? null) as QueueAction | null
@@ -549,6 +565,7 @@ function TaskCard({ task, onNotice }: { task: any; onNotice: (message: string) =
         href={`/tasks/${task.id}`}
         title={task.title}
         done={isDone}
+        unread={unread}
         code={getTaskCode(task)}
         meta={(meta || hasChildren) ? (
           <>
@@ -581,7 +598,7 @@ function TaskCard({ task, onNotice }: { task: any; onNotice: (message: string) =
         data-task-card={task.id}
       />
       <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile
-        taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} />
+        taskId={task.id} title={task.title} queueAction={queueAction} onDone={onNotice} unread={isDone ? undefined : unread} />
     </>
   )
 }

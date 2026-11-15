@@ -35,7 +35,7 @@ import { FORM_PARAMS_KEY, paramsFromQuery, formParamsMessage, hasFormContext, in
 import { normalizeFormDefinition } from '@/lib/forms/definition'
 import { layoutDataTarget } from '@/lib/forms/data-target'
 import {
-  interpolateButtonText, isSubmittingButton, normalizeFormButtons, planButtonEffects, resolveInputTemplate, safeRedirectUrl,
+  interpolateButtonText, isSubmittingButton, normalizeFormButtons, planButtonEffects, resolveInputTemplate, safeRedirectUrl, TARGET_RETURN_URL,
   type ButtonEffects, type FormAction, type FormButton,
 } from '@/lib/forms/buttons'
 import { afterSubmitActions } from '@/lib/forms/form-rules'
@@ -155,6 +155,8 @@ export async function runButtonActions(
     context?: Record<string, unknown>
     /** The submission metadata the started workflows get as {{submission.*}} (server-built; a task form's is built here). */
     submission?: SubmissionMeta
+    /** The data target's "back" page for {{target.return_url}} redirects (provider-vetted). */
+    targetReturnUrl?: string | null
   },
 ): Promise<{ runs: StartedRun[]; effects: ButtonEffects; table_changes: TableChangesSummary[] }> {
   // Form rules on "After submit" (this button or any) add their actions after the button's own (lib/forms/form-rules.ts).
@@ -229,6 +231,7 @@ export async function runButtonActions(
   const shownScope = {
     values: { ...input.values, ...(input.context ?? {}) },
     extras: { run_reference: queued.join(', '), submission_id: input.submissionId ? input.submissionId.slice(0, 8) : '', table_changes_summary: tableSummary },
+    targetReturnUrl: input.targetReturnUrl ?? null,
   }
   // The form's Submitted page when no redirect / close / button screen decides (never for task forms).
   const effects = applySubmittedPage(planButtonEffects(input.button, shownScope, redirectPolicy()), {
@@ -475,7 +478,7 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     url_params: requestUrlParams(def.layout, input),
     layout: def.layout,
   })
-  const { runs, effects, table_changes } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id, fields: def.fields, layout: def.layout, context: shownContext(def.layout, input), submission: payload.submission as SubmissionMeta })
+  const { runs, effects, table_changes } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id, fields: def.fields, layout: def.layout, context: shownContext(def.layout, input), submission: payload.submission as SubmissionMeta, targetReturnUrl: written?.returnUrl ?? null })
   if (written) {
     payload.data_target = { label: written.label, record: written.record }
     if (written.message) effects.messages = [{ text: written.message, tone: 'success' }, ...effects.messages]
@@ -484,6 +487,32 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
   const dataTarget = written ? { label: written.label, record: written.record, version: written.version } : null
   await (db as any).from('form_submissions').update({ result: { runs, effects, triggered, ...(options.surface ? { surface: options.surface } : {}), ...(table_changes.length ? { table_changes } : {}), ...(dataTarget ? { data_target: dataTarget } : {}) } }).eq('id', inserted.id).eq('tenant_id', ctx.tenantId)
   return { submission: presentSubmission(inserted), effects, runs, ...(table_changes.length ? { table_changes } : {}), ...(dataTarget ? { data_target: dataTarget } : {}) }
+}
+
+/**
+ * "Delete record" (a delete button of a form bound to a data target): the
+ * provider deletes the external record the URL parameters name, then the
+ * button's message / redirect ({{target.return_url}}) / close are planned.
+ * Signed-in members with forms.submit only; nothing is stored in UserTasks
+ * (the deletion is audited).
+ */
+export async function deleteFormRecord(ctx: ServiceContext, formId: string, input: { button_id?: string | null; params?: Record<string, unknown> | null; target_version?: string | null }): Promise<{ effects: ButtonEffects; data_target: { label: string; record: { id: string; label: string | null } | null } }> {
+  requirePerm(ctx, 'forms.submit')
+  if (isAnonymous(ctx)) throw ServiceError.forbidden('Forbidden: deleting a record needs a signed-in member')
+  const db = await serviceRoleClient(ctx)
+  const row = await loadForm(db, ctx.tenantId, formId)
+  const def = normalizeFormDefinition(row)
+  const buttons = normalizeFormButtons(def.buttons ?? null)
+  const button = buttons.find((b) => b.kind === 'delete' && (!input.button_id || b.id === input.button_id))
+  if (!button) throw ServiceError.validation('This form has no Delete button')
+  if (!layoutDataTarget(def.layout)) throw ServiceError.validation('Only forms bound to an external record can delete it')
+  const { deleteFormTargetRecord } = await import('./form-targets')
+  const removed = await deleteFormTargetRecord(ctx, { id: formId, name: String(row.name), version: Number(row.version ?? 0) || null, fields: def.fields, layout: def.layout }, { params: input.params ?? null, version: input.target_version ?? null })
+  const scope = { values: {}, extras: {}, targetReturnUrl: removed.returnUrl }
+  const effects = planButtonEffects(button, scope, redirectPolicy())
+  if (removed.message) effects.messages = [{ text: removed.message, tone: 'success' }, ...effects.messages]
+  await audit(ctx, { objectType: 'form', objectId: formId, action: 'delete', summary: `Form "${row.name}" deleted ${removed.record ? `"${removed.record.label ?? removed.record.id}"` : 'a record'} in ${removed.label}`, metadata: { button_id: button.id, record: removed.record } })
+  return { effects, data_target: { label: removed.label, record: removed.record } }
 }
 
 /** A log line of a test submission (what the real one would have done). */
@@ -533,6 +562,8 @@ export async function planTestSubmission(ctx: ServiceContext, formId: string, in
     } else if (action.type === 'success_screen') {
       const text = interpolateButtonText(action.text, scope)
       logs.push({ level: 'info', message: `Would show the success screen "${interpolateButtonText(action.title, scope)}"${text ? `: ${text}` : ''}` })
+    } else if (action.type === 'redirect' && action.url === TARGET_RETURN_URL) {
+      logs.push({ level: 'info', message: 'Would go back to where the record lives (the data target\'s return page)' })
     } else if (action.type === 'redirect') {
       const url = safeRedirectUrl(action.url, policy)
       logs.push(url ? { level: 'info', message: `Would redirect to ${url}` } : { level: 'warn', message: `Would not redirect: "${action.url ?? ''}" is not an allowed address` })

@@ -27,6 +27,7 @@
  */
 
 import { audit, dbError, ilikeTerm, serviceRoleClient, type Page } from './_shared'
+import { unreadTaskIds } from './task-reads'
 import { controlValueText } from '@/lib/forms/control-text'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { computeRunOverlay } from '@/lib/workflow-run-overlay'
@@ -107,11 +108,12 @@ export async function getHomeMetrics(ctx: ServiceContext): Promise<{ tasks: Task
  *  - tracker:  Task Tracker's default view ("Assigned by me"), open tasks only.
  * A count the caller can't see (no permission for that menu item) is 0.
  */
-export interface NavCounts { my_tasks: number; queue: number; tracker: number }
+/** unread: unread top-level tasks I hold (lib/tasks/unread.ts); 0 until migration 20270115300000 is applied. */
+export interface NavCounts { my_tasks: number; queue: number; tracker: number; unread: number }
 
 export async function getNavCounts(ctx: ServiceContext): Promise<NavCounts> {
   actor(ctx)
-  const none: NavCounts = { my_tasks: 0, queue: 0, tracker: 0 }
+  const none: NavCounts = { my_tasks: 0, queue: 0, tracker: 0, unread: 0 }
   const own = hasPerm(ctx, 'tasks.view_own')
   const tracker = hasPerm(ctx, 'tasks.view_all')
   if (!own && !tracker) return none
@@ -120,6 +122,7 @@ export async function getNavCounts(ctx: ServiceContext): Promise<NavCounts> {
     my_tasks: own ? counts.my_tasks ?? 0 : 0,
     queue: own ? counts.queue ?? 0 : 0,
     tracker: tracker ? counts.tracker ?? 0 : 0,
+    unread: own ? counts.unread ?? 0 : 0,
   }
 }
 
@@ -255,11 +258,13 @@ export interface HomeTask {
   run_id: string | null
   /** Queue: what I can do with it. */
   action?: 'accept' | 'claim'
+  /** Not opened since it became mine (lib/tasks/unread.ts). */
+  unread: boolean
 }
 
-const TASK_COLUMNS = 'id, title, status, priority, due_date, created_at, accepted_at, acceptance_status, workflow_id, workflow_step_id, workflow_run_id, event_id, assigned_team_id, workflow:workflows(id, name)'
+export const TASK_COLUMNS = 'id, title, status, priority, due_date, created_at, accepted_at, acceptance_status, workflow_id, workflow_step_id, workflow_run_id, event_id, assigned_team_id, workflow:workflows(id, name)'
 
-async function shapeTasks(db: AnySupabaseClient, tenantId: string, rows: any[]): Promise<HomeTask[]> {
+export async function shapeTasks(db: AnySupabaseClient, tenantId: string, rows: any[], unread: ReadonlySet<string> = new Set()): Promise<HomeTask[]> {
   const runIds = rows.map((r) => r.workflow_run_id).filter(Boolean)
   const eventIds = rows.filter((r) => !r.workflow_run_id && r.event_id).map((r) => r.event_id)
   const runs = new Map<string, any>()
@@ -292,6 +297,7 @@ async function shapeTasks(db: AnySupabaseClient, tenantId: string, rows: any[]):
       acceptance_status: t.acceptance_status ?? null,
       team: t.assigned_team_id ? (teams.get(t.assigned_team_id) ?? null) : null,
       run_id: t.workflow_run_id ?? run?.id ?? null,
+      unread: unread.has(String(t.id)),
     }
   })
 }
@@ -342,7 +348,7 @@ export async function listMyTasks(ctx: ServiceContext, input: {
   const { data, count, error } = await query.order('id').range(offset, offset + limit - 1)
   if (error) throw dbError(error)
   const rows = (data ?? []) as any[]
-  const shaped = await shapeTasks(db, ctx.tenantId, rows)
+  const shaped = await shapeTasks(db, ctx.tenantId, rows, await unreadTaskIds(ctx, rows.map((r) => r.id)))
   if (!scope) return { tasks: shaped, total: count ?? 0 }
   const queueScope = scope
   return {
@@ -355,7 +361,7 @@ export async function listMyTasks(ctx: ServiceContext, input: {
 }
 
 /** My teams and my pending collaborations in this workspace (the queue's sources). */
-async function queueSources(db: AnySupabaseClient, tenantId: string, me: string): Promise<{ teams: string[]; collabIds: string[]; candidateIds: string[] }> {
+export async function queueSources(db: AnySupabaseClient, tenantId: string, me: string): Promise<{ teams: string[]; collabIds: string[]; candidateIds: string[] }> {
   const [teams, { data: collab }] = await Promise.all([
     myTeams(db, tenantId, me),
     (db as any).from('task_assignees').select('task_id, role').eq('tenant_id', tenantId).eq('user_id', me).eq('acceptance_status', 'pending').limit(500),
@@ -378,7 +384,7 @@ function queueOrParts(me: string, teams: string[], collabIds: string[], allMine:
 }
 
 /** The teams I belong to in this workspace (user_teams, plus the legacy users.team_id). */
-async function myTeams(db: AnySupabaseClient, tenantId: string, userId: string): Promise<string[]> {
+export async function myTeams(db: AnySupabaseClient, tenantId: string, userId: string): Promise<string[]> {
   const [{ data: memberships }, { data: profile }] = await Promise.all([
     (db as any).from('user_teams').select('team_id, team:teams!inner(tenant_id)').eq('user_id', userId).eq('team.tenant_id', tenantId),
     (db as any).from('users').select('team_id').eq('id', userId).maybeSingle(),
@@ -411,7 +417,7 @@ export async function listQueueTasks(ctx: ServiceContext, input: { search?: stri
     .range(offset, offset + limit - 1)
   if (error) throw dbError(error)
   const rows = (data ?? []) as any[]
-  const shaped = await shapeTasks(db, ctx.tenantId, rows)
+  const shaped = await shapeTasks(db, ctx.tenantId, rows, await unreadTaskIds(ctx, rows.map((r) => r.id)))
   const collabSet = new Set(collabIds)
   const candidateSet = new Set(candidateIds)
   return {
@@ -611,8 +617,38 @@ export async function claimTask(ctx: ServiceContext, taskId: string): Promise<{ 
     await (db as any).from('task_assignees').delete().eq('tenant_id', ctx.tenantId).eq('task_id', taskId).eq('role', CLAIM_CANDIDATE_ROLE).neq('user_id', me)
     await (db as any).from('task_assignees').update({ role: 'lead', acceptance_status: 'accepted', accepted_at: now }).eq('tenant_id', ctx.tenantId).eq('task_id', taskId).eq('user_id', me)
   }
+  // Claiming routes the task to me (routed_at moves), but I just acted on it: it isn't new to me. Until 20270115300000 there is no such function.
+  await (db as any).rpc('mark_tasks_read', { p_user_id: me, p_tenant_id: ctx.tenantId, p_task_ids: [taskId] }).then(() => undefined, () => undefined)
   void audit(ctx, { objectType: 'task' as any, objectId: taskId, action: 'update', summary: `Claimed ${task.assigned_team_id ? 'team' : 'group'} task "${String(task.title ?? '').slice(0, 120)}"`, metadata: { claimed: true, team_id: task.assigned_team_id, ...(candidateIds.length ? { aad_group: true } : {}) } })
   return { claimed: true, task_id: taskId }
+}
+
+/**
+ * Give a claimed team task back to its team (the reverse of claimTask): only
+ * the person holding it, only while it is open, only a task that belongs to a
+ * team (an AAD group claim drops the other candidates, so it can't be given
+ * back). It becomes unassigned and To do again; saved values stay.
+ * Atomic: a task reassigned meanwhile is not touched (409). tasks.complete.
+ */
+export async function unclaimTask(ctx: ServiceContext, taskId: string): Promise<{ unclaimed: true; task_id: string }> {
+  requirePerm(ctx, 'tasks.complete')
+  const me = actor(ctx)
+  if (!UUID_RE.test(taskId)) throw ServiceError.notFound('Task not found')
+  const db = await serviceRoleClient(ctx)
+  const { data: task, error } = await (db as any).from('tasks').select('id, title, status, assignee_id, assigned_team_id, deleted_at')
+    .eq('id', taskId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  if (error) throw dbError(error)
+  if (!task || task.deleted_at) throw ServiceError.notFound('Task not found')
+  if (!task.assigned_team_id) throw ServiceError.validation('Only team tasks can be given back')
+  if (task.assignee_id !== me) throw ServiceError.forbidden('Only the person who claimed this task can give it back')
+  if (!['todo', 'in_progress', 'blocked'].includes(task.status)) throw new ServiceError('conflict', 'This task is closed')
+  const { data: updated, error: updateError } = await (db as any).from('tasks')
+    .update({ assignee_id: null, acceptance_status: 'pending', accepted_at: null, status: 'todo', updated_at: new Date().toISOString() })
+    .eq('id', taskId).eq('tenant_id', ctx.tenantId).eq('assignee_id', me).select('id')
+  if (updateError) throw dbError(updateError)
+  if (!updated?.length) throw new ServiceError('conflict', 'This task was reassigned meanwhile')
+  void audit(ctx, { objectType: 'task' as any, objectId: taskId, action: 'update', summary: `Gave team task "${String(task.title ?? '').slice(0, 120)}" back to the team`, metadata: { unclaimed: true, team_id: task.assigned_team_id } })
+  return { unclaimed: true, task_id: taskId }
 }
 
 /* ── Following ───────────────────────────────────────────────────────── */

@@ -85,7 +85,8 @@ jobs:
             echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
             exit 1
           fi
-          previous="$(git tag --list 'v*' --sort=-v:refname | grep -v "^v${version}$" | head -n 1 | sed 's/^v//')"
+          # No earlier tag on the first release: grep -v then matches nothing (exit 1), which pipefail would turn into a failure.
+          previous="$(git tag --list 'v*' --sort=-v:refname | { grep -v "^v${version}$" || true; } | head -n 1 | sed 's/^v//')"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "previous=${previous}" >> "$GITHUB_OUTPUT"
 

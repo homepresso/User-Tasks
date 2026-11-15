@@ -665,7 +665,7 @@ export interface paths {
         };
         /**
          * List tasks
-         * @description User-bound credentials only see tasks assigned to (or shared with) their user. `scope=reports` lists the open tasks of the caller's reports instead (the manager view; needs a user and only tasks.view_own), with per-person workload counts in `reports`.
+         * @description User-bound credentials only see tasks assigned to (or shared with) their user. `scope=reports` lists the open tasks of the caller's reports instead (the manager view; needs a user and only tasks.view_own), with per-person workload counts in `reports`. Each task carries `unread` (true while it is unread for the credential's person — see PUT /tasks/{id}/read; always false for a credential with no user).
          */
         get: operations["listTasks"];
         put?: never;
@@ -683,7 +683,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List open tasks assigned to a user or team */
+        /**
+         * List open tasks assigned to a user or team
+         * @description Each task carries `unread` (true while it is unread for the credential's person — see PUT /tasks/{id}/read; always false for a credential with no user).
+         */
         get: operations["listAssignedTasks"];
         put?: never;
         post?: never;
@@ -702,7 +705,7 @@ export interface paths {
         };
         /**
          * Get a task
-         * @description Task responses include `description` (as stored: sanitised HTML or plain text) and `description_text` (plain text).
+         * @description Task responses include `description` (as stored: sanitised HTML or plain text) and `description_text` (plain text), and `unread` (true while it is unread for the credential's person — see PUT /tasks/{id}/read; false for a credential with no user).
          */
         get: operations["getTask"];
         put?: never;
@@ -887,7 +890,7 @@ export interface paths {
         };
         /**
          * Tasks I follow (the Task tracker's Following tab)
-         * @description Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at and shared_with_me ({ via: user / team / role, name, invited_by, shared_at } for tasks shared with you by an invite — read only; null otherwise), sorted by due date (none last), then most recently followed. Tasks shared with you (directly, through a team you are in or a role you hold) are listed without following them. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         * @description Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at, unread (not opened by you since it became yours) and shared_with_me ({ via: user / team / role, name, invited_by, shared_at } for tasks shared with you by an invite — read only; null otherwise), sorted by due date (none last), then most recently followed. Tasks shared with you (directly, through a team you are in or a role you hold) are listed without following them. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403).
          */
         get: operations["listFollowedTasks"];
         put?: never;
@@ -917,6 +920,70 @@ export interface paths {
          * @description Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
          */
         delete: operations["unfollowTask"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark a task as read
+         * @description What opening the task does in the app. A task you can see; 404 otherwise. Idempotent. A task is unread for you while it is open (todo, in progress or blocked), you hold it (assignee, collaborator or claim candidate, or a member of the assigned team of an unassigned team task) and you have not opened it since it became yours (assigned, reassigned, claimed, or reopened / sent back). Completed, cancelled and draft tasks are never unread. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        put: operations["markTaskRead"];
+        post?: never;
+        /**
+         * Mark a task as unread
+         * @description Forgets that you opened it. `unread` in the response is the state the rule then gives: a task you don't hold, or a closed one, stays read. A task you can see; 404 otherwise. Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        delete: operations["markTaskUnread"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark all my tasks as read
+         * @description Marks every task that is unread for you in the credential's workspace as read; `marked` is how many. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        post: operations["markAllTasksRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How many of my tasks are unread
+         * @description Top-level tasks that are unread for you in the credential's workspace (the count next to My tasks in the app). A task is unread for you while it is open (todo, in progress or blocked), you hold it (assignee, collaborator or claim candidate, or a member of the assigned team of an unassigned team task) and you have not opened it since it became yours (assigned, reassigned, claimed, or reopened / sent back). Completed, cancelled and draft tasks are never unread. Personal: needs a credential bound to a user (tenant-wide keys get 403).
+         */
+        get: operations["countUnreadTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -10433,6 +10500,234 @@ export interface operations {
             };
         };
     };
+    markTaskRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            unread: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    markTaskUnread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            task_id: string;
+                            unread: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    markAllTasksRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            marked: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    countUnreadTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            unread: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listTaskViewers: {
         parameters: {
             query?: never;
@@ -17734,7 +18029,7 @@ export interface operations {
                     theme?: {
                         [key: string]: unknown;
                     } | null;
-                    /** @description The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
+                    /** @description The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
                     buttons?: {
                         [key: string]: unknown;
                     }[] | null;
@@ -17968,7 +18263,7 @@ export interface operations {
                     theme?: {
                         [key: string]: unknown;
                     } | null;
-                    /** @description New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
+                    /** @description New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
                     buttons?: {
                         [key: string]: unknown;
                     }[] | null;
@@ -18580,7 +18875,7 @@ export interface operations {
                     theme?: {
                         [key: string]: unknown;
                     } | null;
-                    /** @description The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
+                    /** @description The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
                     buttons?: {
                         [key: string]: unknown;
                     }[] | null;

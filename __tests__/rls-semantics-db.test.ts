@@ -138,6 +138,12 @@
  * UPDATE grant. tenant_id always follows the task (trigger), so a "move"
  * keeps the row in its tenant.
  *
+ * 20270115300000_task_reads.sql added task_reads (unread tasks): a caller
+ * reads, updates and deletes their own rows in their member workspaces;
+ * INSERT / UPDATE need the task to be visible to them (task_view_access —
+ * the fixture task has no assignee, so inserts are 42501). tenant_id follows
+ * the task (trigger).
+ *
  * 20270105000000_task_viewers.sql added task_viewers (Invite, read only):
  * a caller reads the invites of tasks they can see in their visible
  * workspaces (task_view_access — the fixture task has no assignee or
@@ -497,6 +503,8 @@ const SPECS: Spec[] = [
   { table: 'run_followers', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, run_id: id('workflow_runs', k) }), touch: 'created_at' },
   // Task tracker → Following (20261226000000): a person's own follows; INSERT only for a task they can see.
   { table: 'task_followers', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, task_id: id('tasks', k) }), touch: 'created_at' },
+  // Unread tasks (20270115300000): a person's own read state; INSERT / UPDATE only for a task they can see.
+  { table: 'task_reads', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, task_id: id('tasks', k) }), touch: 'seen_at' },
   // Invite, read only (20270105000000): invites of tasks the caller can see; written by the service only.
   { table: 'task_viewers', make: (k, v) => ({ tenant_id: TENANT[k], task_id: id('tasks', k), principal_type: v === 'row' ? 'user' : 'team', principal_id: v === 'row' ? OWNER[k] : id('teams', k) }), touch: 'note' },
   { table: 'form_favorites', make: (k, v) => ({ tenant_id: TENANT[k], user_id: v === 'row' ? OWNER[k] : U.ab_unified, form_id: id('forms', k) }), touch: 'created_at' },

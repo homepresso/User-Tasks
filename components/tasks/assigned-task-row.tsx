@@ -21,11 +21,15 @@ import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@
 import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
+import { UnreadDot, unreadTitleClass } from "@/components/tasks/unread-dot"
+import { showsUnread } from "@/lib/tasks/unread"
 
 interface AssignedTaskRowProps {
   task: {
     id: string
     title: string
+    /** Not opened by me since it became mine (lib/tasks/unread.ts). */
+    unread?: boolean
     status: string
     priority: string
     due_date: string | null
@@ -115,6 +119,8 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
   const assignerLabel = task.assigner?.display_name || task.assigner?.email || null
   const acceptance = task.acceptance_status ? acceptanceTone[task.acceptance_status] : null
   const isDone = task.status === "completed" || task.status === "cancelled"
+  // Unread for me (a task I hold and haven't opened since it became mine — rare in the tracker, common in Following).
+  const unread = showsUnread(task)
   const progress = taskRowProgress(task)
   const secondary = [
     progress.hasChildren ? `${progress.completed}/${progress.total} subtasks` : null,
@@ -129,7 +135,7 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
     // Phones: one card per task (the table header is hidden); tapping opens the task.
     return (
       <>
-        <MobileTaskCard as="tr" colSpan={ASSIGNED_TASK_COLUMNS} href={`/tasks/${task.id}`} title={task.title} done={isDone}
+        <MobileTaskCard as="tr" colSpan={ASSIGNED_TASK_COLUMNS} href={`/tasks/${task.id}`} title={task.title} done={isDone} unread={unread}
           code={getTaskCode(task)} meta={[assigneeLabel, ...secondary].join(" · ")}
           leading={<TaskFollowButton taskId={task.id} following={following} />}
           actions={(
@@ -159,14 +165,14 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
           ) : undefined}
           data-assigned-task={task.id}
         />
-        <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile taskId={task.id} title={task.title} />
+        <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile taskId={task.id} title={task.title} unread={isDone || !unread ? undefined : true} />
       </>
     )
   }
 
   return (
     <>
-      <TR className={cn("cursor-pointer", expanded && "border-b-0 bg-subtle")} onClick={toggle} onDoubleClick={() => router.push(`/tasks/${task.id}`)} data-assigned-task={task.id}>
+      <TR className={cn("cursor-pointer", expanded && "border-b-0 bg-subtle")} onClick={toggle} onDoubleClick={() => router.push(`/tasks/${task.id}`)} data-assigned-task={task.id} data-unread={unread || undefined}>
         <TD className="w-8 px-0">
           <TaskFollowButton taskId={task.id} following={following} />
         </TD>
@@ -185,7 +191,8 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
               {task.workflow_source ? <Pencil className="size-3.5" /> : <Clock className="size-3.5" />}
             </span>
             <span className={cn("shrink-0 font-mono text-xs text-fg-muted", isDone && "line-through")}>{getTaskCode(task)}</span>
-            <span className={cn("min-w-24 truncate font-medium text-fg", isDone && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
+            <UnreadDot unread={unread} />
+            <span className={cn("min-w-24 truncate font-medium text-fg", unreadTitleClass(unread), isDone && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
             {task.tenant && (
               <OrgBadge name={task.tenant.name} slug={task.tenant.slug} color={task.tenant.branding?.primary_color} size="sm" />
             )}
@@ -241,11 +248,11 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
         </tr>
       )}
       {mobile ? (
-        <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile taskId={task.id} title={task.title} />
+        <TaskQuickActions id={actionsId} open={actionsOpen} onOpenChange={setActionsOpen} mobile taskId={task.id} title={task.title} unread={isDone || !unread ? undefined : true} />
       ) : actionsOpen && (
         <tr className="border-b border-border-subtle" data-task-actions-row>
           <TableDetailCell colSpan={ASSIGNED_TASK_COLUMNS}>
-            <TaskQuickActions id={actionsId} open onOpenChange={setActionsOpen} mobile={false} taskId={task.id} title={task.title} />
+            <TaskQuickActions id={actionsId} open onOpenChange={setActionsOpen} mobile={false} taskId={task.id} title={task.title} unread={isDone || !unread ? undefined : true} />
           </TableDetailCell>
         </tr>
       )}

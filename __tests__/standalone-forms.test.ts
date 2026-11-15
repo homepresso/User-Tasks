@@ -203,7 +203,8 @@ describe('embedding', () => {
 
   it('the page body posts its height when embedded (EmbedFrame wiring)', () => {
     const src = readFileSync(path.join(process.cwd(), 'components/forms/embed-frame.tsx'), 'utf8')
-    expect(src).toMatch(/window\.parent\.postMessage\(resizeMessage\(/)
+    // usertasks:resize (+ the add-in part message with a SenderId): lib/embed/host-messages.ts.
+    expect(src).toMatch(/hostResizeMessages\(height, window\.location\)\) postToHost\(/)
     expect(src).toMatch(/ResizeObserver/)
   })
 })

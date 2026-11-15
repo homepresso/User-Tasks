@@ -22,6 +22,8 @@ import { checkUsageLimit } from '@/lib/licensing/limits'
 import { holdsPermission } from '@/lib/permissions'
 import { hostForms } from './forms'
 import { hostFormObjects, hostWorkflowObjects } from './objects-host'
+import { hostInsightsForms, hostInsightsWorkflows } from './insights-host'
+import { hostGrants } from './grants-host'
 import { configuredAppUrl } from '@/lib/config/bootstrap'
 import { escapeLikePattern } from '@/lib/utils'
 
@@ -149,7 +151,7 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
       async trigger(key, payload, opts) {
         if (!tenantId) throw new Error('workflows.trigger needs a workspace')
         const { startExtensionTrigger } = await import('./triggers')
-        return startExtensionTrigger({ tenantId, extensionId, key, payload, dedupeKey: opts?.dedupeKey, workflowId: opts?.workflowId })
+        return startExtensionTrigger({ tenantId, extensionId, key, payload, dedupeKey: opts?.dedupeKey, workflowId: opts?.workflowId, startedBy: opts?.workflowId && opts?.byPerson ? actorId : null })
       },
       async create(input) {
         if (!tenantId) throw new Error('workflows.create needs a workspace')
@@ -162,6 +164,7 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
         return listExtensionTriggerConfigs({ tenantId, extensionId, key })
       },
       ...hostWorkflowObjects(objectsHost),
+      ...hostInsightsWorkflows(objectsHost),
     },
     users: {
       findByEmail: (emails) => findMembersByEmail(tenantId, emails),
@@ -221,7 +224,7 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
       get: (id) => getExtensionConnection(extensionId, tenantId, id),
       fetch: (id, url, init, opts) => fetchWithExtensionConnection(extensionId, tenantId, id, url, init, opts),
     },
-    forms: { ...hostForms({ extensionId, tenantId, actorId, db: getServiceDb(), permissions: held }), ...hostFormObjects(objectsHost) },
+    forms: { ...hostForms({ extensionId, tenantId, actorId, db: getServiceDb(), permissions: held }), ...hostFormObjects(objectsHost), ...hostInsightsForms(objectsHost) },
     directory: {
       async requestSync(key, opts) {
         if (!tenantId) throw new Error('directory.requestSync needs a workspace')
@@ -258,6 +261,7 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
       },
     },
     logger: log,
+    grants: hostGrants(objectsHost),
     elevate(reason) {
       if (!tenantId || !actorId) throw new Error('elevate needs a workspace and a person')
       const why = String(reason ?? '').trim().slice(0, 300)

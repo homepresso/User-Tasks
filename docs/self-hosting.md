@@ -101,7 +101,10 @@ examples, is [Give your install a friendly address](https://usertasks.com/docs/s
    `X-Forwarded-For`, doesn't buffer Server-Sent Events (nginx:
    `proxy_buffering off;` and a long `proxy_read_timeout`) and accepts the
    upload size below. With Docker Compose, `APP_PORT=127.0.0.1:3000` keeps
-   the app's port off the network so only the proxy reaches it.
+   the app's port off the network so only the proxy reaches it. Serve
+   HTTP/2: every open UserTasks page holds a live-update (SSE) connection,
+   and over HTTP/1.1 browsers allow six per address, so several open tabs
+   make saves and page loads queue (hidden tabs release theirs after 30 s).
 3. **`APP_URL` and `NEXT_PUBLIC_APP_URL`** set to `https://tasks.example.com`.
    The server reads `APP_URL` at runtime (restart); `NEXT_PUBLIC_APP_URL` is
    also read at build time (a Docker build arg), so rebuild as well.
@@ -458,6 +461,18 @@ and `NEXT_PUBLIC_APP_URL` are build args, because statically rendered routes
 use them; rebuild after changing those two. If Supabase runs on the host
 (`supabase start`), use `http://host.docker.internal:54321` as
 `NEXT_PUBLIC_SUPABASE_URL` and make sure browsers can reach the same URL.
+
+### Windows hosts: antivirus exclusions
+
+Running on Windows without Docker, exclude the app, data and PostgreSQL
+folders from Microsoft Defender's real-time scanning (`Add-MpPreference
+-ExclusionPath …`, as administrator): on-access scanning of PostgreSQL's
+files, the logs and the app's code (after each restart or upgrade) slows
+the app down (5–14 s vs under 1 s to read 1,500 freshly written app files
+on a test server). Exclude folders, not `node.exe` / `postgres.exe`
+processes, keep unscanned uploads out of the excluded folders, and restrict
+who can write there: malware in an excluded folder isn't caught. Details and
+the trade-off: [Requirements → Windows servers](https://usertasks.com/docs/self-hosting/requirements#windows-servers-antivirus).
 
 ### Version and health check
 

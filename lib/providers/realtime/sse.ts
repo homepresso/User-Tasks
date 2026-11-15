@@ -8,6 +8,14 @@ import type { RealtimeChangeHandler, RealtimeProvider, RealtimeStatusHandler } f
  * set of subscriptions changes, the connection is replaced (debounced) and
  * resumes from the last event id, so nothing in between is lost.
  *
+ * A tab that stays hidden (another tab in front, minimised) closes its
+ * stream after `hiddenGraceMs` and reconnects — from the last event id, or
+ * with a RESYNC when the server can't replay the gap — when it is shown
+ * again. Without this every open tab (and framed page) held one of the
+ * browser's ~6 connections to the origin for good; with five tabs open the
+ * sixth connection carried every request of the visible page (saves,
+ * reads, scripts) one after another.
+ *
  * EventSource reconnects by itself after network errors and after the
  * server's planned end of stream (function time limit), sending
  * Last-Event-ID. An HTTP error (signed out, 429) closes it for good; then
@@ -30,8 +38,18 @@ interface EventSourceLike {
   close(): void
 }
 
+/** The page's visibility (document in a browser). */
+export interface VisibilityLike {
+  readonly hidden: boolean
+  addEventListener(type: 'visibilitychange', listener: () => void): void
+}
+
 export interface SseClientOptions {
   EventSource?: new (url: string, init?: EventSourceInit) => EventSourceLike
+  /** Default: `document` in a browser; null: always connected. */
+  visibility?: VisibilityLike | null
+  /** How long a hidden tab keeps its stream before closing it (default 30 s). */
+  hiddenGraceMs?: number
   path?: string
   /** Debounce before (re)connecting after the subscription set changes. */
   debounceMs?: number
@@ -50,17 +68,49 @@ export class SseRealtimeClient {
   private rejected = new Set<string>()
   private timer: ReturnType<typeof setTimeout> | null = null
   private backoffMs: number
-  private readonly opts: Required<Omit<SseClientOptions, 'EventSource'>> & Pick<SseClientOptions, 'EventSource'>
+  /** Hidden long enough: the stream is closed until the tab is shown. */
+  private paused = false
+  private hiddenTimer: ReturnType<typeof setTimeout> | null = null
+  private readonly visibility: VisibilityLike | null
+  private readonly opts: Required<Omit<SseClientOptions, 'EventSource' | 'visibility'>> & Pick<SseClientOptions, 'EventSource'>
 
   constructor(options: SseClientOptions = {}) {
     this.opts = {
       EventSource: options.EventSource,
       path: options.path ?? REALTIME_SSE_PATH,
+      hiddenGraceMs: options.hiddenGraceMs ?? 30_000,
       debounceMs: options.debounceMs ?? 50,
       minBackoffMs: options.minBackoffMs ?? 2_000,
       maxBackoffMs: options.maxBackoffMs ?? 60_000,
     }
     this.backoffMs = this.opts.minBackoffMs
+    this.visibility = options.visibility !== undefined ? options.visibility : (typeof document !== 'undefined' ? document : null)
+    if (this.visibility) {
+      this.visibility.addEventListener('visibilitychange', () => this.onVisibility())
+      if (this.visibility.hidden) this.onVisibility()
+    }
+  }
+
+  /** Hidden: close the stream after the grace period. Shown: reconnect at once (resuming after the last event id). */
+  private onVisibility(): void {
+    if (this.visibility?.hidden) {
+      if (!this.hiddenTimer && !this.paused) {
+        this.hiddenTimer = setTimeout(() => {
+          this.hiddenTimer = null
+          if (!this.visibility?.hidden) return
+          this.paused = true
+          this.source?.close()
+          this.source = null
+          this.connectedKeys = ''
+        }, this.opts.hiddenGraceMs)
+      }
+      return
+    }
+    if (this.hiddenTimer) clearTimeout(this.hiddenTimer)
+    this.hiddenTimer = null
+    if (!this.paused) return
+    this.paused = false
+    this.connect(true)
   }
 
   subscribe(topic: RealtimeTopic, filter: RealtimeFilter, onChange: RealtimeChangeHandler, onStatus?: RealtimeStatusHandler): () => void {
@@ -87,6 +137,8 @@ export class SseRealtimeClient {
   dispose(): void {
     if (this.timer) clearTimeout(this.timer)
     this.timer = null
+    if (this.hiddenTimer) clearTimeout(this.hiddenTimer)
+    this.hiddenTimer = null
     this.source?.close()
     this.source = null
     this.connectedKeys = ''
@@ -109,6 +161,7 @@ export class SseRealtimeClient {
   }
 
   private connect(force = false): void {
+    if (this.paused) return
     const keys = [...this.entries.keys()].sort()
     const joined = keys.join('\n')
     if (!force && this.source && this.source.readyState !== CLOSED && joined === this.connectedKeys) return
@@ -181,6 +234,7 @@ export class SseRealtimeClient {
   }
 
   private retryLater(): void {
+    if (this.paused) return
     this.source = null
     this.connectedKeys = ''
     this.setStatus('error')

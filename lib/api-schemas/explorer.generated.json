@@ -354,7 +354,7 @@
     "method": "GET",
     "path": "/api/v1/tasks",
     "label": "List tasks",
-    "description": "User-bound credentials only see tasks assigned to (or shared with) their user. `scope=reports` lists the open tasks of the caller's reports instead (the manager view; needs a user and only tasks.view_own), with per-person workload counts in `reports`. Requires tasks.view_all.",
+    "description": "User-bound credentials only see tasks assigned to (or shared with) their user. `scope=reports` lists the open tasks of the caller's reports instead (the manager view; needs a user and only tasks.view_own), with per-person workload counts in `reports`. Each task carries `unread` (true while it is unread for the credential's person — see PUT /tasks/{id}/read; always false for a credential with no user). Requires tasks.view_all.",
     "params": [
      {
       "name": "limit",
@@ -458,7 +458,7 @@
     "method": "GET",
     "path": "/api/v1/tasks/assigned",
     "label": "List open tasks assigned to a user or team",
-    "description": "List open tasks assigned to a user or team Requires tasks.view_all.",
+    "description": "Each task carries `unread` (true while it is unread for the credential's person — see PUT /tasks/{id}/read; always false for a credential with no user). Requires tasks.view_all.",
     "params": [
      {
       "name": "limit",
@@ -507,7 +507,7 @@
     "method": "GET",
     "path": "/api/v1/tasks/{id}",
     "label": "Get a task",
-    "description": "Task responses include `description` (as stored: sanitised HTML or plain text) and `description_text` (plain text). Requires tasks.view_all.",
+    "description": "Task responses include `description` (as stored: sanitised HTML or plain text) and `description_text` (plain text), and `unread` (true while it is unread for the credential's person — see PUT /tasks/{id}/read; false for a credential with no user). Requires tasks.view_all.",
     "params": [
      {
       "name": "id",
@@ -980,7 +980,7 @@
     "method": "GET",
     "path": "/api/v1/tasks/following",
     "label": "Tasks I follow (the Task tracker's Following tab)",
-    "description": "Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at and shared_with_me ({ via: user / team / role, name, invited_by, shared_at } for tasks shared with you by an invite — read only; null otherwise), sorted by due date (none last), then most recently followed. Tasks shared with you (directly, through a team you are in or a role you hold) are listed without following them. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403). Requires tasks.view_own.",
+    "description": "Rows as the Task tracker shows them (assignee, assigner, team, workflow, subtasks, recent_activity, collaborators, assignee_rank, progress_pct) plus followed_at, unread (not opened by you since it became yours) and shared_with_me ({ via: user / team / role, name, invited_by, shared_at } for tasks shared with you by an invite — read only; null otherwise), sorted by due date (none last), then most recently followed. Tasks shared with you (directly, through a team you are in or a role you hold) are listed without following them. Completed tasks stay until you unfollow them (hide_completed=true leaves them out); deleted tasks and tasks you can no longer see drop out. Personal: needs a credential bound to a user (tenant-wide keys get 403). Requires tasks.view_own.",
     "params": [
      {
       "name": "limit",
@@ -1060,6 +1060,52 @@
       "description": "Resource id"
      }
     ],
+    "permission": "tasks.view_own"
+   },
+   {
+    "method": "PUT",
+    "path": "/api/v1/tasks/{id}/read",
+    "label": "Mark a task as read",
+    "description": "What opening the task does in the app. A task you can see; 404 otherwise. Idempotent. A task is unread for you while it is open (todo, in progress or blocked), you hold it (assignee, collaborator or claim candidate, or a member of the assigned team of an unassigned team task) and you have not opened it since it became yours (assigned, reassigned, claimed, or reopened / sent back). Completed, cancelled and draft tasks are never unread. Personal: needs a credential bound to a user (tenant-wide keys get 403). Requires tasks.view_own.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": "tasks.view_own"
+   },
+   {
+    "method": "DELETE",
+    "path": "/api/v1/tasks/{id}/read",
+    "label": "Mark a task as unread",
+    "description": "Forgets that you opened it. `unread` in the response is the state the rule then gives: a task you don't hold, or a closed one, stays read. A task you can see; 404 otherwise. Idempotent. Personal: needs a credential bound to a user (tenant-wide keys get 403). Requires tasks.view_own.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     }
+    ],
+    "permission": "tasks.view_own"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/tasks/read-all",
+    "label": "Mark all my tasks as read",
+    "description": "Marks every task that is unread for you in the credential's workspace as read; `marked` is how many. Personal: needs a credential bound to a user (tenant-wide keys get 403). Requires tasks.view_own.",
+    "params": [],
+    "permission": "tasks.view_own"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/tasks/unread-count",
+    "label": "How many of my tasks are unread",
+    "description": "Top-level tasks that are unread for you in the credential's workspace (the count next to My tasks in the app). A task is unread for you while it is open (todo, in progress or blocked), you hold it (assignee, collaborator or claim candidate, or a member of the assigned team of an unassigned team task) and you have not opened it since it became yours (assigned, reassigned, claimed, or reopened / sent back). Completed, cancelled and draft tasks are never unread. Personal: needs a credential bound to a user (tenant-wide keys get 403). Requires tasks.view_own.",
+    "params": [],
     "permission": "tasks.view_own"
    },
    {
@@ -4395,7 +4441,7 @@
       "name": "buttons",
       "type": "body",
       "placeholder": "[]",
-      "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+      "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
      },
      {
       "name": "header",
@@ -4495,7 +4541,7 @@
       "name": "buttons",
       "type": "body",
       "placeholder": "[]",
-      "description": "New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+      "description": "New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
      },
      {
       "name": "header",
@@ -4712,7 +4758,7 @@
       "name": "buttons",
       "type": "body",
       "placeholder": "[]",
-      "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+      "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
      },
      {
       "name": "header",

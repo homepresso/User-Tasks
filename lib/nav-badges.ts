@@ -5,7 +5,8 @@
  * written and what a screen reader hears. Client-safe.
  */
 
-export interface NavCountsData { my_tasks: number; queue: number; tracker: number }
+/** unread: tasks I haven't opened since they became mine (the accent count next to My tasks). */
+export interface NavCountsData { my_tasks: number; queue: number; tracker: number; unread?: number }
 
 /**
  * The counts each menu item (href) adds up. My tasks is the unified list:
@@ -39,4 +40,21 @@ export function formatNavBadge(count: number | null | undefined): string | null 
 export function navBadgeLabel(label: string, count: number | null | undefined): string {
   const text = formatNavBadge(count)
   return text ? `${label}, ${text} pending` : label
+}
+
+/** Menu items that show an unread count beside their badge (My tasks). */
+export const NAV_UNREAD_HREFS: ReadonlySet<string> = new Set(['/tasks'])
+
+/** The unread count of a menu item, or 0. */
+export function navUnreadCount(counts: NavCountsData | null | undefined, href: string): number {
+  if (!counts || !NAV_UNREAD_HREFS.has(href)) return 0
+  const n = Number(counts.unread)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0
+}
+
+/** The item's accessible name with both counts: "My tasks, 4 pending, 2 unread". */
+export function navBadgeLabelWithUnread(label: string, count: number | null | undefined, unread: number | null | undefined): string {
+  const base = navBadgeLabel(label, count)
+  const text = formatNavBadge(unread)
+  return text ? `${base}, ${text} unread` : base
 }

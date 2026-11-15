@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err, parsePagination } from '@/lib/api-auth'
 import { getAccessibleTaskIdsForUser } from '@/lib/api-key-permissions'
 import { wantsStrippedHtml, withDescriptionTexts } from '@/lib/task-description-format'
+import { withUnread } from '@/lib/services/task-reads'
+import { fromApiAuth } from '@/lib/services/context'
 
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request)
@@ -46,5 +48,7 @@ export async function GET(request: NextRequest) {
   const { data, count, error } = await query
   if (error) return err(error.message, 500)
 
-  return ok({ tasks: withDescriptionTexts(data, wantsStrippedHtml(params.get('strip_html'))), total: count ?? 0 })
+  // unread: for the credential's person (false without one) — lib/tasks/unread.ts.
+  const tasks = await withUnread(fromApiAuth(auth), withDescriptionTexts(data, wantsStrippedHtml(params.get('strip_html'))) as Array<{ id: string }>)
+  return ok({ tasks, total: count ?? 0 })
 }

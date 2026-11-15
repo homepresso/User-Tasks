@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err, parsePagination } from '@/lib/api-auth'
 import { getAccessibleTaskIdsForUser } from '@/lib/api-key-permissions'
 import { wantsStrippedHtml, withDescriptionTexts } from '@/lib/task-description-format'
+import { withUnread } from '@/lib/services/task-reads'
 import { fromApiAuth, isServiceError } from '@/lib/services/context'
 import type { ApiKeySuccessResult } from '@/lib/api-auth'
 
@@ -22,7 +23,7 @@ async function listReportsScope(auth: ApiKeySuccessResult, params: URLSearchPara
       sla_breached: params.get('sla_breached') === 'true',
       limit: params.get('limit') ? Number(params.get('limit')) : null,
     })
-    return ok({ ...result, total: result.tasks.length })
+    return ok({ ...result, tasks: await withUnread(fromApiAuth(auth), result.tasks as Array<{ id: string }>), total: result.tasks.length })
   } catch (error) {
     if (isServiceError(error)) return err(error.message, error.status)
     throw error
@@ -78,5 +79,7 @@ export async function GET(request: NextRequest) {
   const { data, count, error } = await query
   if (error) return err(error.message, 500)
 
-  return ok({ tasks: withDescriptionTexts(data, wantsStrippedHtml(params.get('strip_html'))), total: count ?? 0 })
+  // unread: for the credential's person (false without one) — lib/tasks/unread.ts.
+  const tasks = await withUnread(fromApiAuth(auth), withDescriptionTexts(data, wantsStrippedHtml(params.get('strip_html'))) as Array<{ id: string }>)
+  return ok({ tasks, total: count ?? 0 })
 }

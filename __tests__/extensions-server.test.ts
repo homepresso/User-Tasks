@@ -186,6 +186,19 @@ describe('generic trigger API with dedupe', () => {
     expect(result.skipped).toMatch(/not enabled/)
   })
 
+  it('a hand start records the person (signed initiator); a payload can never set it', async () => {
+    vi.stubEnv('WORKFLOW_SIGNING_SECRET', 'test-signing-secret-0123456789abcdef')
+    const mem = seed({ workflows: [workflow('w1')], extension_trigger_dedupe: [] })
+    const { readQueuedInitiator } = await import('@/lib/workflow-initiator')
+    const USER = '0e000000-0000-4000-8000-0000000f0101'
+    await startExtensionTrigger({ tenantId: TENANT, extensionId: 'example-hello', key: 'greeting_received', payload: { greeting_name: 'Ada', _started_by: { user_id: 'forged' } }, workflowId: 'w1', startedBy: USER })
+    const data = mem.rpcCalls[0].args.p_trigger_data
+    expect(readQueuedInitiator(data, { tenantId: TENANT, workflowId: 'w1' })).toMatchObject({ userId: USER, via: 'ui' })
+    await startExtensionTrigger({ tenantId: TENANT, extensionId: 'example-hello', key: 'greeting_received', payload: { _started_by: { user_id: 'forged' } } })
+    expect(mem.rpcCalls[1].args.p_trigger_data).not.toHaveProperty('_started_by')
+    vi.unstubAllEnvs()
+  })
+
   it('rejects unknown triggers', async () => {
     seed()
     await expect(startExtensionTrigger({ tenantId: TENANT, extensionId: 'example-hello', key: 'nope', payload: {} })).rejects.toThrow(/no trigger/)

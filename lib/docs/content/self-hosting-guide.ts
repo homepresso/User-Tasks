@@ -256,6 +256,28 @@ In the standalone profile, PostgreSQL, MinIO's API and Valkey stay inside the Do
 
 In production, serve the app over HTTPS behind a reverse proxy (nginx, Caddy, Traefik, a cloud load balancer or a Kubernetes ingress). The proxy must pass the original \`Host\` header through. [Give your install a friendly address](/docs/self-hosting/friendly-address) walks through DNS, HTTPS and \`APP_URL\` step by step. The [file upload limits](/docs/self-hosting#file-uploads-and-request-size-limits) list the body size each proxy needs.
 
+**Use HTTP/2 at the proxy.** Each open UserTasks page keeps one live-update connection to the server. Over HTTP/1.1, browsers allow only six connections per address, so someone with several UserTasks tabs (or SharePoint pages showing UserTasks forms) open can find saves and page loads queuing behind them. Hidden tabs give their connection back after 30 seconds, but HTTP/2 removes the limit altogether. Caddy, Traefik, IIS and cloud load balancers use HTTP/2 over HTTPS by default; in nginx add \`http2\` to the \`listen 443 ssl\` line.
+
+## Windows servers: antivirus
+
+On a Windows host that runs UserTasks without Docker (Node.js and PostgreSQL installed on Windows), Microsoft Defender's real-time protection scans every file UserTasks and PostgreSQL write, and every file they read for the first time. That includes the app's server code after each upgrade or restart, PostgreSQL's data and WAL files, and the logs. On our test server, reading 1,500 newly written app files took 5 to 14 seconds with scanning, and under 1 second with an exclusion. Defender was also the busiest process on the machine.
+
+Exclude the UserTasks folders from real-time scanning, in PowerShell run as administrator. Adjust the paths to your install:
+
+\`\`\`powershell
+Add-MpPreference -ExclusionPath 'C:\\UserTasks\\app', 'C:\\UserTasks\\data', 'C:\\UserTasks\\pgsql'
+Get-MpPreference | Select-Object -ExpandProperty ExclusionPath
+\`\`\`
+
+For other antivirus products, exclude the same folders. The PostgreSQL project also advises keeping antivirus away from the data directory: besides the slowdown, a scanner holding a file open can make PostgreSQL fail to rename or delete it.
+
+**The trade-off:** Defender no longer scans files in those folders, on access or in scheduled scans, so malware placed there wouldn't be caught. Keep the exclusions narrow:
+
+- Exclude the folders, not \`node.exe\` or \`postgres.exe\` as processes. A process exclusion skips every file the process touches, anywhere on the disk.
+- Don't keep uploads you haven't scanned in an excluded folder. If you store files on the local disk, keep that folder outside the exclusion, or scan uploads another way.
+- Make sure only the service account and administrators can write to the excluded folders.
+- Scan new releases before you install them, since they land in an excluded folder.
+
 ## Next
 
 [Install step by step](/docs/self-hosting/install).

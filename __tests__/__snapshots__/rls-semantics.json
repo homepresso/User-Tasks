@@ -17924,6 +17924,164 @@
    }
   }
  },
+ "task_reads": {
+  "anon": {
+   "select": "err:42501",
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "move": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "delete": {
+    "A": "err:42501",
+    "B": "err:42501"
+   }
+  },
+  "ghost": {
+   "select": [],
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "move": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "delete": {
+    "A": "ok:0",
+    "B": "ok:0"
+   }
+  },
+  "a": {
+   "select": [
+    "A"
+   ],
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "ok:1",
+    "B": "ok:0"
+   },
+   "move": {
+    "A": "ok:1",
+    "B": "ok:0"
+   },
+   "delete": {
+    "A": "ok:1",
+    "B": "ok:0"
+   }
+  },
+  "b": {
+   "select": [
+    "B"
+   ],
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "ok:0",
+    "B": "ok:1"
+   },
+   "move": {
+    "A": "ok:0",
+    "B": "ok:1"
+   },
+   "delete": {
+    "A": "ok:0",
+    "B": "ok:1"
+   }
+  },
+  "ab_cur_a": {
+   "select": [],
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "move": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "delete": {
+    "A": "ok:0",
+    "B": "ok:0"
+   }
+  },
+  "ab_cur_b": {
+   "select": [],
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "move": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "delete": {
+    "A": "ok:0",
+    "B": "ok:0"
+   }
+  },
+  "ab_unified": {
+   "select": [],
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "move": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "delete": {
+    "A": "ok:0",
+    "B": "ok:0"
+   }
+  },
+  "b_inactive": {
+   "select": [],
+   "insert": {
+    "A": "err:42501",
+    "B": "err:42501"
+   },
+   "update": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "move": {
+    "A": "ok:0",
+    "B": "ok:0"
+   },
+   "delete": {
+    "A": "ok:0",
+    "B": "ok:0"
+   }
+  }
+ },
  "task_reminders": {
   "anon": {
    "select": [],

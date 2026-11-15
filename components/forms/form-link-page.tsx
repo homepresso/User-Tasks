@@ -5,6 +5,7 @@ import { themeFontHrefs, themeStylesheet } from '@/lib/theme/to-css'
 import { FontLinks } from '@/components/fonts/font-links'
 import { EmbedFrame } from './embed-frame'
 import { StandaloneForm } from './standalone-form'
+import type { AnonymousFormPage } from '@/lib/services/anonymous-forms'
 import { AssistantHost } from '@/components/assistants/assistant-host'
 
 /**
@@ -14,13 +15,15 @@ import { AssistantHost } from '@/components/assistants/assistant-host'
  * the member's permissions for the favourite heart and Save draft. Server
  * component.
  */
-export async function MemberFormPage({ formId, query, embed, userId, trusted = false }: {
+export async function MemberFormPage({ formId, query, embed, userId, trusted = false, initialForm }: {
   formId: string
   query: Record<string, string | string[] | undefined>
   embed: boolean
   userId: string
   /** Trusted embedding (/embed/f/<id>, an approved site frames it): host events on, form links stay in the frame. */
   trusted?: boolean
+  /** The server-prepared form (getSubmittableForm) for a first paint with the fields. */
+  initialForm?: AnonymousFormPage['form']
 }) {
   const [theme, permissions] = await Promise.all([
     loadSessionWorkspaceTheme(),
@@ -38,7 +41,7 @@ export async function MemberFormPage({ formId, query, embed, userId, trusted = f
             <EmbedFrame embed={embed}>
               {allowed ? (
                 <>
-                  <StandaloneForm formId={formId} query={query} surface="standalone" embed={embed} trusted={trusted} />
+                  <StandaloneForm formId={formId} query={query} surface="standalone" embed={embed} trusted={trusted} initialForm={initialForm} />
                   {!embed && <AssistantHost standalone />}
                 </>
               ) : (

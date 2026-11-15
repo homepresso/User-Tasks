@@ -41,6 +41,20 @@ My tasks, My team, the Task tracker and the **My tasks** list on Home work the s
 
 Because UserTasks is headless, you can also build your own task inbox: list tasks with \`GET /api/v1/tasks/assigned\` and complete them with \`POST /api/v1/tasks/{id}/action\` (see [Completing tasks by API](/docs/tasks/api)).
 
+## Unread tasks
+
+A task you haven't opened since it became yours shows a small accent dot before its title, and the title is bold, in My tasks, the **My tasks** list on Home, the Task tracker's **Following** tab and on phones. Screen readers hear "Unread" before the title. The side menu shows how many of your tasks are unread next to **My tasks** (a dot and the number, beside the usual count), and the My tasks header says how many unread tasks are in the list.
+
+**What makes a task unread.** All three must hold:
+
+1. The task is open: **To do**, **In progress** or **Blocked**. Completed, cancelled and draft tasks are never unread.
+2. You hold it: you're its assignee, a collaborator or claim candidate, or a member of the team it's assigned to (before anyone claims it). Tasks you only see (as a manager, the assigner, a follower or an invited viewer) are never unread for you.
+3. You haven't opened it since it became yours. A task becomes yours again when it is assigned or reassigned to you or your team (delegated, escalated, redirected or claimed) and when it comes back to work (reopened, published from a draft, or sent back to you as a new task). Other changes, such as edits to fields, comments or progress, don't make it unread again.
+
+**Reading.** Opening a task marks it read: its page (and its form), or its details under the row in a list. **Mark as unread** (in a row's **Actions**, or at the top of the task's page) puts the dot back. **Mark all as read** next to the list's refresh button clears every unread task in the current workspace. When you first upgrade, the tasks that are open at that moment count as read.
+
+- API: task list and get responses carry \`unread\` for the credential's person (\`false\` for a credential with no user). \`PUT /api/v1/tasks/{id}/read\` marks a task read, \`DELETE /api/v1/tasks/{id}/read\` marks it unread, \`POST /api/v1/tasks/read-all\` marks them all read and \`GET /api/v1/tasks/unread-count\` counts them. MCP: \`tasks_mark_read\`, \`tasks_mark_unread\`, \`tasks_mark_all_read\`, \`tasks_unread_count\`. CLI: \`usertasks tasks mark-read <id>\`, \`usertasks tasks mark-unread <id>\`, \`usertasks tasks mark-all-read\`, \`usertasks tasks unread-count\`. These are personal, so they need a credential bound to a user.
+
 ## Following tasks
 
 Click the bell on any task in the Task tracker — or **Follow** at the top of a task's page — to follow it. Followed tasks are listed in the tracker's first tab, **Following**, with a count, so you can come back to the tracker and see them straight away.

@@ -1936,6 +1936,74 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": true
   },
   {
+    "operationId": "markTaskRead",
+    "method": "PUT",
+    "path": "/tasks/{id}/read",
+    "resource": "tasks",
+    "verb": "mark-read",
+    "summary": "Mark a task as read",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "markTaskUnread",
+    "method": "DELETE",
+    "path": "/tasks/{id}/read",
+    "resource": "tasks",
+    "verb": "mark-unread",
+    "summary": "Mark a task as unread",
+    "permission": "tasks.view_own",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "markAllTasksRead",
+    "method": "POST",
+    "path": "/tasks/read-all",
+    "resource": "tasks",
+    "verb": "mark-all-read",
+    "summary": "Mark all my tasks as read",
+    "permission": "tasks.view_own",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "countUnreadTasks",
+    "method": "GET",
+    "path": "/tasks/unread-count",
+    "resource": "tasks",
+    "verb": "unread-count",
+    "summary": "How many of my tasks are unread",
+    "permission": "tasks.view_own",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
     "operationId": "listTaskViewers",
     "method": "GET",
     "path": "/tasks/{id}/viewers",
@@ -4780,7 +4848,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "buttons",
           "required": false,
-          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
         },
         {
           "name": "header",
@@ -4886,7 +4954,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "buttons",
           "required": false,
-          "description": "New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+          "description": "New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
         },
         {
           "name": "header",
@@ -5121,7 +5189,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "buttons",
           "required": false,
-          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url?, workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
         },
         {
           "name": "header",

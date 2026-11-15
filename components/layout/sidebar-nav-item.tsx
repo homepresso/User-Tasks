@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Tooltip } from "@/components/ui/tooltip"
-import { formatNavBadge, navBadgeLabel } from "@/lib/nav-badges"
+import { formatNavBadge, navBadgeLabelWithUnread } from "@/lib/nav-badges"
 import { navTourId } from "@/lib/onboarding/tours"
 
 /** `neutral` for plain counts; `accent` where the count asks for action (your own open tasks). */
@@ -24,6 +24,8 @@ interface SidebarNavItemProps {
    */
   badgeCount?: number
   badgeTone?: NavBadgeTone
+  /** Unread tasks (My tasks): an accent dot and the count before the badge. */
+  unreadCount?: number
 }
 
 /** Whether a nav href is the current page. Query-scoped hrefs match their query; parents don't light up on sibling sections. */
@@ -94,6 +96,22 @@ export function NavCount({ count, tone = "neutral", collapsed = false }: { count
   )
 }
 
+/** "• 2": how many of the item's tasks are unread (the same dot as an unread row). */
+export function NavUnreadCount({ count }: { count?: number }) {
+  const text = formatNavBadge(count)
+  if (!text) return null
+  return (
+    <span
+      aria-hidden
+      data-nav-unread={text}
+      className={cn("num ml-auto inline-flex shrink-0 items-center gap-1 text-2xs font-semibold", sidebarText)}
+    >
+      <span className="size-1.5 rounded-full bg-[color:var(--theme-sidebar-accent,var(--theme-primary))]" />
+      {text}
+    </span>
+  )
+}
+
 export function SidebarNavItem({
   href,
   label,
@@ -103,12 +121,14 @@ export function SidebarNavItem({
   collapsed = false,
   badgeCount,
   badgeTone = "neutral",
+  unreadCount,
 }: SidebarNavItemProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const isActive = isNavItemActive(href, pathname, searchParams)
-  const showBadge = formatNavBadge(badgeCount) !== null
-  const accessibleName = navBadgeLabel(label, badgeCount)
+  const showUnread = formatNavBadge(unreadCount) !== null
+  const showBadge = formatNavBadge(badgeCount) !== null || showUnread
+  const accessibleName = navBadgeLabelWithUnread(label, badgeCount, unreadCount)
 
   const content = (
     <>
@@ -117,9 +137,10 @@ export function SidebarNavItem({
       )}
       <span className="relative inline-flex shrink-0">
         <Icon className={cn("size-4", isActive ? "text-[color:var(--theme-sidebar-accent,var(--theme-primary))]" : sidebarMuted)} aria-hidden />
-        {collapsed && <NavCount count={badgeCount} tone={badgeTone} collapsed />}
+        {collapsed && <NavCount count={badgeCount || unreadCount} tone={showUnread ? "accent" : badgeTone} collapsed />}
       </span>
       {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
+      {!collapsed && showUnread && <NavUnreadCount count={unreadCount} />}
       {!collapsed && <NavCount count={badgeCount} tone={badgeTone} />}
     </>
   )

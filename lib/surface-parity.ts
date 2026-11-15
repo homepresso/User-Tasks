@@ -243,6 +243,16 @@ export const SURFACE_PARITY: SurfaceResource[] = [
     ],
   },
   {
+    resource: 'task read state (unread)',
+    ops: [
+      op('list', 'GET /tasks/unread-count', 'tasks_unread_count', 'tasks unread-count', 'the caller\'s own count; task list / get rows carry unread'),
+      op('get', 'GET /tasks/{id}', 'tasks_get', 'tasks get', 'unread on the task'),
+      op('create', 'PUT /tasks/{id}/read', 'tasks_mark_read', 'tasks mark-read', 'only a task the caller can see; idempotent (POST /tasks/read-all, tasks_mark_all_read, tasks mark-all-read: every unread task)'),
+      op('update', null, null, null, 'read state has nothing else to change'),
+      op('delete', 'DELETE /tasks/{id}/read', 'tasks_mark_unread', 'tasks mark-unread', 'idempotent; a task the caller doesn\'t hold, or a closed one, stays read'),
+    ],
+  },
+  {
     resource: 'task viewers (invite, read only)',
     ops: [
       op('list', 'GET /tasks/{id}/viewers', 'tasks_viewers_list', 'tasks viewers', 'anyone who can see the task; can_manage says who may change them'),

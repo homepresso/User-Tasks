@@ -15,7 +15,15 @@
  *                        the provider to exist and the editor to hold its
  *                        bindPermission.
  *  - formTargetSaved / formTargetDeleted / checkFormTarget: the provider's
- *                        bookkeeping and designer warnings.
+ *                        bookkeeping and designer warnings. Saved / deleted
+ *                        run after the response (next/server after()), so a
+ *                        save or publish never waits for the provider (whose
+ *                        clean-up may call the external system); outside a
+ *                        request they run before returning.
+ *
+ * A binding is "the same" across a save when the provider's `identity` of its
+ * config is unchanged (e.g. same list): editing the form's fields changes
+ * the config, but is not an unbind + bind.
  *
  * Every hook first checks the workspace may use the extension (enabled,
  * licensed, the target's licence feature). Server-only.
@@ -23,6 +31,7 @@
 
 import { applyFieldPatches, isEmailPerson, layoutDataTarget, normalizeFieldPatches, normalizeTargetLinks, sameDataTarget, type FormDataTargetRef, type FormDataTargetState } from '@/lib/forms/data-target'
 import { isDisplayField, type TaskFieldDef } from '@/lib/task-field-schema'
+import { cleanReturnUrl, cleanTargetUrl } from '@/lib/forms/buttons'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { isExtensionError, type FormTarget, type FormTargetForm, type FormTargetPerson, type FormTargetProblem } from '@/lib/extensions/sdk'
@@ -187,6 +196,9 @@ export async function prepareFormTarget(ctx: ServiceContext, form: TargetForm, r
       values: mapped.values,
       version: display ? null : typeof prepared?.version === 'string' && prepared.version ? prepared.version.slice(0, 200) : null,
       notice: notices.join(' ') || null,
+      return_url: cleanReturnUrl(prepared?.returnUrl),
+      can_delete: Boolean(record && target.remove && prepared?.canDelete === true),
+      ...(isPlainObject(prepared?.urls) ? { urls: Object.fromEntries(Object.entries(prepared!.urls!).filter(([k]) => /^[a-z][a-z0-9_]{0,40}$/.test(k)).slice(0, 20).map(([k, v]) => [k, cleanTargetUrl(v)]).filter((e): e is [string, string] => Boolean(e[1]))) } : {}),
       ...(prepared?.actions ? { actions: normalizeTargetLinks(prepared.actions) } : {}),
       ...(prepared?.files ? { files: normalizeTargetLinks(prepared.files, { httpOnly: true }) } : {}),
     },
@@ -198,6 +210,8 @@ export interface SubmittedTarget {
   record: { id: string; label: string | null; url: string | null }
   version: string | null
   message: string | null
+  /** {{target.return_url}} after this submission (provider-vetted http(s)). */
+  returnUrl: string | null
 }
 
 /** Write the record through the provider (after core validated `values`). */
@@ -240,7 +254,28 @@ export async function submitFormTarget(ctx: ServiceContext, form: TargetForm, va
     record: { id: result.record.id.slice(0, 200), label: result.record.label ? String(result.record.label).slice(0, 300) : null, url: typeof result.record.url === 'string' && /^https?:\/\//i.test(result.record.url) ? result.record.url.slice(0, 2000) : null },
     version: typeof result.version === 'string' ? result.version.slice(0, 200) : null,
     message: result.message ? String(result.message).slice(0, 1000) : null,
+    returnUrl: cleanReturnUrl(result.returnUrl),
   }
+}
+
+/** A Delete button: the provider deletes the record the (re-validated) params name. */
+export async function deleteFormTargetRecord(ctx: ServiceContext, form: TargetForm, input: { params?: unknown; version?: string | null }): Promise<{ label: string; record: { id: string; label: string | null } | null; message: string | null; returnUrl: string | null }> {
+  const ref = layoutDataTarget(form.layout)
+  if (!ref) throw new ServiceError('validation_error', 'This form is not bound to an external record')
+  const target = await resolve(ctx, ref)
+  const label = ref.label ?? target.label
+  if (!target.remove) throw new ServiceError('validation_error', `${label} records can't be deleted from a form`)
+  const db = await formTargetDeps.serviceDb(ctx)
+  const { serverFormContext } = await import('@/lib/forms/form-params')
+  const params = serverFormContext(form.layout, { params: isPlainObject(input.params) ? input.params : {} }).params
+  let result
+  try {
+    result = await target.remove({ ctx: await formTargetDeps.context(ctx, ref, db), form: hookForm(form, ref), params, version: typeof input.version === 'string' && input.version ? input.version.slice(0, 200) : null })
+  } catch (error) {
+    throw targetError(error, label)
+  }
+  const record = result?.record && typeof result.record.id === 'string' && result.record.id ? { id: result.record.id.slice(0, 200), label: result.record.label ? String(result.record.label).slice(0, 300) : null } : null
+  return { label, record, message: result?.message ? String(result.message).slice(0, 1000) : null, returnUrl: cleanReturnUrl(result?.returnUrl) }
 }
 
 /**
@@ -250,32 +285,76 @@ export async function submitFormTarget(ctx: ServiceContext, form: TargetForm, va
  */
 export async function assertTargetBinding(ctx: ServiceContext, layout: unknown, previous: unknown): Promise<void> {
   const ref = layoutDataTarget(layout)
-  if (!ref || sameDataTarget(ref, layoutDataTarget(previous))) return
+  const before = layoutDataTarget(previous)
+  if (!ref || sameDataTarget(ref, before)) return
   const target = await resolve(ctx, ref)
+  if (before && sameIdentity(target, ref, before)) return
   if (target.bindPermission && !hasPerm(ctx, target.bindPermission)) {
     throw ServiceError.forbidden(`Forbidden: binding a form to ${ref.label ?? target.label} needs the '${target.bindPermission}' permission`)
   }
 }
 
-/** After a save: tell the provider (best effort; a removed / changed binding tells the old one it was dropped). */
+/**
+ * The same binding with another config (fields added / removed …): same
+ * extension and key, and the provider's identity of both configs is equal.
+ * Providers without `identity` treat every config change as a new binding.
+ */
+export function sameIdentity(target: Pick<FormTarget, 'identity'> | null, a: FormDataTargetRef, b: FormDataTargetRef): boolean {
+  if (a.extension !== b.extension || a.key !== b.key) return false
+  if (sameDataTarget(a, b)) return true
+  if (!target?.identity) return false
+  try {
+    return target.identity(a.config) === target.identity(b.config)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Run a provider hook after the response (it may call the external system:
+ * the caller never waits for it); outside a request scope (scripts, tests,
+ * the worker) it runs before returning. Errors are logged.
+ */
+export async function afterResponse(label: string, run: () => Promise<void>): Promise<void> {
+  const guarded = () => run().catch((error) => { console.warn(`[forms] ${label} failed:`, error instanceof Error ? error.message : error) })
+  try {
+    const { after } = await import('next/server')
+    after(guarded)
+    return
+  } catch {
+    // No request scope: run it now.
+  }
+  await guarded()
+}
+
+/** After a save: tell the provider (best effort, after the response; a removed / rebound binding tells the old one it was dropped). */
 export async function formTargetSaved(ctx: ServiceContext, form: TargetForm & { id: string }, previousLayout: unknown = null): Promise<void> {
   const ref = layoutDataTarget(form.layout)
   const before = layoutDataTarget(previousLayout)
-  if (before && !sameDataTarget(ref, before)) await formTargetDeleted(ctx, form.id, previousLayout)
-  if (!ref) return
-  try {
-    const target = await resolve(ctx, ref)
-    if (!target.saved) return
+  if (!ref && !before) return
+  await afterResponse('data target saved hook', async () => {
+    let target: FormTarget | null = null
+    let failure: unknown = null
+    if (ref) try { target = await resolve(ctx, ref) } catch (error) { failure = error }
+    const kept = Boolean(ref && before && sameIdentity(target, ref, before))
+    // A provider that can't be asked (unavailable here, not licensed) keeps its own binding: only a binding that
+    // moved to another target (or was removed) tells the old one.
+    const sameProvider = Boolean(ref && before && ref.extension === before.extension && ref.key === before.key)
+    if (before && !kept && !(failure && sameProvider)) await targetDeleted(ctx, form.id, before)
+    if (failure) throw failure
+    if (!ref || !target?.saved) return
     const db = await formTargetDeps.serviceDb(ctx)
-    await target.saved({ ctx: await formTargetDeps.context(ctx, ref, db), form: { ...hookForm(form, ref), id: form.id } })
-  } catch (error) {
-    console.warn('[forms] data target saved hook failed:', error instanceof Error ? error.message : error)
-  }
+    await target.saved({ ctx: await formTargetDeps.context(ctx, ref, db), form: { ...hookForm(form, ref), id: form.id }, previousConfig: kept && before ? before.config : null })
+  })
 }
 
 export async function formTargetDeleted(ctx: ServiceContext, formId: string, layout: unknown): Promise<void> {
   const ref = layoutDataTarget(layout)
   if (!ref) return
+  await afterResponse('data target deleted hook', () => targetDeleted(ctx, formId, ref))
+}
+
+async function targetDeleted(ctx: ServiceContext, formId: string, ref: FormDataTargetRef): Promise<void> {
   try {
     const target = await formTargetDeps.provider(ref)
     if (!target?.deleted) return

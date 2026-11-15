@@ -184,6 +184,10 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   // Task tracker → Following: the acting person's own follows (the service checks the task is visible to them)
   tasks_follow: 'tasks.view_own',
   tasks_unfollow: 'tasks.view_own',
+  // Unread tasks: the acting person's own read state (the service checks the task is visible to them)
+  tasks_mark_read: 'tasks.view_own',
+  tasks_mark_unread: 'tasks.view_own',
+  tasks_mark_all_read: 'tasks.view_own',
   tasks_viewers_add: 'tasks.view_own',
   tasks_viewers_remove: 'tasks.view_own',
   home_favorite_form: 'forms.submit',
@@ -273,6 +277,8 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   tasks_attachments_download_url: 'tasks.view_own',
   // The acting person's followed tasks (visibility re-checked per row by the database).
   tasks_following: 'tasks.view_own',
+  // The acting person's unread count.
+  tasks_unread_count: 'tasks.view_own',
   tasks_viewers_list: 'tasks.view_own',
   // Timeline: run scope or can_view_run_progress / canViewTask, checked in the service (lib/services/run-timeline).
   tasks_timeline: 'tasks.view_own',

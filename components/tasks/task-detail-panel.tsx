@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMarkTaskReadOnOpen } from "@/hooks/use-task-read-state"
 import { Check, ClipboardList, Clock, ExternalLink, History, Loader2, MessageSquare, Paperclip, Plus, RotateCcw, Workflow } from "lucide-react"
 import { StatusPill, statusLabel } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -73,6 +74,8 @@ export function TaskDetailPanel({ taskId, title, id, compact = false, onClose, c
     queryFn: async () => (await serverQuery("tasks.panel", { taskId })) as TaskPanelData | null,
     staleTime: 15_000,
   })
+  // Opening the panel is opening the task: it is read once its details loaded.
+  useMarkTaskReadOnOpen(taskId, !!data)
 
   return (
     <div

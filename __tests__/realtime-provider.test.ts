@@ -318,6 +318,53 @@ describe('SSE implementation', () => {
     expect(st.at(-1)).toBe('live')
   })
 
+  it('a hidden tab gives its connection back after the grace period and resumes from the last event id when shown', async () => {
+    const { SseRealtimeClient } = await import('@/lib/providers/realtime/sse')
+    const listeners: Array<() => void> = []
+    const page = { hidden: false, addEventListener: (_: 'visibilitychange', fn: () => void) => { listeners.push(fn) } }
+    const setHidden = (hidden: boolean) => { page.hidden = hidden; for (const fn of listeners) fn() }
+    const c = new SseRealtimeClient({ EventSource: FakeEventSource as never, visibility: page, hiddenGraceMs: 30_000 })
+    c.subscribe('tasks', {}, () => {})
+    await vi.advanceTimersByTimeAsync(60)
+    lastSource().emit('ping', {}, '1700000000500')
+    // A quick look at another tab keeps the stream.
+    setHidden(true)
+    await vi.advanceTimersByTimeAsync(10_000)
+    setHidden(false)
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(FakeEventSource.instances).toHaveLength(1)
+    expect(lastSource().closed).toBe(false)
+    // Hidden for longer: closed, and nothing reconnects (no subscription change, no retry) while hidden.
+    setHidden(true)
+    await vi.advanceTimersByTimeAsync(30_001)
+    expect(lastSource().closed).toBe(true)
+    c.subscribe('notifications', { column: 'user_id', value: USER }, () => {})
+    await vi.advanceTimersByTimeAsync(120_000)
+    expect(FakeEventSource.instances).toHaveLength(1)
+    // Shown: one new stream with every subscription, after the last event id.
+    setHidden(false)
+    expect(FakeEventSource.instances).toHaveLength(2)
+    const url = new URL(lastSource().url, 'http://x')
+    expect(url.searchParams.getAll('s')).toHaveLength(2)
+    expect(url.searchParams.get('after')).toBe('1700000000500')
+  })
+
+  it('a tab opened in the background lets its stream go after the grace period, and reconnects when shown', async () => {
+    const { SseRealtimeClient } = await import('@/lib/providers/realtime/sse')
+    const listeners: Array<() => void> = []
+    const page = { hidden: true, addEventListener: (_: 'visibilitychange', fn: () => void) => { listeners.push(fn) } }
+    const c = new SseRealtimeClient({ EventSource: FakeEventSource as never, visibility: page, hiddenGraceMs: 1_000 })
+    c.subscribe('tasks', {}, () => {})
+    await vi.advanceTimersByTimeAsync(60)
+    expect(FakeEventSource.instances).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(lastSource().closed).toBe(true)
+    page.hidden = false
+    for (const fn of listeners) fn()
+    expect(FakeEventSource.instances).toHaveLength(2)
+    expect(lastSource().closed).toBe(false)
+  })
+
   it('closes the connection when the last subscription goes', async () => {
     const c = await client()
     const unsub = c.subscribe('tasks', {}, () => {})

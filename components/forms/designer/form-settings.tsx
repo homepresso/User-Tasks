@@ -12,6 +12,7 @@ import { uploadFormHeaderImage } from '@/app/actions/forms'
 import {
   allowedActions, BUTTON_LIMITS, FORM_ACTION_LABELS,
   type FormAction, type FormActionType, type FormButton, type FormButtonKind, type FormButtonStyle,
+  TARGET_RETURN_URL,
 } from '@/lib/forms/buttons'
 import { HEADER_IMAGE_TYPES, type FormHeader, type FormHeaderImageSource } from '@/lib/forms/header'
 import { lookupItemKey } from '@/lib/forms/lookup'
@@ -27,6 +28,7 @@ import { TaskCompletedEditor } from './task-completed-editor'
 import { formActions, withFormAction } from '@/lib/forms/form-actions'
 import { FORM_MOTION_LABELS, FORM_MOTION_STYLES, formAnimation, withFormAnimation, type FormMotionStyle } from '@/lib/forms/motion'
 import { cn } from '@/lib/utils'
+import { isPlainObject } from '@/lib/utils/guards'
 import { designerInputClass as inputClass } from './designer-controls'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow option rows are loose JSON */
@@ -147,7 +149,7 @@ function HeaderEditor({ header, onChange, placeholders }: { header: FormHeader; 
 
 /* ── Buttons ─────────────────────────────────────────────────────────── */
 
-const KIND_LABELS: Record<FormButtonKind, string> = { submit: 'Submit', cancel: 'Cancel', draft: 'Save draft', outcome: 'Outcome' }
+const KIND_LABELS: Record<FormButtonKind, string> = { submit: 'Submit', cancel: 'Cancel', draft: 'Save draft', outcome: 'Outcome', delete: 'Delete record', link: 'Link' }
 
 function newButtonId(buttons: FormButton[], kind: FormButtonKind): string {
   let id: string = kind
@@ -220,7 +222,7 @@ export function BarActionEditor({ action, onChange, onRemove, workflows, placeho
       {action.type === 'redirect' && (
         <>
           <input aria-label="Redirect address" className={inputClass} value={action.url ?? ''} placeholder="/tasks or an allowed https:// address" onChange={(e) => onChange({ ...action, url: e.target.value }, 'action-url')} />
-          <Hint>App pages (/…) or addresses on the allow list.</Hint>
+          <Hint>App pages (/…), addresses on the allow list, or <code>{TARGET_RETURN_URL}</code> — back to where the record lives (forms bound to an external record, e.g. its SharePoint list); <code>{'{{target.url.edit}}'}</code> and other <code>{'{{target.url.<name>}}'}</code> pages the record's system names.</Hint>
         </>
       )}
       {action.type === 'close' && <Hint>Closes the form (the standalone page shows that it is closed).</Hint>}
@@ -346,7 +348,7 @@ export function FormSettings({ state, onChange, outcomes, problems, showDraft }:
   const setButtons = (next: FormButton[], tag?: string) => onChange({ ...state, buttons: next }, tag)
   const add = (kind: FormButtonKind) => {
     const outcome = kind === 'outcome' ? (outcomes ?? []).find((o) => !buttons.some((b) => b.kind === 'outcome' && b.outcome === o)) ?? 'Approved' : undefined
-    const button: FormButton = { id: newButtonId(buttons, kind), label: outcome ?? KIND_LABELS[kind], kind, style: kind === 'cancel' || kind === 'draft' ? 'secondary' : kind === 'outcome' && /reject|decline|deny/i.test(outcome ?? '') ? 'danger' : 'primary', ...(outcome ? { outcome } : {}) }
+    const button: FormButton = { id: newButtonId(buttons, kind), label: outcome ?? (kind === 'delete' ? 'Delete' : KIND_LABELS[kind]), kind, style: kind === 'cancel' || kind === 'draft' ? 'secondary' : kind === 'delete' || (kind === 'outcome' && /reject|decline|deny/i.test(outcome ?? '')) ? 'danger' : 'primary', ...(outcome ? { outcome } : {}) }
     setButtons([...buttons, button])
   }
   const appMode = state.layout.application_mode === true
@@ -390,8 +392,8 @@ export function FormSettings({ state, onChange, outcomes, problems, showDraft }:
         </DesignerVariableScope>
         {buttons.length < BUTTON_LIMITS.buttons && (
           <div className="flex flex-wrap gap-1">
-            {(['outcome', 'submit', ...(showDraft ? ['draft'] : []), 'cancel'] as FormButtonKind[])
-              .filter((k) => !((k === 'cancel' || k === 'draft') && buttons.some((b) => b.kind === k)))
+            {(['outcome', 'submit', ...(showDraft ? ['draft'] : []), 'cancel', 'link', ...(isPlainObject(state.layout.data_target) ? ['delete'] : [])] as FormButtonKind[])
+              .filter((k) => !((k === 'cancel' || k === 'draft' || k === 'delete') && buttons.some((b) => b.kind === k)))
               .map((kind) => (
                 <button key={kind} type="button" className="flex items-center gap-1 rounded border px-2 py-1 text-2xs font-medium border-border text-primary-text" onClick={() => add(kind)} data-add-button={kind}>
                   <Plus size={11} /> {kind === 'outcome' ? 'Outcome button' : `${KIND_LABELS[kind]} button`}

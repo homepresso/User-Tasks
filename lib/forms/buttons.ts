@@ -16,7 +16,14 @@
  *                    (server-side, async; {{run_reference}} in later texts)
  *   redirect         go to an app page or an allowed URL
  *   close            close the form
- * Cancel can show a message, redirect or close. Effects (start_workflow)
+ * Cancel can show a message, redirect or close. **Delete record** (forms
+ * bound to an external record through a data target whose provider can
+ * delete it, lib/forms/data-target.ts) asks for confirmation, has the
+ * provider delete the record, then shows a message, redirects or closes.
+ * A redirect may target `{{target.return_url}}`: the page the data target
+ * names as "back" (e.g. the list the record lives in), vetted by the
+ * provider — the only external URL a redirect accepts without the
+ * allowlist. Effects (start_workflow)
  * run on the server, never in the browser; the rest is presentation, which
  * the server plans (planButtonEffects) so the designer preview, the task
  * screen, the standalone page and API clients see the same result.
@@ -31,7 +38,7 @@ import { pathValue } from './lookup'
 import { formContextPath } from './form-params'
 import { normalizeTableChanges, tableChangesProblem, type TableChangesConfig } from './table-changes'
 
-export type FormButtonKind = 'submit' | 'cancel' | 'draft' | 'outcome'
+export type FormButtonKind = 'submit' | 'cancel' | 'draft' | 'outcome' | 'delete' | 'link'
 export type FormButtonStyle = 'primary' | 'secondary' | 'danger'
 export type FormActionType = 'message' | 'success_screen' | 'start_workflow' | 'redirect' | 'close' | 'apply_table_changes'
 export type ButtonPlacement = 'left' | 'right' | 'full'
@@ -77,7 +84,24 @@ export interface FormButton {
   actions?: FormAction[]
 }
 
-export const FORM_BUTTON_KINDS: FormButtonKind[] = ['submit', 'cancel', 'draft', 'outcome']
+export const FORM_BUTTON_KINDS: FormButtonKind[] = ['submit', 'cancel', 'draft', 'outcome', 'delete', 'link']
+
+/**
+ * Redirect target: "back to where the record lives", as the form's data
+ * target says (FormDataTargetState.return_url / the provider's submit or
+ * delete result). Resolved when the button runs; never an open redirect —
+ * the provider validates it, and core accepts only http(s) without
+ * credentials.
+ */
+export const TARGET_RETURN_URL = '{{target.return_url}}'
+
+/** `{{target.url.<name>}}`: a page the data target names for the record (e.g. `edit` — the record's edit form), provider-vetted. */
+export const TARGET_URL_RE = /^\{\{target\.url\.([a-z][a-z0-9_]{0,40})\}\}$/
+
+/** Is this a redirect address the data target fills in (return_url or url.<name>)? */
+export function isTargetUrlToken(url: string | undefined | null): boolean {
+  return url === TARGET_RETURN_URL || TARGET_URL_RE.test(String(url ?? ''))
+}
 export const FORM_ACTION_TYPES: FormActionType[] = ['message', 'success_screen', 'start_workflow', 'redirect', 'close', 'apply_table_changes']
 export const FORM_ACTION_LABELS: Record<FormActionType, string> = {
   message: 'Show message',
@@ -100,7 +124,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /** Which actions a button kind may run. */
 export function allowedActions(kind: FormButtonKind): FormActionType[] {
-  if (kind === 'cancel') return ['message', 'redirect', 'close']
+  if (kind === 'cancel' || kind === 'delete') return ['message', 'redirect', 'close']
+  if (kind === 'link') return ['redirect']
   if (kind === 'draft') return ['message']
   return FORM_ACTION_TYPES
 }
@@ -202,11 +227,11 @@ export function normalizeFormButtons(raw: unknown): FormButton[] {
   for (const entry of raw) {
     if (!isPlainObject(entry) || out.length >= BUTTON_LIMITS.buttons) continue
     const kind = FORM_BUTTON_KINDS.includes(entry.kind as FormButtonKind) ? entry.kind as FormButtonKind : 'submit'
-    if ((kind === 'cancel' || kind === 'draft') && out.some((b) => b.kind === kind)) continue
+    if ((kind === 'cancel' || kind === 'draft' || kind === 'delete') && out.some((b) => b.kind === kind)) continue
     let id = typeof entry.id === 'string' && ID_RE.test(entry.id) ? entry.id : kind
     for (let i = 2; ids.has(id); i++) id = `${kind}_${i}`
     ids.add(id)
-    const style: FormButtonStyle = entry.style === 'secondary' || entry.style === 'danger' ? entry.style : entry.style === 'primary' ? 'primary' : kind === 'cancel' || kind === 'draft' ? 'secondary' : 'primary'
+    const style: FormButtonStyle = entry.style === 'secondary' || entry.style === 'danger' ? entry.style : entry.style === 'primary' ? 'primary' : kind === 'cancel' || kind === 'draft' ? 'secondary' : kind === 'delete' ? 'danger' : 'primary'
     const button: FormButton = { id, label: str(entry.label, BUTTON_LIMITS.label) ?? defaultLabel(kind), kind, style }
     if (kind === 'outcome') {
       const outcome = str(entry.outcome, 200)
@@ -224,7 +249,7 @@ export function normalizeFormButtons(raw: unknown): FormButton[] {
 }
 
 function defaultLabel(kind: FormButtonKind): string {
-  return kind === 'cancel' ? 'Cancel' : kind === 'draft' ? 'Save draft' : 'Submit'
+  return kind === 'cancel' ? 'Cancel' : kind === 'draft' ? 'Save draft' : kind === 'delete' ? 'Delete' : kind === 'link' ? 'Open' : 'Submit'
 }
 
 /** Is a stored button list just the defaults (so it needn't be stored)? */
@@ -283,7 +308,7 @@ export function buttonProblems(buttons: FormButton[], options: { outcomes?: stri
         const problem = tableChangesProblem(a.table_changes, options.editableTables)
         if (problem) { problems[b.id] = problem; break }
       }
-      if (a.type === 'redirect' && !safeRedirectUrl(a.url, { ...options.policy, appOrigin: options.policy?.appOrigin ?? null })) {
+      if (a.type === 'redirect' && !isTargetUrlToken(a.url) && !safeRedirectUrl(a.url, { ...options.policy, appOrigin: options.policy?.appOrigin ?? null })) {
         problems[b.id] = 'Redirect to an app page (/…) or an allowed address'
         break
       }
@@ -316,6 +341,28 @@ export interface ButtonScope {
   values: Record<string, unknown>
   /** submission id, run reference(s), submitter name… */
   extras?: Record<string, unknown>
+  /** The data target's "back" page ({{target.return_url}}), provider-vetted. */
+  targetReturnUrl?: string | null
+  /** The data target's named pages ({{target.url.<name>}}): app paths or http(s), provider-vetted. */
+  targetUrls?: Record<string, string> | null
+}
+
+/** A provider's named page → usable: an app path (one leading /) or http(s) without credentials, or null. */
+export function cleanTargetUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw || raw.length > 2000) return null
+  if (raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\')) return /[\u0000-\u001f\s]/.test(raw) ? null : raw
+  return cleanReturnUrl(raw)
+}
+
+/** A provider's return URL → usable (http(s), no credentials), or null. */
+export function cleanReturnUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw || raw.length > 2000) return null
+  try {
+    const url = new URL(raw)
+    return (url.protocol === 'https:' || url.protocol === 'http:') && !url.username && !url.password ? url.toString() : null
+  } catch {
+    return null
+  }
 }
 
 function display(v: unknown): string {
@@ -413,7 +460,10 @@ export function planButtonEffects(button: FormButton, scope: ButtonScope, policy
       }
       out.success_screen = screen
     } else if (action.type === 'redirect') {
-      const url = safeRedirectUrl(action.url, policy)
+      const named = TARGET_URL_RE.exec(String(action.url ?? ''))?.[1]
+      const url = action.url === TARGET_RETURN_URL ? cleanReturnUrl(scope.targetReturnUrl)
+        : named ? cleanTargetUrl(scope.targetUrls?.[named])
+          : safeRedirectUrl(action.url, policy)
       if (url) out.redirect = url
     } else if (action.type === 'close') out.close = true
   }

@@ -26,8 +26,10 @@ vi.mock('@/lib/services/forms', async (importOriginal) => ({
 import { defineExtension, defineServerExtension, ExtensionError, type FormTarget } from '@user-tasks/extension-sdk'
 import { applyFieldPatches, layoutDataTarget, normalizeDataTarget, normalizeFieldPatches, normalizeTargetLinks } from '@/lib/forms/data-target'
 import { formEventMessage } from '@/lib/forms/embed'
+import { buttonProblems, normalizeFormButtons, planButtonEffects, TARGET_RETURN_URL } from '@/lib/forms/buttons'
+import { deleteFormTargetRecord } from '@/lib/services/form-targets'
 import { compactLayoutForSave, normalizeFormLayout } from '@/lib/forms/layout'
-import { assertTargetBinding, checkFormTarget, formTargetDeps, mapPeopleValues, prepareFormTarget, submitFormTarget, targetError } from '@/lib/services/form-targets'
+import { assertTargetBinding, checkFormTarget, formTargetDeleted, formTargetDeps, formTargetSaved, mapPeopleValues, prepareFormTarget, sameIdentity, submitFormTarget, targetError } from '@/lib/services/form-targets'
 import { ServiceError, type ServiceContext } from '@/lib/services/context'
 import { registerExtensionsForTest, resetExtensionsForTest } from '@/lib/extensions/testing'
 import { extensionProblems } from '@/lib/extensions/server-registry'
@@ -184,6 +186,48 @@ describe('prepare', () => {
     expect(formEventMessage('submitted')).toEqual({ type: 'usertasks:form', event: 'submitted' })
   })
 
+  it('passes a vetted return URL and can-delete (only with a remove hook and a record)', async () => {
+    provider = { label: 'x', prepare: async () => ({ record: { id: '5' }, returnUrl: 'https://sp.example/list', canDelete: true, urls: { edit: '/f/e?ItemId=5', bad: 'javascript:x', 'Bad Key': '/f/x' } }), submit: async () => ({ record: { id: '1' } }), remove: async () => ({}) }
+    const out = await prepareFormTarget(ctx(), { id: 'f', name: 'F', version: 1, fields, layout }, { item: 5 }, 'render')
+    expect(out.state).toMatchObject({ return_url: 'https://sp.example/list', can_delete: true, urls: { edit: '/f/e?ItemId=5' } })
+    expect(Object.keys(out.state!.urls!)).toEqual(['edit'])
+    provider = { label: 'x', prepare: async () => ({ record: { id: '5' }, returnUrl: 'javascript:alert(1)', canDelete: true }), submit: async () => ({ record: { id: '1' } }) }
+    expect((await prepareFormTarget(ctx(), { id: 'f', name: 'F', version: 1, fields, layout }, { item: 5 }, 'render')).state).toMatchObject({ return_url: null, can_delete: false })
+    provider = { label: 'x', prepare: async () => ({ returnUrl: 'https://sp.example/list', canDelete: true }), submit: async () => ({ record: { id: '1' } }), remove: async () => ({}) }
+    expect((await prepareFormTarget(ctx(), { id: 'f', name: 'F', version: 1, fields, layout }, {}, 'render')).state!.can_delete).toBe(false)
+  })
+
+  it('deletes through the provider with re-validated params, and maps its errors', async () => {
+    let seen: any = null
+    provider = { label: 'Acme record', submit: async () => ({ record: { id: '1' } }), remove: async (input) => { seen = input; return { record: { id: '12', label: 'Hello' }, message: 'Recycled', returnUrl: 'https://sp.example/list' } } }
+    const out = await deleteFormTargetRecord(ctx(), { id: 'f', name: 'F', version: 1, fields, layout }, { params: { item: '12', other: 1 }, version: '"3"' })
+    expect(seen.params).toEqual({ item: 12 })
+    expect(seen.version).toBe('"3"')
+    expect(out).toEqual({ label: 'Acme records', record: { id: '12', label: 'Hello' }, message: 'Recycled', returnUrl: 'https://sp.example/list' })
+    provider = { label: 'x', submit: async () => ({ record: { id: '1' } }), remove: async () => { throw new ExtensionError('forbidden', 'You may not delete it', 403) } }
+    await expect(deleteFormTargetRecord(ctx(), { id: 'f', name: 'F', version: 1, fields, layout }, {})).rejects.toMatchObject({ code: 'forbidden' })
+    provider = { label: 'x', submit: async () => ({ record: { id: '1' } }) }
+    await expect(deleteFormTargetRecord(ctx(), { id: 'f', name: 'F', version: 1, fields, layout }, {})).rejects.toMatchObject({ code: 'validation_error' })
+  })
+
+  it('buttons: a Delete kind (one, danger by default) and {{target.return_url}} redirects', () => {
+    const buttons = normalizeFormButtons([{ kind: 'submit', label: 'Save', actions: [{ type: 'redirect', url: TARGET_RETURN_URL }] }, { kind: 'delete' }, { kind: 'delete', label: 'Twice' }])
+    expect(buttons.map((b) => [b.kind, b.label, b.style])).toEqual([['submit', 'Save', 'primary'], ['delete', 'Delete', 'danger']])
+    expect(buttonProblems(buttons)).toEqual({})
+    expect(planButtonEffects(buttons[0], { values: {}, targetReturnUrl: 'https://sp.example/Lists/R/AllItems.aspx' }).redirect).toBe('https://sp.example/Lists/R/AllItems.aspx')
+    expect(planButtonEffects(buttons[0], { values: {}, targetReturnUrl: 'javascript:x' }).redirect).toBeUndefined()
+    expect(planButtonEffects(buttons[0], { values: {} }).redirect).toBeUndefined()
+    expect(planButtonEffects({ id: 'x', label: 'x', kind: 'submit', style: 'primary', actions: [{ type: 'redirect', url: 'https://evil.example/' }] }, { values: {}, targetReturnUrl: 'https://sp.example/' }).redirect).toBeUndefined()
+    expect(formEventMessage('deleted')).toEqual({ type: 'usertasks:form', event: 'deleted' })
+    // Link buttons and named target pages ({{target.url.<name>}}).
+    const [link] = normalizeFormButtons([{ kind: 'link', label: 'Edit item', actions: [{ type: 'redirect', url: '{{target.url.edit}}' }, { type: 'message', text: 'dropped' }] }]).filter((b) => b.kind === 'link')
+    expect(link.actions).toEqual([{ type: 'redirect', url: '{{target.url.edit}}' }])
+    expect(buttonProblems([link])).toEqual({})
+    expect(planButtonEffects(link, { values: {}, targetUrls: { edit: '/f/abc?ItemId=1' } }).redirect).toBe('/f/abc?ItemId=1')
+    expect(planButtonEffects(link, { values: {}, targetUrls: { edit: '//evil.example' } }).redirect).toBeUndefined()
+    expect(planButtonEffects(link, { values: {} }).redirect).toBeUndefined()
+  })
+
   it('maps people values on their own: single, multiple, unknown', async () => {
     const out = await mapPeopleValues(db.current, TENANT, fields, { owner: [{ email: 'nobody@x.test' }], team: [U2], title: 'x' })
     expect(out).toEqual({ values: { owner: null, team: [{ kind: 'user', id: U2 }], title: 'x' }, missing: ['nobody@x.test'] })
@@ -207,7 +251,7 @@ describe('submit', () => {
     expect(seen.params).toEqual({ item: 5 })
     expect(Object.keys(seen.people).sort()).toEqual([U1, U2].sort())
     expect(seen.people[U2]).toEqual({ id: U2, name: 'Bo', email: 'bo@contoso.test' })
-    expect(out).toEqual({ label: 'Acme records', record: { id: '13', label: 'New', url: null }, version: '"1"', message: 'created' })
+    expect(out).toEqual({ label: 'Acme records', record: { id: '13', label: 'New', url: null }, version: '"1"', message: 'created', returnUrl: null })
   })
 
   it('turns field errors into validation errors per field, 412 into a conflict, 5xx into 502', async () => {
@@ -236,6 +280,49 @@ describe('binding and checks', () => {
     await expect(assertTargetBinding(ctx(['forms.edit']), layout, layout)).resolves.toBeUndefined()
     await expect(assertTargetBinding(ctx(['forms.edit', 'ext.acme.write']), layout, null)).resolves.toBeUndefined()
     await expect(assertTargetBinding(ctx(['forms.edit']), { ...layout, data_target: { ...binding, config: { list: 'L2' } } }, layout)).rejects.toMatchObject({ code: 'forbidden' })
+  })
+
+  it('a config change that keeps the provider identity is not a new binding (no bindPermission)', async () => {
+    provider = { label: 'x', bindPermission: 'ext.acme.write', identity: (c) => String(c.list), submit: async () => ({ record: { id: '1' } }) }
+    const moreIds = { ...layout, data_target: { ...binding, config: { list: 'L1', ids: ['a', 'b', 'c'] } } }
+    await expect(assertTargetBinding(ctx(['forms.edit']), moreIds, layout)).resolves.toBeUndefined()
+    await expect(assertTargetBinding(ctx(['forms.edit']), { ...layout, data_target: { ...binding, config: { list: 'L2' } } }, layout)).rejects.toMatchObject({ code: 'forbidden' })
+    expect(sameIdentity(provider, binding, { ...binding, key: 'other' })).toBe(false)
+    expect(sameIdentity(null, binding, { ...binding, config: { list: 'L1' } })).toBe(false)
+    expect(sameIdentity({ identity: () => { throw new Error('bad') } }, binding, { ...binding, config: { list: 'L1' } })).toBe(false)
+  })
+
+  it('saved: same identity → saved with previousConfig (deleted not called); another identity → deleted (old) then saved', async () => {
+    const calls: Array<[string, unknown]> = []
+    provider = {
+      label: 'x', identity: (c) => String(c.list), submit: async () => ({ record: { id: '1' } }),
+      saved: async ({ form, previousConfig }) => { calls.push(['saved', { config: form.config, previousConfig }]) },
+      deleted: async ({ formId, config }) => { calls.push(['deleted', { formId, config }]) },
+    }
+    const form = (config: Record<string, unknown>) => ({ id: 'f1', name: 'F', version: 2, fields, layout: { ...layout, data_target: { ...binding, config } } })
+    await formTargetSaved(ctx(), form({ list: 'L1', ids: ['a'] }), layout)
+    expect(calls).toEqual([['saved', { config: { list: 'L1', ids: ['a'] }, previousConfig: binding.config }]])
+    calls.length = 0
+    await formTargetSaved(ctx(), form({ list: 'L2' }), layout)
+    expect(calls).toEqual([['deleted', { formId: 'f1', config: binding.config }], ['saved', { config: { list: 'L2' }, previousConfig: null }]])
+    calls.length = 0
+    // Without identity every config change is a new binding (as before).
+    delete provider.identity
+    await formTargetSaved(ctx(), form({ list: 'L1', ids: ['a'] }), layout)
+    expect(calls.map(([k]) => k)).toEqual(['deleted', 'saved'])
+    calls.length = 0
+    // Unbound: the old provider is told; a provider that can't be reached keeps its binding on a field edit.
+    await formTargetSaved(ctx(), { id: 'f1', name: 'F', version: 3, fields, layout: { rows: [] } }, layout)
+    expect(calls.map(([k]) => k)).toEqual(['deleted'])
+    calls.length = 0
+    provider.identity = (c) => String(c.list)
+    vi.mocked(formTargetDeps.assertAccess).mockRejectedValueOnce(new Error('not licensed'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    await formTargetSaved(ctx(), form({ list: 'L1', ids: ['z'] }), layout)
+    expect(calls).toEqual([])
+    expect(warn).toHaveBeenCalled()
+    await formTargetDeleted(ctx(), 'f1', layout)
+    expect(calls).toEqual([['deleted', { formId: 'f1', config: binding.config }]])
   })
 
   it('reports provider problems (known fields only) and turns a failure into one error', async () => {

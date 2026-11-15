@@ -45,7 +45,8 @@ function serviceContext(host: HostForms): ServiceContext {
   return { db: host.db, supabase: host.db, tenantId: host.tenantId, actorId: host.actorId, permissions: host.permissions, authKind: 'job', source: 'ui' }
 }
 
-function bound(extensionId: string, row: Record<string, any>): BoundForm | null {
+/** The form as a BoundForm when it is bound to one of this extension's targets, else null. */
+export function boundForm(extensionId: string, row: Record<string, any>): BoundForm | null {
   const ref = layoutDataTarget(row.layout)
   if (!ref || ref.extension !== extensionId) return null
   return {
@@ -69,22 +70,22 @@ export function hostForms(host: HostForms): Pick<ExtensionContext['forms'], 'cre
       if (!host.tenantId) return []
       const { data, error } = await host.db.from('forms').select('id, name, version, layout, updated_at').eq('tenant_id', host.tenantId).order('updated_at', { ascending: false }).limit(2000)
       if (error) throw new Error(`forms.list failed: ${error.message}`)
-      return ((data ?? []) as Array<Record<string, any>>).map((r) => bound(host.extensionId, r)).filter((f): f is BoundForm => Boolean(f) && (!options.key || f!.key === options.key))
+      return ((data ?? []) as Array<Record<string, any>>).map((r) => boundForm(host.extensionId, r)).filter((f): f is BoundForm => Boolean(f) && (!options.key || f!.key === options.key))
     },
     async get(id: string) {
       if (!host.tenantId || !UUID_RE.test(String(id))) return null
-      const { data, error } = await host.db.from('forms').select('id, name, version, layout, fields, updated_at').eq('tenant_id', host.tenantId).eq('id', id).maybeSingle()
+      const { data, error } = await host.db.from('forms').select('id, name, version, layout, fields, buttons, updated_at').eq('tenant_id', host.tenantId).eq('id', id).maybeSingle()
       if (error) throw new Error(`forms.get failed: ${error.message}`)
-      const form = data ? bound(host.extensionId, data) : null
+      const form = data ? boundForm(host.extensionId, data) : null
       if (!form) return null
       const def = normalizeFormDefinition(data)
-      return { ...form, fields: def.fields, layout: def.layout }
+      return { ...form, fields: def.fields, layout: def.layout, buttons: Array.isArray(data.buttons) ? data.buttons : null }
     },
     async update(id: string, input: FormUpdateInput) {
       if (!host.tenantId || !UUID_RE.test(String(id))) throw new Error('Form not found')
       const { data, error } = await host.db.from('forms').select('id, name, version, layout').eq('tenant_id', host.tenantId).eq('id', id).maybeSingle()
       if (error) throw new Error(`forms.update failed: ${error.message}`)
-      const current = data ? bound(host.extensionId, data) : null
+      const current = data ? boundForm(host.extensionId, data) : null
       // Only forms bound to this extension (anything else reads as absent).
       if (!current) throw new Error('Form not found')
       const binding = { extension: host.extensionId, key: current.key, config: input.target ? input.target.config : current.config, ...((input.target?.label ?? current.label) ? { label: input.target?.label ?? current.label } : {}) }
@@ -106,7 +107,7 @@ export function hostForms(host: HostForms): Pick<ExtensionContext['forms'], 'cre
       const { data, error } = await host.db.from('forms').select('id, name, version, layout').eq('tenant_id', host.tenantId).eq('id', id).maybeSingle()
       if (error) throw new Error(`forms.delete failed: ${error.message}`)
       // Only forms bound to this extension (anything else reads as absent).
-      if (!data || !bound(host.extensionId, data)) return { deleted: false }
+      if (!data || !boundForm(host.extensionId, data)) return { deleted: false }
       const { deleteForm } = await import('@/lib/services/forms')
       await deleteForm(serviceContext(host), id)
       return { deleted: true }

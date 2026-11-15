@@ -207,6 +207,16 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | update | — | — | — | a follow has nothing to change |
 | delete | `DELETE /tasks/{id}/follow` | `tasks_unfollow` | `tasks unfollow` | idempotent |
 
+## Task read state (unread)
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /tasks/unread-count` | `tasks_unread_count` | `tasks unread-count` | the caller's own count; task list / get rows carry unread |
+| get | `GET /tasks/{id}` | `tasks_get` | `tasks get` | unread on the task |
+| create | `PUT /tasks/{id}/read` | `tasks_mark_read` | `tasks mark-read` | only a task the caller can see; idempotent (POST /tasks/read-all, tasks_mark_all_read, tasks mark-all-read: every unread task) |
+| update | — | — | — | read state has nothing else to change |
+| delete | `DELETE /tasks/{id}/read` | `tasks_mark_unread` | `tasks mark-unread` | idempotent; a task the caller doesn't hold, or a closed one, stays read |
+
 ## Task viewers (invite, read only)
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |

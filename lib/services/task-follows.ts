@@ -23,6 +23,7 @@
 import { getDb, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { dbError } from './_shared'
 import { enrichTrackerTasks, searchTrackerTasks, TRACKER_TASK_SELECT } from './task-tracker'
+import { withUnread } from './task-reads'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- tracker rows are the joined task rows */
 
@@ -249,7 +250,8 @@ export async function listFollowedTasks(ctx: ServiceContext, filters: FollowedTa
         shared_with_me: shared.get(String(task.id)) ?? null,
       }
     })
-  return searchTrackerTasks(enriched, filters.search).sort((a, b) => {
+  // unread: not opened since it became mine (lib/tasks/unread.ts) — one query for the list.
+  return (await withUnread(ctx, searchTrackerTasks(enriched, filters.search))).sort((a, b) => {
     const dueA = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER
     const dueB = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER
     if (dueA !== dueB) return dueA - dueB

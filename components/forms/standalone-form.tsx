@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 import { isPaged } from '@/lib/forms/layout'
 import { pageSettings } from '@/lib/forms/pages'
 import { serverRead } from '@/lib/server-read'
-import { submitStandaloneForm } from '@/app/actions/forms'
+import { deleteStandaloneFormRecord, submitStandaloneForm } from '@/app/actions/forms'
 import { planButtonEffects, type ButtonEffects, type FormButton } from '@/lib/forms/buttons'
 import { freshSubmissionValues, screenButtonOutcome } from '@/lib/forms/submitted-page'
 import { validateTaskFieldValues } from '@/lib/task-field-schema'
@@ -30,7 +30,7 @@ import type { FormLookupSource } from '@/components/forms/lookup-field'
 import { AnonymousCaptcha, AnonymousHoneypot, submitAnonymous } from '@/components/forms/anonymous-form-parts'
 import { useAssistantSurface } from '@/lib/assistants/client-registry'
 import type { FormDataTargetState } from '@/lib/forms/data-target'
-import { formEventMessage, type FormEventMessage } from '@/lib/forms/embed'
+import { FORM_EVENT_MESSAGE_TYPE, formEventMessage, type FormEventMessage } from '@/lib/forms/embed'
 
 const DRAFT_STORAGE = 'usertasks.form-draft.'
 
@@ -111,7 +111,10 @@ function DataTargetActions({ actions, trusted }: { actions: NonNullable<FormData
 
 /** Tell the framing page what happened (no values or record data — just the event; lib/forms/embed.ts). */
 function notifyHost(event: FormEventMessage['event']) {
-  if (typeof window === 'undefined' || window.parent === window) return
+  if (typeof window === 'undefined') return
+  // Same page too (components/embed/embed-form-host.tsx: what to do after a submit).
+  window.dispatchEvent(new CustomEvent(FORM_EVENT_MESSAGE_TYPE, { detail: event }))
+  if (window.parent === window) return
   try { window.parent.postMessage(formEventMessage(event), '*') } catch { /* parent gone */ }
 }
 
@@ -131,7 +134,7 @@ function newKey(): string {
  * the final step; with "Resume later" on, unsent answers and the step are
  * kept in this browser until the form is submitted or discarded.
  */
-export function StandaloneForm({ formId, query, anonymous, surface = 'app', embed = false, trusted = false }: {
+export function StandaloneForm({ formId, query, anonymous, surface = 'app', embed = false, trusted = false, initialForm }: {
   formId: string
   /**
    * `app`: inside the dashboard shell (/fill/<id>, opened from the app's own
@@ -150,6 +153,12 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
    * back like the host system's own forms; form links stay in the frame.
    */
   trusted?: boolean
+  /**
+   * The form as the server already prepared it for this request (definition,
+   * theme, the bound record's values — `getSubmittableForm`): the first paint
+   * has the fields, with no client loading phase (trusted embedding).
+   */
+  initialForm?: AnonymousFormPage['form']
   /** The page's URL query: the form's URL parameters are read from it (lib/forms/form-params.ts); anything else is ignored. */
   query?: Record<string, string | string[] | undefined>
   /**
@@ -169,7 +178,9 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   const { data: form, error, isPending: isLoading, refetch } = useQuery({
     queryKey: ['form-submittable', formId, urlQuery],
     enabled: !anonymous,
-    initialData: anonymous?.page.form,
+    initialData: anonymous?.page.form ?? initialForm,
+    // Server-prepared (trusted embedding): no refetch on mount, so the record is read once per page load.
+    ...(initialForm ? { staleTime: 30_000 } : {}),
     queryFn: async () => {
       const { data, error: readError } = await serverRead('forms.submittable', { id: formId, ...(urlQuery ? { query: urlQuery } : {}) })
       if (readError) throw new Error(readError.message)
@@ -197,6 +208,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   const [failure, setFailure] = useState<string | null>(null)
   const [effects, setEffects] = useState<ButtonEffects | null>(null)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<FormButton | null>(null)
   const [closed, setClosed] = useState(false)
   const keyRef = useRef(newKey())
   // Anonymous visit: one upload key per page load (its uploads are only usable with it), the honeypot, the captcha answer.
@@ -279,7 +291,13 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   }
 
   function finish(next: ButtonEffects) {
-    if (next.redirect) { router.push(next.redirect); return }
+    if (next.redirect) {
+      // An address on another site (e.g. {{target.return_url}}, the list a record lives in): a full page load.
+      // In a trusted-embedding frame the host page goes there itself (it got the host event).
+      if (/^https?:\/\//i.test(next.redirect)) { if (!trusted) window.location.assign(next.redirect); return }
+      // Inside a trusted-embedding frame another form stays in the frame.
+      router.push(trusted && /^\/f\//.test(next.redirect) ? `/embed${next.redirect}` : next.redirect); return
+    }
     if (next.close && !next.success_screen) { setClosed(true) }
     setEffects(next)
   }
@@ -289,12 +307,35 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
       setFailure(null)
       if (button.kind === 'cancel') {
         if (dirty && !confirmCancel) { setConfirmCancel(true); return }
-        const planned = planButtonEffects(button, { values: shown })
+        const planned = planButtonEffects(button, { values: shown, targetReturnUrl: form!.target?.return_url ?? null, targetUrls: form!.target?.urls ?? null })
         setValues({}); setErrors({}); setConfirmCancel(false)
         forgetDraft()
         keyRef.current = newKey()
-        if (trusted) notifyHost('cancelled')
+        if (trusted) notifyHost(displayOnly ? 'closed' : 'cancelled')
         finish(planned)
+        return
+      }
+      if (button.kind === 'link') {
+        // A link button (e.g. "Edit item" → {{target.url.edit}}): no submission, just its redirect.
+        finish(planButtonEffects(button, { values: shown, targetReturnUrl: form!.target?.return_url ?? null, targetUrls: form!.target?.urls ?? null }))
+        return
+      }
+      if (button.kind === 'delete') {
+        // Delete record (data target): confirm, then the provider deletes it.
+        if (confirmDelete?.id !== button.id) { setConfirmDelete(button); return }
+        setConfirmDelete(null)
+        setBusy(button.id)
+        try {
+          const result = await deleteStandaloneFormRecord(formId, { button_id: button.id, params: params?.parsed.values ?? null, target_version: form!.target?.version ?? null })
+          if (!result.ok) { setFailure(result.error); return }
+          setValues({}); forgetDraft()
+          if (trusted) notifyHost('deleted')
+          const next = result.data.effects
+          if (!next.redirect && !next.close && !next.success_screen) { setEffects({ ...next, messages: next.messages.length ? next.messages : [{ text: 'Deleted.', tone: 'success' }] }); setClosed(true); return }
+          finish(next)
+        } finally {
+          setBusy(null)
+        }
         return
       }
       const clientErrors = validateTaskFieldValues(form!.fields, shown, { layout: form!.layout, buttonIds: [button.id] })
@@ -344,7 +385,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         <div>
           {/* The heart / Save draft icons sit in the header's top-right corner, on the title's row. */}
           <FormHeaderBlock header={form.header ?? (form.theme_overrides?.header?.enabled ? null : { enabled: true, image: 'none', title: form.name, align: 'left' })} values={withFormContext(form.layout, shown)} overrides={form.theme_overrides}
-            actions={!anonymous && !displayOnly && !closed && !effects?.success_screen ? (
+            actions={!anonymous && !displayOnly && !trusted && !closed && !effects?.success_screen ? (
               <FormHeaderActions form={form} drafts={drafts} inHeader
                 onSave={() => { setDraftDecided(true); void drafts.save(values, params?.parsed.values ?? null) }} />
             ) : null} />
@@ -402,9 +443,18 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
                     <Button size="sm" variant="destructive" onClick={() => void press(form.buttons.find((b) => b.kind === 'cancel')!)} data-confirm-cancel>Discard</Button>
                   </div>
                 )}
-                {displayOnly
-                  ? <DataTargetActions actions={form.target?.actions ?? []} trusted={trusted} />
-                  : <FormButtonBar buttons={form.buttons.filter((b) => b.kind !== 'draft')} placement={form.theme_overrides?.button_placement} busy={busy} onClick={(b) => void press(b)} />}
+                {confirmDelete && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm border-border" role="alertdialog" aria-label="Delete this record?" data-confirm-delete-dialog>
+                    <span className="flex-1">Delete {form.target?.record?.label ? `"${form.target.record.label}"` : 'this record'}{form.target?.label ? ` from ${form.target.label}` : ''}?</span>
+                    <Button size="sm" variant="outline" onClick={() => setConfirmDelete(null)}>Keep it</Button>
+                    <Button size="sm" variant="destructive" onClick={() => void press(confirmDelete)} data-confirm-delete>Delete</Button>
+                  </div>
+                )}
+                {displayOnly && <DataTargetActions actions={form.target?.actions ?? []} trusted={trusted} />}
+                {/* Delete shows only when the provider says the person may delete this record; a display form keeps Cancel (Close) and Delete. */}
+                <FormButtonBar
+                  buttons={form.buttons.filter((b) => b.kind !== 'draft' && (b.kind !== 'delete' || (form.target?.can_delete === true && form.target.mode !== 'create')) && (!displayOnly || b.kind === 'cancel' || b.kind === 'delete' || b.kind === 'link'))}
+                  placement={form.theme_overrides?.button_placement} busy={busy} onClick={(b) => void press(b)} />
               </FormStepActions>
               </FormPagesProvider>
             </FormLookupProvider>

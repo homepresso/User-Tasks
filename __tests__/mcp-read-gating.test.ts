@@ -36,6 +36,7 @@ const EXPECTED_READ_PERMISSIONS: Record<string, string> = {
   tasks_attachments_list: 'tasks.view_own',
   tasks_attachments_download_url: 'tasks.view_own',
   tasks_following: 'tasks.view_own',
+  tasks_unread_count: 'tasks.view_own',
   tasks_subtasks_list: 'tasks.view_own',
   tasks_priority_summary: 'tasks.view_own',
   tasks_viewers_list: 'tasks.view_own',

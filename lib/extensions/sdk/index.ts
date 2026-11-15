@@ -175,9 +175,11 @@ export interface ExtensionContext {
      * Start the workspace's workflows that listen to one of this extension's
      * triggers. With `workflowId`, only that active workflow (if it listens
      * to the trigger) and without `matches()` — a person starting one
-     * workflow by hand on a record.
+     * workflow by hand on a record. `byPerson` (with `workflowId`, a signed-in
+     * person): the run records them as its starter (Started by, run visibility,
+     * {{workflow_started_by}}), signed like every other start.
      */
-    trigger(key: string, payload: Record<string, unknown>, options?: { dedupeKey?: string; workflowId?: string }): Promise<{ started: number; duplicate: boolean }>
+    trigger(key: string, payload: Record<string, unknown>, options?: { dedupeKey?: string; workflowId?: string; byPerson?: boolean }): Promise<{ started: number; duplicate: boolean }>
     /**
      * Create a draft workflow (inactive) whose trigger is one of this
      * extension's triggers, pre-configured — e.g. "new workflow for this
@@ -221,12 +223,78 @@ export interface ExtensionContext {
      */
     grantDesign(workflowId: string): Promise<{ granted: boolean }>
     /**
+     * Take back a grant made by grantDesign (the person's own Edit grant) from
+     * `userId` (default: the signed-in person), e.g. once they no longer
+     * manage the record in the outside system. Grants an admin gave are kept.
+     * Elevated or team.change_roles; audited as a revoke.
+     */
+    revokeDesign(workflowId: string, userId?: string | null): Promise<{ revoked: boolean }>
+    /**
      * Recent runs of the extension's trigger workflows whose trigger data
      * matches every `match` key (top-level fields, compared as text) — e.g.
      * the runs for one record. Newest first, at most 50. Empty without
      * workflows.view.
      */
     runs(options: { trigger?: string; match: Record<string, string | number>; limit?: number }): Promise<ExtensionWorkflowRun[]>
+    /**
+     * Run history across the extension's own trigger workflows (optionally
+     * some of them: `workflowIds`, others ignored), newest first and paged
+     * (`limit` ≤ 100, `offset` ≤ 10 000), filtered by status group and a
+     * trigger-data `match`. Each run: status group, duration, the step it
+     * waits on, who started it, the trigger-data keys named in `pick`
+     * (top-level scalars only) and, for waiting runs, the open tasks.
+     * Visibility follows the run lists: workflows.view, then
+     * workflows.view_runs (every run) or workflows.view_queue (runs the
+     * person is involved in, workflows they hold a View grant on); task
+     * assignees need workflows.view_runs or tasks.view_all. System and
+     * elevated contexts see everything. Queued jobs (not started yet) come
+     * on the first page.
+     */
+    history(options?: ExtensionRunHistoryOptions): Promise<ExtensionRunHistory>
+    /**
+     * Aggregate run statistics of the extension's own trigger workflows
+     * (optionally some of them) over the last `days` (1–90, default 30),
+     * computed in the database: per workflow and in total — started,
+     * completed, failed, cancelled, success rate, average and p95 duration
+     * of completed runs, runs per UTC day, and the runs running / waiting /
+     * queued now. Counts only, no run data. Needs workflows.view.
+     */
+    stats(options?: { trigger?: string; workflowIds?: string[]; days?: number }): Promise<ExtensionRunStats>
+    /**
+     * Cancel a run (running / waiting) or a queued job of one of the
+     * extension's workflows, through the queue service: workflows.activate and
+     * the run in the person's run scope (elevated contexts: any). Audited.
+     */
+    /**
+     * Where the open (waiting) runs of the extension's workflows are: counts by
+     * step and their open tasks by assignee — bounded to the newest 5 000 open
+     * runs. Needs workflows.view; assignee names need workflows.view_runs or
+     * tasks.view_all (else counts only).
+     */
+    waiting(options?: { trigger?: string; workflowIds?: string[] }): Promise<ExtensionWaiting>
+    cancelRun(ref: { runId?: string; jobId?: string }): Promise<{ cancelled: boolean }>
+    /**
+     * Start one of the extension's workflows again with the trigger data of a
+     * failed or cancelled run (a new run; `_retry_of` names the old one), the
+     * person recorded as its starter. Needs workflows.start or
+     * workflows.activate (elevated contexts: allowed). Audited on the workflow.
+     */
+    retryRun(runId: string): Promise<{ started: boolean }>
+  }
+  /**
+   * Explicit grants (who may view, edit, delete, run / submit) on the
+   * extension's OWN workflows and bound forms — the same grants as the
+   * object Permissions panel, through the same service (team.change_roles,
+   * audited on the object as `grant` / `revoke`). Workflows use view / edit /
+   * delete / execute (start); forms use view / execute (submit).
+   * `principals` lists the workspace's roles (with their permission keys) and
+   * teams to pick from; people are found with users.findByEmail.
+   */
+  grants: {
+    list(type: ExtensionGrantObject, objectId: string): Promise<ExtensionGrant[]>
+    set(type: ExtensionGrantObject, objectId: string, input: ExtensionGrantInput): Promise<ExtensionGrant>
+    remove(type: ExtensionGrantObject, objectId: string, grantId: string): Promise<void>
+    principals(): Promise<{ roles: Array<{ id: string; name: string; permissions: string[] }>; teams: Array<{ id: string; name: string }> }>
   }
   /**
    * The same person with full workspace permissions, for an action the
@@ -307,7 +375,8 @@ export interface ExtensionContext {
   forms: {
     create(input: FormCreateInput): Promise<{ id: string; name: string; version: number; designerUrl: string; pageUrl: string }>
     list(options?: { key?: string }): Promise<BoundForm[]>
-    get(id: string): Promise<(BoundForm & { fields: TaskFieldDef[]; layout: unknown }) | null>
+    /** `buttons`: the stored button bar (null = the default Submit / Cancel). */
+    get(id: string): Promise<(BoundForm & { fields: TaskFieldDef[]; layout: unknown; buttons: unknown[] | null }) | null>
     delete(id: string): Promise<{ deleted: boolean }>
     /**
      * Change one of THIS extension's bound forms as the caller (forms.edit; the
@@ -322,6 +391,15 @@ export interface ExtensionContext {
     editors(ids: string[]): Promise<Map<string, string | null>>
     /** As workflows.grantDesign, for a form bound to one of this extension's form targets (save / restore drafts; publishing still needs forms.edit). */
     grantDesign(formId: string): Promise<{ granted: boolean }>
+    /** As workflows.revokeDesign, for a form bound to one of this extension's form targets. */
+    revokeDesign(formId: string, userId?: string | null): Promise<{ revoked: boolean }>
+    /**
+     * Submission counts of the extension's own bound forms (optionally some
+     * of them: `formIds`, or one target `key`) over the last `days` (1–90,
+     * default 30), computed in the database: total and per UTC day, and the
+     * last submission (any time). Counts only, never values. Needs forms.view.
+     */
+    submissionStats(options?: { formIds?: string[]; key?: string; days?: number }): Promise<ExtensionSubmissionStats>
   }
   /**
    * Directory sources (manifest contributes.directorySources): queue a sync
@@ -423,6 +501,148 @@ export interface ExtensionWorkflowRun {
   completedAt: string | null
   /** The run page (/automations/runs/<id>), null while queued. */
   path: string | null
+}
+
+/** Objects ctx.grants manages. */
+export type ExtensionGrantObject = 'workflow' | 'form'
+
+export interface ExtensionGrant {
+  id: string
+  who: { kind: 'role' | 'team' | 'person'; id: string; name: string }
+  view: boolean
+  edit: boolean
+  delete: boolean
+  /** Workflows: start it; forms: submit it. */
+  execute: boolean
+  /** The person gave it to themselves through grantDesign (e.g. a list manager opening the designer). */
+  selfGranted: boolean
+}
+
+/** Exactly one of role / team / person (ids), and the access to give. */
+export interface ExtensionGrantInput {
+  role?: string
+  team?: string
+  person?: string
+  view?: boolean
+  edit?: boolean
+  delete?: boolean
+  execute?: boolean
+}
+
+/** Status groups of runs (ctx.workflows.history / stats). */
+export type ExtensionRunGroup = 'running' | 'waiting' | 'completed' | 'failed'
+
+export interface ExtensionRunHistoryOptions {
+  trigger?: string
+  /** Only these of the extension's workflows (ids of other workflows are ignored). */
+  workflowIds?: string[]
+  /** running; waiting (paused on a task / approval / event, or queued); completed; failed (failed or cancelled); queued (not started yet) and cancelled on their own. */
+  status?: Array<ExtensionRunGroup | 'queued' | 'cancelled'>
+  /** Runs started by this person (a user id). */
+  startedBy?: string
+  /** Started at or after / before (ISO instants). */
+  since?: string
+  until?: string
+  /** started (newest first, default), duration (longest first, over the newest 1 000 matching runs) or status. */
+  sort?: 'started' | 'duration' | 'status'
+  /** Item title (trigger data `title`), a run id, or the starter's name / e-mail. */
+  search?: string
+  /** Trigger-data match (top-level keys, compared as text), as in runs(). */
+  match?: Record<string, string | number>
+  /** Top-level trigger-data keys to return per run (scalars; at most 10). */
+  pick?: string[]
+  /** Page size, 1–100 (default 25). */
+  limit?: number
+  offset?: number
+}
+
+export interface ExtensionRunTask {
+  id: string
+  title: string
+  status: string
+  dueAt: string | null
+  /** Display name of the assignee; null when unassigned or not visible to the caller (see `ExtensionRunHistory.assignees`). */
+  assignee: string | null
+  /** A team / group assignment (name), when the task has no single assignee. */
+  team: string | null
+}
+
+export interface ExtensionRunHistoryItem extends ExtensionWorkflowRun {
+  group: ExtensionRunGroup
+  /** The queue job (queued items; cancel it with cancelRun({ jobId })). */
+  jobId: string | null
+  startedById: string | null
+  /** The run's title, when the workflow sets one. */
+  title: string | null
+  /** completed − started (or now − started while it runs); null while queued. */
+  durationMs: number | null
+  /** The step it is paused on (its label), when it waits. */
+  currentStep: string | null
+  /** The person who started it (a manual start or a form), else null (an event). */
+  startedBy: string | null
+  /** The picked trigger-data keys. */
+  data: Record<string, string | number | boolean | null>
+  /** Open tasks of a waiting run. */
+  tasks: ExtensionRunTask[]
+  error: string | null
+}
+
+export interface ExtensionRunHistory {
+  runs: ExtensionRunHistoryItem[]
+  /** Runs matching the filters (queued jobs not included). */
+  total: number
+  /** Queued jobs that have not started yet (in `runs` on the first page when `waiting` is asked for). */
+  queued: number
+  hasMore: boolean
+  /** Which runs the caller sees: every run, only involved / granted ones, or none (no run-list access). */
+  visibility: 'all' | 'involved' | 'none'
+  /** Whether task assignees are shown. */
+  assignees: boolean
+}
+
+/** One UTC day: runs started that day, how they ended, and the average duration of those completed (ms). */
+export interface ExtensionRunDay { day: string; started: number; completed: number; failed: number; avgMs: number | null }
+
+/** Where open runs wait: by step (label), and their open tasks by assignee (names only with View all runs / View all tasks). */
+export interface ExtensionWaiting {
+  total: number
+  steps: Array<{ workflowId: string; workflowName: string; step: string; count: number }>
+  assignees: Array<{ name: string | null; team: boolean; unassigned: boolean; count: number }>
+  assigneesVisible: boolean
+}
+
+export interface ExtensionRunCounts {
+  started: number
+  completed: number
+  failed: number
+  cancelled: number
+  /** completed ÷ (completed + failed + cancelled); null before any run finished. */
+  successRate: number | null
+  /** Of completed runs (ms). */
+  avgMs: number | null
+  p95Ms: number | null
+  /** Now (whatever the period). */
+  running: number
+  waiting: number
+  queued: number
+  /** Every UTC day of the period, oldest first. */
+  perDay: ExtensionRunDay[]
+}
+
+export interface ExtensionRunStats {
+  since: string
+  until: string
+  days: number
+  workflows: Array<ExtensionRunCounts & { workflowId: string; name: string }>
+  totals: ExtensionRunCounts
+}
+
+export interface ExtensionSubmissionStats {
+  since: string
+  until: string
+  days: number
+  forms: Array<{ formId: string; name: string; key: string; total: number; lastAt: string | null; perDay: Array<{ day: string; count: number }> }>
+  totals: { total: number; lastAt: string | null; perDay: Array<{ day: string; count: number }> }
 }
 
 export interface BoundForm {
@@ -813,6 +1033,12 @@ export interface FormTargetPrepared {
   actions?: Array<{ label: string; url: string; primary?: boolean; target?: 'self' | 'top' | 'blank' }> | null
   /** The record's files in the external system (attachments), shown as links (http(s) only). */
   files?: Array<{ label: string; url: string }> | null
+  /** Where the record lives (e.g. its list): {{target.return_url}} redirects go there. Validate it yourself (never an open redirect); http(s) only. */
+  returnUrl?: string | null
+  /** The person may delete this record (needs a `remove` hook); the form's Delete button shows only then. */
+  canDelete?: boolean | null
+  /** Named pages for the record, for {{target.url.<name>}} button redirects (e.g. `{ edit: '/f/<id>?ItemId=12' }`): app paths or http(s). */
+  urls?: Record<string, string> | null
 }
 
 /** A person chosen in a Person field, as `submit` sees it. */
@@ -837,6 +1063,16 @@ export interface FormTargetResult {
   version?: string | null
   /** Shown to the submitter beside the button's own messages. */
   message?: string | null
+  /** Where the record lives ({{target.return_url}}), as for prepare. */
+  returnUrl?: string | null
+}
+
+export interface FormTargetRemoveInput {
+  ctx: ExtensionContext
+  form: FormTargetForm
+  params: Record<string, unknown>
+  /** The version `prepare` returned when the page opened, if any. */
+  version: string | null
 }
 
 export interface FormTargetProblem {
@@ -865,9 +1101,29 @@ export interface FormTarget {
   submit(input: FormTargetSubmitInput): Promise<FormTargetResult>
   /** Designer warnings (e.g. fields removed externally). */
   check?(input: { ctx: ExtensionContext; form: FormTargetForm }): Promise<FormTargetProblem[]>
-  /** The form was created or saved (record which external fields it uses). Errors are logged, never block the save. */
-  saved?(input: { ctx: ExtensionContext; form: FormTargetForm & { id: string } }): Promise<void>
-  /** The form was deleted or unbound. */
+  /**
+   * What makes two bindings the same (e.g. the list a form writes): a save
+   * whose binding keeps its identity is an update of that binding — no
+   * bindPermission check, and `saved` gets `previousConfig` instead of
+   * `deleted` + `saved`. Without it, any change to the config counts as a
+   * new binding. Synchronous and cheap (no I/O).
+   */
+  identity?(config: FormDataTargetRef['config']): string
+  /**
+   * The form was created or saved (record which external fields it uses).
+   * Runs after the response (the save never waits for it); errors are logged,
+   * never block the save. `previousConfig`: the binding's config before this
+   * save when it kept its identity (null for a new binding).
+   */
+  saved?(input: { ctx: ExtensionContext; form: FormTargetForm & { id: string }; previousConfig?: FormDataTargetRef['config'] | null }): Promise<void>
+  /**
+   * A Delete button was pressed: delete the record the params name (check
+   * the person may), return the record, an optional message and where to go
+   * back to ({{target.return_url}}). Without it forms bound here show no
+   * Delete button.
+   */
+  remove?(input: FormTargetRemoveInput): Promise<{ record?: { id: string; label?: string | null } | null; message?: string | null; returnUrl?: string | null }>
+  /** The form was deleted or unbound (runs after the response; errors are logged). */
   deleted?(input: { ctx: ExtensionContext; formId: string; config: FormDataTargetRef['config'] }): Promise<void>
 }
 

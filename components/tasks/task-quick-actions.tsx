@@ -27,6 +27,7 @@ import type { QueueAction } from "@/lib/tasks/unified-list"
 import { cn } from "@/lib/utils"
 import { outcomeLabel } from "./task-outcome-dialog"
 import { QueuedTaskActions } from "./queued-task-actions"
+import { TaskReadToggle } from "./task-read-controls"
 
 /**
  * Quick actions on the task lists (Home My tasks, /tasks): a per-row
@@ -91,6 +92,8 @@ interface PanelProps {
   onDone?: (message: string) => void
   /** Close the panel / sheet. */
   onClose?: () => void
+  /** The row's read state (open tasks): offers Mark as unread / Mark as read. Undefined: no toggle. */
+  unread?: boolean
 }
 
 /** Desktop: the inline panel under a row. Phones: the same panel in a bottom sheet. */
@@ -223,7 +226,7 @@ export async function runQuickAction(action: QuickAction): Promise<QuickActionRe
   }
 }
 
-export function TaskQuickActionsPanel({ taskId, title, queueAction = null, onDone, onClose }: PanelProps) {
+export function TaskQuickActionsPanel({ taskId, title, queueAction = null, onDone, onClose, unread }: PanelProps) {
   const queryClient = useQueryClient()
   const { userId } = usePermissions()
   const guard = useSubmitGuard()
@@ -423,6 +426,10 @@ export function TaskQuickActionsPanel({ taskId, title, queueAction = null, onDon
               <TaskInviteControls taskId={taskId} showChip={false} label="Invite…" variant="ghost" />
               {info.canEscalate && (
                 <Button size="sm" variant={mode === "escalate" ? "secondary" : "ghost"} leadingIcon={<ArrowUpRight />} aria-pressed={mode === "escalate"} disabled={busy !== null} onClick={() => openMode("escalate")} data-quick-action="escalate">Escalate…</Button>
+              )}
+              {unread !== undefined && (
+                <TaskReadToggle taskId={taskId} unread={unread}
+                  onDone={(state) => { if (state.error) setNotice({ tone: "danger", text: state.error }); else onClose?.() }} />
               )}
             </div>
           )}

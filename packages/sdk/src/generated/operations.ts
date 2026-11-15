@@ -375,6 +375,30 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "markTaskRead",
+    "method": "PUT",
+    "path": "/tasks/{id}/read",
+    "envelope": true
+  },
+  {
+    "operationId": "markTaskUnread",
+    "method": "DELETE",
+    "path": "/tasks/{id}/read",
+    "envelope": true
+  },
+  {
+    "operationId": "markAllTasksRead",
+    "method": "POST",
+    "path": "/tasks/read-all",
+    "envelope": true
+  },
+  {
+    "operationId": "countUnreadTasks",
+    "method": "GET",
+    "path": "/tasks/unread-count",
+    "envelope": true
+  },
+  {
     "operationId": "listTaskViewers",
     "method": "GET",
     "path": "/tasks/{id}/viewers",

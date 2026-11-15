@@ -1,7 +1,7 @@
 /**
  * Minimal in-memory Supabase/PostgREST stand-in for service tests.
  * Supports the builder calls the integration services use: select (with
- * count), eq / neq / gt / gte / lt / lte / is / not / in / contains / overlaps (arrays) / like / filter('a->>b','eq',v) / ilike / or (ignored),
+ * count), eq / neq / gt / gte / lt / lte / is / not / in (also `col->>key`) / contains / overlaps (arrays) / like / filter('a->>b','eq',v) / ilike / or (ignored),
  * order (stable, nulls last), limit, range, single, maybeSingle, insert / update / delete with
  * a trailing select. Embedded selects (`x:table(...)`) are not joined.
  * Every mutation is recorded in `calls` for assertions.
@@ -114,7 +114,12 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
         state.filters.push((row) => re.test(String(row[field] ?? '')))
         return api
       },
-      in(field: string, values: unknown[]) { state.filters.push((row) => values.includes(row[field])); return api },
+      in(field: string, values: unknown[]) {
+        // A JSON path (`col->>key`) compares the key's text, as PostgREST does.
+        const [col, key] = field.split('->>')
+        state.filters.push((row) => (key === undefined ? values.includes(row[field]) : row[col]?.[key] != null && values.map(String).includes(String(row[col][key]))))
+        return api
+      },
       /** Array column contains every value (PostgREST `cs`). */
       contains(field: string, values: unknown[]) { state.filters.push((row) => Array.isArray(row[field]) && values.every((v) => row[field].includes(v))); return api },
       /** Array column shares a value with `values` (PostgREST `ov`). */
@@ -130,8 +135,9 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
         return api
       },
       ilike(field: string, pattern: string) {
-        const needle = pattern.replace(/^%|%$/g, '').toLowerCase()
-        state.filters.push((row) => String(row[field] ?? '').toLowerCase().includes(needle))
+        const needle = pattern.replace(/^%|%$/g, '').replace(/\\(.)/g, '$1').toLowerCase()
+        const [col, key] = field.split('->>')
+        state.filters.push((row) => String((key === undefined ? row[field] : row[col]?.[key]) ?? '').toLowerCase().includes(needle))
         return api
       },
       /** Case-insensitive match against any of the patterns (no wildcards: escaped values compare equal). */

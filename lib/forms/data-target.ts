@@ -26,7 +26,11 @@
  *  - display forms: `prepare` may answer `mode: 'display'` — the page shows
  *    the record read-only (every field read-only, no submit buttons, the
  *    record's files as links, the provider's actions such as "Edit" as
- *    buttons) and core refuses submissions of it.
+ *    buttons) and core refuses submissions of it;
+ *  - back and delete: `prepare` / `submit` may name a `returnUrl` (the page
+ *    the record lives on — {{target.return_url}} redirects go there) and
+ *    `canDelete`; a provider with a `remove` hook deletes the record when a
+ *    form's Delete button is pressed.
  *
  * People cross the boundary as e-mail addresses (the provider never sees
  * user ids it can't use): `prepare` may return `{ email }` objects for
@@ -207,6 +211,12 @@ export interface FormDataTargetState {
   actions?: FormTargetLink[]
   /** The record's files in the external system (attachments), shown as links. */
   files?: FormTargetLink[]
+  /** "Back" page ({{target.return_url}} redirects): where the record lives (e.g. its list), provider-vetted http(s). */
+  return_url?: string | null
+  /** The person may delete the record (the provider deletes and said so); Delete buttons show only then. */
+  can_delete?: boolean
+  /** Named pages for the record ({{target.url.<name>}} — e.g. `edit`): app paths or http(s), provider-vetted. */
+  urls?: Record<string, string>
 }
 
 /** Is this an e-mail-shaped person value from a provider (`{ email }`)? */

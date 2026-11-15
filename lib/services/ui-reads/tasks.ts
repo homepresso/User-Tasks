@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { getDb, hasPerm, type ServiceContext } from '../context'
 import * as tasksService from '../tasks'
 import { enrichTrackerTasks, searchTrackerTasks, TRACKER_TASK_SELECT } from '../task-tracker'
+import { withUnread } from '../task-reads'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
 import { CLAIM_CANDIDATE_ROLE, displayStatus, matchesStatusFilter, queueActionFor, queuedFirst, storedStatusesFor } from '@/lib/tasks/unified-list'
 
@@ -125,7 +126,8 @@ async function listMine(ctx: ServiceContext, filters: {
     })
     .filter((row) => matchesStatusFilter(row.display_status, filters.status))
   // Default order (due date): what waits for a response surfaces first.
-  return sortBy === 'due_date' && filters.sortDir !== 'desc' ? queuedFirst(shaped) : shaped
+  // unread: not opened since it became mine (lib/tasks/unread.ts), one query for the page.
+  return withUnread(ctx, sortBy === 'due_date' && filters.sortDir !== 'desc' ? queuedFirst(shaped) : shaped)
 }
 
 export const reads = {
@@ -179,7 +181,7 @@ export const reads = {
       const sortBy = filters.sortBy === 'sequence' ? 'sequence' : (filters.sortBy ?? 'due_date')
       q = q.order(sortBy, { ascending: filters.sortDir !== 'desc', nullsFirst: false })
 
-      return (check(await q.limit(50)) ?? []) as any[]
+      return withUnread(ctx, (check(await q.limit(50)) ?? []) as any[])
     },
   }),
 
@@ -481,7 +483,7 @@ export const reads = {
       const taskIds = (tasks as any[]).map((t) => t.id)
       if (taskIds.length === 0) return []
 
-      return searchTrackerTasks(await enrichTrackerTasks(db, tasks as any[], tenantId), filters.search)
+      return withUnread(ctx, searchTrackerTasks(await enrichTrackerTasks(db, tasks as any[], tenantId), filters.search))
     },
   }),
 

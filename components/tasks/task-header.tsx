@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { PageHeader } from '@/components/ui/page-header'
 import { TaskFollowToggle } from '@/components/tasks/task-follow-button'
+import { TaskPageReadToggle } from '@/components/tasks/task-read-controls'
 import { Tooltip } from '@/components/ui/tooltip'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -236,6 +237,8 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
   const viewerOnly = Boolean(access?.viewer)
   const actions = !isDone ? (
     <>
+      {/* Unread tasks: the page marked it read on open; put the dot back for later. */}
+      {!viewerOnly && <TaskPageReadToggle taskId={task.id} />}
       {follow}
       {viewFlow}
       {timelineButton}

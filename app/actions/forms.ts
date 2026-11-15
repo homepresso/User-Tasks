@@ -111,6 +111,11 @@ export async function submitStandaloneForm(formId: string, input: SubmitFormInpu
   return submitFrom(formId, input, 'page', 'submitStandaloneForm')
 }
 
+/** "Delete record" on a form bound to an external record (data target): the provider deletes it. */
+export async function deleteStandaloneFormRecord(formId: string, input: { button_id?: string | null; params?: Record<string, unknown> | null; target_version?: string | null }) {
+  return run('deleteStandaloneFormRecord', 'Could not delete the record.', async (ctx) => (await import('@/lib/services/form-submissions')).deleteFormRecord(ctx, formId, input))
+}
+
 /** Submit a workflow's trigger form from the Run dialog ({{submission.source}} = run_dialog; set here, never by the request). */
 export async function submitRunDialogForm(formId: string, input: SubmitFormInput): Promise<SubmitActionResult> {
   return submitFrom(formId, input, 'run_dialog', 'submitRunDialogForm')

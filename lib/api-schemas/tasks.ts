@@ -119,7 +119,7 @@ export const taskEndpoints = [
   defineEndpoint({
     method: 'GET', path: '/tasks', operationId: 'listTasks', tags,
     summary: 'List tasks', permission: 'tasks.view_all',
-    description: 'User-bound credentials only see tasks assigned to (or shared with) their user. `scope=reports` lists the open tasks of the caller\'s reports instead (the manager view; needs a user and only tasks.view_own), with per-person workload counts in `reports`.',
+    description: 'User-bound credentials only see tasks assigned to (or shared with) their user. `scope=reports` lists the open tasks of the caller\'s reports instead (the manager view; needs a user and only tasks.view_own), with per-person workload counts in `reports`. Each task carries `unread` (true while it is unread for the credential\'s person — see PUT /tasks/{id}/read; always false for a credential with no user).',
     query: paginationQuery.extend({
       scope: z.enum(['all', 'reports']).optional().describe('reports: open tasks of your direct reports (add indirect=true for all levels)'),
       indirect: booleanFlag('scope=reports: include indirect reports (reports of reports, up to 10 levels)'),
@@ -139,6 +139,7 @@ export const taskEndpoints = [
   defineEndpoint({
     method: 'GET', path: '/tasks/assigned', operationId: 'listAssignedTasks', tags,
     summary: 'List open tasks assigned to a user or team', permission: 'tasks.view_all',
+    description: 'Each task carries `unread` (true while it is unread for the credential\'s person — see PUT /tasks/{id}/read; always false for a credential with no user).',
     query: paginationQuery.extend({
       assignee_id: z.string().optional(),
       team_id: z.string().optional(),
@@ -152,7 +153,7 @@ export const taskEndpoints = [
   defineEndpoint({
     method: 'GET', path: '/tasks/{id}', operationId: 'getTask', tags,
     summary: 'Get a task', permission: 'tasks.view_all',
-    description: 'Task responses include `description` (as stored: sanitised HTML or plain text) and `description_text` (plain text).',
+    description: 'Task responses include `description` (as stored: sanitised HTML or plain text) and `description_text` (plain text), and `unread` (true while it is unread for the credential\'s person — see PUT /tasks/{id}/read; false for a credential with no user).',
     params: idParams,
     query: z.object({ strip_html: stripHtml }),
     response: itemResponse('task'),

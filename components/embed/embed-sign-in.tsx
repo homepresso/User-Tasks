@@ -36,6 +36,20 @@ const SILENT_TIMEOUT_MS = 12_000
 /** A reload after a reported success that still shows this page within this time: the frame can't keep the session. */
 const RETRY_WINDOW_MS = 60_000
 const ATTEMPT_KEY = 'usertasks:sso-attempt'
+/**
+ * Several embedded pages on one host page (two web parts) start their silent attempts at the
+ * same moment; the second flow replaces the first one's flow-binding cookie, so the first
+ * callback fails although the person is now signed in (lab). A frame that signs in tells the
+ * others (same origin and storage partition), and a frame whose attempt failed checks the
+ * session for a moment before it offers anything.
+ */
+const SSO_CHANNEL = 'usertasks:sso'
+const SESSION_RECHECK_MS = 4_000
+const SSO_LOCK = 'usertasks:sso-silent'
+
+async function signedInNow(): Promise<boolean> {
+  try { return (await fetch('/api/auth/session', { cache: 'no-store', credentials: 'same-origin' })).ok } catch { return false }
+}
 
 interface SsoMessage { type: typeof SSO_MESSAGE_TYPE; ok: boolean; error: string | null }
 
@@ -56,8 +70,15 @@ function writeAttempt(value: number | null) {
   try { if (value === null) sessionStorage.removeItem(ATTEMPT_KEY); else sessionStorage.setItem(ATTEMPT_KEY, String(value)) } catch { /* storage blocked */ }
 }
 
-export function EmbedAutoSignIn({ idpName, silentUrl, popupUrl, newTabHref, reloadHref }: {
+export function EmbedAutoSignIn({ idpName, silentUrl, popupUrl, newTabHref, reloadHref, quiet = false }: {
   idpName: string
+  /**
+   * Inside another site's page (e.g. a SharePoint form host): the checking and
+   * silent phases show nothing at all (no spinner, no "Signing you in…") — the
+   * host keeps the frame hidden until something has a size; only a phase that
+   * needs the person (storage access, interactive, blocked) is drawn.
+   */
+  quiet?: boolean
   /** /auth/auto-sso?mode=frame&redirect=/embed/auth/sso-done… */
   silentUrl: string
   /** /auth/auto-sso?mode=popup&redirect=/embed/auth/sso-done… */
@@ -70,13 +91,36 @@ export function EmbedAutoSignIn({ idpName, silentUrl, popupUrl, newTabHref, relo
   const [error, setError] = useState<string | null>(null)
   const frameRef = useRef<HTMLIFrameElement | null>(null)
   const popupRef = useRef<Window | null>(null)
+  /** This frame runs the silent round trip now (one frame of the page at a time: Web Locks). */
+  const [running, setRunning] = useState(false)
+  const releaseRef = useRef<(() => void) | null>(null)
+  const release = useCallback(() => { const r = releaseRef.current; releaseRef.current = null; r?.() }, [])
   /** Set when the popup was offered because storage access was refused: its success leads back to the access click. */
   const phaseRef = useRef<string>('')
 
   const succeeded = useCallback(() => {
     writeAttempt(Date.now())
+    try { const ch = new BroadcastChannel(SSO_CHANNEL); ch.postMessage({ ok: true }); ch.close() } catch { /* no BroadcastChannel */ }
     window.location.reload()
   }, [])
+
+  // Another frame of this page signed in: this one is signed in too.
+  useEffect(() => {
+    let ch: BroadcastChannel | null = null
+    try { ch = new BroadcastChannel(SSO_CHANNEL) } catch { return }
+    ch.onmessage = (e) => { if (e.data && e.data.ok === true) { writeAttempt(Date.now()); window.location.reload() } }
+    return () => ch?.close()
+  }, [])
+
+  /** A failed or silent-timeout attempt: before offering the popup, give a parallel attempt a moment (still blank). */
+  const failedSilently = useCallback(async () => {
+    const until = Date.now() + SESSION_RECHECK_MS
+    while (Date.now() < until) {
+      if (await signedInNow()) { succeeded(); return }
+      await new Promise((r) => setTimeout(r, 500))
+    }
+    setPhase((p) => (p === 'silent' ? 'interactive' : p))
+  }, [succeeded])
 
   // Browsers that block cookies in embedded windows (Safari, Edge / Chrome with third-party cookies off):
   // no session can live in this frame until the person lets it (Storage Access API, one click). Ask first.
@@ -115,18 +159,43 @@ export function EmbedAutoSignIn({ idpName, silentUrl, popupUrl, newTabHref, relo
       const fromFrame = frameRef.current && event.source === frameRef.current.contentWindow
       const fromPopup = popupRef.current && event.source === popupRef.current
       if (!fromFrame && !fromPopup) return
+      if (fromFrame) release()
       if (event.data.ok) {
         // From the popup with cookies still blocked here: the click that grants storage access comes next.
         if (fromPopup && (document as Document & { requestStorageAccess?: unknown }).requestStorageAccess && phaseRef.current === 'interactive-after-access') { setPhase('access'); return }
         succeeded(); return
       }
       setError(event.data.error && MESSAGES[event.data.error] ? event.data.error : null)
-      setPhase((p) => (p === 'silent' ? 'interactive' : p))
+      if (fromFrame) void failedSilently()
+      else setPhase((p) => (p === 'silent' ? 'interactive' : p))
     }
     window.addEventListener('message', onMessage)
-    const timer = window.setTimeout(() => setPhase((p) => (p === 'silent' ? 'interactive' : p)), SILENT_TIMEOUT_MS)
-    return () => { window.removeEventListener('message', onMessage); window.clearTimeout(timer) }
-  }, [succeeded, phase])
+    return () => { window.removeEventListener('message', onMessage) }
+  }, [succeeded, failedSilently, phase])
+
+  // One silent round trip per page at a time (two parts racing replace each other's flow-binding
+  // cookie and both fail — lab): wait for the lock, then check whether the other frame already
+  // signed this browser in, and only then run our own.
+  useEffect(() => {
+    if (phase !== 'silent') return
+    let cancelled = false
+    const start = async () => {
+      if (await signedInNow()) { release(); succeeded(); return }
+      if (!cancelled) setRunning(true)
+    }
+    const locks = (navigator as Navigator & { locks?: { request: (name: string, cb: () => Promise<void>) => Promise<void> } }).locks
+    if (locks) {
+      void locks.request(SSO_LOCK, () => new Promise<void>((resolve) => { releaseRef.current = resolve; if (cancelled) { release(); return } void start() })).catch(() => { void start() })
+    } else void start()
+    return () => { cancelled = true; release() }
+  }, [phase, release, succeeded])
+
+  // The silent attempt's time limit runs while this frame holds the lock.
+  useEffect(() => {
+    if (phase !== 'silent' || !running) return
+    const timer = window.setTimeout(() => { release(); void failedSilently() }, SILENT_TIMEOUT_MS)
+    return () => window.clearTimeout(timer)
+  }, [phase, running, release, failedSilently])
 
   const openPopup = () => {
     const w = 520, h = 680
@@ -146,44 +215,43 @@ export function EmbedAutoSignIn({ idpName, silentUrl, popupUrl, newTabHref, relo
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 p-6 text-center" data-sso-phase={phase}>
-      {phase === 'checking' ? (
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" aria-hidden />
-      ) : phase === 'access' ? (
+    <main className={quiet && (phase === 'checking' || phase === 'silent') ? 'h-0 overflow-hidden' : 'mx-auto flex min-h-[220px] max-w-md flex-col items-center justify-center gap-4 p-6 text-center'} data-sso-phase={phase}>
+      {/* Checking and the silent attempt show nothing (embedded content must feel seamless: no spinner, no "signing in");
+          quiet (a host page that reveals the frame only once it has a size): not even an empty box. */}
+      {phase === 'checking' ? null : phase === 'access' ? (
         <>
           <h1 className="text-lg font-semibold">Continue to UserTasks</h1>
-          <p className="text-sm text-muted-foreground">Your browser asks before UserTasks may use its sign-in inside this window.</p>
+          <p className="text-sm text-fg-muted">Your browser asks before UserTasks may use its sign-in inside this window.</p>
           <div className="flex gap-2">
-            <button type="button" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground" onClick={() => { void requestAccess() }}>Continue</button>
+            <button type="button" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-fg" onClick={() => { void requestAccess() }}>Continue</button>
             <a className="rounded-md border px-4 py-2 text-sm" href={newTabHref} target="_blank" rel="noopener">Open in a new tab</a>
           </div>
         </>
       ) : phase === 'silent' ? (
         <>
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" aria-hidden />
-          <p className="text-sm text-muted-foreground" role="status">Signing you in with {idpName}…</p>
+          <p className="sr-only" role="status">Signing you in with {idpName}</p>
           {/* The passive round trip; nothing in it is shown. */}
-          <iframe ref={frameRef} src={silentUrl} title="Sign-in" aria-hidden tabIndex={-1} style={{ display: 'none' }} />
+          {running && <iframe ref={frameRef} src={silentUrl} title="Sign-in" aria-hidden tabIndex={-1} style={{ display: 'none' }} />}
         </>
       ) : phase === 'interactive' ? (
         <>
           <h1 className="text-lg font-semibold">Sign in to UserTasks</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-fg-muted">
             {error ? `${MESSAGES[error]} ` : ''}{idpName} needs you to confirm who you are. A small window opens and closes by itself when you are signed in.
           </p>
           <div className="flex gap-2">
-            <button type="button" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground" onClick={openPopup}>Sign in with {idpName}</button>
+            <button type="button" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-fg" onClick={openPopup}>Sign in with {idpName}</button>
             <a className="rounded-md border px-4 py-2 text-sm" href={newTabHref} target="_blank" rel="noopener">Open in a new tab</a>
           </div>
         </>
       ) : (
         <>
           <h1 className="text-lg font-semibold">Sign in to UserTasks</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-fg-muted">
             Your browser keeps this window from staying signed in (it blocks cookies in embedded windows, or popups). Open UserTasks in a new tab — you are signed in there — or allow cookies for this site and reload.
           </p>
           <div className="flex gap-2">
-            <a className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground" href={newTabHref} target="_blank" rel="noopener">Open UserTasks</a>
+            <a className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-fg" href={newTabHref} target="_blank" rel="noopener">Open UserTasks</a>
             <a className="rounded-md border px-4 py-2 text-sm" href={reloadHref}>Reload</a>
           </div>
         </>
@@ -210,7 +278,7 @@ export function SsoDoneReporter({ ok, error }: { ok: boolean; error: string | nu
   }, [ok, error])
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3 p-6 text-center">
-      <p className="text-sm text-muted-foreground" role="status">
+      <p className="text-sm text-fg-muted" role="status">
         {ok ? 'You are signed in. This window closes by itself.' : 'Sign-in did not complete.'}
         {standalone ? (ok ? ' You can close it and go back.' : ' Close this window and try again.') : ''}
       </p>
@@ -227,14 +295,14 @@ export function EmbedSignIn({ loginHref, reloadHref }: { loginHref: string; relo
   return (
     <main className="mx-auto flex min-h-[320px] max-w-md flex-col items-center justify-center gap-4 p-6 text-center" data-embed-signed-out>
       <h1 className="text-lg font-semibold">Sign in to UserTasks</h1>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-fg-muted">
         Sign-in can&apos;t happen inside this window. Open UserTasks in a new tab, sign in there and carry on — or come back here and reload.
       </p>
       <div className="flex gap-2">
-        <a className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground" href={loginHref} target="_blank" rel="noopener">Open UserTasks</a>
+        <a className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-fg" href={loginHref} target="_blank" rel="noopener">Open UserTasks</a>
         <a className="rounded-md border px-4 py-2 text-sm" href={reloadHref}>Reload</a>
       </div>
-      <p className="text-xs text-muted-foreground">If you are signed in and still see this, your browser blocks cookies in embedded windows — use Open UserTasks.</p>
+      <p className="text-xs text-fg-muted">If you are signed in and still see this, your browser blocks cookies in embedded windows — use Open UserTasks.</p>
     </main>
   )
 }

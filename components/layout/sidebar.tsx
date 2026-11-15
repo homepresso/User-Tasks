@@ -18,7 +18,7 @@ import { usePermissions } from "@/lib/permissions-context"
 import { hasExtensibilityFeatureAccess } from "@/lib/extensibility-access"
 import { useIsManager } from "@/hooks/use-is-manager"
 import { useNavCounts, useNavCountsSync } from "@/hooks/use-nav-counts"
-import { navBadgeCount } from "@/lib/nav-badges"
+import { navBadgeCount, navUnreadCount } from "@/lib/nav-badges"
 import { Tooltip } from "@/components/ui/tooltip"
 import { GettingStartedLauncher } from "@/components/onboarding/getting-started/launcher"
 import { coreShellItem, mergeByOrder, mergeNavSections, useExtensionBadgeCounts, useExtensionNav, type ShellNavItem } from "@/components/extensions/extension-nav"
@@ -94,6 +94,7 @@ export function Sidebar({ user }: SidebarProps) {
       collapsed={collapsed}
       badgeCount={item.badge ? extensionBadges.get(item.key) : navBadgeCount(navCounts, item.href)}
       badgeTone={BADGE_TONE[item.href]}
+      unreadCount={item.badge ? undefined : navUnreadCount(navCounts, item.href)}
     />
   )
 

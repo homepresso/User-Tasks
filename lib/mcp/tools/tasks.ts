@@ -1,6 +1,7 @@
 import type { McpToolServer } from '../server'
 import { registerTaskAttachmentTools } from './task-attachments'
 import { registerTaskFollowTools } from './task-follows'
+import { registerTaskReadTools } from './task-reads'
 import { registerTaskViewerTools } from './task-viewers'
 import { registerTimelineTools } from './timeline'
 import { registerTaskSubtaskTools } from './task-subtasks'
@@ -32,6 +33,7 @@ async function acceptanceOnReassign(supabase: any, tenantId: string, taskId: str
 export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
   registerTaskAttachmentTools(server, ctx)
   registerTaskFollowTools(server, ctx)
+  registerTaskReadTools(server, ctx)
   registerTaskViewerTools(server, ctx)
   registerTimelineTools(server, ctx)
   registerTaskSubtaskTools(server, ctx)
@@ -108,7 +110,10 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
 
     const { data, error } = await query
     if (error) return mcpErr(error.message)
-    return mcpOk({ tasks: data, count: data?.length ?? 0 })
+    // unread: for the acting person (false without one) — lib/tasks/unread.ts.
+    const { withUnread } = await import('@/lib/services/task-reads')
+    const tasks = await withUnread(fromMcpContext(ctx), (data ?? []) as Array<{ id: string }>)
+    return mcpOk({ tasks, count: tasks.length })
   })
 
   server.tool('tasks_get', 'Get a single task by ID with full details. Tasks can originate from workflow `create_subtask` and `user_task` nodes. Task completion outcomes drive workflow branching via condition nodes.', {
@@ -132,7 +137,9 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
       (supabase as any).from('task_responses').select('user_id, outcome, outcome_notes, responded_at').eq('task_id', args.task_id).limit(100),
       (supabase as any).from('lifecycle_events').select('event_type, actor_id, created_at, metadata').eq('task_id', args.task_id).order('created_at', { ascending: false }).limit(20),
     ])
-    return mcpOk(withDescriptionText(buildTaskDataObject({ task: data as any, responses, events }), args.strip_html === true))
+    const { isTaskUnreadFor } = await import('@/lib/services/task-reads')
+    const unread = await isTaskUnreadFor(fromMcpContext(ctx), args.task_id)
+    return mcpOk({ ...withDescriptionText(buildTaskDataObject({ task: data as any, responses, events }), args.strip_html === true), unread })
   })
 
   server.tool('tasks_data_table', 'Rows of a Data table field of an open task\'s form (field type "data_table" in tasks_get → metadata.fields): search, column filters, sort and paging on the server against the stored source; the author\'s base filter always applies and only the selected columns are returned. Returns { rows [{ key, values }], total, page, page_size }.', {

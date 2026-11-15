@@ -3,6 +3,7 @@
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
+import { UnreadDot, unreadTitleClass } from "./unread-dot"
 
 /**
  * A task as a card, for phones: the task lists (My tasks, the Task tracker,
@@ -13,13 +14,16 @@ import { cn } from "@/lib/utils"
  *              [status] [priority] [progress]                    due
  *              [footer: queue buttons, badges]
  *
+ * `unread`: an accent dot before the title and the title in bold (a task I
+ * haven't opened since it became mine — components/tasks/unread-dot).
+ *
  * The title link stretches over the whole card, so tapping anywhere opens
  * the task; `leading`, `actions` and `footer` sit above it and stay tappable.
  * `as="tr"` renders it as one full-width table row (the trackers keep their
  * <table> and group header rows).
  */
 export function MobileTaskCard({
-  as = "li", colSpan, href, title, code, done = false, meta, status, priority, progress, due, footer, leading, actions, className, ...data
+  as = "li", colSpan, href, title, code, done = false, unread = false, meta, status, priority, progress, due, footer, leading, actions, className, ...data
 }: {
   as?: "li" | "tr"
   /** Columns to span when `as="tr"`. */
@@ -28,6 +32,8 @@ export function MobileTaskCard({
   title: string
   code?: ReactNode
   done?: boolean
+  /** Not opened since it became mine: dot + bold title (never on a done task). */
+  unread?: boolean
   meta?: ReactNode
   status?: ReactNode
   priority?: ReactNode
@@ -43,8 +49,10 @@ export function MobileTaskCard({
       <div className="flex items-start gap-2">
         {leading != null && <span className="relative z-[1] -ml-1 -mt-1 shrink-0">{leading}</span>}
         <div className="min-w-0 flex-1">
-          <Link href={href} className="block rounded-sm after:absolute after:inset-0 after:content-['']" aria-label={`Open ${title}`}>
-            <span className={cn("line-clamp-2 text-sm font-medium text-fg [overflow-wrap:anywhere]", done && "text-fg-muted line-through")}>{title}</span>
+          <Link href={href} className="flex items-start gap-2 rounded-sm after:absolute after:inset-0 after:content-['']" aria-label={`Open ${title}${unread && !done ? " (unread)" : ""}`}
+            data-unread={unread && !done ? true : undefined}>
+            <UnreadDot unread={unread && !done} className="mt-1.5" />
+            <span className={cn("line-clamp-2 text-sm font-medium text-fg [overflow-wrap:anywhere]", unreadTitleClass(unread && !done), done && "text-fg-muted line-through")}>{title}</span>
           </Link>
           {(code != null || meta != null) && (
             <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-fg-muted">

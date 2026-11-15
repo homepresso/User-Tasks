@@ -18,7 +18,7 @@ import { layoutDataTarget } from '@/lib/forms/data-target'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- supabase rows */
 
-interface ObjectsHost {
+export interface ObjectsHost {
   extensionId: string
   tenantId: string | null
   actorId: string | null
@@ -37,7 +37,7 @@ function tenantOf(host: ObjectsHost, what: string): string {
   return host.tenantId
 }
 
-async function serviceContext(host: ObjectsHost) {
+export async function serviceContext(host: ObjectsHost) {
   const { PERMISSION_KEYS } = await import('@/lib/permissions')
   return {
     db: host.db, supabase: host.db, tenantId: tenantOf(host, 'workflows'), actorId: host.actorId,
@@ -45,7 +45,7 @@ async function serviceContext(host: ObjectsHost) {
   }
 }
 
-async function asExtensionError<T>(run: () => Promise<T>): Promise<T> {
+export async function asExtensionError<T>(run: () => Promise<T>): Promise<T> {
   const { isServiceError } = await import('@/lib/services/context')
   try {
     return await run()
@@ -61,7 +61,7 @@ function triggerTypes(extensionId: string, key?: string): Promise<string[]> {
 }
 
 /** The workflow, when its trigger belongs to this extension (else 404: never another extension's or a plain workflow). */
-async function ownWorkflow(host: ObjectsHost, workflowId: string): Promise<{ id: string; name: string; trigger_type: string }> {
+export async function ownWorkflow(host: ObjectsHost, workflowId: string): Promise<{ id: string; name: string; trigger_type: string }> {
   const tenantId = tenantOf(host, 'workflows')
   if (!UUID_RE.test(String(workflowId))) throw new ExtensionError('not_found', 'Workflow not found', 404)
   const { data } = await host.serviceDb.from('workflows').select('id, name, trigger_type').eq('tenant_id', tenantId).eq('id', workflowId).maybeSingle()
@@ -102,6 +102,40 @@ async function grantDesign(host: ObjectsHost, objectType: 'workflow' | 'form', o
     metadata: { grantee_type: 'user', grantee_id: host.actorId, can_view: true, can_edit: true, extension: host.extensionId, elevated: host.permissions === null },
   })
   return { granted: true }
+}
+
+/**
+ * ctx.workflows.revokeDesign / ctx.forms.revokeDesign: take back a design
+ * grant made by grantDesign (the person's own grant: user_id = granted_by)
+ * from `userId` (default: the signed-in person) — e.g. when the extension
+ * finds they no longer manage the record outside UserTasks. Grants an admin
+ * gave are never touched. Elevated or team.change_roles; audited as a revoke.
+ */
+async function revokeDesign(host: ObjectsHost, objectType: 'workflow' | 'form', objectId: string, name: string, userId?: string | null): Promise<{ revoked: boolean }> {
+  const tenantId = tenantOf(host, objectType === 'workflow' ? 'workflows' : 'forms')
+  const target = String(userId ?? host.actorId ?? '')
+  if (!UUID_RE.test(target)) throw new ExtensionError('invalid_request', 'revokeDesign needs a person', 400)
+  if (host.permissions !== null && !host.permissions.has('team.change_roles')) {
+    throw new ExtensionError('forbidden', 'revokeDesign needs ctx.elevate(reason) or the team.change_roles permission', 403)
+  }
+  const db = host.serviceDb
+  const { data: row, error } = await db.from('object_permissions').select('id, can_view, can_edit, can_delete, can_execute, granted_by')
+    .eq('tenant_id', tenantId).eq('object_type', objectType).eq('object_id', objectId).eq('user_id', target).maybeSingle()
+  if (error) throw new Error(`revokeDesign failed: ${error.message}`)
+  if (!row || row.granted_by !== target || !row.can_edit) return { revoked: false }
+  // Only the design part goes: a grant someone widened since (start, delete) keeps those.
+  const write = row.can_execute || row.can_delete
+    ? db.from('object_permissions').update({ can_edit: false, updated_at: new Date().toISOString() }).eq('id', row.id).eq('tenant_id', tenantId)
+    : db.from('object_permissions').delete().eq('id', row.id).eq('tenant_id', tenantId)
+  const { error: writeError } = await write
+  if (writeError) throw new Error(`revokeDesign failed: ${writeError.message}`)
+  const { writeAudit } = await import('@/lib/audit-log')
+  await writeAudit({
+    supabase: db, tenantId, actorId: host.actorId, objectType, objectId, action: 'revoke',
+    summary: `Removed the Edit grant ${target === host.actorId ? 'they had given themselves' : 'a person had given themselves'} on ${objectType} "${name}" through extension ${host.extensionId}`,
+    metadata: { grantee_type: 'user', grantee_id: target, extension: host.extensionId, elevated: host.permissions === null },
+  })
+  return { revoked: true }
 }
 
 /** Last person who changed each object (object_audit_log), by object id. */
@@ -180,6 +214,10 @@ export function hostWorkflowObjects(host: ObjectsHost) {
       const wf = await ownWorkflow(host, workflowId)
       return grantDesign(host, 'workflow', wf.id, String(wf.name ?? wf.id))
     },
+    async revokeDesign(workflowId: string, userId?: string | null) {
+      const wf = await ownWorkflow(host, workflowId)
+      return revokeDesign(host, 'workflow', wf.id, String(wf.name ?? wf.id), userId)
+    },
     async delete(workflowId: string) {
       await ownWorkflow(host, workflowId)
       const ctx = await serviceContext(host)
@@ -229,7 +267,7 @@ export function hostWorkflowObjects(host: ObjectsHost) {
 }
 
 /** The form, when it is bound to one of this extension's form targets. */
-async function ownForm(host: ObjectsHost, formId: string): Promise<{ id: string; tags: string[] }> {
+export async function ownForm(host: ObjectsHost, formId: string): Promise<{ id: string; tags: string[] }> {
   const tenantId = tenantOf(host, 'forms')
   if (!UUID_RE.test(String(formId))) throw new ExtensionError('not_found', 'Form not found', 404)
   const { data } = await host.serviceDb.from('forms').select('id, layout, tags').eq('tenant_id', tenantId).eq('id', formId).maybeSingle()
@@ -249,6 +287,10 @@ export function hostFormObjects(host: ObjectsHost) {
     async grantDesign(formId: string) {
       const form = await ownForm(host, formId)
       return grantDesign(host, 'form', form.id, form.id)
+    },
+    async revokeDesign(formId: string, userId?: string | null) {
+      const form = await ownForm(host, formId)
+      return revokeDesign(host, 'form', form.id, form.id, userId)
     },
     /** Last editor per form (display name), from the audit log. */
     async editors(ids: string[]): Promise<Map<string, string | null>> {

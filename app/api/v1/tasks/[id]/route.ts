@@ -4,6 +4,8 @@ import { canViewTaskAsUser } from '@/lib/api-key-permissions'
 import { apiRoute } from '@/lib/api/route'
 import { updateTaskEndpoint } from '@/lib/api-schemas/tasks'
 import { updateTask } from '@/lib/services/tasks'
+import { isTaskUnreadFor } from '@/lib/services/task-reads'
+import { fromApiAuth } from '@/lib/services/context'
 import { wantsStrippedHtml, withDescriptionText } from '@/lib/task-description-format'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -28,7 +30,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   if (error || !task) return err('Task not found', 404)
 
-  return ok({ task: withDescriptionText(task, wantsStrippedHtml(request.nextUrl.searchParams.get('strip_html'))) })
+  // unread: for the credential's person (false without one) — lib/tasks/unread.ts.
+  const unread = await isTaskUnreadFor(fromApiAuth(auth), String(task.id))
+  return ok({ task: { ...withDescriptionText(task, wantsStrippedHtml(request.nextUrl.searchParams.get('strip_html'))), unread } })
 }
 
 /** PATCH /api/v1/tasks/:id — allowlisted fields + User Task field values (as the task UI). */

@@ -16,6 +16,7 @@
  * Server-only.
  */
 
+import { withQueuedInitiator } from '@/lib/workflow-initiator'
 import { kickQueueProcessor } from '@/lib/process-queue'
 import { getServiceDb } from '@/lib/providers/db'
 import { extKey } from './manifest'
@@ -77,6 +78,8 @@ export interface StartTriggerInput {
   dedupeKey?: string | null
   /** Only this workflow (it must listen to the trigger); matches() is skipped — a person started it on purpose. */
   workflowId?: string | null
+  /** The person who started it by hand (with workflowId): signed into the job like every other start, so the run records its starter. */
+  startedBy?: string | null
   /** Injected in tests. */
   db?: any
 }
@@ -94,6 +97,14 @@ async function claimDedupe(db: any, tenantId: string, triggerType: string, dedup
     throw new Error(error.message)
   }
   return Array.isArray(data) && data.length > 0
+}
+
+/** A hand start (workflowId + startedBy): the person as the run's initiator (lib/workflow-initiator), never from the payload. */
+function withStarter(data: Record<string, unknown>, input: StartTriggerInput, workflowId: string): Record<string, unknown> {
+  const clean = { ...data }
+  delete clean._started_by
+  if (!input.workflowId || !input.startedBy) return clean
+  return withQueuedInitiator(clean, { tenantId: input.tenantId, workflowId }, { userId: input.startedBy, via: 'ui' })
 }
 
 export async function startExtensionTrigger(input: StartTriggerInput): Promise<StartTriggerResult> {
@@ -123,7 +134,7 @@ export async function startExtensionTrigger(input: StartTriggerInput): Promise<S
       p_tenant_id: input.tenantId,
       p_task_id: null,
       p_trigger_type: triggerType,
-      p_trigger_data: { _version_id: w.versionId, ...input.payload, _extension: input.extensionId, _extension_trigger: input.key, ...(input.dedupeKey ? { _dedupe_key: input.dedupeKey } : {}) },
+      p_trigger_data: withStarter({ _version_id: w.versionId, ...input.payload, _extension: input.extensionId, _extension_trigger: input.key, ...(input.dedupeKey ? { _dedupe_key: input.dedupeKey } : {}) }, input, w.workflowId),
       p_priority: 0,
       p_delay_seconds: 0,
     })
