@@ -61,26 +61,22 @@ function cleanQuery(query: Record<string, string | string[] | undefined> | undef
   return Object.keys(out).length ? out : null
 }
 
-/** What record a bound form edits (or that it creates one, or shows), above the fields. */
+/**
+ * What a bound form shows about its record at run time. WYSIWYG: nothing the
+ * designer doesn't show — no "Submitting creates a new record in …" style
+ * captions. Only a provider's own notice (e.g. a field that can't be written)
+ * and the record's files (a library document, attachments) appear.
+ */
 function DataTargetNotice({ target }: { target: FormDataTargetState }) {
-  const where = target.label ?? 'the connected system'
-  const record = target.record
-    ? (target.record.url ? <a className="font-medium underline text-primary-text" href={target.record.url} target="_blank" rel="noreferrer">{target.record.label ?? target.record.id}</a> : <span className="font-medium text-fg">{target.record.label ?? target.record.id}</span>)
-    : null
+  const files = target.files ?? []
+  if (!target.notice && !files.length) return null
   return (
-    <div className="mb-3 rounded-lg border px-3 py-2 text-xs border-border text-fg-muted" role="status" data-form-target={target.mode}>
-      {target.mode === 'display' ? (
-        <span>{record ? <>Viewing {record} in {where}.</> : <>Viewing a record of {where}.</>}</span>
-      ) : target.mode === 'edit' && record ? (
-        <span>Editing {record} in {where}.</span>
-      ) : (
-        <span>Submitting creates a new record in {where}.</span>
-      )}
-      {target.notice && <span className="mt-1 block">{target.notice}</span>}
-      {target.files && target.files.length > 0 && (
+    <div className="mb-3 text-xs text-fg-muted" role="status" data-form-target={target.mode}>
+      {target.notice && <span className="block">{target.notice}</span>}
+      {files.length > 0 && (
         <span className="mt-1 block" data-form-target-files>
           Files:{' '}
-          {target.files.map((file, i) => (
+          {files.map((file, i) => (
             <span key={`${file.url}-${i}`}>{i > 0 && ', '}<a className="underline text-primary-text" href={file.url} target="_blank" rel="noreferrer">{file.label}</a></span>
           ))}
         </span>

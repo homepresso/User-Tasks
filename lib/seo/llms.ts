@@ -19,6 +19,7 @@ const KEY_FACTS = [
   'Stack: TypeScript and Next.js, PostgreSQL 15+, S3-compatible storage.',
   'Developer surface: REST API (OpenAPI 3.1), MCP server, TypeScript SDK (@user-tasks/sdk) and CLI (@user-tasks/cli), with config as code.',
   'InfoPath importer: rebuilds Microsoft InfoPath .xsn form templates (2007, 2010, 2013) as UserTasks forms; free preview at https://usertasks.com/infopath.',
+  'SharePoint Server extension (paid, $7,500 USD per farm per year with updates and support): a provider-hosted add-in for SharePoint Server 2016, 2019 and Subscription Edition with embedded list forms, list-event workflow triggers, the SharePoint REST API as workflow steps, and InfoPath and SharePoint Designer 2010 migration; https://usertasks.com/sharepoint.',
   'Performance: median time to run a workflow step is under 1 ms, measured on live runs.',
   'AI is optional: the Agent and AI workflow steps use your own provider key or a local model (Ollama, vLLM, any OpenAI-compatible endpoint).',
 ]

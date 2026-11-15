@@ -33,6 +33,7 @@
  * tables have no client grants).
  */
 
+import { requireDesignAccess } from './design-access'
 import { normalizeFormDefinition } from '@/lib/forms/definition'
 import { compactLayoutForSave } from '@/lib/forms/layout'
 import { FormThemeRefSchema, formatFormThemeIssues } from '@/lib/forms/form-theme'
@@ -218,7 +219,7 @@ export interface DesignDraftView {
 
 /** The designer's view: the draft (content + who saved it), or null (forms.edit). */
 export async function getDesignDraft(ctx: ServiceContext, formId: string): Promise<DesignDraftView> {
-  requirePerm(ctx, 'forms.edit')
+  await requireDesignAccess(ctx, 'form', formId)
   const db = await serviceRoleClient(ctx)
   const form = await loadFormRow(db, ctx.tenantId, formId)
   const available = await designDraftsAvailable(db)
@@ -266,7 +267,7 @@ export type SaveDraftResult =
  * see their changes"). Omitted: last save wins (API callers).
  */
 export async function saveDesignDraft(ctx: ServiceContext, formId: string, input: DraftContentInput & { expected_updated_at?: string | null }): Promise<SaveDraftResult> {
-  requirePerm(ctx, 'forms.edit')
+  await requireDesignAccess(ctx, 'form', formId)
   const db = await serviceRoleClient(ctx)
   const form = await loadFormRow(db, ctx.tenantId, formId)
   if (!(await designDraftsAvailable(db))) {
@@ -364,7 +365,7 @@ export async function publishDesignDraft(ctx: ServiceContext, formId: string, in
 
 /** Throw away the draft (and its reviewers' access); the published form is untouched. */
 export async function discardDesignDraft(ctx: ServiceContext, formId: string): Promise<{ discarded: true; form_id: string }> {
-  requirePerm(ctx, 'forms.edit')
+  await requireDesignAccess(ctx, 'form', formId)
   const db = await serviceRoleClient(ctx)
   const form = await loadFormRow(db, ctx.tenantId, formId)
   await requireDrafts(db)
@@ -377,7 +378,7 @@ export async function discardDesignDraft(ctx: ServiceContext, formId: string): P
 
 /** "Compare with published": what the draft changes. */
 export async function compareDesignDraft(ctx: ServiceContext, formId: string): Promise<{ form_id: string; published_version: number; base_version: number | null; has_draft: boolean; diff: FormDraftDiff }> {
-  requirePerm(ctx, 'forms.edit')
+  await requireDesignAccess(ctx, 'form', formId)
   const db = await serviceRoleClient(ctx)
   const form = await loadFormRow(db, ctx.tenantId, formId)
   const draft = (await designDraftsAvailable(db)) ? await draftRow(db, ctx.tenantId, formId) : null
@@ -386,7 +387,7 @@ export async function compareDesignDraft(ctx: ServiceContext, formId: string): P
 
 /** Version history → "Restore as draft": the version's content becomes the draft (replacing any draft). */
 export async function restoreFormVersionAsDraft(ctx: ServiceContext, formId: string, version: number): Promise<{ mode: 'draft'; draft: DesignDraftRow & { summary: DraftSummary }; publish_problems: string[]; restored_version: number }> {
-  requirePerm(ctx, 'forms.edit')
+  await requireDesignAccess(ctx, 'form', formId)
   const db = await serviceRoleClient(ctx)
   const form = await loadFormRow(db, ctx.tenantId, formId)
   await requireDrafts(db)

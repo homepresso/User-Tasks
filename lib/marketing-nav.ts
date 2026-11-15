@@ -41,7 +41,8 @@ export const SOLUTIONS_BY_USE_CASE: MenuItem[] = [
   { href: '/use-cases/ai-agent-orchestration', title: 'AI with a person in the loop', description: 'Agents that stop for a human decision', icon: 'bot' },
   { href: '/use-cases/middleware-integration-hub', title: 'Integration hub', description: 'Webhooks in, APIs out, retries handled', icon: 'plug' },
   { href: '/sharepoint-workflow-migration', title: 'Replace SharePoint workflows', description: 'Move off retired 2010, 2013 and Designer workflows', icon: 'list' },
-  { href: '/infopath', title: 'Migrate from InfoPath', description: 'Upload an .xsn, get working forms', icon: 'files', badge: 'New' },
+  { href: '/sharepoint', title: 'SharePoint on-premises', description: 'Add-in, forms and triggers for SharePoint Server', icon: 'server', badge: 'New' },
+  { href: '/infopath', title: 'Migrate from InfoPath', description: 'Upload an .xsn, get working forms', icon: 'files' },
 ]
 
 /** By team: the gallery's ready-made packages, filtered by category. */
@@ -69,6 +70,7 @@ export const RESOURCES: MenuItem[] = [
 export const GUIDES: Array<{ href: string; label: string }> = [
   { href: '/sharepoint-workflow-migration', label: 'SharePoint workflow migration' },
   { href: '/infopath-migration-guide', label: 'InfoPath migration guide' },
+  { href: '/sharepoint', label: 'SharePoint Server add-in' },
   { href: '/use-cases/nintex-migration', label: 'Moving from Nintex' },
   { href: '/use-cases/k2-migration', label: 'Moving from K2' },
   { href: '/on-premises-workflow-automation', label: 'On-premises & air-gapped' },

@@ -28,6 +28,7 @@ import { publicFormPageUrl } from '@/lib/forms/form-page-url'
 import { AVAILABLE_FORMS_QUERY_KEY } from '@/lib/forms/available-forms'
 import { FORMS_LIBRARY_HREF, formDesignerHref } from '@/lib/forms/designer-links'
 import { useAssistantChanges, type AssistantChange } from '@/lib/assistants/client-registry'
+import { useAppNavigation } from '@/lib/embed/navigation'
 import { defaultTaskFieldValues } from '@/lib/task-field-schema'
 import { formCardWidthClass, formWidthStyle } from '@/lib/forms/form-width'
 import { cn } from '@/lib/utils'
@@ -85,6 +86,8 @@ export function FormDesignerPage({ formId, returnTo }: { formId: string | null; 
   const router = useRouter()
   const queryClient = useQueryClient()
   const jobs = useJobs()
+  // Inside an embed (/embed/forms/<id>/design) links stay in it and Back / Done leave through the host page; in the app, the router.
+  const nav = useAppNavigation()
   const { can } = usePermissions()
   const canEdit = can('forms.edit')
   const canSubmit = can('forms.submit')
@@ -124,9 +127,12 @@ export function FormDesignerPage({ formId, returnTo }: { formId: string | null; 
     queryFn: async () => ((await serverRead('forms.targetCheck', { id: formId! })).data ?? null) as TargetCheck | null,
   })
 
+  // Designing (save drafts): forms.edit, or an Edit grant on this form (lib/services/design-access.ts). Publishing,
+  // settings and access stay with forms.edit (canEdit).
+  const canDesign = canEdit || (form as { viewer_can_design?: boolean } | null | undefined)?.viewer_can_design === true
   // The working draft (editors): the designer opens on it; publish / discard / restore remount the designer.
-  const { data: draftView, isFetchedAfterMount: draftFetched, refetch: refetchDraft } = useDesignDraft(formId, canEdit && !isNew)
-  const draftLoading = canEdit && !isNew && !draftFetched
+  const { data: draftView, isFetchedAfterMount: draftFetched, refetch: refetchDraft } = useDesignDraft(formId, canDesign && !isNew)
+  const draftLoading = canDesign && !isNew && !draftFetched
   const draftsOn = Boolean(draftView?.available)
   const draftRow = draftView?.draft ?? null
 
@@ -187,7 +193,7 @@ export function FormDesignerPage({ formId, returnTo }: { formId: string | null; 
     await Promise.all([refetch(), refetchDraft(), refreshLists()])
     setDraftRev((r) => r + 1)
   }
-  const actions: DesignerAction[] = !canEdit ? [] : [{
+  const actions: DesignerAction[] = !canDesign ? [] : [{
     id: 'save',
     label: form ? (draftsOn ? 'Save draft' : `Save version ${form.version + 1}`) : 'Create form',
     variant: form && draftsOn ? 'outline' : undefined,
@@ -228,7 +234,7 @@ export function FormDesignerPage({ formId, returnTo }: { formId: string | null; 
   const chrome: DesignerPageChrome = {
     backHref: returnTo?.href ?? FORMS_LIBRARY_HREF,
     backLabel: returnTo?.label ?? 'Back to forms',
-    readOnly: !canEdit,
+    readOnly: !canDesign,
     pills,
     submissions: canSubmit ? submissions : null,
     openHref: form && canSubmit ? `/f/${form.id}` : null,
@@ -293,7 +299,7 @@ export function FormDesignerPage({ formId, returnTo }: { formId: string | null; 
             if (!result.ok) { jobs.notify({ tone: 'error', title: result.error }); return }
             jobs.notify({ tone: 'success', title: `Duplicated as "${result.data.name}"` })
             await refreshLists()
-            router.push(formDesignerHref(result.data.id))
+            nav.push(formDesignerHref(result.data.id))
           }}>Duplicate</DropdownMenuItem>
         )}
         <DropdownMenuItem icon={<Download />} onSelect={() => setDialog('export')} data-testid="export-asset">Export…</DropdownMenuItem>
@@ -311,14 +317,14 @@ export function FormDesignerPage({ formId, returnTo }: { formId: string | null; 
 
   return (
     <DesktopOnly action={{ label: 'Back to forms', href: FORMS_LIBRARY_HREF }} preview={<ReadOnlyFormPreview definition={initial} overrides={overrides} />}>
-      <div className="flex h-[calc(100vh-7rem)] flex-col" data-testid="form-designer-page">
+      <div className="flex h-[calc(100vh-var(--designer-offset,7rem))] flex-col" data-testid="form-designer-page">
         {targetCheck && targetCheck.problems.length > 0 && <DataTargetProblems check={targetCheck} />}
         <div className="min-h-0 flex-1">
         <FormDesigner
           key={loadedKey}
           chrome="page"
           page={chrome}
-          onClose={() => router.push(FORMS_LIBRARY_HREF)}
+          onClose={() => nav.leave(FORMS_LIBRARY_HREF)}
           title={name}
           badge={version ? `v${version}` : 'New'}
           formId={form?.id}
@@ -371,7 +377,7 @@ export function FormDesignerPage({ formId, returnTo }: { formId: string | null; 
             if (!result.ok) { jobs.notify({ tone: 'error', title: result.error }); return }
             jobs.notify({ tone: 'success', title: `Deleted "${form.name}"` })
             await refreshLists()
-            router.push(FORMS_LIBRARY_HREF)
+            nav.leave(FORMS_LIBRARY_HREF, 'deleted')
           }}
         />
       )}
@@ -404,7 +410,7 @@ function ReadOnlyFormPreview({ definition, overrides }: { definition: FormDefini
 /** The designer page's layout while the form loads: toolbar | palette, canvas, properties (as the workflow builder's). */
 export function FormDesignerSkeleton() {
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col" aria-busy="true" aria-label="Loading form">
+    <div className="flex h-[calc(100vh-var(--designer-offset,7rem))] flex-col" aria-busy="true" aria-label="Loading form">
       <div className="mb-2 flex h-12 shrink-0 items-center gap-3 rounded-lg border border-border bg-panel px-3">
         <ArrowLeft className="size-4 text-fg-muted" aria-hidden="true" />
         <Skeleton className="h-4 w-48" />

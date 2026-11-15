@@ -80,6 +80,8 @@ Roles decide what someone can do across the workspace. **Grants** give a role, a
 
 For forms, a grant does not lock anyone out: with the form in **Available forms**, it lists the form in the Forms menu of the people it names (who also need **Submit forms**). Editing and deleting forms is governed by the \`forms.edit\` and \`forms.delete\` role permissions, so forms have no Edit or Delete columns.
 
+**Edit on a workflow** also opens its design to the people it names, even without \`workflows.edit\`: signed in, they can save the workflow's draft in the designer, restore an older version into it and test-run it. Publishing still needs \`workflows.activate\`, deleting \`workflows.delete\`, and API keys keep exactly their own permissions. Integrations use this to hand one workflow to its owner elsewhere — for example a SharePoint list manager for the workflows of their list.
+
 Every grant change is recorded in the audit log on the object (\`grant\` / \`revoke\`, for example *Gave role "Member" View, Submit on form "Expense claim"*). The same operations are on every surface:
 
 \`\`\`bash

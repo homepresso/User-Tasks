@@ -76,6 +76,7 @@ const paletteIconMap: Record<string, any> = {
   Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
 }
 import { useRouter } from "next/navigation"
+import { useEmbedNavigation } from "@/lib/embed/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { useDirectoryCapabilities } from "./aad-group-assignment"
 import dynamic from "next/dynamic"
@@ -144,6 +145,8 @@ interface WorkflowBuilderProps {
   initialUserVariables?: UserVariable[]
   initialSwimlanes?: Swimlane[]
   customActivities?: any[]
+  /** The person may save / test this workflow through an Edit grant on it even without workflows.edit (lib/services/design-access.ts). */
+  canDesign?: boolean
   publishedVersionNumber?: number | null
   hasUnpublishedChanges?: boolean
   /** Toolbar identity: the workflow's name and where Back goes. */
@@ -183,7 +186,7 @@ function snapToGrid(value: number): number {
 
 export function WorkflowBuilder({
   workflowId, tenantId, initialNodes, initialEdges, triggerType, isActive, runs, initialUserVariables, initialSwimlanes,
-  customActivities = [],
+  customActivities = [], canDesign,
   publishedVersionNumber, hasUnpublishedChanges: initialHasUnpublished,
   workflowName, backHref, backLabel, menuItems, notice,
 }: WorkflowBuilderProps) {
@@ -235,7 +238,7 @@ export function WorkflowBuilder({
   useDesignerContext({ area: "workflow", item_id: workflowId, item_name: workflowName ?? null, dirty: isDirty })
   // "Ask Agent to fix" → the Agent changed this workflow → "Re-run test": open the test runner and run the same inputs.
   const { can } = usePermissions()
-  const canEditWorkflow = can("workflows.edit" as never)
+  const canEditWorkflow = can("workflows.edit" as never) || canDesign === true
   const [rerun, setRerun] = useState<Record<string, string> | null>(null)
   useEffect(() => {
     const onRerun = (e: Event) => {
@@ -334,6 +337,9 @@ export function WorkflowBuilder({
   const zoom = canvasView.zoom
   const dndId = useId()
   const router = useRouter()
+  const embed = useEmbedNavigation()
+  // Embedded (/embed/workflows/<id>): the embed's header has Back / Done instead of the toolbar's back link.
+  if (embed) backHref = undefined
   const queryClient = useQueryClient()
 
   // Listen for toggle-collapse events from canvas nodes (double-click)
@@ -799,6 +805,8 @@ export function WorkflowBuilder({
   async function handleDelete() {
     if (!confirm("Delete this workflow?")) return
     await deleteWorkflow(workflowId)
+    // Embedded (/embed/workflows/<id>): nothing left to edit here — back to the host page.
+    if (embed) embed.leave('deleted')
   }
 
   async function handleTest() {

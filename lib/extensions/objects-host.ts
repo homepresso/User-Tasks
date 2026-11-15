@@ -69,6 +69,41 @@ async function ownWorkflow(host: ObjectsHost, workflowId: string): Promise<{ id:
   return data
 }
 
+/**
+ * ctx.workflows.grantDesign / ctx.forms.grantDesign: give the signed-in
+ * person an Edit grant (object_permissions can_view + can_edit, other flags
+ * kept) on ONE object of this extension, so the designers let them save /
+ * restore / test it without workflows.edit / forms.edit
+ * (lib/services/design-access.ts). For an extension that authorised the
+ * person against an outside system (e.g. Manage Lists in SharePoint): it
+ * calls this on ctx.elevate(reason), or as someone holding
+ * team.change_roles. Written to the object's audit log as a grant.
+ */
+async function grantDesign(host: ObjectsHost, objectType: 'workflow' | 'form', objectId: string, name: string): Promise<{ granted: boolean }> {
+  const tenantId = tenantOf(host, objectType === 'workflow' ? 'workflows' : 'forms')
+  if (!host.actorId) throw new ExtensionError('forbidden', 'grantDesign needs a signed-in person', 403)
+  if (host.permissions !== null && !host.permissions.has('team.change_roles')) {
+    throw new ExtensionError('forbidden', 'grantDesign needs ctx.elevate(reason) or the team.change_roles permission', 403)
+  }
+  const db = host.serviceDb
+  const { data: existing, error } = await db.from('object_permissions').select('id, can_view, can_edit, can_delete, can_execute')
+    .eq('tenant_id', tenantId).eq('object_type', objectType).eq('object_id', objectId).eq('user_id', host.actorId).maybeSingle()
+  if (error) throw new Error(`grantDesign failed: ${error.message}`)
+  if (existing?.can_edit && existing?.can_view) return { granted: false }
+  const write = existing
+    ? db.from('object_permissions').update({ can_view: true, can_edit: true, granted_by: host.actorId, updated_at: new Date().toISOString() }).eq('id', existing.id).eq('tenant_id', tenantId)
+    : db.from('object_permissions').insert({ tenant_id: tenantId, object_type: objectType, object_id: objectId, user_id: host.actorId, can_view: true, can_edit: true, can_delete: false, can_execute: false, granted_by: host.actorId })
+  const { error: writeError } = await write
+  if (writeError) throw new Error(`grantDesign failed: ${writeError.message}`)
+  const { writeAudit } = await import('@/lib/audit-log')
+  await writeAudit({
+    supabase: db, tenantId, actorId: host.actorId, objectType, objectId, action: 'grant',
+    summary: `Gave themselves Edit on ${objectType} "${name}" through extension ${host.extensionId}${host.permissions === null ? ' (elevated)' : ''}`,
+    metadata: { grantee_type: 'user', grantee_id: host.actorId, can_view: true, can_edit: true, extension: host.extensionId, elevated: host.permissions === null },
+  })
+  return { granted: true }
+}
+
 /** Last person who changed each object (object_audit_log), by object id. */
 async function lastEditors(host: ObjectsHost, objectType: string, ids: string[]): Promise<Map<string, { name: string | null; at: string }>> {
   const out = new Map<string, { name: string | null; at: string }>()
@@ -141,6 +176,10 @@ export function hostWorkflowObjects(host: ObjectsHost) {
       const { setWorkflowActive } = await import('@/lib/services/workflows')
       await asExtensionError(() => setWorkflowActive(ctx as any, workflowId, Boolean(active)))
     },
+    async grantDesign(workflowId: string) {
+      const wf = await ownWorkflow(host, workflowId)
+      return grantDesign(host, 'workflow', wf.id, String(wf.name ?? wf.id))
+    },
     async delete(workflowId: string) {
       await ownWorkflow(host, workflowId)
       const ctx = await serviceContext(host)
@@ -206,6 +245,10 @@ export function hostFormObjects(host: ObjectsHost) {
       if (JSON.stringify(next) === JSON.stringify(form.tags)) return
       const { error } = await host.serviceDb.from('forms').update({ tags: next }).eq('tenant_id', host.tenantId).eq('id', formId)
       if (error) throw new Error(`forms.setTags failed: ${error.message}`)
+    },
+    async grantDesign(formId: string) {
+      const form = await ownForm(host, formId)
+      return grantDesign(host, 'form', form.id, form.id)
     },
     /** Last editor per form (display name), from the audit log. */
     async editors(ids: string[]): Promise<Map<string, string | null>> {

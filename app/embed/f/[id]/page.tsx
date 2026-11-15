@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { EmbedSignIn } from '@/components/embed/embed-sign-in'
+import { EmbedAutoSignIn, EmbedSignIn } from '@/components/embed/embed-sign-in'
+import { autoSsoPath, cleanOrgHint, LAUNCH_ORG_PARAM, SSO_DONE_PATH } from '@/lib/providers/auth/sso/auto'
+import { resolveAutoSso } from '@/lib/providers/auth/sso/auto-server'
 import { FormLinkNotice, MemberFormPage } from '@/components/forms/form-link-page'
 import { frameContext } from '@/lib/forms/embed'
 import { enforceHostWorkspace } from '@/lib/workspace-host'
@@ -47,8 +49,24 @@ export default async function EmbeddedFormPage({ params, searchParams }: { param
   }
   if (!userId) {
     const h = await headers()
-    if (frameContext((name) => h.get(name)) === 'top') redirect(`/login?redirect=${encodeURIComponent(appPath)}`)
-    return <EmbedSignIn loginHref={`/login?redirect=${encodeURIComponent(appPath)}`} reloadHref={`/embed${appPath}`} />
+    const where = frameContext((name) => h.get(name))
+    // Automatic sign-in with the workspace's IdP (lib/providers/auth/sso/auto.ts), as /embed/x and the
+    // embedded designers do: no UserTasks sign-in page when the IdP can sign the person in by itself.
+    const auto = await resolveAutoSso({ org: cleanOrgHint(query[LAUNCH_ORG_PARAM]), purpose: 'launch' })
+    if (where === 'top') redirect(auto ? autoSsoPath({ redirect: `/embed${appPath}`, org: auto.org }) : `/login?redirect=${encodeURIComponent(appPath)}`)
+    const loginHref = auto ? autoSsoPath({ redirect: appPath, org: auto.org }) : `/login?redirect=${encodeURIComponent(appPath)}`
+    if (auto) {
+      return (
+        <EmbedAutoSignIn
+          idpName={auto.idpName}
+          silentUrl={autoSsoPath({ redirect: SSO_DONE_PATH, org: auto.org, mode: 'frame' })}
+          popupUrl={autoSsoPath({ redirect: SSO_DONE_PATH, org: auto.org, mode: 'popup' })}
+          newTabHref={loginHref}
+          reloadHref={`/embed${appPath}`}
+        />
+      )
+    }
+    return <EmbedSignIn loginHref={loginHref} reloadHref={`/embed${appPath}`} />
   }
   return <MemberFormPage formId={id} query={query} embed trusted userId={userId} />
 }

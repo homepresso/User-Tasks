@@ -56,6 +56,21 @@ import { readSettingsCacheStale } from './config/settings-cache'
  * the cookie stripping below — which keeps the CSRF properties of SameSite=
  * Lax for every request, embedding or not.
  *
+ * Embedded designers (/embed/workflows/…, /embed/forms/…/design,
+ * lib/embed/designers.ts) change nothing in this analysis: the framed GET
+ * of the designer page is the embeddable-route navigation above; once it
+ * runs, every request it makes — server actions (save, publish, test
+ * run), React Query reads, fetches to /api, RSC payloads of client-side
+ * moves to other /embed/ pages, and the document load of an /embed/ page
+ * the frame navigates to itself — is initiated by the UserTasks document
+ * in the frame, so it is `Sec-Fetch-Site: same-origin` and keeps the
+ * session, while the same endpoints called by the host page (or any other
+ * site) are cross-site and stay signed out. Server actions also pass
+ * Next's Origin check (the frame's Origin is UserTasks). The host page
+ * only ever talks to the frame through postMessage, checked against the
+ * approved origin in both directions, and the `return` target is accepted
+ * only on an approved origin (no open redirect).
+ *
  * Dependency-free apart from the settings cache, so proxy.ts can import it.
  */
 

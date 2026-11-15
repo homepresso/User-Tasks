@@ -21,6 +21,7 @@ import { JobsProvider } from '@/components/jobs/jobs-provider'
 import { AssistantHost } from '@/components/assistants/assistant-host'
 import { OnboardingProvider } from '@/components/onboarding/getting-started/onboarding-provider'
 import { ExtensionActionHost } from '@/components/extensions/action-host'
+import { useEmbedEscape } from '@/lib/embed/escape'
 
 /**
  * The dashboard frame (docs/design/ui-polish-spec.md §4.4): sidebar, top bar
@@ -41,6 +42,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [hasHydrated, setHasHydrated] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const routeAllowed = profile && userId ? canAccessPath(pathname, permissions) : true
+  // Never the full app inside another site's frame (an embedded designer that navigated here): lib/embed/escape.ts.
+  const escaping = useEmbedEscape()
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- first client render matches the server's loading shell
@@ -50,6 +53,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   // Only show the full skeleton on very first load (no cached profile at all).
   // Once we have a profile (even from cache), keep the shell visible during
   // background auth re-verification so navigation feels instant.
+  if (escaping) return null
   if (!hasHydrated || (loading && !profile)) return <DashboardLoadingShell />
 
   // If auth dropped entirely (signed out) — redirect handled by auth context

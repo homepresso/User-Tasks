@@ -28,6 +28,18 @@ export const INFOPATH_PAGE = {
     'Upload a Microsoft InfoPath form template (.xsn) and see it rebuilt as UserTasks forms: one form per view, with repeating tables and sections, pictures, signatures, conditional formatting, rules, validation and formulas converted, and a clear list of what needs a person. Free preview, nothing stored.',
 }
 
+/** /sharepoint: the paid SharePoint Server extension (add-in, forms, triggers, REST surface, migration). */
+export const SHAREPOINT_PAGE = {
+  slug: 'sharepoint',
+  eyebrow: 'SharePoint on-premises',
+  title: 'The replacement for SharePoint workflows and InfoPath forms, on premises',
+  metaTitle: 'SharePoint Server Workflow and InfoPath Replacement Add-in | UserTasks',
+  description:
+    'A UserTasks add-in for SharePoint Server 2016, 2019 and Subscription Edition: forms embedded in your lists and document libraries, workflows triggered by list and library events, the full SharePoint REST API as workflow steps, and InfoPath and SharePoint Designer 2010 migration. $7,500 per farm per year.',
+  /** When the Microsoft dates on the page were last checked against Microsoft's own pages. */
+  updated: '2026-11-14',
+}
+
 export const DOCUMENTS_PAGE = {
   slug: 'documents',
   eyebrow: 'Documents',

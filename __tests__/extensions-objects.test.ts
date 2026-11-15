@@ -99,6 +99,29 @@ describe('extension object management', () => {
     expect(() => mergeManagedTags([], ['x'], '')).toThrow(/prefix/)
   })
 
+  it('grantDesign: an Edit grant for the person on one of its own objects, only elevated (or team.change_roles), honoured by design access', async () => {
+    const mem = seed()
+    mem.tables.object_permissions = []
+    mem.tables.object_audit_log = []
+    const plain = createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: ['workflows.view'] })
+    await expect(plain.workflows.grantDesign(W1)).rejects.toMatchObject({ status: 403 })
+    const up = plain.elevate('via SharePoint permission (Manage Lists on Requests)')
+    await expect(up.workflows.grantDesign(W2)).rejects.toMatchObject({ status: 404 })
+    await expect(up.forms.grantDesign(F2)).rejects.toMatchObject({ status: 404 })
+    expect(await up.workflows.grantDesign(W1)).toEqual({ granted: true })
+    expect(await up.workflows.grantDesign(W1)).toEqual({ granted: false })
+    expect(await up.forms.grantDesign(F1)).toEqual({ granted: true })
+    expect(mem.tables.object_permissions.map((g: any) => [g.object_type, g.object_id, g.user_id, g.can_view, g.can_edit, g.can_delete])).toEqual([
+      ['workflow', W1, USER, true, true, false], ['form', F1, USER, true, true, false],
+    ])
+    expect(mem.tables.object_audit_log.filter((a: any) => a.action === 'grant')).toHaveLength(2)
+    const { canDesignObject } = await import('@/lib/services/design-access')
+    const session = { supabase: mem, db: mem, tenantId: TENANT, actorId: USER, permissions: new Set(['workflows.view']), authKind: 'session', source: 'ui' } as any
+    expect(await canDesignObject(session, 'workflow', W1)).toBe(true)
+    expect(await canDesignObject(session, 'workflow', W2)).toBe(false)
+    expect(await canDesignObject(session, 'form', F1)).toBe(true)
+  })
+
   it('users.current and elevate (same person, all permissions, reason audited)', async () => {
     const mem = seed()
     mem.tables.object_audit_log = []

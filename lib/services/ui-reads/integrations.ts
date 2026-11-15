@@ -72,11 +72,17 @@ export const reads = {
     args: z.object({ integrationId: id }),
     perm: 'integrations.view',
     run: async (ctx, { integrationId }) => {
-      const { data } = await (getDb(ctx) as any).from('integration_references')
-        .select('*')
-        .eq('integration_id', integrationId)
-        .order('name')
-      return (data ?? []) as any[]
+      const db = getDb(ctx) as any
+      const [{ data }, { data: integration }] = await Promise.all([
+        db.from('integration_references').select('*').eq('integration_id', integrationId).order('name'),
+        db.from('integrations').select('id, type').eq('id', integrationId).maybeSingle(),
+      ])
+      // Methods an extension generates for its own connections (read-only; Test runs them).
+      const { extensionOfIntegrationType, extensionReferencesFor } = await import('@/lib/extensions/connection-references')
+      const generated = integration && extensionOfIntegrationType(integration.type)
+        ? await extensionReferencesFor({ tenantId: ctx.tenantId, actorId: ctx.actorId, db, permissions: ctx.permissions }, integration)
+        : []
+      return [...((data ?? []) as any[]), ...generated]
     },
   }),
 

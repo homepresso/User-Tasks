@@ -31,7 +31,8 @@ export type HeaderTone = "paper" | "night"
  * closes and returns focus to the trigger; focus leaving the header closes.
  * Panels stay in the DOM (inert while closed) so their links are in the
  * server-rendered HTML. Below lg a Menu button opens a full-height sheet:
- * product tiles, a flat link list, then the call to action.
+ * product tiles, a flat link list (every use-case solution, so the SharePoint
+ * and InfoPath pages are reachable on phones too), then the call to action.
  *
  * `tone="night"` starts transparent over a dark hero and turns into dark
  * glass on scroll; `paper` starts on the cream page.
@@ -316,6 +317,12 @@ function FeatureVisual() {
   )
 }
 
+/** The two highest-traffic journeys, as boxes just below Product on mobile. */
+const MOBILE_FEATURED_SOLUTIONS: Array<{ href: string; title: string; description: string; badge?: string }> = [
+  { href: "/sharepoint", title: "Replace SharePoint workflows", description: "Forms, workflows and approvals inside SharePoint Server lists and libraries", badge: "New" },
+  { href: "/infopath", title: "Migrate from InfoPath", description: "Upload an .xsn and get a working form" },
+]
+
 function MobileSheet({ open, onClose, top }: { open: boolean; onClose: () => void; top: number }) {
   const titleId = useId()
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -342,8 +349,25 @@ function MobileSheet({ open, onClose, top }: { open: boolean; onClose: () => voi
             </li>
           ))}
         </ul>
+        <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-(color:--mkt-subtle)">Leaving SharePoint workflows or InfoPath?</p>
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2" data-mobile-featured-solutions>
+          {MOBILE_FEATURED_SOLUTIONS.map((item) => (
+            <li key={item.href}>
+              <Link href={item.href} onClick={onClose} className="flex items-center justify-between gap-3 rounded-2xl border border-[#E0A158]/50 bg-gradient-to-br from-[#FFF6E8] to-(color:--mkt-white) p-4 shadow-sm">
+                <span>
+                  <span className="flex items-center gap-2 text-[15px] font-semibold text-(color:--mkt-ink)">
+                    {item.title}
+                    {item.badge && <span className="rounded-full bg-gradient-to-r from-[#F3C77F] to-[#E0A158] px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-[#1B1406]">{item.badge}</span>}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-4 text-(color:--mkt-muted)">{item.description}</span>
+                </span>
+                <ArrowRight size={16} className="shrink-0 text-(color:--mkt-ink)" aria-hidden="true" />
+              </Link>
+            </li>
+          ))}
+        </ul>
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
-          <MobileGroup title="Solutions" items={[...SOLUTIONS_BY_USE_CASE.slice(0, 4), ...SOLUTIONS_BY_TEAM.slice(0, 3), { href: "/use-cases", title: "All use cases", description: "", icon: "list" }]} onPick={onClose} />
+          <MobileGroup title="Solutions" items={[...SOLUTIONS_BY_USE_CASE, ...SOLUTIONS_BY_TEAM.slice(0, 3), { href: "/use-cases", title: "All use cases", description: "", icon: "list" }]} onPick={onClose} />
           <MobileGroup title="Resources" items={[...PRODUCT_MORE, ...RESOURCES.filter((item) => !PRODUCT_MORE.some((more) => more.href === item.href))]} onPick={onClose} />
         </div>
         <div className="mt-8 space-y-3 border-t border-(color:--mkt-ink)/[0.08] pt-6">
@@ -364,7 +388,11 @@ function MobileGroup({ title, items, onPick }: { title: string; items: MenuItem[
         {items.map((item) => (
           <li key={item.href}>
             <Link href={item.href} onClick={onPick} className="flex items-center justify-between py-3 text-[15px] font-medium text-(color:--mkt-ink-soft)">
-              {item.title}<ArrowRight size={14} className="text-(color:--mkt-subtle)" aria-hidden="true" />
+              <span className="flex items-center gap-2">
+                {item.title}
+                {item.badge && <span className="rounded-full bg-gradient-to-r from-[#F3C77F] to-[#E0A158] px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-[#1B1406]">{item.badge}</span>}
+              </span>
+              <ArrowRight size={14} className="text-(color:--mkt-subtle)" aria-hidden="true" />
             </Link>
           </li>
         ))}

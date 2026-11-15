@@ -22,6 +22,7 @@
  *    has its own checks.
  */
 
+import { canDesignObject, DESIGN_PERMISSION } from './design-access'
 import { fromSession, hasPerm, isServiceError, ServiceError, type ServiceContext } from './context'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped rows */
@@ -66,7 +67,9 @@ export async function authorizeWorkflowAccess(workflowId: unknown, permission: s
       throw ServiceError.notFound(NOT_FOUND)
     }
   }
-  if (!hasPerm(ctx, permission)) throw ServiceError.forbidden(`Forbidden: you lack the '${permission}' permission`)
+  // Test runs of the draft (workflows.edit) also follow an Edit grant on this workflow (lib/services/design-access.ts).
+  const allowed = hasPerm(ctx, permission) || (permission === DESIGN_PERMISSION.workflow && await canDesignObject(ctx, 'workflow', String(workflow.id)))
+  if (!allowed) throw ServiceError.forbidden(`Forbidden: you lack the '${permission}' permission`)
   return { ctx, workflow: { id: String(workflow.id), tenant_id: String(workflow.tenant_id) } }
 }
 

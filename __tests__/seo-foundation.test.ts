@@ -188,7 +188,7 @@ describe('public SEO foundation', () => {
     for (const useCase of USE_CASES) expect(set.has(`${BASE}/use-cases/${useCase.slug}`)).toBe(true)
     for (const doc of ALL_DOC_PAGES) expect(set.has(`${BASE}/docs/${doc.slug}`)).toBe(true)
     for (const pkg of GALLERY_PACKAGES) expect(set.has(`${BASE}/gallery/${pkg.slug}`)).toBe(true)
-    for (const url of ['/forms', '/infopath', '/documents', '/media', '/ai-assistants', '/connectors', '/workflows', '/tasks-and-approvals', '/data-and-reports', '/contact', '/docs', '/gallery']) expect(set.has(`${BASE}${url}`), url).toBe(true)
+    for (const url of ['/forms', '/infopath', '/sharepoint', '/documents', '/media', '/ai-assistants', '/connectors', '/workflows', '/tasks-and-approvals', '/data-and-reports', '/contact', '/docs', '/gallery']) expect(set.has(`${BASE}${url}`), url).toBe(true)
     // Sign-up is a step, not a landing page: kept out of the sitemap.
     expect(set.has(`${BASE}/start`)).toBe(false)
     for (const entry of entries) {
@@ -239,6 +239,7 @@ describe('public SEO foundation', () => {
     for (const doc of ALL_DOC_PAGES) expect(text).toContain(`${BASE}/docs/${doc.slug})`)
     expect(text).toContain(`${BASE}/llms-full.txt`)
     expect(text).toContain(`${BASE}/infopath`)
+    expect(text).toContain(`${BASE}/sharepoint`)
     // Links are well-formed Markdown list items.
     for (const line of text.split('\n').filter((l) => l.startsWith('- ['))) expect(line).toMatch(/^- \[[^\]]+\]\(https:\/\/usertasks\.com[^)]*\)(: .+)?$/)
   })

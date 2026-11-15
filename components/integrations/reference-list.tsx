@@ -50,6 +50,13 @@ interface Reference {
   integration_id?: string
 }
 
+/** A method an extension generates for its connection (read-only here; Test runs it through the extension). */
+function extensionMeta(ref: Reference): null | { group: string | null; writes: boolean; destructive: boolean; access: string; notes: string[] } {
+  const rc = ref.request_config as any
+  if (rc?.source !== 'extension') return null
+  return { group: rc.group ?? null, writes: Boolean(rc.writes), destructive: Boolean(rc.destructive), access: String(rc.access ?? 'read'), notes: Array.isArray(rc.notes) ? rc.notes : [] }
+}
+
 interface ReferenceListProps {
   integrationId: string
   integrationBaseUrl: string
@@ -99,7 +106,8 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
     setLocalReferences(references)
   }, [references])
 
-  const allSelected = localReferences.length > 0 && localReferences.every(r => selected.has(r.id))
+  const selectable = localReferences.filter(r => !extensionMeta(r))
+  const allSelected = selectable.length > 0 && selectable.every(r => selected.has(r.id))
 
   function toggleSelect(id: string) {
     setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
@@ -107,7 +115,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
 
   function toggleAll() {
     if (allSelected) setSelected(new Set())
-    else setSelected(new Set(localReferences.map(r => r.id)))
+    else setSelected(new Set(selectable.map(r => r.id)))
   }
 
   async function bulkDelete() {
@@ -157,7 +165,8 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
   function openTest(ref: Reference) {
     const defaults: Record<string, string> = {}
     for (const inp of (ref.inputs as any[] ?? [])) {
-      defaults[inp.name] = inp.default_value ?? ''
+      // A destructive method's confirm is never pre-filled: the person sets it.
+      defaults[inp.name] = extensionMeta(ref)?.destructive && inp.name === 'confirm' ? '' : inp.default_value ?? ''
     }
     setTestInputs(defaults)
     setTestResult(null)
@@ -165,6 +174,25 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
   }
 
   async function runTest(ref: Reference) {
+    const ext = extensionMeta(ref)
+    if (ext) {
+      if (ext.writes && !window.confirm(`"${ref.name}" changes data${ext.destructive ? ' and is destructive' : ''}. Running the test does it for real with the connection's account. Continue?`)) return
+      setTestLoading(true)
+      setTestResult(null)
+      try {
+        const inputs = Object.fromEntries(Object.entries(testInputs).filter(([, v]) => v !== ''))
+        const resp = await fetch('/api/integrations/test-reference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reference_id: ref.id, integration_id: integrationId, inputs, ...(ext.writes ? { confirm_write: true } : {}) }),
+        })
+        setTestResult(await resp.json())
+      } catch (e: any) {
+        setTestResult({ error: e.message })
+      }
+      setTestLoading(false)
+      return
+    }
     if (isWriteReference(ref) && !window.confirm(`"${ref.name}" writes data. Running the test sends it for real with the integration's credentials (recorded in the call log). Continue?`)) return
     setTestLoading(true)
     setTestResult(null)
@@ -284,7 +312,10 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
         </div>
       )}
 
-      {localReferences.map((ref) => {
+      {localReferences.map((ref, index) => {
+        const ext = extensionMeta(ref)
+        const prevGroup = index > 0 ? extensionMeta(localReferences[index - 1])?.group ?? null : null
+        const groupHeading = ext?.group && ext.group !== prevGroup ? ext.group : null
         const rc = ref.request_config as any
         const sql = (rc?.path_template ?? '').trim()
         const method = (rc?.method ?? '').toUpperCase()
@@ -299,13 +330,15 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
         const badge = dbType ? badgeConfig[dbType] : null
 
         return (
-        <div key={ref.id} className="rounded-lg border" style={{
+        <div key={ref.id}>
+        {groupHeading && <h4 className="text-2xs font-semibold uppercase tracking-wider text-fg-muted pt-3 pb-1" data-testid="reference-group">{groupHeading}</h4>}
+        <div className="rounded-lg border" data-testid={ext ? 'extension-reference' : undefined} style={{
           borderColor: selected.has(ref.id) ? 'var(--theme-primary)' : 'var(--theme-surface-border)',
           backgroundColor: selected.has(ref.id) ? 'var(--theme-primary-light)' : undefined,
         }}>
           <div className="flex items-center gap-2 px-3 py-2.5 text-sm">
-            <input type="checkbox" checked={selected.has(ref.id)} onChange={() => toggleSelect(ref.id)}
-              onClick={e => e.stopPropagation()} className="rounded shrink-0" />
+            {ext ? <span className="w-[13px] shrink-0" /> : <input type="checkbox" checked={selected.has(ref.id)} onChange={() => toggleSelect(ref.id)}
+              onClick={e => e.stopPropagation()} className="rounded shrink-0" />}
             <button
               className="flex items-center gap-2 flex-1 text-left"
               onClick={() => setExpandedId(expandedId === ref.id ? null : ref.id)}
@@ -328,7 +361,16 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
                   <Sparkles size={8} /> Custom
                 </span>
               )}
-              {isWriteReference(ref) && <WritesDataBadge className="shrink-0" />}
+              {(isWriteReference(ref) || ext?.writes) && <WritesDataBadge className="shrink-0" />}
+              {ext?.destructive && (
+                <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full shrink-0" data-testid="destructive-badge"
+                  style={{ backgroundColor: 'var(--status-danger-bg)', color: 'var(--theme-danger)' }}>Needs confirm</span>
+              )}
+              {ext?.access === 'manage' && (
+                <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full shrink-0"
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--theme-warning) 12%, transparent)', color: 'var(--theme-warning)' }}>Manage</span>
+              )}
+              {ext && <span className="text-2xs font-mono shrink-0 text-fg-muted">{String(rc?.method ?? '')}</span>}
               {badge && (
                 <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-full shrink-0"
                   style={{ backgroundColor: badge.bg, color: badge.color }}>
@@ -346,7 +388,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
             >
               <Play size={12} />
             </button>
-            {isCustomReference(ref) ? (
+            {ext ? null : isCustomReference(ref) ? (
               <button
                 onClick={(e) => { e.stopPropagation(); setBuilder(ref) }}
                 className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 text-fg-muted"
@@ -365,29 +407,44 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
                 <Copy size={12} />
               </button>
             )}
-            <button
+            {!ext && <button
               onClick={(e) => { e.stopPropagation(); setRefDepsId(ref.id) }}
               className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 text-fg-muted"
               title="Dependency map"
             >
               <MapIcon size={12} />
-            </button>
-            <button
+            </button>}
+            {!ext && <button
               onClick={(e) => { e.stopPropagation(); handleDelete(ref.id, ref.name) }}
               className="p-1.5 rounded-lg hover:opacity-80 transition-colors shrink-0 hover:text-[color:var(--theme-danger)] text-fg-muted"
               title="Delete reference"
             >
               <Trash2 size={12} />
-            </button>
+            </button>}
           </div>
 
           {expandedId === ref.id && (
             <div className="px-3 pb-3" style={{ borderTop: '1px solid var(--theme-surface-border)' }}>
-              {isCustomReference(ref)
+              {ext ? (
+                <div className="pt-2 space-y-2 text-xs" data-testid="extension-reference-detail">
+                  <div className="font-mono text-2xs text-fg-muted">{String(rc?.method ?? '')} {integrationBaseUrl}{String(rc?.path_template ?? '')}</div>
+                  {ref.description && <p>{ref.description}</p>}
+                  {ext.notes.length > 0 && <ul className="list-disc pl-4 text-fg-muted">{ext.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
+                  {(ref.inputs as any[])?.length > 0 && (
+                    <table className="w-full text-2xs"><tbody>
+                      {(ref.inputs as any[]).map((inp: any) => (
+                        <tr key={inp.name} className="align-top"><td className="pr-2 font-mono text-primary-text">{inp.name}</td><td className="pr-2 text-fg-muted">{inp.type}{inp.required ? ', required' : ''}</td><td>{inp.description}</td></tr>
+                      ))}
+                    </tbody></table>
+                  )}
+                  <p className="text-2xs text-fg-muted">Generated by the extension from the connected system; it updates when the source changes.</p>
+                </div>
+              ) : isCustomReference(ref)
                 ? <CustomReferenceSummary reference={ref} onEdit={() => setBuilder(ref)} />
                 : <ReferenceBuilder reference={{ ...ref, integration_id: integrationId }} integrationBaseUrl={integrationBaseUrl} />}
             </div>
           )}
+        </div>
         </div>
         )
       })}
@@ -423,6 +480,14 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
                 <div className="text-2xs font-mono px-2.5 py-1.5 rounded-lg overflow-x-auto bg-bg text-fg-muted">
                   {integrationBaseUrl}{config?.path_template ?? ''}
                 </div>
+                {extensionMeta(ref)?.destructive && (
+                  <div className="text-xs p-2.5 rounded-lg" data-testid="destructive-notice" style={{ backgroundColor: 'var(--status-danger-bg)', color: 'var(--theme-danger)' }}>
+                    Destructive operation: it runs only with <code className="font-mono">confirm</code> set to <code className="font-mono">true</code>.
+                  </div>
+                )}
+                {(extensionMeta(ref)?.notes.length ?? 0) > 0 && (
+                  <ul className="text-2xs list-disc pl-4 text-fg-muted">{extensionMeta(ref)!.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+                )}
 
                 {/* Inputs */}
                 {inputs.length > 0 && (
@@ -434,11 +499,12 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
                           <code className="font-mono text-primary-text">{inp.name}</code>
                           <span className="text-2xs text-fg-muted">({inp.type})</span>
                           {inp.required && <span className="text-2xs text-[color:var(--theme-danger)]">required</span>}
+                          {extensionMeta(ref) && inp.description && <span className="text-2xs text-fg-muted truncate">— {inp.description}</span>}
                         </label>
                         <Input
                           value={testInputs[inp.name] ?? ''}
                           onChange={e => setTestInputs(p => ({ ...p, [inp.name]: e.target.value }))}
-                          placeholder={inp.default_value || inp.name}
+                          placeholder={extensionMeta(ref)?.destructive && inp.name === 'confirm' ? 'true' : inp.default_value || inp.name}
                           className="!text-xs font-mono"
                         />
                       </div>

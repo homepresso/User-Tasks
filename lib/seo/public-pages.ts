@@ -1,4 +1,4 @@
-import { AI_ASSISTANTS_PAGE, DATA_REPORTS_PAGE, DOCUMENTS_PAGE, FORMS_PAGE, INFOPATH_PAGE, INTEGRATIONS_PAGE, MEDIA_PAGE, TASKS_PAGE, WORKFLOWS_PAGE } from '@/lib/marketing-pages'
+import { AI_ASSISTANTS_PAGE, DATA_REPORTS_PAGE, DOCUMENTS_PAGE, FORMS_PAGE, INFOPATH_PAGE, INTEGRATIONS_PAGE, MEDIA_PAGE, SHAREPOINT_PAGE, TASKS_PAGE, WORKFLOWS_PAGE } from '@/lib/marketing-pages'
 import { SEO_PAGES } from '@/lib/seo-pages'
 import { DEPLOY_ANYWHERE } from '@/lib/topologies'
 import { USE_CASES } from '@/lib/use-cases'
@@ -56,6 +56,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
   product(MEDIA_PAGE),
   product(DEPLOY_ANYWHERE),
   product(INFOPATH_PAGE),
+  { ...product(SHAREPOINT_PAGE), updated: SHAREPOINT_PAGE.updated },
   ...SEO_PAGES.map((page): PublicPage => ({ path: `/${page.slug}`, title: page.title, description: page.description, group: 'guide', updated: page.updated })),
   { path: '/use-cases', title: USE_CASES_INDEX.title, description: USE_CASES_INDEX.description, group: 'guide' },
   { path: '/gallery', title: 'Package gallery', description: 'Ready-made workflow packages to install: forms, workflows, data tables and reports for HR, finance, IT, operations and customer teams.', group: 'product' },

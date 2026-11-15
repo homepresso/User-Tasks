@@ -10,6 +10,7 @@
  * restricted to specific workflows only reach those workflows.
  */
 
+import { requireDesignAccess } from './design-access'
 import { hasPerm, requirePerm, ServiceError, type ServiceContext } from './context'
 import { diffValues } from '@/lib/portability/plan'
 import { WORKFLOW_DEFINITION_FIELDS } from '@/lib/api-schemas/workflows'
@@ -260,7 +261,8 @@ export async function createWorkflow(ctx: ServiceContext, input: WorkflowWriteIn
  * `publish: true` then publishes the draft (needs workflows.activate).
  */
 export async function updateWorkflow(ctx: ServiceContext, workflowId: string, input: WorkflowWriteInput) {
-  requirePerm(ctx, 'workflows.edit')
+  // workflows.edit, or (signed in) an Edit grant on this workflow — lib/services/design-access.ts.
+  await requireDesignAccess(ctx, 'workflow', workflowId)
   if (input.publish) requirePerm(ctx, 'workflows.activate')
   requireWorkflowScope(ctx, workflowId)
   const { data: existing, error } = await (ctx.supabase as any).from('workflows')

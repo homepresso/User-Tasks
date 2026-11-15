@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { RunTask } from '@/lib/run-tasks'
 import { getDb } from '../context'
+import { canDesignObject } from '../design-access'
 import { getDirectoryCapabilities, searchDirectoryEntraGroups } from '../directory-groups'
 import { applyScope, queueJobInScope, resolveRunScope, runInScope, runScopeFilter } from '../run-visibility'
 import { fetchLiveInstanceCounts } from '@/lib/workflow-live-counts'
@@ -196,7 +197,9 @@ export const reads = {
       const publishedVersionNumber = (versionResult?.data?.version_number ?? null) as number | null
       const liveInstances = liveCounts.reduce((sum, r) => sum + r.instances, 0)
       const liveOnOlder = liveCounts.filter((r) => r.version_id !== publishedVersionId).reduce((sum, r) => sum + r.instances, 0)
-      return { workflow: workflow as any, runs: (runs ?? []) as any[], customActivities: (customActivities ?? []) as any[], publishedVersionNumber, liveInstances, liveOnOlder }
+      // Save / test in the designer: workflows.edit, or an Edit grant on this workflow (design-access.ts).
+      const canDesign = await canDesignObject(ctx, 'workflow', String(workflow.id))
+      return { workflow: workflow as any, runs: (runs ?? []) as any[], customActivities: (customActivities ?? []) as any[], publishedVersionNumber, liveInstances, liveOnOlder, canDesign }
     },
   }),
 

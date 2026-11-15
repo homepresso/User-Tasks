@@ -64,6 +64,7 @@ import { AgentDialogButton, useAgentDock } from '@/components/assistants/assista
 import { useDesignerContext } from '@/lib/assistants/client-registry'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useLeaveGuard } from '@/hooks/use-leave-guard'
+import { useEmbedNavigation } from '@/lib/embed/navigation'
 import { plural } from '@/lib/format/plural'
 import { AccessibilityPanel, AccessibilitySaveCheck, useFormAccessibility } from './accessibility-panel'
 
@@ -352,12 +353,15 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
     return () => el?.removeEventListener('keydown', onKey)
   }, [history])
 
+  // Embedded (/embed/forms/<id>/design): the embed frame owns the leave prompt (it disarms it after "Leave without saving").
+  const embedded = useEmbedNavigation() !== null
   useEffect(() => {
+    if (embedded) return
     if (!dirty || readOnly) return
     const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault() }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [dirty, readOnly])
+  }, [dirty, readOnly, embedded])
 
   // The page: in-app links ask before leaving unsaved changes (the dialog has its Close / Cancel guard).
   const leaveGuard = useLeaveGuard(isPage && dirty && !readOnly)
@@ -869,7 +873,7 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
         <TooltipProvider>
           <div role="toolbar" aria-label="Form designer" data-designer-toolbar="" className="mb-2 flex h-12 min-w-0 shrink-0 items-center gap-2 rounded-lg border border-border bg-panel px-2">
             <div className="flex min-w-0 flex-[1_1_auto] items-center gap-2">
-              {page && (
+              {page && !embedded && (
                 <Tooltip content={page.backLabel}>
                   <Link href={page.backHref} aria-label={page.backLabel} className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })} data-designer-back="">
                     <ArrowLeft className="size-4" aria-hidden="true" />

@@ -721,6 +721,15 @@ Which workspace: the workspace address, else the add-in's workspace hint (`?ut_o
 **AD FS with Windows sign-in.** For browsers on domain-joined machines to be signed in silently, AD FS must offer Windows Integrated Authentication on the intranet (`Set-AdfsGlobalAuthenticationPolicy -PrimaryIntranetAuthenticationProvider WindowsAuthentication,FormsAuthentication`) to Chromium browsers — add their user agents, e.g. `Set-AdfsProperties -WIASupportedUserAgents ((Get-AdfsProperties).WIASupportedUserAgents + '=~Windows\s*NT.*Edg/' + '=~Windows\s*NT.*Chrome')` — and browsers must send Kerberos to AD FS (its address in the Local intranet zone, or the `AuthServerAllowlist` policy for Edge / Chrome). AD FS answers `prompt=none` with redirects only (Windows sign-in, or `login_required` when it can't), so the silent attempt never shows an AD FS page. Inside frames a session also needs the browser to allow cookies in embedded windows: Edge and Chrome with third-party cookies blocked refuse them, and the dialog then asks for storage access (one **Continue** click) — or open UserTasks full page (the SharePoint add-in's launch does).
 
 
+**Embedded designers.** The workflow designer and the form designer can also be shown inside an approved site, without the UserTasks navigation (no sidebar, top bar, breadcrumbs, search or New menu) — e.g. a SharePoint page that edits the workflow or form of one of its lists:
+
+| Page | Embedded at |
+|---|---|
+| Workflow designer | \`/embed/workflows/<id>\` (its runs: \`/embed/workflows/<id>/runs\`, one run: \`/embed/runs/<run id>\`) |
+| Form designer | \`/embed/forms/<id>/design\` |
+
+They are the normal designers (save, publish, test run, preview, version history) with the same permissions, under a compact header: what is open, whether it has unsaved changes, **Open in UserTasks** (new tab) and **Done**. Optional parameters: \`return=<URL>\` and \`return_label=<name>\` add "Back to *name*" (Back and Done take the whole window there) — accepted only when the URL is on one of the approved origins, otherwise ignored; \`host_origin=<origin>\` (same rule) when there is no return URL; \`header=0\` hides the header when the host page draws its own. Links stay inside the embed (the embedded equivalent) or open in a new tab — the full UserTasks app never opens inside the frame. The embedding page receives \`window.postMessage\` events \`{ type: 'usertasks:designer', event: 'ready' | 'state' | 'done' | 'deleted', kind, id, … }\` (\`state\` carries \`dirty\` for an unsaved-changes warning) sent only to its approved origin; it may answer \`done\` with \`{ type: 'usertasks:host', event: 'ack' }\` to navigate itself. Inside the frame the designer's own saves and reads are same-origin requests and keep the session; the same calls from the host page or any other site stay signed out.
+
 ## 6. Security checklist
 
 - Keep `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ENCRYPTION_KEY` and

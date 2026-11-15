@@ -11,6 +11,7 @@ import { invalidateDataTableTriggerCache } from '@/lib/data-table-workflow-trigg
 import type { ActionResult } from '@/lib/action-result'
 import { runAction } from '@/lib/actions/run-action'
 import { fromSession } from '@/lib/services/context'
+import { requireDesignAccess } from '@/lib/services/design-access'
 import * as workflowsService from '@/lib/services/workflows'
 import { activationBlockMessage, workflowActivationBlock } from '@/lib/packages/activation'
 
@@ -113,10 +114,16 @@ export async function createWorkflow(formData: FormData) {
   redirect(`/automations/${data.id}`)
 }
 
+/** The designer's own writes: workflows.edit, or an Edit grant on this workflow (lib/services/design-access.ts). */
+async function requireWorkflowDesign(workflowId: string): Promise<void> {
+  try { await requirePermission('workflows.edit'); return } catch { /* an Edit grant on this workflow may still allow it */ }
+  await requireDesignAccess(await fromSession(), 'workflow', String(workflowId ?? ''))
+}
+
 const SAVE_WORKFLOW_FIELDS = ['nodes', 'edges', 'name', 'trigger_type', 'trigger_config', 'user_variables', 'swimlanes', 'sections'] as const
 
 export async function saveWorkflow(workflowId: string, data: { nodes: any; edges: any; name?: string; trigger_type?: string; trigger_config?: any; user_variables?: any; swimlanes?: any; sections?: any }) {
-  await requirePermission('workflows.edit')
+  await requireWorkflowDesign(workflowId)
   const supabase = await createClient()
   // Only the designer's own fields: never is_active (workflows.activate),
   // tenant_id, created_by, published_version_id, ... from the client.
@@ -261,7 +268,7 @@ export async function publishWorkflow(workflowId: string, notes?: string): Promi
 }
 
 export async function revertToVersion(workflowId: string, versionId: string) {
-  await requirePermission('workflows.edit')
+  await requireWorkflowDesign(workflowId)
   const supabase = await createClient()
   const user = await getCachedUser()
   if (!user) throw new Error('Not authenticated')

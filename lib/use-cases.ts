@@ -1298,9 +1298,9 @@ usertasks workflows publish <id> --set notes="Replaces the SharePoint 2013 leave
     ],
     faqs: [
       { question: 'Do I have to move my lists and documents out of SharePoint?', answer: 'No. Content can stay in SharePoint. UserTasks reads and writes list items and files through the SharePoint connector, which uses Microsoft Graph.' },
-      { question: 'Can UserTasks import SharePoint Designer workflow files?', answer: 'No. Workflows are rebuilt, usually by pattern. Most Designer workflows are approvals, feedback rounds or list updates, which map to a small number of reusable UserTasks workflows.' },
+      { question: 'Can UserTasks import SharePoint Designer workflow files?', answer: 'SharePoint Designer 2010 workflows on SharePoint Server can be imported with the paid SharePoint extension (usertasks.com/sharepoint). Other workflows are rebuilt, usually by pattern: most are approvals, feedback rounds or list updates, which map to a small number of reusable UserTasks workflows.' },
       { question: 'What about the InfoPath forms behind our lists?', answer: 'InfoPath 2013 and InfoPath Forms Services reached end of support on July 14, 2026. UserTasks imports the .xsn template directly: each view becomes a form, with rules, validation and repeating tables converted where they translate. Try it free at usertasks.com/infopath.' },
-      { question: 'What about SharePoint Server on premises?', answer: 'On-premises support follows each SharePoint Server version’s lifecycle, as described on Microsoft’s retirement pages. UserTasks can be self-hosted next to an on-premises farm, but its SharePoint connector targets SharePoint Online through Microsoft Graph.' },
+      { question: 'What about SharePoint Server on premises?', answer: 'Microsoft removes SharePoint 2010 workflows and InfoPath Forms Services from SharePoint Server Subscription Edition in the July 13, 2027 public update. The paid UserTasks SharePoint extension adds an add-in for SharePoint Server 2016, 2019 and Subscription Edition: embedded list forms, list-event triggers and the full REST API as workflow steps. See usertasks.com/sharepoint.' },
     ],
     disclaimer: TRADEMARKS,
     related: ['approvals-and-compliance', 'nintex-migration', 'k2-migration'],

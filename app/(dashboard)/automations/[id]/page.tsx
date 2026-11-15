@@ -96,10 +96,11 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
 
   return (
     <DesktopOnly>
-    <div className="h-[calc(100vh-7rem)]">
+    <div className="h-[calc(100vh-var(--designer-offset,7rem))]">
       <WorkflowBuilder
         key={assistantRev}
         workflowId={workflow.id}
+        canDesign={data.canDesign === true}
         tenantId={workflow.tenant_id}
         initialNodes={(workflow.nodes as any) ?? []}
         initialEdges={(workflow.edges as any) ?? []}
@@ -133,7 +134,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
  */
 function WorkflowBuilderSkeleton() {
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col" aria-busy="true" aria-label="Loading workflow">
+    <div className="flex h-[calc(100vh-var(--designer-offset,7rem))] flex-col" aria-busy="true" aria-label="Loading workflow">
       <div className="mb-2 flex h-12 shrink-0 items-center gap-3 rounded-lg border border-border bg-panel px-3">
         <ArrowLeft className="size-4 text-fg-muted" aria-hidden="true" />
         <Skeleton className="h-4 w-48" />

@@ -11,11 +11,14 @@
  *  - delete  one of THIS extension's bound forms, as the caller (the normal
  *            form service: forms.delete, usage and legal-hold checks, audit,
  *            the target's `deleted` hook).
+ *  - update  one of THIS extension's bound forms, as the caller (the normal
+ *            form service: forms.edit, validation, versions, audit); the
+ *            binding keeps its extension and key, only its config can change.
  *
  * Server-only.
  */
 
-import type { BoundForm, ExtensionContext, FormCreateInput } from '@/lib/extensions/sdk'
+import type { BoundForm, ExtensionContext, FormCreateInput, FormUpdateInput } from '@/lib/extensions/sdk'
 import { layoutDataTarget } from '@/lib/forms/data-target'
 import { normalizeFormDefinition } from '@/lib/forms/definition'
 import { isPlainObject } from '@/lib/utils/guards'
@@ -51,7 +54,7 @@ function bound(extensionId: string, row: Record<string, any>): BoundForm | null 
   }
 }
 
-export function hostForms(host: HostForms): Pick<ExtensionContext['forms'], 'create' | 'list' | 'get' | 'delete'> {
+export function hostForms(host: HostForms): Pick<ExtensionContext['forms'], 'create' | 'list' | 'get' | 'delete' | 'update'> {
   return {
     async create(input: FormCreateInput) {
       const { getServerExtension } = await import('./server-registry')
@@ -76,6 +79,27 @@ export function hostForms(host: HostForms): Pick<ExtensionContext['forms'], 'cre
       if (!form) return null
       const def = normalizeFormDefinition(data)
       return { ...form, fields: def.fields, layout: def.layout }
+    },
+    async update(id: string, input: FormUpdateInput) {
+      if (!host.tenantId || !UUID_RE.test(String(id))) throw new Error('Form not found')
+      const { data, error } = await host.db.from('forms').select('id, name, version, layout').eq('tenant_id', host.tenantId).eq('id', id).maybeSingle()
+      if (error) throw new Error(`forms.update failed: ${error.message}`)
+      const current = data ? bound(host.extensionId, data) : null
+      // Only forms bound to this extension (anything else reads as absent).
+      if (!current) throw new Error('Form not found')
+      const binding = { extension: host.extensionId, key: current.key, config: input.target ? input.target.config : current.config, ...((input.target?.label ?? current.label) ? { label: input.target?.label ?? current.label } : {}) }
+      const changesLayout = input.layout !== undefined || input.target !== undefined
+      const baseLayout = input.layout !== undefined ? input.layout : (data as Record<string, any>).layout
+      const layout = changesLayout ? { ...(isPlainObject(baseLayout) ? baseLayout : {}), data_target: binding } : undefined
+      const { updateForm } = await import('@/lib/services/forms')
+      const row = await updateForm(serviceContext(host), id, {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.fields !== undefined ? { fields: input.fields } : {}),
+        ...(layout ? { layout } : {}),
+        ...(input.buttons !== undefined ? { buttons: input.buttons } : {}),
+      } as any)
+      return { id: row.id, name: row.name, version: row.version, versionChanged: row.version_changed }
     },
     async delete(id: string) {
       if (!host.tenantId || !UUID_RE.test(String(id))) return { deleted: false }

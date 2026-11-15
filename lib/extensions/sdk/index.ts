@@ -213,6 +213,14 @@ export interface ExtensionContext {
      */
     setTags(workflowId: string, tags: string[], options: { prefix: string }): Promise<void>
     /**
+     * Give the signed-in person an Edit grant on this workflow (one of this
+     * extension's), so the designer lets them save, restore and test it without
+     * workflows.edit — publishing still needs workflows.activate. For people the
+     * extension authorised elsewhere: call on ctx.elevate(reason) (or as someone
+     * with team.change_roles). Audited as a grant.
+     */
+    grantDesign(workflowId: string): Promise<{ granted: boolean }>
+    /**
      * Recent runs of the extension's trigger workflows whose trigger data
      * matches every `match` key (top-level fields, compared as text) — e.g.
      * the runs for one record. Newest first, at most 50. Empty without
@@ -301,10 +309,19 @@ export interface ExtensionContext {
     list(options?: { key?: string }): Promise<BoundForm[]>
     get(id: string): Promise<(BoundForm & { fields: TaskFieldDef[]; layout: unknown }) | null>
     delete(id: string): Promise<{ deleted: boolean }>
+    /**
+     * Change one of THIS extension's bound forms as the caller (forms.edit; the
+     * normal form service: validation, a new version, audit). `target` replaces
+     * the binding's config (same target key; the extension cannot rebind the
+     * form to another target or extension). Fields omitted stay as they are.
+     */
+    update(id: string, input: FormUpdateInput): Promise<{ id: string; name: string; version: number; versionChanged: boolean }>
     /** Replace the form's tags that start with `prefix`, keep all others (see workflows.setTags). */
     setTags(id: string, tags: string[], options: { prefix: string }): Promise<void>
     /** The last person who changed each form (display name), from the audit log. */
     editors(ids: string[]): Promise<Map<string, string | null>>
+    /** As workflows.grantDesign, for a form bound to one of this extension's form targets (save / restore drafts; publishing still needs forms.edit). */
+    grantDesign(formId: string): Promise<{ granted: boolean }>
   }
   /**
    * Directory sources (manifest contributes.directorySources): queue a sync
@@ -354,6 +371,17 @@ export interface FormCreateInput {
   target: { key: string; config: FormDataTargetRef['config']; label?: string }
   /** Override the default buttons (lib/forms/buttons.ts). */
   buttons?: unknown[] | null
+}
+
+/** ctx.forms.update input: only what is given changes. */
+export interface FormUpdateInput {
+  name?: string
+  description?: string | null
+  fields?: FormCreateInput['fields']
+  layout?: FormCreateInput['layout']
+  buttons?: FormCreateInput['buttons']
+  /** New config of the form's binding (its target key stays). */
+  target?: { config: Record<string, unknown>; label?: string }
 }
 
 /** A form bound to one of the extension's targets. */
@@ -1000,9 +1028,44 @@ export interface InfoPathEnrichResult {
   notes?: string[]
 }
 
+/** One reference method an extension generates for a connection (see ServerExtension.connectionReferences). */
+export interface ConnectionReferenceMethod {
+  /** Stable id, unique within the connection (≤ 300 characters). */
+  id: string
+  name: string
+  description?: string
+  /** Heading the References list groups it under. */
+  group?: string
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+  /** Shown after the connection's base URL. */
+  path: string
+  /** Test dialog inputs; `default_value` pre-fills them (strings; objects / arrays as JSON). */
+  inputs: Array<{ name: string; type: string; required?: boolean; description?: string; default_value?: string; enum?: string[] }>
+  /** Changes data: the dialog asks before running it. */
+  writes: boolean
+  /** Needs `confirm: true` among its inputs (destructive bulk operations); never pre-filled. */
+  destructive?: boolean
+  access?: 'read' | 'write' | 'manage'
+  notes?: string[]
+}
+
+/**
+ * Reference methods for the extension's own connections: Integrations → the
+ * connection → References lists them (read-only) and the Test dialog runs
+ * them, as the caller (ctx.can carries the caller's permissions), gated on
+ * `feature`.
+ */
+export interface ConnectionReferenceProvider {
+  feature?: string
+  list(input: { ctx: ExtensionContext; connectionId: string }): Promise<ConnectionReferenceMethod[]>
+  run(input: { ctx: ExtensionContext; connectionId: string; methodId: string; inputs: Record<string, unknown> }): Promise<unknown>
+}
+
 export interface ServerExtension {
   /** Must equal manifest.id. */
   id: string
+  /** Reference methods of this extension's connections (Integrations → References, Test dialog). */
+  connectionReferences?: ConnectionReferenceProvider
   /** Form data targets by key: forms bound to records this extension provides (layout.data_target = { extension, key, config }). */
   formTargets?: Record<string, FormTarget>
   /** Node behaviour by node key (manifest.contributes.nodes). */

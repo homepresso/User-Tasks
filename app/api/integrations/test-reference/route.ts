@@ -20,6 +20,24 @@ export async function POST(request: NextRequest) {
   const { reference_id, inputs, capture_schema, confirm_write } = body
   const tenantId = await getCurrentTenantId(supabase, user.id)
 
+  // A method an extension generates for its own connection (`ext:<id>:<method>`).
+  if (typeof reference_id === 'string' && reference_id.startsWith('ext:')) {
+    const { ExtensionReferenceError, runExtensionReference } = await import('@/lib/extensions/connection-references')
+    const integrationId = typeof body.integration_id === 'string' ? body.integration_id : ''
+    const { data: integration } = await supabase.from('integrations').select('id, type, tenant_id').eq('id', integrationId).eq('tenant_id', tenantId).maybeSingle()
+    if (!integration) return NextResponse.json({ error: 'Reference not found' }, { status: 404 })
+    try {
+      const result = await runExtensionReference(
+        { tenantId, actorId: user.id, db: supabase, permissions: perms },
+        { referenceId: reference_id, integration, inputs: inputs && typeof inputs === 'object' ? inputs : {}, confirmWrite: confirm_write === true },
+      )
+      return NextResponse.json(result)
+    } catch (e: any) {
+      if (e instanceof ExtensionReferenceError) return NextResponse.json({ status: e.status, error: e.message, code: e.code }, { status: e.code === 'confirm_write' || e.code === 'confirmation_required' ? 409 : 200 })
+      return NextResponse.json({ error: e?.message ?? 'Execution failed' }, { status: 500 })
+    }
+  }
+
   // New path: use shared executor with reference_id + inputs
   if (reference_id) {
     try {

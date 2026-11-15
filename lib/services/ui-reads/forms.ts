@@ -53,7 +53,12 @@ export const reads = {
   'forms.get': defineRead({
     args: z.object({ id }),
     perm: VIEW,
-    run: async (ctx, { id: formId }) => forms.getForm(ctx, formId),
+    // viewer_can_design: the designer may save drafts — forms.edit, or an Edit grant on this form (design-access.ts).
+    run: async (ctx, { id: formId }) => {
+      const form = await forms.getForm(ctx, formId)
+      const { canDesignObject } = await import('../design-access')
+      return { ...form, viewer_can_design: await canDesignObject(ctx, 'form', String(form.id)) }
+    },
   }),
 
   /** The form designer: problems of a form's data target (lib/forms/data-target.ts) — fields removed or changed in the external system. */
