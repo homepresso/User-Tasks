@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react"
 import Link from "next/link"
 import {
   ArrowRight, Blocks, Building2, Check, Cloud, Code2, FileInput, FileStack, FolderTree, KeyRound, ListChecks, Lock, MousePointerClick, Network,
-  PackageCheck, Server, ShieldCheck, Users, Workflow, Zap,
+  PackageCheck, Server, ShieldCheck, Users, Workflow, Zap, WifiOff,
 } from "lucide-react"
 import { LogoMark } from "@/components/brand/logo"
 import { ProductHero } from "@/components/marketing/product-hero"
@@ -109,8 +109,16 @@ const FAQS = [
   { question: "Which SharePoint versions does it support?", answer: "SharePoint Server 2016, SharePoint Server 2019 and SharePoint Server Subscription Edition. It is developed and tested on Subscription Edition. Note that Microsoft ended extended support for SharePoint Server 2016 and 2019 on July 14, 2026; Subscription Edition follows Microsoft's Modern Lifecycle Policy and is in support." },
   { question: "Do people have to sign in to UserTasks?", answer: "No. Clicking UserTasks in SharePoint signs people in silently through the identity provider SharePoint already uses, such as AD FS or Windows sign-in. They never see a UserTasks login screen, and forms open inside the SharePoint page with the site's own header and navigation." },
   { question: "Do we need the SharePoint Store or internet access?", answer: "No. The add-in is installed from your farm's own App Catalog with a generated PowerShell script. With self-hosted UserTasks everything stays in your network. With UserTasks Cloud, a small Windows gateway makes outbound-only HTTPS connections, so you open no inbound firewall ports." },
+  { question: "Can it run on an air-gapped network?", answer: "Yes. UserTasks makes no outbound calls at runtime (no SaaS, CDN or telemetry). You receive one signed bundle with the UserTasks images (SharePoint extension included), the database and storage it needs, the Helm chart, Docker Compose files, the CLI and the documentation. Verify it, carry it across, and install with Docker Compose or Kubernetes. The SharePoint licence is checked offline from a signed licence file, and the add-in installs from your farm's App Catalog. Our release checks prove the full install on a host with no internet access." },
   { question: "Can we go back to SharePoint's original forms?", answer: "Yes. Generated UserTasks forms replace a list's New, Edit and Display forms, whether they were SharePoint's own or InfoPath forms, and you can restore the originals at any time. Save, Delete and Cancel on a UserTasks form return people to the list, just as before, so switching back and forth is painless." },
   { question: "How much does it cost?", answer: "$7,500 USD per SharePoint farm per year, including every update released during the year and support. UserTasks itself is open source under Apache-2.0; the SharePoint extension is the paid part. Contact us to get a licence or to plan a trial on your farm." },
+]
+
+const AIR_GAPPED_STEPS: Array<{ title: string; body: string }> = [
+  { title: "Get the signed bundle", body: "One file with everything: the UserTasks images with the SharePoint extension included, the database and storage it needs, the Helm chart and Compose files, the CLI and the documentation. Every file is checksummed and signed." },
+  { title: "Carry it across and verify it", body: "Copy it to the offline network however you move software today. The included script checks the signature and checksums with only a shell, OpenSSL and Docker." },
+  { title: "Install with Docker or Kubernetes", body: "Load the images and start UserTasks with Docker Compose on an isolated network, or with the Helm chart on your Kubernetes cluster." },
+  { title: "Install the add-in from your App Catalog", body: "Add the UserTasks add-in to your farm's App Catalog with the generated PowerShell script. No SharePoint Store and no internet connection needed." },
 ]
 
 export function SharePointPage() {
@@ -299,6 +307,34 @@ export function SharePointPage() {
                 A small Windows service on your network connects out over HTTPS. No inbound firewall rules; only allowlisted SharePoint addresses; every request signed.
               </Card>
             </div>
+          </div>
+        </section>
+
+        <section id="air-gapped" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
+          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-2">
+            <div>
+              <SectionHeading eyebrow="Air-gapped networks" title="Runs fully on-premises, with no internet at all.">
+                Many SharePoint farms sit on networks that can&apos;t reach the internet. UserTasks is built for that: nothing calls out at runtime (no SaaS, CDN or telemetry), and our release checks prove the whole install on a host with no internet access.
+              </SectionHeading>
+              <p className="mt-6 text-sm">
+                <Link href="/docs/self-hosting/air-gapped" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Air-gapped install guide <ArrowRight size={14} aria-hidden="true" /></Link>
+              </p>
+            </div>
+            <ol className="grid gap-4">
+              {AIR_GAPPED_STEPS.map((step, i) => (
+                <li key={step.title} className="flex gap-4 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-5" data-reveal>
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-(color:--mkt-bronze)/10 text-sm font-semibold text-(color:--mkt-bronze)" aria-hidden="true">{i + 1}</span>
+                  <span>
+                    <span className="block font-semibold">{step.title}</span>
+                    <span className="mt-1 block text-sm leading-6 text-(color:--mkt-text)">{step.body}</span>
+                  </span>
+                </li>
+              ))}
+              <li className="flex items-start gap-3 rounded-2xl border border-dashed border-(color:--mkt-ink)/15 p-5 text-sm leading-6 text-(color:--mkt-text)">
+                <WifiOff size={18} className="mt-0.5 shrink-0 text-(color:--mkt-bronze)" aria-hidden="true" />
+                <span>Your SharePoint licence is checked offline from a signed licence file, so the extension never needs to phone home. Sign-in works with AD FS, Kerberos or UserTasks&apos; own accounts, and AI steps can use models you host yourself.</span>
+              </li>
+            </ol>
           </div>
         </section>
 

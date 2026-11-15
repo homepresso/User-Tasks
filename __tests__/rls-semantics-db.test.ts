@@ -159,6 +159,39 @@
  * and writes them after its own checks — so every caller gets 42501 for
  * every statement.
  *
+ * 20270112000000_extension_framework.sql added instance_extensions,
+ * extension_trigger_dedupe and extension_event_cursors (no client grants at
+ * all — every caller gets 42501 for every statement) and tenant_extensions
+ * (members read their current workspace's rows — get_current_tenant_id(), so
+ * the unified view sees the home workspace — through a column grant that
+ * leaves out the encrypted secrets column; anon has no grant; no end-user
+ * writes, every caller gets 42501).
+ *
+ * 20270112000100_licensing.sql added tenant_entitlements (same as
+ * tenant_extensions: members read their current workspace's rows; no
+ * end-user writes) and licence_events (instance licence audit trail: no
+ * client grants at all — every caller gets 42501 for every statement).
+ *
+ * 20270113100000_directory_sources.sql added directory_sources and
+ * directory_entries (extension directory sources and the people they list,
+ * pending entries included): no client grants at all — every caller gets
+ * 42501 for every statement. teams only gained columns.
+ *
+ * 20270114000000_workflow_run_facts.sql added workflow_run_facts (the shared
+ * blackboard of a run's agents): members read the rows of every workspace
+ * they are an active member of (rls_member_tenant_ids — the same rows as
+ * workflow_runs); anon has no grant; no end-user writes, every caller gets
+ * 42501.
+ *
+ * 20270114200000_onprem_gateways.sql added gateways, gateway_keys,
+ * gateway_jobs, gateway_job_parts, gateway_nonces and gateway_events
+ * (on-premises gateways): no client grants at all — every caller gets 42501
+ * for every statement.
+ *
+ * 20270114400000_provision_auth_user_in_workspace.sql added a function only
+ * (provision_auth_user_in, executable by the service role only): no table
+ * entry changed.
+ *
  * Runs only against a LOCAL Supabase stack — set EVENT_STREAM_DB_URL, e.g.
  *   EVENT_STREAM_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npx vitest run __tests__/rls-semantics-db.test.ts
  * End users are simulated the way PostgREST does it: SET ROLE + request.jwt.claims.
@@ -489,6 +522,33 @@ const SPECS: Spec[] = [
   { table: 'projects', variants: ['row', 'other'], make: (k, v) => ({ tenant_id: TENANT[k], name: `project ${v}`, key: `RLS${k}${v.replace(/[^a-z]/g, '').toUpperCase()}` }) },
   { table: 'project_members', make: (k, v) => ({ tenant_id: TENANT[k], project_id: id('projects', k), user_id: v === 'row' ? OWNER[k] : U.ab_unified }), touch: 'role' },
   { table: 'project_teams', make: (k, v) => ({ tenant_id: TENANT[k], project_id: id('projects', k, v === 'row' ? 'row' : 'other'), team_id: id('teams', k) }), touch: 'added_at' },
+  // Extension framework (20270112000000): instance / dedupe / cursor tables are service role only; members read
+  // their current workspace's tenant_extensions rows (never the secrets column — not granted), no client writes.
+  { table: 'instance_extensions', make: (k, v) => ({ extension_id: `rls-${k.toLowerCase()}-${v}`, installed_version: '1.0.0' }), move: null, touch: 'config_version' },
+  { table: 'tenant_extensions', make: (k, v) => ({ tenant_id: TENANT[k], extension_id: `rls-${v}`, enabled: true }) },
+  { table: 'extension_trigger_dedupe', make: (k, v) => ({ tenant_id: TENANT[k], trigger_type: 'ext.rls.fired', dedupe_key: `rls-${v}` }) },
+  { table: 'extension_event_cursors', make: (k, v) => ({ subscriber: `rls-${k}-${v}` }), move: null, touch: 'last_event_id' },
+  // Licensing (20270112000100): members read their current workspace's entitlements; licence_events service role only.
+  { table: 'tenant_entitlements', make: (k, v) => ({ tenant_id: TENANT[k], extension_id: `rls-${v}` }) },
+  { table: 'licence_events', make: (k, v) => ({ event: 'installed', tenant_id: TENANT[k], summary: `licence ${v}` }) },
+  // Extension directory sources (20270113100000): service role only.
+  { table: 'directory_sources', make: (k, v) => ({ tenant_id: TENANT[k], source: `ext.rls.${v}` }) },
+  { table: 'directory_entries', make: (k, v) => ({ tenant_id: TENANT[k], source: 'ext.rls.src', external_id: `ext-${v}`, local_user_id: OWNER[k] }) },
+  // Run blackboard (20270114000000): members of the row's workspace read (rls_member_tenant_ids); service role writes.
+  { table: 'workflow_run_facts', make: (k, v) => ({ run_id: id('workflow_runs', k), tenant_id: TENANT[k], key: `fact_${v}`, value: { v } }) },
+  // On-premises gateways (20270114200000): service role only.
+  { table: 'gateways', make: (k, v) => ({ tenant_id: TENANT[k], name: `gw ${v}` }) },
+  { table: 'gateway_keys', make: (k, v) => ({ gateway_id: id('gateways', k), tenant_id: TENANT[k], label: `key ${v}` }) },
+  { table: 'gateway_jobs', make: (k, v) => ({ tenant_id: TENANT[k], gateway_id: id('gateways', k), target: 'sp', method: 'GET', path: `/${v}`, request: {}, expires_at: future }) },
+  {
+    table: 'gateway_job_parts',
+    make: (k, v) => ({ job_id: id('gateway_jobs', k), direction: 'request', seq: v === 'row' ? 0 : 1, data: 'x' }),
+    move: (k) => ({ job_id: id('gateway_jobs', OTHER[k]) }),
+    touch: 'data',
+  },
+  { table: 'gateway_nonces', make: (k, v) => ({ key_id: id('gateway_keys', k), nonce: `rls-${v}`, expires_at: future }), move: null, touch: 'expires_at' },
+  // bigserial id (not identity): explicit deterministic ids.
+  { table: 'gateway_events', make: (k, v) => ({ id: parseInt(uid(`gateway_events:${k}:${v}`).slice(0, 7), 16), tenant_id: TENANT[k], gateway_id: id('gateways', k), type: 'rls', message: `ev ${v}` }) },
 ]
 
 /** Tables seeded by the fixture setup itself rather than SPECS. */
