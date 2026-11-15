@@ -268,6 +268,19 @@ describe('Settings → Infrastructure provider changes', () => {
     expect(await rollbackSwitchAs(ADMIN, { id: ID }, deps)).toMatchObject({ ok: false, error: 'Type rollback to confirm.' })
     expect((await rollbackSwitchAs(ADMIN, { id: ID, dryRun: true }, deps)).ok).toBe(true)
   })
+
+  it('the egress guard refuses tests, saves and switches to blocked hosts (nothing written), with the allowlist entry', async () => {
+    const guarded: string[][] = []
+    deps.guardHosts = async (hosts) => { guarded.push(hosts); return hosts.includes('127.0.0.1') ? { error: '127.0.0.1 is blocked', allowEntry: '127.0.0.1/32' } : null }
+    const smtp = { area: 'email', to: 'smtp', values: { smtp_host: '127.0.0.1', from: 'UserTasks <noreply@example.com>' } }
+    expect(await previewSwitchAs(ADMIN, smtp, 'test', deps)).toEqual({ ok: false, error: '127.0.0.1 is blocked', allowEntry: '127.0.0.1/32' })
+    expect(await applySwitchAs(ADMIN, smtp, deps)).toMatchObject({ ok: false, allowEntry: '127.0.0.1/32' })
+    expect(fake.writes).toEqual([])
+    expect(guarded).toEqual([['127.0.0.1'], ['127.0.0.1']])
+    // Values with no host (console) never ask the guard.
+    expect((await previewSwitchAs(ADMIN, { area: 'email', to: 'console', values: {} }, 'test', deps)).ok).toBe(true)
+    expect(guarded).toHaveLength(2)
+  })
 })
 
 describe('schema → form mapping and secret handling', () => {

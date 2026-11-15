@@ -385,6 +385,13 @@ export interface InfrastructureSwitchDeps {
   checkSecretRef: (config: InstanceConfig, ref: string) => Promise<{ ok: boolean; detail: string }>
   env?: Env
   log?: (line: string) => void
+  /**
+   * Egress guard for the hosts a test / switch is about to contact (SSRF):
+   * null when every host may be reached, else why not and the allowlist
+   * entry that would allow it (lib/install/egress-server). Optional: the
+   * CLI and tests pass none.
+   */
+  guardHosts?: (hosts: string[]) => Promise<{ error: string; allowEntry: string | null } | null>
 }
 
 export class NoDatabaseError extends Error {
@@ -394,7 +401,17 @@ export class NoDatabaseError extends Error {
   }
 }
 
-export type ActionResult<T> = ({ ok: true } & T) | { ok: false; error: string; fieldErrors?: Record<string, string>; lines?: string[] }
+export type ActionResult<T> = ({ ok: true } & T) | { ok: false; error: string; fieldErrors?: Record<string, string>; lines?: string[]; allowEntry?: string | null }
+
+/** The new values of a change point only at hosts the egress policy allows (null), or the refusal. */
+async function guardChange(deps: InfrastructureSwitchDeps, change: ChangeInput, built: BuiltOptions): Promise<{ ok: false; error: string; allowEntry: string | null } | null> {
+  if (!deps.guardHosts) return null
+  const { hostsForOptions } = await import('@/lib/install/egress')
+  const hosts = hostsForOptions(change.area, { ...built.set, ...built.secret }, built.flags as Record<string, unknown>)
+  if (!hosts.length) return null
+  const blocked = await deps.guardHosts(hosts)
+  return blocked ? { ok: false, error: blocked.error, allowEntry: blocked.allowEntry } : null
+}
 
 const DENIED = { ok: false as const, error: 'Only instance administrators can change infrastructure.' }
 const RATE_LIMITED = { ok: false as const, error: 'Too many requests: wait a minute and try again.' }
@@ -524,6 +541,8 @@ export async function previewSwitchAs(user: InfrastructureViewer | null | undefi
       const { config } = await loadInstanceConfig(db)
       const built = buildOptions(change, config, 'switch', deps.env)
       if (Object.keys(built.errors).length) return { ok: false, error: 'Some values need attention.', fieldErrors: built.errors }
+      const blocked = await guardChange(deps, change, built)
+      if (blocked) return blocked
       const io = capture()
       const options: SwitchOptions = {
         // Test connection is the pre-flight alone, run as for real (email sends its test message); nothing is written either way.
@@ -567,6 +586,8 @@ export async function applySwitchAs(user: InfrastructureViewer | null | undefine
       const { config } = await loadInstanceConfig(db)
       const built = buildOptions(change, config, 'switch', deps.env)
       if (Object.keys(built.errors).length) return { ok: false, error: 'Some values need attention.', fieldErrors: built.errors }
+      const blocked = await guardChange(deps, change, built)
+      if (blocked) return blocked
       const mode = modeFor(change.area, deps.runtime(), accessOf(db))
       const cli = cliCommand(change.area, change.to, built)
       if (mode === 'cli') return { ok: true, mode, record: null, lines: [], cli }
@@ -624,6 +645,8 @@ export async function saveProviderSettingsAs(user: InfrastructureViewer | null |
       if (typeof change === 'string') return { ok: false, error: change }
       const built = buildOptions(change, config, 'settings', deps.env)
       if (Object.keys(built.errors).length) return { ok: false, error: 'Some values need attention.', fieldErrors: built.errors }
+      const blocked = await guardChange(deps, change, built)
+      if (blocked) return blocked
       if (!dryRun && !Object.keys(built.set).length && !Object.keys(built.secret).length && !built.unset.length) return { ok: false, error: 'Nothing changed.' }
       if (!dryRun && (await switchBusy(db))) throw new SwitchBusyError()
       const io = capture()

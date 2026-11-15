@@ -36,6 +36,8 @@ import { ChatStreamAssembler, SseParser, StreamProviderError, type StreamDelta }
 import { fromMessagesResponse } from './agents/anthropic-messages'
 import { blockingErrors, extractJsonObject, outputInstruction, repairMessage, validateOutputs, type OutputVariableSpec } from './agents/outputs'
 import type { AgentToolRuntime } from './agents/tools/runtime'
+import type { RunBlackboard } from './agents/blackboard'
+import type { FactWriter } from './agents/shared-context'
 import type { NormalizedAgentOutputConfig } from './agent-knowledge'
 
 export interface AgentConfig {
@@ -142,6 +144,8 @@ export interface AgentResumeState {
   tool_calls: AgentToolCall[]
   steps: AgentStep[]
   facts: Record<string, any>
+  /** Who wrote each shared fact (multi-agent). */
+  fact_writers?: Record<string, FactWriter>
   output_repaired: boolean
   elapsed_ms: number
 }
@@ -167,6 +171,8 @@ export interface AgentResult {
   state?: AgentResumeState
   /** Files produced by tools (generate_excel). */
   files?: AgentToolRuntime['generatedFiles']
+  /** This run's view of the shared facts at the end (Run Agent "share context"), with their writers. */
+  shared_facts?: { facts: Record<string, any>; writers: Record<string, FactWriter> }
 }
 
 /** A declared output variable an agent should emit as structured JSON. */
@@ -177,7 +183,11 @@ export interface ApprovalDecision { approved: boolean; by?: string | null; notes
 export interface ExecuteAgentOptions {
   onEvent?: (event: AgentIterationEvent) => void
   /** Shared facts / prior agents' messages (Run Agent "share context"). Only user/assistant text is replayed. */
-  sharedContext?: { facts: Record<string, any>; messages: AgentMessage[] }
+  sharedContext?: { facts: Record<string, any>; messages: AgentMessage[]; fact_writers?: Record<string, FactWriter> }
+  /** The workflow run's live blackboard: shared facts other running agents see at once (lib/agents/blackboard.ts). */
+  blackboard?: RunBlackboard
+  /** This agent as the writer of shared facts (agent name, step, Parallel branch). */
+  factWriter?: Omit<FactWriter, 'at'>
   /** Earlier turns of this conversation (multi-turn test console). */
   history?: Array<{ role: 'user' | 'assistant'; content: string }>
   /** In-process tool runtime (tenant / acting user / scopes). Without it only pure builtins run. */
@@ -489,7 +499,12 @@ export async function executeAgent(config: AgentConfig, userMessage: string, opt
   const totalUsage: AgentUsage = resume ? { ...resume.state.usage } : { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
   const facts: Record<string, any> = resume ? { ...resume.state.facts } : (sharedContext?.facts ?? {})
   if (sharedContext && !resume) sharedContext.facts = facts
-  const builtinContext = { facts, attachments: attachments?.files ?? [] }
+  const factWriters: Record<string, FactWriter> = resume ? { ...(resume.state.fact_writers ?? {}) } : { ...(sharedContext?.fact_writers ?? {}) }
+  const builtinContext = {
+    facts, factWriters, attachments: attachments?.files ?? [],
+    blackboard: options.blackboard, writer: options.factWriter, signal, deadline,
+  }
+  const shareFacts = Boolean(sharedContext || options.blackboard || resume?.state.facts)
   let iterationCount = resume?.state.iteration ?? 0
   let outputRepaired = resume?.state.output_repaired ?? false
   const tools = dedupeTools(config.tools)
@@ -527,6 +542,7 @@ export async function executeAgent(config: AgentConfig, userMessage: string, opt
   const base = () => ({
     iterations: iterationCount, toolCalls: allToolCalls, messages: scrubbed(messages), usage: totalUsage,
     duration_ms: Date.now() - startTime, steps, ...(runtime?.generatedFiles.length ? { files: runtime.generatedFiles } : {}),
+    ...(shareFacts ? { shared_facts: { facts: { ...facts }, writers: { ...factWriters } } } : {}),
   })
   const failed = (error: string, kind: AgentResult['error_kind']): AgentResult => {
     onEvent?.({ type: 'error', error })
@@ -561,7 +577,7 @@ export async function executeAgent(config: AgentConfig, userMessage: string, opt
         onEvent?.({ type: 'approval_required', toolCall: { toolName: tc.name, toolId: tc.id, arguments: forStorage(args) as any, result: null, duration_ms: 0 } })
         const state: AgentResumeState = {
           version: 1, messages: scrubbed(messages), pending_calls: calls.slice(i), iteration: iterationCount, usage: totalUsage,
-          tool_calls: allToolCalls, steps, facts, output_repaired: outputRepaired, elapsed_ms: Date.now() - startTime,
+          tool_calls: allToolCalls, steps, facts, fact_writers: factWriters, output_repaired: outputRepaired, elapsed_ms: Date.now() - startTime,
         }
         return { status: 'awaiting_approval', response: '', pending, state, ...base() }
       }

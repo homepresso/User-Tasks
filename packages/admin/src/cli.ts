@@ -11,6 +11,7 @@ import { checkBootstrapInput, ensureStorageBuckets, runBootstrap } from './boots
 import { runSetupCode } from './setup-code'
 import { runFonts } from './fonts-cli'
 import { EGRESS_ACTIONS, runEgressCommand, type EgressAction } from './egress-cli'
+import { EMBED_ACTIONS, runEmbedCommand, type EmbedAction } from './embed-cli'
 import { licenceStatusLine, runEntitlements, runLicence, sqlLicenceStore, type EntitlementsAction, type LicenceAction } from './licence-cli'
 import { loadLocalEnv, missingEnvMessage, missingProviderEnv } from './local-env'
 import { loadMigrations } from './db/migrations'
@@ -71,6 +72,8 @@ Usage:
   usertasks-admin egress show [--json]                     (connectors: private-network allowlist and plain-http hosts, self-hosted)
   usertasks-admin egress allow-private <host|*.domain|CIDR>... | remove-private <entry>... | --all
   usertasks-admin egress allow-http <host|*.domain|CIDR>...    | remove-http <entry>... | --all
+  usertasks-admin embed show [--json]                      (trusted embedding: sites that may frame /embed/ pages)
+  usertasks-admin embed allow <origin>... | remove <origin>... | --all
   usertasks-admin housekeeping show [--json]
   usertasks-admin housekeeping set <setting> <value|default>
       enabled true|false · interval_minutes 15|30|60|…|1440 · cron_history_hours 1–2160 (or 12h, 1d)
@@ -91,6 +94,7 @@ Usage:
   usertasks-admin entitlements grant --tenant <workspace id> --ext <extension> [--until <ISO date>]
                                      [--features a,b] [--limits sharepoint.farms=2,…]
   usertasks-admin entitlements revoke --tenant <workspace id> --ext <extension>
+  usertasks-admin install presets | profile validate|check|write|apply …   (install profile: see install --help)
   usertasks-admin db migrate [--dry-run] [--include-all] [--owner <role>] [--dir <path>]
   usertasks-admin db status [--dir <path>]
   usertasks-admin db repair --status applied|reverted <version>... [--dir <path>]
@@ -194,6 +198,7 @@ export type Command =
   | { kind: 'ui-switching'; action: 'status' | 'on' | 'off' }
   | { kind: 'housekeeping'; action: HousekeepingAction; args: string[] }
   | { kind: 'egress'; action: EgressAction; args: string[] }
+  | { kind: 'embed'; action: EmbedAction; args: string[] }
   | { kind: 'db'; action: 'migrate' | 'status' | 'repair'; rest: string[] }
   | { kind: 'ext'; action: 'migrate' | 'status' }
   | { kind: 'bootstrap' }
@@ -319,6 +324,14 @@ export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.en
       if (action.startsWith('remove') && !rest.length && !values.all) throw new UsageError(`egress ${action} needs entries to remove (or --all)`)
       return { command: { kind: 'egress', action, args: rest }, values }
     }
+    case 'embed': {
+      const action = (sub ?? 'show') as EmbedAction
+      if (!(EMBED_ACTIONS as readonly string[]).includes(action)) throw new UsageError(`Unknown command: embed ${sub}`)
+      if (action === 'show' && rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
+      if (action === 'allow' && !rest.length) throw new UsageError('embed allow needs one or more origins (https://intranet.example.com)')
+      if (action === 'remove' && !rest.length && !values.all) throw new UsageError('embed remove needs origins to remove (or --all)')
+      return { command: { kind: 'embed', action, args: rest }, values }
+    }
     case 'housekeeping': {
       const action = (sub ?? 'show') as HousekeepingAction
       if (!['show', 'set', 'run'].includes(action)) throw new UsageError(`Unknown command: housekeeping ${sub}`)
@@ -442,6 +455,11 @@ async function withStore<T>(url: string | undefined, io: CliIO, fn: (db: SqlClie
 const NO_STORE = 'reach the app database (or, on the Supabase database provider, set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for configuration changes through its API)'
 
 export async function run(argv: string[], io: CliIO = defaultIO): Promise<number> {
+  // The install profile has its own flags (packages/admin/src/install-cli.ts).
+  if (argv[0] === 'install') {
+    const { runInstallCommand } = await import('./install-cli')
+    return runInstallCommand(argv.slice(1), io)
+  }
   let command: Command
   let values: ParsedValues
   try {
@@ -624,6 +642,11 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
 
     case 'egress': {
       const code = await withStore(url, io, (db) => runEgressCommand(command.action, command.args, db, io, { json: values.json, all: values.all }))
+      return code ?? needDb('read and write instance settings')
+    }
+
+    case 'embed': {
+      const code = await withStore(url, io, (db) => runEmbedCommand(command.action, command.args, db, io, { json: values.json, all: values.all }))
       return code ?? needDb('read and write instance settings')
     }
 

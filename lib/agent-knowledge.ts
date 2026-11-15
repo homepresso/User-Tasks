@@ -389,7 +389,7 @@ export function getAgentBuiltinToolNames(
     'redirect_task',
   )
   if (config.workflow_access) builtinToolNames.push('start_workflow_run', 'get_workflow_run_status', 'complete_server_event')
-  if (options.includeSharedContext) builtinToolNames.push('read_shared_facts', 'write_shared_fact')
+  if (options.includeSharedContext) builtinToolNames.push('read_shared_facts', 'write_shared_fact', 'wait_for_shared_fact')
 
   return Array.from(new Set(builtinToolNames))
 }

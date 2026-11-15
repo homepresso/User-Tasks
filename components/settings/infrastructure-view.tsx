@@ -112,6 +112,7 @@ export function InfrastructureView({ view, aiPrices = [], egress }: { view: View
         <span>Checked {new Date(view.checkedAt).toLocaleString()}</span>
         <Link href="/settings/infrastructure?refresh=1" className="inline-flex items-center gap-1 underline"><RefreshCw size={12} /> Re-run checks</Link>
         <Link href="/docs/self-hosting/switching-providers" className="inline-flex items-center gap-1 underline"><BookOpen size={12} /> Switching providers</Link>
+        <Link href="/settings/setup" className="inline-flex items-center gap-1 underline">Setup wizard</Link>
       </div>
 
       <div className="grid gap-3">

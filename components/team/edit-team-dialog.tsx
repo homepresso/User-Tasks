@@ -20,6 +20,8 @@ export interface EditableTeam {
   org_unit_id: string | null
   colour: string | null
   kind: string
+  /** Kept by a directory source (e.g. a SharePoint group): name and description are read-only. */
+  source_label?: string | null
 }
 
 /** Edit a team: name, description, parent, lead, org unit, colour, kind (team.invite). */
@@ -66,8 +68,9 @@ export function EditTeamDialog({ team, teams, onClose, onSaved }: {
           }}>
             <DialogBody className="space-y-4">
               {error && <InlineNotice tone="danger" message={error} />}
-              <Field label="Name" required><Input name="name" defaultValue={team.name} required maxLength={200} /></Field>
-              <Field label="Description" optional><Textarea name="description" defaultValue={team.description ?? ''} rows={2} /></Field>
+              {team.source_label && <InlineNotice tone="info" message={`Name, description and members come from ${team.source_label}. Change them there; the next sync brings them here.`} />}
+              <Field label="Name" required><Input name="name" defaultValue={team.name} required maxLength={200} readOnly={Boolean(team.source_label)} /></Field>
+              <Field label="Description" optional><Textarea name="description" defaultValue={team.description ?? ''} rows={2} readOnly={Boolean(team.source_label)} /></Field>
               <Field label="Parent team" optional>
                 <Select name="parent_id" defaultValue={team.parent_id ?? ''}>
                   <option value="">None (top level)</option>

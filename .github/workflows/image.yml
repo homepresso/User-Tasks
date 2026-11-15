@@ -6,8 +6,8 @@ name: Container image
 # instead of building locally (the build needs ~10 GB of memory:
 # docs/deployment-profiles.md#memory).
 #
-#   - push a tag v<version> (must match package.json's version): tags
-#     <version>, <major>.<minor> and latest;
+#   - push a tag v<version> (must match package.json's version): release-server.yml
+#     calls this workflow; tags <version>, <major>.<minor> and latest;
 #   - or run it by hand: tags <package.json version> and sha-<commit>, plus
 #     latest when asked.
 #
@@ -21,8 +21,18 @@ name: Container image
 # (Package settings → Change visibility) so the stack can pull it anonymously.
 
 on:
-  push:
-    tags: ['v*']
+  # Tagged releases call this from release-server.yml (image, then the
+  # installer bundle that pins its digest).
+  workflow_call:
+    inputs:
+      latest:
+        description: Also tag the image as latest
+        type: boolean
+        default: false
+    outputs:
+      digest:
+        description: The multi-arch image index digest (sha256:…)
+        value: ${{ jobs.merge.outputs.digest }}
   workflow_dispatch:
     inputs:
       latest:
@@ -136,6 +146,8 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      digest: ${{ steps.digest.outputs.digest }}
     permissions:
       contents: read
       packages: write
@@ -181,4 +193,7 @@ jobs:
           docker buildx imagetools create $tags $(printf "${IMAGE}@sha256:%s " *)
 
       - name: Inspect
-        run: docker buildx imagetools inspect "${IMAGE}:${{ steps.meta.outputs.version }}"
+        id: digest
+        run: |
+          docker buildx imagetools inspect "${IMAGE}:${{ steps.meta.outputs.version }}"
+          echo "digest=$(docker buildx imagetools inspect "${IMAGE}:${{ steps.meta.outputs.version }}" --format '{{json .Manifest.Digest}}' | tr -d '"')" >> "$GITHUB_OUTPUT"

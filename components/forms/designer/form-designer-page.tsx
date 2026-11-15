@@ -11,6 +11,7 @@ import { Tag } from '@/components/ui/badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { EmptyState } from '@/components/ui/empty-state'
+import { InlineNotice } from '@/components/ui/inline-notice'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DesktopOnly } from '@/components/layout/desktop-only'
 import { ExportAssetDialog } from '@/components/shared/config-transfer'
@@ -21,6 +22,7 @@ import { serverRead } from '@/lib/server-read'
 import { createForm, createFormTheme, deleteForm, duplicateForm, saveFormDesignDraft, updateForm } from '@/app/actions/forms'
 import { listWizardProjects } from '@/app/actions/form-wizard'
 import { normalizeFormDefinition, type FormDefinition } from '@/lib/forms/definition'
+import { layoutDataTarget } from '@/lib/forms/data-target'
 import type { FormThemeOverrides } from '@/lib/forms/form-theme'
 import { publicFormPageUrl } from '@/lib/forms/form-page-url'
 import { AVAILABLE_FORMS_QUERY_KEY } from '@/lib/forms/available-forms'
@@ -59,6 +61,23 @@ import { CompareDialog, designDraftKey, DiscardDraftDialog, DraftBanner, Publish
 type PageForm = FormDetail & { available_in_menu?: boolean; system_name?: string | null; header?: unknown }
 type ThemeRow = SavedFormTheme & { description: string | null; updated_at: string }
 
+type TargetCheck = { label: string | null; problems: Array<{ field?: string; severity: 'error' | 'warning' | 'info'; message: string }> }
+
+/** Above the designer: what changed in the system a bound form writes to. */
+function DataTargetProblems({ check }: { check: TargetCheck }) {
+  const worst = check.problems.some((p) => p.severity === 'error') ? 'danger' : check.problems.some((p) => p.severity === 'warning') ? 'warning' : 'info'
+  return (
+    <div className="mb-2" data-form-target-problems>
+      <InlineNotice tone={worst} title={`${check.label ?? 'Connected system'}: ${check.problems.length} change${check.problems.length === 1 ? '' : 's'} to review`}>
+        <ul className="list-disc pl-4">
+          {check.problems.slice(0, 8).map((p, i) => <li key={i}>{p.field ? <span className="font-medium">{p.field}: </span> : null}{p.message}</li>)}
+          {check.problems.length > 8 && <li>… and {check.problems.length - 8} more</li>}
+        </ul>
+      </InlineNotice>
+    </div>
+  )
+}
+
 const EMPTY_FORM: FormDefinition = { fields: [], layout: { rows: [] }, theme: { source: 'workspace' } }
 const NEW_DRAFT: FormDetailsDraft = { name: 'Untitled form', description: '', tags: '', available: false, systemName: '' }
 
@@ -96,6 +115,13 @@ export function FormDesignerPage({ formId }: { formId: string | null }) {
       const result = await listWizardProjects()
       return result.ok ? (result.data.find((p) => p.form_id === formId)?.id ?? null) : null
     },
+  })
+
+  // A form bound to an external record (lib/forms/data-target.ts): fields removed or changed there.
+  const { data: targetCheck = null } = useQuery({
+    queryKey: ['form-target-check', formId, form?.version],
+    enabled: !isNew && Boolean(form && layoutDataTarget(form.layout)),
+    queryFn: async () => ((await serverRead('forms.targetCheck', { id: formId! })).data ?? null) as TargetCheck | null,
   })
 
   // The working draft (editors): the designer opens on it; publish / discard / restore remount the designer.
@@ -285,7 +311,9 @@ export function FormDesignerPage({ formId }: { formId: string | null }) {
 
   return (
     <DesktopOnly action={{ label: 'Back to forms', href: FORMS_LIBRARY_HREF }} preview={<ReadOnlyFormPreview definition={initial} overrides={overrides} />}>
-      <div className="h-[calc(100vh-7rem)]" data-testid="form-designer-page">
+      <div className="flex h-[calc(100vh-7rem)] flex-col" data-testid="form-designer-page">
+        {targetCheck && targetCheck.problems.length > 0 && <DataTargetProblems check={targetCheck} />}
+        <div className="min-h-0 flex-1">
         <FormDesigner
           key={loadedKey}
           chrome="page"
@@ -305,6 +333,7 @@ export function FormDesignerPage({ formId }: { formId: string | null }) {
           onSaveTheme={saveTheme}
           actions={actions}
         />
+        </div>
       </div>
       {form && draftDialog === 'publish' && (
         <PublishDialog formId={form.id} formName={form.name} open onOpenChange={(open) => { if (!open) setDraftDialog(null) }} problems={draftView?.publish_problems ?? []}

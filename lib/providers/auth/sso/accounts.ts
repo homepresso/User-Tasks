@@ -17,7 +17,14 @@ import { emailDomainAllowed, mapGroupsToRole, type SsoIdpConfig } from './config
  *  3. else, with jit, a new account: personal workspace (onUserCreated), SSO-
  *     only credentials (no password), linked identity, plus defaultOrg
  *     membership with defaultRole or the mapped role;
- *  4. else refused.
+ *  4. else, without jit, a new account all the same when a directory source
+ *     lists the person as a pending entry for a verified address (they were
+ *     brought in by the directory — e.g. a SharePoint group — and become a
+ *     user at their first sign-in; lib/directory-sync/sources.ts);
+ *  5. else refused.
+ *
+ * Every sign-in then claims the person's pending directory entries
+ * (workspace membership, link, source groups) for the verified addresses.
  *
  * The allowed-domain check applies to every path. Group → role mapping is
  * re-applied on each sign-in when roleMapping is set; with
@@ -73,8 +80,12 @@ export async function resolveExternalAccount(identity: ExternalIdentity): Promis
     }
   }
 
+  // Verified addresses for directory entries: the email, plus the UPN when the IdP's domains are owned.
+  const directoryKeys = identity.emailVerified && email ? [...new Set([email, ...verifiedUpn(identity)])] : []
+
   if (!userId) {
-    if (!idp.jit) throw new AuthError('sso_failed', 'No account exists for you here. Ask an administrator to invite you.')
+    const pending = !idp.jit && directoryKeys.length > 0 && await directorySources().then((m) => m.hasPendingDirectoryEntry(getServiceDb() as never, directoryKeys)).catch(() => false)
+    if (!idp.jit && !pending) throw new AuthError('sso_failed', 'No account exists for you here. Ask an administrator to invite you.')
     if (!email || !identity.emailVerified) {
       throw new AuthError('sso_failed', 'Your identity provider did not supply a verified email address.')
     }
@@ -88,6 +99,20 @@ export async function resolveExternalAccount(identity: ExternalIdentity): Promis
   }
 
   await linkIdentity({ userId, provider: providerKey, subject: identity.subject, email, claims: pickClaims(identity.claims) }, db)
+
+  // Pending directory entries first: when a directory source is why this person may sign in,
+  // the workspace membership it grants is the source's (it ends when the source drops them).
+  if (directoryKeys.length) {
+    const claimed = await directorySources().then((m) => m.claimDirectoryEntries(getServiceDb() as never, { userId: userId as string, keys: directoryKeys })).catch((error) => {
+      console.warn('[auth] claiming directory entries failed:', (error as Error)?.message ?? error)
+      return null
+    })
+    // A new account brought in only by a directory source lands in that workspace, not its personal one.
+    if (created && !idp.defaultOrg && claimed?.tenants.length) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- service-role rows are untyped
+      await (getServiceDb() as any).from('users').update({ tenant_id: claimed.tenants[0], current_tenant_id: claimed.tenants[0] }).eq('id', userId).then(() => undefined, () => undefined)
+    }
+  }
 
   if (idp.defaultOrg) {
     const mapped = mapGroupsToRole(identity.groups, idp.roleMapping)
@@ -105,6 +130,16 @@ export async function resolveExternalAccount(identity: ExternalIdentity): Promis
   }
 
   return { user: { id: userId, ...(email ? { email } : {}), user_metadata: identity.name ? { full_name: identity.name } : {} }, created }
+}
+
+/** Directory sources (extension-contributed people and groups), loaded only when needed. */
+const directorySources = () => import('@/lib/directory-sync/sources')
+
+/** The `upn` claim as a directory key, when it is in one of the IdP's allowed (owned) domains. */
+function verifiedUpn(identity: ExternalIdentity): string[] {
+  const upn = typeof identity.claims.upn === 'string' ? identity.claims.upn.trim().toLowerCase() : ''
+  if (!upn || !identity.idp.allowedDomains?.length || !emailDomainAllowed(upn, identity.idp.allowedDomains)) return []
+  return [upn]
 }
 
 async function holdsOwnerRole(userId: string, orgSlug: string): Promise<boolean> {

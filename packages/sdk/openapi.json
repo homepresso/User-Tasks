@@ -141,6 +141,9 @@
       "name": "Extensions"
     },
     {
+      "name": "Importers"
+    },
+    {
       "name": "Jobs"
     },
     {
@@ -27461,6 +27464,11 @@
                       "type": "string"
                     },
                     "additionalProperties": {}
+                  },
+                  "target_version": {
+                    "description": "Forms bound to an external record (a data target an extension provides): the record version (ETag) read when the form opened. The write fails with 409 / 412 when the record changed since; omit to overwrite",
+                    "type": "string",
+                    "maxLength": 200
                   }
                 }
               }
@@ -27515,6 +27523,12 @@
                         },
                         "replayed": {
                           "type": "boolean"
+                        },
+                        "data_target": {
+                          "description": "Forms bound to an external record: { label, record { id, label, url }, version } the provider wrote",
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": {}
                         }
                       },
                       "required": [
@@ -53738,13 +53752,22 @@
             "name": "provider",
             "in": "query",
             "required": false,
+            "description": "entra, okta, ldap, google or an extension directory source (ext.<extension>.<key>)",
             "schema": {
-              "type": "string",
-              "enum": [
-                "entra",
-                "okta",
-                "ldap",
-                "google"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "entra",
+                    "okta",
+                    "ldap",
+                    "google"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^ext\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9_]*$"
+                }
               ]
             }
           }
@@ -54846,6 +54869,604 @@
           "resource": "directory-sync",
           "verb": "groups",
           "listKey": "groups"
+        }
+      }
+    },
+    "/directory-sync/sources": {
+      "get": {
+        "operationId": "listDirectorySources",
+        "summary": "List directory sources contributed by extensions (e.g. SharePoint groups) with sync state and counts",
+        "description": "People of a source are linked to accounts by e-mail / UPN; people without an account are pending entries until their first sign-in (SSO or LDAP bind), which creates or links the account and grants the workspace and the source groups. Groups are read-only teams.",
+        "tags": [
+          "Directory sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "sources": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "source": {
+                                "type": "string",
+                                "description": "ext.<extension>.<key>"
+                              },
+                              "extension_id": {
+                                "type": "string"
+                              },
+                              "extension_name": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "available": {
+                                "type": "boolean",
+                                "description": "The extension is enabled and licensed in this workspace"
+                              },
+                              "unavailable_reason": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "interval_minutes": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "last_sync_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "last_full_sync_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "last_error": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "last_sync_stats": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "active_run_id": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "linked_users": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991,
+                                "description": "People with an account in this workspace"
+                              },
+                              "pending_entries": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991,
+                                "description": "People waiting for their first sign-in (no account or seat yet)"
+                              },
+                              "groups": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991,
+                                "description": "Read-only teams the source keeps"
+                              }
+                            },
+                            "required": [
+                              "source",
+                              "extension_id",
+                              "extension_name",
+                              "label",
+                              "description",
+                              "available",
+                              "unavailable_reason",
+                              "interval_minutes",
+                              "last_sync_at",
+                              "last_full_sync_at",
+                              "last_error",
+                              "last_sync_stats",
+                              "active_run_id",
+                              "linked_users",
+                              "pending_entries",
+                              "groups"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "sources",
+                        "total"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.view",
+        "x-usertasks-cli": {
+          "resource": "directory-sync",
+          "verb": "sources",
+          "listKey": "sources"
+        }
+      }
+    },
+    "/directory-sync/sources/{source}/entries": {
+      "get": {
+        "operationId": "listDirectorySourceEntries",
+        "summary": "List the people a directory source lists: pending (no account yet), linked or inactive",
+        "tags": [
+          "Directory sync"
+        ],
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "required": true,
+            "description": "Directory source id, e.g. ext.sharepoint.directory",
+            "schema": {
+              "type": "string",
+              "pattern": "^ext\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9_]*$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Page size (1-100, default 50; 0 = no limit)",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Rows to skip (default 0)",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "linked",
+                "inactive"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Matches display names",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "entries": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "external_id": {
+                                "type": "string"
+                              },
+                              "display_name": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "email": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "match_keys": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "description": "Addresses / UPNs the person is matched on at sign-in"
+                              },
+                              "claims": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "description": "External login names (e.g. SharePoint claims)"
+                              },
+                              "group_ids": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "description": "External ids of the source's groups the person is in"
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "linked",
+                                  "inactive"
+                                ]
+                              },
+                              "user_id": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "claimed_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "last_seen_at": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "external_id",
+                              "display_name",
+                              "email",
+                              "match_keys",
+                              "claims",
+                              "group_ids",
+                              "status",
+                              "user_id",
+                              "claimed_at",
+                              "last_seen_at"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "entries",
+                        "total"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.view",
+        "x-usertasks-cli": {
+          "resource": "directory-sync",
+          "verb": "entries",
+          "positional": [
+            "source"
+          ],
+          "listKey": "entries"
+        }
+      }
+    },
+    "/directory-sync/sources/{source}/sync": {
+      "post": {
+        "operationId": "startDirectorySourceSync",
+        "summary": "Sync a directory source now (runs in the background)",
+        "tags": [
+          "Directory sync"
+        ],
+        "parameters": [
+          {
+            "name": "source",
+            "in": "path",
+            "required": true,
+            "description": "Directory source id, e.g. ext.sharepoint.directory",
+            "schema": {
+              "type": "string",
+              "pattern": "^ext\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9_]*$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "full": {
+                    "description": "Force a full sync (LDAP otherwise syncs only changes since the last run)",
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "run_id": {
+                          "type": "string"
+                        },
+                        "already_running": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "run_id",
+                        "already_running"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "settings.edit",
+        "x-usertasks-cli": {
+          "resource": "directory-sync",
+          "verb": "source-sync",
+          "positional": [
+            "source"
+          ]
         }
       }
     },
@@ -67958,6 +68579,1026 @@
           "positional": [
             "id",
             "page"
+          ]
+        }
+      }
+    },
+    "/importers": {
+      "get": {
+        "operationId": "listImporters",
+        "summary": "List the importers of this build (core InfoPath and those of extensions) with their availability here",
+        "description": "Extension importers need the extension enabled and licensed (their licence feature): they lock when the licence lapses, while workflows already imported keep running. Needs workflows.view or forms.view.",
+        "tags": [
+          "Importers"
+        ],
+        "parameters": [
+          {
+            "name": "produces",
+            "in": "query",
+            "required": false,
+            "description": "Only importers that make workflows / forms",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "workflow",
+                "form"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "importers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "description": "infopath or ext.<extension>.<key>"
+                              },
+                              "extension_id": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "extension_name": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "produces": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "workflow",
+                                    "form"
+                                  ]
+                                }
+                              },
+                              "accepts": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "description": "File name endings, e.g. .xoml"
+                              },
+                              "multiple": {
+                                "type": "boolean",
+                                "description": "Several files make one import"
+                              },
+                              "files_optional": {
+                                "type": "boolean",
+                                "description": "The importer can read its source from its options instead of files (e.g. from a connected system)"
+                              },
+                              "preview": {
+                                "type": "boolean",
+                                "description": "Mapping not verified on real exports yet"
+                              },
+                              "feature": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "description": "Licence feature (extension importers)"
+                              },
+                              "options": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "label": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "type": "string"
+                                    },
+                                    "required": {
+                                      "type": "boolean"
+                                    },
+                                    "description": {
+                                      "type": "string"
+                                    },
+                                    "options": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "value": {
+                                            "type": "string"
+                                          },
+                                          "label": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "value"
+                                        ],
+                                        "additionalProperties": {}
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "name",
+                                    "type"
+                                  ],
+                                  "additionalProperties": {}
+                                },
+                                "description": "Options sent as `options`"
+                              },
+                              "available": {
+                                "type": "boolean",
+                                "description": "Enabled and licensed here, and the caller may import"
+                              },
+                              "unavailable_reason": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "endpoint": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ],
+                                "description": "Served by its own endpoint (the InfoPath importer)"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "extension_id",
+                              "extension_name",
+                              "label",
+                              "description",
+                              "produces",
+                              "accepts",
+                              "multiple",
+                              "files_optional",
+                              "preview",
+                              "feature",
+                              "options",
+                              "available",
+                              "unavailable_reason",
+                              "endpoint"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "importers",
+                        "total"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "importers",
+          "verb": "list",
+          "listKey": "importers"
+        }
+      }
+    },
+    "/importers/{importer}/analyze": {
+      "post": {
+        "operationId": "analyzeImport",
+        "summary": "Analyse files with an importer (dry run): mapping coverage, complexity score, readiness and what an import would make",
+        "description": "Nothing is stored (the files neither). report.items lists every element of the source and how it converts (mapped, partial = review, placeholder = a labelled placeholder step keeps the original, skipped); markdown is the same report as Markdown. Needs the view permission of what the importer makes.",
+        "tags": [
+          "Importers"
+        ],
+        "parameters": [
+          {
+            "name": "importer",
+            "in": "path",
+            "required": true,
+            "description": "Importer id from GET /importers (ext.<extension>.<key>), or auto: the importer whose detect hook recognises the files best",
+            "schema": {
+              "type": "string",
+              "pattern": "^(auto|infopath|ext\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9_]*)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "default": [],
+                    "description": "The files of one import (an importer that reads its source from options takes none)",
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "description": "File name (its ending picks how it is read, e.g. Approval.xoml)"
+                        },
+                        "content_base64": {
+                          "type": "string",
+                          "description": "The file, base64"
+                        },
+                        "content_type": {
+                          "type": "string",
+                          "maxLength": 120
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "content_base64"
+                      ]
+                    }
+                  },
+                  "options": {
+                    "description": "The importer's options (GET /importers lists them)",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "importer": {
+                          "type": "string"
+                        },
+                        "report": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": "string"
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "summary": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "coverage": {
+                              "type": "object",
+                              "properties": {
+                                "total": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "mapped": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "partial": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "placeholder": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "skipped": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "percent": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991,
+                                  "description": "mapped + half of partial, over total"
+                                }
+                              },
+                              "required": [
+                                "total",
+                                "mapped",
+                                "partial",
+                                "placeholder",
+                                "skipped",
+                                "percent"
+                              ],
+                              "additionalProperties": {}
+                            },
+                            "complexity": {
+                              "type": "object",
+                              "properties": {
+                                "score": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991,
+                                  "description": "0–100, higher is harder"
+                                },
+                                "level": {
+                                  "type": "string",
+                                  "enum": [
+                                    "low",
+                                    "medium",
+                                    "high"
+                                  ]
+                                },
+                                "factors": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "score",
+                                "level",
+                                "factors"
+                              ],
+                              "additionalProperties": {}
+                            },
+                            "readiness": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "review",
+                                "rebuild"
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "mapped",
+                                      "partial",
+                                      "placeholder",
+                                      "skipped",
+                                      "info"
+                                    ]
+                                  },
+                                  "mappedTo": {
+                                    "type": "string"
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  },
+                                  "location": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "name",
+                                  "status"
+                                ],
+                                "additionalProperties": {}
+                              }
+                            },
+                            "warnings": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "preview": {
+                              "type": "boolean"
+                            },
+                            "outputs": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "workflow",
+                                      "form",
+                                      "other"
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "name"
+                                ],
+                                "additionalProperties": {}
+                              }
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "source",
+                            "summary",
+                            "coverage",
+                            "complexity",
+                            "readiness",
+                            "items",
+                            "warnings",
+                            "outputs"
+                          ],
+                          "additionalProperties": {}
+                        },
+                        "markdown": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "importer",
+                        "report",
+                        "markdown"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "importers",
+          "verb": "analyze",
+          "positional": [
+            "importer"
+          ]
+        }
+      }
+    },
+    "/importers/{importer}/import": {
+      "post": {
+        "operationId": "runImport",
+        "summary": "Import files with an importer: creates draft workflows (inactive) and forms, and returns them with the report",
+        "description": "Workflows are created inactive (a draft to review and publish); unmapped steps become labelled placeholder steps. Needs the importer's permission (default workflows.create for workflows, forms.edit for forms). Audited.",
+        "tags": [
+          "Importers"
+        ],
+        "parameters": [
+          {
+            "name": "importer",
+            "in": "path",
+            "required": true,
+            "description": "Importer id from GET /importers (ext.<extension>.<key>), or auto: the importer whose detect hook recognises the files best",
+            "schema": {
+              "type": "string",
+              "pattern": "^(auto|infopath|ext\\.[a-z][a-z0-9-]*\\.[a-z][a-z0-9_]*)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "default": [],
+                    "description": "The files of one import (an importer that reads its source from options takes none)",
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200,
+                          "description": "File name (its ending picks how it is read, e.g. Approval.xoml)"
+                        },
+                        "content_base64": {
+                          "type": "string",
+                          "description": "The file, base64"
+                        },
+                        "content_type": {
+                          "type": "string",
+                          "maxLength": 120
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "content_base64"
+                      ]
+                    }
+                  },
+                  "options": {
+                    "description": "The importer's options (GET /importers lists them)",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "importer": {
+                          "type": "string"
+                        },
+                        "report": {
+                          "type": "object",
+                          "properties": {
+                            "title": {
+                              "type": "string"
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "summary": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "coverage": {
+                              "type": "object",
+                              "properties": {
+                                "total": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "mapped": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "partial": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "placeholder": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "skipped": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "percent": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991,
+                                  "description": "mapped + half of partial, over total"
+                                }
+                              },
+                              "required": [
+                                "total",
+                                "mapped",
+                                "partial",
+                                "placeholder",
+                                "skipped",
+                                "percent"
+                              ],
+                              "additionalProperties": {}
+                            },
+                            "complexity": {
+                              "type": "object",
+                              "properties": {
+                                "score": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991,
+                                  "description": "0–100, higher is harder"
+                                },
+                                "level": {
+                                  "type": "string",
+                                  "enum": [
+                                    "low",
+                                    "medium",
+                                    "high"
+                                  ]
+                                },
+                                "factors": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "score",
+                                "level",
+                                "factors"
+                              ],
+                              "additionalProperties": {}
+                            },
+                            "readiness": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "review",
+                                "rebuild"
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "mapped",
+                                      "partial",
+                                      "placeholder",
+                                      "skipped",
+                                      "info"
+                                    ]
+                                  },
+                                  "mappedTo": {
+                                    "type": "string"
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  },
+                                  "location": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "name",
+                                  "status"
+                                ],
+                                "additionalProperties": {}
+                              }
+                            },
+                            "warnings": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "preview": {
+                              "type": "boolean"
+                            },
+                            "outputs": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "workflow",
+                                      "form",
+                                      "other"
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "detail": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "name"
+                                ],
+                                "additionalProperties": {}
+                              }
+                            }
+                          },
+                          "required": [
+                            "title",
+                            "source",
+                            "summary",
+                            "coverage",
+                            "complexity",
+                            "readiness",
+                            "items",
+                            "warnings",
+                            "outputs"
+                          ],
+                          "additionalProperties": {}
+                        },
+                        "markdown": {
+                          "type": "string"
+                        },
+                        "created": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "workflow",
+                                  "form",
+                                  "other"
+                                ]
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "href": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "id",
+                              "name",
+                              "href"
+                            ],
+                            "additionalProperties": {}
+                          }
+                        },
+                        "warnings": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "importer",
+                        "report",
+                        "markdown",
+                        "created",
+                        "warnings"
+                      ],
+                      "additionalProperties": {}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or expired credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Credential lacks the required permission or resource scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": null,
+        "x-usertasks-cli": {
+          "resource": "importers",
+          "verb": "import",
+          "positional": [
+            "importer"
           ]
         }
       }

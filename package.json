@@ -1,6 +1,6 @@
 {
   "name": "usertasks",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "Apache-2.0",
   "engines": {
@@ -27,6 +27,7 @@
     "helm:options": "tsx scripts/helm-options.ts",
     "bundle": "tsx scripts/bundle.ts",
     "bundle:e2e": "tsx scripts/bundle-e2e.ts",
+    "release:bundle": "tsx scripts/release-bundle.ts",
     "openapi:gen": "tsx scripts/generate-openapi.ts && npm run generate -w @user-tasks/sdk && npm run generate -w @user-tasks/cli",
     "openapi:check": "tsx scripts/generate-openapi.ts --check && npm run generate:check -w @user-tasks/sdk && npm run generate:check -w @user-tasks/cli",
     "db:types": "npx supabase gen types typescript --linked > lib/database.types.ts",

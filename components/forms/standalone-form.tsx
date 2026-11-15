@@ -29,6 +29,7 @@ import type { AnonymousFormPage } from '@/lib/services/anonymous-forms'
 import type { FormLookupSource } from '@/components/forms/lookup-field'
 import { AnonymousCaptcha, AnonymousHoneypot, submitAnonymous } from '@/components/forms/anonymous-form-parts'
 import { useAssistantSurface } from '@/lib/assistants/client-registry'
+import type { FormDataTargetState } from '@/lib/forms/data-target'
 
 const DRAFT_STORAGE = 'usertasks.form-draft.'
 
@@ -46,6 +47,32 @@ function writeDraft(formId: string, values: Record<string, unknown> | null) {
     if (values && Object.keys(values).length) window.localStorage.setItem(DRAFT_STORAGE + formId, JSON.stringify(values))
     else window.localStorage.removeItem(DRAFT_STORAGE + formId)
   } catch { /* storage unavailable: nothing is kept */ }
+}
+
+/** The page's URL query, bounded (the server reads only the form's declared URL parameters from it). */
+function cleanQuery(query: Record<string, string | string[] | undefined> | undefined): Record<string, string | string[]> | null {
+  if (!query) return null
+  const out: Record<string, string | string[]> = {}
+  for (const [key, value] of Object.entries(query).slice(0, 50)) {
+    if (key.length > 64 || value === undefined) continue
+    out[key] = Array.isArray(value) ? value.slice(0, 50).map((v) => v.slice(0, 2000)) : value.slice(0, 2000)
+  }
+  return Object.keys(out).length ? out : null
+}
+
+/** What record a bound form edits (or that it creates one), above the fields. */
+function DataTargetNotice({ target }: { target: FormDataTargetState }) {
+  const where = target.label ?? 'the connected system'
+  return (
+    <div className="mb-3 rounded-lg border px-3 py-2 text-xs border-border text-fg-muted" role="status" data-form-target={target.mode}>
+      {target.mode === 'edit' && target.record ? (
+        <span>Editing {target.record.url ? <a className="font-medium underline text-primary-text" href={target.record.url} target="_blank" rel="noreferrer">{target.record.label ?? target.record.id}</a> : <span className="font-medium text-fg">{target.record.label ?? target.record.id}</span>} in {where}.</span>
+      ) : (
+        <span>Submitting creates a new record in {where}.</span>
+      )}
+      {target.notice && <span className="mt-1 block">{target.notice}</span>}
+    </div>
+  )
 }
 
 function newKey(): string {
@@ -90,12 +117,14 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   // isPending, not isLoading: on the first (server / hydration) render the query
   // hasn't started fetching, so isLoading is false and the page flashed
   // "This form is not available." before the form arrived.
-  const { data: form, error, isPending: isLoading } = useQuery({
-    queryKey: ['form-submittable', formId],
+  // The URL query goes to the server: a form bound to an external record (a data target, lib/forms/data-target.ts) loads the record its URL parameters name.
+  const urlQuery = useMemo(() => cleanQuery(query), [query])
+  const { data: form, error, isPending: isLoading, refetch } = useQuery({
+    queryKey: ['form-submittable', formId, urlQuery],
     enabled: !anonymous,
     initialData: anonymous?.page.form,
     queryFn: async () => {
-      const { data, error: readError } = await serverRead('forms.submittable', { id: formId })
+      const { data, error: readError } = await serverRead('forms.submittable', { id: formId, ...(urlQuery ? { query: urlQuery } : {}) })
       if (readError) throw new Error(readError.message)
       return data
     },
@@ -129,7 +158,9 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   const [captcha, setCaptcha] = useState<string | null>(null)
   const [captchaRound, setCaptchaRound] = useState(0)
   const lookupSource = useMemo<FormLookupSource>(() => (anonymous ? { kind: 'form', formId, anonymous: { token: anonymous.token, uploadKey } } : { kind: 'form', formId }), [anonymous, formId, uploadKey])
-  const shown = params ? { ...defaults, ...values, [FORM_PARAMS_KEY]: params.parsed.values } : { ...defaults, ...values }
+  // A data target's record values sit between the defaults and what the person typed.
+  const loaded = form?.target?.values ?? null
+  const shown = params ? { ...defaults, ...loaded, ...values, [FORM_PARAMS_KEY]: params.parsed.values } : { ...defaults, ...loaded, ...values }
   // Form context (variables, control state) isn't something the person typed.
   const dirty = Object.keys(values).some((k) => !k.startsWith('__form_'))
   // "Resume later" (steps / tabs forms): unsent answers and the step stay in this browser.
@@ -222,7 +253,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
       try {
         const result = anonymous
           ? await submitAnonymous(anonymous.token, { values: shown, button_id: button.id, idempotency_key: keyRef.current, ticket: anonymous.page.ticket, captcha, upload_key: uploadKey, honeypot })
-          : await submitStandaloneForm(formId, { values: shown, button_id: button.id, idempotency_key: keyRef.current })
+          : await submitStandaloneForm(formId, { values: shown, button_id: button.id, idempotency_key: keyRef.current, ...(form!.target?.version ? { target_version: form!.target.version } : {}) })
         if (!result.ok) {
           if (result.fields) setErrors(result.fields)
           setFailure(result.error)
@@ -235,6 +266,8 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         forgetDraft()
         if (!anonymous) drafts.submitted()
         setDraftDecided(true)
+        // A bound record changed: read it again (fresh values and version for the next save).
+        if (form!.target) void refetch()
         if (!result.data.effects.success_screen && !result.data.effects.redirect && !result.data.effects.close) {
           // Stay on the form, cleared for the next submission (back on its first step), with the message(s).
           setValues({})
@@ -291,6 +324,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
                   <button type="button" className="font-medium underline text-primary-text" onClick={reset}>Start over</button>
                 </div>
               )}
+              {form.target && <DataTargetNotice target={form.target} />}
               <FormRenderer
                 idPrefix="form-field-"
                 fields={form.fields}

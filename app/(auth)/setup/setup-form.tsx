@@ -86,7 +86,7 @@ export function SetupForm() {
     <div>
       <AuthHeading
         title="Create your admin account"
-        description="This is a new UserTasks install. Set up your organisation and the first admin account. You'll be its owner and can invite your team next."
+        description="Step 1 of 7. This is a new UserTasks install: set up your organisation and the first admin account. Next, the setup wizard checks your services and helps you add sign-in with your identity provider, email and your team. Every later step can be skipped."
       />
 
       {error && !error.field && (

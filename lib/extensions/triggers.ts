@@ -25,7 +25,7 @@ import { extensionAccess, isMissingTable } from './state'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow rows */
 
-interface TriggerWorkflow { workflowId: string; versionId: string | null; config: Record<string, unknown> }
+interface TriggerWorkflow { workflowId: string; name: string; versionId: string | null; config: Record<string, unknown> }
 
 const TTL_MS = 30_000
 const cache = new Map<string, { expiresAt: number; defs: Promise<TriggerWorkflow[]> }>()
@@ -36,7 +36,7 @@ export function invalidateExtensionTriggerCache(tenantId?: string) {
 }
 
 async function loadWorkflows(db: any, tenantId: string, triggerType: string): Promise<TriggerWorkflow[]> {
-  const { data, error } = await db.from('workflows').select('id, nodes, published_version_id')
+  const { data, error } = await db.from('workflows').select('id, name, nodes, published_version_id')
     .eq('tenant_id', tenantId).eq('is_active', true).eq('trigger_type', triggerType)
   if (error) throw new Error(error.message)
   const rows = (data ?? []) as any[]
@@ -53,7 +53,7 @@ async function loadWorkflows(db: any, tenantId: string, triggerType: string): Pr
     const nodes = (Array.isArray(published) ? published : Array.isArray(w.nodes) ? w.nodes : []) as any[]
     const trigger = nodes.find((n) => n?.type === triggerType)
     if (!trigger) continue
-    out.push({ workflowId: w.id, versionId: w.published_version_id ?? null, config: (trigger.config ?? {}) as Record<string, unknown> })
+    out.push({ workflowId: w.id, name: String(w.name ?? ''), versionId: w.published_version_id ?? null, config: (trigger.config ?? {}) as Record<string, unknown> })
   }
   return out
 }
@@ -75,6 +75,8 @@ export interface StartTriggerInput {
   key: string
   payload: Record<string, unknown>
   dedupeKey?: string | null
+  /** Only this workflow (it must listen to the trigger); matches() is skipped — a person started it on purpose. */
+  workflowId?: string | null
   /** Injected in tests. */
   db?: any
 }
@@ -110,6 +112,7 @@ export async function startExtensionTrigger(input: StartTriggerInput): Promise<S
   const workflows = await workflowsFor(db, input.tenantId, triggerType)
   const matches = getServerExtension(input.extensionId)?.triggers?.[input.key]?.matches
   const matching = workflows.filter((w) => {
+    if (input.workflowId) return w.workflowId === input.workflowId
     if (!matches) return true
     try { return matches(w.config, input.payload) } catch { return false }
   })
@@ -132,6 +135,20 @@ export async function startExtensionTrigger(input: StartTriggerInput): Promise<S
   }
   if (started) kickQueueProcessor()
   return { started, duplicate: false }
+}
+
+/**
+ * The trigger configurations of the workspace's active workflows that start
+ * on one of this extension's triggers (published version first, as the
+ * trigger uses them). For pollers that must know what to watch (e.g. which
+ * lists, how often) and for recording what a workflow depends on. Uses the
+ * same 30-second cache as startExtensionTrigger.
+ */
+export async function listExtensionTriggerConfigs(input: { tenantId: string; extensionId: string; key: string; db?: any }): Promise<Array<{ workflowId: string; name: string; versionId: string | null; config: Record<string, unknown> }>> {
+  const manifest = getExtensionManifest(input.extensionId)
+  if (!manifest?.contributes.triggers.some((t) => t.key === input.key)) throw new Error(`Extension "${input.extensionId}" has no trigger "${input.key}"`)
+  const workflows = await workflowsFor(input.db ?? getServiceDb(), input.tenantId, extKey(input.extensionId, input.key))
+  return workflows.map((w) => ({ workflowId: w.workflowId, name: w.name, versionId: w.versionId, config: { ...w.config } }))
 }
 
 /** Purge dedupe keys older than `days` (run by the extension events job). */

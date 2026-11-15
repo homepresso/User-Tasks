@@ -5469,6 +5469,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "object",
           "required": false,
           "description": "The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest"
+        },
+        {
+          "name": "target_version",
+          "type": "string",
+          "required": false,
+          "description": "Forms bound to an external record (a data target an extension provides): the record version (ETag) read when the form opened. The write fails with 409 / 412 when the record changed since; omit to overwrite"
         }
       ]
     },
@@ -10697,14 +10703,8 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       {
         "name": "provider",
         "flag": "provider",
-        "required": false,
-        "type": "string",
-        "enum": [
-          "entra",
-          "okta",
-          "ldap",
-          "google"
-        ]
+        "description": "entra, okta, ldap, google or an extension directory source (ext.<extension>.<key>)",
+        "required": false
       }
     ],
     "body": null,
@@ -10860,6 +10860,89 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "listKey": "groups",
     "paginated": false,
     "cursor": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listDirectorySources",
+    "method": "GET",
+    "path": "/directory-sync/sources",
+    "resource": "directory-sync",
+    "verb": "sources",
+    "summary": "List directory sources contributed by extensions (e.g. SharePoint groups) with sync state and counts",
+    "permission": "settings.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "sources",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listDirectorySourceEntries",
+    "method": "GET",
+    "path": "/directory-sync/sources/{source}/entries",
+    "resource": "directory-sync",
+    "verb": "entries",
+    "summary": "List the people a directory source lists: pending (no account yet), linked or inactive",
+    "permission": "settings.view",
+    "positional": [
+      "source"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "status",
+        "flag": "status",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "pending",
+          "linked",
+          "inactive"
+        ]
+      },
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Matches display names",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "entries",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "startDirectorySourceSync",
+    "method": "POST",
+    "path": "/directory-sync/sources/{source}/sync",
+    "resource": "directory-sync",
+    "verb": "source-sync",
+    "summary": "Sync a directory source now (runs in the background)",
+    "permission": "settings.edit",
+    "positional": [
+      "source"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "full",
+          "type": "boolean",
+          "required": false,
+          "description": "Force a full sync (LDAP otherwise syncs only changes since the last run)"
+        }
+      ]
+    },
+    "paginated": false,
     "envelope": true,
     "destructive": false
   },
@@ -11660,6 +11743,103 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "object",
           "required": true,
           "description": "Field key → value"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listImporters",
+    "method": "GET",
+    "path": "/importers",
+    "resource": "importers",
+    "verb": "list",
+    "summary": "List the importers of this build (core InfoPath and those of extensions) with their availability here",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "produces",
+        "flag": "produces",
+        "description": "Only importers that make workflows / forms",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "workflow",
+          "form"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "importers",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "analyzeImport",
+    "method": "POST",
+    "path": "/importers/{importer}/analyze",
+    "resource": "importers",
+    "verb": "analyze",
+    "summary": "Analyse files with an importer (dry run): mapping coverage, complexity score, readiness and what an import would make",
+    "permission": null,
+    "positional": [
+      "importer"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "files",
+          "type": "array",
+          "required": false,
+          "description": "The files of one import (an importer that reads its source from options takes none)"
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "required": false,
+          "description": "The importer's options (GET /importers lists them)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "runImport",
+    "method": "POST",
+    "path": "/importers/{importer}/import",
+    "resource": "importers",
+    "verb": "import",
+    "summary": "Import files with an importer: creates draft workflows (inactive) and forms, and returns them with the report",
+    "permission": null,
+    "positional": [
+      "importer"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "files",
+          "type": "array",
+          "required": false,
+          "description": "The files of one import (an importer that reads its source from options takes none)"
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "required": false,
+          "description": "The importer's options (GET /importers lists them)"
         }
       ]
     },

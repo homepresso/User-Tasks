@@ -40,6 +40,7 @@ import { normalizeFormActions, type FormActionsConfig } from './form-actions'
 import { normalizeFormAnimation, type FormAnimationConfig } from './motion'
 import { normalizeTaskCompletedOverride, type TaskCompletedOverride } from '@/lib/tasks/completion-screen'
 import { normalizeFormSource, type FormSourceInfo } from './form-source'
+import { normalizeDataTarget, type FormDataTargetRef } from './data-target'
 
 export const MAX_FORM_COLUMNS = 4
 export const MAX_FORM_ROWS = 200
@@ -192,6 +193,8 @@ export interface FormLayout {
   assistant?: 'on' | 'off'
   /** Provenance: the InfoPath file / view it was imported from (lib/forms/form-source.ts). */
   source?: FormSourceInfo
+  /** Bound to a record an extension provides (lib/forms/data-target.ts): load on open, write on submit. */
+  data_target?: FormDataTargetRef
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -283,10 +286,12 @@ export function normalizeFormLayout(raw: unknown, fieldKeys: string[]): FormLayo
   const flagKeys = new Set((normalizeFormStateConfig(raw.state)?.flags ?? []).map((f) => f.key))
   // State + button bar, cleaned against the fields / pages that end up in the layout.
   const declared = normalizeFormSections(raw.sections, known)
-  const extras = (pageIds: Set<string>, sectionKeys: Set<string>): Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed' | 'source'> => {
-    const out: Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed' | 'source'> = {}
+  const extras = (pageIds: Set<string>, sectionKeys: Set<string>): Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed' | 'source' | 'data_target'> => {
+    const out: Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed' | 'source' | 'data_target'> = {}
     const source = normalizeFormSource(raw.source)
     if (source) out.source = source
+    const target = normalizeDataTarget(raw.data_target)
+    if (target) out.data_target = target
     const state = normalizeFormStateConfig(raw.state, { fieldKeys: known, pageIds, sectionKeys })
     if (state) out.state = state
     if (raw.application_mode === true) out.application_mode = true
@@ -781,7 +786,7 @@ export function compactLayoutForSave(layout: FormLayout, fieldKeys: string[]): F
   }
   const rows = compactRows(layout.rows)
   const trivial = rows.length === fieldKeys.length && rows.every((row, i) => row.columns === 1 && row.cells.length === 1 && row.cells[0].field_key === fieldKeys[i])
-  return trivial && !layout.source && !layout.state && !layout.application_mode && !layout.rules?.length && !layout.params?.length && !layout.variables?.length && !layout.sections?.length && !layout.submitted_page && !normalizeFormActions(layout.form_actions) && !normalizeFormAnimation(layout.animation) && !normalizeTaskCompletedOverride(layout.task_completed) && !(layout.assistant === 'on' || layout.assistant === 'off') ? null : withExtras({ rows }, layout)
+  return trivial && !layout.source && !layout.data_target && !layout.state && !layout.application_mode && !layout.rules?.length && !layout.params?.length && !layout.variables?.length && !layout.sections?.length && !layout.submitted_page && !normalizeFormActions(layout.form_actions) && !normalizeFormAnimation(layout.animation) && !normalizeTaskCompletedOverride(layout.task_completed) && !(layout.assistant === 'on' || layout.assistant === 'off') ? null : withExtras({ rows }, layout)
 }
 
 function withExtras(out: FormLayout, layout: FormLayout): FormLayout {
@@ -801,6 +806,8 @@ function withExtras(out: FormLayout, layout: FormLayout): FormLayout {
   if (completed) out.task_completed = completed
   const source = normalizeFormSource(layout.source)
   if (source) out.source = source
+  const target = normalizeDataTarget(layout.data_target)
+  if (target) out.data_target = target
   const used = new Set(allRows(out).map((r) => r.section).filter(Boolean))
   const sections = normalizeFormSections(layout.sections).filter((s) => used.has(s.key))
   if (sections.length) out.sections = sections

@@ -90,9 +90,15 @@ describe('.github/workflows/image.yml', () => {
   const workflow = parse(readFileSync(path.join(ROOT, '.github/workflows/image.yml'), 'utf8')) as any
   const text = readFileSync(path.join(ROOT, '.github/workflows/image.yml'), 'utf8')
 
-  it('runs on version tags and by hand (latest optional)', () => {
-    expect(workflow.on.push.tags).toEqual(['v*'])
+  it('runs for version tags (called by release-server.yml, which pins its digest) and by hand (latest optional)', () => {
+    expect(workflow.on.workflow_call.inputs.latest).toMatchObject({ type: 'boolean', default: false })
+    expect(workflow.on.workflow_call.outputs.digest.value).toBe('${{ jobs.merge.outputs.digest }}')
     expect(workflow.on.workflow_dispatch.inputs.latest).toMatchObject({ type: 'boolean', default: false })
+    const release = parse(readFileSync(path.join(ROOT, '.github/workflows/release-server.yml'), 'utf8'))
+    expect(release.on.push.tags).toEqual(['v*'])
+    expect(release.jobs.image.uses).toBe('./.github/workflows/image.yml')
+    expect(release.jobs.gates.uses).toBe('./.github/workflows/release-gates.yml')
+    expect(release.jobs.installer.needs).toEqual(['gates', 'image'])
   })
 
   it('builds amd64 and arm64 natively, type-checked, with cache, provenance and an SBOM', () => {

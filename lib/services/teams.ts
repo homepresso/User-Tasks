@@ -7,6 +7,12 @@
  * removing members needs team.remove. `user_teams` has no tenant column, so
  * both the team and the user are checked against the tenant before any
  * membership change.
+ *
+ * Teams kept by a directory source of an extension (teams.source, e.g. a
+ * SharePoint group) are read-only here: their name, description and members
+ * come from the source (lib/directory-sync/sources.ts); renaming, deleting
+ * and member changes answer 409 `source_managed`. Lead, colour, kind, org
+ * unit and parent stay editable (UserTasks-only attributes).
  */
 
 import { requirePerm, ServiceError, type ServiceContext } from './context'
@@ -15,6 +21,24 @@ import { audit, dbError } from './_shared'
 /* eslint-disable @typescript-eslint/no-explicit-any -- teams/user_teams rows */
 
 const TEAM_COLUMNS = 'id, name, description, parent_id, lead_user_id, org_unit_id, colour, kind, created_at, updated_at'
+/** Directory-source columns (migration 20270113100000); read only when present. */
+const SOURCE_COLUMNS = ', source, source_label'
+
+function missingSourceColumns(error: { code?: string; message?: string } | null | undefined): boolean {
+  return Boolean(error && (error.code === '42703' || error.code === 'PGRST204' || /source(_label)?.*(does not exist|could not find)|column .*source/i.test(error.message ?? '')))
+}
+
+/** Run a teams select with the source columns, or without them before the migration. */
+async function selectTeams(run: (columns: string) => PromiseLike<{ data: any; error: any }>, columns: string): Promise<{ data: any; error: any }> {
+  const first = await run(`${columns}${SOURCE_COLUMNS}`)
+  if (!missingSourceColumns(first.error)) return first
+  return run(columns)
+}
+
+function assertNotSourceManaged(team: Record<string, any>, what: string) {
+  if (!team.source) return
+  throw new ServiceError('conflict', `"${team.name}" comes from ${team.source_label ?? 'a directory source'} and is read-only in UserTasks: ${what} it there`, { details: { code: 'source_managed', source: team.source } })
+}
 
 export interface TeamInput {
   name: string
@@ -40,8 +64,8 @@ function cleanName(raw: unknown): string {
 }
 
 async function loadTeam(ctx: ServiceContext, teamId: string, select = TEAM_COLUMNS) {
-  const { data, error } = await (ctx.supabase as any).from('teams')
-    .select(select).eq('id', teamId).eq('tenant_id', ctx.tenantId).maybeSingle()
+  const { data, error } = await selectTeams((columns) => (ctx.supabase as any).from('teams')
+    .select(columns).eq('id', teamId).eq('tenant_id', ctx.tenantId).maybeSingle(), select)
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Team not found')
   return data as Record<string, any>
@@ -94,8 +118,8 @@ async function checkParent(ctx: ServiceContext, parentId: string | null | undefi
 
 export async function listTeams(ctx: ServiceContext) {
   requirePerm(ctx, 'team.view_members')
-  const { data, error } = await (ctx.supabase as any).from('teams')
-    .select(TEAM_COLUMNS).eq('tenant_id', ctx.tenantId).order('name')
+  const { data, error } = await selectTeams((columns) => (ctx.supabase as any).from('teams')
+    .select(columns).eq('tenant_id', ctx.tenantId).order('name'), TEAM_COLUMNS)
   if (error) throw dbError(error)
   const teams = (data ?? []) as Array<Record<string, any>>
   const counts = new Map<string, number>()
@@ -150,10 +174,17 @@ export async function createTeam(ctx: ServiceContext, input: TeamInput) {
 
 export async function updateTeam(ctx: ServiceContext, teamId: string, input: TeamUpdateInput) {
   requirePerm(ctx, 'team.invite')
-  await loadTeam(ctx, teamId, 'id')
+  const current = await loadTeam(ctx, teamId, 'id, name, description')
   const updates: Record<string, unknown> = {}
   if (input.name !== undefined) updates.name = cleanName(input.name)
   if (input.description !== undefined) updates.description = String(input.description ?? '').trim() || null
+  if (current.source) {
+    // Source teams: name and description come from the directory (sending them back unchanged is fine).
+    if (updates.name !== undefined && updates.name !== current.name) assertNotSourceManaged(current, 'rename')
+    if (updates.description !== undefined && (updates.description ?? null) !== (current.description ?? null)) assertNotSourceManaged(current, 'change the description')
+    delete updates.name
+    delete updates.description
+  }
   if (input.parent_id !== undefined) updates.parent_id = await checkParent(ctx, input.parent_id, teamId)
   if (input.lead_user_id !== undefined) updates.lead_user_id = await checkLead(ctx, input.lead_user_id)
   if (input.org_unit_id !== undefined) updates.org_unit_id = await checkOrgUnit(ctx, input.org_unit_id)
@@ -161,8 +192,8 @@ export async function updateTeam(ctx: ServiceContext, teamId: string, input: Tea
   if (input.kind !== undefined) updates.kind = cleanKind(input.kind)
   if (Object.keys(updates).length === 0) throw ServiceError.validation('No fields to update')
   updates.updated_at = new Date().toISOString()
-  const { data, error } = await (ctx.supabase as any).from('teams')
-    .update(updates).eq('id', teamId).eq('tenant_id', ctx.tenantId).select(TEAM_COLUMNS).single()
+  const { data, error } = await selectTeams((columns) => (ctx.supabase as any).from('teams')
+    .update(updates).eq('id', teamId).eq('tenant_id', ctx.tenantId).select(columns).single(), TEAM_COLUMNS)
   if (error || !data) throw teamDbError(error, 'Failed to update team')
   await audit(ctx, {
     objectType: 'team', objectId: teamId, action: 'update', summary: `Updated team "${data.name}"`,
@@ -174,6 +205,7 @@ export async function updateTeam(ctx: ServiceContext, teamId: string, input: Tea
 export async function deleteTeam(ctx: ServiceContext, teamId: string) {
   requirePerm(ctx, 'team.remove')
   const team = await loadTeam(ctx, teamId, 'id, name')
+  assertNotSourceManaged(team, 'delete')
   const members = await (ctx.supabase as any).from('user_teams').delete().eq('team_id', teamId)
   if (members.error) throw dbError(members.error)
   const { error } = await (ctx.supabase as any).from('teams').delete().eq('id', teamId).eq('tenant_id', ctx.tenantId)
@@ -186,6 +218,7 @@ export async function deleteTeam(ctx: ServiceContext, teamId: string) {
 export async function addTeamMember(ctx: ServiceContext, teamId: string, userId: string, role = 'member') {
   requirePerm(ctx, 'team.invite')
   const team = await loadTeam(ctx, teamId, 'id, name')
+  assertNotSourceManaged(team, 'add members to')
   const { data: user, error: userError } = await (ctx.supabase as any).from('users')
     .select('id').eq('id', userId).eq('tenant_id', ctx.tenantId).maybeSingle()
   if (userError) throw dbError(userError)
@@ -205,6 +238,7 @@ export async function addTeamMember(ctx: ServiceContext, teamId: string, userId:
 export async function removeTeamMember(ctx: ServiceContext, teamId: string, userId: string) {
   requirePerm(ctx, 'team.remove')
   const team = await loadTeam(ctx, teamId, 'id, name')
+  assertNotSourceManaged(team, 'remove members from')
   const { data, error } = await (ctx.supabase as any).from('user_teams')
     .delete().eq('team_id', teamId).eq('user_id', userId).select('id')
   if (error) throw dbError(error, 'Failed to remove team member')

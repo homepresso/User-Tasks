@@ -6,6 +6,7 @@ import { serverRead } from "@/lib/server-read"
 import { CreateWorkflowDialog } from "@/components/automations/create-workflow-dialog"
 import { WorkflowList } from "@/components/automations/workflow-list"
 import { ImportConfigButton } from "@/components/shared/config-transfer"
+import { ExtensionImportButton } from "@/components/extensions/importers"
 import { PageHeader } from "@/components/ui/page-header"
 import { ListSkeleton, PageSkeleton } from "@/components/ui/page-skeleton"
 import { usePermissions } from "@/lib/permissions-context"
@@ -36,6 +37,8 @@ export default function AutomationsPage() {
         actions={(
           <>
             {can('workflows.create') && <ImportConfigButton variant="outline" onImported={() => void queryClient.invalidateQueries({ queryKey: ["workflows"] })} />}
+            {/* Importers contributed by extensions (e.g. SharePoint Designer 2010 workflows); nothing without any. */}
+            <ExtensionImportButton produces="workflow" onImported={() => void queryClient.invalidateQueries({ queryKey: ["workflows"] })} />
             <Suspense fallback={null}><CreateWorkflowDialog /></Suspense>
           </>
         )}

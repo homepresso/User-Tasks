@@ -448,6 +448,8 @@ export function includeRepoMarkdown(relativePath: string): DocBlock[] {
  * nothing on the site renders this list. Keep appending new notes here.
  */
 export const CHANGELOG_FILES = [
+  { id: 'importers', file: 'docs/changes/importers.md' },
+  { id: 'directory-sources', file: 'docs/changes/directory-sources.md' },
   { id: 'report-charts', file: 'docs/changes/report-charts.md' },
   { id: 'survey-widgets', file: 'docs/changes/survey-widgets.md' },
   { id: 'form-wizard', file: 'docs/changes/form-wizard.md' },

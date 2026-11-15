@@ -499,6 +499,30 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | capabilities | `GET /directory-sync/capabilities` | `directory_capabilities` | `directory-sync capabilities` | AAD group task assignment |
 | search entra groups | `GET /directory-sync/entra/groups` | `directory_entra_groups_search` | `directory-sync groups` | AAD group task assignment |
 
+## Directory sources
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /directory-sync/sources` | `directory_sources_list` | `directory-sync sources` | contributed by extensions (manifest contributes.directorySources) |
+| get | — | — | — | the list carries each source's full state |
+| create | — | — | — | declared by an extension; enabling the extension in the workspace turns it on |
+| update | — | — | — | configured in the extension's own settings |
+| delete | — | — | — | disable the extension in the workspace |
+| list entries | `GET /directory-sync/sources/{source}/entries` | `directory_source_entries` | `directory-sync entries` | pending (no account until first sign-in), linked, inactive |
+| sync now | `POST /directory-sync/sources/{source}/sync` | `directory_source_sync` | `directory-sync source-sync` |  |
+
+## Importers
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /importers` | `importers_list` | `importers list` | core InfoPath (forms import-infopath) and importers contributed by extensions (manifest contributes.importers) |
+| get | — | — | — | the list carries each importer's options and availability |
+| create | — | — | — | declared by an extension |
+| update | — | — | — | nothing to configure |
+| delete | — | — | — | disable the extension in the workspace |
+| analyze | `POST /importers/{importer}/analyze` | `importers_analyze` | `importers analyze` | dry run: mapping coverage, complexity, readiness; nothing stored |
+| import | `POST /importers/{importer}/import` | `importers_import` | `importers import` | draft workflows (inactive) and forms |
+
 ## Scim tokens
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |

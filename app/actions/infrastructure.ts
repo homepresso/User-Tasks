@@ -94,3 +94,31 @@ export async function checkSecretReference(ref: string) {
 export async function setUiSwitching(input: unknown) {
   return setUiSwitchingAs(await viewer(), input, appSwitchDeps)
 }
+
+/**
+ * "Allow <host>" after a test was refused by the egress guard: add the
+ * suggested entry to the private network allowlist
+ * (instance.egress_private_allow, the same setting as `usertasks-admin
+ * egress allow-private`). Instance admins only, rate limited; the entry is
+ * validated like the CLI's (hostname, *.domain or CIDR).
+ */
+export async function allowPrivateHost(entry: unknown): Promise<{ ok: true; entries: string[] } | { ok: false; error: string }> {
+  const user = await viewer()
+  if (!user || !(await viewerCanSeeInfrastructure(user))) return { ok: false, error: 'Only instance administrators can change network access.' }
+  const { rateLimit } = await import('@/lib/rate-limit')
+  if (!(await rateLimit(`infra:egress-allow:${user.id}`, { max: 10, windowMs: 60_000 })).ok) return { ok: false, error: 'Too many requests: wait a minute and try again.' }
+  const { getDeploymentMode } = await import('@/lib/deployment')
+  if (getDeploymentMode() === 'cloud') return { ok: false, error: 'Private networks cannot be reached from the cloud edition.' }
+  const { getInstanceSetting, setInstanceSetting } = await import('@/lib/config/instance-settings')
+  const { EGRESS_PRIVATE_ALLOW_SETTING, withAllowEntry } = await import('@/lib/install/egress-server')
+  const text = String(entry ?? '').trim()
+  if (!text || text.length > 255 || /metadata|^169\.254\.169\.254/i.test(text)) return { ok: false, error: 'That entry cannot be allowed.' }
+  try {
+    const entries = withAllowEntry(await getInstanceSetting(EGRESS_PRIVATE_ALLOW_SETTING), text)
+    await setInstanceSetting(EGRESS_PRIVATE_ALLOW_SETTING, entries, { updatedBy: user.id })
+    console.info(`[infrastructure] ${user.email ?? user.id} allowed private egress to ${text}`)
+    return { ok: true, entries }
+  } catch (error) {
+    return { ok: false, error: (error as Error).message }
+  }
+}

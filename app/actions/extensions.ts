@@ -40,7 +40,7 @@ export async function runExtensionUiAction(input: {
     if (!handler) throw ServiceError.notFound(`Action "${input.action}" is not implemented`)
     const items = (input.items ?? []).slice(0, MAX_ITEMS).map(plain)
     const result = await handler({
-      ctx: createExtensionContext({ extensionId: input.extensionId, tenantId: ctx.tenantId, actorId: ctx.actorId, db: ctx.supabase }),
+      ctx: createExtensionContext({ extensionId: input.extensionId, tenantId: ctx.tenantId, actorId: ctx.actorId, db: ctx.supabase, permissions: ctx.permissions }),
       objectType: input.objectType ?? null,
       items,
       values: input.values ? plain(input.values) : undefined,
@@ -64,7 +64,7 @@ export async function loadExtensionUiData(input: {
     const handler = getServerExtension(input.extensionId)?.ui?.data?.[input.source]
     if (!handler) throw ServiceError.notFound(`Data source "${input.source}" is not implemented`)
     const data = await handler({
-      ctx: createExtensionContext({ extensionId: input.extensionId, tenantId: ctx.tenantId, actorId: ctx.actorId, db: ctx.supabase }),
+      ctx: createExtensionContext({ extensionId: input.extensionId, tenantId: ctx.tenantId, actorId: ctx.actorId, db: ctx.supabase, permissions: ctx.permissions }),
       objectType: input.objectType ?? null,
       item: input.item ? plain(input.item) : null,
     })

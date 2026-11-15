@@ -22,8 +22,10 @@ import { findLocalUserByEmail, grantDirectoryAccess, provisionDirectoryUser, res
  *     (empty passwords never reach the server: an empty simple bind is an
  *     anonymous bind);
  *  3. sign in the linked local account — the directory link, else the
- *     account with the entry's email, else (auto_provision) a new one — with
- *     a built-in session, after granting membership in the workspace.
+ *     account with the entry's email, else (auto_provision, or a pending
+ *     entry of an extension directory source for that email) a new one —
+ *     with a built-in session, after granting membership in the workspace
+ *     and claiming the person's pending directory entries.
  *
  * Names the directory doesn't know fall through to the normal password
  * login (local accounts, e.g. a break-glass admin, keep working), as does
@@ -105,7 +107,8 @@ export async function tryLdapLogin(
   const roleId = await resolveProvisionRoleId(db, tenantId)
   if (!userId && entry.email) {
     userId = (await findLocalUserByEmail(db, entry.email))?.id ?? null
-    if (!userId && connection.autoProvision) {
+    // A pending entry of an extension directory source (lib/directory-sync/sources.ts) counts as an invitation.
+    if (!userId && (connection.autoProvision || await import('./sources').then((m) => m.hasPendingDirectoryEntry(db, [entry.email as string])).catch(() => false))) {
       userId = await provisionDirectoryUser(db, tenantId, 'ldap', { email: entry.email, displayName: entry.displayName }, roleId)
     }
     if (userId) {
@@ -119,6 +122,12 @@ export async function tryLdapLogin(
     return { status: 'failed', code: 'sso_failed', message: 'Your directory account has no UserTasks account in this organisation. Ask an administrator.' }
   }
   await grantDirectoryAccess(db, tenantId, userId, roleId)
+  if (entry.email) {
+    const claimUserId = userId
+    await import('./sources').then((m) => m.claimDirectoryEntries(db, { userId: claimUserId, keys: [entry.email as string] })).catch((error) => {
+      console.warn('[ldap-login] claiming directory entries failed:', (error as Error)?.message ?? error)
+    })
+  }
 
   // Built-in sessions belong to a credentials row (no password: directory sign-in).
   if (!(await findCredentialById(userId))) {

@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useJobs } from '@/components/jobs/jobs-provider'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { runExtensionUiAction } from '@/app/actions/extensions'
+import { useEmbedContext } from '@/components/embed/embed-provider'
 
 export interface ExtensionActionRequest {
   extensionId: string
@@ -28,6 +29,8 @@ export interface ExtensionActionRequest {
 export function useExtensionAction() {
   const router = useRouter()
   const jobs = useJobs()
+  // Trusted-embedding pages (/embed/…) have no shell: notices inline, redirects kept in the frame when allowed.
+  const embed = useEmbedContext()
   const [busy, setBusy] = useState(false)
   const [pending, setPending] = useState<ExtensionActionRequest | null>(null)
 
@@ -35,19 +38,21 @@ export function useExtensionAction() {
     setBusy(true)
     try {
       const result = await runExtensionUiAction(request)
+      const notify = embed ? embed.notify : jobs.notify
       if (!result.ok) {
-        jobs.notify({ tone: 'error', title: request.label ? `${request.label} failed` : 'Action failed', body: result.error })
+        notify({ tone: 'error', title: request.label ? `${request.label} failed` : 'Action failed', body: result.error })
         return null
       }
       const out = result.data
-      if (out.message) jobs.notify({ tone: out.tone === 'danger' || out.tone === 'warning' ? 'error' : out.tone === 'success' ? 'success' : 'info', title: out.message })
-      if (out.redirect) router.push(out.redirect)
+      if (out.message) notify({ tone: out.tone === 'danger' || out.tone === 'warning' ? 'error' : out.tone === 'success' ? 'success' : 'info', title: out.message })
+      if (out.redirect && embed) embed.navigate(out.redirect, (href) => router.push(href))
+      else if (out.redirect) router.push(out.redirect)
       else if (out.refresh) router.refresh()
       return out
     } finally {
       setBusy(false)
     }
-  }, [jobs, router])
+  }, [embed, jobs, router])
 
   /** Run now, or ask first when the request has confirm text. */
   const run = useCallback((request: ExtensionActionRequest) => {

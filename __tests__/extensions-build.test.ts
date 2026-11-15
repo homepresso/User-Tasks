@@ -8,11 +8,11 @@
  *  - core never imports a private extension package (@usertasks-ext/*) or an
  *    in-repo extension directly — only the generated registry may.
  */
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { generateExtensionRegistry, parseExtensionList, renderClientRegistry, renderPagesRegistry, renderServerRegistry, PRIVATE_SCOPES } from '@/lib/extensions/build/codegen'
+import { generateExtensionRegistry, parseExtensionList, renderClientRegistry, renderExtensionStyles, renderPagesRegistry, renderServerRegistry, watchLinkedExtensions, LINKED_DIR, PRIVATE_SCOPES } from '@/lib/extensions/build/codegen'
 
 const root = path.resolve(__dirname, '..')
 
@@ -70,6 +70,96 @@ describe('extension codegen', () => {
     const outside = mkdtempSync(path.join(tmpdir(), 'ext-outside-'))
     mkdirSync(path.join(outside, 'x'))
     expect(() => generateExtensionRegistry({ root, extensions: path.join(outside, 'x'), write: false })).toThrow(/outside the project/)
+  })
+})
+
+describe('extension styles (Tailwind sources)', () => {
+  it('commits an empty extensions.css imported by the global stylesheet', () => {
+    const css = readFileSync(path.join(root, 'lib/extensions/generated/extensions.css'), 'utf8')
+    expect(css).not.toContain('@source')
+    expect(readFileSync(path.join(root, 'app/globals.css'), 'utf8')).toContain('@import "../lib/extensions/generated/extensions.css";')
+  })
+
+  it('lists in-repo and installed extension directories as @source, relative to the generated directory', () => {
+    const result = generateExtensionRegistry({ root, extensions: './extensions/example-hello', write: false })
+    const css = result.files.find((f) => f.path.endsWith('extensions.css'))!
+    expect(css.content).toContain('@source "../../../extensions/example-hello";')
+    expect(renderExtensionStyles([{ spec: '@usertasks-ext/demo', id: 'demo', version: '1.0.0', manifest: 'x', server: null, pages: null, packageName: '@usertasks-ext/demo', dir: path.join(root, 'node_modules/@usertasks-ext/demo') }], root))
+      .toContain('@source "../../../node_modules/@usertasks-ext/demo";')
+  })
+})
+
+describe('linked extension packages (npm link)', () => {
+  function fixture() {
+    const project = mkdtempSync(path.join(tmpdir(), 'ext-project-'))
+    const linked = mkdtempSync(path.join(tmpdir(), 'ext-linked-'))
+    writeFileSync(path.join(linked, 'package.json'), JSON.stringify({ name: '@usertasks-ext/demo', version: '1.0.0' }))
+    writeFileSync(path.join(linked, 'usertasks-extension.json'), JSON.stringify({ id: 'demo', version: '1.0.0', engines: { usertasks: '>=0.1.0' } }))
+    writeFileSync(path.join(linked, 'manifest.ts'), 'export default {}')
+    writeFileSync(path.join(linked, 'pages.tsx'), 'export default {}')
+    mkdirSync(path.join(linked, 'src'))
+    writeFileSync(path.join(linked, 'src', 'ui.tsx'), 'export const x = <div className="grid-cols-7" />')
+    for (const skipped of ['.git', 'node_modules']) { mkdirSync(path.join(linked, skipped)); writeFileSync(path.join(linked, skipped, 'f'), 'x') }
+    mkdirSync(path.join(project, 'node_modules', '@usertasks-ext'), { recursive: true })
+    symlinkSync(linked, path.join(project, 'node_modules', '@usertasks-ext', 'demo'), 'dir')
+    return { project, linked, cleanup: () => { rmSync(project, { recursive: true, force: true }); rmSync(linked, { recursive: true, force: true }) } }
+  }
+
+  it('mirrors a linked package into the project and imports the mirror (no transpilePackages)', () => {
+    const { project, cleanup } = fixture()
+    try {
+      const result = generateExtensionRegistry({ root: project, extensions: '@usertasks-ext/demo', platformVersion: '0.1.0' })
+      expect(result.extensions[0]).toMatchObject({ id: 'demo', manifest: `@/${LINKED_DIR}/demo/manifest`, pages: `@/${LINKED_DIR}/demo/pages`, packageName: null })
+      expect(result.transpilePackages).toEqual([])
+      const mirror = path.join(project, LINKED_DIR, 'demo')
+      expect(readFileSync(path.join(mirror, 'src', 'ui.tsx'), 'utf8')).toContain('grid-cols-7')
+      expect(existsSync(path.join(mirror, '.git'))).toBe(false)
+      expect(existsSync(path.join(mirror, 'node_modules'))).toBe(false)
+      expect(readFileSync(path.join(project, 'lib/extensions/generated/registry.client.ts'), 'utf8')).toContain(`import m0 from '@/${LINKED_DIR}/demo/manifest'`)
+      expect(readFileSync(path.join(project, 'lib/extensions/generated/extensions.css'), 'utf8')).toContain(`@source "../../../${LINKED_DIR}/demo";`)
+      // Regenerating without it removes the mirror (private code does not linger in the checkout).
+      generateExtensionRegistry({ root: project, extensions: '', platformVersion: '0.1.0' })
+      expect(existsSync(mirror)).toBe(false)
+    } finally {
+      cleanup()
+    }
+  })
+
+  it('does not mirror in check mode, and keeps the mirror in sync while watching', async () => {
+    const { project, linked, cleanup } = fixture()
+    try {
+      generateExtensionRegistry({ root: project, extensions: '@usertasks-ext/demo', platformVersion: '0.1.0', write: false })
+      expect(existsSync(path.join(project, LINKED_DIR))).toBe(false)
+      const result = generateExtensionRegistry({ root: project, extensions: '@usertasks-ext/demo', platformVersion: '0.1.0' })
+      const watchers = watchLinkedExtensions(result)
+      try {
+        writeFileSync(path.join(linked, 'src', 'ui.tsx'), 'export const x = <div className="grid-cols-9" />')
+        const target = path.join(project, LINKED_DIR, 'demo', 'src', 'ui.tsx')
+        for (let i = 0; i < 50 && !readFileSync(target, 'utf8').includes('grid-cols-9'); i++) await new Promise((r) => setTimeout(r, 50))
+        expect(readFileSync(target, 'utf8')).toContain('grid-cols-9')
+      } finally {
+        for (const w of watchers) w.close()
+      }
+    } finally {
+      cleanup()
+    }
+  })
+
+  it('imports an installed (real) package in place', () => {
+    const project = mkdtempSync(path.join(tmpdir(), 'ext-project-'))
+    try {
+      const dir = path.join(project, 'node_modules', '@usertasks-ext', 'demo')
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: '@usertasks-ext/demo', version: '1.0.0' }))
+      writeFileSync(path.join(dir, 'usertasks-extension.json'), JSON.stringify({ id: 'demo', version: '1.0.0', engines: { usertasks: '>=0.1.0' } }))
+      writeFileSync(path.join(dir, 'manifest.ts'), 'export default {}')
+      const result = generateExtensionRegistry({ root: project, extensions: '@usertasks-ext/demo', platformVersion: '0.1.0', write: false })
+      expect(result.extensions[0]).toMatchObject({ manifest: '@usertasks-ext/demo/manifest', packageName: '@usertasks-ext/demo' })
+      expect(result.extensions[0].linkedFrom).toBeUndefined()
+      expect(result.transpilePackages).toEqual(['@usertasks-ext/demo'])
+    } finally {
+      rmSync(project, { recursive: true, force: true })
+    }
   })
 })
 

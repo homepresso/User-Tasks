@@ -31,8 +31,9 @@ import { controlValueText } from '@/lib/forms/control-text'
 import { richTextPlainText, richTextTextKey } from '@/lib/forms/rich-text'
 import { mergeTaskFieldValuesChecked } from '@/lib/forms/task-values'
 import { choiceGroupKeys, sectionIncludedKeys } from '@/lib/forms/sections'
-import { formParamsMessage, hasFormContext, includedContextSchema, includedFormContext, layoutFormParams, serverFormContext, stripFormContext } from '@/lib/forms/form-params'
+import { FORM_PARAMS_KEY, paramsFromQuery, formParamsMessage, hasFormContext, includedContextSchema, includedFormContext, layoutFormParams, serverFormContext, stripFormContext } from '@/lib/forms/form-params'
 import { normalizeFormDefinition } from '@/lib/forms/definition'
+import { layoutDataTarget } from '@/lib/forms/data-target'
 import {
   interpolateButtonText, isSubmittingButton, normalizeFormButtons, planButtonEffects, resolveInputTemplate, safeRedirectUrl,
   type ButtonEffects, type FormAction, type FormButton,
@@ -69,6 +70,8 @@ export interface SubmitFormInput {
   params?: Record<string, unknown> | null
   /** The form's variables by name ({{var.<name>}}; else `values.__form_vars`): declared names only, typed, bounded. */
   variables?: Record<string, unknown> | null
+  /** Forms with a data target (lib/forms/data-target.ts): the record's version the page opened (an ETag), for the provider's concurrency check. */
+  target_version?: string | null
 }
 
 export interface StartedRun {
@@ -87,6 +90,8 @@ export interface SubmitFormResult {
   table_changes?: TableChangesSummary[]
   /** True when the idempotency key matched an earlier submission. */
   replayed?: boolean
+  /** Forms with a data target: the record the provider wrote. */
+  data_target?: { label: string; record: { id: string; label: string | null; url: string | null }; version: string | null }
 }
 
 /* ── Loading the form ────────────────────────────────────────────────── */
@@ -103,21 +108,27 @@ async function loadForm(db: AnySupabaseClient, tenantId: string, formId: string)
  * The form as its standalone page draws it: definition, resolved theme,
  * buttons (defaults when none are stored) and header. forms.submit.
  */
-export async function getSubmittableForm(ctx: ServiceContext, formId: string) {
+export async function getSubmittableForm(ctx: ServiceContext, formId: string, options: { query?: Record<string, string | string[] | undefined> | null } = {}) {
   requirePerm(ctx, 'forms.submit')
   const db = await serviceRoleClient(ctx)
   const row = await loadForm(db, ctx.tenantId, formId)
   const def = normalizeFormDefinition(row)
+  // A data target (lib/forms/data-target.ts): the provider loads the record the URL parameters name and refreshes external field properties.
+  const { prepareFormTarget } = await import('./form-targets')
+  const params = options.query && layoutDataTarget(def.layout) ? paramsFromQuery(layoutFormParams(def.layout), options.query) : null
+  // Public links never reach the provider (their submissions are refused for bound forms).
+  const prepared = isAnonymous(ctx) ? { fields: def.fields, state: null } : await prepareFormTarget(ctx, { id: String(row.id), name: String(row.name), version: Number(row.version), fields: def.fields, layout: def.layout }, params, 'render')
   return {
     id: String(row.id),
     name: String(row.name),
     description: (row.description ?? null) as string | null,
     version: Number(row.version),
-    fields: def.fields,
+    fields: prepared.fields,
     layout: def.layout,
     theme_overrides: await resolveThemeOverrides(db, ctx.tenantId, def.theme),
     buttons: normalizeFormButtons(def.buttons ?? null),
     header: def.header ?? null,
+    target: prepared.state,
   }
 }
 
@@ -413,10 +424,19 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     if (replay) return replay
   }
 
-  const values = await checkSubmissionValues(ctx, db, formId, def.fields, input.values, def.layout, input, button.id)
+  // A data target (lib/forms/data-target.ts): signed-in submitters only; the provider's current field properties (options …) are what the values are checked against.
+  const targetLayout = layoutDataTarget(def.layout)
+  if (targetLayout && anonymous) throw ServiceError.forbidden(`This form writes to ${targetLayout.label ?? 'an external system'} and can't be submitted from a public link`)
+  const targets = targetLayout ? await import('./form-targets') : null
+  const targetForm = { id: formId, name: String(row.name), version: Number(row.version ?? 0) || null, fields: def.fields, layout: def.layout }
+  const targetParams = isPlainObject(input.params) ? input.params : isPlainObject(input.values) ? (input.values as Record<string, unknown>)[FORM_PARAMS_KEY] : null
+  if (targets) targetForm.fields = (await targets.prepareFormTarget(ctx, targetForm, targetParams, 'submit')).fields
+  const values = await checkSubmissionValues(ctx, db, formId, targetForm.fields, input.values, def.layout, input, button.id)
   // Wizard forms: the response window and "one response per person" (lib/services/form-wizard-policy).
   const { assertWizardResponsePolicy } = await import('./form-wizard-policy')
   await assertWizardResponsePolicy(db, ctx.tenantId, formId, anonymous ? null : ctx.actorId)
+  // The record is written first: when the provider refuses (validation, a conflict) nothing is stored.
+  const written = targets ? await targets.submitFormTarget(ctx, targetForm, values, { params: targetParams, version: input.target_version ?? null }) : null
 
   const { data: inserted, error } = await (db as any).from('form_submissions').insert({
     tenant_id: ctx.tenantId,
@@ -456,9 +476,14 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     layout: def.layout,
   })
   const { runs, effects, table_changes } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id, fields: def.fields, layout: def.layout, context: shownContext(def.layout, input), submission: payload.submission as SubmissionMeta })
+  if (written) {
+    payload.data_target = { label: written.label, record: written.record }
+    if (written.message) effects.messages = [{ text: written.message, tone: 'success' }, ...effects.messages]
+  }
   const triggered = await enqueueFormSubmittedWorkflows(db, ctx.tenantId, payload, anonymous ? 'anonymous' : 'form')
-  await (db as any).from('form_submissions').update({ result: { runs, effects, triggered, ...(options.surface ? { surface: options.surface } : {}), ...(table_changes.length ? { table_changes } : {}) } }).eq('id', inserted.id).eq('tenant_id', ctx.tenantId)
-  return { submission: presentSubmission(inserted), effects, runs, ...(table_changes.length ? { table_changes } : {}) }
+  const dataTarget = written ? { label: written.label, record: written.record, version: written.version } : null
+  await (db as any).from('form_submissions').update({ result: { runs, effects, triggered, ...(options.surface ? { surface: options.surface } : {}), ...(table_changes.length ? { table_changes } : {}), ...(dataTarget ? { data_target: dataTarget } : {}) } }).eq('id', inserted.id).eq('tenant_id', ctx.tenantId)
+  return { submission: presentSubmission(inserted), effects, runs, ...(table_changes.length ? { table_changes } : {}), ...(dataTarget ? { data_target: dataTarget } : {}) }
 }
 
 /** A log line of a test submission (what the real one would have done). */

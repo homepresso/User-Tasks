@@ -5,7 +5,8 @@ import { fromMcpContext } from '@/lib/services/context'
 import { resolvePage } from '@/lib/services/_shared'
 import * as directory from '@/lib/services/directory-sync'
 import * as groups from '@/lib/services/directory-groups'
-import { DIRECTORY_CONNECTION_PROVIDERS, DIRECTORY_SYNC_PROVIDERS, SCIM_TOKEN_SCOPES } from '@/lib/api-schemas/directory-sync'
+import * as sources from '@/lib/services/directory-sources'
+import { DIRECTORY_CONNECTION_PROVIDERS, DIRECTORY_ENTRY_STATUSES, DIRECTORY_SYNC_PROVIDERS, SCIM_TOKEN_SCOPES, directorySourceId } from '@/lib/api-schemas/directory-sync'
 import { messageOf } from './_util'
 
 /*
@@ -83,6 +84,22 @@ export function registerDirectorySyncTools(server: McpToolServer, ctx: McpContex
     limit: z.number().optional().describe('Page size (1-100, default 50; 0 = no limit)'),
     offset: z.number().optional(),
   }, async (args) => run(() => directory.listDirectorySyncRuns(svc(), resolvePage(args), { provider: args.provider })))
+
+  server.tool('directory_sources_list', 'List directory sources contributed by extensions (e.g. SharePoint site groups and people) with availability, sync state and counts: linked_users (people with an account), pending_entries (waiting for their first sign-in: no account or licence seat yet) and groups (read-only teams).', {},
+    async () => run(() => sources.listDirectorySourceViews(svc())))
+
+  server.tool('directory_source_entries', 'List the people a directory source lists (pending first sign-in, linked to an account, or inactive) with their match keys (e-mail / UPN), external login names and source groups.', {
+    source: directorySourceId.describe('Directory source id, e.g. ext.sharepoint.directory'),
+    status: z.enum(DIRECTORY_ENTRY_STATUSES).optional(),
+    search: z.string().max(100).optional().describe('Matches display names'),
+    limit: z.number().int().min(0).optional(),
+    offset: z.number().int().min(0).optional(),
+  }, async (args) => run(() => sources.listDirectorySourceEntries(svc(), args.source, resolvePage(args), { status: args.status ?? null, search: args.search ?? null })))
+
+  server.tool('directory_source_sync', 'Sync a directory source now (background run; see directory_sync_runs_list). full: ignore the source\'s change log and read everything.', {
+    source: directorySourceId.describe('Directory source id, e.g. ext.sharepoint.directory'),
+    full: z.boolean().optional().describe('Force a full sync'),
+  }, async (args) => run(() => sources.startDirectorySourceSync(svc(), args.source, { full: args.full })))
 
   server.tool('directory_capabilities', 'What the directory connections make available to workflows: entraGroups (an enabled Entra ID connection — User Task nodes may use assignment_type aad_group) and syncedGroups (groups are also synced as teams).', {},
     async () => run(() => groups.getDirectoryCapabilities(svc())))

@@ -43,6 +43,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Linked extension packages mirrored for development (lib/extensions/build/codegen.ts).
+    ".usertasks-ext/**",
     // Built package output (npm workspaces).
     "packages/*/dist/**",
     // Gallery form controls: bundled modules and their own npm project.

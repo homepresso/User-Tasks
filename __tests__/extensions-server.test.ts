@@ -32,7 +32,8 @@ import { registerExtensionsForTest, resetExtensionsForTest } from '@/lib/extensi
 import { setEntitlementPort } from '@/lib/extensions/entitlement-port'
 import { extensionAccess, invalidateTenantExtensions } from '@/lib/extensions/state'
 import { startExtensionTrigger, invalidateExtensionTriggerCache } from '@/lib/extensions/triggers'
-import { dispatchExtensionApi, dispatchPublicRoute, extensionEndpointDefs, matchPath } from '@/lib/extensions/api'
+import { dispatchExtensionApi, dispatchPublicRoute, extensionEndpointDefs, matchPath, publicRate } from '@/lib/extensions/api'
+import { createExtensionContext } from '@/lib/extensions/host'
 import { extensionJobDefinitions, dispatchExtensionEvents } from '@/lib/extensions/jobs'
 import { extensionCatalogEntry, extensionNodeCatalog, isExtensionTriggerType } from '@/lib/extensions/nodes'
 import { runExtensionNode } from '@/lib/extensions/node-runtime'
@@ -189,11 +190,39 @@ describe('generic trigger API with dedupe', () => {
     seed()
     await expect(startExtensionTrigger({ tenantId: TENANT, extensionId: 'example-hello', key: 'nope', payload: {} })).rejects.toThrow(/no trigger/)
   })
+
+  it('starts one chosen workflow without matches() (a person starting it on a record)', async () => {
+    const mem = seed({ workflows: [workflow('w1'), workflow('w2', 'grace')], extension_trigger_dedupe: [] })
+    const result = await startExtensionTrigger({ tenantId: TENANT, extensionId: 'example-hello', key: 'greeting_received', payload: { greeting_name: 'Ada' }, workflowId: 'w2' })
+    expect(result).toEqual({ started: 1, duplicate: false })
+    expect(mem.rpcCalls.map((c: any) => c.args.p_workflow_id)).toEqual(['w2'])
+    const none = await startExtensionTrigger({ tenantId: TENANT, extensionId: 'example-hello', key: 'greeting_received', payload: {}, workflowId: 'not-a-listener' })
+    expect(none.started).toBe(0)
+  })
+
+  it('forWorkspace: instance contexts only, and only where the extension is usable', async () => {
+    seed()
+    const instance = createExtensionContext({ extensionId: 'example-hello', tenantId: null })
+    const scoped = await instance.forWorkspace(TENANT)
+    expect(scoped.tenantId).toBe(TENANT)
+    expect(scoped.actorId).toBeNull()
+    await expect(instance.forWorkspace(OTHER)).rejects.toMatchObject({ status: 403 })
+    await expect(instance.forWorkspace('not-a-uuid')).rejects.toMatchObject({ status: 400 })
+    await expect(scoped.forWorkspace(OTHER)).rejects.toThrow(/instance-level/)
+  })
 })
 
 function authAs(permissions: string[], tenantId = TENANT) {
   apiAuth.result = { success: true, tenantId, keyType: 'user', keyId: 'k1', userId: USER, permissions, supabase: db.current, scopes: { workflow_ids: [], table_ids: [] } }
 }
+
+describe('public route rate limits', () => {
+  it('uses the route rate within bounds, else the default', () => {
+    expect(publicRate({})).toEqual({ max: 120, windowMs: 60_000 })
+    expect(publicRate({ rateLimit: { max: 600, windowMs: 60_000 } })).toEqual({ max: 600, windowMs: 60_000 })
+    expect(publicRate({ rateLimit: { max: 1e9, windowMs: 1 } })).toEqual({ max: 6000, windowMs: 1000 })
+  })
+})
 
 describe('REST endpoints (/api/v1/ext/<id>/…)', () => {
   it('matches OpenAPI-style paths', () => {

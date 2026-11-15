@@ -28,13 +28,21 @@ import { createMemorySupabase } from './fixtures/supabase-memory'
 /* eslint-disable @typescript-eslint/no-explicit-any -- memory rows */
 
 function withRpc(db: any) {
+  // claim_next_agent_job is atomic in Postgres (FOR UPDATE SKIP LOCKED); the
+  // worker claims from several workers at once, so claims are serialised here.
+  let claims: Promise<unknown> = Promise.resolve()
+  const claim = async (args: any) => {
+    const { data: jobs } = await db.from('agent_queue').select('*').eq('status', 'pending')
+    const job = (jobs ?? [])[0]
+    if (!job) return { data: null, error: null }
+    const { data } = await db.from('agent_queue').update({ status: 'processing', attempts: (job.attempts ?? 0) + 1, locked_by: args.p_worker_id }).eq('id', job.id).select('*').single()
+    return { data, error: null }
+  }
   db.rpc = async (name: string, args: any) => {
     if (name === 'claim_next_agent_job') {
-      const { data: jobs } = await db.from('agent_queue').select('*').eq('status', 'pending')
-      const job = (jobs ?? [])[0]
-      if (!job) return { data: null, error: null }
-      const { data } = await db.from('agent_queue').update({ status: 'processing', attempts: (job.attempts ?? 0) + 1, locked_by: args.p_worker_id }).eq('id', job.id).select('*').single()
-      return { data, error: null }
+      const next = claims.then(() => claim(args))
+      claims = next.catch(() => {})
+      return next
     }
     if (name === 'complete_agent_job') {
       await db.from('agent_queue').update({ status: 'completed', result: args.p_result, run_id: args.p_run_id }).eq('id', args.p_job_id)

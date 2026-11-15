@@ -20,6 +20,10 @@ interface QueryBuilder extends PromiseLike<Result> {
   delete(): QueryBuilder
   eq(col: string, val: unknown): QueryBuilder
   neq(col: string, val: unknown): QueryBuilder
+  lt(col: string, val: unknown): QueryBuilder
+  lte(col: string, val: unknown): QueryBuilder
+  gt(col: string, val: unknown): QueryBuilder
+  gte(col: string, val: unknown): QueryBuilder
   in(col: string, vals: unknown[]): QueryBuilder
   is(col: string, val: unknown): QueryBuilder
   ilike(col: string, pattern: string): QueryBuilder
@@ -142,6 +146,10 @@ export function createFakeSupabase(seed: Record<string, Row[]> = {}): FakeSupaba
       delete() { op = 'delete'; return api },
       eq(col: string, val: unknown) { filters.push((r) => columnValue(r, col) === val); return api },
       neq(col: string, val: unknown) { filters.push((r) => r[col] !== val); return api },
+      lt(col: string, val: unknown) { filters.push((r) => (r[col] as any) < (val as any)); return api },
+      lte(col: string, val: unknown) { filters.push((r) => (r[col] as any) <= (val as any)); return api },
+      gt(col: string, val: unknown) { filters.push((r) => (r[col] as any) > (val as any)); return api },
+      gte(col: string, val: unknown) { filters.push((r) => (r[col] as any) >= (val as any)); return api },
       in(col: string, vals: unknown[]) { filters.push((r) => vals.includes(r[col])); return api },
       is(col: string, val: unknown) { filters.push((r) => (r[col] ?? null) === val); return api },
       ilike(col: string, pattern: string) {

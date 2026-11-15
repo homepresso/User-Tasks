@@ -14,6 +14,15 @@ auth provider, and runs under any scheduler.
 | Google Workspace | `google` | Admin SDK Directory API, domain-wide delegation | — | — | — | native |
 | SCIM 2.0, pushed by your IdP | `scim` | inbound `/scim/v2`, bearer token per workspace | yes, with an IdP that speaks SCIM | yes | yes: Entra provisioning | yes |
 
+Extensions can add **directory sources** of their own (for example the
+SharePoint Server extension's SharePoint site groups): their people and
+groups go through the same pipeline under the source id
+`ext.<extension>.<key>`. Groups become read-only teams; people without an
+account are listed as pending and become users at their first single
+sign-on, with no invitation and no licence seat before. See
+[contribution points](/docs/developers/extensions/contribution-points#directory-sources)
+and `GET /api/v1/directory-sync/sources`.
+
 ## When to pick which
 
 - **Your IdP pushes SCIM** (Entra ID, Okta, Keycloak with a plugin): the

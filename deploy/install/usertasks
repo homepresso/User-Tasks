@@ -1,0 +1,992 @@
+#!/bin/sh
+# usertasks-host-wrapper: the `usertasks` command of a one-line (Docker) install.
+#
+#   usertasks status                       version, containers, health, setup state
+#   usertasks logs [-f] [--tail N] [svc]   container logs (docker compose logs)
+#   usertasks backup [--out <dir>]         database dump + files + .env, in backups/
+#   usertasks restore <backup|latest> [--yes]
+#   usertasks upgrade [--to <version>] [--yes] [--skip-backup] [--allow-downgrade] [--build]
+#   usertasks config [--preset <name>] [--force]   re-run the service choices
+#   usertasks setup-code                   a new first-run setup code for /setup
+#   usertasks admin <args…>                usertasks-admin inside the app container
+#   usertasks start | stop | restart
+#   usertasks uninstall [--purge] [--yes]  stop and remove (data kept unless --purge)
+#   usertasks version | help
+#   usertasks cli <args…>                  the UserTasks CLI (npm @user-tasks/cli), if installed
+#
+# Any other command is passed to the UserTasks CLI when it is installed.
+# Docs: /docs/self-hosting/install and /docs/self-hosting/upgrade.
+set -eu
+
+WRAPPER_MARK="usertasks-host-wrapper"
+DEFAULT_RELEASE_BASE="https://github.com/homepresso/User-Tasks/releases"
+# Pinned by digest: verifies signatures where neither OpenSSL 3 nor Node.js is on the host.
+VERIFY_IMAGE="node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a"
+PG_CLIENT_IMAGE="postgres:17-alpine"
+
+# ── output and prompts ──────────────────────────────────────────────────────
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then B=$(printf '\033[1m'); G=$(printf '\033[32m'); Y=$(printf '\033[33m'); R=$(printf '\033[31m'); N=$(printf '\033[0m'); else B=""; G=""; Y=""; R=""; N=""; fi
+say() { printf '%s\n' "$*"; }
+step() { printf '%s==>%s %s\n' "$B" "$N" "$*"; }
+ok() { printf '  %sok%s  %s\n' "$G" "$N" "$*"; }
+warn() { printf '%swarning:%s %s\n' "$Y" "$N" "$*" >&2; }
+die() { printf '%susertasks:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
+
+interactive() {
+  [ "${USERTASKS_NONINTERACTIVE:-0}" != 1 ] || return 1
+  [ -r /dev/tty ] && [ -w /dev/tty ] && (: < /dev/tty) 2>/dev/null
+}
+
+# ask <prompt> <default>: prints the answer (the default when not interactive).
+ask() {
+  if ! interactive; then printf '%s' "$2"; return; fi
+  if [ -n "$2" ]; then printf '%s [%s]: ' "$1" "$2" > /dev/tty; else printf '%s: ' "$1" > /dev/tty; fi
+  IFS= read -r _ans < /dev/tty || _ans=""
+  [ -n "$_ans" ] || _ans="$2"
+  printf '%s' "$_ans"
+}
+
+# ask_secret <prompt>: no echo.
+ask_secret() {
+  interactive || { printf ''; return; }
+  printf '%s: ' "$1" > /dev/tty
+  stty -echo < /dev/tty 2>/dev/null || true
+  IFS= read -r _ans < /dev/tty || _ans=""
+  stty echo < /dev/tty 2>/dev/null || true
+  printf '\n' > /dev/tty
+  printf '%s' "$_ans"
+}
+
+# confirm <prompt> <default y|n>
+confirm() {
+  [ "${ASSUME_YES:-0}" = 1 ] && return 0
+  if ! interactive; then [ "$2" = y ]; return; fi
+  _d=$( [ "$2" = y ] && echo "Y/n" || echo "y/N" )
+  printf '%s [%s] ' "$1" "$_d" > /dev/tty
+  IFS= read -r _ans < /dev/tty || _ans=""
+  [ -n "$_ans" ] || _ans="$2"
+  case "$_ans" in [Yy]*) return 0 ;; *) return 1 ;; esac
+}
+
+# ── small helpers ───────────────────────────────────────────────────────────
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+rand_hex() {
+  if have openssl; then openssl rand -hex "$1"; else od -An -tx1 -N "$1" /dev/urandom | tr -d ' \n'; fi
+}
+
+# XXXX-XXXX-XXXX from the setup-code alphabet (lib/setup/code.ts; 256 % 32 = 0, so unbiased).
+gen_setup_code() {
+  od -An -tu1 -N12 /dev/urandom | tr -s ' ' '\n' | grep -v '^$' | awk '
+    BEGIN { a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" }
+    { s = s substr(a, ($1 % 32) + 1, 1) }
+    END { print substr(s, 1, 4) "-" substr(s, 5, 4) "-" substr(s, 9, 4) }'
+}
+
+sha256_of() {
+  if have sha256sum; then sha256sum "$1" | cut -d' ' -f1
+  elif have shasum; then shasum -a 256 "$1" | cut -d' ' -f1
+  else openssl dgst -sha256 -r "$1" | cut -d' ' -f1; fi
+}
+
+http_get() { # <url> <file>
+  if have curl; then curl -fsSL --retry 3 --connect-timeout 20 -o "$2" "$1"
+  elif have wget; then wget -q -O "$2" "$1"
+  else die "curl or wget is needed to download releases"; fi
+}
+
+http_ok() { # <url>: true on a 2xx answer
+  if have curl; then curl -fsS -o /dev/null --max-time 5 "$1" 2>/dev/null
+  else wget -q -T 5 -O /dev/null "$1" 2>/dev/null; fi
+}
+
+port_busy() {
+  if have nc; then nc -z 127.0.0.1 "$1" >/dev/null 2>&1
+  elif have lsof; then lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
+  elif have ss; then ss -Hltn "sport = :$1" 2>/dev/null | grep -q .
+  elif [ -r /proc/net/tcp ]; then
+    # Listening sockets (state 0A) on the port, IPv4 and IPv6.
+    _hex=$(printf '%04X' "$1")
+    cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | awk -v p=":$_hex" '$4 == "0A" && substr($2, length($2) - 4) == p { f = 1 } END { exit !f }'
+  else return 1; fi
+}
+
+now_stamp() { date -u +%Y%m%dT%H%M%SZ; }
+
+# version_cmp a b → prints -1, 0 or 1 (numeric dotted parts; a pre-release suffix sorts first).
+version_cmp() {
+  awk -v a="$1" -v b="$2" 'function split_v(v, p, s) { s = v; sub(/-.*/, "", s); return split(s, p, ".") }
+  BEGIN {
+    na = split_v(a, pa); nb = split_v(b, pb); n = na > nb ? na : nb
+    for (i = 1; i <= n; i++) { x = pa[i] + 0; y = pb[i] + 0; if (x < y) { print -1; exit } if (x > y) { print 1; exit } }
+    ra = index(a, "-") > 0; rb = index(b, "-") > 0
+    if (ra && !rb) { print -1; exit } if (!ra && rb) { print 1; exit }
+    if (a < b) { print -1; exit } if (a > b) { print 1; exit } print 0 }'
+}
+
+valid_version() { printf '%s' "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; }
+
+# ── env files (KEY=value lines; never sourced) ──────────────────────────────
+
+env_get() { # <key> <file>
+  [ -f "$2" ] || return 0
+  sed -n "s/^$1=//p" "$2" | tail -n 1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"
+}
+
+env_has() { [ -f "$2" ] && grep -q "^$1=" "$2"; }
+
+env_set() { # <key> <value> <file>: replace or append, atomically, keeping the mode
+  _tmp="$3.tmp.$$"
+  (umask 077; : > "$_tmp")
+  if [ -f "$3" ]; then
+    awk -v k="$1" -v v="$2" 'BEGIN { done = 0 } index($0, k "=") == 1 { if (!done) print k "=" v; done = 1; next } { print } END { if (!done) print k "=" v }' "$3" > "$_tmp"
+  else
+    printf '%s=%s\n' "$1" "$2" > "$_tmp"
+  fi
+  mv "$_tmp" "$3"
+}
+
+# ── install state ───────────────────────────────────────────────────────────
+
+resolve_dir() {
+  if [ -n "${USERTASKS_DIR:-}" ]; then DIR="$USERTASKS_DIR"
+  else
+    _self=$0
+    while [ -L "$_self" ]; do
+      _t=$(readlink "$_self"); case "$_t" in /*) _self="$_t" ;; *) _self="$(dirname "$_self")/$_t" ;; esac
+    done
+    DIR=$(cd "$(dirname "$_self")/.." 2>/dev/null && pwd) || DIR=""
+  fi
+  [ -n "$DIR" ] && [ -f "$DIR/state.env" ] || die "no UserTasks install found (looked in ${DIR:-?}; set USERTASKS_DIR)"
+}
+
+load_state() {
+  STATE="$DIR/state.env"; ENV_FILE="$DIR/.env"
+  VERSION=$(env_get USERTASKS_VERSION "$STATE")
+  IMAGE=$(env_get USERTASKS_IMAGE "$STATE")
+  PROJECT=$(env_get USERTASKS_PROJECT "$STATE")
+  PRESET=$(env_get USERTASKS_PRESET "$STATE")
+  PROFILES=$(env_get USERTASKS_COMPOSE_PROFILES "$STATE")
+  RELEASE_BASE=${USERTASKS_RELEASE_BASE:-$(env_get USERTASKS_RELEASE_BASE "$STATE")}
+  RELEASE_BASE=${RELEASE_BASE:-$DEFAULT_RELEASE_BASE}
+  REL="$DIR/releases/$VERSION"
+  PORT=$(env_get APP_PORT "$ENV_FILE"); PORT=${PORT:-3000}
+  APP_URL=$(env_get APP_URL "$ENV_FILE"); APP_URL=${APP_URL:-http://localhost:$PORT}
+}
+
+lock() {
+  mkdir "$DIR/.lock" 2>/dev/null || die "another usertasks command is running (remove $DIR/.lock if not)"
+  trap 'rmdir "$DIR/.lock" 2>/dev/null || true' EXIT INT TERM
+}
+
+# ── docker compose ──────────────────────────────────────────────────────────
+
+# dc_for <release dir> <image> <compose args…>
+dc_for() {
+  _rel=$1; _img=$2; shift 2
+  set -- --project-directory "$_rel" -f "$_rel/docker-compose.yml" --env-file "$ENV_FILE" "$@"
+  for _p in $(printf '%s' "$PROFILES" | tr ',' ' '); do set -- --profile "$_p" "$@"; done
+  USERTASKS_ENV_FILE="$ENV_FILE" USERTASKS_IMAGE="$_img" docker compose -p "$PROJECT" "$@"
+}
+dc() { dc_for "$REL" "$IMAGE" "$@"; }
+
+uses_bundled_postgres() { printf ',%s,' "$PROFILES" | grep -q ',standalone,'; }
+
+app_running() { [ -n "$(dc ps -q --status running app 2>/dev/null)" ]; }
+
+# admin <args…>: usertasks-admin in the running app container, else a one-off one.
+admin() {
+  if app_running; then dc exec -T app node admin.cjs "$@"
+  else dc run --rm --no-deps -T app node admin.cjs "$@"; fi
+}
+
+wait_healthy() { # <seconds>
+  _deadline=$(( $(date +%s) + $1 ))
+  while [ "$(date +%s)" -lt "$_deadline" ]; do
+    http_ok "http://127.0.0.1:$PORT/api/config/public" && return 0
+    sleep 3
+  done
+  return 1
+}
+
+# The app container runs <image> (resolved to an id on both sides).
+running_image_is() {
+  _cid=$(dc ps -q app 2>/dev/null | head -n 1); [ -n "$_cid" ] || return 1
+  _want=$(docker image inspect --format '{{.Id}}' "$1" 2>/dev/null) || return 1
+  [ "$(docker inspect --format '{{.Image}}' "$_cid" 2>/dev/null)" = "$_want" ]
+}
+
+ensure_image() { # <image> [allow build: 1] [version]
+  if docker image inspect "$1" >/dev/null 2>&1; then ok "image $1 is present"; return 0; fi
+  step "Pulling $1"
+  if docker pull "$1"; then return 0; fi
+  [ "${2:-0}" = 1 ] || die "could not pull $1. Check the network (and that the image is public), or re-run with --build to build it locally (about 10 GB of memory for Docker)."
+  build_image_from_source "${3:-$VERSION}"
+}
+
+build_image_from_source() { # <version>: sets BUILT_IMAGE
+  have git || die "building locally needs git"
+  _mem=$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo 0)
+  if [ "$_mem" -lt 9500000000 ] 2>/dev/null; then
+    warn "Docker has $((_mem / 1073741824)) GB of memory; the build needs about 10 GB and may be killed part-way."
+    confirm "Build anyway?" n || die "not building"
+  fi
+  _src="$DIR/build/usertasks-$1"; rm -rf "$_src"; mkdir -p "$DIR/build"
+  step "Building UserTasks $1 from source (10 to 20 minutes)"
+  git clone --depth 1 --branch "v$1" "${USERTASKS_SOURCE_REPO:-https://github.com/homepresso/User-Tasks.git}" "$_src"
+  BUILT_IMAGE="usertasks:$1-local"
+  docker build -t "$BUILT_IMAGE" --build-arg GIT_COMMIT="$(git -C "$_src" rev-parse HEAD)" "$_src"
+  rm -rf "$_src"
+}
+
+# ── releases: download and verify ──────────────────────────────────────────
+
+openssl3() {
+  for _o in openssl /opt/homebrew/opt/openssl@3/bin/openssl /usr/local/opt/openssl@3/bin/openssl; do
+    if have "$_o" && "$_o" version 2>/dev/null | grep -Eq '^OpenSSL ([3-9]|[1-9][0-9])\.'; then printf '%s' "$_o"; return 0; fi
+  done
+  return 1
+}
+
+# verify_sig <data> <sig> <public key pem>: ed25519 over the raw bytes.
+verify_sig() {
+  if _o=$(openssl3); then "$_o" pkeyutl -verify -pubin -inkey "$3" -rawin -in "$1" -sigfile "$2" >/dev/null 2>&1; return; fi
+  _js='const c=require("crypto"),f=require("fs");const [d,s,k]=process.argv.slice(-3);process.exit(c.verify(null,f.readFileSync(d),c.createPublicKey(f.readFileSync(k)),f.readFileSync(s))?0:1)'
+  if have node && node -e 'process.exit(+process.versions.node.split(".")[0] >= 16 ? 0 : 1)' 2>/dev/null; then node -e "$_js" "$1" "$2" "$3"; return; fi
+  _vd=$(mktemp -d "$DIR/.verify.XXXXXX"); cp "$1" "$_vd/d"; cp "$2" "$_vd/s"; cp "$3" "$_vd/k"
+  docker run --rm --network none -v "$_vd:/v:ro" "$VERIFY_IMAGE" node -e "$_js" /v/d /v/s /v/k; _rc=$?
+  rm -rf "$_vd"; return $_rc
+}
+
+latest_version() {
+  _f="$DIR/.latest.json"
+  http_get "$RELEASE_BASE/latest/download/release.json" "$_f" || die "could not read the latest release from $RELEASE_BASE"
+  _v=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$_f" | head -n 1); rm -f "$_f"
+  valid_version "$_v" || die "the latest release has no valid version"
+  printf '%s' "$_v"
+}
+
+# fetch_release <version>: download, verify and unpack into releases/<version>.
+fetch_release() {
+  _v=$1; _dest="$DIR/releases/$_v"
+  if [ -f "$_dest/manifest.json" ] && [ -f "$_dest/.verified" ]; then ok "release $_v already downloaded and verified"; return 0; fi
+  _key="$DIR/release-key.pub.pem"
+  [ -s "$_key" ] || die "no release signing key in $_key: re-run the installer"
+  _dl="$DIR/releases/.download-$_v"; rm -rf "$_dl"; mkdir -p "$_dl"
+  _url="$RELEASE_BASE/download/v$_v"
+  _bundle="usertasks-$_v.tar.gz"
+  step "Downloading UserTasks $_v"
+  http_get "$_url/SHA256SUMS" "$_dl/SHA256SUMS" || die "release v$_v not found at $_url"
+  http_get "$_url/SHA256SUMS.sig" "$_dl/SHA256SUMS.sig" || die "release v$_v has no SHA256SUMS.sig"
+  verify_sig "$_dl/SHA256SUMS" "$_dl/SHA256SUMS.sig" "$_key" || die "signature check FAILED for v$_v: SHA256SUMS was not signed by the UserTasks release key. Nothing was changed."
+  ok "signature of SHA256SUMS"
+  _want=$(awk -v f="$_bundle" '$2 == f || $2 == "*" f { print $1 }' "$_dl/SHA256SUMS")
+  [ -n "$_want" ] || die "SHA256SUMS does not list $_bundle"
+  http_get "$_url/$_bundle" "$_dl/$_bundle" || die "could not download $_bundle"
+  [ "$(sha256_of "$_dl/$_bundle")" = "$_want" ] || die "checksum mismatch for $_bundle: the download is damaged or was changed. Nothing was changed."
+  ok "checksum of $_bundle"
+  mkdir -p "$_dl/x"; tar -xzf "$_dl/$_bundle" -C "$_dl/x"
+  [ -f "$_dl/x/usertasks-$_v/manifest.json" ] || die "$_bundle has no manifest.json"
+  _mv=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$_dl/x/usertasks-$_v/manifest.json" | head -n 1)
+  [ "$_mv" = "$_v" ] || die "$_bundle is version $_mv, not $_v"
+  cp "$_dl/SHA256SUMS" "$_dl/SHA256SUMS.sig" "$_dl/x/usertasks-$_v/"
+  : > "$_dl/x/usertasks-$_v/.verified"
+  rm -rf "$_dest"; mv "$_dl/x/usertasks-$_v" "$_dest"; rm -rf "$_dl"
+}
+
+manifest_get() { # <release dir> <key>
+  sed -n "s/.*\"$2\": *\"\([^\"]*\)\".*/\1/p" "$1/manifest.json" | head -n 1
+}
+
+# The image a release runs: USERTASKS_IMAGE overrides; else image@digest when the manifest pins one.
+release_image() {
+  if [ -n "${USERTASKS_IMAGE_OVERRIDE:-}" ]; then printf '%s' "$USERTASKS_IMAGE_OVERRIDE"; return; fi
+  _i=$(manifest_get "$1" image); _d=$(manifest_get "$1" imageDigest)
+  if [ -n "$_d" ]; then printf '%s@%s' "$_i" "$_d"; else printf '%s' "$_i"; fi
+}
+
+# ── service choices (the install profile) ───────────────────────────────────
+# The answers become an install profile (docs/install-profile.md): images with
+# `usertasks-admin install profile` validate it, check external services and
+# write the settings; older images fall back to the same mapping here, which
+# matches deploy/compose/standalone.env.example. Docker installs use placement
+# "env": the containers (app, worker, migrate) all read the same .env.
+
+profile_cli_available() { # <image>
+  docker run --rm --network none --entrypoint node "$1" admin.cjs --help 2>/dev/null | grep -q 'usertasks-admin install presets'
+}
+
+choose_preset() {
+  _cur=${1:-standalone}
+  if [ -n "${USERTASKS_PRESET_CHOICE:-}" ]; then printf '%s' "$USERTASKS_PRESET_CHOICE"; return; fi
+  if interactive; then
+    {
+      say ""
+      say "${B}Which services should UserTasks use?${N}"
+      say "  1) Everything in containers (recommended): PostgreSQL, file storage (MinIO), email test inbox, worker"
+      say "  2) Your own PostgreSQL server; the rest in containers"
+      say "  3) A Supabase project (database, sign-in, files) with the app in a container"
+      say "  4) Custom: choose each service"
+    } > /dev/tty
+  fi
+  case "$_cur" in standalone) _n=1 ;; postgres) _n=2 ;; supabase) _n=3 ;; *) _n=4 ;; esac
+  case "$(ask "Choose 1-4" "$_n")" in
+    1|standalone) echo standalone ;; 2|postgres) echo postgres ;; 3|supabase) echo supabase ;; 4|custom) echo custom ;;
+    *) die "unknown choice" ;;
+  esac
+}
+
+# ask_profile: sets PRESET, PROFILES and the A_* answers.
+ask_profile() {
+  PRESET=$(choose_preset "${PRESET:-standalone}")
+  PROFILES=standalone; A_DB=bundled; A_DB_URL=""; A_STORAGE=minio; A_EMAIL=mailpit
+  A_S3_ENDPOINT=""; A_S3_REGION=us-east-1; A_S3_KEY=""; A_S3_SECRET=""
+  A_SMTP_HOST=""; A_SMTP_PORT=587; A_SMTP_USER=""; A_SMTP_PASS=""; A_FROM="UserTasks <noreply@usertasks.local>"
+  A_SB_URL=""; A_SB_ANON=""; A_SB_SERVICE=""
+  case "$PRESET" in
+    standalone) : ;;
+    postgres) ask_database_url ;;
+    supabase)
+      PROFILES=""; A_DB=supabase; A_STORAGE=supabase; A_EMAIL=console
+      A_SB_URL=$(ask "Supabase project URL (https://<ref>.supabase.co)" "${USERTASKS_SUPABASE_URL:-}"); [ -n "$A_SB_URL" ] || die "a Supabase URL is required"
+      A_SB_ANON=${USERTASKS_SUPABASE_ANON_KEY:-$(ask_secret "Supabase anon (publishable) key")}
+      A_SB_SERVICE=${USERTASKS_SUPABASE_SERVICE_ROLE_KEY:-$(ask_secret "Supabase service role (secret) key")}
+      [ -n "$A_SB_ANON" ] && [ -n "$A_SB_SERVICE" ] || die "the Supabase keys are required"
+      A_DB_URL=${USERTASKS_DATABASE_URL:-$(ask_secret "Database connection string (Project settings → Database; used for migrations and backups)")}
+      [ -n "$A_DB_URL" ] || die "the database connection string is required (migrations and backups use it)"
+      if interactive; then say "Email: set up Resend, SMTP or Microsoft 365 later in Settings → Infrastructure (until then emails go to the log)." > /dev/tty; fi
+      ;;
+    custom)
+      case "$(ask "Database: 1) PostgreSQL in a container  2) your own PostgreSQL" 1)" in 2) ask_database_url ;; esac
+      case "$(ask "Files: 1) MinIO in a container  2) your S3-compatible bucket" 1)" in
+        2) A_STORAGE=s3; A_S3_ENDPOINT=$(ask "S3 endpoint (blank for AWS S3)" ""); A_S3_REGION=$(ask "S3 region" us-east-1)
+           A_S3_KEY=$(ask "S3 access key id" ""); A_S3_SECRET=$(ask_secret "S3 secret access key") ;;
+      esac
+      case "$(ask "Email: 1) test inbox in a container (Mailpit)  2) your SMTP relay" 1)" in
+        2) A_EMAIL=smtp; A_SMTP_HOST=$(ask "SMTP host" ""); A_SMTP_PORT=$(ask "SMTP port" 587); A_FROM=$(ask "From address" "UserTasks <tasks@example.com>")
+           A_SMTP_USER=$(ask "SMTP user (blank for none)" ""); [ -z "$A_SMTP_USER" ] || A_SMTP_PASS=$(ask_secret "SMTP password") ;;
+      esac
+      if interactive; then say "Sign-in: built-in accounts. Add SSO (Entra ID, AD FS, OIDC, SAML) later in Settings → Infrastructure." > /dev/tty; fi
+      ;;
+  esac
+}
+
+ask_database_url() {
+  A_DB=own
+  A_DB_URL=${USERTASKS_DATABASE_URL:-$(ask_secret "PostgreSQL connection string (postgresql://user:password@host:5432/db)")}
+  case "$A_DB_URL" in postgres://*|postgresql://*) : ;; *) die "expected a postgresql:// connection string" ;; esac
+}
+
+json_str() { printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"; }
+
+# The install profile (docs/install-profile.md) for the answers; secrets come from .env.
+write_profile_json() {
+  _pg=$(env_get POSTGRES_PASSWORD "$ENV_FILE")
+  case "$A_DB" in
+    bundled) _db="{ \"provider\": \"postgres\", \"hosting\": \"bundled\", \"host\": \"postgres\", \"port\": 5432, \"database\": \"usertasks\", \"user\": \"usertasks\", \"password\": $(json_str "$_pg"), \"sslmode\": \"disable\" }" ;;
+    own) _db="{ \"provider\": \"postgres\", \"hosting\": \"own\", \"url\": $(json_str "$A_DB_URL") }" ;;
+    supabase) _db="{ \"provider\": \"supabase\", \"url\": $(json_str "$A_DB_URL") }" ;;
+  esac
+  case "$A_STORAGE" in
+    minio) _st="{ \"provider\": \"s3\", \"options\": { \"endpoint\": \"http://minio:9000\", \"region\": \"us-east-1\", \"access_key_id\": \"usertasks\", \"secret_access_key\": $(json_str "$(env_get S3_SECRET_ACCESS_KEY "$ENV_FILE")"), \"force_path_style\": \"true\" } }" ;;
+    s3) _st="{ \"provider\": \"s3\", \"options\": { \"endpoint\": $(json_str "$A_S3_ENDPOINT"), \"region\": $(json_str "$A_S3_REGION"), \"access_key_id\": $(json_str "$A_S3_KEY"), \"secret_access_key\": $(json_str "$A_S3_SECRET"), \"force_path_style\": \"$( [ -n "$A_S3_ENDPOINT" ] && echo true || echo false )\" } }" ;;
+    supabase) _st='{ "provider": "supabase" }' ;;
+  esac
+  case "$A_EMAIL" in
+    mailpit) _em="{ \"provider\": \"smtp\", \"smtpPreset\": \"mailpit\", \"options\": { \"smtp_host\": \"mailpit\", \"smtp_port\": \"1025\", \"from\": $(json_str "$A_FROM") } }" ;;
+    smtp) _em="{ \"provider\": \"smtp\", \"options\": { \"smtp_host\": $(json_str "$A_SMTP_HOST"), \"smtp_port\": $(json_str "$A_SMTP_PORT"), \"from\": $(json_str "$A_FROM")$( [ -n "$A_SMTP_USER" ] && printf ', "smtp_user": %s, "smtp_password": %s' "$(json_str "$A_SMTP_USER")" "$(json_str "$A_SMTP_PASS")" ) } }" ;;
+    console) _em='{ "provider": "console" }' ;;
+  esac
+  if [ "$A_DB" = supabase ]; then
+    _auth='{ "provider": "supabase" }'; _rt='{ "provider": "supabase" }'; _sch='{ "provider": "worker", "options": { "in_process": "true" } }'; _cache='{ "provider": "postgres" }'
+    _sb=", \"supabase\": { \"url\": $(json_str "$A_SB_URL"), \"anonKey\": $(json_str "$A_SB_ANON"), \"serviceRoleKey\": $(json_str "$A_SB_SERVICE") }"
+  else
+    _auth='{ "provider": "builtin" }'; _rt='{ "provider": "sse" }'; _sch='{ "provider": "worker", "options": { "in_process": "false" } }'; _sb=""
+    _cache="{ \"provider\": \"redis\", \"options\": { \"redis_url\": \"redis://valkey:6379\", \"redis_password\": $(json_str "$(env_get CACHE_REDIS_PASSWORD "$ENV_FILE")") } }"
+  fi
+  (umask 077; cat > "$DIR/profile.json.tmp") <<JSON
+{
+  "version": 1,
+  "placement": "env",
+  "app": { "url": $(json_str "$(env_get APP_URL "$ENV_FILE")"), "port": $(env_get APP_PORT "$ENV_FILE") },
+  "database": $_db,
+  "auth": $_auth,
+  "storage": $_st,
+  "email": $_em,
+  "scheduler": $_sch,
+  "realtime": $_rt,
+  "cache": $_cache$_sb
+}
+JSON
+  mv "$DIR/profile.json.tmp" "$DIR/profile.json"
+}
+
+# The same mapping for images without the profile command (KEY=value lines).
+fallback_env() {
+  case "$A_DB" in
+    own) for _k in DATABASE_URL MIGRATION_DATABASE_URL REALTIME_DATABASE_URL SCHEDULER_DATABASE_URL; do printf '%s=%s\n' "$_k" "$A_DB_URL"; done ;;
+    supabase)
+      for _k in DB_PROVIDER AUTH_PROVIDER STORAGE_PROVIDER REALTIME_PROVIDER; do printf '%s=supabase\n' "$_k"; done
+      printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_ANON_KEY=%s\nSUPABASE_SERVICE_ROLE_KEY=%s\n' "$A_SB_URL" "$A_SB_ANON" "$A_SB_SERVICE"
+      printf 'MIGRATION_DATABASE_URL=%s\nSCHEDULER_DATABASE_URL=%s\nSCHEDULER_IN_PROCESS=true\nCACHE_PROVIDER=postgres\n' "$A_DB_URL" "$A_DB_URL" ;;
+  esac
+  if [ "$A_STORAGE" = s3 ]; then
+    printf 'S3_ENDPOINT=%s\nS3_REGION=%s\nS3_ACCESS_KEY_ID=%s\nS3_SECRET_ACCESS_KEY=%s\nS3_FORCE_PATH_STYLE=%s\n' "$A_S3_ENDPOINT" "$A_S3_REGION" "$A_S3_KEY" "$A_S3_SECRET" "$( [ -n "$A_S3_ENDPOINT" ] && echo true || echo false )"
+  fi
+  case "$A_EMAIL" in
+    smtp) printf 'SMTP_HOST=%s\nSMTP_PORT=%s\nEMAIL_FROM=%s\nSMTP_STARTTLS=auto\n' "$A_SMTP_HOST" "$A_SMTP_PORT" "$A_FROM"
+          [ -z "$A_SMTP_USER" ] || printf 'SMTP_USER=%s\nSMTP_PASSWORD=%s\n' "$A_SMTP_USER" "$A_SMTP_PASS" ;;
+    console) printf 'EMAIL_PROVIDER=console\n' ;;
+  esac
+}
+
+# Areas outside the Compose stack, checked before anything starts.
+external_areas() {
+  _a=""
+  [ "$A_DB" = bundled ] || _a="$_a,database"
+  [ "$A_STORAGE" != s3 ] || _a="$_a,storage"
+  [ "$A_EMAIL" != smtp ] || _a="$_a,email"
+  [ "$A_DB" != supabase ] || _a="$_a,supabase"
+  printf '%s' "${_a#,}"
+}
+
+# apply_profile <image>: the answers into .env. Secrets already there are kept.
+apply_profile() {
+  if profile_cli_available "$1"; then
+    write_profile_json
+    step "Checking the service choices (usertasks-admin install profile)"
+    _out=$(docker run --rm -u "$(id -u):$(id -g)" -v "$DIR:/work" --entrypoint node "$1" admin.cjs install profile validate --from /work/profile.json 2>&1) \
+      || { printf '%s\n' "$_out" >&2; die "the service choices are not valid (see above); nothing was started"; }
+    _areas=$(external_areas)
+    if [ -n "$_areas" ]; then
+      _out=$(docker run --rm -u "$(id -u):$(id -g)" -v "$DIR:/work" --entrypoint node "$1" admin.cjs install profile check --from /work/profile.json --area "$_areas" 2>&1) \
+        || { printf '%s\n' "$_out" >&2; die "a service could not be reached (see above). Fix it and run the installer again."; }
+      ok "reached: $_areas"
+    fi
+    docker run --rm -u "$(id -u):$(id -g)" -v "$DIR:/work" --entrypoint node "$1" admin.cjs install profile write --from /work/profile.json --format env --merge "/work/$(basename "$ENV_FILE")" --out /work/.env.profile >/dev/null \
+      || die "could not write the settings from the service choices"
+    _updates=$(grep -E '^[A-Z][A-Z0-9_]*=' "$DIR/.env.profile"); rm -f "$DIR/.env.profile"
+    ok "settings written by usertasks-admin install profile"
+  else
+    _updates=$(fallback_env)
+  fi
+  printf '%s\n' "$_updates" | while IFS= read -r _line; do
+    [ -n "$_line" ] || continue
+    env_set "${_line%%=*}" "${_line#*=}" "$ENV_FILE"
+  done
+}
+
+# ── .env with fresh secrets ─────────────────────────────────────────────────
+
+write_env() { # <release dir> <port> <app url>
+  if [ -f "$ENV_FILE" ]; then ok ".env exists: keeping its secrets"; fill_missing_env "$1"; return; fi
+  step "Generating secrets (.env)"
+  _pg=$(rand_hex 18)
+  (umask 077; : > "$ENV_FILE.tmp")
+  sed -e "s/<POSTGRES_PASSWORD>/$_pg/g" -e "s/^POSTGRES_PASSWORD=<generate>\$/POSTGRES_PASSWORD=$_pg/" "$1/env.template" |
+  while IFS= read -r _line; do
+    case "$_line" in
+      *"<generate>"*) printf '%s%s\n' "${_line%%<generate>*}" "$(rand_hex 32)" ;;
+      *) printf '%s\n' "$_line" ;;
+    esac
+  done > "$ENV_FILE.tmp"
+  mv "$ENV_FILE.tmp" "$ENV_FILE"
+  env_set APP_URL "$3" "$ENV_FILE"; env_set NEXT_PUBLIC_APP_URL "$3" "$ENV_FILE"; env_set APP_PORT "$2" "$ENV_FILE"
+  env_set USERTASKS_SETUP_CODE "$(gen_setup_code)" "$ENV_FILE"
+  env_set MAILPIT_PORT "$(free_port "${USERTASKS_MAILPIT_PORT:-8025}")" "$ENV_FILE"
+  env_set MINIO_CONSOLE_PORT "$(free_port "${USERTASKS_MINIO_CONSOLE_PORT:-9001}")" "$ENV_FILE"
+  ok "secrets written to $ENV_FILE (only your user can read it)"
+}
+
+# New settings a release adds with <generate> get a value; nothing else changes.
+fill_missing_env() {
+  grep '=<generate>$' "$1/env.template" | cut -d= -f1 | while IFS= read -r _k; do
+    env_has "$_k" "$ENV_FILE" || { env_set "$_k" "$(rand_hex 32)" "$ENV_FILE"; ok "added a new secret: $_k"; }
+  done
+}
+
+free_port() { _p=$1; while port_busy "$_p"; do _p=$((_p + 1)); done; printf '%s' "$_p"; }
+
+# ── PATH ────────────────────────────────────────────────────────────────────
+
+link_command() {
+  if [ "$(id -u)" = 0 ]; then _bin=/usr/local/bin; else _bin="$HOME/.local/bin"; fi
+  [ -n "${USERTASKS_BIN_DIR:-}" ] && _bin=$USERTASKS_BIN_DIR
+  mkdir -p "$_bin"
+  _name=usertasks
+  if [ -e "$_bin/usertasks" ] && ! grep -q "$WRAPPER_MARK" "$_bin/usertasks" 2>/dev/null; then _name=usertasks-server
+  elif [ -L "$_bin/usertasks" ] && [ "$(readlink "$_bin/usertasks")" != "$DIR/bin/usertasks" ] && grep -q "$WRAPPER_MARK" "$_bin/usertasks" 2>/dev/null; then
+    warn "$_bin/usertasks points at another UserTasks install; linking this one as usertasks-$PROJECT"; _name="usertasks-$PROJECT"
+  fi
+  ln -sf "$DIR/bin/usertasks" "$_bin/$_name"
+  LINKED="$_bin/$_name"
+  case ":$PATH:" in *":$_bin:"*) : ;; *) warn "$_bin is not on your PATH: add it, or run $DIR/bin/usertasks" ;; esac
+  [ "$_name" = usertasks-server ] && say "  (an existing $_bin/usertasks, probably the UserTasks CLI, was left alone: this command is usertasks-server)"
+  return 0
+}
+
+install_wrapper_from() { # <release dir>
+  mkdir -p "$DIR/bin"
+  cp "$1/usertasks" "$DIR/bin/usertasks.new"; chmod 755 "$DIR/bin/usertasks.new"
+  mv "$DIR/bin/usertasks.new" "$DIR/bin/usertasks"
+}
+
+open_browser() {
+  [ "${USERTASKS_NO_BROWSER:-0}" = 1 ] && return 0
+  interactive || return 0
+  case "$(uname -s)" in
+    Darwin) open "$1" >/dev/null 2>&1 || true ;;
+    Linux) if [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && have xdg-open; then xdg-open "$1" >/dev/null 2>&1 || true; fi ;;
+  esac
+}
+
+# ── install (run by install.sh from a verified release) ─────────────────────
+
+cmd_install() {
+  # Called as releases/<v>/usertasks install --dir … --version …
+  _port=""; _url=""; _v=""; _build=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --dir) DIR=$2; shift 2 ;; --version) _v=$2; shift 2 ;; --port) _port=$2; shift 2 ;;
+      --url) _url=$2; shift 2 ;; --project) USERTASKS_PROJECT=$2; shift 2 ;; --preset) USERTASKS_PRESET_CHOICE=$2; shift 2 ;;
+      --build) _build=1; shift ;; --release-base) USERTASKS_RELEASE_BASE=$2; shift 2 ;;
+      *) die "install: unknown option $1" ;;
+    esac
+  done
+  [ -n "$DIR" ] && [ -n "$_v" ] || die "install: --dir and --version are required"
+  STATE="$DIR/state.env"; ENV_FILE="$DIR/.env"; REL="$DIR/releases/$_v"
+  [ -f "$REL/manifest.json" ] || die "release $_v is not in $DIR/releases"
+  lock
+  _existing=0; [ -f "$STATE" ] && _existing=1
+  if [ $_existing = 1 ]; then
+    load_state
+    if [ "$VERSION" != "$_v" ]; then
+      say "UserTasks $VERSION is installed in $DIR. To move to $_v run: usertasks upgrade --to $_v"
+      _v=$VERSION; REL="$DIR/releases/$VERSION"
+    fi
+    say "Existing install found: re-checking it (secrets and data are kept)."
+  else
+    PROJECT=${USERTASKS_PROJECT:-usertasks}
+    printf '%s' "$PROJECT" | grep -Eq '^[a-z0-9][a-z0-9_-]*$' || die "project name: lowercase letters, digits, - and _"
+    PRESET=""
+  fi
+  VERSION=$_v
+  IMAGE=$(release_image "$REL")
+
+  # Port and address.
+  if [ ! -f "$ENV_FILE" ]; then
+    PORT=${_port:-3000}
+    if port_busy "$PORT"; then
+      _free=$(free_port "$PORT")
+      interactive || die "port $PORT is in use: re-run with --port <free port> (for example $_free)"
+      PORT=$(ask "Port $PORT is in use. Port for UserTasks" "$_free")
+    fi
+    APP_URL=${_url:-http://localhost:$PORT}
+  fi
+
+  # Image first: the profile check runs in it.
+  if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+    if ! { step "Pulling $IMAGE"; docker pull "$IMAGE"; }; then
+      if [ $_build = 1 ] || confirm "The image could not be downloaded. Build it locally from source instead (needs ~10 GB of memory for Docker, 10-20 minutes)?" n; then
+        build_image_from_source "$VERSION"; IMAGE=$BUILT_IMAGE
+      else
+        die "could not pull $IMAGE (re-run with --build to build it locally)"
+      fi
+    fi
+  fi
+  ok "image $IMAGE"
+
+  # Service choices: the first time (or on `usertasks config`).
+  if [ ! -f "$ENV_FILE" ]; then
+    ask_profile
+    # Written to .env.new and moved into place only once the choices check out,
+    # so a failed check leaves nothing behind and the next run asks again.
+    ENV_FILE="$DIR/.env.new"; rm -f "$ENV_FILE"
+    write_env "$REL" "$PORT" "$APP_URL"
+    apply_profile "$IMAGE"
+    mv "$ENV_FILE" "$DIR/.env"; ENV_FILE="$DIR/.env"
+  else
+    fill_missing_env "$REL"
+  fi
+  save_state
+  load_state
+
+  start_stack "$IMAGE" 600 || { dc logs --tail 80 app >&2 || true; die "UserTasks did not become healthy. Logs: usertasks logs. Re-run the installer when fixed (it is safe to re-run)."; }
+  install_wrapper_from "$REL"
+  link_command
+  finish_message
+  open_browser "$APP_URL/setup"
+}
+
+save_state() {
+  (umask 077; : > "$STATE.tmp")
+  {
+    echo "# UserTasks install state (written by usertasks; not secret)"
+    echo "USERTASKS_VERSION=$VERSION"
+    echo "USERTASKS_IMAGE=$IMAGE"
+    echo "USERTASKS_PROJECT=$PROJECT"
+    echo "USERTASKS_PRESET=${PRESET:-standalone}"
+    echo "USERTASKS_COMPOSE_PROFILES=$PROFILES"
+    [ -n "${USERTASKS_RELEASE_BASE:-}" ] && echo "USERTASKS_RELEASE_BASE=$USERTASKS_RELEASE_BASE"
+    [ -n "${PREV_VERSION:-}" ] && echo "USERTASKS_PREVIOUS_VERSION=$PREV_VERSION"
+    [ -n "${PREV_IMAGE:-}" ] && echo "USERTASKS_PREVIOUS_IMAGE=$PREV_IMAGE"
+    echo "USERTASKS_UPDATED=$(now_stamp)"
+  } > "$STATE.tmp"
+  mv "$STATE.tmp" "$STATE"
+}
+
+start_stack() { # <image> <timeout seconds>
+  step "Starting UserTasks (project $PROJECT)"
+  if ! dc_for "$REL" "$1" up -d --wait --wait-timeout "$2" --no-build --pull missing --remove-orphans; then
+    # A slow or busy machine can miss the container health check's window:
+    # keep waiting for the app itself before calling it a failure.
+    [ -n "$(dc_for "$REL" "$1" ps -q app 2>/dev/null)" ] || return 1
+    warn "not healthy yet; waiting up to $2 more seconds"
+  fi
+  step "Waiting for http://127.0.0.1:$PORT"
+  wait_healthy "$2" || return 1
+  ok "UserTasks answers on port $PORT"
+}
+
+finish_message() {
+  say ""
+  say "${G}${B}UserTasks $VERSION is running.${N}"
+  say "  Address:  $APP_URL"
+  _code=$(env_get USERTASKS_SETUP_CODE "$ENV_FILE")
+  if admin setup-code status 2>/dev/null | grep -q '^Setup is complete'; then
+    say "  Sign in:  $APP_URL/login"
+  else
+    say "  Setup:    open $APP_URL/setup and enter the setup code ${B}${_code}${N}"
+  fi
+  if uses_bundled_postgres; then say "  Email:    test inbox at http://localhost:$(env_get MAILPIT_PORT "$ENV_FILE") (point SMTP_HOST at your relay for real mail)"; fi
+  say "  Files:    $DIR (.env holds the secrets: back it up)"
+  say "  Manage:   ${LINKED:-$DIR/bin/usertasks} status | logs | backup | upgrade | config | uninstall"
+  say ""
+}
+
+# ── status, logs, start/stop ────────────────────────────────────────────────
+
+cmd_status() {
+  say "UserTasks $VERSION  ($PRESET, project $PROJECT)"
+  say "  image:   $IMAGE"
+  say "  address: $APP_URL"
+  say "  folder:  $DIR"
+  dc ps --format 'table {{.Service}}\t{{.Status}}' 2>/dev/null || dc ps
+  if http_ok "http://127.0.0.1:$PORT/api/config/public"; then ok "healthy (http://127.0.0.1:$PORT)"; else warn "not answering on port $PORT"; fi
+  if app_running; then
+    admin setup-code status 2>/dev/null | head -n 1 || true
+    admin db status 2>/dev/null | tail -n 3 || true
+  fi
+}
+
+cmd_logs() { dc logs "$@"; }
+
+# ── backup and restore ──────────────────────────────────────────────────────
+
+db_url() {
+  _u=$(env_get MIGRATION_DATABASE_URL "$ENV_FILE"); [ -n "$_u" ] || _u=$(env_get DATABASE_URL "$ENV_FILE"); printf '%s' "$_u"
+}
+
+pg_client() { # pg_dump/pg_restore/psql against an external database, on the stack's network
+  docker run --rm -i --network "${PROJECT}_default" "$PG_CLIENT_IMAGE" "$@"
+}
+
+bundled_db() {
+  uses_bundled_postgres || return 1
+  _u=$(db_url); case "$_u" in *@postgres:*|"") return 0 ;; *) return 1 ;; esac
+}
+
+file_volume() { # the named volume holding files, if any
+  if uses_bundled_postgres && [ "$(env_get STORAGE_PROVIDER "$ENV_FILE")" = s3 ] && [ "$(env_get S3_ENDPOINT "$ENV_FILE")" = "http://minio:9000" ]; then
+    printf '%s_miniodata' "$PROJECT"
+  fi
+}
+
+# vol_tar <volume> <dir> <file> create|extract: tar with the app image (no extra image to pull).
+vol_tar() {
+  if [ "$4" = create ]; then
+    docker run --rm --network none -u 0 --entrypoint sh -v "$1:/data:ro" -v "$2:/backup" "$IMAGE" -c "tar -czf /backup/$3 -C /data ."
+  else
+    docker run --rm --network none -u 0 --entrypoint sh -v "$1:/data" -v "$2:/backup:ro" "$IMAGE" -c "find /data -mindepth 1 -maxdepth 1 -exec rm -rf {} + && tar -xzf /backup/$3 -C /data"
+  fi
+}
+
+do_backup() { # <dir>: sets BACKUP_DIR
+  BACKUP_DIR=$1; mkdir -p "$BACKUP_DIR"; chmod 700 "$BACKUP_DIR"
+  step "Backing up to $BACKUP_DIR"
+  if bundled_db; then
+    # shellcheck disable=SC2016 # expanded inside the container
+    dc exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$BACKUP_DIR/database.dump" || { rm -f "$BACKUP_DIR/database.dump"; die "database dump failed (is the postgres container running? usertasks start)"; }
+  elif [ -n "$(db_url)" ]; then
+    pg_client pg_dump -Fc "$(db_url)" > "$BACKUP_DIR/database.dump" || { rm -f "$BACKUP_DIR/database.dump"; die "database dump failed"; }
+  else
+    die "no database connection string in .env (MIGRATION_DATABASE_URL): back up the database with your provider's tools"
+  fi
+  ok "database ($(du -h "$BACKUP_DIR/database.dump" | cut -f1 | tr -d ' '))"
+  _vol=$(file_volume)
+  if [ -n "$_vol" ]; then vol_tar "$_vol" "$BACKUP_DIR" files.tar.gz create; ok "files (volume $_vol)"
+  else say "  --  files live in your storage provider ($(env_get STORAGE_PROVIDER "$ENV_FILE")): back them up there"; fi
+  (umask 077; cp "$ENV_FILE" "$BACKUP_DIR/env"); cp "$STATE" "$BACKUP_DIR/state.env"
+  [ -f "$DIR/profile.json" ] && cp "$DIR/profile.json" "$BACKUP_DIR/"
+  printf '{ "version": "%s", "image": "%s", "project": "%s", "createdAt": "%s" }\n' "$VERSION" "$IMAGE" "$PROJECT" "$(now_stamp)" > "$BACKUP_DIR/backup.json"
+  ok ".env and install state (keep this folder safe: it holds ENCRYPTION_KEY)"
+}
+
+cmd_backup() {
+  _out=""
+  while [ $# -gt 0 ]; do case "$1" in --out) _out=$2; shift 2 ;; *) die "backup: unknown option $1" ;; esac; done
+  lock
+  do_backup "${_out:-$DIR/backups/$(now_stamp)-$VERSION}"
+  say "Backup complete: $BACKUP_DIR"
+  say "Restore it with: usertasks restore $BACKUP_DIR"
+}
+
+cmd_restore() {
+  _b=""
+  while [ $# -gt 0 ]; do case "$1" in --yes|-y) ASSUME_YES=1; shift ;; -*) die "restore: unknown option $1" ;; *) _b=$1; shift ;; esac; done
+  [ -n "$_b" ] || die "usage: usertasks restore <backup folder | latest> [--yes]"
+  if [ "$_b" = latest ]; then
+    # shellcheck disable=SC2012
+    _b=$(ls -1d "$DIR"/backups/*/ 2>/dev/null | sort | tail -n 1); _b=${_b%/}
+    [ -n "$_b" ] || die "no backups in $DIR/backups"
+  fi
+  [ -f "$_b/database.dump" ] || die "$_b has no database.dump"
+  _bv=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$_b/backup.json" 2>/dev/null)
+  say "Restore $_b (UserTasks ${_bv:-?}) into this install ($VERSION, project $PROJECT)."
+  say "Everything in the database${R} since that backup is lost${N}; files are replaced too."
+  confirm "Restore now?" n || die "not restored"
+  if [ -n "$_bv" ] && [ "$(version_cmp "$_bv" "$VERSION")" = 1 ]; then warn "the backup is from a newer version ($_bv) than this install ($VERSION): upgrade first (usertasks upgrade --to $_bv)"; confirm "Restore anyway?" n || exit 1; fi
+  lock
+  do_backup "$DIR/backups/$(now_stamp)-before-restore"
+  step "Stopping the app"
+  dc stop app worker 2>/dev/null || dc stop app
+  if bundled_db; then
+    # shellcheck disable=SC2016 # expanded inside the container
+    dc exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE IF EXISTS \"$POSTGRES_DB\" WITH (FORCE)" -c "CREATE DATABASE \"$POSTGRES_DB\""' >/dev/null
+    # shellcheck disable=SC2016 # expanded inside the container
+    dc exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --exit-on-error' < "$_b/database.dump"
+  else
+    pg_client pg_restore --clean --if-exists --no-owner -d "$(db_url)" < "$_b/database.dump"
+  fi
+  ok "database restored"
+  _vol=$(file_volume)
+  if [ -n "$_vol" ] && [ -f "$_b/files.tar.gz" ]; then
+    dc stop minio >/dev/null 2>&1 || true
+    vol_tar "$_vol" "$(cd "$_b" && pwd)" files.tar.gz extract; ok "files restored"
+  fi
+  if [ -f "$_b/env" ] && ! cmp -s "$_b/env" "$ENV_FILE"; then
+    cp "$ENV_FILE" "$DIR/backups/env.before-restore-$(now_stamp)"
+    (umask 077; cp "$_b/env" "$ENV_FILE"); ok ".env restored (the previous one is in backups/)"
+  fi
+  start_stack "$IMAGE" 600 || die "UserTasks did not become healthy after the restore: usertasks logs"
+  say "Restored from $_b."
+}
+
+# ── upgrade ─────────────────────────────────────────────────────────────────
+
+run_migrations() { # <release dir> <image>
+  step "Applying database migrations (usertasks-admin db migrate)"
+  if uses_bundled_postgres; then
+    dc_for "$1" "$2" run --rm migrate || return 1
+  else
+    dc_for "$1" "$2" run --rm --no-deps -T app node admin.cjs db migrate || return 1
+  fi
+  if ! docker run --rm --network none --entrypoint node "$2" admin.cjs --help 2>/dev/null | grep -q 'usertasks-admin ext migrate'; then
+    say "  --  this release has no extension migrations (usertasks-admin ext): skipped"; return 0
+  fi
+  step "Applying extension migrations (usertasks-admin ext migrate)"
+  _ext=$(dc_for "$1" "$2" run --rm --no-deps -T app node admin.cjs ext migrate 2>&1) || { printf '%s\n' "$_ext" >&2; return 1; }
+  printf '%s\n' "$_ext" | tail -n 3
+}
+
+cmd_upgrade() {
+  _to=""; _skip_backup=0; _downgrade=0; _build=0; _force=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --to) _to=$2; shift 2 ;; --yes|-y) ASSUME_YES=1; shift ;; --skip-backup) _skip_backup=1; shift ;;
+      --allow-downgrade) _downgrade=1; shift ;; --build) _build=1; shift ;; --force) _force=1; shift ;;
+      *) die "upgrade: unknown option $1" ;;
+    esac
+  done
+  lock
+  _from=$VERSION; _from_img=$IMAGE; _from_rel=$REL
+  [ -n "$_to" ] || { step "Looking up the latest release"; _to=$(latest_version); }
+  _to=${_to#v}; valid_version "$_to" || die "not a version: $_to"
+  _c=$(version_cmp "$_to" "$_from")
+  if [ "$_c" = 0 ] && [ $_force = 0 ]; then say "UserTasks $_from is already installed (latest: $_to)."; return 0; fi
+  if [ "$_c" = -1 ] && [ $_downgrade = 0 ]; then die "$_to is older than the installed $_from (pass --allow-downgrade to go back on purpose)"; fi
+  say "Upgrade UserTasks $_from → $_to (project $PROJECT). Release notes: $RELEASE_BASE/tag/v$_to"
+  confirm "Continue?" y || die "not upgraded"
+  DONE=""
+  note() { DONE="${DONE}  - $*
+"; }
+
+  # 1. Backup.
+  if [ $_skip_backup = 1 ]; then warn "no backup (--skip-backup): a failed migration can then only be undone from your own backups"
+  else do_backup "$DIR/backups/$(now_stamp)-$_from-before-$_to"; note "backup: $BACKUP_DIR"; fi
+
+  # 2. Download and verify.
+  fetch_release "$_to"; note "downloaded and verified release $_to (signature + checksum)"
+  _new_rel="$DIR/releases/$_to"
+  _new_img=$(release_image "$_new_rel")
+
+  # 3. Image.
+  if ! docker image inspect "$_new_img" >/dev/null 2>&1; then
+    step "Pulling $_new_img"
+    if ! docker pull "$_new_img"; then
+      [ $_build = 1 ] || die "could not pull $_new_img; nothing changed (UserTasks $_from keeps running). Re-run with --build to build it locally."
+      build_image_from_source "$_to"; _new_img=$BUILT_IMAGE
+    fi
+  fi
+  note "image $_new_img"
+  fill_missing_env "$_new_rel"
+
+  # 4. Migrations, with the new code, while the current version keeps serving (they are additive).
+  if ! run_migrations "$_new_rel" "$_new_img"; then
+    say ""
+    say "${R}The migrations failed.${N} UserTasks $_from is still running, unchanged: no code was switched."
+    say "Each migration file runs in its own transaction, so nothing is half-applied. Fix the cause above and run usertasks upgrade again."
+    [ -n "${BACKUP_DIR:-}" ] && say "Backup taken before the upgrade: $BACKUP_DIR"
+    exit 1
+  fi
+  note "applied database and extension migrations"
+
+  # 5. Switch and check.
+  step "Switching to $_to"
+  REL=$_new_rel; IMAGE=$_new_img
+  if start_stack "$_new_img" "${USERTASKS_UPGRADE_TIMEOUT:-300}" && running_image_is "$_new_img"; then
+    PREV_VERSION=$_from; PREV_IMAGE=$_from_img; VERSION=$_to
+    save_state
+    install_wrapper_from "$_new_rel"
+    note "switched the app and worker to $_to; health check passed"
+    say ""
+    say "${G}${B}Upgraded UserTasks $_from → $_to.${N} What was done:"
+    printf '%s' "$DONE"
+    _vj=$(curl -fsS --max-time 5 "http://127.0.0.1:$PORT/api/version" 2>/dev/null || true)
+    [ -n "$_vj" ] && say "  /api/version: $_vj"
+    say "Check it: sign in, open a task, run a test workflow (docs: /docs/self-hosting/upgrade#check-it-worked)."
+    return 0
+  fi
+
+  # 6. Roll the code back.
+  say ""
+  say "${R}The new version did not become healthy.${N} Rolling the code back to $_from."
+  dc_for "$_new_rel" "$_new_img" logs --tail 60 app >&2 2>/dev/null || true
+  REL=$_from_rel; IMAGE=$_from_img
+  if start_stack "$_from_img" 300; then
+    save_state
+    say "Rolled back: UserTasks $_from is running again (image $_from_img)."
+    say "The migrations of $_to stay applied: they are additive, so $_from runs on the newer schema."
+    [ -n "${BACKUP_DIR:-}" ] && say "If you need the database exactly as before: usertasks restore $BACKUP_DIR"
+  else
+    say "${R}The rollback did not become healthy either.${N} Check usertasks logs; restore with: usertasks restore ${BACKUP_DIR:-<backup>}"
+  fi
+  exit 1
+}
+
+# ── config ──────────────────────────────────────────────────────────────────
+
+cmd_config() {
+  # usertasks config export|apply|diff|new … belongs to the UserTasks CLI.
+  case "${1:-}" in export|apply|diff|new) forward_cli config "$@" ;; esac
+  _force=0
+  while [ $# -gt 0 ]; do
+    case "$1" in --preset) USERTASKS_PRESET_CHOICE=$2; shift 2 ;; --force) _force=1; shift ;; --yes|-y) ASSUME_YES=1; shift ;; *) die "config: unknown option $1" ;; esac
+  done
+  lock
+  _old_preset=$PRESET; _old_db=$(db_url); _old_storage=$(env_get STORAGE_PROVIDER "$ENV_FILE")
+  ask_profile
+  _setup_done=0; admin setup-code status 2>/dev/null | grep -q '^Setup is complete' && _setup_done=1
+  _new_db=$A_DB_URL
+  if [ $_setup_done = 1 ] && [ $_force = 0 ] && { [ "$PRESET" != "$_old_preset" ] || { [ -n "$_new_db" ] && [ "$_new_db" != "$_old_db" ]; }; }; then
+    say "This install already has data. Changing the database or file storage here does not move it."
+    say "Move one service at a time with: usertasks admin switch <area> --to <provider> (docs: /docs/self-hosting/switching-providers)"
+    say "Or pass --force to point at the new services without moving data (old: database ${_old_db:+set}, storage $_old_storage)."
+    exit 1
+  fi
+  _bk="$DIR/backups/env.$(now_stamp)"; mkdir -p "$DIR/backups"; (umask 077; cp "$ENV_FILE" "$_bk")
+  apply_profile "$IMAGE"
+  save_state; load_state
+  start_stack "$IMAGE" 600 || die "UserTasks did not become healthy with the new choices. The previous .env is $_bk"
+  say "Service choices updated (previous .env: $_bk)."
+}
+
+# ── uninstall ───────────────────────────────────────────────────────────────
+
+cmd_uninstall() {
+  _purge=0
+  while [ $# -gt 0 ]; do case "$1" in --purge) _purge=1; shift ;; --yes|-y) ASSUME_YES=1; shift ;; *) die "uninstall: unknown option $1" ;; esac; done
+  if [ $_purge = 1 ]; then
+    say "${R}${B}This deletes UserTasks and ALL its data${N}: the database and file volumes of project $PROJECT, $DIR (secrets, backups)."
+    if [ "${ASSUME_YES:-0}" != 1 ]; then
+      interactive || die "uninstall --purge needs --yes when not interactive"
+      [ "$(ask "Type the project name ($PROJECT) to confirm" "")" = "$PROJECT" ] || die "not removed"
+    fi
+    dc down --volumes --remove-orphans
+  else
+    confirm "Stop and remove the UserTasks containers? Data, .env and backups are kept." y || die "not removed"
+    dc down --remove-orphans
+  fi
+  for _l in /usr/local/bin/usertasks /usr/local/bin/usertasks-server "$HOME/.local/bin/usertasks" "$HOME/.local/bin/usertasks-server" "$HOME/.local/bin/usertasks-$PROJECT" "${USERTASKS_BIN_DIR:-/nonexistent}/usertasks" "${USERTASKS_BIN_DIR:-/nonexistent}/usertasks-server"; do
+    if [ -L "$_l" ] && [ "$(readlink "$_l")" = "$DIR/bin/usertasks" ]; then rm -f "$_l"; fi
+  done
+  if [ $_purge = 1 ]; then
+    rm -rf "$DIR"; say "UserTasks and its data were removed."
+  else
+    env_set USERTASKS_UNINSTALLED "$(now_stamp)" "$STATE"
+    say "UserTasks was stopped and removed. Data volumes (project $PROJECT), $ENV_FILE and $DIR/backups are kept."
+    say "Install again into $DIR to pick them up, or remove everything with: $DIR/bin/usertasks uninstall --purge"
+  fi
+}
+
+# ── the UserTasks CLI ───────────────────────────────────────────────────────
+
+forward_cli() {
+  _self=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
+  _old_ifs=$IFS; IFS=:
+  for _d in $PATH; do
+    _c="$_d/usertasks"
+    [ -x "$_c" ] || continue
+    grep -q "$WRAPPER_MARK" "$_c" 2>/dev/null && continue
+    [ "$_c" = "$_self" ] && continue
+    IFS=$_old_ifs
+    # shellcheck disable=SC2093 # the first CLI found wins
+    exec "$_c" "$@"
+  done
+  IFS=$_old_ifs
+  die "'$1' is not a server command (usertasks help). For the UserTasks CLI: npm install -g @user-tasks/cli"
+}
+
+usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; }
+
+main() {
+  _cmd=${1:-help}; [ $# -gt 0 ] && shift
+  case "$_cmd" in
+    help|-h|--help) usage; return 0 ;;
+    install) DIR=""; BUILT_IMAGE=""; PROFILES=standalone; cmd_install "$@"; return ;;
+    cli) forward_cli "$@" ;;
+    status|logs|backup|restore|upgrade|config|uninstall|setup-code|admin|start|stop|restart|version|--version) : ;;
+    *) forward_cli "$_cmd" "$@" ;;
+  esac
+  resolve_dir; load_state
+  case "$_cmd" in
+    status) cmd_status ;;
+    logs) cmd_logs "$@" ;;
+    backup) cmd_backup "$@" ;;
+    restore) cmd_restore "$@" ;;
+    upgrade) cmd_upgrade "$@" ;;
+    config) cmd_config "$@" ;;
+    uninstall) cmd_uninstall "$@" ;;
+    setup-code) admin setup-code "$@" ;;
+    admin) admin "$@" ;;
+    start) start_stack "$IMAGE" 600 ;;
+    stop) dc stop ;;
+    restart) dc restart; wait_healthy 180 && ok "healthy" ;;
+    version|--version) say "UserTasks $VERSION ($IMAGE)" ;;
+  esac
+}
+
+# Tests source this file with USERTASKS_WRAPPER_NO_MAIN=1 to call its helpers.
+[ "${USERTASKS_WRAPPER_NO_MAIN:-0}" = 1 ] || main "$@"

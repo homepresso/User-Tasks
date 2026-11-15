@@ -80,6 +80,7 @@ export const OPEN_ROUTES: Readonly<Record<string, string>> = {
   '/onboarding': 'First-run workspace setup; its writes need settings.edit',
   '/settings': 'Settings home: personal profile and preferences; workspace tabs gate on settings.view / settings.edit',
   '/settings/infrastructure': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure), not a workspace permission',
+  '/settings/setup': 'Setup wizard: instance admin only — enforced server-side (viewerCanSeeInfrastructure); every action re-checks',
   '/settings/workspace-dns': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure)',
   '/settings/licence': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure); every licence action re-checks',
   '/settings/gallery-review': 'Gallery moderators only — enforced server-side (requireModerator)',

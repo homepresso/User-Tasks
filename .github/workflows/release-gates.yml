@@ -2,14 +2,12 @@ name: Release gates
 
 # Deployment profiles and the full instance migration, end to end
 # (docs/deployment-profiles.md). Slow (Docker image builds, a Supabase stack),
-# so not on every push: run by hand, on app release tags, or from another
-# workflow (`uses: ./.github/workflows/release-gates.yml`).
+# so not on every push: run by hand, or from another workflow (release tags:
+# release-server.yml calls it; `uses: ./.github/workflows/release-gates.yml`).
 
 on:
   workflow_dispatch:
   workflow_call:
-  push:
-    tags: ['v*']
 
 permissions:
   contents: read

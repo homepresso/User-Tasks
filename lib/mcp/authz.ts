@@ -96,6 +96,8 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   forms_wizard_create: 'forms.wizard',
   // dry_run needs forms.view; an import forms.edit (checked in lib/services/infopath-import).
   forms_import_infopath: 'forms.view',
+  // Importers: the service checks workflows.create / forms.edit (or the importer's permission) and the licence.
+  importers_import: 'workflows.view',
   forms_wizard_update: 'forms.wizard',
   // Attachments uploads (the service checks the context: task, form or workflow start).
   files_upload: 'forms.submit',
@@ -209,6 +211,7 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   directory_sync_disconnect: 'settings.edit',
   directory_sync_test: 'settings.edit',
   directory_sync_start: 'settings.edit',
+  directory_source_sync: 'settings.edit',
   scim_tokens_create: 'settings.edit',
   scim_tokens_rotate: 'settings.edit',
   scim_tokens_delete: 'settings.edit',
@@ -414,6 +417,10 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   directory_sync_list: 'settings.view',
   directory_sync_get: 'settings.view',
   directory_sync_runs_list: 'settings.view',
+  directory_sources_list: 'settings.view',
+  importers_list: 'workflows.view',
+  importers_analyze: 'workflows.view',
+  directory_source_entries: 'settings.view',
   directory_capabilities: 'workflows.view',
   directory_entra_groups_search: 'workflows.view',
   scim_tokens_list: 'settings.view',
@@ -527,6 +534,7 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'forms_create',
   'forms_wizard_create',
   'forms_import_infopath',
+  'importers_import',
   'forms_wizard_update',
   'forms_update',
   'forms_draft_save',
@@ -631,6 +639,7 @@ const CATEGORY_AUDIT_TYPE: Record<string, AuditObjectType | string> = {
   email: 'email_template',
   forms: 'form',
   form: 'form_theme',
+  importers: 'workflow',
   roles: 'role',
   teams: 'team',
   org: 'org_unit',

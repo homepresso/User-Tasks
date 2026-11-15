@@ -30,6 +30,7 @@ import {
 import { LdapForm } from './ldap-form'
 import { useJobs } from '@/components/jobs/jobs-provider'
 import { GoogleConnectCard, ScimCard } from './google-scim'
+import { DirectorySourcesCard } from './sources'
 import { errText, OptionCheckbox, OrgImportOptions, PROVIDER_META, providerLabel, SummaryItem, unwrap } from './shared'
 
 type DirectoryStatus = Awaited<ReturnType<typeof getDirectorySyncStatus>>
@@ -124,6 +125,10 @@ export default function SsoDirectoryPage() {
         />
       )}
 
+      {(data?.sources ?? []).length > 0 && (
+        <DirectorySourcesCard sources={data?.sources ?? []} runs={runs} canEdit={canEdit} onChanged={refresh} />
+      )}
+
       <SyncHistoryCard runs={runs} />
 
       <Card>
@@ -167,7 +172,7 @@ function ActiveSyncBar({ run }: { run: SyncRun }) {
     >
       <div className="flex items-center gap-2 mb-2">
         <CloudDownload size={15} className="animate-pulse text-primary-text" />
-        <p className="text-sm font-medium">Syncing from {providerLabel(run.provider)}</p>
+        <p className="text-sm font-medium">Syncing from {run.provider_label ?? providerLabel(run.provider)}</p>
         <span className="ml-auto text-xs tabular-nums font-medium text-primary-text">
           {percent}%
         </span>
@@ -626,7 +631,7 @@ function SyncHistoryCard({ runs }: { runs: SyncRun[] }) {
                     {run.status}
                   </span>
                   <span className="text-xs font-medium min-w-0 truncate">
-                    {providerLabel(run.provider)}{run.mode === 'delta' ? ' · changes only' : ''}
+                    {run.provider_label ?? providerLabel(run.provider)}{run.mode === 'delta' ? ' · changes only' : ''}
                   </span>
                   <span className="ml-auto text-xs text-fg-muted">
                     {formatRelativeDate(run.created_at)}

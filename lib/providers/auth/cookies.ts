@@ -1,4 +1,5 @@
 import { configuredAppUrl, readEnv } from '@/lib/config/bootstrap'
+import { framedSessionsEnabled } from '@/lib/embedding'
 import { baseDomainFromEnv, canShareCookies, isUnderBaseDomain } from '@/lib/workspace-address'
 
 /**
@@ -7,6 +8,11 @@ import { baseDomainFromEnv, canShareCookies, isUnderBaseDomain } from '@/lib/wor
  * HttpOnly (the browser never reads them), SameSite=Lax (sent on top-level
  * navigations such as an IdP redirect back, never on cross-site POSTs) and
  * Secure unless the app runs on plain http (local development).
+ *
+ * Session cookies (sessionCookieOptions) switch to SameSite=None when trusted
+ * embedding is configured and the cookies are Secure (lib/embedding.ts), so
+ * approved sites can show embeddable pages signed in; the proxy then strips
+ * them from the cross-site requests Lax would not have carried them on.
  */
 
 export function authCookieSecure(): boolean {
@@ -21,7 +27,7 @@ export function authCookieSecure(): boolean {
 export interface AuthCookieOptions {
   httpOnly: true
   secure: boolean
-  sameSite: 'lax'
+  sameSite: 'lax' | 'none'
   path: '/'
   maxAge?: number
   domain?: string
@@ -43,6 +49,17 @@ export function authCookieOptions(maxAgeSeconds?: number, domain?: string): Auth
     ...(maxAgeSeconds !== undefined ? { maxAge: Math.max(0, Math.floor(maxAgeSeconds)) } : {}),
     ...(domain ? { domain } : {}),
   }
+}
+
+/**
+ * Flags for the session cookies (built-in `ut_session`, Supabase `sb-*`):
+ * authCookieOptions, with SameSite=None when framed sessions are on
+ * (trusted embedding configured and Secure cookies). Short-lived flow
+ * cookies keep SameSite=Lax.
+ */
+export function sessionCookieOptions(maxAgeSeconds?: number, domain?: string): AuthCookieOptions {
+  const options = authCookieOptions(maxAgeSeconds, domain)
+  return framedSessionsEnabled(options.secure) ? { ...options, sameSite: 'none' } : options
 }
 
 /*
@@ -92,7 +109,7 @@ export const SHARED_SUPABASE_COOKIE = '__Secure-sb-ut-auth-token'
 
 /** Supabase cookie options for a request whose shared Domain is `domain` (undefined = host-only, the default name). */
 export function supabaseCookieOptions(domain: string | undefined): AuthCookieOptions {
-  return domain ? { ...authCookieOptions(undefined, domain), name: SHARED_SUPABASE_COOKIE } : authCookieOptions()
+  return domain ? { ...sessionCookieOptions(undefined, domain), name: SHARED_SUPABASE_COOKIE } : sessionCookieOptions()
 }
 
 /** Whether a cookie name is a Supabase session cookie (host-only default or shared). */

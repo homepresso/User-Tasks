@@ -33,6 +33,11 @@ export const OPEN_SOURCE_PAGE = {
   description: 'UserTasks is open source under Apache-2.0. Clone it from GitHub and run it locally from source with Supabase, as a Docker stack without Supabase, or drive it with the CLI from npm — then create your admin account in the browser.',
 }
 
+export const INSTALL_PAGE = {
+  title: 'Install UserTasks with one command (Docker): Linux, macOS and Windows',
+  description: 'Install self-hosted UserTasks with one line: the installer checks Docker, downloads a signed release, verifies it, generates secrets, starts everything and prints your setup code. Then usertasks upgrade, backup, restore and uninstall.',
+}
+
 export const CONTACT_PAGE = {
   title: 'Contact UserTasks',
   description: 'Contact UserTasks about workflow automation, BPM, on-premises deployment, SharePoint, InfoPath, K2 or Nintex migration, integrations, and enterprise requirements.',
@@ -55,6 +60,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
   { path: '/use-cases', title: USE_CASES_INDEX.title, description: USE_CASES_INDEX.description, group: 'guide' },
   { path: '/gallery', title: 'Package gallery', description: 'Ready-made workflow packages to install: forms, workflows, data tables and reports for HR, finance, IT, operations and customer teams.', group: 'product' },
   { path: '/docs', title: 'UserTasks documentation', description: 'Guides and reference for the UserTasks workflow engine: designer, nodes, expressions, tasks, integrations, decision tables, agents, governance, REST API, MCP, CLI, log export and self-hosting.', group: 'company' },
+  { path: '/install', title: INSTALL_PAGE.title, description: INSTALL_PAGE.description, group: 'company' },
   { path: '/open-source', title: OPEN_SOURCE_PAGE.title, description: OPEN_SOURCE_PAGE.description, group: 'company' },
   { path: '/contact', title: CONTACT_PAGE.title, description: CONTACT_PAGE.description, group: 'company' },
 ]

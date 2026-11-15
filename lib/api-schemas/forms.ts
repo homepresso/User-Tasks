@@ -299,6 +299,7 @@ export const formSubmitBody = z.object({
   idempotency_key: z.string().min(8).max(100).optional().describe('Repeating a key returns the first submission instead of submitting again'),
   params: formParamsField,
   variables: formVariablesField,
+  target_version: z.string().max(200).optional().describe('Forms bound to an external record (a data target an extension provides): the record version (ETag) read when the form opened. The write fails with 409 / 412 when the record changed since; omit to overwrite'),
 })
 
 const submissionFilters = paginationQuery.extend({
@@ -316,7 +317,7 @@ export const submitFormEndpoint = defineEndpoint({
   summary: 'Submit a reusable form', permission: 'forms.submit',
   description: 'Validates the values on the server, records a submission, runs the button\'s start-workflow actions (queued, attributed to the caller) and fires "Form submitted" triggers. Returns the submission, the effects the button shows (messages, success screen, redirect) and the started runs.',
   params: idParams, body: formSubmitBody, successStatus: 201,
-  response: z.looseObject({ submission: looseObject, effects: looseObject, runs: z.array(looseObject), table_changes: z.array(looseObject).optional().describe('"For each changed row" rules the button ran: { field, target, total, succeeded, failed, skipped, text, results [{ kind, key, action, status, error?, id?, http_status? }] }'), replayed: z.boolean().optional() }),
+  response: z.looseObject({ submission: looseObject, effects: looseObject, runs: z.array(looseObject), table_changes: z.array(looseObject).optional().describe('"For each changed row" rules the button ran: { field, target, total, succeeded, failed, skipped, text, results [{ kind, key, action, status, error?, id?, http_status? }] }'), replayed: z.boolean().optional(), data_target: looseObject.optional().describe('Forms bound to an external record: { label, record { id, label, url }, version } the provider wrote') }),
   cli: { resource: 'forms', verb: 'submit', positional: ['id'] },
 })
 

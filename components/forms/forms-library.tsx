@@ -24,6 +24,7 @@ import { Table, TBody, TD, TH, THead, TR, TableSkeleton } from '@/components/ui/
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ExportAssetDialog, useImportConfig } from '@/components/shared/config-transfer'
 import { InfoPathImportDialog } from './infopath-import-dialog'
+import { ExtensionImporterMenuItems, ImporterDialog, type ResolvedImporter } from '@/components/extensions/importers'
 import { usePermissions } from '@/lib/permissions-context'
 import { serverRead } from '@/lib/server-read'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
@@ -158,6 +159,8 @@ export function FormsLibrary() {
   const importConfig = useImportConfig({ onImported: () => void refresh() })
   const [infoPathOpen, setInfoPathOpen] = useState(false)
   const [infoPathFile, setInfoPathFile] = useState<File | null>(null)
+  // Importers contributed by extensions (e.g. SharePoint form libraries), listed under the core ones.
+  const [extImporter, setExtImporter] = useState<ResolvedImporter | null>(null)
   useEffect(() => {
     // From the public "Migrate from InfoPath" page: open the importer with the file kept in this browser (if any).
     if (searchParams.get('import') === 'infopath' && canEdit) {
@@ -183,6 +186,7 @@ export function FormsLibrary() {
           <DropdownMenuItem onSelect={() => setInfoPathOpen(true)} data-testid="import-infopath">
             <FileCode2 className="size-4" aria-hidden /> InfoPath form (.xsn)
           </DropdownMenuItem>
+          <ExtensionImporterMenuItems produces="form" onPick={setExtImporter} />
         </DropdownMenuContent>
       </DropdownMenu>
       <Button size="sm" leadingIcon={<Plus />} onClick={startNewForm} data-testid="new-form">New form</Button>
@@ -203,6 +207,7 @@ export function FormsLibrary() {
       />
 
       {importConfig.element}
+      {extImporter && <ImporterDialog importer={extImporter} open onOpenChange={(o) => { if (!o) setExtImporter(null) }} onImported={() => void refresh()} />}
       <InfoPathImportDialog open={infoPathOpen} onOpenChange={(o) => { setInfoPathOpen(o); if (!o) setInfoPathFile(null) }} initialFile={infoPathFile} onImported={() => void refresh()} />
       {notice && <div className="mb-4"><InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} /></div>}
 

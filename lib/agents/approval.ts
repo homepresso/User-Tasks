@@ -59,8 +59,12 @@ export interface AgentWorkflowLink {
   output_variable: string
   output_prefix: string
   share_context: boolean
-  agent_context?: { messages: any[]; facts: Record<string, any> } | null
+  agent_context?: { messages: any[]; facts: Record<string, any>; fact_writers?: Record<string, any> } | null
   user_message: string
+  /** The Parallel branch the step runs on ("A", or "A+B" after a join; none outside a Parallel). */
+  branch?: string | null
+  /** When the step started (the run trace shows agents of parallel branches overlapping). */
+  started_at?: string
 }
 
 /** What the queue worker needs to continue a paused run. */

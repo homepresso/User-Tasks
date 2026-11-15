@@ -15,6 +15,8 @@
 import type { AgentTool } from '@/lib/agent-tool-defs'
 import { safeEval } from '@/lib/expression-resolver'
 import { AgentToolError, type AgentToolRuntime, type ToolResult } from './runtime'
+import { MAX_RUN_FACTS, type RunBlackboard } from '../blackboard'
+import type { FactWriter } from '../shared-context'
 
 export { AgentToolError } from './runtime'
 export type { AgentToolRuntime } from './runtime'
@@ -82,9 +84,43 @@ function safeMath(expression: string): number | null {
 export interface RunAttachment { id?: string; name: string; mime_type: string; bytes: Uint8Array }
 
 export interface BuiltinContext {
+  /** This agent's view of the shared facts (seeded from agent_context, refreshed from the blackboard). */
   facts: Record<string, unknown>
   attachments: RunAttachment[]
+  /** Who wrote each fact (agent, step, branch, time). */
+  factWriters?: Record<string, FactWriter>
+  /** The run's live blackboard (Run Agent with Share context in a saved run). */
+  blackboard?: RunBlackboard
+  /** This agent as a fact writer. */
+  writer?: Omit<FactWriter, 'at'>
+  signal?: AbortSignal
+  /** Epoch ms the agent run must finish by (bounds wait_for_shared_fact). */
+  deadline?: number
 }
+
+/** wait_for_shared_fact: default / longest wait and poll interval. */
+export const FACT_WAIT = { defaultSeconds: 30, maxSeconds: 120, pollMs: 500 }
+
+/** Refresh the agent's facts from the blackboard (others' writes), keeping newer own writes. */
+async function refreshFacts(context: BuiltinContext): Promise<void> {
+  if (!context.blackboard) return
+  const snap = await context.blackboard.read()
+  const writers = (context.factWriters ??= {})
+  for (const [key, value] of Object.entries(snap.facts)) {
+    const mine = writers[key]?.at ? Date.parse(writers[key].at) : NaN
+    const theirs = snap.writers[key]?.at ? Date.parse(snap.writers[key].at) : NaN
+    if (Number.isFinite(mine) && Number.isFinite(theirs) && mine > theirs) continue
+    context.facts[key] = value
+    if (snap.writers[key]) writers[key] = snap.writers[key]
+  }
+}
+
+const factsWithWriters = (context: BuiltinContext) => ({
+  facts: context.facts,
+  ...(context.factWriters && Object.keys(context.factWriters).length
+    ? { written_by: Object.fromEntries(Object.entries(context.factWriters).map(([k, w]) => [k, w.agent ?? w.node_id ?? null])) }
+    : {}),
+})
 
 /** Builtins that need no database or network (unit-testable, always available). */
 export async function runPureBuiltin(name: string, args: Record<string, any>, context: BuiltinContext): Promise<ToolResult | undefined> {
@@ -96,13 +132,44 @@ export async function runPureBuiltin(name: string, args: Record<string, any>, co
     case 'current_datetime':
       return { datetime: new Date().toISOString(), timestamp: Date.now() }
     case 'read_shared_facts':
-      return { facts: context.facts }
+      await refreshFacts(context)
+      return factsWithWriters(context)
     case 'write_shared_fact':
     case 'remember_fact': {
       const key = String(args.key ?? '').trim().slice(0, 100)
       if (!key) return { error: 'key is required' }
-      context.facts[key] = typeof args.value === 'string' ? args.value.slice(0, 5_000) : args.value
-      return { success: true, key }
+      if (!(key in context.facts) && Object.keys(context.facts).length >= MAX_RUN_FACTS) return { error: `At most ${MAX_RUN_FACTS} shared facts per run` }
+      const value = typeof args.value === 'string' ? args.value.slice(0, 5_000) : args.value
+      const writer: FactWriter = { ...(context.writer ?? {}), at: new Date().toISOString() }
+      context.facts[key] = value
+      ;(context.factWriters ??= {})[key] = writer
+      if (context.blackboard) await context.blackboard.write(key, value, writer)
+      return { success: true, key, shared_live: Boolean(context.blackboard?.shared) }
+    }
+    case 'wait_for_shared_fact': {
+      const key = String(args.key ?? '').trim().slice(0, 100)
+      if (!key) return { error: 'key is required' }
+      const requested = Number(args.timeout_seconds)
+      const seconds = Math.max(1, Math.min(FACT_WAIT.maxSeconds, Number.isFinite(requested) && requested > 0 ? requested : FACT_WAIT.defaultSeconds))
+      // Never past the agent's own deadline (leave it a few seconds to answer).
+      const until = Math.min(Date.now() + seconds * 1000, (context.deadline ?? Infinity) - 5_000)
+      const started = Date.now()
+      for (;;) {
+        await refreshFacts(context)
+        if (key in context.facts && context.facts[key] !== null && context.facts[key] !== undefined) {
+          return { found: true, key, value: context.facts[key], written_by: context.factWriters?.[key]?.agent ?? null, waited_ms: Date.now() - started }
+        }
+        // No live blackboard (no workflow run, or its migration not applied): nobody else can write it now.
+        if (!context.blackboard?.shared) {
+          return { found: false, key, waited_ms: 0, note: `"${key}" is not a shared fact, and no other agents share facts with this run while it runs — continue without it.` }
+        }
+        if (context.signal?.aborted) return { error: 'The agent run was cancelled' }
+        const left = until - Date.now()
+        if (left <= 0) {
+          return { found: false, key, waited_ms: Date.now() - started, note: `No agent wrote "${key}" in time — continue without it (or write what you know with write_shared_fact).` }
+        }
+        await new Promise((resolve) => setTimeout(resolve, Math.min(FACT_WAIT.pollMs, left)))
+      }
     }
     case 'read_attached_file': {
       const key = String(args.file_id ?? args.name ?? '').trim()

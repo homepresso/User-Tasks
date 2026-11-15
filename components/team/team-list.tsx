@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronRight, ChevronDown, Users, Trash2, Pencil } from 'lucide-react'
+import { ChevronRight, ChevronDown, Users, Trash2, Pencil, Lock } from 'lucide-react'
 import { TeamMembers } from './team-members'
 import { deleteTeam } from '@/app/actions/teams'
 import { useQueryClient } from '@tanstack/react-query'
@@ -24,6 +24,9 @@ interface Team {
   org_unit_id?: string | null
   colour?: string | null
   kind?: string | null
+  /** Kept by a directory source of an extension (read-only name, description and members). */
+  source?: string | null
+  source_label?: string | null
 }
 
 interface TeamListProps {
@@ -92,6 +95,11 @@ export function TeamList({ teams, canManage }: TeamListProps) {
               : <Users className="size-3.5 shrink-0 text-fg-muted" aria-hidden />}
             <span className="truncate font-medium text-fg" title={team.name}>{team.name}</span>
             {team.kind && team.kind !== 'team' && <span className="shrink-0 rounded bg-muted px-1.5 text-2xs capitalize text-fg-muted">{team.kind}</span>}
+            {team.source && (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1.5 text-2xs text-fg-muted" title="Kept by a directory source: read-only here">
+                <Lock className="size-2.5" aria-hidden />{team.source_label ?? 'Directory'}
+              </span>
+            )}
           </div>
         </TD>
         <TD className="max-w-0 text-fg-muted max-md:hidden"><span className="block truncate" title={team.description || undefined}>{team.description || '—'}</span></TD>
@@ -99,9 +107,11 @@ export function TeamList({ teams, canManage }: TeamListProps) {
         {canManage ? (
           <TDActions>
             <IconButton size="sm" label={`Edit ${team.name}`} icon={<Pencil />} variant="ghost"
-              onClick={(e) => { e.stopPropagation(); setEditing({ id: team.id, name: team.name, description: team.description, parent_id: team.parent_id, lead_user_id: team.lead_user_id ?? null, org_unit_id: team.org_unit_id ?? null, colour: team.colour ?? null, kind: team.kind ?? 'team' }) }} />
-            <IconButton size="sm" label={`Delete ${team.name}`} icon={<Trash2 />} variant="danger-ghost"
-              onClick={(e) => { e.stopPropagation(); setConfirming(team) }} />
+              onClick={(e) => { e.stopPropagation(); setEditing({ id: team.id, name: team.name, description: team.description, parent_id: team.parent_id, lead_user_id: team.lead_user_id ?? null, org_unit_id: team.org_unit_id ?? null, colour: team.colour ?? null, kind: team.kind ?? 'team', source_label: team.source ? (team.source_label ?? 'a directory source') : null }) }} />
+            {!team.source && (
+              <IconButton size="sm" label={`Delete ${team.name}`} icon={<Trash2 />} variant="danger-ghost"
+                onClick={(e) => { e.stopPropagation(); setConfirming(team) }} />
+            )}
           </TDActions>
         ) : <TD className="w-px" />}
       </TR>
@@ -137,9 +147,9 @@ export function TeamList({ teams, canManage }: TeamListProps) {
 
         {selectedTeamId && (
           <Card padding="none" className="self-start">
-            <CardHeader title={selectedTeam?.name ?? 'Team'} description="Members" />
+            <CardHeader title={selectedTeam?.name ?? 'Team'} description={selectedTeam?.source ? `Members · from ${selectedTeam.source_label ?? 'a directory source'} (read-only)` : 'Members'} />
             <div className="px-4 pb-4">
-              <TeamMembers teamId={selectedTeamId} canManage={canManage} />
+              <TeamMembers teamId={selectedTeamId} canManage={canManage && !selectedTeam?.source} />
             </div>
           </Card>
         )}

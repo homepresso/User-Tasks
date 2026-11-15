@@ -1,0 +1,145 @@
+name: Release server
+
+# A UserTasks server release, from a tag v<version> (must match package.json):
+#
+#   1. the release gates (release-gates.yml) and the multi-arch image
+#      (image.yml → ghcr.io/homepresso/usertasks:<version>), in parallel;
+#   2. the one-line installer's release (npm run release:bundle): the bundle
+#      pinning the image digest just pushed, install.sh / install.ps1,
+#      release.json, SHA256SUMS signed with the release key (ed25519, the
+#      RELEASE_SIGNING_KEY secret) and again keyless with Sigstore (cosign), the
+#      image signed keyless too;
+#   3. a DRAFT GitHub release with those assets and the notes from
+#      deploy/install/RELEASE_NOTES.template.md. Review it, add the highlights
+#      and publish it by hand: only then does `releases/latest` (what the
+#      installer and `usertasks upgrade` read) move to it.
+#
+# Secrets: RELEASE_SIGNING_KEY (ed25519 private key, PEM; its public half must
+# be committed in deploy/install/release-key.pub.pem and embedded in the
+# installers: npm run release:bundle -- set-key). GITHUB_TOKEN does the rest.
+# Run by hand (workflow_dispatch) for a dry run: everything but the image push
+# and the release, with a throwaway key when the secret is absent.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and sign the installer release without pushing an image or creating a release
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-server-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gates:
+    if: ${{ !github.event.repository.fork && github.event_name == 'push' }}
+    uses: ./.github/workflows/release-gates.yml
+
+  image:
+    if: ${{ !github.event.repository.fork && github.event_name == 'push' }}
+    uses: ./.github/workflows/image.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      latest: true
+
+  installer:
+    name: Installer release (bundle, checksums, signatures)
+    needs: [gates, image]
+    if: ${{ always() && !github.event.repository.fork && (github.event_name == 'workflow_dispatch' || (needs.gates.result == 'success' && needs.image.result == 'success')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write   # the draft release
+      packages: write   # cosign signature next to the image
+      id-token: write   # Sigstore keyless signing
+    env:
+      IMAGE: ghcr.io/homepresso/usertasks
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Version
+        id: version
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" != "v${version}" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
+            exit 1
+          fi
+          previous="$(git tag --list 'v*' --sort=-v:refname | grep -v "^v${version}$" | head -n 1 | sed 's/^v//')"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "previous=${previous}" >> "$GITHUB_OUTPUT"
+
+      - name: Shell checks (installers and wrapper)
+        run: |
+          shellcheck -s sh deploy/install/install.sh deploy/install/usertasks scripts/install-e2e.sh
+          pwsh -NoProfile -Command '$e=$null; foreach ($f in "deploy/install/install.ps1","deploy/install/usertasks.ps1") { [System.Management.Automation.Language.Parser]::ParseFile($f,[ref]$null,[ref]$e) | Out-Null; if ($e) { $e; exit 1 } }'
+
+      - name: Build the installer release
+        shell: bash
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          DIGEST: ${{ needs.image.outputs.digest }}
+          PREVIOUS: ${{ steps.version.outputs.previous }}
+        run: |
+          args=(create --version "${{ steps.version.outputs.version }}" --image "${IMAGE}:${{ steps.version.outputs.version }}" --out dist/release)
+          [[ -n "$DIGEST" ]] && args+=(--image-digest "$DIGEST")
+          [[ -n "$PREVIOUS" ]] && args+=(--previous "$PREVIOUS")
+          if [[ -z "$RELEASE_SIGNING_KEY" ]]; then
+            [[ "$DRY_RUN" == "true" ]] || { echo "::error::RELEASE_SIGNING_KEY is not set"; exit 1; }
+            args+=(--local)
+          fi
+          npm run release:bundle -- "${args[@]}"
+          npm run release:bundle -- verify "dist/release/v${{ steps.version.outputs.version }}" \
+            --public-key "dist/release/v${{ steps.version.outputs.version }}/release-key.pub.pem"
+          rm -f dist/release/THROWAWAY-signing-key.pem
+
+      - uses: sigstore/cosign-installer@v3
+
+      - name: Sign keyless (Sigstore)
+        if: ${{ env.DRY_RUN != 'true' }}
+        shell: bash
+        env:
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          dir="dist/release/v${{ steps.version.outputs.version }}"
+          cosign sign-blob --yes --bundle "$dir/SHA256SUMS.sigstore.json" "$dir/SHA256SUMS"
+          echo "${{ secrets.GITHUB_TOKEN }}" | cosign login ghcr.io -u "${{ github.actor }}" --password-stdin
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: installer-release-${{ steps.version.outputs.version }}
+          path: dist/release/v${{ steps.version.outputs.version }}/
+          retention-days: 30
+
+      - name: Draft GitHub release
+        if: ${{ env.DRY_RUN != 'true' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          v="${{ steps.version.outputs.version }}"
+          dir="dist/release/v${v}"
+          gh release create "v${v}" --draft --verify-tag --title "UserTasks ${v}" --notes-file "$dir/RELEASE_NOTES.md" \
+            "$dir/usertasks-${v}.tar.gz" "$dir/install.sh" "$dir/install.ps1" "$dir/release.json" \
+            "$dir/SHA256SUMS" "$dir/SHA256SUMS.sig" "$dir/SHA256SUMS.sigstore.json" "$dir/release-key.pub.pem"

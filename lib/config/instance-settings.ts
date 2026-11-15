@@ -10,6 +10,7 @@ import { KMS_SECRET_OPTIONS } from '@/lib/providers/kms/options'
 import { isSecretRef } from './secret-refs'
 import { validateHousekeepingSetting } from './housekeeping'
 import { validateEgressSetting } from '@/lib/egress-policy'
+import { validateEmbedSetting } from '@/lib/embedding'
 import { ConfigError, InstanceSettingKeySchema, PROVIDER_AREAS, providerIdSchema, type ProviderArea } from './schema'
 
 /**
@@ -133,6 +134,7 @@ function validate(key: string, value: unknown): void {
   try {
     validateHousekeepingSetting(key, value)
     validateEgressSetting(key, value)
+    validateEmbedSetting(key, value)
   } catch (e) {
     throw new ConfigError((e as Error).message)
   }

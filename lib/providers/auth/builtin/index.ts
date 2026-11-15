@@ -5,7 +5,7 @@ import { getProviderConfig } from '@/lib/config'
 import { configuredAppUrl } from '@/lib/config/bootstrap'
 import type { ProviderId } from '@/lib/config/schema'
 import { rateLimit as countHit } from '@/lib/rate-limit'
-import { authCookieOptions, requestCookieDomain, SESSION_COOKIE_NAMES, sessionCookieName, ssoFlowCookieName } from '../cookies'
+import { authCookieOptions, sessionCookieOptions, requestCookieDomain, SESSION_COOKIE_NAMES, sessionCookieName, ssoFlowCookieName } from '../cookies'
 import { dbIdentityFor, mintSupabaseAccessToken } from '../db-identity'
 import { authSettings, type AuthSettings } from '../options'
 import { onUserCreated } from '../provisioning'
@@ -80,7 +80,7 @@ async function setSessionCookie(token: string, expiresAt: Date): Promise<void> {
   const domain = await requestCookieDomain()
   const name = sessionCookieName(undefined, Boolean(domain))
   for (const other of SESSION_COOKIE_NAMES) if (other !== name) clearOne(store, other, other === '__Secure-ut_session' ? domain : undefined)
-  store.set(name, token, authCookieOptions((expiresAt.getTime() - Date.now()) / 1000, name === '__Secure-ut_session' ? domain : undefined))
+  store.set(name, token, sessionCookieOptions((expiresAt.getTime() - Date.now()) / 1000, name === '__Secure-ut_session' ? domain : undefined))
 }
 
 function clearOne(store: Awaited<ReturnType<typeof cookieStore>>, name: string, domain: string | undefined) {

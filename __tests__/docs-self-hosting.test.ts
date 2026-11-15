@@ -18,10 +18,12 @@ const GUIDE = [
   ['self-hosting/requirements', 'Requirements'],
   ['self-hosting/install', 'Install step by step'],
   ['self-hosting/admin-account', 'Create your admin account'],
+  ['self-hosting/setup-wizard', 'Setup wizard'],
   ['self-hosting/invite-people', 'Sign in and invite people'],
   ['self-hosting/cli', 'Use the CLI with your server'],
   ['self-hosting/local-to-supabase-cloud', 'Move from your local Supabase to Supabase Cloud'],
   ['self-hosting/friendly-address', 'Give your install a friendly address'],
+  ['self-hosting/upgrade', 'Upgrade to a new release'],
   ['self-hosting/updates-and-backups', 'Updates and backups'],
   ['self-hosting/troubleshooting', 'Troubleshooting'],
 ] as const

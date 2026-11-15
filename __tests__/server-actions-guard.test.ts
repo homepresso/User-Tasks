@@ -51,7 +51,7 @@ const OPEN_ACTIONS: Record<string, string> = {
   'auth.signInAction': 'Sign in (pre-auth)',
   'auth.passwordSignInAction': 'Sign in (pre-auth)',
   'auth.startSsoAction': 'SSO redirect (pre-auth)',
-  'auth.signOutAction': 'Ends the caller\'s own session',
+  'sign-out.signOutAction': 'Ends the caller\'s own session',
   'auth.requestPasswordResetAction': 'Pre-auth, rate limited',
   'auth.resetPasswordAction': 'Pre-auth with the reset token',
   'auth.getRealtimeTokenAction': "The caller's own realtime token (RLS bounds what it can read and write)",

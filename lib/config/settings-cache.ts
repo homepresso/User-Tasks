@@ -6,14 +6,23 @@
 
 export const INSTANCE_SETTINGS_TTL_MS = 30_000
 
-let cache: { at: number; values: Map<string, unknown> } | null = null
+/*
+ * Kept on globalThis so every bundle in the server process sees the same
+ * copy: proxy.ts is bundled separately from the app routes, and its
+ * synchronous readers (CSP sources, trusted embedding) would otherwise only
+ * ever see an empty cache.
+ */
+type CacheEntry = { at: number; values: Map<string, unknown> }
+const SLOT = Symbol.for('usertasks.instanceSettingsCache')
+const holder = globalThis as unknown as { [SLOT]?: CacheEntry | null }
 
 export function readSettingsCache(): Map<string, unknown> | null {
+  const cache = holder[SLOT]
   return cache && Date.now() - cache.at < INSTANCE_SETTINGS_TTL_MS ? cache.values : null
 }
 
 export function writeSettingsCache(values: Map<string, unknown> | null): void {
-  cache = values ? { at: Date.now(), values } : null
+  holder[SLOT] = values ? { at: Date.now(), values } : null
 }
 
 /**
@@ -22,5 +31,5 @@ export function writeSettingsCache(values: Map<string, unknown> | null): void {
  * because nothing refreshed the cache recently (storage URL resolution).
  */
 export function readSettingsCacheStale(): Map<string, unknown> | null {
-  return cache ? cache.values : null
+  return holder[SLOT]?.values ?? null
 }

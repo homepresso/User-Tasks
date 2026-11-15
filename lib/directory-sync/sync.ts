@@ -715,10 +715,32 @@ export async function runDirectorySync(
 /** Execute one claimed directory_sync_runs row with live progress updates. */
 export async function executeDirectorySyncRun(supabase: SupabaseClient, run: Record<string, any>): Promise<void> {
   const tenantId = String(run.tenant_id)
-  const provider: DirectoryProvider = isDirectoryProvider(run.provider) ? run.provider : 'entra'
   const updateRun = async (patch: Record<string, unknown>) => {
     await (supabase as any).from('directory_sync_runs').update(patch).eq('id', run.id)
   }
+  // Directory sources contributed by extensions (ext.<id>.<key>): lib/directory-sync/sources.ts.
+  if (typeof run.provider === 'string' && run.provider.startsWith('ext.')) {
+    const sources = await import('@/lib/directory-sync/sources')
+    try {
+      const stats = await sources.runExtensionDirectorySync(supabase, tenantId, run.provider, {
+        actorId: run.created_by ?? null,
+        mode: run.mode === 'full' ? 'full' : 'auto',
+        onProgress: (progress) => updateRun({ progress }),
+        onMode: (mode) => updateRun({ mode }),
+      })
+      await updateRun({ status: 'completed', stats, progress: { phase: 'done', message: 'Sync complete' }, completed_at: new Date().toISOString() })
+    } catch (error: any) {
+      await updateRun({ status: 'failed', error: String(error?.message ?? error).slice(0, 2000), completed_at: new Date().toISOString() })
+      await writeAudit({
+        supabase, tenantId, actorId: run.created_by ?? null,
+        objectType: 'directory_sync', objectId: String(run.id), action: 'sync',
+        summary: `${sources.directoryProviderLabel(run.provider)} sync failed: ${String(error?.message ?? error).slice(0, 200)}`,
+        metadata: { provider: run.provider, failed: true },
+      })
+    }
+    return
+  }
+  const provider: DirectoryProvider = isDirectoryProvider(run.provider) ? run.provider : 'entra'
   try {
     const stats = await runDirectorySync(supabase, tenantId, provider, {
       actorId: run.created_by ?? null,

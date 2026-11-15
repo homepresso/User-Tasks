@@ -105,8 +105,24 @@ export function guardsReferencing(manifest: ExtensionManifest, ref: Reference): 
     for (const item of ui.navItems) if (item.badge?.source === ref.name) guards.push(item.when)
     for (const widget of ui.widgets) if (widget.source === ref.name) guards.push(widget.when)
     for (const tab of ui.detailTabs) if (tab.source === ref.name) guards.push(tab.when)
+    // Design-time sources of node inputs / trigger settings (choices, filter fields, preview): whoever edits workflows.
+    const nodeSources = [...manifest.contributes.nodes, ...manifest.contributes.triggers].flatMap(designSources)
+    if (nodeSources.includes(ref.name)) guards.push({ anyPermission: ['workflows.edit', 'workflows.create'], ...(featureOfSource(manifest, ref.name) ? { feature: featureOfSource(manifest, ref.name) } : {}) })
   }
   return guards
+}
+
+/** The data sources the designer asks for a node / trigger (optionsFrom, filter fields, preview). */
+function designSources(n: ExtensionManifest['contributes']['nodes'][number] | ExtensionManifest['contributes']['triggers'][number]): string[] {
+  const t = n as { filters?: { fieldsFrom: string }; previewFrom?: string }
+  return [...Object.values(n.optionsFrom ?? {}), ...(t.filters ? [t.filters.fieldsFrom] : []), ...(t.previewFrom ? [t.previewFrom] : [])]
+}
+
+/** The licence feature of the nodes / triggers whose design-time sources name this source (when all of them share one). */
+function featureOfSource(manifest: ExtensionManifest, source: string): string | undefined {
+  const owners = [...manifest.contributes.nodes, ...manifest.contributes.triggers].filter((n) => designSources(n).includes(source))
+  const features = new Set(owners.map((o) => o.feature ?? ''))
+  return features.size === 1 ? [...features][0] || undefined : undefined
 }
 
 /**

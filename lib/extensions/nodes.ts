@@ -32,6 +32,12 @@ export interface ExtensionCatalogEntry {
   /** Node outputs (triggers: the run variables). */
   outputs: ActionField[]
   feature?: string
+  /** Input name → UI data source supplying its choices at design time. */
+  optionsFrom?: Record<string, string>
+  /** Triggers: the field-change filter builder (config field + fields source). */
+  filters?: { config: string; fieldsFrom: string }
+  /** Triggers: data source of "Test with the latest event". */
+  previewFrom?: string
 }
 
 /** Lucide name in Pascal case for a manifest icon (SVG icons → fallback). */
@@ -53,7 +59,8 @@ export function extensionNodeCatalog(): ExtensionCatalogEntry[] {
     for (const t of m.contributes.triggers) {
       entries.push({
         type: extKey(m.id, t.key) as `ext.${string}`, label: t.label, icon: iconName(t.icon, 'Zap'), category: 'trigger', color: '#22C55E',
-        description: t.description, extensionId: m.id, extensionName: m.name, key: t.key, inputs: t.config, outputs: t.variables, feature: t.feature,
+        description: t.description, extensionId: m.id, extensionName: m.name, key: t.key, inputs: t.config, outputs: t.variables, feature: t.feature, optionsFrom: t.optionsFrom,
+        ...(t.filters ? { filters: t.filters } : {}), ...(t.previewFrom ? { previewFrom: t.previewFrom } : {}),
       })
     }
   }
@@ -61,7 +68,7 @@ export function extensionNodeCatalog(): ExtensionCatalogEntry[] {
     for (const n of m.contributes.nodes) {
       entries.push({
         type: extKey(m.id, n.key) as `ext.${string}`, label: n.label, icon: iconName(n.icon), category: n.category, color: EXTENSION_NODE_COLOR,
-        description: n.description, extensionId: m.id, extensionName: m.name, key: n.key, inputs: n.inputs, outputs: n.outputs, feature: n.feature,
+        description: n.description, extensionId: m.id, extensionName: m.name, key: n.key, inputs: n.inputs, outputs: n.outputs, feature: n.feature, optionsFrom: n.optionsFrom,
       })
     }
   }

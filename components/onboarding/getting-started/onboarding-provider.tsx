@@ -109,7 +109,7 @@ export function OnboardingProvider({ userId, children }: { userId: string; child
   // Opens by itself once per page load: new workspace / new member, not opted out, reminder due.
   const autoOpened = useRef(false)
   useEffect(() => {
-    if (autoOpened.current || !state || !visibility?.autoOpen || pathname.startsWith('/onboarding')) return
+    if (autoOpened.current || !state || !visibility?.autoOpen || pathname.startsWith('/onboarding') || pathname.startsWith('/settings/setup')) return
     // Marked when it actually opens: a refetch in the meantime reschedules it rather than losing it.
     const t = window.setTimeout(() => {
       autoOpened.current = true

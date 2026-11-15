@@ -13,7 +13,8 @@ import { checkSetupCode, claimSetup, completeSetup, isInstanceEmpty, markSetupDo
  *      "still empty" while holding it — two simultaneous submissions can't
  *      both get here,
  *   6. provisionTenant (the same as `npm run bootstrap`),
- *   7. expire the code, record the claim as completed, audit, sign in.
+ *   7. expire the code, record the claim as completed, audit, make the
+ *      owner an instance admin, sign in, and continue in the setup wizard.
  */
 
 export interface SetupInput {
@@ -38,6 +39,12 @@ export interface SetupDeps {
   rateLimit: (key: string) => Promise<{ ok: boolean; retryAfterMs?: number }>
   signIn: (email: string, password: string) => Promise<boolean>
   audit: (info: { tenantId: string; userId: string; slug: string; email: string }) => Promise<void>
+  /**
+   * Make the new owner an instance admin (instance.admin_emails), so the
+   * setup wizard and Settings → Infrastructure open for them: whoever has the
+   * setup code controls the server anyway. True when granted.
+   */
+  grantInstanceAdmin?: (email: string, userId: string) => Promise<boolean>
   ip: string | null
   env?: Record<string, string | undefined>
 }
@@ -133,6 +140,7 @@ export async function runSetup(input: SetupInput, deps: SetupDeps): Promise<Setu
 
   await completeSetup(deps.db, { claimId, tenantId: result.tenantId, userId: result.userId })
   await deps.audit({ tenantId: result.tenantId, userId: result.userId, slug: result.slug, email }).catch(() => undefined)
+  const admin = deps.grantInstanceAdmin ? await deps.grantInstanceAdmin(email, result.userId).catch(() => false) : false
   const signedIn = await deps.signIn(email, input.password).catch(() => false)
-  return { ok: true, slug: result.slug, signedIn, redirect: signedIn ? '/onboarding' : `/login?org=${encodeURIComponent(result.slug)}` }
+  return { ok: true, slug: result.slug, signedIn, redirect: signedIn ? (admin ? '/settings/setup?step=organisation' : '/onboarding') : `/login?org=${encodeURIComponent(result.slug)}` }
 }

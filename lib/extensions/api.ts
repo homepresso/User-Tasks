@@ -28,7 +28,7 @@ import { fromApiAuth, requirePerm, isServiceError } from '@/lib/services/context
 import { rateLimit } from '@/lib/rate-limit'
 import { writeAudit } from '@/lib/audit-log'
 import { getServiceDb } from '@/lib/providers/db'
-import type { ExtensionEndpoint, PublicRoute } from '@/lib/extensions/sdk'
+import { isExtensionError, type ExtensionEndpoint, type PublicRoute } from '@/lib/extensions/sdk'
 import { createExtensionContext, readExtensionSecret } from './host'
 import { extensionToolPrefix } from './manifest'
 import { getExtensionManifest } from './registry'
@@ -76,10 +76,19 @@ export async function dispatchExtensionApi(request: NextRequest, extensionId: st
   if ('methodNotAllowed' in found) return apiError(`Method ${request.method} not allowed`, 405, 'method_not_allowed')
   const { endpoint, params } = found
   const route = apiRoute(endpoint.endpoint, async ({ ctx, params: parsedParams, query, body, request: req }) => {
-    const access = await extensionAccess(ctx.tenantId, extensionId)
-    if (!access.usable) return apiError(access.reason ?? 'Extension not available', access.status === 200 ? 403 : access.status, access.code ?? 'extension_disabled', { extension_id: extensionId, state: access.entitlement.state, retryable: access.code === 'extension_licence_expired' })
-    const extCtx = createExtensionContext({ extensionId, tenantId: ctx.tenantId, actorId: ctx.actorId ?? ctx.credentialOwnerId ?? null, db: ctx.supabase })
-    const result = await endpoint.handler({ ctx: extCtx, params: parsedParams, query, body, request: req })
+    const access = await extensionAccess(ctx.tenantId, extensionId, endpoint.feature)
+    if (!access.usable) return apiError(access.reason ?? 'Extension not available', access.status === 200 ? 403 : access.status, access.code ?? 'extension_disabled', { extension_id: extensionId, state: access.entitlement.state, retryable: access.code === 'extension_licence_expired', ...(endpoint.feature ? { feature: endpoint.feature } : {}) })
+    const extCtx = createExtensionContext({ extensionId, tenantId: ctx.tenantId, actorId: ctx.actorId ?? ctx.credentialOwnerId ?? null, db: ctx.supabase, permissions: ctx.permissions })
+    let result: unknown
+    try {
+      result = await endpoint.handler({ ctx: extCtx, params: parsedParams, query, body, request: req })
+    } catch (error) {
+      if (isExtensionError(error)) {
+        const status = error.status >= 400 && error.status <= 599 ? error.status : 500
+        return apiError(error.message, status, error.code, error.details)
+      }
+      throw error
+    }
     if (result instanceof Response && !(result instanceof NextResponse)) {
       return new NextResponse(result.body, { status: result.status, headers: result.headers })
     }
@@ -127,6 +136,13 @@ function json(status: number, error: string, code: string) {
   return NextResponse.json({ success: false, error, code }, { status, headers: { 'Cache-Control': 'no-store' } })
 }
 
+/** The route's own rate (bounded), else the default. */
+export function publicRate(route: Pick<PublicRoute, 'rateLimit'>): { max: number; windowMs: number } {
+  const r = route.rateLimit
+  if (!r || !Number.isFinite(r.max) || !Number.isFinite(r.windowMs)) return PUBLIC_RATE
+  return { max: Math.min(6000, Math.max(1, Math.floor(r.max))), windowMs: Math.min(3_600_000, Math.max(1000, Math.floor(r.windowMs))) }
+}
+
 /** Dispatch for /ext-public/<id>/<path>. */
 export async function dispatchPublicRoute(request: NextRequest, extensionId: string, segments: string[]): Promise<Response> {
   const path = `/${segments.join('/')}`
@@ -146,7 +162,8 @@ export async function dispatchPublicRoute(request: NextRequest, extensionId: str
   }
   if (!route) return pathMatched ? json(405, 'Method not allowed', 'method_not_allowed') : json(404, 'Not found', 'not_found')
 
-  const limited = await rateLimit(`ext-public:${extensionId}:${clientKey(request)}`, PUBLIC_RATE)
+  // A route with its own rate counts separately; the others share the extension's budget.
+  const limited = await rateLimit(route.rateLimit ? `ext-public:${extensionId}:${route.path}:${clientKey(request)}` : `ext-public:${extensionId}:${clientKey(request)}`, publicRate(route))
   if (!limited.ok) return json(429, 'Too many requests', 'rate_limited')
 
   const declared = Number(request.headers.get('content-length') ?? 0)

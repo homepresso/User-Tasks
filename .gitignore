@@ -22,6 +22,9 @@
 /packages/*/dist
 /packages/*/node_modules
 
+# linked extension packages mirrored for development (lib/extensions/build/codegen.ts)
+/.usertasks-ext/
+
 # misc
 .DS_Store
 *.pem
@@ -62,3 +65,8 @@ supabase/.temp
 
 # npm run stack -- up: the generated first sign-in password
 .usertasks-first-login
+
+# one-line installer: release assets (npm run release:bundle) and test scratch
+/dist/release/
+/__tests__/.install-scripts-*/
+!deploy/install/release-key.pub.pem

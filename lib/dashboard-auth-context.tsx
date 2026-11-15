@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef,
 import { useRouter } from 'next/navigation'
 import { PERMISSION_PAYLOAD_VERSION } from '@/lib/permissions'
 import { getMySession } from '@/app/actions/session'
-import { signOutAction } from '@/app/actions/auth'
+import { signOutAction } from '@/app/actions/sign-out'
 import { clearAllAgentHistory } from '@/lib/assistants/history'
 import { AUTH_CHANNEL, DASHBOARD_AUTH_CACHE_KEY } from '@/lib/auth-client'
 
@@ -183,7 +183,10 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
         try {
           const uid = await fetchSessionUserId()
           if (!uid) {
-            router.replace('/login')
+            // Back to this page after signing in (links from other systems, e.g. an extension's
+            // button in SharePoint); the sign-in page only accepts same-origin paths.
+            const here = `${window.location.pathname}${window.location.search}`
+            router.replace(here === '/' || here === '/home' ? '/login' : `/login?redirect=${encodeURIComponent(here)}`)
             return
           }
           setUserId(uid)

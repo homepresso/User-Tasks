@@ -277,6 +277,21 @@ describe.skipIf(!TLS)('Windows auth transport over HTTPS', () => {
     expect(s.stats.failures).toEqual([])
   })
 
+  it('keeps the channel binding on every new connection (no TLS session resumption)', async () => {
+    const s = await server({ tls: { key: TLS!.key, cert: TLS!.cert }, requireCbt: true })
+    const f = createWindowsTransport({ baseUrl: s.url, auth: auth({ ca_bundle: TLS!.caPem }) })
+    for (let i = 0; i < 3; i++) {
+      const r = await f(`${s.url}/echo`)
+      expect(r.status).toBe(200)
+      // Abandoning the body drops the authenticated connection: the next request dials again.
+      await r.body?.cancel()
+    }
+    const last = await f(`${s.url}/echo`)
+    expect(last.status).toBe(200)
+    await last.text()
+    expect(s.stats.failures).toEqual([])
+  })
+
   it('rejects an untrusted certificate without a CA bundle (no "allow self-signed")', async () => {
     const s = await server({ tls: { key: TLS!.key, cert: TLS!.cert } })
     const f = createWindowsTransport({ baseUrl: s.url, auth: auth() })

@@ -103,6 +103,7 @@ import { reportableRunVariables } from "./workflow-run-variables";
 import { decideAcceptance, type QueueTaskFacts } from "./tasks/queue-rules";
 import { decideAcceptanceForAssignees } from "./tasks/queue-rules-server";
 import { setVariableAssignments, usesSetVariableAssignments } from "./workflow-set-variable";
+import { mergeAgentContexts } from "./agents/shared-context";
 import type { AadGroupPlanResult } from "./tasks/aad-group-runtime";
 
 export { RunNotResumableError };
@@ -387,6 +388,31 @@ interface ExecutionContext {
   };
   /** Parallel join tracking (shared by every branch of the run). */
   parallel?: ParallelRuntime;
+  /** The Parallel branch this path runs on ("A", "A+B" after a join; unset outside a Parallel). */
+  branchLabel?: string;
+}
+
+/**
+ * Set a variable from another path / a resumed wait. `agent_context` (the
+ * shared multi-agent context) is merged, not replaced, so agents of other
+ * branches keep their messages and facts (lib/agents/shared-context.ts).
+ */
+function assignVariable(target: Record<string, any>, key: string, value: unknown) {
+  const current = target[key];
+  if (
+    key === "agent_context" &&
+    value && typeof value === "object" && !Array.isArray(value) &&
+    current && typeof current === "object" && !Array.isArray(current) &&
+    current !== value
+  ) {
+    target[key] = mergeAgentContexts(current, value);
+    return;
+  }
+  target[key] = value;
+}
+
+function assignVariables(target: Record<string, any>, values: Record<string, unknown>) {
+  for (const [key, value] of Object.entries(values)) assignVariable(target, key, value);
 }
 
 function traceNodeVisit(
@@ -2412,12 +2438,12 @@ async function continueWait(
   const frame = last && rt.state.frames.find((f) => f.id === last.frame);
   if (!frame) {
     // Outside any Parallel: as before, errors and pauses propagate.
-    Object.assign(rt.root.variables, returnVariables);
+    assignVariables(rt.root.variables, returnVariables);
     await followPausedNode(node, rt.root, undefined, nodes, edges, wait.paused_at, pushResumeLog);
     return;
   }
   startPath(rt, frame, last.token, last.record, frameParent(rt, frame), async (ctx, scope) => {
-    Object.assign(ctx.variables, returnVariables);
+    assignVariables(ctx.variables, returnVariables);
     await followPausedNode(node, ctx, scope, nodes, edges, wait.paused_at, pushResumeLog);
   });
   await parallelSettled(rt);
@@ -2816,6 +2842,8 @@ interface ParallelRuntime {
   attached: Set<string>;
   pumping: boolean;
   repump: boolean;
+  /** Run Agent steps running right now in this process (node id → label), for the run log. */
+  activeAgents?: Map<string, string>;
 }
 
 function newParallelRuntime(
@@ -2979,6 +3007,11 @@ function forkPathContext(
 }
 
 /** Context and scope of a path (rebuilt from the persisted state after a resume). */
+/** Label of the branches a path carries ("A", "A+B" after a join). */
+function branchLabelOf(frame: FrameState, token: number[]): string {
+  return token.map((i) => frame.branches[i]?.label || `Branch ${i + 1}`).join("+");
+}
+
 function materializePath(
   rt: ParallelRuntime,
   path: PathEntry[],
@@ -2994,6 +3027,7 @@ function materializePath(
       deleted: [],
     });
     ctx = forkPathContext(ctx, record);
+    ctx.branchLabel = branchLabelOf(frame, entry.token);
     scope = { frame, entry, parent: scope };
   }
   return { ctx, scope };
@@ -3048,6 +3082,7 @@ function startPath(
     parent.ctx,
     (frame.records[record] ??= { token, writes: {}, deleted: [] }),
   );
+  pathCtx.branchLabel = branchLabelOf(frame, token);
   const live: RunningPath = { path: [...pathOf(parent.scope), entry] };
   rt.running.add(live);
   void (async () => {
@@ -3099,8 +3134,7 @@ function fireJoin(rt: ParallelRuntime, frame: FrameState, nodeId: string) {
   for (const index of joinReplayOrder(frame.records, token)) {
     const record = frame.records[index];
     for (const key of record.deleted) delete parent.ctx.variables[key];
-    for (const [key, value] of Object.entries(record.writes))
-      parent.ctx.variables[key] = value;
+    assignVariables(parent.ctx.variables, record.writes);
   }
   frame.records.push({ token, writes: {}, deleted: [] });
   const node = getNodeById(rt.root, rt.nodes, nodeId);
@@ -3312,7 +3346,7 @@ function applyFrameWrites(frame: FrameState, ctx: ExecutionContext) {
   for (const index of joinReplayOrder(frame.records, all)) {
     const record = frame.records[index];
     for (const key of record.deleted) delete ctx.variables[key];
-    for (const [key, value] of Object.entries(record.writes)) ctx.variables[key] = value;
+    assignVariables(ctx.variables, record.writes);
   }
 }
 
@@ -6899,6 +6933,8 @@ async function runNodeAction(
         share_context: shareContext,
         agent_context: agentContext ?? null,
         user_message: userMessage,
+        branch: ctx.branchLabel ?? null,
+        started_at: new Date().toISOString(),
       };
 
       const filesSpec = typeof config.files === "string" ? config.files.trim() : "";
@@ -6949,6 +6985,17 @@ async function runNodeAction(
       const relay = coalescedAgentEvents<any>((event) => {
         ctx.onEvent?.({ type: "log", node_id: node.id, data: event });
       });
+      // Agents of parallel branches run at the same time: say so in the run log.
+      const activeAgents = ctx.parallel && ctx.branchLabel ? (ctx.parallel.activeAgents ??= new Map<string, string>()) : null;
+      if (activeAgents) {
+        const others = [...activeAgents.values()];
+        ctx.logs.push({
+          node_id: node.id, node_type: node.type, node_label: node.label, level: "info",
+          message: `Agent "${agentRow.name}" started${link.branch ? ` on branch ${link.branch}` : ""}${others.length ? ` — running at the same time as ${others.join(", ")}` : ""}`,
+          metadata: { branch: link.branch, concurrent_with: others },
+        });
+        activeAgents.set(node.id, node.label);
+      }
       const outcome = await runAgent({
         stream: streamReply,
         db: supabase,
@@ -6966,7 +7013,10 @@ async function runNodeAction(
         attachments: agentAttachments?.attachments,
         overrides: { maxIterations: config.max_iterations, maxDurationMs: config.timeout_ms },
         onEvent: (event) => relay.onEvent(event),
-      }).finally(() => relay.close());
+      }).finally(() => {
+        relay.close();
+        activeAgents?.delete(node.id);
+      });
       const result = outcome.result;
 
       if (result.status === "awaiting_approval") {
@@ -6979,9 +7029,13 @@ async function runNodeAction(
         throw new Error(`Agent execution failed: ${result.error ?? "unknown error"}`);
       }
 
-      Object.assign(ctx.variables, agentWorkflowVariables(result, link, outcome.outputConfig, agentRow.name));
+      // agent_context is merged with the run's current one (agents of other
+      // branches may have finished meanwhile), never overwritten.
+      for (const [key, value] of Object.entries(agentWorkflowVariables(result, link, outcome.outputConfig, agentRow.name)))
+        assignVariable(ctx.variables, key, value);
       return {
-        ...agentNodeOutput(result, outcome.runId),
+        ...agentNodeOutput(result, outcome.runId, link),
+        started_at: link.started_at,
         ...(agentAttachments?.summary.length ? { files: agentAttachments.summary } : {}),
       };
     }

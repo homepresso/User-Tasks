@@ -4,6 +4,8 @@ import { configuredAppUrl } from "@/lib/config/bootstrap"
 import { updateSession } from "@/lib/supabase/middleware"
 import { FRAME_PATH_PREFIX } from "@/lib/forms/custom-controls/frame"
 import { isFrameableFormPath } from "@/lib/forms/embed"
+import { embedFrameAncestors, framedSessionsEnabled, getEmbedPolicy, isEmbedPath, sessionCookiesAllowed } from "@/lib/embedding"
+import { authCookieSecure } from "@/lib/providers/auth/cookies"
 import {
   HOST_WORKSPACE_HEADER, INVALID_HOST_MARK, REQUEST_PATH_HEADER, WORKSPACE_HOP_PREFIX,
   baseDomainFromEnv, classifyHost, parseWorkspaceHop, workspaceOrigin,
@@ -44,6 +46,18 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Trusted embedding (lib/embedding.ts): with framed sessions on, session
+  // cookies are SameSite=None, so drop them from the cross-site requests
+  // SameSite=Lax would have kept them from (CSRF stays as before).
+  const embedPolicy = getEmbedPolicy()
+  if (framedSessionsEnabled(authCookieSecure(), embedPolicy) && !sessionCookiesAllowed({
+    method: request.method,
+    pathname: request.nextUrl.pathname,
+    get: (name) => request.headers.get(name),
+  })) {
+    for (const c of request.cookies.getAll()) if (SESSION_COOKIE_RE.test(c.name)) request.cookies.delete(c.name)
+  }
+
   const response = await updateSession(request)
   // Custom form control frames carry their own (much stricter) CSP.
   if (request.nextUrl.pathname.startsWith(FRAME_PATH_PREFIX)) return response
@@ -60,8 +74,13 @@ export async function proxy(request: NextRequest) {
   // embedded by any site (lib/forms/embed.ts: the page itself never uses a
   // session inside a frame from another origin); every other page: no framing.
   const frameable = isFrameableFormPath(request.nextUrl.pathname)
-  response.headers.set("Content-Security-Policy", contentSecurityPolicy({ captcha: publicForm, frameAncestors: frameable ? "*" : "'none'" }))
-  if (frameable) response.headers.delete("X-Frame-Options")
+  // Embeddable routes (/embed/…): only the approved sites (trusted embedding).
+  const embeddable = isEmbedPath(request.nextUrl.pathname) && embedPolicy.origins.length > 0
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy({
+    captcha: publicForm,
+    frameAncestors: frameable ? "*" : embeddable ? embedFrameAncestors(embedPolicy) : "'none'",
+  }))
+  if (frameable || embeddable) response.headers.delete("X-Frame-Options")
   else response.headers.set("X-Frame-Options", "DENY")
   if (publicForm || request.nextUrl.pathname.startsWith("/api/public/forms/")) {
     response.headers.set("Referrer-Policy", "no-referrer")

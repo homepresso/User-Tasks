@@ -5311,6 +5311,11 @@
       "type": "body",
       "placeholder": "{}",
       "description": "The form's variables by name ({{var.<name>}}): declared names only, typed and size-bounded; initial values fill the rest"
+     },
+     {
+      "name": "target_version",
+      "type": "body",
+      "description": "Forms bound to an external record (a data target an extension provides): the record version (ETag) read when the form opened. The write fails with 409 / 412 when the record changed since; omit to overwrite"
      }
     ],
     "permission": "forms.submit"
@@ -9514,13 +9519,7 @@
      {
       "name": "provider",
       "type": "query",
-      "placeholder": "entra",
-      "options": [
-       "entra",
-       "okta",
-       "ldap",
-       "google"
-      ]
+      "description": "entra, okta, ldap, google or an extension directory source (ext.<extension>.<key>)"
      }
     ],
     "permission": "settings.view"
@@ -9628,6 +9627,77 @@
      }
     ],
     "permission": "workflows.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/directory-sync/sources",
+    "label": "List directory sources contributed by extensions (e.g. SharePoint groups) with sync state and counts",
+    "description": "People of a source are linked to accounts by e-mail / UPN; people without an account are pending entries until their first sign-in (SSO or LDAP bind), which creates or links the account and grants the workspace and the source groups. Groups are read-only teams. Requires settings.view.",
+    "params": [],
+    "permission": "settings.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/directory-sync/sources/{source}/entries",
+    "label": "List the people a directory source lists: pending (no account yet), linked or inactive",
+    "description": "List the people a directory source lists: pending (no account yet), linked or inactive Requires settings.view.",
+    "params": [
+     {
+      "name": "source",
+      "type": "path",
+      "required": true,
+      "description": "Directory source id, e.g. ext.sharepoint.directory"
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Page size (1-100, default 50; 0 = no limit)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip (default 0)"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "placeholder": "pending",
+      "options": [
+       "pending",
+       "linked",
+       "inactive"
+      ]
+     },
+     {
+      "name": "search",
+      "type": "query",
+      "description": "Matches display names"
+     }
+    ],
+    "permission": "settings.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/directory-sync/sources/{source}/sync",
+    "label": "Sync a directory source now (runs in the background)",
+    "description": "Sync a directory source now (runs in the background) Requires settings.edit.",
+    "params": [
+     {
+      "name": "source",
+      "type": "path",
+      "required": true,
+      "description": "Directory source id, e.g. ext.sharepoint.directory"
+     },
+     {
+      "name": "full",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Force a full sync (LDAP otherwise syncs only changes since the last run)"
+     }
+    ],
+    "permission": "settings.edit"
    }
   ]
  },
@@ -10894,6 +10964,84 @@
       "required": true,
       "placeholder": "{}",
       "description": "Field key → value"
+     }
+    ],
+    "permission": null
+   }
+  ]
+ },
+ {
+  "label": "Importers",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/importers",
+    "label": "List the importers of this build (core InfoPath and those of extensions) with their availability here",
+    "description": "Extension importers need the extension enabled and licensed (their licence feature): they lock when the licence lapses, while workflows already imported keep running. Needs workflows.view or forms.view.",
+    "params": [
+     {
+      "name": "produces",
+      "type": "query",
+      "placeholder": "workflow",
+      "description": "Only importers that make workflows / forms",
+      "options": [
+       "workflow",
+       "form"
+      ]
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/importers/{importer}/analyze",
+    "label": "Analyse files with an importer (dry run): mapping coverage, complexity score, readiness and what an import would make",
+    "description": "Nothing is stored (the files neither). report.items lists every element of the source and how it converts (mapped, partial = review, placeholder = a labelled placeholder step keeps the original, skipped); markdown is the same report as Markdown. Needs the view permission of what the importer makes.",
+    "params": [
+     {
+      "name": "importer",
+      "type": "path",
+      "required": true,
+      "description": "Importer id from GET /importers (ext.<extension>.<key>), or auto: the importer whose detect hook recognises the files best"
+     },
+     {
+      "name": "files",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "The files of one import (an importer that reads its source from options takes none)"
+     },
+     {
+      "name": "options",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "The importer's options (GET /importers lists them)"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/importers/{importer}/import",
+    "label": "Import files with an importer: creates draft workflows (inactive) and forms, and returns them with the report",
+    "description": "Workflows are created inactive (a draft to review and publish); unmapped steps become labelled placeholder steps. Needs the importer's permission (default workflows.create for workflows, forms.edit for forms). Audited.",
+    "params": [
+     {
+      "name": "importer",
+      "type": "path",
+      "required": true,
+      "description": "Importer id from GET /importers (ext.<extension>.<key>), or auto: the importer whose detect hook recognises the files best"
+     },
+     {
+      "name": "files",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "The files of one import (an importer that reads its source from options takes none)"
+     },
+     {
+      "name": "options",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "The importer's options (GET /importers lists them)"
      }
     ],
     "permission": null

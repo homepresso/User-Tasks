@@ -56,6 +56,18 @@ export const reads = {
     run: async (ctx, { id: formId }) => forms.getForm(ctx, formId),
   }),
 
+  /** The form designer: problems of a form's data target (lib/forms/data-target.ts) — fields removed or changed in the external system. */
+  'forms.targetCheck': defineRead({
+    args: z.object({ id }),
+    perm: VIEW,
+    run: async (ctx, { id: formId }) => {
+      const form = await forms.getForm(ctx, formId)
+      const { normalizeFormDefinition } = await import('@/lib/forms/definition')
+      const def = normalizeFormDefinition(form as never)
+      return (await import('../form-targets')).checkFormTarget(ctx, { id: String(form.id), name: String(form.name), version: Number(form.version), fields: def.fields, layout: def.layout })
+    },
+  }),
+
   /** The form designer: the working draft (content, who saved it, publish problems) and whether drafts are on (forms.edit). */
   'forms.designDraft': defineRead({
     args: z.object({ id }),
@@ -141,9 +153,10 @@ export const reads = {
 
   /** A form as its own page (/f/<id>) draws it (forms.submit). */
   'forms.submittable': defineRead({
-    args: z.object({ id }),
+    // query: the page's URL query — the form's declared URL parameters are read from it on the server (a form with a data target loads the record they name).
+    args: z.object({ id, query: z.record(z.string().max(64), z.union([z.string().max(2000), z.array(z.string().max(2000)).max(50)])).optional() }),
     perm: 'forms.submit',
-    run: async (ctx, { id: formId }) => (await import('../form-submissions')).getSubmittableForm(ctx, formId),
+    run: async (ctx, { id: formId, query }) => (await import('../form-submissions')).getSubmittableForm(ctx, formId, { query: query ?? null }),
   }),
 
   /** My saved draft of a form (the Save draft icon), or null. */

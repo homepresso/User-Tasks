@@ -9,6 +9,17 @@ import { agentOutputPrefix, type NormalizedAgentOutputConfig } from '@/lib/agent
 import { recordAgentRun, type AgentCallerType } from '@/lib/agent-run-service'
 import { pauseForApproval, type AgentPausedContext, type AgentWorkflowLink } from './approval'
 import { buildAgentRun, checkDailyBudget, loadAgentForRun, type LoadedAgent } from './prepare'
+import { dbBlackboard, type RunBlackboard } from './blackboard'
+import { mergeAgentContexts, normalizeAgentContext, type AgentContext, type FactWriter, type SharedMessage } from './shared-context'
+
+/** The live blackboard of a Run Agent step's run (Share context on, saved run), else none. */
+export function workflowBlackboard(db: SupabaseClient, tenantId: string, link: AgentWorkflowLink | null | undefined): RunBlackboard | undefined {
+  if (!link?.share_context || !link.run_id) return undefined
+  return dbBlackboard(db, tenantId, link.run_id)
+}
+
+const writerOf = (link: AgentWorkflowLink | null | undefined): Omit<FactWriter, 'at'> | undefined =>
+  link ? { agent: link.node_label || null, node_id: link.node_id || null, branch: link.branch ?? null } : undefined
 
 export interface RunAgentParams {
   db: SupabaseClient
@@ -39,6 +50,11 @@ export interface RunAgentParams {
   initiatedBy?: string | null
   /** Stream the model's reply as delta events through onEvent (console, Save & Test, REST `stream`). */
   stream?: boolean
+  /**
+   * The run's shared-facts blackboard. Default: for a Run Agent step with
+   * Share context in a saved run, the run's blackboard in the database.
+   */
+  blackboard?: RunBlackboard | null
 }
 
 export interface RunAgentOutcome {
@@ -64,8 +80,12 @@ export async function runAgent(params: RunAgentParams): Promise<RunAgentOutcome>
   })
   if (!params.skipBudget && !params.resume) await checkDailyBudget(db, tenantId, agentId, prepared.outputConfig)
 
+  const link = params.workflow ?? params.resume?.paused.workflow ?? null
+  const blackboard = params.blackboard === null ? undefined : (params.blackboard ?? workflowBlackboard(db, tenantId, link))
   const result = await executeAgent(prepared.config, params.message, {
     ...prepared.options,
+    blackboard,
+    factWriter: writerOf(link),
     onEvent: params.onEvent,
     sharedContext: params.sharedContext,
     history: params.history,
@@ -75,6 +95,21 @@ export async function runAgent(params: RunAgentParams): Promise<RunAgentOutcome>
     mode: params.mode ?? 'live',
     ...(params.resume ? { resume: { state: params.resume.paused.state, decision: params.resume.decision } } : {}),
   })
+
+  // Fold in what other agents of the run wrote (also facts this agent never read),
+  // so the step's agent_context carries every fact of the run so far.
+  if (blackboard?.shared && result.status !== 'awaiting_approval') {
+    try {
+      const snap = await blackboard.read()
+      const merged = mergeAgentContexts(
+        { messages: [], facts: snap.facts, fact_writers: snap.writers },
+        { messages: [], facts: result.shared_facts?.facts ?? {}, fact_writers: result.shared_facts?.writers ?? {} },
+      )
+      result.shared_facts = { facts: merged.facts, writers: (merged.fact_writers ?? {}) as Record<string, FactWriter> }
+    } catch (error) {
+      console.warn('[agents] could not read the run\'s shared facts:', (error as Error)?.message)
+    }
+  }
 
   const provider = prepared.provider
   const agentVersion = Number(loaded.agent.version) || null
@@ -115,7 +150,7 @@ export async function loadAndRunAgent(params: Omit<RunAgentParams, 'loaded'> & {
  * The workflow variables a Run Agent step sets from a finished agent run —
  * identical for an inline step and one resumed after approval / queueing.
  */
-export function agentWorkflowVariables(result: AgentResult, link: Pick<AgentWorkflowLink, 'output_variable' | 'output_prefix' | 'share_context' | 'agent_context' | 'user_message' | 'node_label'>, outputConfig: NormalizedAgentOutputConfig, agentName: string): Record<string, unknown> {
+export function agentWorkflowVariables(result: AgentResult, link: Pick<AgentWorkflowLink, 'output_variable' | 'output_prefix' | 'share_context' | 'agent_context' | 'user_message' | 'node_label'> & Partial<Pick<AgentWorkflowLink, 'node_id' | 'branch' | 'started_at'>>, outputConfig: NormalizedAgentOutputConfig, agentName: string): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   const outputVar = link.output_variable || 'agent_response'
   out[outputVar] = result.response
@@ -136,23 +171,33 @@ export function agentWorkflowVariables(result: AgentResult, link: Pick<AgentWork
     }
   }
   if (link.share_context) {
-    const context = link.agent_context ?? { messages: [], facts: {} }
+    // The step's copy of the context: the one it started with, its own turn
+    // (tagged with the agent, step and branch) and the run's shared facts.
+    // The engine merges it into agent_context (never overwrites it).
     const now = new Date().toISOString()
-    out.agent_context = {
-      ...context,
-      messages: [
-        ...(context.messages ?? []),
-        { role: 'user', content: link.user_message, agent: link.node_label, timestamp: now },
-        { role: 'assistant', content: result.response, agent: link.node_label, timestamp: now },
-      ],
-    }
+    const tag = { agent: link.node_label, node_id: link.node_id ?? null, branch: link.branch ?? null }
+    const turn: SharedMessage[] = [
+      { id: crypto.randomUUID(), role: 'user', content: link.user_message, ...tag, timestamp: link.started_at ?? now },
+      { id: crypto.randomUUID(), role: 'assistant', content: result.response, ...tag, timestamp: now },
+    ]
+    const started = normalizeAgentContext(link.agent_context)
+    out.agent_context = mergeAgentContexts(started, {
+      messages: turn,
+      facts: result.shared_facts?.facts ?? started.facts,
+      fact_writers: result.shared_facts?.writers ?? started.fact_writers ?? {},
+    } satisfies AgentContext)
   }
   return out
 }
 
 /** Compact node output for the run trace. */
-export function agentNodeOutput(result: AgentResult, runId: string | null): Record<string, unknown> {
+export function agentNodeOutput(result: AgentResult, runId: string | null, link?: Pick<AgentWorkflowLink, 'branch'> | null): Record<string, unknown> {
+  const finished = Date.now()
   return {
+    // When the agent ran (agents in parallel branches overlap) and on which branch.
+    started_at: new Date(finished - Math.max(0, result.duration_ms || 0)).toISOString(),
+    finished_at: new Date(finished).toISOString(),
+    ...(link?.branch ? { branch: link.branch } : {}),
     response: result.response.slice(0, 500),
     iterations: result.iterations,
     tool_calls: result.toolCalls.length,
@@ -179,7 +224,7 @@ export async function resumeLinkedWorkflow(params: {
   const { link, outcome } = params
   const { enqueueResume } = await import('@/lib/workflow-resume-queue')
   const variables = outcome.result.status === 'completed'
-    ? { ...agentWorkflowVariables(outcome.result, link, outcome.outputConfig, params.agentName), _agent_node_output: agentNodeOutput(outcome.result, outcome.runId) }
-    : { _agent_node_error: `Agent execution failed: ${outcome.result.error ?? 'unknown error'}`, _agent_node_output: agentNodeOutput(outcome.result, outcome.runId) }
+    ? { ...agentWorkflowVariables(outcome.result, link, outcome.outputConfig, params.agentName), _agent_node_output: agentNodeOutput(outcome.result, outcome.runId, link) }
+    : { _agent_node_error: `Agent execution failed: ${outcome.result.error ?? 'unknown error'}`, _agent_node_output: agentNodeOutput(outcome.result, outcome.runId, link) }
   await enqueueResume({ tenantId: params.tenantId, eventId: link.event_id, variables, supabase: params.db })
 }

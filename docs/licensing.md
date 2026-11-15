@@ -147,6 +147,20 @@ Other errors: an extension with no licence returns **402**
 `extension_not_licensed`. Going over a limit returns **402**
 `extension_limit_reached`.
 
+### For extension authors: features and limits
+
+- Nodes, triggers, REST endpoints and MCP tools can name a licence
+  `feature`; the framework checks it on every call (402 when it is missing).
+- `ctx.licence.assert(feature)` throws the matching 402 error inside a
+  handler; `ctx.licence.check(feature)` returns the decision.
+- Limits: register a counter per limit key in the server module
+  (`usageCounters: { 'sharepoint.farms': ({ ctx, unit }) => … }`; it runs
+  instance-wide with the service-role client). Settings → Licence shows the
+  usage, and `ctx.licence.assertLimit('sharepoint.farms', { unit: farmId })`
+  refuses an addition over the limit. With `unit`, a unit that is already
+  counted (the same farm connected again, from another workspace) adds
+  nothing.
+
 ## Hosted cloud: workspace entitlements
 
 In the cloud, paid extensions are switched on per workspace by rows in

@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { supabaseAnonKey, supabaseUrl } from "@/lib/config/bootstrap"
-import { isSupabaseCookieName, SHARED_SUPABASE_COOKIE, sharedCookieDomain, supabaseCookieOptions, authCookieOptions } from "@/lib/providers/auth/cookies"
+import { isSupabaseCookieName, SHARED_SUPABASE_COOKIE, sharedCookieDomain, supabaseCookieOptions, authCookieOptions, sessionCookieOptions } from "@/lib/providers/auth/cookies"
 import { NextResponse, type NextRequest } from "next/server"
 
 /**
@@ -65,7 +65,7 @@ export async function updateSession(request: NextRequest) {
   if (moved.length) {
     // Write the shared copies (unless the refresh above already rewrote them) and expire the host-only originals.
     for (const { from, to, value } of moved) {
-      if (!supabaseResponse.cookies.get(to)) supabaseResponse.cookies.set(to, value, authCookieOptions(400 * 86_400, domain))
+      if (!supabaseResponse.cookies.get(to)) supabaseResponse.cookies.set(to, value, sessionCookieOptions(400 * 86_400, domain))
       supabaseResponse.cookies.set(from, '', authCookieOptions(0))
     }
   }

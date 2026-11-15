@@ -19,6 +19,11 @@ export const SCIM_TOKEN_SCOPES = ['users:read', 'users:write', 'groups:read', 'g
 const SETTINGS_NOTE = 'ldap { url, start_tls?, ca_cert?, tls_reject_unauthorized?, tls_server_name?, bind_dn, base_dn, user_base_dn?, group_base_dn?, flavor? (active_directory|openldap|generic), user_filter?, group_filter?, attributes? { id, username, email, display_name, first_name, last_name, group_name, group_description, member }, nested_groups?, page_size?, timeout_ms?, deprovision_missing?, bind_login?, login_attributes? }; google { admin_email, customer?, domain?, user_query?, deprovision_missing? }; scim { rate_limit_per_minute? }; every pull provider: sync_interval_minutes? (default 60, minimum 10)'
 const CREDENTIALS_NOTE = 'entra { tenant_id, client_id, client_secret }; okta { org_url, api_token }; ldap { bind_password }; google { service_account_json }; scim: none (use SCIM tokens). Write-only: reads show __SECRET__; values may be secret://tenants/<workspace id>/<name>'
 
+/** A directory source contributed by an extension: `ext.<extension id>.<key>`. */
+export const directorySourceId = z.string().regex(/^ext\.[a-z][a-z0-9-]*\.[a-z][a-z0-9_]*$/, 'ext.<extension>.<key>')
+export const sourceParams = z.object({ source: directorySourceId.describe('Directory source id, e.g. ext.sharepoint.directory') })
+export const DIRECTORY_ENTRY_STATUSES = ['pending', 'linked', 'inactive'] as const
+
 export const providerParams = z.object({ provider: z.enum(DIRECTORY_CONNECTION_PROVIDERS).describe('entra, okta, ldap, google or scim') })
 export const syncProviderParams = z.object({ provider: z.enum(DIRECTORY_SYNC_PROVIDERS).describe('entra, okta, ldap or google') })
 
@@ -164,7 +169,7 @@ export const startDirectorySyncEndpoint = defineEndpoint({
 export const listDirectorySyncRunsEndpoint = defineEndpoint({
   method: 'GET', path: '/directory-sync/runs', operationId: 'listDirectorySyncRuns', tags,
   summary: 'List directory sync runs, newest first', permission: 'settings.view',
-  query: paginationQuery.extend({ provider: z.enum(DIRECTORY_SYNC_PROVIDERS).optional() }),
+  query: paginationQuery.extend({ provider: z.union([z.enum(DIRECTORY_SYNC_PROVIDERS), directorySourceId]).optional().describe('entra, okta, ldap, google or an extension directory source (ext.<extension>.<key>)') }),
   response: listResponse('runs', run), listKey: 'runs',
   cli: { resource: 'directory-sync', verb: 'runs' },
 })
@@ -232,10 +237,74 @@ export const searchEntraGroupsEndpoint = defineEndpoint({
   cli: { resource: 'directory-sync', verb: 'groups' },
 })
 
+const directorySource = z.looseObject({
+  source: z.string().describe('ext.<extension>.<key>'),
+  extension_id: z.string(),
+  extension_name: z.string(),
+  label: z.string(),
+  description: z.string().nullable(),
+  available: z.boolean().describe('The extension is enabled and licensed in this workspace'),
+  unavailable_reason: z.string().nullable(),
+  interval_minutes: z.number().int(),
+  last_sync_at: z.string().nullable(),
+  last_full_sync_at: z.string().nullable(),
+  last_error: z.string().nullable(),
+  last_sync_stats: z.record(z.string(), z.number()).nullable(),
+  active_run_id: z.string().nullable(),
+  linked_users: z.number().int().describe('People with an account in this workspace'),
+  pending_entries: z.number().int().describe('People waiting for their first sign-in (no account or seat yet)'),
+  groups: z.number().int().describe('Read-only teams the source keeps'),
+})
+
+const directoryEntry = z.looseObject({
+  id: z.string(),
+  external_id: z.string(),
+  display_name: z.string().nullable(),
+  email: z.string().nullable(),
+  match_keys: z.array(z.string()).describe('Addresses / UPNs the person is matched on at sign-in'),
+  claims: z.array(z.string()).describe('External login names (e.g. SharePoint claims)'),
+  group_ids: z.array(z.string()).describe("External ids of the source's groups the person is in"),
+  status: z.enum(DIRECTORY_ENTRY_STATUSES),
+  user_id: z.string().nullable(),
+  claimed_at: z.string().nullable(),
+  last_seen_at: z.string().nullable(),
+})
+
+export const listDirectorySourcesEndpoint = defineEndpoint({
+  method: 'GET', path: '/directory-sync/sources', operationId: 'listDirectorySources', tags,
+  summary: 'List directory sources contributed by extensions (e.g. SharePoint groups) with sync state and counts',
+  description: 'People of a source are linked to accounts by e-mail / UPN; people without an account are pending entries until their first sign-in (SSO or LDAP bind), which creates or links the account and grants the workspace and the source groups. Groups are read-only teams.',
+  permission: 'settings.view',
+  response: z.looseObject({ sources: z.array(directorySource), total: z.number().int() }), listKey: 'sources',
+  cli: { resource: 'directory-sync', verb: 'sources' },
+})
+
+export const listDirectorySourceEntriesEndpoint = defineEndpoint({
+  method: 'GET', path: '/directory-sync/sources/{source}/entries', operationId: 'listDirectorySourceEntries', tags,
+  summary: 'List the people a directory source lists: pending (no account yet), linked or inactive',
+  permission: 'settings.view',
+  params: sourceParams,
+  query: paginationQuery.extend({
+    status: z.enum(DIRECTORY_ENTRY_STATUSES).optional(),
+    search: z.string().max(100).optional().describe('Matches display names'),
+  }),
+  response: listResponse('entries', directoryEntry), listKey: 'entries',
+  cli: { resource: 'directory-sync', verb: 'entries', positional: ['source'] },
+})
+
+export const startDirectorySourceSyncEndpoint = defineEndpoint({
+  method: 'POST', path: '/directory-sync/sources/{source}/sync', operationId: 'startDirectorySourceSync', tags,
+  summary: 'Sync a directory source now (runs in the background)', permission: 'settings.edit',
+  params: sourceParams, body: directorySyncBody, successStatus: 202,
+  response: z.looseObject({ run_id: z.string(), already_running: z.boolean() }),
+  cli: { resource: 'directory-sync', verb: 'source-sync', positional: ['source'] },
+})
+
 export const directorySyncEndpoints = [
   listDirectoryConnectionsEndpoint, createDirectoryConnectionEndpoint, getDirectoryConnectionEndpoint,
   updateDirectoryConnectionEndpoint, deleteDirectoryConnectionEndpoint, testDirectoryConnectionEndpoint,
   startDirectorySyncEndpoint, listDirectorySyncRunsEndpoint,
   listScimTokensEndpoint, createScimTokenEndpoint, deleteScimTokenEndpoint, rotateScimTokenEndpoint,
   getDirectoryCapabilitiesEndpoint, searchEntraGroupsEndpoint,
+  listDirectorySourcesEndpoint, listDirectorySourceEntriesEndpoint, startDirectorySourceSyncEndpoint,
 ]

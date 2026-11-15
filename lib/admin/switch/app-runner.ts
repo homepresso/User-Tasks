@@ -151,4 +151,9 @@ export const appSwitchDeps: InfrastructureSwitchDeps = {
     clearInfrastructureHealthCache()
   },
   checkSecretRef,
+  guardHosts: async (hosts) => {
+    const { blockedMessage, checkHostsAllowed } = await import('@/lib/install/egress-server')
+    const check = await checkHostsAllowed(hosts)
+    return check.ok ? null : { error: blockedMessage(check), allowEntry: check.allowEntry }
+  },
 }

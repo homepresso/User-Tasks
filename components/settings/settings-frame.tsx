@@ -29,6 +29,7 @@ import {
   User,
   UserPlus,
   UsersRound,
+  Wand2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Select } from "@/components/ui/select"
@@ -113,6 +114,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     items: [
       { label: "Agent", href: "/settings/assistants", icon: Sparkles, permission: "assistants.manage" },
       { label: "Document OCR", href: "/settings/document-ocr", icon: ScanText, permission: "settings.view" },
+      { label: "Setup wizard", href: "/settings/setup", icon: Wand2, instanceAdmin: true },
       { label: "Infrastructure", href: "/settings/infrastructure", icon: Server, instanceAdmin: true },
       { label: "Workspace DNS", href: "/settings/workspace-dns", icon: Globe, instanceAdmin: true },
       { label: "Licence", href: "/settings/licence", icon: BadgeCheck, instanceAdmin: true },

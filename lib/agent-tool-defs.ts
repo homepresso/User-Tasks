@@ -25,7 +25,7 @@ export interface AgentTool {
  * other tool is "side-effecting".
  */
 export const READ_ONLY_BUILTIN_TOOLS = new Set([
-  'calculate', 'current_datetime', 'read_shared_facts', 'query_data_table', 'get_task_status',
+  'calculate', 'current_datetime', 'read_shared_facts', 'wait_for_shared_fact', 'query_data_table', 'get_task_status',
   'get_workflow_run_status', 'read_attached_file', 'search_knowledge', 'read_knowledge_document',
 ])
 
@@ -271,15 +271,23 @@ export const BUILTIN_TOOL_DEFS: (AgentTool & { category: BuiltinToolCategory })[
   // Multi-agent
   {
     id: 'builtin_read_facts', type: 'builtin', name: 'read_shared_facts', category: 'multi_agent',
-    description: 'Read all shared facts from the multi-agent context.',
+    description: 'Read all shared facts of this workflow run, including facts other agents running at the same time have written so far (and which agent wrote each).',
     inputSchema: [],
   },
   {
     id: 'builtin_write_fact', type: 'builtin', name: 'write_shared_fact', category: 'multi_agent',
-    description: 'Write a fact to the shared context visible to all agents.',
+    description: 'Write a fact to the shared context of this workflow run. Other agents see it at once (also those running at the same time) and later steps see it in agent_context.facts. Writing an existing key replaces its value.',
     inputSchema: [
       { name: 'key', type: 'string', description: 'Fact key', required: true },
       { name: 'value', type: 'string', description: 'Fact value', required: true },
+    ],
+  },
+  {
+    id: 'builtin_wait_fact', type: 'builtin', name: 'wait_for_shared_fact', category: 'multi_agent',
+    description: 'Wait until another agent of this workflow run writes a shared fact (for agents running at the same time). Returns found: false after the timeout — then continue without it.',
+    inputSchema: [
+      { name: 'key', type: 'string', description: 'Fact key to wait for', required: true },
+      { name: 'timeout_seconds', type: 'number', description: 'Longest wait in seconds (default 30, at most 120)' },
     ],
   },
 ]

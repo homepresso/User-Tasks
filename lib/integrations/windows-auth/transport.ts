@@ -64,6 +64,13 @@ export interface WindowsTransportOptions {
   auth: WindowsAuthConfig
   /** Parallel authenticated connections per pool (default 4). */
   maxConnections?: number
+  /**
+   * Never authenticate: every request is a one-off anonymous request with the
+   * connection's TLS trust (CA bundle) and proxy, carrying only the caller's
+   * own headers (an Authorization header the caller sets is kept). For
+   * discovery probes such as the OAuth realm challenge.
+   */
+  anonymous?: boolean
 }
 
 type Scheme = 'NTLM' | 'Negotiate'
@@ -165,7 +172,11 @@ function makeAgent(settings: AgentSettings): http.Agent {
     lookup: guardedLookup,
   }
   const agent = settings.isTls
-    ? new https.Agent({ ...common, ca: settings.ca, rejectUnauthorized: true })
+    // No TLS session resumption: on a resumed session Node does not expose the
+    // peer certificate, so the NTLM response would go out without the
+    // tls-server-end-point channel binding and a server with Extended
+    // Protection (EPA) answers every new connection with 401.
+    ? new https.Agent({ ...common, ca: settings.ca, rejectUnauthorized: true, maxCachedSessions: 0 })
     : new http.Agent(common)
   if (settings.proxy) (agent as any).createConnection = proxyTunnel(settings)
   return agent
@@ -635,13 +646,17 @@ export function createWindowsTransport(options: WindowsTransportOptions): typeof
     if (proxy) await assertSafeEgressHost(proxy.hostname)
     const settings: AgentSettings = { isTls: url.protocol === 'https:', ca: url.protocol === 'https:' ? ca : undefined, proxy, keepAlive: true }
 
-    if (url.origin !== origin) {
+    if (url.origin !== origin || options.anonymous) {
       // Not the connection's origin (a redirect elsewhere): no Windows
-      // credentials, no credential headers, a one-off connection.
-      headers = withoutHeaders(headers, (k) => CREDENTIAL_HEADER_RE.test(k))
+      // credentials, no credential headers, a one-off connection. Anonymous
+      // mode on the connection's origin keeps the caller's own headers.
+      const callerAuthorization = options.anonymous && url.origin === origin
+        ? Object.entries(headers).find(([k]) => k.toLowerCase() === 'authorization')?.[1] ?? null
+        : null
+      if (!(options.anonymous && url.origin === origin)) headers = withoutHeaders(headers, (k) => CREDENTIAL_HEADER_RE.test(k))
       const agent = makeAgent({ ...settings, keepAlive: false })
       try {
-        const sent = await send(agent, { url, method, headers, body, signal }, null, body)
+        const sent = await send(agent, { url, method, headers, body, signal }, callerAuthorization, body)
         return toResponse(sent, method, () => agent.destroy())
       } catch (error) {
         agent.destroy()

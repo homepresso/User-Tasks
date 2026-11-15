@@ -32,5 +32,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "packages", "templates/form-control-starter", "gallery/controls", "gallery/actions"]
+  "exclude": ["node_modules", ".usertasks-ext", "packages", "templates/form-control-starter", "gallery/controls", "gallery/actions"]
 }

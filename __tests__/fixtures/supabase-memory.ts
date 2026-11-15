@@ -1,7 +1,7 @@
 /**
  * Minimal in-memory Supabase/PostgREST stand-in for service tests.
  * Supports the builder calls the integration services use: select (with
- * count), eq / neq / gt / gte / lt / lte / is / in / contains (arrays) / like / filter('a->>b','eq',v) / ilike / or (ignored),
+ * count), eq / neq / gt / gte / lt / lte / is / not / in / contains / overlaps (arrays) / like / filter('a->>b','eq',v) / ilike / or (ignored),
  * order (stable, nulls last), limit, range, single, maybeSingle, insert / update / delete with
  * a trailing select. Embedded selects (`x:table(...)`) are not joined.
  * Every mutation is recorded in `calls` for assertions.
@@ -117,6 +117,13 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
       in(field: string, values: unknown[]) { state.filters.push((row) => values.includes(row[field])); return api },
       /** Array column contains every value (PostgREST `cs`). */
       contains(field: string, values: unknown[]) { state.filters.push((row) => Array.isArray(row[field]) && values.every((v) => row[field].includes(v))); return api },
+      /** Array column shares a value with `values` (PostgREST `ov`). */
+      overlaps(field: string, values: unknown[]) { state.filters.push((row) => Array.isArray(row[field]) && values.some((v) => row[field].includes(v))); return api },
+      /** not(field, 'is', null) / not(field, 'eq', value). */
+      not(field: string, op: string, value: unknown) {
+        state.filters.push((row) => (op === 'is' ? (row[field] ?? null) !== value : row[field] !== value))
+        return api
+      },
       filter(path: string, _op: string, value: unknown) {
         const [col, key] = path.split('->>')
         state.filters.push((row) => String(row[col]?.[key]) === String(value))

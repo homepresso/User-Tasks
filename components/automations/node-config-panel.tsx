@@ -6091,7 +6091,7 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables, workf
         <div>
           <span className="text-2xs font-medium text-fg">Share context with other agents</span>
           <p className="text-xs text-fg-muted">
-            When enabled, this agent can access messages and facts from other agents in the workflow.
+            When enabled, this agent sees the earlier agents' messages and facts, shares facts live with agents running at the same time (parallel branches), and its reply is merged into agent_context.
           </p>
         </div>
       </label>

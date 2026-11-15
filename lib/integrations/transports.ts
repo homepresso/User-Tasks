@@ -26,6 +26,12 @@ export interface TransportContext {
   tenantId: string | null
   /** The decrypted integration config (base_url, auth_type, auth_config …). */
   integrationConfig: Record<string, unknown>
+  /**
+   * Send without the connection's credentials (TLS trust and proxy only).
+   * Only transports that support it may be asked (core `windows`); others
+   * are refused rather than risk sending credentials.
+   */
+  anonymous?: boolean
 }
 
 export type CoreTransportFactory = (ctx: TransportContext) => Promise<typeof fetch>
@@ -64,6 +70,7 @@ export class TransportUnavailableError extends Error {
 export async function resolveTransportFetch(ctx: TransportContext): Promise<typeof fetch | undefined> {
   const kind = transportKindOf(ctx.integrationConfig)
   if (!kind) return undefined
+  if (ctx.anonymous && kind !== 'windows') throw new TransportUnavailableError(`Connection transport "${kind}" cannot send anonymous requests`)
   if (kind.startsWith('ext.')) {
     const { resolveExtensionTransport } = await import('@/lib/extensions/transports')
     return resolveExtensionTransport(kind, ctx)

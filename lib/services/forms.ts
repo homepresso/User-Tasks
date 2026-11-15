@@ -34,6 +34,7 @@ import {
   parseFormThemeOverrides, type FormThemeOverrides, type FormThemeRef,
 } from '@/lib/forms/form-theme'
 import { compactLayoutForSave } from '@/lib/forms/layout'
+import { layoutDataTarget } from '@/lib/forms/data-target'
 import { fieldDefinitionProblems, normalizeTaskFields } from '@/lib/task-field-schema'
 import { tableChangesProblem, tableChangesTargets, type TableChangesConfig } from '@/lib/forms/table-changes'
 import { layoutFormRules } from '@/lib/forms/form-rules'
@@ -583,6 +584,7 @@ export async function createForm(ctx: ServiceContext, input: FormInput, options:
   await assertSavedThemeExists(db, ctx.tenantId, stored.theme)
   await assertStartableWorkflows(ctx, db, stored.buttons, null)
   await assertDataTargets(ctx, db, stored, null)
+  await (await import('./form-targets')).assertTargetBinding(ctx, stored.layout, null)
   if (!options.skipAccessibilityGate) await (await import('./form-accessibility')).assertFormAccessibility(db, ctx.tenantId, def)
   const retention = cleanRetention(input.submission_retention_days)
   const available = cleanAvailable(input.available_in_menu)
@@ -613,7 +615,15 @@ export async function createForm(ctx: ServiceContext, input: FormInput, options:
     await audit(ctx, { objectType: 'form', objectId: form.id, action: 'create', summary: `Created form "${form.name}"` })
     await syncChange(ctx, 'form', form)
   }
+  await targetSaved(ctx, form, null)
   return form
+}
+
+/** A form bound to a data target (lib/forms/data-target.ts) was saved: the provider records what it uses. */
+async function targetSaved(ctx: ServiceContext, form: FormRow, previousLayout: unknown): Promise<void> {
+  if (!layoutDataTarget(form.layout) && !layoutDataTarget(previousLayout)) return
+  const def = normalizeFormDefinition(form as any)
+  await (await import('./form-targets')).formTargetSaved(ctx, { id: form.id, name: form.name, version: form.version, fields: def.fields, layout: def.layout }, previousLayout)
 }
 
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
@@ -645,6 +655,7 @@ export async function updateForm(ctx: ServiceContext, formId: string, input: For
     await assertSavedThemeExists(db, ctx.tenantId, stored.theme)
     await assertStartableWorkflows(ctx, db, stored.buttons, existing.buttons)
     await assertDataTargets(ctx, db, stored, { fields: existing.fields, buttons: existing.buttons, layout: existing.layout })
+    await (await import('./form-targets')).assertTargetBinding(ctx, stored.layout, existing.layout)
     if (!sameJson(stored.fields, existing.fields) || !sameJson(stored.layout, existing.layout) || !sameJson(stored.theme, existing.theme)
       || !sameJson(stored.buttons, existing.buttons) || !sameJson(stored.header, existing.header)) {
       if (!options.skipAccessibilityGate) await (await import('./form-accessibility')).assertFormAccessibility(db, ctx.tenantId, def)
@@ -679,6 +690,7 @@ export async function updateForm(ctx: ServiceContext, formId: string, input: For
     })
     await syncChange(ctx, 'form', form)
   }
+  if (versionChanged) await targetSaved(ctx, form, existing.layout)
   return { ...form, version_changed: versionChanged }
 }
 
@@ -716,6 +728,7 @@ export async function deleteForm(ctx: ServiceContext, formId: string) {
     metadata: { version: existing.version, submissions: removed.submissions, files: removed.files, grants: removed.grants },
   })
   await syncChange(ctx, 'form', existing, 'delete')
+  await (await import('./form-targets')).formTargetDeleted(ctx, formId, existing.layout)
   return { deleted: true as const, id: formId }
 }
 

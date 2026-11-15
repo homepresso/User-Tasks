@@ -182,15 +182,6 @@ export async function startSsoAction(input: { provider: string; org?: string | n
   }
 }
 
-export async function signOutAction(options: { everywhere?: boolean } = {}): Promise<AuthActionResult> {
-  try {
-    await (await getAuthProvider()).signOut({ everywhere: options.everywhere === true })
-    return { ok: true }
-  } catch (error) {
-    return fail(error, 'Sign-out failed.')
-  }
-}
-
 /** Password-reset email. Never reveals whether the account exists. */
 export async function requestPasswordResetAction(email: string): Promise<AuthActionResult> {
   const address = String(email ?? '').trim()

@@ -535,6 +535,30 @@ export const SURFACE_PARITY: SurfaceResource[] = [
     ],
   },
   {
+    resource: 'directory sources',
+    ops: [
+      op('list', 'GET /directory-sync/sources', 'directory_sources_list', 'directory-sync sources', 'contributed by extensions (manifest contributes.directorySources)'),
+      op('get', null, null, null, 'the list carries each source\'s full state'),
+      op('create', null, null, null, 'declared by an extension; enabling the extension in the workspace turns it on'),
+      op('update', null, null, null, "configured in the extension's own settings"),
+      op('delete', null, null, null, 'disable the extension in the workspace'),
+      op('list entries', 'GET /directory-sync/sources/{source}/entries', 'directory_source_entries', 'directory-sync entries', 'pending (no account until first sign-in), linked, inactive'),
+      op('sync now', 'POST /directory-sync/sources/{source}/sync', 'directory_source_sync', 'directory-sync source-sync'),
+    ],
+  },
+  {
+    resource: 'importers',
+    ops: [
+      op('list', 'GET /importers', 'importers_list', 'importers list', 'core InfoPath (forms import-infopath) and importers contributed by extensions (manifest contributes.importers)'),
+      op('get', null, null, null, 'the list carries each importer\'s options and availability'),
+      op('create', null, null, null, 'declared by an extension'),
+      op('update', null, null, null, 'nothing to configure'),
+      op('delete', null, null, null, 'disable the extension in the workspace'),
+      op('analyze', 'POST /importers/{importer}/analyze', 'importers_analyze', 'importers analyze', 'dry run: mapping coverage, complexity, readiness; nothing stored'),
+      op('import', 'POST /importers/{importer}/import', 'importers_import', 'importers import', 'draft workflows (inactive) and forms'),
+    ],
+  },
+  {
     resource: 'scim tokens',
     ops: [
       op('list', 'GET /directory-sync/scim-tokens', 'scim_tokens_list', 'scim-tokens list'),

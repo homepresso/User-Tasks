@@ -47,6 +47,8 @@ afterEach(() => {
     else process.env[k] = saved[k]
   }
   vi.resetModules()
+  // The settings cache is process-wide (globalThis, shared with proxy.ts): a fresh module no longer means an empty cache.
+  ;(globalThis as Record<symbol, unknown>)[Symbol.for('usertasks.instanceSettingsCache')] = null
 })
 
 /** In-memory instance_settings table behind a supabase-js-shaped client. */

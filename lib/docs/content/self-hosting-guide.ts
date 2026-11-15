@@ -1,5 +1,6 @@
 import type { DocPageDef } from '../types'
 import { DOCKER_BUILD_MEMORY_GB } from '../../docker-build-memory'
+import { CLI_PACKAGE } from '../../site-links'
 
 /**
  * The self-hosting guide: a beginner's quick start (npm run setup:local), how to choose, install, set up (the first-run
@@ -165,10 +166,11 @@ More fixes: [Troubleshooting](/docs/self-hosting/troubleshooting).
     title: 'Choose how to run it',
     description: 'The ways to run UserTasks yourself — a laptop trial, Docker Compose, Kubernetes with Helm, an air-gapped bundle, or your own PostgreSQL without Supabase — and when to pick each.',
     body: `
-Self-hosted UserTasks is the same app as the cloud edition at usertasks.com: you run it, and the data stays on your servers. Just want to try it on your own computer? Follow the [Quick start on your computer](/docs/self-hosting/quick-start). There are five ways to run it. Every one of them ends the same way: open the app in a browser, [create your admin account](/docs/self-hosting/admin-account) at \`/setup\`, and [invite your team](/docs/self-hosting/invite-people).
+Self-hosted UserTasks is the same app as the cloud edition at usertasks.com: you run it, and the data stays on your servers. Just want to try it on your own computer? Follow the [Quick start on your computer](/docs/self-hosting/quick-start). There are six ways to run it. Every one of them ends the same way: open the app in a browser, [create your admin account](/docs/self-hosting/admin-account) at \`/setup\`, and [invite your team](/docs/self-hosting/invite-people).
 
 | Option | Pick it when | Install guide |
 |---|---|---|
+| **One-line installer** | You have a server, VM or computer with Docker and want it running in minutes, with \`usertasks upgrade\`, \`backup\` and \`restore\` built in. Linux, macOS and Windows. | [One-line installer](/docs/self-hosting/install#one-line-installer) |
 | **Laptop trial** | You want to try UserTasks on your own machine in a few minutes. Everything runs in Docker; nothing to sign up for. | [Laptop trial](/docs/self-hosting/install#laptop-trial) |
 | **Docker Compose** | You're running it for a team on one server or VM. Use it with a Supabase project (the default) or with everything in containers. | [Docker Compose](/docs/self-hosting/install#docker-compose) |
 | **Kubernetes (Helm)** | You already run Kubernetes and want several replicas, rolling updates, and your cluster's secrets, ingress and network policies. | [Kubernetes (Helm)](/docs/self-hosting/install#kubernetes-helm) |
@@ -209,6 +211,7 @@ What you need depends on [how you run it](/docs/self-hosting/choose). Nothing in
 
 | You're running | You need |
 |---|---|
+| One-line installer | Linux or macOS with Docker Engine and the Compose plugin (2.20 or later), or Docker Desktop; Windows 10/11 with Docker Desktop on WSL 2. curl or wget. No Node.js or git. About 2 GB of memory for the containers (4 GB or more recommended) and 5 GB of disk |
 | Laptop trial | Docker (Docker Desktop, or Docker Engine with the Compose plugin), git, and Node.js 22 LTS (20.9 or later works) to run the \`npm run stack\` helper. About 2 GB of memory for Docker when it uses the published image; about ${DOCKER_BUILD_MEMORY_GB} GB when it has to build the image itself ([below](#memory-for-the-docker-build)) |
 | From source (\`npm run dev\`, \`npm start\`) | Node.js 22 LTS, which the Docker image also uses, and npm. Node.js 20.9 or later still works (npm prints an \`EBADENGINE\` warning for one package, and Node.js 20 is past its end of life). Plus a database: a Supabase project, a local Supabase (Docker and the Supabase CLI, \`npx supabase\`), or PostgreSQL 15+ |
 | Docker Compose | Docker Engine with Compose v2.20 or later (the \`docker compose\` command) |
@@ -261,11 +264,84 @@ In production, serve the app over HTTPS behind a reverse proxy (nginx, Caddy, Tr
   {
     slug: 'self-hosting/install',
     title: 'Install step by step',
-    description: 'Install UserTasks on your laptop, with Docker Compose (Supabase or standalone), on Kubernetes with the Helm chart, from the air-gapped bundle, on your own PostgreSQL, or from source.',
+    description: 'Install UserTasks with the one-line installer (Docker, Linux, macOS, Windows), on your laptop, with Docker Compose (Supabase or standalone), on Kubernetes with the Helm chart, from the air-gapped bundle, on your own PostgreSQL, or from source.',
     body: `
 Pick the section for [how you're running it](/docs/self-hosting/choose) and check the [requirements](/docs/self-hosting/requirements) first. Each section ends with the app running. Then open it in a browser and [create your admin account](/docs/self-hosting/admin-account).
 
 The commands use \`<repository-url>\` for the UserTasks Git repository and \`admin@example.com\` / \`Acme Inc\` as examples.
+
+## One-line installer
+
+The quickest way onto a server, a VM or your own computer: one command, Docker the only thing to install first. No git, Node.js or build.
+
+On Linux or macOS:
+
+\`\`\`bash
+curl -fsSL https://usertasks.com/install.sh | sh
+\`\`\`
+
+On Windows, in PowerShell, with Docker Desktop (WSL 2 backend, Linux containers):
+
+\`\`\`powershell
+irm https://usertasks.com/install.ps1 | iex
+\`\`\`
+
+The installer:
+
+1. Checks the machine (Linux or macOS on amd64 or arm64; memory; disk) and Docker with Compose 2.20 or later. Without Docker it explains how to get it; on Ubuntu, Debian, Fedora, RHEL and similar distributions it offers to install Docker Engine (with your consent, using Docker's own script).
+2. Downloads a pinned, versioned release from GitHub: the Compose file, a settings template and the \`usertasks\` command. It checks the signature of \`SHA256SUMS\` against the UserTasks release key built into the installer, then the checksum of the download, **before** it runs anything from it.
+3. Pulls the published image (\`ghcr.io/homepresso/usertasks\`), pinned by digest to the image the release names. If the image can't be downloaded, it offers to build it locally instead (\`--build\`; about ${DOCKER_BUILD_MEMORY_GB} GB of memory for Docker).
+4. Asks which services to use: everything in containers (PostgreSQL, MinIO for files, Valkey, Mailpit, the worker: the default), your own PostgreSQL, a Supabase project, or custom (database, files and email one by one). Sign-in starts with built-in accounts; add SSO later in **Settings → Infrastructure**.
+5. Writes \`.env\` with fresh secrets (readable only by you), starts the containers, applies the migrations and waits until UserTasks answers.
+6. Prints the address and the **setup code**, and opens your browser when it can. [Create your admin account](/docs/self-hosting/admin-account) with it.
+
+It's safe to run again: an existing install keeps its \`.env\`, secrets and data, and only starts what isn't running.
+
+| Option | Environment variable | Default |
+|---|---|---|
+| \`--version 0.2.0\` | \`USERTASKS_VERSION\` | the latest release |
+| \`--dir /opt/usertasks\` | \`USERTASKS_DIR\` | \`/opt/usertasks\` as root, else \`~/usertasks\` (Windows: \`%USERPROFILE%\\usertasks\`) |
+| \`--port 8080\` | \`USERTASKS_PORT\` | 3000 (asks for another when it's taken) |
+| \`--url https://tasks.example.com\` | \`USERTASKS_APP_URL\` | \`http://localhost:<port>\` |
+| \`--preset standalone\`, \`postgres\`, \`supabase\` or \`custom\` | \`USERTASKS_PRESET\` | asks; \`standalone\` without questions |
+| \`--project usertasks\` | \`USERTASKS_PROJECT\` | \`usertasks\` (the Docker Compose project: container and volume names) |
+| \`--non-interactive\` | \`USERTASKS_NONINTERACTIVE=1\` | asks questions when there's a terminal |
+| \`--build\` | | builds the image locally if it can't be pulled |
+| \`--install-docker\` | | Linux: installs Docker Engine without asking |
+| \`--no-browser\` | \`USERTASKS_NO_BROWSER=1\` | opens the browser when it can |
+
+Pass options after \`sh -s --\`. In PowerShell they're parameters (\`-Version\`, \`-Dir\`, \`-Port\`, \`-Url\`, \`-Preset\`, \`-Project\`, \`-NonInteractive\`, \`-Build\`, \`-NoBrowser\`):
+
+\`\`\`bash
+curl -fsSL https://usertasks.com/install.sh | sh -s -- --port 8080 --url https://tasks.example.com --non-interactive
+\`\`\`
+
+\`\`\`powershell
+& ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -Port 8080 -NonInteractive
+\`\`\`
+
+Prefer to read it first? Download \`https://usertasks.com/install.sh\`, read it, then run it with \`sh install.sh\`. The script is one function that only runs once it has fully downloaded, so a broken connection does nothing.
+
+### The usertasks command
+
+The installer puts a \`usertasks\` command on the server (in \`/usr/local/bin\` as root, else \`~/.local/bin\`; on Windows the install folder's \`bin\` is added to your PATH):
+
+| Command | What it does |
+|---|---|
+| \`usertasks status\` | Version, image, containers and their health, whether setup is done, pending migrations |
+| \`usertasks logs -f app\` | Container logs (\`docker compose logs\` options) |
+| \`usertasks backup\` | Database dump, files (the MinIO volume) and \`.env\` in \`backups/<time>-<version>/\` |
+| \`usertasks restore <backup or latest>\` | Puts a backup back (database, files, \`.env\`), after taking a fresh backup |
+| \`usertasks upgrade\` | Backup, verified download, migrations, switch, health check, automatic code rollback: [Upgrade to a new release](/docs/self-hosting/upgrade#one-line-installer) |
+| \`usertasks config\` | Asks the service choices again; keeps the secrets |
+| \`usertasks setup-code\` | A new setup code for \`/setup\` (until the first account exists) |
+| \`usertasks admin <command>\` | \`usertasks-admin\` inside the app container (\`doctor\`, \`db status\`, \`switch\`, …) |
+| \`usertasks start\`, \`stop\`, \`restart\` | Start, stop or restart the containers |
+| \`usertasks uninstall\` | Removes the containers and keeps the data; \`--purge\` also deletes the volumes and the folder, after you type the project name |
+
+If the [UserTasks CLI](/docs/self-hosting/cli) is installed too, any other command (\`usertasks login\`, \`usertasks config export\`, …) is passed to it. If a \`usertasks\` command was already on your PATH, the installer leaves it alone and names this one \`usertasks-server\`.
+
+The install folder holds \`.env\` (the secrets: keep a copy, especially \`ENCRYPTION_KEY\`), \`state.env\` (the version and image), \`releases/\` (the verified releases), \`backups/\` and \`bin/\`. The data lives in Docker volumes named after the project (\`usertasks_pgdata\`, \`usertasks_miniodata\`). Before real people use it, point \`SMTP_HOST\` at your mail relay and put HTTPS in front: see [Give your install a friendly address](/docs/self-hosting/friendly-address).
 
 ## Laptop trial
 
@@ -524,8 +600,11 @@ A new self-hosted install has no workspaces and no users, and there's no public 
 When you submit, UserTasks:
 
 1. creates the workspace and your owner account, exactly as \`npm run bootstrap\` does
-2. signs you in
-3. takes you to \`/onboarding\` to finish setting up
+2. makes you an instance admin (\`instance.admin_emails\`), because whoever has the setup code controls the server anyway
+3. signs you in
+4. opens the [setup wizard](/docs/self-hosting/setup-wizard) at \`/settings/setup\`. There you check your services, add sign-in with your identity provider, set up email and invite your team. Every step can be skipped.
+
+This screen is step 1 of the wizard. It's the only step that needs the setup code. After it, only instance admins can open the wizard.
 
 ## The setup code
 
@@ -539,6 +618,7 @@ UserTasks setup code: ABCD-EFGH-JKLM (open /setup to create the admin account)
 
 | You run UserTasks with | Look here |
 |---|---|
+| The one-line installer | It prints the code when it finishes (\`USERTASKS_SETUP_CODE\` in the install folder's \`.env\`) |
 | \`npm run dev\` or \`npm start\` | The terminal running it |
 | Docker Compose (laptop trial, \`supabase\` or \`standalone\` profile) | \`docker compose logs app \\| grep "setup code"\` |
 | Air-gapped bundle | \`./bundle.sh admin setup-code\` prints a fresh code |
@@ -550,6 +630,7 @@ You can make a new code at any time with \`usertasks-admin setup-code\`. Making 
 
 | Install | Command |
 |---|---|
+| One-line installer | \`usertasks setup-code\` (with \`USERTASKS_SETUP_CODE\` in \`.env\`, the server keeps using that one: remove the line and run \`usertasks restart\` to use generated codes) |
 | Source checkout | \`npm run setup-code\` (same as \`npm run admin -- setup-code\`) |
 | Docker Compose | \`docker compose exec app node admin.cjs setup-code\` |
 | Air-gapped bundle | \`./bundle.sh admin setup-code\` |
@@ -648,7 +729,119 @@ The Helm chart can run it as a post-install Job (\`bootstrap.enabled\`, \`bootst
 
 ## Next
 
-[Sign in and invite people](/docs/self-hosting/invite-people).
+[The setup wizard](/docs/self-hosting/setup-wizard), then [sign in and invite people](/docs/self-hosting/invite-people).
+`,
+  },
+  {
+    slug: 'self-hosting/setup-wizard',
+    title: 'Setup wizard',
+    description: 'The in-browser setup wizard after install: admin account, organisation and web address, services with health checks (change email, files, sign-in and background jobs in place, or move off Supabase), SSO with Entra ID / AD FS / OIDC / SAML, a test email, and invitations.',
+    body: `
+After you [create your admin account](/docs/self-hosting/admin-account), UserTasks opens the setup wizard. It walks you through the rest of the setup in plain steps. You can skip any step and come back later from **Settings → Setup wizard** (\`/settings/setup\`). **Settings → Infrastructure** has the same controls for services.
+
+## Who can open it
+
+- **Step 1** (\`/setup\`) works only before the first admin exists, and only with the setup code from the server log.
+- **After that**, only instance admins can open the wizard. Everyone else gets "not found". The account you create on \`/setup\` becomes an instance admin. Add more with \`usertasks-admin instance-admins add ops@example.com\`.
+- **Every action** checks this again on the server, not just the page. Actions are POST-only and refuse requests from other sites.
+
+## The steps
+
+| Step | What you do |
+|---|---|
+| 1. Admin account | The setup code, your organisation and your account ([details](/docs/self-hosting/admin-account)) |
+| 2. Your organisation | Its name, the sign-in name people type, and a contact. The wizard also checks the web address (below). |
+| 3. Services | What each service runs on, with a check for each one (green, amber or red), and **Change…** / **Settings** to change it in place |
+| 4. Sign-in and SSO | Add Microsoft Entra ID, AD FS, Okta, Keycloak, Google Workspace or any OpenID Connect or SAML provider. Check the connection, then try a test sign-in. |
+| 5. Email | Choose how email is sent (Microsoft 365, your mail server, Resend, Azure Communication Services, Amazon SES) and send a test message |
+| 6. Invite your team | Paste email addresses and pick a role |
+| 7. Done | A health summary, what you skipped, and links to the next things to do |
+
+## Web address
+
+The wizard compares the address you opened with \`APP_URL\`. Links in emails (invitations, password resets) and SSO redirects use \`APP_URL\`, so it must be the address people really use. You'll see a warning when:
+
+- you opened a different address from \`APP_URL\`
+- \`APP_URL\` uses plain \`http://\` on a network address, so passwords travel unencrypted. Put HTTPS in front of it.
+- \`APP_URL\` is \`localhost\`, which is fine on your own computer but not for other people
+
+\`APP_URL\` is in the server's configuration file, because sign-in needs it before anything else loads. To change it, edit the file the installer wrote (or \`.env\` with Docker Compose), then restart UserTasks. See [Give your install a friendly address](/docs/self-hosting/friendly-address).
+
+## Services
+
+Each service shows its current provider and a health check:
+
+| Service | What it does |
+|---|---|
+| Database | Where all your data is stored |
+| Sign-in | How people prove who they are |
+| Files | Uploaded files, logos and attachments |
+| Email | Invitations, notifications and password resets |
+| Background jobs | Timers, reminders and scheduled workflows |
+| Live updates | Pages update by themselves |
+| Cache, secret store, key management | Speed, stored passwords and encryption keys |
+
+- **Change…** picks another provider. Before anything is saved, it runs a connection test and shows you the plan.
+- **Settings** edits the current provider, for example the mail server's address.
+
+Both use the same engine as \`usertasks-admin switch\`, with the same checks, backups, switch log and rollback. Passwords and keys you type are stored encrypted and never shown again.
+
+A service set in the server environment (for example \`EMAIL_PROVIDER\` in the configuration file) can't be changed from the page, because the environment wins. The wizard says so. Installers that use the install profile (\`usertasks-admin install profile\`, described in \`docs/install-profile.md\` in the source) with placement \`settings\` keep email, files, sign-in and background jobs changeable here.
+
+Changing providers from the page can be turned off with \`INFRA_UI_SWITCHING=false\`. In the cloud edition it's locked until an instance admin unlocks it (\`usertasks-admin ui-switching on\`).
+
+### Moving off Supabase
+
+If any service runs on Supabase, the Services step lists how to move each one off it, one at a time, in this order:
+
+1. **Files** to a local folder or S3-compatible storage. This copies every file and keeps the original.
+2. **Live updates** to built-in live updates. This is a settings change only.
+3. **Sign-in** to built-in sign-in. This copies every account with its password hash, so people keep their passwords.
+4. **The database** to your own PostgreSQL 15 or later. Do this last.
+
+Every move takes a backup first, copies your data and keeps the original, and can be rolled back from the switch log or with \`usertasks-admin rollback <switch id>\`. Nothing is deleted in Supabase.
+
+Where the page can run a move safely (a direct database connection and a long-running server), **Change…** on the service's card does it in the background and shows its progress. Otherwise the wizard shows the exact commands to run on the server. The first command only checks and shows the plan:
+
+\`\`\`bash
+usertasks-admin switch database --to postgres --target-url 'postgres://usertasks:PASSWORD@db.example.com:5432/usertasks?sslmode=require' --dry-run
+usertasks-admin switch database --to postgres --target-url 'postgres://usertasks:PASSWORD@db.example.com:5432/usertasks?sslmode=require'
+usertasks-admin history
+\`\`\`
+
+See [Switching providers](/docs/self-hosting/switching-providers) for the details.
+
+## Sign-in and SSO
+
+People can always sign in with an email and password. To let them use their work account as well:
+
+1. Choose the identity provider and fill in what the form asks for. For example, Entra ID needs the directory (tenant) id, the application (client) id and a client secret, and AD FS needs the federation metadata URL.
+2. Register the redirect address the form shows at your identity provider. For OpenID Connect that's \`https://tasks.example.com/auth/sso/<id>/callback\`; for SAML it's the entity id and reply URL.
+3. **Check connection**: UserTasks loads the provider's discovery document and signing keys (or its SAML metadata). Nothing is saved.
+4. **Save identity provider**: the provider appears on the sign-in page.
+5. **Test sign-in**: copy the test link into a private (incognito) window and sign in with a work account. Opening it in your own window would sign you in as that account.
+
+**Only these email domains** limits who can sign in and is recommended for Entra ID, AD FS and SAML. **New people join** puts new accounts in your organisation with the role you pick.
+
+This step needs built-in sign-in. On Supabase Auth, set up SSO in your Supabase project, or move sign-in off Supabase first.
+
+## Email and invitations
+
+Pick how email is sent, fill in the server details, and save. The password is write-only. Then send a test message to yourself. For Microsoft 365, use the mailbox's address as the user name. If the account uses multi-factor sign-in, use an app password, or allow SMTP AUTH for that mailbox.
+
+Invitations use the email settings you just tested. Until email works, invitations are only written to the server log.
+
+## Test buttons and private addresses
+
+The **Check connection**, **Test** and **Send test email** buttons are rate-limited. Before they contact a server, they check it against the egress policy, so they can't be used to reach cloud metadata endpoints or your private network uninvited. When a test needs a server on your own network (an Exchange server, Keycloak on \`localhost\`, a mail relay), the wizard offers **Allow <host>**. This adds it to the private network allowlist, the same as running:
+
+\`\`\`bash
+usertasks-admin egress allow-private mail.internal
+\`\`\`
+
+## Next
+
+[Sign in and invite people](/docs/self-hosting/invite-people) covers sign-in, roles and directory sync in more depth.
 `,
   },
   {
@@ -1430,7 +1623,171 @@ Lists and run progress update through Server-Sent Events, long-lived responses t
 
 ## Next
 
-[Updates and backups](/docs/self-hosting/updates-and-backups).
+[Upgrade to a new release](/docs/self-hosting/upgrade).
+`,
+  },
+  {
+    slug: 'self-hosting/upgrade',
+    title: 'Upgrade to a new release',
+    description: 'Move a self-hosted install to a new UserTasks release: check your version, back up, apply migrations, update the app for each way of running it (Docker Compose, source, Kubernetes, air-gapped bundle), update extensions and the CLI, check it worked, and roll back if you need to.',
+    body: `
+Every release has two parts: **new code** and, often, **new database migrations**. An upgrade applies both, in that order: migrations first, then the code. The release notes say when a release needs anything more.
+
+On usertasks.com there's nothing to do: we upgrade the cloud service for you.
+
+## Before you start
+
+1. **Check what you run now.** Open \`https://tasks.yourcompany.com/api/version\` (no sign-in needed). It shows the version, the git commit and the build time:
+
+   \`\`\`json
+   { "version": "0.1.0", "commit": "0da2dba09", "buildTime": "2026-11-14T02:10:00Z" }
+   \`\`\`
+
+   \`usertasks-admin db status\` lists the migrations already applied and any that are pending.
+2. **Read the release notes** for every version between yours and the new one. Look for migrations marked "apply before deploying the code", new required settings, and instance-level steps. [Database and migrations](/docs/self-hosting/database) describes each migration and any that need care on a busy database.
+3. **Back up**: the database, files, and your \`.env\` or Kubernetes Secret, especially \`ENCRYPTION_KEY\`. See [Updates and backups](/docs/self-hosting/updates-and-backups#backups). A backup taken just before the upgrade is the only way to undo a migration.
+4. **Pick a quiet time.** Migrations are additive and most take seconds, but some take short table locks. Workflow runs are queued in the database, so work waiting while the app restarts is picked up when it's back.
+5. **Try it on a copy first** if you can: restore last night's backup into a test install, upgrade that, and click through your main workflows and forms.
+
+Skipping versions is fine. Migrations apply in order, so going from 0.1.0 straight to the latest runs every migration in between. Don't skip the release notes in between, though.
+
+## Upgrade, for each way of running it
+
+Pin an exact version wherever you can (an image tag, a git tag or commit), so every server runs the same thing and you know what to roll back to.
+
+### One-line installer
+
+\`\`\`bash
+usertasks upgrade
+\`\`\`
+
+\`usertasks upgrade --to 0.2.0\` picks the version; without it, the latest release. It follows this page step by step and prints what it did:
+
+1. **Backs up** the database, the files and \`.env\` to \`backups/<time>-<old>-before-<new>/\` (\`--skip-backup\` skips it; don't, unless you just took one).
+2. **Downloads and verifies** the new release: the signature of \`SHA256SUMS\` with the release key saved at install time, then the checksum. Nothing changes if either fails.
+3. **Pulls** the image the release pins (\`--build\` builds it locally if it can't be pulled).
+4. **Applies the migrations** with the new code (\`usertasks-admin db migrate\`, then \`ext migrate\`) while the old version keeps serving. If a migration fails, it stops here: no code was switched, the old version keeps running, and the failed file left nothing half-applied.
+5. **Switches** the app and the worker to the new version and **checks** that it answers and runs the new image.
+6. **Rolls the code back** by itself if the new version doesn't become healthy: the previous version starts again on the newer (additive) schema, and it prints the backup to restore if you need the database exactly as before.
+
+It refuses to go to an older version unless you add \`--allow-downgrade\`. On Windows, the same in PowerShell: \`usertasks upgrade -To 0.2.0\`.
+
+### Laptop trial and Docker Compose (standalone)
+
+From the folder you installed from (Compose names the containers and volumes after it, so a different folder starts an empty install):
+
+\`\`\`bash
+git fetch && git checkout <new version tag or commit>
+docker compose --profile standalone up -d --wait
+\`\`\`
+
+\`git pull\` works instead of the checkout, and \`npm run stack -- up\` instead of the \`docker compose\` line.
+
+The \`migrate\` container applies new migrations before the app starts. Compose uses the published image for the new version (\`ghcr.io/homepresso/usertasks:<version>\`) and builds it locally when none is published; add \`--build\` to always build locally. To pin the image yourself, set \`USERTASKS_IMAGE=ghcr.io/homepresso/usertasks:<version>\` in \`.env\`.
+
+### Docker Compose with Supabase
+
+\`\`\`bash
+git fetch && git checkout <new version>
+npx supabase db push --linked --dry-run
+npx supabase db push --linked
+docker compose up -d --build
+\`\`\`
+
+The \`--dry-run\` line lists the migrations it will apply, without applying them.
+
+### From source with Supabase
+
+\`\`\`bash
+git fetch && git checkout <new version>
+npm ci
+npx supabase db push --linked --dry-run
+npx supabase db push --linked
+npm run build
+\`\`\`
+
+Then restart: stop the running \`npm start\` (or your service) and start it again.
+
+A local Supabase stack (\`supabase start\`) takes the same \`db push\` without \`--linked\`. Don't use \`npx supabase db reset\` to upgrade: it wipes the database.
+
+### From source with your own PostgreSQL
+
+\`\`\`bash
+git fetch && git checkout <new version>
+npm ci
+npm run admin -- db status
+npm run admin -- db migrate
+npm run build
+\`\`\`
+
+\`db status\` lists the pending migrations. Then restart the app and the worker.
+
+\`db migrate\` takes a lock, so two servers running it at once can't both apply the same migration; each file runs in its own transaction.
+
+### Kubernetes (Helm)
+
+\`\`\`bash
+git fetch && git checkout <new version>
+helm upgrade usertasks deploy/helm/usertasks -n usertasks -f my-values.yaml \\
+  --set image.tag=<new version> --wait --wait-for-jobs
+\`\`\`
+
+The migrations run first (a pre-upgrade hook or a Job for the new revision). Then the pods roll one at a time with \`maxUnavailable: 0\`, so the app stays up. \`helm history usertasks -n usertasks\` lists the revisions. Details: [Kubernetes setup](/docs/self-hosting/kubernetes).
+
+### Air-gapped bundle
+
+On a connected machine, build the bundle for the new version with **the same signing key** as before. Then, on the offline host:
+
+\`\`\`bash
+./bundle.sh verify --fingerprint <your key fingerprint>
+cp ../usertasks-bundle-<old version>/compose/.env compose/.env
+./bundle.sh load
+./bundle.sh up
+\`\`\`
+
+With a registry, use \`./bundle.sh load --registry … --push\`; on Kubernetes, \`helm upgrade\` as above instead of \`up\`.
+
+**Copy \`compose/.env\` from the old bundle folder before \`up\`.** Without it, \`up\` writes fresh secrets, including a new \`ENCRYPTION_KEY\`, and the connector passwords stored in the database can no longer be read. The bundle always uses the Compose project \`usertasks-onprem\`, so the new folder keeps the same database and file volumes.
+
+## Extensions
+
+Extensions are built into the app, so rebuild with the same \`USERTASKS_EXTENSIONS\` list when you upgrade. Then apply their migrations; Docker Compose and Helm don't do this for you:
+
+\`\`\`bash
+usertasks-admin ext status
+usertasks-admin ext migrate
+\`\`\`
+
+From source, run them as \`npm run admin -- ext status\` and \`npm run admin -- ext migrate\`.
+
+Each extension declares the UserTasks versions it supports (\`engines.usertasks\` in its manifest). If the new release is outside that range, the app starts without that extension: **Settings → Extensions** says why, and its data stays untouched until a compatible version is installed. Check your extensions' supported versions before upgrading. See [Extensions](/docs/developers/extensions).
+
+## The CLI
+
+The CLI is updated separately from the server:
+
+\`\`\`bash
+npm install -g ${CLI_PACKAGE}@latest
+usertasks --version
+\`\`\`
+
+## Check it worked
+
+1. \`/api/version\` shows the new version and commit.
+2. \`usertasks-admin db status\` (and \`ext status\` if you use extensions) shows nothing pending.
+3. \`usertasks-admin doctor\` checks the database, storage, email, the scheduler and the other providers.
+4. Sign in, open a task, submit a form, and start a test workflow run. If you have scheduled workflows, check that the next one runs.
+
+## If something goes wrong
+
+- **The app won't start after the upgrade:** check its logs first. The most common causes are a migration that didn't run (\`db status\` shows it pending: run \`db migrate\` or \`db push\`) and a new required setting (the release notes name it).
+- **A migration failed:** each file runs in its own transaction, so a failed file leaves nothing half-applied. Fix the cause it reports (often a lock timeout on a busy table: run it again) and run the migration command again.
+- **Roll back the code:** deploy the previous version again (\`git checkout <old version>\` and rebuild, the old image tag, or \`helm rollback usertasks <revision>\`). Migrations are additive: they add tables, columns and permissions and never remove what people built (an automated check on every release enforces this). So the previous version normally runs on the newer schema and you don't need to undo them. The release notes say if a release is an exception.
+- **Roll back the database:** only as a last resort, by restoring the backup you took before the upgrade. Anything people did after that backup is lost.
+
+## Next
+
+[Updates and backups](/docs/self-hosting/updates-and-backups) · [Troubleshooting](/docs/self-hosting/troubleshooting)
 `,
   },
   {
@@ -1440,10 +1797,11 @@ Lists and run progress update through Server-Sent Events, long-lived responses t
     body: `
 ## Updating
 
-Every update has two parts: the new code, and any new database migrations. Apply both.
+Every update has two parts: the new code, and any new database migrations. Apply both, migrations first. The table is the short version; [Upgrade to a new release](/docs/self-hosting/upgrade) walks through each way of running it, with extensions, the CLI, checks and rollback.
 
 | You run | To update |
 |---|---|
+| One-line installer | \`usertasks upgrade\`: backup, verified download, migrations, switch, health check and automatic code rollback. \`usertasks backup\` and \`usertasks restore\` cover the backups below |
 | Source with Supabase | \`git pull\`, \`npm ci\`, \`npx supabase db push --linked\` (or \`npx supabase db reset\` on a local stack, which wipes it), \`npm run build\`, then restart \`npm start\` |
 | Source with your own PostgreSQL | \`git pull\`, \`npm ci\`, \`npm run admin -- db migrate\`, \`npm run build\`, then restart \`npm start\` |
 | Docker Compose, \`supabase\` profile | \`git pull\`, \`npx supabase db push --linked\`, then \`docker compose up -d --build\` |

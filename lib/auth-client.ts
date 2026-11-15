@@ -1,6 +1,6 @@
 'use client'
 
-import { signOutAction } from '@/app/actions/auth'
+import { signOutAction } from '@/app/actions/sign-out'
 import { clearAllAgentHistory } from '@/lib/assistants/history'
 
 /**

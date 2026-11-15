@@ -480,6 +480,7 @@ A step that two or more branches lead to is their **join**. It runs once, after 
 - **Variables** — branches share the run's variables while they run. When the join runs, the values each branch set are applied again in branch order, so if two branches set the same variable, the later branch in the node's list wins, whichever finished last. Use the step's own prefixed outputs (\`{{get_vendor_response}}\`) to keep both.
 - **Waits** — a branch waiting on a User Task, a server event or a long delay pauses only that branch; the others carry on, and the run pauses once nothing else can run. The join runs after the wait is resumed. Several branches can wait at once (parallel approvals): the run waits for each, and a task completed while the run is waiting on another branch's task is kept and applied in turn.
 - **Errors** — a failing step set to *Stop* fails the run once the other branches have finished, and the join does not run; with *Continue* the branch carries on to the join.
+- **Agents** — Run Agent steps on parallel branches run at the same time and share their conversation turns and facts, which are merged (not overwritten) at the join — see [Multi-agent workflows](/docs/agents#multi-agent-workflows).
 - Joins of nested Parallel nodes and of Parallel nodes inside loops (one join per iteration) work the same way. The run canvas shows a join that is still waiting as *Waiting for N of M branches*.
 - Steps where the paths of a condition or switch meet (only one path runs) are unaffected: they run when the path arrives.
 

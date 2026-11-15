@@ -125,7 +125,18 @@ export const CAPTCHA_SOURCES = {
   connect: ['https://challenges.cloudflare.com', 'https://*.hcaptcha.com'],
 } as const
 
-export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefined; isDev: boolean; storagePublicBases?: Record<string, string>; storageUploadSources?: string[]; captcha?: boolean; /** `'none'` (default) or `*` for form link pages (lib/forms/embed.ts). */ frameAncestors?: "'none'" | '*' }): string {
+/**
+ * The frame-ancestors source list: `*`, `'none'` (default), or `'self'`
+ * followed by origins (trusted embedding) — anything else falls back to
+ * `'none'`, so a malformed value can never open framing up.
+ */
+export function frameAncestorsSource(value: string | undefined): string {
+  if (value === '*') return '*'
+  if (value && /^'self'(?: https?:\/\/(?:\*\.)?[a-z0-9.[\]:-]+)+$/.test(value)) return value
+  return "'none'"
+}
+
+export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefined; isDev: boolean; storagePublicBases?: Record<string, string>; storageUploadSources?: string[]; captcha?: boolean; /** `'none'` (default), `*` for form link pages (lib/forms/embed.ts), or `'self' <origins>` for embeddable routes (lib/embedding.ts). */ frameAncestors?: string }): string {
   // Stored files: Supabase public URLs (https is already allowed; a loopback
   // http stack — `supabase start` — needs its origin) and direct store URLs.
   const loopbackSupabase = supabaseConnectSources(opts.supabaseUrl).filter((s) => s.startsWith('http://'))
@@ -144,12 +155,12 @@ export function buildContentSecurityPolicy(opts: { supabaseUrl: string | undefin
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    `frame-ancestors ${opts.frameAncestors === '*' ? '*' : "'none'"}`,
+    `frame-ancestors ${frameAncestorsSource(opts.frameAncestors)}`,
   ].join('; ')
 }
 
 /** The policy for the current runtime config (lib/config). */
-export function contentSecurityPolicy(options: { captcha?: boolean; frameAncestors?: "'none'" | '*' } = {}): string {
+export function contentSecurityPolicy(options: { captcha?: boolean; frameAncestors?: string } = {}): string {
   let storagePublicBases: Record<string, string> | undefined
   let uploadSources: string[] = []
   try {

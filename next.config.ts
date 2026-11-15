@@ -7,7 +7,7 @@ import { OUTPUT_FILE_TRACING_INCLUDES, TESSERACT_WORKER_FILES } from "./lib/func
 import { missingStubPath, optionalPackageNames } from "./lib/optional-drivers";
 import { USE_CASE_REDIRECTS } from "./lib/use-cases";
 import { TASK_QUEUE_REDIRECT } from "./lib/tasks/unified-list";
-import { generateExtensionRegistry } from "./lib/extensions/build/codegen";
+import { generateExtensionRegistry, watchLinkedExtensions } from "./lib/extensions/build/codegen";
 
 // Defense-in-depth headers (see lib/csp.ts for the policy and why). The CSP
 // here is evaluated when the server starts / the build runs; proxy.ts
@@ -50,7 +50,14 @@ const missingDriverAliases = Object.fromEntries(
 // incompatible extension (engines.usertasks) fails the build here.
 const extensionRegistry = generateExtensionRegistry({ root: process.cwd() });
 if (extensionRegistry.extensions.length) {
-  console.log(`Extensions: ${extensionRegistry.extensions.map((e) => `${e.id}@${e.version}`).join(", ")}`);
+  console.log(`Extensions: ${extensionRegistry.extensions.map((e) => `${e.id}@${e.version}${e.linkedFrom ? " (linked)" : ""}`).join(", ")}`);
+}
+// Linked packages (npm link) are mirrored into .usertasks-ext/ for the build; `next dev` keeps the mirror in sync.
+// (next dev loads this file with NODE_ENV=development, in a child process whose argv has no "dev"; once per process.)
+const linkedWatch = globalThis as { __usertasksLinkedWatch?: boolean };
+if (process.env.NODE_ENV === "development" && !linkedWatch.__usertasksLinkedWatch && extensionRegistry.extensions.some((e) => e.linkedFrom)) {
+  linkedWatch.__usertasksLinkedWatch = true;
+  watchLinkedExtensions(extensionRegistry);
 }
 
 // The Docker image's server bundle (NEXT_OUTPUT_STANDALONE=true).
@@ -161,8 +168,15 @@ const nextConfig: NextConfig = {
       // Custom form control frames (app/form-controls/frame) set their own
       // CSP (sandboxed, framed by the app only): no DENY framing, no app CSP.
       {
-        source: "/((?!form-controls/frame/|f/|form/|form-login|p/).*)",
+        source: "/((?!form-controls/frame/|f/|form/|form-login|p/|embed/).*)",
         headers: securityHeaders,
+      },
+      // Trusted-embedding routes (lib/embedding.ts): no static
+      // X-Frame-Options; proxy.ts sets frame-ancestors per request ('self' +
+      // the approved sites, or 'none' with DENY when none are configured).
+      {
+        source: "/embed/:path*",
+        headers: embedSecurityHeaders.filter((h) => h.key !== "X-Frame-Options"),
       },
       // Form link pages other sites may embed (lib/forms/embed.ts): no
       // X-Frame-Options; proxy.ts sets their CSP with `frame-ancestors *`.

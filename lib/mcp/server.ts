@@ -23,6 +23,7 @@ import { registerRetentionTools } from './tools/retention'
 import { registerWebhookTools } from './tools/webhooks'
 import { registerLogDestinationTools } from './tools/log-destinations'
 import { registerDirectorySyncTools } from './tools/directory-sync'
+import { registerImporterTools } from './tools/importers'
 import { registerWorkspaceThemeTools } from './tools/workspace-theme'
 import { registerWorkspaceAddressTools } from './tools/workspace-address'
 import { registerTaskCompletionTools } from './tools/task-completion'
@@ -86,6 +87,7 @@ const TOOL_REGISTRARS: Array<{ label: string; register: ToolRegistrar }> = [
   { label: 'webhooks', register: registerWebhookTools },
   { label: 'log_destinations', register: registerLogDestinationTools },
   { label: 'directory_sync', register: registerDirectorySyncTools },
+  { label: 'importers', register: registerImporterTools },
   { label: 'workspace_theme', register: registerWorkspaceThemeTools },
   { label: 'workspace_address', register: registerWorkspaceAddressTools },
   { label: 'task_completion', register: registerTaskCompletionTools },

@@ -21,6 +21,7 @@ import {
 import type { ApplyResult, FieldView, PlanResult, SettingsResult, SwitchRecordView, WizardData } from '@/lib/admin/infrastructure-switching'
 import type { PreflightCheck } from '@/lib/admin/switch/types'
 import { SwitchProgress, useSwitchRecord } from './switch-progress'
+import { AllowHostButton } from './allow-host-button'
 
 /**
  * Settings → Infrastructure → Change… / Settings: a guided provider switch
@@ -40,7 +41,7 @@ const SEVERITY: Record<PreflightCheck['severity'], { label: string; color: strin
 }
 
 type Step = 'choose' | 'configure' | 'review' | 'run'
-type Notice = { tone: 'success' | 'warning' | 'error'; message: string } | null
+type Notice = { tone: 'success' | 'warning' | 'error'; message: string; allowEntry?: string | null } | null
 
 function Checks({ checks }: { checks: PreflightCheck[] }) {
   if (!checks.length) return null
@@ -166,7 +167,7 @@ export function ProviderSwitchWizard({
   const runTest = () => startTransition(async () => {
     setNotice(null)
     const res = kind === 'settings' ? await saveProviderSettings({ ...input(), dryRun: true }) : await testProviderChange(input())
-    if (!res.ok) { setFieldErrors(res.fieldErrors ?? {}); setNotice({ tone: 'error', message: res.error }); return }
+    if (!res.ok) { setFieldErrors(res.fieldErrors ?? {}); setNotice({ tone: 'error', message: res.error, allowEntry: res.allowEntry ?? null }); return }
     setFieldErrors({})
     setTest(res)
     const passed = 'passed' in res ? res.passed : true
@@ -176,7 +177,7 @@ export function ProviderSwitchWizard({
   const review = () => startTransition(async () => {
     setNotice(null)
     const res = await planProviderChange(input())
-    if (!res.ok) { setFieldErrors(res.fieldErrors ?? {}); setNotice({ tone: 'error', message: res.error }); return }
+    if (!res.ok) { setFieldErrors(res.fieldErrors ?? {}); setNotice({ tone: 'error', message: res.error, allowEntry: res.allowEntry ?? null }); return }
     setFieldErrors({})
     setPlan(res)
     setStep('review')
@@ -187,7 +188,7 @@ export function ProviderSwitchWizard({
       setNotice(null)
       if (kind === 'settings') {
         const res = await saveProviderSettings({ ...input(), dryRun: false })
-        if (!res.ok) { setFieldErrors(res.fieldErrors ?? {}); setNotice({ tone: 'error', message: res.error }); return }
+        if (!res.ok) { setFieldErrors(res.fieldErrors ?? {}); setNotice({ tone: 'error', message: res.error, allowEntry: res.allowEntry ?? null }); return }
         setTest(res)
         if (!res.saved) { setNotice({ tone: 'error', message: 'The checks failed: nothing was saved.' }); return }
         setRecord(res.record)
@@ -195,7 +196,7 @@ export function ProviderSwitchWizard({
         return
       }
       const res = await applyProviderChange({ ...input(), confirm })
-      if (!res.ok) { setNotice({ tone: 'error', message: res.error }); return }
+      if (!res.ok) { setNotice({ tone: 'error', message: res.error, allowEntry: res.allowEntry ?? null }); return }
       setApplied(res)
       setStep('run')
       if (res.record) setRecord(res.record)
@@ -398,6 +399,7 @@ export function ProviderSwitchWizard({
                     </fieldset>
                   )}
                   {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
+                  {notice?.allowEntry && <AllowHostButton entry={notice.allowEntry} onAllowed={(message) => setNotice({ tone: 'success', message })} />}
                   {test && <Checks checks={test.preflight} />}
                   <div className="flex flex-wrap justify-between gap-2">
                     {kind === 'switch' ? <Button type="button" variant="ghost" size="sm" onClick={() => setStep('choose')}><ArrowLeft size={14} /> Providers</Button> : <span />}
@@ -447,6 +449,7 @@ export function ProviderSwitchWizard({
                     </div>
                   )}
                   {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
+                  {notice?.allowEntry && <AllowHostButton entry={notice.allowEntry} onAllowed={(message) => setNotice({ tone: 'success', message })} />}
                   <div className="flex flex-wrap justify-between gap-2">
                     <Button type="button" variant="ghost" size="sm" onClick={() => { setStep('configure'); setPlan(null) }}><ArrowLeft size={14} /> Options</Button>
                     {plan.mode === 'cli' ? (
@@ -475,6 +478,7 @@ export function ProviderSwitchWizard({
                   {record && <LiveRecord initial={record} />}
                   {kind === 'settings' && test && 'lines' in test && !record && <Checks checks={test.preflight} />}
                   {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
+                  {notice?.allowEntry && <AllowHostButton entry={notice.allowEntry} onAllowed={(message) => setNotice({ tone: 'success', message })} />}
                   <div className="flex justify-end">
                     <Button type="button" size="sm" variant="outline" onClick={() => change(false)}>Close</Button>
                   </div>

@@ -18,27 +18,62 @@ import { evaluateGuard, permissionChecker } from './ui'
 import { extensionUiEntries, isInstanceAdminSession } from './ui-server'
 
 export async function renderExtensionPage(extensionId: string, segments: string[], searchParams: Record<string, string | string[] | undefined>): Promise<ReactNode | null> {
-  if (!hasExtensions()) return null
-  const manifest = getExtensionManifest(extensionId)
-  if (!manifest) return null
-  const clean = segments.map((s) => decodeURIComponent(s)).filter(Boolean)
-  const declared = manifest.contributes.ui.pages
+  const result = await resolveAndRender(extensionId, segments, searchParams, false)
+  return result.kind === 'page' ? result.node : null
+}
+
+/** /x/<id>/…: the page, `signed_out` (the route sends the person to sign in and back), or not found. */
+export async function renderExtensionPageResult(extensionId: string, segments: string[], searchParams: Record<string, string | string[] | undefined>): Promise<EmbeddedPageResult> {
+  return resolveAndRender(extensionId, segments, searchParams, false)
+}
+
+export type EmbeddedPageResult = { kind: 'page'; node: ReactNode } | { kind: 'signed_out' } | { kind: 'not_found' }
+
+/**
+ * Trusted embedding (/embed/x/<id>/…): the same checks as /x/, for pages the
+ * manifest declares `embeddable` only. `signed_out` lets the route offer a
+ * sign-in that works from inside a frame.
+ */
+export async function renderEmbeddedExtensionPage(extensionId: string, segments: string[], searchParams: Record<string, string | string[] | undefined>): Promise<EmbeddedPageResult> {
+  return resolveAndRender(extensionId, segments, searchParams, true)
+}
+
+/** Is /x/<id>/<path> served at /embed/x/… too (the declared page is embeddable)? */
+export function isEmbeddableExtensionPath(extensionId: string, segments: string[]): boolean {
+  const manifest = hasExtensions() ? getExtensionManifest(extensionId) : null
+  return Boolean(manifest && declaredPage(manifest, segments.filter(Boolean))?.embeddable)
+}
+
+type Manifest = NonNullable<ReturnType<typeof getExtensionManifest>>
+
+function declaredPage(manifest: Manifest, clean: string[]) {
+  return manifest.contributes.ui.pages
     .filter((p) => p.path === '' || clean.join('/') === p.path || clean.join('/').startsWith(`${p.path}/`))
     .sort((a, b) => b.path.length - a.path.length)[0]
-  if (!declared) return null
+}
+
+async function resolveAndRender(extensionId: string, segments: string[], searchParams: Record<string, string | string[] | undefined>, embedded: boolean): Promise<EmbeddedPageResult> {
+  const notFound = { kind: 'not_found' } as const
+  if (!hasExtensions()) return notFound
+  const manifest = getExtensionManifest(extensionId)
+  if (!manifest) return notFound
+  const clean = segments.map((s) => decodeURIComponent(s)).filter(Boolean)
+  const declared = declaredPage(manifest, clean)
+  if (!declared) return notFound
+  if (embedded && !declared.embeddable) return notFound
   const Component = extensionPage(extensionId, declared.path)
-  if (!Component) return null
-  if (declared.path === '' && clean.length && !manifest.contributes.ui.pages.some((p) => p.path === '')) return null
+  if (!Component) return notFound
+  if (declared.path === '' && clean.length && !manifest.contributes.ui.pages.some((p) => p.path === '')) return notFound
 
   let ctx
-  try { ctx = await fromSession() } catch (error) { unstable_rethrow(error); return null }
+  try { ctx = await fromSession() } catch (error) { unstable_rethrow(error); return { kind: 'signed_out' } }
   const access = await extensionAccess(ctx.tenantId, extensionId)
-  if (!access.usable) return null
+  if (!access.usable) return notFound
   const entry = (await extensionUiEntries(ctx.tenantId)).find((e) => e.id === extensionId)
-  if (!entry) return null
+  if (!entry) return notFound
   const state = { deployment: getDeploymentMode(), instanceAdmin: declared.when?.instanceAdmin ? await isInstanceAdminSession() : false }
-  if (!evaluateGuard(declared.when ? { ...declared.when, managerOnly: undefined } : undefined, { has: permissionChecker(ctx.permissions ?? []) }, entry, state)) return null
+  if (!evaluateGuard(declared.when ? { ...declared.when, managerOnly: undefined } : undefined, { has: permissionChecker(ctx.permissions ?? []) }, entry, state)) return notFound
 
-  const host = createExtensionContext({ extensionId, tenantId: ctx.tenantId, actorId: ctx.actorId, db: ctx.supabase })
-  return <Component ctx={host} extensionId={extensionId} path={clean} searchParams={searchParams} />
+  const host = createExtensionContext({ extensionId, tenantId: ctx.tenantId, actorId: ctx.actorId, db: ctx.supabase, permissions: ctx.permissions })
+  return { kind: 'page', node: <Component ctx={host} extensionId={extensionId} path={clean} searchParams={searchParams} /> }
 }

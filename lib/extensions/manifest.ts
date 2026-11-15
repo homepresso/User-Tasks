@@ -175,6 +175,12 @@ const nodeContributionSchema = z.object({
   outputs: z.array(actionFieldSchema).max(40).default([]),
   /** Licence feature the node needs (entitlement port), when not the whole extension. */
   feature: z.string().max(60).optional(),
+  /**
+   * Inputs whose choices come from the workspace at design time: input name →
+   * a UI data source (server module ui.data[source]) returning
+   * `{ options: [{ value, label }] }`. The designer shows a picker (or {{data}}).
+   */
+  optionsFrom: z.record(z.string(), z.string().regex(CONTRIBUTION_KEY_RE)).optional(),
 }).strict()
 export type NodeContribution = z.infer<typeof nodeContributionSchema>
 
@@ -188,8 +194,85 @@ const triggerContributionSchema = z.object({
   /** Run variables the trigger provides (data picker). */
   variables: z.array(actionFieldSchema).max(40).default([]),
   feature: z.string().max(60).optional(),
+  /** Settings whose choices come from the workspace (as for nodes): setting name → UI data source. */
+  optionsFrom: z.record(z.string(), z.string().regex(CONTRIBUTION_KEY_RE)).optional(),
+  /**
+   * Field-change filter builder (lib/extensions/field-filters.ts): the
+   * designer edits config field `config` (an object setting) with typed rows
+   * built from the fields that UI data source `fieldsFrom` returns
+   * (`{ fields: [{ name, label, type, choices? }] }`, asked with the current
+   * settings so it can depend on e.g. the chosen list). The extension
+   * evaluates the saved filter with evaluateFieldFilters in matches().
+   */
+  filters: z.object({ config: z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,62}$/), fieldsFrom: z.string().regex(CONTRIBUTION_KEY_RE) }).strict().optional(),
+  /**
+   * "Test with the latest event" in the designer: a UI data source asked with
+   * the current settings, returning `{ payload?, matched?, message? }` (a
+   * sample of the run variables and whether this configuration would start).
+   */
+  previewFrom: z.string().regex(CONTRIBUTION_KEY_RE).optional(),
 }).strict()
 export type TriggerContribution = z.infer<typeof triggerContributionSchema>
+
+/**
+ * A directory source: the extension supplies people and groups (with
+ * memberships and external login names) and core reconciles them through
+ * directory sync (lib/directory-sync/sources.ts) under the source id
+ * `ext.<id>.<key>`. Groups become read-only teams, people are linked to
+ * accounts by e-mail / UPN, and people without an account stay pending
+ * directory entries until their first sign-in.
+ */
+const directorySourceSchema = z.object({
+  key: z.string().regex(CONTRIBUTION_KEY_RE),
+  /** Shown in Settings → SSO & Directory and on the source's teams, e.g. "SharePoint". */
+  label: text(60),
+  description: z.string().max(300).optional(),
+  /** Licence feature the source needs (manifest licence.features). */
+  feature: z.string().max(60).optional(),
+  /** Default minutes between scheduled syncs (10 – 10 080; default 60). */
+  intervalMinutes: z.number().int().min(10).max(10_080).default(60),
+  /**
+   * A licence limit (`<id>.<name>`) counting the people who use UserTasks
+   * through this source (accounts linked to it, across workspaces). Checked
+   * when a pending entry becomes a member at first sign-in; over the limit
+   * the entry stays pending.
+   */
+  seatLimit: z.string().regex(/^[a-z][a-z0-9-]*\.[a-z][a-z0-9_]{0,40}$/).optional(),
+}).strict()
+export type DirectorySourceContribution = z.infer<typeof directorySourceSchema>
+
+/**
+ * An importer (lib/importers): turns files from another product (a workflow
+ * export, a form template …) into UserTasks workflows and forms. Listed in
+ * the Import menus of Automations and Forms, `GET /api/v1/importers` and the
+ * MCP importers_* tools as `ext.<id>.<key>`; the server module's
+ * `importers[key]` analyses (dry run: a report with mapping coverage and a
+ * complexity score) and imports.
+ */
+const importerSchema = z.object({
+  key: z.string().regex(CONTRIBUTION_KEY_RE),
+  /** Shown in the Import menus, e.g. "SharePoint Designer 2010 workflow". */
+  label: text(80),
+  description: z.string().max(400).optional(),
+  /** What an import makes (which Import menu lists it). */
+  produces: z.array(z.enum(['workflow', 'form'])).min(1).max(2),
+  /** File name endings the file picker offers, lower case, e.g. [".xoml", ".wfconfig.xml", ".zip"]. Empty: no files (the importer reads its source itself, from options). */
+  accepts: z.array(z.string().regex(/^\.[a-z0-9][a-z0-9.]{0,30}$/)).max(20).default([]),
+  /** Several files make one import (e.g. a workflow's .xoml + .rules + .wfconfig.xml). */
+  multiple: z.boolean().default(false),
+  /** The importer can also read its source itself from its options (e.g. from a connected system), with no files. */
+  filesOptional: z.boolean().default(false),
+  /** Licence feature the importer needs (manifest licence.features); importers lock when the licence lapses. */
+  feature: z.string().max(60).optional(),
+  /** Shown as "Preview": the mapping is not verified on real exports yet. */
+  preview: z.boolean().default(false),
+  /** Options asked before analysing / importing (text, select, boolean …); sent as `options`. */
+  options: z.array(actionFieldSchema).max(20).default([]),
+  /** Who may import (default: workflows.create for workflow importers, forms.edit for form importers). */
+  permission: z.string().max(80).optional(),
+  icon: iconSchema.optional(),
+}).strict()
+export type ImporterContribution = z.infer<typeof importerSchema>
 
 const navSectionSchema = z.object({ id: z.string().regex(UI_ID_RE), label: text(40), order: z.number().int().min(0).max(1000), when: guardSchema.optional() }).strict()
 const navItemSchema = z.object({
@@ -286,6 +369,13 @@ const pageSchema = z.object({
   path: z.string().max(200).regex(/^[a-z0-9][a-z0-9/_-]*$|^$/),
   title: text(80),
   when: guardSchema.optional(),
+  /**
+   * Trusted embedding (lib/embedding.ts): also served without the app shell
+   * at /embed/x/<id>/<path>, which the sites an operator approved
+   * (EMBED_FRAME_ANCESTORS) may show in a frame or dialog. Same checks as
+   * /x/ (signed in, extension usable, guard); never framable by other sites.
+   */
+  embeddable: z.boolean().optional(),
 }).strict()
 
 const uiContributionsSchema = z.object({
@@ -369,12 +459,16 @@ export const extensionManifestSchema = z.object({
     triggers: z.array(triggerContributionSchema).max(20).default([]),
     /** Keys of the connectors the manifest module defines (ext.<id>.<key>). */
     connectors: z.array(z.string().regex(CONTRIBUTION_KEY_RE)).max(20).default([]),
+    /** Directory sources (people and groups) the server module syncs (ext.<id>.<key>). */
+    directorySources: z.array(directorySourceSchema).max(5).default([]),
+    /** Importers (workflows / forms from other products) the server module implements (ext.<id>.<key>). */
+    importers: z.array(importerSchema).max(20).default([]),
     ui: uiContributionsSchema.default({
       navSections: [], navItems: [], createEntries: [], paletteEntries: [], userMenu: [], itemActions: [],
       detailTabs: [], widgets: [], notificationTypes: [], settingsPages: [], pages: [],
     }),
   }).strict().default({
-    nodes: [], triggers: [], connectors: [],
+    nodes: [], triggers: [], connectors: [], directorySources: [], importers: [],
     ui: { navSections: [], navItems: [], createEntries: [], paletteEntries: [], userMenu: [], itemActions: [], detailTabs: [], widgets: [], notificationTypes: [], settingsPages: [], pages: [] },
   }),
 }).strict()
@@ -446,8 +540,29 @@ export function parseExtensionManifest(raw: unknown): ExtensionManifest {
   uniq(c.nodes, (n) => n.key, 'node', issues)
   uniq(c.triggers, (t) => t.key, 'trigger', issues)
   uniq(c.connectors, (k) => k, 'connector', issues)
+  uniq(c.directorySources, (d) => d.key, 'directory source', issues)
+  for (const source of c.directorySources) {
+    checkFeature(source.feature, `directory source ${source.key}`)
+    if (source.seatLimit && !source.seatLimit.startsWith(`${m.id}.`)) issues.push(`directory source ${source.key}: seatLimit must be named "${m.id}.<name>"`)
+  }
+  uniq(c.importers, (i) => i.key, 'importer', issues)
+  for (const importer of c.importers) {
+    checkFeature(importer.feature, `importer ${importer.key}`)
+    if (importer.permission?.startsWith('ext.') && !ownPerms.has(importer.permission)) issues.push(`importer ${importer.key}: permission "${importer.permission}" is not declared in permissions`)
+  }
   for (const node of c.nodes) checkFeature(node.feature, `node ${node.key}`)
   for (const trigger of c.triggers) checkFeature(trigger.feature, `trigger ${trigger.key}`)
+  for (const [kind, list] of [['node', c.nodes], ['trigger', c.triggers]] as const) {
+    for (const item of list) {
+      const names = new Set((kind === 'node' ? (item as NodeContribution).inputs : (item as TriggerContribution).config).map((f) => f.name))
+      for (const name of Object.keys(item.optionsFrom ?? {})) if (!names.has(name)) issues.push(`${kind} ${item.key}: optionsFrom names "${name}", which is not one of its ${kind === 'node' ? 'inputs' : 'config fields'}`)
+    }
+  }
+  for (const trigger of c.triggers) {
+    const field = trigger.filters ? trigger.config.find((f) => f.name === trigger.filters?.config) : null
+    if (trigger.filters && !field) issues.push(`trigger ${trigger.key}: filters.config names "${trigger.filters.config}", which is not one of its config fields`)
+    else if (field && !['object', 'json'].includes(field.type)) issues.push(`trigger ${trigger.key}: the filters config field "${field.name}" must be of type object or json`)
+  }
 
   const ui = c.ui
   const sections = new Set(ui.navSections.map((s) => s.id))

@@ -28,6 +28,8 @@ import { valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { normalizeFormSource } from '@/lib/forms/form-source'
 import { hasPerm, requirePerm, ServiceError, type ServiceContext } from './context'
 import { audit, dbError, serviceRoleClient } from './_shared'
+import type { InfoPathRunInternal } from '@/lib/importers/infopath-hooks'
+import { setInfoPathRunner } from '@/lib/importers/infopath-runner'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- tables are not in the generated Database types */
 
@@ -71,6 +73,8 @@ export interface InfoPathAnalysis {
   existing: ExistingImport[]
   /** Markdown of the report (download / the Agent). */
   markdown: string
+  /** Notes of extensions that adjusted the forms (ServerExtension.infopath enrich hooks); absent when none did. */
+  extension_notes?: string[]
 }
 
 export interface InfoPathImportResult extends InfoPathAnalysis {
@@ -169,20 +173,23 @@ function preview(forms: GeneratedForm[], existing: ExistingImport[], options: In
   })
 }
 
-async function prepare(ctx: ServiceContext, bytes: Uint8Array, fileName: string, rawOptions?: InfoPathImportOptions) {
+async function prepare(ctx: ServiceContext, bytes: Uint8Array, fileName: string, rawOptions?: InfoPathImportOptions, internal?: InfoPathRunInternal) {
   const options = cleanOptions(rawOptions)
   const model = readInfoPath(bytes, fileName)
   if (options.views?.length && !options.views.some((v) => model.views.some((x) => x.name === v))) throw ServiceError.validation('None of the chosen views are in this form')
   const connections = await matchConnections(ctx, model)
   const generated = generateForms(model, { mode: options.mode, pages: options.pages, views: options.views, name: options.name, tag: options.tag, connections })
+  // Extensions may adjust the generated forms (bind them to a list, live lookups …) before anything is stored.
+  const { applyInfoPathHooks } = await import('@/lib/importers/infopath-hooks')
+  const notes = await applyInfoPathHooks(ctx, model, generated, internal)
   const existing = await earlierImports(ctx, model)
-  return { options, model, generated, existing }
+  return { options, model, generated, existing, notes }
 }
 
 /** Analyse only: the report and what would be made. Needs forms.view (the importer is offered to forms.edit). */
-export async function analyzeInfoPathFile(ctx: ServiceContext, bytes: Uint8Array, fileName: string, rawOptions?: InfoPathImportOptions, opts: { definitions?: boolean } = {}): Promise<InfoPathAnalysis> {
+export async function analyzeInfoPathFile(ctx: ServiceContext, bytes: Uint8Array, fileName: string, rawOptions?: InfoPathImportOptions, opts: { definitions?: boolean } = {}, internal?: InfoPathRunInternal): Promise<InfoPathAnalysis> {
   requirePerm(ctx, 'forms.view')
-  const { options, model, generated, existing } = await prepare(ctx, bytes, fileName, rawOptions)
+  const { options, model, generated, existing, notes } = await prepare(ctx, bytes, fileName, rawOptions, internal)
   return {
     file_name: model.file_name,
     hash: model.hash,
@@ -190,6 +197,7 @@ export async function analyzeInfoPathFile(ctx: ServiceContext, bytes: Uint8Array
     forms: preview(generated.forms, existing, options, opts.definitions ?? false),
     existing,
     markdown: reportMarkdown(generated.report),
+    ...(notes.length ? { extension_notes: notes } : {}),
   }
 }
 
@@ -259,10 +267,10 @@ function saveWorkflow(formName: string, formIds: Array<{ id: string; name: strin
 }
 
 /** Import: create (or update) the forms, and optionally the table + workflow. */
-export async function importInfoPathFile(ctx: ServiceContext, bytes: Uint8Array, fileName: string, rawOptions?: InfoPathImportOptions): Promise<InfoPathImportResult> {
+export async function importInfoPathFile(ctx: ServiceContext, bytes: Uint8Array, fileName: string, rawOptions?: InfoPathImportOptions, internal?: InfoPathRunInternal): Promise<InfoPathImportResult> {
   requirePerm(ctx, 'forms.edit')
-  const pre = await prepare(ctx, bytes, fileName, rawOptions)
-  const { options, model, generated, existing } = pre
+  const pre = await prepare(ctx, bytes, fileName, rawOptions, internal)
+  const { options, model, generated, existing, notes } = pre
   if (options.create_table) {
     requirePerm(ctx, 'data.create')
     if (!hasPerm(ctx, 'workflows.create')) requirePerm(ctx, 'workflows.edit')
@@ -333,7 +341,7 @@ export async function importInfoPathFile(ctx: ServiceContext, bytes: Uint8Array,
     objectType: 'form', objectId: created[0]?.id ?? updated[0]?.id ?? null,
     action: 'import',
     summary: `Imported the InfoPath form "${model.file_name}": ${created.length} created, ${updated.length} updated`,
-    metadata: { file_name: model.file_name, hash: model.hash, mode: options.mode ?? 'per_view', created: created.map((c) => c.id), updated: updated.map((u) => u.id), rules: generated.report.summary.rules, table_id: table?.id ?? null },
+    metadata: { file_name: model.file_name, hash: model.hash, mode: options.mode ?? 'per_view', ...(internal?.extensionId ? { extension: internal.extensionId } : {}), created: created.map((c) => c.id), updated: updated.map((u) => u.id), rules: generated.report.summary.rules, table_id: table?.id ?? null },
   })
   return {
     file_name: model.file_name,
@@ -342,6 +350,7 @@ export async function importInfoPathFile(ctx: ServiceContext, bytes: Uint8Array,
     forms: preview(generated.forms, existing, options, false),
     existing,
     markdown: reportMarkdown(generated.report),
+    ...(notes.length ? { extension_notes: notes } : {}),
     created, updated,
     ...(table ? { table } : {}),
     workflow,
@@ -400,3 +409,9 @@ export function decodeBase64File(b64: string, maxBytes: number): Uint8Array {
   if (Math.floor(clean.length * 3 / 4) > maxBytes + 3) throw ServiceError.validation(`The file is larger than ${Math.round(maxBytes / 1024 / 1024)} MB`)
   return Buffer.from(clean, 'base64')
 }
+
+// ctx.importers.infopath reaches the importer through this registration (lib/importers/infopath-runner).
+setInfoPathRunner({
+  analyze: (ctx, bytes, fileName, options, opts, internal) => analyzeInfoPathFile(ctx, bytes, fileName, options as InfoPathImportOptions, opts, internal),
+  import: (ctx, bytes, fileName, options, internal) => importInfoPathFile(ctx, bytes, fileName, options as InfoPathImportOptions, internal),
+})

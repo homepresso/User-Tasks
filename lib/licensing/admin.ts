@@ -30,6 +30,8 @@ export interface LicenceStatusView extends LicenceStatus {
 export async function licenceStatusView(options: { fresh?: boolean } = {}): Promise<LicenceStatusView> {
   const status = await getLicenceStatus(options)
   const keys = [...new Set(status.extensions.flatMap((e) => Object.keys(e.limits)))]
+  // Extensions register their usage counters when the server registry loads.
+  if (keys.length) await import('@/lib/extensions/server-registry').then((m) => m.getServerExtensions()).catch(() => undefined)
   return { ...status, usage: await usageFor(keys, null) }
 }
 

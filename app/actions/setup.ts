@@ -53,6 +53,16 @@ export async function completeFirstRunSetup(input: SetupInput): Promise<SetupRes
         return false
       }
     },
+    grantInstanceAdmin: async (email, userId) => {
+      const { getInstanceSetting, setInstanceSetting } = await import('@/lib/config/instance-settings')
+      const { INSTANCE_ADMINS_SETTING, parseAdminEmails } = await import('@/lib/admin/instance-admins')
+      const { WIZARD_STATE_SETTING, markStep, parseProgress } = await import('@/lib/setup/wizard-model')
+      const current = parseAdminEmails(await getInstanceSetting(INSTANCE_ADMINS_SETTING))
+      if (!current.includes(email)) await setInstanceSetting(INSTANCE_ADMINS_SETTING, [...current, email].join(','), { updatedBy: userId })
+      await setInstanceSetting(WIZARD_STATE_SETTING, markStep(parseProgress(await getInstanceSetting(WIZARD_STATE_SETTING)), 'account', 'done'), { updatedBy: userId })
+      console.log(`[setup] ${email} is an instance admin (instance.admin_emails): the setup wizard is at /settings/setup`)
+      return true
+    },
     audit: async ({ tenantId, userId, slug, email }) => {
       await writeAudit({
         supabase: service,

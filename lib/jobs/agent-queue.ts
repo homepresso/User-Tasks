@@ -9,10 +9,17 @@ import type { AgentPausedContext, AgentWorkflowLink } from '@/lib/agents/approva
 const STALE_PROCESSING_MS = 10 * 60 * 1000
 const MAX_ATTEMPTS = 3
 
+/** Queued agent runs one worker batch runs at the same time (AGENT_QUEUE_CONCURRENCY, 1–10, default 3). */
+export function agentQueueConcurrency(): number {
+  const n = Number(process.env.AGENT_QUEUE_CONCURRENCY)
+  return Number.isFinite(n) && n >= 1 ? Math.min(10, Math.floor(n)) : 3
+}
+
 /**
  * Drains the agent execution queue (agent_queue): recovers jobs abandoned
- * mid-run, then claims and runs up to `batchSize` jobs one at a time. Stops
- * claiming once `deadline` (epoch ms) has passed. Used by
+ * mid-run, then claims and runs up to `batchSize` jobs, up to `concurrency`
+ * of them at the same time. Stops claiming once `deadline` (epoch ms) has
+ * passed. Used by
  * /api/agents/process, /api/cron/process-agents and the scheduler tick.
  *
  * Job kinds:
@@ -28,10 +35,12 @@ export async function processAgentQueueBatch(options: {
   supabase?: SupabaseClient
   batchSize?: number
   deadline?: number
+  /** Jobs run at the same time (default AGENT_QUEUE_CONCURRENCY, else 3; at most 10). */
+  concurrency?: number
 } = {}): Promise<{ processed: number; results: Array<Record<string, unknown>> }> {
   const supabase = options.supabase ?? createServiceClient()
   const batchSize = Math.min(options.batchSize ?? 5, 20)
-  const workerId = `agent-worker-${Date.now()}`
+  const workerId = `agent-worker-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
   const results: Array<Record<string, unknown>> = []
 
   // Self-heal: recover jobs abandoned mid-run so the queue can't wedge. Retry
@@ -50,25 +59,33 @@ export async function processAgentQueueBatch(options: {
     .lt('locked_at', staleCutoff)
     .gte('attempts', MAX_ATTEMPTS)
 
-  for (let i = 0; i < batchSize; i++) {
-    // Out of time: leave the rest for the next run (claimed jobs always finish).
-    if (options.deadline !== undefined && Date.now() >= options.deadline) break
+  // Up to `concurrency` jobs run at the same time (agents of parallel
+  // workflow branches queued together run together); each worker claims
+  // its next job atomically (claim_next_agent_job: FOR UPDATE SKIP LOCKED),
+  // so no job runs twice. `batchSize` caps the jobs claimed in total.
+  const concurrency = Math.max(1, Math.min(options.concurrency ?? agentQueueConcurrency(), batchSize))
+  let claimed = 0
+  const worker = async () => {
+    while (claimed < batchSize) {
+      // Out of time: leave the rest for the next run (claimed jobs always finish).
+      if (options.deadline !== undefined && Date.now() >= options.deadline) return
+      claimed++
+      const { data: job, error: claimErr } = await supabase.rpc('claim_next_agent_job', { p_worker_id: workerId })
+      if (claimErr || !job?.id) return
 
-    // Atomically claim next job
-    const { data: job, error: claimErr } = await supabase.rpc('claim_next_agent_job', { p_worker_id: workerId })
-    if (claimErr || !job?.id) break
-
-    try {
-      results.push(await processJob(supabase, job))
-    } catch (err: any) {
-      const message = err instanceof AgentRunError ? err.message : (err?.message ?? 'Unknown error')
-      await failJob(supabase, job.id, message)
-      // A linked Run Agent step must not wait forever on a job that cannot run.
-      const link = (job.options as any)?.workflow as AgentWorkflowLink | undefined
-      if (link?.event_id && job.kind !== 'resume') await failLinkedStep(supabase, job.tenant_id, link, message)
-      results.push({ job_id: job.id, status: 'failed', error: message })
+      try {
+        results.push(await processJob(supabase, job))
+      } catch (err: any) {
+        const message = err instanceof AgentRunError ? err.message : (err?.message ?? 'Unknown error')
+        await failJob(supabase, job.id, message)
+        // A linked Run Agent step must not wait forever on a job that cannot run.
+        const link = (job.options as any)?.workflow as AgentWorkflowLink | undefined
+        if (link?.event_id && job.kind !== 'resume') await failLinkedStep(supabase, job.tenant_id, link, message)
+        results.push({ job_id: job.id, status: 'failed', error: message })
+      }
     }
   }
+  await Promise.all(Array.from({ length: concurrency }, () => worker()))
 
   return { processed: results.length, results }
 }

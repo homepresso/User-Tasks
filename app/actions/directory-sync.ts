@@ -2,6 +2,8 @@
 
 import { getUserPermissions } from '@/lib/permissions-server'
 import * as directory from '@/lib/services/directory-sync'
+import * as directorySources from '@/lib/services/directory-sources'
+import { directoryProviderLabel } from '@/lib/directory-sync/sources'
 import { fromSession, isServiceError } from '@/lib/services/context'
 import type { DirectoryLinkProvider } from '@/lib/directory-sync/types'
 import type { LdapTestResult } from '@/lib/directory-sync/ldap'
@@ -49,6 +51,8 @@ export interface DirectoryConnectionSummary {
 export interface DirectorySyncRun {
   id: string
   provider: string
+  /** Display name of the provider or extension source. */
+  provider_label?: string
   status: 'pending' | 'running' | 'completed' | 'failed'
   mode: 'full' | 'delta' | null
   progress: { phase: string; message: string } | null
@@ -77,6 +81,8 @@ export async function getDirectorySyncStatus(): Promise<{
   scimTokens: ScimTokenRow[]
   scimUrl: string
   canViewSettings: boolean
+  /** Directory sources contributed by extensions (e.g. SharePoint groups). */
+  sources: directorySources.DirectorySourceView[]
 }> {
   const perms = await getUserPermissions()
   if (!perms.has('team.view_members') && !perms.has('settings.view')) throw new Error('Forbidden')
@@ -86,10 +92,11 @@ export async function getDirectorySyncStatus(): Promise<{
   const session = await fromSession()
   const ctx = { ...session, permissions: new Set([...(session.permissions ?? []), 'settings.view']) }
 
-  const [list, runs, tokens] = await Promise.all([
+  const [list, runs, tokens, sources] = await Promise.all([
     directory.listDirectoryConnections(ctx),
     directory.listDirectorySyncRuns(ctx, { limit: 20, offset: 0 }).catch(() => ({ runs: [] as DirectorySyncRun[], total: 0 })),
     canViewSettings ? directory.listScimTokens(ctx).catch(() => ({ scim_tokens: [], total: 0 })) : Promise.resolve({ scim_tokens: [], total: 0 }),
+    directorySources.listDirectorySourceViews(ctx).catch(() => ({ sources: [] as directorySources.DirectorySourceView[], total: 0 })),
   ])
   const connections = list.connections.map((c) => ({
     provider: c.provider,
@@ -108,12 +115,29 @@ export async function getDirectorySyncStatus(): Promise<{
   }))
   return {
     connections,
-    runs: runs.runs as DirectorySyncRun[],
+    runs: (runs.runs as DirectorySyncRun[]).map((r) => ({ ...r, provider_label: directoryProviderLabel(r.provider) })),
     counts: connections.reduce((acc, c) => ({ linkedUsers: acc.linkedUsers + c.linkedUsers, linkedGroups: acc.linkedGroups + c.linkedGroups }), { linkedUsers: 0, linkedGroups: 0 }),
     scimTokens: tokens.scim_tokens as ScimTokenRow[],
     scimUrl: list.scim_url,
     canViewSettings,
+    sources: sources.sources,
   }
+}
+
+// ── Directory sources (extensions) ───────────────────────────────────────────
+
+export async function startDirectorySourceSync(source: string, full = false): Promise<ActionResult<{ runId: string; alreadyRunning: boolean }>> {
+  return run(async () => {
+    const result = await directorySources.startDirectorySourceSync(await fromSession(), source, { full })
+    return { runId: result.run_id, alreadyRunning: result.already_running }
+  })
+}
+
+export async function listDirectorySourceEntries(
+  source: string,
+  input: { status?: 'pending' | 'linked' | 'inactive' | null; search?: string | null; offset?: number } = {},
+): Promise<ActionResult<{ entries: Array<{ id: string; display_name: string | null; email: string | null; status: string; group_ids: string[]; claims: string[] }>; total: number }>> {
+  return run(async () => directorySources.listDirectorySourceEntries(await fromSession(), source, { limit: 50, offset: Math.max(0, input.offset ?? 0) }, { status: input.status ?? null, search: input.search ?? null }))
 }
 
 // ── Connect / configure ──────────────────────────────────────────────────────

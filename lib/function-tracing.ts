@@ -42,6 +42,9 @@ export const OUTPUT_FILE_TRACING_INCLUDES: Record<string, string[]> = {
   // lib/admin/switch (Settings → Infrastructure provider switching) applies
   // the migrations to the target database.
   '/settings/**': ['supabase/migrations/*.sql'],
+  // lib/install-scripts/serve.ts (prerendered; listed for on-demand renders).
+  '/install.sh': ['deploy/install/install.sh'],
+  '/install.ps1': ['deploy/install/install.ps1'],
 }
 
 /**

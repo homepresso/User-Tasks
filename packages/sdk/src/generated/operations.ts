@@ -2148,6 +2148,26 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "listKey": "groups"
   },
   {
+    "operationId": "listDirectorySources",
+    "method": "GET",
+    "path": "/directory-sync/sources",
+    "envelope": true,
+    "listKey": "sources"
+  },
+  {
+    "operationId": "listDirectorySourceEntries",
+    "method": "GET",
+    "path": "/directory-sync/sources/{source}/entries",
+    "envelope": true,
+    "listKey": "entries"
+  },
+  {
+    "operationId": "startDirectorySourceSync",
+    "method": "POST",
+    "path": "/directory-sync/sources/{source}/sync",
+    "envelope": true
+  },
+  {
     "operationId": "exportConfig",
     "method": "GET",
     "path": "/config/export",
@@ -2368,6 +2388,25 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "updateExtensionSettings",
     "method": "PUT",
     "path": "/extensions/{id}/settings/{page}",
+    "envelope": true
+  },
+  {
+    "operationId": "listImporters",
+    "method": "GET",
+    "path": "/importers",
+    "envelope": true,
+    "listKey": "importers"
+  },
+  {
+    "operationId": "analyzeImport",
+    "method": "POST",
+    "path": "/importers/{importer}/analyze",
+    "envelope": true
+  },
+  {
+    "operationId": "runImport",
+    "method": "POST",
+    "path": "/importers/{importer}/import",
     "envelope": true
   },
   {

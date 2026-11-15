@@ -4585,6 +4585,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/directory-sync/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List directory sources contributed by extensions (e.g. SharePoint groups) with sync state and counts
+         * @description People of a source are linked to accounts by e-mail / UPN; people without an account are pending entries until their first sign-in (SSO or LDAP bind), which creates or links the account and grants the workspace and the source groups. Groups are read-only teams.
+         */
+        get: operations["listDirectorySources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/directory-sync/sources/{source}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the people a directory source lists: pending (no account yet), linked or inactive */
+        get: operations["listDirectorySourceEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/directory-sync/sources/{source}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync a directory source now (runs in the background) */
+        post: operations["startDirectorySourceSync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/config/export": {
         parameters: {
             query?: never;
@@ -5113,6 +5167,66 @@ export interface paths {
          */
         put: operations["updateExtensionSettings"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/importers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the importers of this build (core InfoPath and those of extensions) with their availability here
+         * @description Extension importers need the extension enabled and licensed (their licence feature): they lock when the licence lapses, while workflows already imported keep running. Needs workflows.view or forms.view.
+         */
+        get: operations["listImporters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/importers/{importer}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyse files with an importer (dry run): mapping coverage, complexity score, readiness and what an import would make
+         * @description Nothing is stored (the files neither). report.items lists every element of the source and how it converts (mapped, partial = review, placeholder = a labelled placeholder step keeps the original, skipped); markdown is the same report as Markdown. Needs the view permission of what the importer makes.
+         */
+        post: operations["analyzeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/importers/{importer}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import files with an importer: creates draft workflows (inactive) and forms, and returns them with the report
+         * @description Workflows are created inactive (a draft to review and publish); unmapped steps become labelled placeholder steps. Needs the importer's permission (default workflows.create for workflows, forms.edit for forms). Audited.
+         */
+        post: operations["runImport"];
         delete?: never;
         options?: never;
         head?: never;
@@ -19311,6 +19425,8 @@ export interface operations {
                     variables?: {
                         [key: string]: unknown;
                     };
+                    /** @description Forms bound to an external record (a data target an extension provides): the record version (ETag) read when the form opened. The write fails with 409 / 412 when the record changed since; omit to overwrite */
+                    target_version?: string;
                 };
             };
         };
@@ -19339,6 +19455,10 @@ export interface operations {
                                 [key: string]: unknown;
                             }[];
                             replayed?: boolean;
+                            /** @description Forms bound to an external record: { label, record { id, label, url }, version } the provider wrote */
+                            data_target?: {
+                                [key: string]: unknown;
+                            };
                         } & {
                             [key: string]: unknown;
                         };
@@ -32372,7 +32492,8 @@ export interface operations {
                 limit?: number;
                 /** @description Rows to skip (default 0) */
                 offset?: number;
-                provider?: "entra" | "okta" | "ldap" | "google";
+                /** @description entra, okta, ldap, google or an extension directory source (ext.<extension>.<key>) */
+                provider?: ("entra" | "okta" | "ldap" | "google") | string;
             };
             header?: never;
             path?: never;
@@ -32865,6 +32986,248 @@ export interface operations {
             };
             /** @description Credential lacks the required permission or resource scope */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listDirectorySources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            sources: ({
+                                /** @description ext.<extension>.<key> */
+                                source: string;
+                                extension_id: string;
+                                extension_name: string;
+                                label: string;
+                                description: string | null;
+                                /** @description The extension is enabled and licensed in this workspace */
+                                available: boolean;
+                                unavailable_reason: string | null;
+                                interval_minutes: number;
+                                last_sync_at: string | null;
+                                last_full_sync_at: string | null;
+                                last_error: string | null;
+                                last_sync_stats: {
+                                    [key: string]: number;
+                                } | null;
+                                active_run_id: string | null;
+                                /** @description People with an account in this workspace */
+                                linked_users: number;
+                                /** @description People waiting for their first sign-in (no account or seat yet) */
+                                pending_entries: number;
+                                /** @description Read-only teams the source keeps */
+                                groups: number;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listDirectorySourceEntries: {
+        parameters: {
+            query?: {
+                /** @description Page size (1-100, default 50; 0 = no limit) */
+                limit?: number;
+                /** @description Rows to skip (default 0) */
+                offset?: number;
+                status?: "pending" | "linked" | "inactive";
+                /** @description Matches display names */
+                search?: string;
+            };
+            header?: never;
+            path: {
+                /** @description Directory source id, e.g. ext.sharepoint.directory */
+                source: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            entries: ({
+                                id: string;
+                                external_id: string;
+                                display_name: string | null;
+                                email: string | null;
+                                /** @description Addresses / UPNs the person is matched on at sign-in */
+                                match_keys: string[];
+                                /** @description External login names (e.g. SharePoint claims) */
+                                claims: string[];
+                                /** @description External ids of the source's groups the person is in */
+                                group_ids: string[];
+                                /** @enum {string} */
+                                status: "pending" | "linked" | "inactive";
+                                user_id: string | null;
+                                claimed_at: string | null;
+                                last_seen_at: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    startDirectorySourceSync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Directory source id, e.g. ext.sharepoint.directory */
+                source: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Force a full sync (LDAP otherwise syncs only changes since the last run) */
+                    full?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            run_id: string;
+                            already_running: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -37492,6 +37855,392 @@ export interface operations {
                             /** @description Secret / certificate fields that have a value */
                             secrets_set: string[];
                             config_version: number;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listImporters: {
+        parameters: {
+            query?: {
+                /** @description Only importers that make workflows / forms */
+                produces?: "workflow" | "form";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            importers: ({
+                                /** @description infopath or ext.<extension>.<key> */
+                                id: string;
+                                extension_id: string | null;
+                                extension_name: string | null;
+                                label: string;
+                                description: string | null;
+                                produces: ("workflow" | "form")[];
+                                /** @description File name endings, e.g. .xoml */
+                                accepts: string[];
+                                /** @description Several files make one import */
+                                multiple: boolean;
+                                /** @description The importer can read its source from its options instead of files (e.g. from a connected system) */
+                                files_optional: boolean;
+                                /** @description Mapping not verified on real exports yet */
+                                preview: boolean;
+                                /** @description Licence feature (extension importers) */
+                                feature: string | null;
+                                /** @description Options sent as `options` */
+                                options: ({
+                                    name: string;
+                                    label?: string;
+                                    type: string;
+                                    required?: boolean;
+                                    description?: string;
+                                    options?: ({
+                                        value: string;
+                                        label?: string;
+                                    } & {
+                                        [key: string]: unknown;
+                                    })[];
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                /** @description Enabled and licensed here, and the caller may import */
+                                available: boolean;
+                                unavailable_reason: string | null;
+                                /** @description Served by its own endpoint (the InfoPath importer) */
+                                endpoint: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            total: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    analyzeImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Importer id from GET /importers (ext.<extension>.<key>), or auto: the importer whose detect hook recognises the files best */
+                importer: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description The files of one import (an importer that reads its source from options takes none)
+                     * @default []
+                     */
+                    files?: {
+                        /** @description File name (its ending picks how it is read, e.g. Approval.xoml) */
+                        name: string;
+                        /** @description The file, base64 */
+                        content_base64: string;
+                        content_type?: string;
+                    }[];
+                    /** @description The importer's options (GET /importers lists them) */
+                    options?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            importer: string;
+                            report: {
+                                title: string;
+                                source: string;
+                                summary: string | null;
+                                coverage: {
+                                    total: number;
+                                    mapped: number;
+                                    partial: number;
+                                    placeholder: number;
+                                    skipped: number;
+                                    /** @description mapped + half of partial, over total */
+                                    percent: number;
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                                complexity: {
+                                    /** @description 0–100, higher is harder */
+                                    score: number;
+                                    /** @enum {string} */
+                                    level: "low" | "medium" | "high";
+                                    factors: string[];
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                                /** @enum {string} */
+                                readiness: "auto" | "review" | "rebuild";
+                                items: ({
+                                    kind: string;
+                                    name: string;
+                                    /** @enum {string} */
+                                    status: "mapped" | "partial" | "placeholder" | "skipped" | "info";
+                                    mappedTo?: string;
+                                    detail?: string;
+                                    location?: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                warnings: string[];
+                                preview?: boolean;
+                                outputs: ({
+                                    /** @enum {string} */
+                                    kind: "workflow" | "form" | "other";
+                                    name: string;
+                                    detail?: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            markdown: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    runImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Importer id from GET /importers (ext.<extension>.<key>), or auto: the importer whose detect hook recognises the files best */
+                importer: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description The files of one import (an importer that reads its source from options takes none)
+                     * @default []
+                     */
+                    files?: {
+                        /** @description File name (its ending picks how it is read, e.g. Approval.xoml) */
+                        name: string;
+                        /** @description The file, base64 */
+                        content_base64: string;
+                        content_type?: string;
+                    }[];
+                    /** @description The importer's options (GET /importers lists them) */
+                    options?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            importer: string;
+                            report: {
+                                title: string;
+                                source: string;
+                                summary: string | null;
+                                coverage: {
+                                    total: number;
+                                    mapped: number;
+                                    partial: number;
+                                    placeholder: number;
+                                    skipped: number;
+                                    /** @description mapped + half of partial, over total */
+                                    percent: number;
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                                complexity: {
+                                    /** @description 0–100, higher is harder */
+                                    score: number;
+                                    /** @enum {string} */
+                                    level: "low" | "medium" | "high";
+                                    factors: string[];
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                                /** @enum {string} */
+                                readiness: "auto" | "review" | "rebuild";
+                                items: ({
+                                    kind: string;
+                                    name: string;
+                                    /** @enum {string} */
+                                    status: "mapped" | "partial" | "placeholder" | "skipped" | "info";
+                                    mappedTo?: string;
+                                    detail?: string;
+                                    location?: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                                warnings: string[];
+                                preview?: boolean;
+                                outputs: ({
+                                    /** @enum {string} */
+                                    kind: "workflow" | "form" | "other";
+                                    name: string;
+                                    detail?: string;
+                                } & {
+                                    [key: string]: unknown;
+                                })[];
+                            } & {
+                                [key: string]: unknown;
+                            };
+                            markdown: string;
+                            created: ({
+                                /** @enum {string} */
+                                kind: "workflow" | "form" | "other";
+                                id: string;
+                                name: string;
+                                href: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            warnings: string[];
+                        } & {
+                            [key: string]: unknown;
                         };
                     };
                 };

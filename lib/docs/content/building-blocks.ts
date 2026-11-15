@@ -376,6 +376,31 @@ Every save is a new version (the **History** tab, \`GET /api/v1/agents/{id}/vers
 - **Who can read runs**: a run's input, output, trace and tool calls (and test-suite runs and queue jobs) need \`agents.view\` — except your own runs: those the agent acted for you or that you started. Others get "not found". A workflow run still shows a Run Agent step's output to people who can view the run, but not the agent's trace.
 - **Trace**: every run records each model call (latency, tokens, retries, finish reason) and tool call (arguments and results with credentials redacted, latency, status, approval) — the run page's Trace tab, \`GET /api/v1/agents/runs/{id}\`. Runs emit \`agent.run.*\` events (status, model, tokens, duration — prompts, outputs and tool payloads are **not** in exported events).
 
+## Multi-agent workflows
+
+Several **Run Agent** steps in one workflow can work together, one after another or at the same time.
+
+- **Sequential handoff** — steps in a row: each agent gets the earlier agents' conversation turns and shared facts, and adds its own.
+- **Parallel agents** — put Run Agent steps on the branches of a [Parallel](/docs/workflows/timing) node in \`parallel\` mode: the agents really run at the same time (three agents of 10 seconds each take about 10 seconds, not 30). A step after them — their join, or the Parallel node's **Done** edge — runs once all of them have finished, and sees every agent's results.
+- **Shared context** — with **Share context with other agents** on (the default), steps share \`{{agent_context}}\`:
+  - \`agent_context.messages\` — every agent's prompt and reply, each tagged with the agent (\`agent\`), its step (\`node_id\`) and its Parallel branch (\`branch\`), in the order they were written (the newest 200);
+  - \`agent_context.facts\` — facts the agents wrote, and \`agent_context.fact_writers\` — who wrote each one (agent, step, branch, time).
+  When agents of different branches finish, their copies are **merged**, never overwritten: all messages are kept, and for a fact two agents both wrote, the value written last wins (with its writer recorded).
+- **Live facts** — while they run, agents share facts on the run's blackboard: \`write_shared_fact\` is visible at once to every other agent of the run, including those running at the same time on other branches or on the agent queue; \`read_shared_facts\` returns all facts so far and who wrote them; \`wait_for_shared_fact\` waits for a fact another agent will write (default 30 seconds, at most 120, never past the agent's own time limit), then returns \`found: false\` so two agents waiting on each other never hang.
+- **Inline or queued** — inline agents run inside the run, one per branch at the same time. Queued agents (**Execution mode: Queued**) pause their branch and run on the agent queue; a queue worker runs up to 3 of them at the same time (\`AGENT_QUEUE_CONCURRENCY\`, 1–10), and each claims its own job, so none runs twice. Every result is applied: a completion that arrives while the run is resuming another branch is kept and applied in turn.
+- **Errors** — a failing agent fails its own branch by the step's error setting: with *Stop* the run fails once the other branches have finished (they finish normally; their results aren't lost or mixed up), with *Continue* its branch carries on and the join still sees the other agents' results.
+- **Seeing it in the run** — each Run Agent step's output has \`started_at\`, \`finished_at\` and \`branch\`, and the run log says which agents ran at the same time (\`Agent "Reviewer" started on branch B — running at the same time as Researcher\`).
+
+Limits and tips:
+
+- Give each parallel step its own **Output variable** (\`research_response\`, \`review_response\`): two branches setting the same variable leave the later branch's value after the join (agent_context is the exception — it is merged).
+- Budgets are checked when each agent starts, so agents starting together can each pass a nearly spent budget; set **tokens per run** to bound one run.
+- Facts: keys up to 100 characters, values up to 5,000 characters, at most 500 facts per run. Facts live with the run and are deleted with it.
+- An agent's tools still act on their own: two agents updating the same data-table row at the same time both write — give agents separate work, or let one agent write and the others report through facts.
+- To clear the context for later steps, set \`agent_context\` after the join, not inside a branch (branch values are merged).
+- Queued agents only overlap when the queue runs them together: more queued agents than \`AGENT_QUEUE_CONCURRENCY\` wait their turn, and an agent waiting (\`wait_for_shared_fact\`) for one that hasn't started yet just times out. Inline agents always run together.
+- Until the \`20270114000000_workflow_run_facts\` migration is applied, facts are shared between steps (through \`agent_context\`) but not live between agents running at the same time.
+
 Rate limits apply per workspace. Permissions: \`agents.view\`, \`agents.create\`, \`agents.edit\` (also tests and restore), \`agents.test\` (run, run tests), \`agents.delete\`. Agents, runs and the queue are written only by the server; members read agents, and runs as above.
 `,
   },

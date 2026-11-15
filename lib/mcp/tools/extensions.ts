@@ -8,6 +8,8 @@ import { extensionToolPrefix } from '@/lib/extensions/manifest'
 import { getServerExtensions } from '@/lib/extensions/server-registry'
 import { extensionAccess, extensionAccessError } from '@/lib/extensions/state'
 import { messageOf } from './_util'
+import { isExtensionError } from '@/lib/extensions/sdk'
+import { expandPermissions } from '@/lib/permissions'
 
 /*
  * Extensions (lib/services/extensions): list the extensions compiled into
@@ -27,6 +29,7 @@ async function run(fn: () => Promise<unknown>) {
     // Licence and enablement denials carry their code (extension_licence_expired ≠ extension_not_licensed).
     const code = isServiceError(error) ? ((error.details as { code?: string } | undefined)?.code ?? error.code) : null
     if (code && /^extension_|^not_found$/.test(code)) return mcpErr(`[${code}] ${error instanceof Error ? error.message : 'Request failed'}`)
+    if (isExtensionError(error)) return mcpErr(`[${error.code}] ${error.message}`)
     return mcpErr(messageOf(error, 'Request failed'))
   }
 }
@@ -67,9 +70,9 @@ export function registerExtensionTools(server: McpToolServer, ctx: McpContext) {
     for (const tool of ext.mcpTools ?? []) {
       const name = `${extensionToolPrefix(ext.id)}${tool.name}`
       server.tool(name, tool.description, tool.schema, async (args) => run(async () => {
-        const access = await extensionAccess(ctx.tenantId, ext.id)
-        if (!access.usable) throw extensionAccessError(access, ext.id)
-        const extCtx = createExtensionContext({ extensionId: ext.id, tenantId: ctx.tenantId, actorId: ctx.actingUserId ?? ctx.credentialOwnerId ?? null, db: ctx.supabase })
+        const access = await extensionAccess(ctx.tenantId, ext.id, tool.feature)
+        if (!access.usable) throw extensionAccessError(access, ext.id, tool.feature)
+        const extCtx = createExtensionContext({ extensionId: ext.id, tenantId: ctx.tenantId, actorId: ctx.actingUserId ?? ctx.credentialOwnerId ?? null, db: ctx.supabase, permissions: ctx.permissions ? expandPermissions(ctx.permissions) : null })
         const result = await tool.handler({ ctx: extCtx, args: (args ?? {}) as Record<string, unknown> })
         if (tool.mutates) await extCtx.audit({ action: 'execute', summary: `MCP: ${name}`, metadata: { via: 'mcp', tool: name, ...(ctx.via === 'agent' ? { agent: true } : {}) } })
         return result

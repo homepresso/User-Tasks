@@ -681,6 +681,21 @@ When a call is blocked, the error says which setting to change, for example
 `Connection to spsites is not allowed: resolves to a private address
 (10.20.0.15) is blocked; add the host or its network to EGRESS_PRIVATE_ALLOW …`.
 
+### Trusted embedding
+
+Some integrations show UserTasks inside another site — for example a dialog in SharePoint opened by the UserTasks add-in. UserTasks pages refuse to be framed (\`frame-ancestors 'none'\`, \`X-Frame-Options: DENY\`) unless you approve the sites:
+
+\`\`\`bash
+EMBED_FRAME_ANCESTORS="https://intranet.contoso.com https://*.sharepoint.contoso.com"
+# or, stored in the database (the environment wins):
+usertasks-admin embed allow https://intranet.contoso.com
+usertasks-admin embed show
+\`\`\`
+
+Entries are origins (scheme, host, optional port; \`https://*.domain\` for subdomains; \`http://\` only when you list it so). A bare \`*\`, paths and CSP keywords are refused. Only the embeddable pages (\`/embed/…\`, declared by extensions) are opened to these sites — \`frame-ancestors 'self' <origins>\` and no \`X-Frame-Options\`; every other page stays unframable.
+
+**Signed in inside the frame.** A frame from another site only gets the session cookie when it is \`SameSite=None; Secure\`. With origins configured and UserTasks on https, session cookies are issued that way (at the next sign-in). To keep the protection SameSite=Lax gave against cross-site request forgery, the server then drops the session cookie from every cross-site request Lax would not have carried it on — cross-site form posts, fetches, images, frames of other pages — and keeps it only for top-level navigations (as before) and the framed loading of an embeddable page (Fetch Metadata headers; for browsers without them, unsafe requests from another origin). Server actions keep their own origin check. Browsers that block third-party cookies (Safari; Chrome or Firefox with strict settings) show "Open UserTasks" inside the frame instead — the page then opens in a new tab. On plain http (development) cookies stay Lax and framed pages ask to open a new tab.
+
 ## 6. Security checklist
 
 - Keep `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `ENCRYPTION_KEY` and
