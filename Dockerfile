@@ -40,7 +40,7 @@ COPY . .
 # (see there); tsc needs more than Node's default heap for this codebase.
 ARG TYPECHECK=false
 RUN if [ "$TYPECHECK" = "true" ]; then \
-      npx next typegen && NODE_OPTIONS=--max-old-space-size=4096 npx tsc --noEmit -p .; \
+      npx next typegen && NODE_OPTIONS=--max-old-space-size=6144 npx tsc --noEmit -p .; \
     fi
 # Optional packages: see docs/optional-drivers.md (and lib/optional-drivers,
 # whose test checks these lists). They are chosen in this stage, before
