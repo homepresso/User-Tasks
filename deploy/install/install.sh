@@ -71,7 +71,7 @@ ut_install() {
     BUNDLE="$(cd "$(dirname "$BUNDLE")" && pwd)/$(basename "$BUNDLE")"
   fi
   if [ "$BUNDLE_DOWNLOAD" = 1 ]; then
-    [ -n "$EDITION" ] && [ -n "$LICENCE" ] || ut_die "--bundle-download needs --edition sharepoint and --licence <file>"
+    if [ -z "$EDITION" ] || [ -z "$LICENCE" ]; then ut_die "--bundle-download needs --edition sharepoint and --licence <file>"; fi
   elif [ -n "$EDITION" ] && [ -z "$LICENCE" ] && [ -z "$BUNDLE" ]; then
     ut_die "--edition $EDITION needs your licence: --licence <file> (start a 30-day trial at https://usertasks.com/sharepoint/trial)"
   fi

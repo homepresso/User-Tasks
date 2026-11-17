@@ -30,6 +30,7 @@ export const MS = {
 } satisfies Record<string, Source>
 
 export const NINTEX_SE_DOCS: Source = { label: 'Nintex: Install, upgrade, and migrate Nintex for SharePoint Subscription Edition', href: 'https://help.nintex.com/en-US/nintexSE/current/sp2019/InstallUpgradeMigrate.htm' }
+export const NINTEX_2010_ENGINE: Source = { label: 'Nintex: Attention SharePoint Subscription Edition customers, action required before the September 2026 CU (August 2026)', href: 'https://community.nintex.com/news-18/attention-sharepoint-subscription-edition-customers-action-required-before-the-september-2026-cu-74209' }
 
 /** Microsoft's own words in KB5002945, quoted on the pages. */
 export const KB5002945_QUOTE = 'The July 13, 2027, public update removes Microsoft SharePoint 2010 workflows and InfoPath Forms Services from SharePoint Server Subscription Edition.'
@@ -86,19 +87,20 @@ export const SHAREPOINT_TIMELINE: Array<{ date: string; text: string; source: So
  */
 export const ALTERNATIVES_COMPARISON = {
   title: 'UserTasks, staying on 2010 / 2013 workflows, Power Automate and Nintex compared',
-  body: 'The options SharePoint Server teams usually weigh, stated as facts from each vendor’s own pages. Every organization’s answer depends on where its farm runs and where its processes need to go.',
+  body: 'The options SharePoint Server teams usually weigh, stated as facts from each vendor’s own pages. One fact matters most for Nintex customers: Nintex for SharePoint workflows run on the SharePoint 2010 workflow engine, which Microsoft removes from Subscription Edition with the July 13, 2027 update. UserTasks moves those workflows onto its own open-source engine, independent of SharePoint and built to scale out.',
   columns: ['', 'UserTasks with the SharePoint extension', 'Staying on SharePoint 2010 / 2013 workflows', 'Power Automate', 'Nintex for SharePoint'] as [string, string, string, string, string],
   rows: [
-    ['What it is', 'Open-source workflow, forms and tasks platform plus a paid SharePoint Server add-in', 'The workflow engines built into SharePoint Server, authored with SharePoint Designer', 'Microsoft’s cloud workflow service, recommended by Microsoft as the replacement for classic workflows', 'A commercial workflow and forms product that installs into SharePoint Server'],
+    ['What it is', 'Open-source workflow, forms and tasks platform plus a paid SharePoint Server add-in', 'The workflow engines built into SharePoint Server, authored with SharePoint Designer', 'Microsoft’s cloud workflow service, recommended by Microsoft as the replacement for classic workflows', 'A commercial workflow and forms product that installs into SharePoint Server; Nintex says its on-premises workflows are built on the SharePoint 2010 workflow engine'],
     ['Runs where', 'Your servers (Docker, Kubernetes, air-gapped; production-ready) or UserTasks Cloud (beta)', 'Inside the SharePoint farm', 'Microsoft cloud; reaches on-premises SharePoint 2016 or 2019 farms through the on-premises data gateway', 'Inside the SharePoint farm; Nintex documents a SharePoint Subscription Edition version'],
-    ['Support status', 'Supported; updates and support included in the licence', '2010 workflows: out of support since July 14, 2026 and removed from Subscription Edition by the July 13, 2027 update. 2013 workflows: supported on Subscription Edition with SharePoint Workflow Manager', 'Supported by Microsoft', 'See Nintex for its support policy'],
+    ['Workflow engine', 'Its own open-source engine (Apache-2.0), independent of SharePoint’s workflow engines: a durable queue with workers you add to scale out', 'SharePoint 2010 workflow engine, or SharePoint Workflow Manager for 2013 workflows', 'Microsoft’s cloud service', 'The SharePoint 2010 workflow engine (per Nintex)'],
+    ['Support status', 'Supported; updates and support included in the licence', '2010 workflows: out of support since July 14, 2026 and removed from Subscription Edition by the July 13, 2027 update. 2013 workflows: supported on Subscription Edition with SharePoint Workflow Manager', 'Supported by Microsoft', 'Depends on the SharePoint 2010 workflow engine: out of Microsoft support since July 14, 2026, off by default since the September 2026 update, and removed from Subscription Edition by the July 13, 2027 update, after which Nintex for SharePoint workflows there stop running'],
     ['Forms', 'Generated New, Edit and Display forms embedded in SharePoint; InfoPath .xsn import', 'InfoPath forms (InfoPath Forms Services leaves Subscription Edition with 2010 workflows)', 'Separate product (Power Apps)', 'Nintex Forms'],
     ['Air-gapped networks', 'Yes, from a signed offline bundle', 'Yes, on the farm', 'No: a cloud service', 'See Nintex'],
     ['Price', '$7,500 USD per farm per year; UserTasks core is free (Apache-2.0)', 'Included with SharePoint Server', 'Microsoft licensing', 'Nintex licensing'],
-    ['Migration help', 'InfoPath, SharePoint Designer 2010 and Nintex importers', '—', 'Microsoft migration guidance', 'See Nintex'],
+    ['Migration help', 'InfoPath, SharePoint Designer 2010 and Nintex importers; imported Nintex workflows run on the UserTasks engine', '—', 'Microsoft migration guidance', 'See Nintex'],
   ],
-  note: 'Sources: Microsoft KB5002945, Microsoft’s classic workflow migration guidance and the Power Platform SharePoint connector reference, and Nintex’s documentation for SharePoint Subscription Edition. Product names are trademarks of their owners.',
-  sources: [MS.kb5002945, MS.powerAutomateMigration, MS.sharePointConnector, NINTEX_SE_DOCS],
+  note: 'Sources: Microsoft KB5002945, Microsoft’s classic workflow migration guidance and the Power Platform SharePoint connector reference, and Nintex’s documentation and August 2026 notice for SharePoint Subscription Edition. Product names are trademarks of their owners.',
+  sources: [MS.kb5002945, MS.powerAutomateMigration, MS.sharePointConnector, NINTEX_SE_DOCS, NINTEX_2010_ENGINE],
 }
 
 /** The /sharepoint FAQ (also FAQPage structured data and /llms-full.txt). */

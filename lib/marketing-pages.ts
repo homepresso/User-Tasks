@@ -39,7 +39,7 @@ export const SHAREPOINT_PAGE = {
   description:
     'Replace SharePoint 2010 and 2013 workflows and InfoPath forms on SharePoint Server 2016, 2019 and Subscription Edition before Microsoft removes them in July 2027: list-event workflows, embedded forms, per-list metrics and permissions. $7,500 USD per farm per year.',
   /** When the Microsoft dates on the page were last checked against Microsoft's own pages. */
-  updated: '2026-11-15',
+  updated: '2026-11-17',
 }
 
 export const DOCUMENTS_PAGE = {

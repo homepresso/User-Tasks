@@ -84,8 +84,8 @@ describe('SharePoint solution page', () => {
     expect(html).toMatch(/real SharePoint Server Subscription Edition screens with demo data/i)
     expect(html).not.toMatch(/contoso\.local|ut-addin|>Illustration</i)
     const external = [...html.slice(html.indexOf('<main'), html.indexOf('</main>')).matchAll(/href="(https?:[^"]+)"/g)].map((m) => m[1])
-    // Microsoft for every Microsoft fact; Nintex's own documentation for the one Nintex fact in the comparison.
-    for (const href of external) expect(href, href).toMatch(/^https:\/\/(support\.microsoft\.com|learn\.microsoft\.com|help\.nintex\.com)\//)
+    // Microsoft for every Microsoft fact; Nintex's own documentation and notices for the Nintex facts in the comparison.
+    for (const href of external) expect(href, href).toMatch(/^https:\/\/(support\.microsoft\.com|learn\.microsoft\.com|help\.nintex\.com|community\.nintex\.com)\//)
     const main = html.slice(html.indexOf('<main'), html.indexOf('</main>'))
     const internal = [...main.matchAll(/href="(\/[^"]*)"/g)].map((m) => m[1])
     expect(internal).toContain('/contact')

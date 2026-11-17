@@ -533,8 +533,9 @@ bundle_check() {
 # bundle_load <dir>: edition manifest signature, docker load, image check. Sets IMAGE, ED_*.
 bundle_load() {
   edition_manifest_check "$1" "$DIR/release-key.pub.pem" "$BUNDLE_EDITION" || die "$EDITION_ERROR. Nothing was installed."
-  [ "$(json_field edition_version "$1/edition.json")" = "$BUNDLE_EDITION_VERSION" ] && [ "$(json_field core_version "$1/edition.json")" = "$BUNDLE_VERSION" ] \
-    || die "bundle.json does not match the signed edition manifest"
+  if [ "$(json_field edition_version "$1/edition.json")" != "$BUNDLE_EDITION_VERSION" ] || [ "$(json_field core_version "$1/edition.json")" != "$BUNDLE_VERSION" ]; then
+    die "bundle.json does not match the signed edition manifest"
+  fi
   case "$BUNDLE_IMAGE" in *:"$BUNDLE_EDITION_VERSION") : ;; *) die "bundle.json names an unexpected image: $BUNDLE_IMAGE" ;; esac
   step "Loading the images (docker load)"
   docker load -i "$1/images.tar" >/dev/null || die "docker load failed"

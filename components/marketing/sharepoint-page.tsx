@@ -11,7 +11,7 @@ import { BetaBadge, MarketingFooter, MarketingHeader, ProductionReadyBadge, Sect
 import { SHAREPOINT_PAGE } from "@/lib/marketing-pages"
 import { publicBaseUrl } from "@/lib/deployment"
 import { breadcrumbNode, displayDate, faqNode, howToNode, jsonLdHtml, webPageNode } from "@/lib/seo/site"
-import { ALTERNATIVES_COMPARISON, KB5002945_QUOTE, MS, NINTEX_SE_DOCS, SHAREPOINT_FAQS, SHAREPOINT_KEY_FACTS, SHAREPOINT_PRICE, SHAREPOINT_TIMELINE, SHAREPOINT_TRIAL, SHAREPOINT_GET_STARTED } from "@/lib/seo/sharepoint-facts"
+import { ALTERNATIVES_COMPARISON, KB5002945_QUOTE, MS, NINTEX_2010_ENGINE, NINTEX_SE_DOCS, SHAREPOINT_FAQS, SHAREPOINT_KEY_FACTS, SHAREPOINT_PRICE, SHAREPOINT_TIMELINE, SHAREPOINT_TRIAL, SHAREPOINT_GET_STARTED } from "@/lib/seo/sharepoint-facts"
 import shotForm from "@/public/screenshots/sharepoint-form-embedded.webp"
 import shotFormDetail from "@/public/screenshots/sharepoint-form-detail.webp"
 import shotLibrary from "@/public/screenshots/sharepoint-library-button.webp"
@@ -51,7 +51,7 @@ const KB5002945 = MS.kb5002945
 const SOURCES = [MS.kb5002945, MS.seDeprecated, MS.sp2013Retirement, MS.spd2013, MS.sp2016, MS.sp2019, MS.spse,
   { label: "Microsoft Lifecycle: Microsoft Workflow Manager 1.0", href: "https://learn.microsoft.com/en-us/lifecycle/products/microsoft-workflow-manager-10" },
   { label: "Microsoft Lifecycle: SharePoint Workflow Manager", href: "https://learn.microsoft.com/en-us/lifecycle/products/sharepoint-workflow-manager" },
-  MS.infopath2013, MS.powerAutomateMigration, MS.sharePointConnector, NINTEX_SE_DOCS,
+  MS.infopath2013, MS.powerAutomateMigration, MS.sharePointConnector, NINTEX_SE_DOCS, NINTEX_2010_ENGINE,
 ]
 
 /** Dated facts, each from the Microsoft pages in SOURCES (lib/seo/sharepoint-facts). */
