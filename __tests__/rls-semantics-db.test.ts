@@ -199,12 +199,32 @@
  * history; instance level): no client grants at all — every caller gets
  * 42501 for every statement.
  *
+ * 20270116100000_workflow_event_waits.sql added workflow_event_waits (event
+ * waits of extension workflow steps): members read the rows of every
+ * workspace they are an active member of (rls_member_tenant_ids — the same
+ * rows as workflow_runs / workflow_run_facts); INSERT / UPDATE / DELETE are
+ * revoked, so every caller gets 42501. Unlike workflow_run_facts, SELECT is
+ * not revoked from anon (the migration revokes only the writes), so anon's
+ * SELECT runs and sees no rows ([]) instead of 42501 — same for ghost.
+ *
+ * 20270117090000_licence_trials.sql added licence_trials (issued trial
+ * licences) and 20270118090000_edition_pull_log.sql added edition_pull_log
+ * (edition image pull access log): instance level, no client grants at all —
+ * every caller gets 42501 for every statement.
+ *
  * 20270114400000_provision_auth_user_in_workspace.sql added a function only
  * (provision_auth_user_in, executable by the service role only): no table
  * entry changed.
  *
  * Runs only against a LOCAL Supabase stack — set EVENT_STREAM_DB_URL, e.g.
  *   EVENT_STREAM_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npx vitest run __tests__/rls-semantics-db.test.ts
+ * Record mode: add a SPECS entry for a new table, then run the same command
+ * with `-u` (vitest's snapshot update, it rewrites the JSON file), and review
+ * `git diff __tests__/__snapshots__/rls-semantics.json` — a new table should
+ * only add lines; any change to an existing table is a semantics change that
+ * needs a note above. Both a Supabase stack and a standalone PostgreSQL
+ * migrated with `usertasks-admin db migrate` must give the same file (the
+ * instance-migration release gate runs it on both).
  * End users are simulated the way PostgREST does it: SET ROLE + request.jwt.claims.
  * Everything runs in one transaction that is rolled back.
  */
@@ -565,6 +585,26 @@ const SPECS: Spec[] = [
   // Team requests (20270116120000): instance level, service role only.
   { table: 'team_requests', make: (k, v) => ({ kind: 'contact', title: `request ${k} ${v}` }), move: null, touch: 'note' },
   { table: 'team_request_events', make: (k, v) => ({ request_id: id('team_requests', k), to_status: 'new', note: `event ${v}` }), move: null, touch: 'note' },
+  // Extension event waits (20270116100000): members of the row's workspace read (rls_member_tenant_ids); service role writes.
+  {
+    table: 'workflow_event_waits',
+    make: (k, v) => ({
+      tenant_id: TENANT[k], run_id: id('workflow_runs', k), workflow_id: id('workflows', k), node_id: 'n1',
+      event_id: `evwait_rls_${k}_${v}`, extension_id: 'ext.rls', wait_key: 'rls', match_key: `m_${v}`,
+    }),
+  },
+  // Licence trials (20270117090000): instance level, service role only.
+  {
+    table: 'licence_trials',
+    make: (k, v) => ({
+      licence_id: `rls-${k}-${v}`, sku: 'rls', farm_id: uid(`farm:${k}:${v}`), name: `trial ${k} ${v}`, email: `trial-${k}-${v}@rls.test`,
+      email_domain: `${k.toLowerCase()}-${v}.rls.test`, company: 'RLS', issued_at: '2026-01-01T00:00:00Z', expires_at: future,
+      licence: {}, terms_accepted_at: '2026-01-01T00:00:00Z',
+    }),
+    move: null, touch: 'name',
+  },
+  // Edition pull access log (20270118090000): instance level, service role only.
+  { table: 'edition_pull_log', make: (k, v) => ({ edition: 'rls', outcome: 'issued', code: `${k}-${v}` }), move: null, touch: 'code' },
 ]
 
 /** Tables seeded by the fixture setup itself rather than SPECS. */
