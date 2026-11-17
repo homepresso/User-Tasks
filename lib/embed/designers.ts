@@ -208,3 +208,8 @@ export function withEmbedParams(path: string, carried: Record<string, string | n
 export function isSafeAppPath(path: unknown): path is string {
   return typeof path === 'string' && path.length <= 2000 && /^\/(?![/\\])/.test(path) && !/[\\\r\n\t]/.test(path)
 }
+
+/** /embed/workflows/<id>[/runs] and /embed/forms/<id>/design: the designers framed by host pages. */
+export function isDesignerEmbedPath(pathname: string): boolean {
+  return /^\/embed\/workflows\/[^/]+(\/runs)?\/?$/.test(pathname) || /^\/embed\/forms\/[^/]+\/design\/?$/.test(pathname)
+}

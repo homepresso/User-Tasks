@@ -135,6 +135,7 @@ export const ROUTES: readonly RouteEntry[] = [
   { pattern: '/settings/infrastructure', label: 'Infrastructure' },
   { pattern: '/settings/licence', label: 'Licence' },
   { pattern: '/settings/gallery-review', label: 'Gallery review' },
+  { pattern: '/settings/requests', label: 'Requests' },
   { pattern: '/settings/extensions', label: 'Extensions' },
   { pattern: '/settings/extensions/[id]', label: 'Extension', hidden: true },
   { pattern: '/settings/extensions/[id]/[id]', label: 'Extension settings' },

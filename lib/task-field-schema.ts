@@ -166,6 +166,12 @@ export interface TaskFieldDef {
   default?: string
   help_text?: string
   read_only?: boolean
+  /**
+   * A field whose key names a secret (password, passphrase, secret, private
+   * key) is kept out of the workflow's variables after the task
+   * completes; true lets it through (lib/forms/task-outputs.ts).
+   */
+  expose_downstream?: boolean
   /** number / currency: value bounds; multi_choice: selection count bounds. */
   min?: number
   max?: number
@@ -582,6 +588,8 @@ function normalizeFieldsAt(raw: unknown, sectionDepth: number): TaskFieldDef[] {
     const help = cleanString(entry.help_text, 2000)
     if (help) field.help_text = help
     if (entry.read_only === true) field.read_only = true
+    // A secret-shaped key (password, secret, passphrase…) stays out of the workflow unless the designer allows it (lib/forms/task-outputs.ts).
+    if (entry.expose_downstream === true) field.expose_downstream = true
     if (NUMERIC.has(type) || type === 'multi_choice' || type === 'rating' || type === 'slider' || type === 'image_choice') {
       const min = finite(entry.min)
       const max = finite(entry.max)

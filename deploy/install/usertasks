@@ -6,6 +6,9 @@
 #   usertasks backup [--out <dir>]         database dump + files + .env, in backups/
 #   usertasks restore <backup|latest> [--yes]
 #   usertasks upgrade [--to <version>] [--yes] [--skip-backup] [--allow-downgrade] [--build]
+#                     [--edition sharepoint|core] [--licence <file>] [--bundle <offline bundle>]
+#   usertasks bundle-download --edition sharepoint --licence <file> [--version <v>]
+#                     [--platform linux/amd64|linux/arm64] [--out <file.tar>]   offline bundle (air-gapped)
 #   usertasks config [--preset <name>] [--force]   re-run the service choices
 #   usertasks setup-code                   a new first-run setup code for /setup
 #   usertasks admin <args…>                usertasks-admin inside the app container
@@ -14,6 +17,9 @@
 #   usertasks version | help
 #   usertasks cli <args…>                  the UserTasks CLI (npm @user-tasks/cli), if installed
 #
+# Editions (UserTasks for SharePoint Server): the installer's --edition and
+# --licence, `usertasks upgrade --edition sharepoint` to switch an install
+# (data kept), a licence check with usertasks.com on every download.
 # Any other command is passed to the UserTasks CLI when it is installed.
 # Docs: /docs/self-hosting/install and /docs/self-hosting/upgrade.
 set -eu
@@ -169,6 +175,7 @@ load_state() {
   PROJECT=$(env_get USERTASKS_PROJECT "$STATE")
   PRESET=$(env_get USERTASKS_PRESET "$STATE")
   PROFILES=$(env_get USERTASKS_COMPOSE_PROFILES "$STATE")
+  EDITION=$(env_get USERTASKS_EDITION "$STATE"); EDITION_VERSION=$(env_get USERTASKS_EDITION_VERSION "$STATE")
   RELEASE_BASE=${USERTASKS_RELEASE_BASE:-$(env_get USERTASKS_RELEASE_BASE "$STATE")}
   RELEASE_BASE=${RELEASE_BASE:-$DEFAULT_RELEASE_BASE}
   REL="$DIR/releases/$VERSION"
@@ -268,23 +275,24 @@ latest_version() {
   printf '%s' "$_v"
 }
 
-# fetch_release <version>: download, verify and unpack into releases/<version>.
+# fetch_release <version> [folder]: download (or copy from [folder], e.g. an
+# offline bundle's release/), verify and unpack into releases/<version>.
 fetch_release() {
-  _v=$1; _dest="$DIR/releases/$_v"
+  _v=$1; _src=${2:-}; _dest="$DIR/releases/$_v"
   if [ -f "$_dest/manifest.json" ] && [ -f "$_dest/.verified" ]; then ok "release $_v already downloaded and verified"; return 0; fi
   _key="$DIR/release-key.pub.pem"
   [ -s "$_key" ] || die "no release signing key in $_key: re-run the installer"
   _dl="$DIR/releases/.download-$_v"; rm -rf "$_dl"; mkdir -p "$_dl"
   _url="$RELEASE_BASE/download/v$_v"
   _bundle="usertasks-$_v.tar.gz"
-  step "Downloading UserTasks $_v"
-  http_get "$_url/SHA256SUMS" "$_dl/SHA256SUMS" || die "release v$_v not found at $_url"
-  http_get "$_url/SHA256SUMS.sig" "$_dl/SHA256SUMS.sig" || die "release v$_v has no SHA256SUMS.sig"
+  if [ -n "$_src" ]; then step "Checking UserTasks $_v from $_src"; else step "Downloading UserTasks $_v"; fi
+  rel_get "$_src" "$_url" SHA256SUMS "$_dl/SHA256SUMS" || die "release v$_v not found at ${_src:-$_url}"
+  rel_get "$_src" "$_url" SHA256SUMS.sig "$_dl/SHA256SUMS.sig" || die "release v$_v has no SHA256SUMS.sig"
   verify_sig "$_dl/SHA256SUMS" "$_dl/SHA256SUMS.sig" "$_key" || die "signature check FAILED for v$_v: SHA256SUMS was not signed by the UserTasks release key. Nothing was changed."
   ok "signature of SHA256SUMS"
   _want=$(awk -v f="$_bundle" '$2 == f || $2 == "*" f { print $1 }' "$_dl/SHA256SUMS")
   [ -n "$_want" ] || die "SHA256SUMS does not list $_bundle"
-  http_get "$_url/$_bundle" "$_dl/$_bundle" || die "could not download $_bundle"
+  rel_get "$_src" "$_url" "$_bundle" "$_dl/$_bundle" || die "could not download $_bundle"
   [ "$(sha256_of "$_dl/$_bundle")" = "$_want" ] || die "checksum mismatch for $_bundle: the download is damaged or was changed. Nothing was changed."
   ok "checksum of $_bundle"
   mkdir -p "$_dl/x"; tar -xzf "$_dl/$_bundle" -C "$_dl/x"
@@ -296,6 +304,11 @@ fetch_release() {
   rm -rf "$_dest"; mv "$_dl/x/usertasks-$_v" "$_dest"; rm -rf "$_dl"
 }
 
+# rel_get <local folder or ""> <release url> <file> <dest>
+rel_get() {
+  if [ -n "$1" ]; then [ -f "$1/$3" ] && cp "$1/$3" "$4"; else http_get "$2/$3" "$4"; fi
+}
+
 manifest_get() { # <release dir> <key>
   sed -n "s/.*\"$2\": *\"\([^\"]*\)\".*/\1/p" "$1/manifest.json" | head -n 1
 }
@@ -305,6 +318,314 @@ release_image() {
   if [ -n "${USERTASKS_IMAGE_OVERRIDE:-}" ]; then printf '%s' "$USERTASKS_IMAGE_OVERRIDE"; return; fi
   _i=$(manifest_get "$1" image); _d=$(manifest_get "$1" imageDigest)
   if [ -n "$_d" ]; then printf '%s@%s' "$_i" "$_d"; else printf '%s' "$_i"; fi
+}
+
+# ── editions: licence-gated images (--edition sharepoint) ───────────────────
+# An edition is UserTasks with a paid extension compiled in. Its image is not
+# public: usertasks.com checks the licence and hands out a 30-minute,
+# read-only credential for its registry front (POST <api>/<edition>/pull-token)
+# together with the edition manifest (edition.json) signed by the release key.
+# The image is pulled by the signed digest, checked against it and tagged
+# <registry>/<repository>:<edition version>. The credential is used once
+# (docker login, pull, docker logout) and never written to the install folder.
+
+EDITION_API=${USERTASKS_EDITION_API:-https://usertasks.com/api/public/extensions}
+
+valid_edition() { case "$1" in sharepoint) return 0 ;; *) return 1 ;; esac; }
+edition_name() { case "$1" in sharepoint) printf 'UserTasks for SharePoint Server' ;; *) printf 'the %s edition' "$1" ;; esac; }
+
+# json_field <key> <file>: a string value of a (flat) JSON object, unescaped.
+json_field() {
+  _jf=$(sed -nE "s/.*\"$1\": *\"(([^\"\\\\]|\\\\.)*)\".*/\\1/p" "$2" | head -n 1 | sed -e 's/\\"/"/g' -e 's/\\\\/\\/g')
+  printf '%s\n' "$_jf"
+}
+json_bool() { _jf=$(sed -nE "s/.*\"$1\": *(true|false).*/\\1/p" "$2" | head -n 1); printf '%s\n' "$_jf"; }
+
+b64_encode() { # <file>: base64 on one line
+  if have base64; then base64 < "$1" | tr -d '\n\r'; else openssl base64 -A < "$1"; fi
+}
+b64_decode() { # <in> <out>
+  base64 -d < "$1" > "$2" 2>/dev/null || base64 -D < "$1" > "$2" 2>/dev/null || openssl base64 -d -A < "$1" > "$2"
+}
+
+http_post_json() { # <url> <body file> <out file>: prints the HTTP status (000: not reached)
+  if have curl; then
+    _hc=$(curl -sS --retry 2 --connect-timeout 20 --max-time 120 -o "$3" -w '%{http_code}' -A "usertasks-installer/sh" \
+      -H 'Content-Type: application/json' --data-binary "@$2" "$1" 2>/dev/null) || true
+    printf '%s' "${_hc:-000}"
+  elif wget -q --content-on-error -O "$3" -U "usertasks-installer/sh" --header='Content-Type: application/json' --post-file="$2" "$1" 2>/dev/null; then printf 200
+  elif [ -s "$3" ]; then printf 400
+  else printf 000; fi
+}
+
+# edition_latest_core <edition>: the UserTasks version of the newest edition build (empty if unknown).
+edition_latest_core() {
+  _f="$DIR/.edition-latest.json"
+  if http_get "$EDITION_API/$1" "$_f" 2>/dev/null; then
+    _lv=$(json_field latest_core_version "$_f"); rm -f "$_f"
+    if valid_version "$_lv"; then printf '%s' "$_lv"; fi
+  else rm -f "$_f"; fi
+  return 0
+}
+
+# edition_licence <edition> [file]: the licence to send, kept as licences/<edition>.licence.
+# An explicit file wins; else the licence installed in UserTasks (usertasks-admin
+# licence export, so a renewal made in Settings → Licence counts); else the kept copy.
+edition_licence() {
+  _keep="$DIR/licences/$1.licence"
+  mkdir -p "$DIR/licences"; chmod 700 "$DIR/licences"
+  if [ -n "${2:-}" ]; then
+    [ -f "$2" ] || die "licence file not found: $2"
+    (umask 077; cp "$2" "$_keep.tmp"); mv "$_keep.tmp" "$_keep"
+  elif [ -n "${IMAGE:-}" ] && [ -n "${PROJECT:-}" ] && [ -f "$DIR/state.env" ] && (umask 077; admin licence export --ext "$(edition_extension "$1")" > "$_keep.tmp" 2>/dev/null) && grep -q '"licence_id"' "$_keep.tmp"; then
+    mv "$_keep.tmp" "$_keep"
+  fi
+  rm -f "$_keep.tmp"
+  [ -s "$_keep" ] || die "$(edition_name "$1") needs a licence: pass --licence <file> (your trial or purchased .licence file; start a trial at https://usertasks.com/sharepoint/trial)"
+  printf '%s' "$_keep"
+}
+edition_extension() { case "$1" in sharepoint) printf 'sharepoint' ;; *) printf '%s' "$1" ;; esac; }
+
+# edition_request <edition> <licence file> <version|latest> <purpose> <work dir> <release key>
+# Sets ED_* (registry, repository, credential, versions, digest) and leaves the
+# verified edition.json and edition.json.sig in <work dir>. Returns 1 with
+# EDITION_ERROR set when refused (licence expired, no build, offline…).
+edition_request() {
+  _er_ed=$1; _er_lic=$2; _er_ver=$3; _er_w=$5; _er_key=$6
+  EDITION_ERROR=""; EDITION_ERROR_CODE=""
+  mkdir -p "$_er_w"; chmod 700 "$_er_w"
+  { printf '{"licence":"'; b64_encode "$_er_lic"; printf '","version":"%s","purpose":"%s"}' "$_er_ver" "$4"; } > "$_er_w/request.json"
+  step "Checking the licence with usertasks.com ($(edition_name "$_er_ed"))"
+  _er_code=$(http_post_json "$EDITION_API/$_er_ed/pull-token" "$_er_w/request.json" "$_er_w/token.json")
+  rm -f "$_er_w/request.json"
+  if [ "$_er_code" != 200 ]; then
+    EDITION_ERROR_CODE=$(json_field code "$_er_w/token.json" 2>/dev/null || true)
+    EDITION_ERROR=$(json_field error "$_er_w/token.json" 2>/dev/null || true)
+    [ "$_er_code" != 000 ] || EDITION_ERROR="could not reach $EDITION_API (check the network or proxy settings; offline hosts: usertasks bundle-download on a connected machine)"
+    EDITION_ERROR=${EDITION_ERROR:-the download was refused (HTTP $_er_code)}
+    rm -f "$_er_w/token.json"; return 1
+  fi
+  _t="$_er_w/token.json"
+  ED_EDITION=$_er_ed; ED_WORK=$_er_w; ED_AT=$(date +%s)
+  ED_REGISTRY=$(json_field registry "$_t"); ED_REPO=$(json_field repository "$_t")
+  ED_USER=$(json_field username "$_t"); ED_PASS=$(json_field password "$_t")
+  ED_VERSION=$(json_field edition_version "$_t"); ED_CORE=$(json_field core_version "$_t"); ED_DIGEST=$(json_field index_digest "$_t")
+  ED_LICENCE_EXPIRES=$(json_field licence_expires_at "$_t"); ED_TRIAL=$(json_bool trial "$_t")
+  json_field edition_manifest "$_t" > "$_er_w/edition.json.b64"; json_field edition_signature "$_t" > "$_er_w/edition.json.sig.b64"
+  rm -f "$_t"
+  if ! printf '%s' "$ED_REGISTRY" | grep -Eq '^[a-z0-9.-]+(:[0-9]+)?$' || ! printf '%s' "$ED_REPO" | grep -Eq '^[a-z0-9][a-z0-9/._-]*$' \
+    || ! printf '%s' "$ED_DIGEST" | grep -Eq '^sha256:[0-9a-f]{64}$' || ! valid_version "$ED_CORE" || [ -z "$ED_PASS" ]; then
+    EDITION_ERROR="usertasks.com sent an answer this installer does not understand"; return 1
+  fi
+  if ! b64_decode "$_er_w/edition.json.b64" "$_er_w/edition.json" || ! b64_decode "$_er_w/edition.json.sig.b64" "$_er_w/edition.json.sig"; then
+    EDITION_ERROR="the edition manifest could not be read"; return 1
+  fi
+  rm -f "$_er_w/edition.json.b64" "$_er_w/edition.json.sig.b64"
+  edition_manifest_check "$_er_w" "$_er_key" "$_er_ed" || return 1
+  if [ "$(json_field edition_version "$_er_w/edition.json")" != "$ED_VERSION" ] || [ "$(json_field index_digest "$_er_w/edition.json")" != "$ED_DIGEST" ] || [ "$(json_field core_version "$_er_w/edition.json")" != "$ED_CORE" ]; then
+    EDITION_ERROR="the download details do not match the signed edition manifest"; return 1
+  fi
+  if [ "$_er_ver" != latest ] && [ "$_er_ver" != "$ED_CORE" ] && [ "$_er_ver" != "$ED_VERSION" ]; then
+    EDITION_ERROR="asked for $_er_ver but got the edition for $ED_CORE"; return 1
+  fi
+  ok "licence accepted$( [ "$ED_TRIAL" = true ] && printf ' (trial)' )${ED_LICENCE_EXPIRES:+, valid until $ED_LICENCE_EXPIRES}; edition $ED_VERSION"
+}
+
+# edition_manifest_check <dir> <release key> <edition>: edition.json signed by the release key, for <edition>.
+edition_manifest_check() {
+  if ! verify_sig "$1/edition.json" "$1/edition.json.sig" "$2"; then
+    EDITION_ERROR="signature check FAILED: edition.json was not signed by the UserTasks release key"; return 1
+  fi
+  if [ "$(json_field kind "$1/edition.json")" != usertasks.edition ] || [ "$(json_field edition "$1/edition.json")" != "$3" ]; then
+    EDITION_ERROR="edition.json is not a $(edition_name "$3") manifest"; return 1
+  fi
+  ok "signature of the edition manifest"
+}
+
+# edition_image_ok <image> <edition.json>: the image is one the signed manifest names
+# (config digest on Docker's classic store, index / manifest digest on containerd's).
+edition_image_ok() {
+  _eid=$(docker image inspect --format '{{.Id}}' "$1" 2>/dev/null) || return 1
+  case "$_eid" in sha256:*) grep -q "\"$_eid\"" "$2" ;; *) return 1 ;; esac
+}
+
+# edition_pull [platform]: pull ED_* by its signed digest, check it, tag it. Sets EDITION_IMAGE.
+edition_pull() {
+  _ep_ref="$ED_REGISTRY/$ED_REPO@$ED_DIGEST"; EDITION_IMAGE="$ED_REGISTRY/$ED_REPO:$ED_VERSION"
+  if [ -z "${1:-}" ] && edition_image_ok "$EDITION_IMAGE" "$ED_WORK/edition.json"; then ok "image $EDITION_IMAGE is present and matches the signed manifest"; return 0; fi
+  step "Pulling $(edition_name "$ED_EDITION") $ED_VERSION"
+  if ! printf '%s' "$ED_PASS" | docker login "$ED_REGISTRY" -u "$ED_USER" --password-stdin >/dev/null 2>&1; then
+    EDITION_ERROR="docker login to $ED_REGISTRY failed (the download credential may have expired: run the command again)"; return 1
+  fi
+  _ep_rc=0
+  if [ -n "${1:-}" ]; then docker pull --platform "$1" "$_ep_ref" || _ep_rc=$?; else docker pull "$_ep_ref" || _ep_rc=$?; fi
+  docker logout "$ED_REGISTRY" >/dev/null 2>&1 || true
+  ED_PASS=""
+  [ "$_ep_rc" = 0 ] || { EDITION_ERROR="could not pull the $(edition_name "$ED_EDITION") image from $ED_REGISTRY"; return 1; }
+  edition_image_ok "$_ep_ref" "$ED_WORK/edition.json" || { EDITION_ERROR="the pulled image is not the one the signed edition manifest names: not used"; return 1; }
+  docker tag "$_ep_ref" "$EDITION_IMAGE"
+  ok "image verified against the signed manifest ($ED_DIGEST)"
+}
+
+# edition_fetch <edition> <licence file> <version|latest> <purpose>: request + pull for this
+# install; the manifest is kept in editions/<edition version>/. Sets EDITION_IMAGE, ED_*.
+edition_fetch() {
+  _ef_w="$DIR/editions/.request"; rm -rf "$_ef_w"
+  edition_request "$1" "$2" "$3" "$4" "$_ef_w" "$DIR/release-key.pub.pem" || return 1
+  edition_keep_manifest
+  edition_pull
+}
+edition_keep_manifest() {
+  _ek="$DIR/editions/$ED_VERSION"
+  if [ "$ED_WORK" != "$_ek" ]; then rm -rf "$_ek"; mkdir -p "$DIR/editions"; mv "$ED_WORK" "$_ek"; ED_WORK=$_ek; fi
+}
+# A request older than 25 minutes is asked again (the credential lasts 30).
+edition_refresh() { # <licence file> <version> <purpose>
+  if [ $(( $(date +%s) - ${ED_AT:-0} )) -gt 1500 ]; then edition_fetch "$ED_EDITION" "$1" "$2" "$3"; else edition_keep_manifest; edition_pull; fi
+}
+
+# edition_install_licence <licence file>: into UserTasks (Settings → Licence); never fatal.
+edition_install_licence() {
+  [ -s "${1:-}" ] || return 0
+  if admin licence install /dev/stdin < "$1" >/dev/null 2>&1; then ok "licence installed in UserTasks (Settings → Licence)"
+  else warn "could not install the licence automatically: add it in Settings → Licence"; fi
+}
+
+# ── offline bundles (air-gapped editions) ───────────────────────────────────
+# usertasks-edition-<edition>-<edition version>-linux-<arch>.tar:
+#   bundle.json            edition, versions, platform, images
+#   release/               the UserTasks release: SHA256SUMS(.sig) signed by the release key,
+#                          usertasks-<version>.tar.gz, install.sh, install.ps1
+#   edition.json(.sig)     the edition manifest, signed by the release key
+#   images.tar             docker save: the edition image + the bundled services' images
+#   SHA256SUMS.bundle      checksums of all of the above (transfer integrity)
+# Made by `usertasks bundle-download` on a connected machine (same licence
+# check); installed with `sh install.sh --bundle <file>` (or `usertasks upgrade
+# --bundle <file>`), which verifies the release and edition signatures and the
+# loaded image against the signed digests.
+
+# bundle_open <file>: unpack into releases/.bundle and check it. Sets BUNDLE_DIR and BUNDLE_* fields.
+bundle_open() {
+  [ -f "$1" ] || die "bundle not found: $1"
+  _bo="$DIR/releases/.bundle"; rm -rf "$_bo"; mkdir -p "$_bo"
+  step "Unpacking $(basename "$1")"
+  tar -xf "$1" -C "$_bo" || die "could not unpack $1"
+  BUNDLE_DIR=$(find "$_bo" -mindepth 2 -maxdepth 2 -name bundle.json -exec dirname {} \; | head -n 1)
+  [ -n "$BUNDLE_DIR" ] || die "$1 is not a UserTasks offline bundle (no bundle.json)"
+  bundle_check "$BUNDLE_DIR"
+}
+
+# bundle_check <dir>: every file listed in SHA256SUMS.bundle is there and intact.
+bundle_check() {
+  [ -f "$1/SHA256SUMS.bundle" ] || die "the bundle has no SHA256SUMS.bundle"
+  while read -r _bs _bf; do
+    case "$_bf" in ""|/*|*..*) die "SHA256SUMS.bundle lists an unexpected path: $_bf" ;; esac
+    [ -f "$1/$_bf" ] || die "the bundle is missing $_bf"
+    [ "$(sha256_of "$1/$_bf")" = "$_bs" ] || die "checksum mismatch for $_bf: the bundle is damaged or was changed"
+  done < "$1/SHA256SUMS.bundle"
+  ok "bundle checksums"
+  BUNDLE_EDITION=$(json_field edition "$1/bundle.json"); BUNDLE_VERSION=$(json_field core_version "$1/bundle.json")
+  BUNDLE_EDITION_VERSION=$(json_field edition_version "$1/bundle.json"); BUNDLE_IMAGE=$(json_field image "$1/bundle.json")
+  valid_edition "$BUNDLE_EDITION" || die "the bundle is for an unknown edition: $BUNDLE_EDITION"
+  valid_version "$BUNDLE_VERSION" || die "the bundle has no valid UserTasks version"
+}
+
+# bundle_load <dir>: edition manifest signature, docker load, image check. Sets IMAGE, ED_*.
+bundle_load() {
+  edition_manifest_check "$1" "$DIR/release-key.pub.pem" "$BUNDLE_EDITION" || die "$EDITION_ERROR. Nothing was installed."
+  [ "$(json_field edition_version "$1/edition.json")" = "$BUNDLE_EDITION_VERSION" ] && [ "$(json_field core_version "$1/edition.json")" = "$BUNDLE_VERSION" ] \
+    || die "bundle.json does not match the signed edition manifest"
+  case "$BUNDLE_IMAGE" in *:"$BUNDLE_EDITION_VERSION") : ;; *) die "bundle.json names an unexpected image: $BUNDLE_IMAGE" ;; esac
+  step "Loading the images (docker load)"
+  docker load -i "$1/images.tar" >/dev/null || die "docker load failed"
+  edition_image_ok "$BUNDLE_IMAGE" "$1/edition.json" || die "the loaded image $BUNDLE_IMAGE is not the one the signed edition manifest names. Nothing was started."
+  ok "image $BUNDLE_IMAGE verified against the signed manifest"
+  ED_EDITION=$BUNDLE_EDITION; ED_VERSION=$BUNDLE_EDITION_VERSION; ED_CORE=$BUNDLE_VERSION
+  _bk="$DIR/editions/$ED_VERSION"; rm -rf "$_bk"; mkdir -p "$_bk"; cp "$1/edition.json" "$1/edition.json.sig" "$_bk/"; ED_WORK=$_bk
+  IMAGE=$BUNDLE_IMAGE
+}
+
+# usertasks bundle-download --edition <e> --licence <file> [--version <v>] [--platform linux/amd64|linux/arm64]
+#                           [--out <file.tar>] [--no-deps] [--work <folder>]
+cmd_bundle_download() {
+  _bd_ed=""; _bd_lic=""; _bd_ver=""; _bd_plat=""; _bd_out=""; _bd_deps=1
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --edition) _bd_ed=$2; shift 2 ;; --licence|--license) _bd_lic=$2; shift 2 ;; --version) _bd_ver=${2#v}; shift 2 ;;
+      --platform) _bd_plat=$2; shift 2 ;; --out) _bd_out=$2; shift 2 ;; --no-deps) _bd_deps=0; shift ;; --work) shift 2 ;;
+      *) die "bundle-download: unknown option $1" ;;
+    esac
+  done
+  valid_edition "$_bd_ed" || die "bundle-download: --edition sharepoint is required"
+  if [ -n "$_bd_lic" ]; then [ -f "$_bd_lic" ] || die "licence file not found: $_bd_lic"; _bd_lic=$(cd "$(dirname "$_bd_lic")" && pwd)/$(basename "$_bd_lic")
+  elif [ -f "$DIR/state.env" ]; then _bd_lic=$(edition_licence "$_bd_ed")
+  else die "bundle-download: --licence <file> is required"; fi
+  have docker || die "bundle-download needs Docker on this (connected) machine"
+  if [ -z "$_bd_plat" ]; then
+    case "$(docker version --format '{{.Server.Arch}}' 2>/dev/null)" in arm64|aarch64) _bd_plat=linux/arm64 ;; *) _bd_plat=linux/amd64 ;; esac
+  fi
+  case "$_bd_plat" in linux/amd64|linux/arm64) : ;; *) die "--platform must be linux/amd64 or linux/arm64" ;; esac
+  [ -n "$_bd_ver" ] || _bd_ver=$(edition_latest_core "$_bd_ed")
+  [ -n "$_bd_ver" ] || die "could not find the newest $(edition_name "$_bd_ed") build: pass --version <x.y.z>"
+  valid_version "$_bd_ver" || die "not a version: $_bd_ver"
+  _bd_key="$DIR/release-key.pub.pem"; [ -s "$_bd_key" ] || die "no release signing key in $_bd_key (use the installer: curl -fsSL https://usertasks.com/install.sh | sh -s -- --bundle-download …)"
+
+  _bd_w="$DIR/editions/.bundle-request"; rm -rf "$_bd_w"
+  edition_request "$_bd_ed" "$_bd_lic" "$_bd_ver" bundle "$_bd_w" "$_bd_key" || die "$EDITION_ERROR"
+  _bd_name="usertasks-edition-$_bd_ed-$ED_VERSION-$(printf '%s' "$_bd_plat" | tr '/' '-')"
+  _bd_out=${_bd_out:-$PWD/$_bd_name.tar}
+  _bd_stage="$DIR/editions/.bundle-stage"; rm -rf "$_bd_stage"; mkdir -p "$_bd_stage/$_bd_name/release"
+  _bd_s="$_bd_stage/$_bd_name"
+
+  # The UserTasks release, as published (signed SHA256SUMS + the files it lists).
+  _bd_url="$RELEASE_BASE/download/v$ED_CORE"
+  step "Downloading UserTasks $ED_CORE (release files)"
+  http_get "$_bd_url/SHA256SUMS" "$_bd_s/release/SHA256SUMS" || die "release v$ED_CORE not found at $_bd_url"
+  http_get "$_bd_url/SHA256SUMS.sig" "$_bd_s/release/SHA256SUMS.sig" || die "release v$ED_CORE has no SHA256SUMS.sig"
+  verify_sig "$_bd_s/release/SHA256SUMS" "$_bd_s/release/SHA256SUMS.sig" "$_bd_key" || die "signature check FAILED for release v$ED_CORE"
+  for _bd_f in "usertasks-$ED_CORE.tar.gz" install.sh install.ps1; do
+    _bd_want=$(awk -v f="$_bd_f" '$2 == f || $2 == "*" f { print $1 }' "$_bd_s/release/SHA256SUMS")
+    [ -n "$_bd_want" ] || die "SHA256SUMS does not list $_bd_f"
+    http_get "$_bd_url/$_bd_f" "$_bd_s/release/$_bd_f" || die "could not download $_bd_f"
+    [ "$(sha256_of "$_bd_s/release/$_bd_f")" = "$_bd_want" ] || die "checksum mismatch for $_bd_f"
+  done
+  ok "release $ED_CORE (signature + checksums)"
+
+  edition_pull "$_bd_plat" || die "$EDITION_ERROR"
+  _bd_imgs=$EDITION_IMAGE
+  if [ "$_bd_deps" = 1 ]; then
+    mkdir -p "$_bd_stage/x"; tar -xzf "$_bd_s/release/usertasks-$ED_CORE.tar.gz" -C "$_bd_stage/x"
+    _bd_rel="$_bd_stage/x/usertasks-$ED_CORE"
+    for _bd_i in $(USERTASKS_IMAGE="$EDITION_IMAGE" docker compose -f "$_bd_rel/docker-compose.yml" --env-file "$_bd_rel/env.template" --profile standalone config --images 2>/dev/null | sort -u); do
+      [ "$_bd_i" = "$EDITION_IMAGE" ] && continue
+      step "Pulling $_bd_i ($_bd_plat)"
+      docker pull --platform "$_bd_plat" "$_bd_i" >/dev/null || die "could not pull $_bd_i"
+      _bd_imgs="$_bd_imgs $_bd_i"
+    done
+    rm -rf "$_bd_stage/x"
+  fi
+  cp "$ED_WORK/edition.json" "$ED_WORK/edition.json.sig" "$_bd_s/"
+  step "Saving the images ($(printf '%s' "$_bd_imgs" | wc -w | tr -d ' '))"
+  # shellcheck disable=SC2086 # one word per image
+  docker save -o "$_bd_s/images.tar" $_bd_imgs || die "docker save failed"
+  {
+    printf '{\n  "format": 1,\n  "kind": "usertasks.bundle",\n  "edition": "%s",\n  "edition_version": "%s",\n' "$_bd_ed" "$ED_VERSION"
+    printf '  "core_version": "%s",\n  "platform": "%s",\n  "image": "%s",\n  "images": "%s",\n  "created_at": "%s"\n}\n' "$ED_CORE" "$_bd_plat" "$EDITION_IMAGE" "$_bd_imgs" "$(now_stamp)"
+  } > "$_bd_s/bundle.json"
+  (cd "$_bd_s" && for _bd_f in bundle.json edition.json edition.json.sig images.tar release/SHA256SUMS release/SHA256SUMS.sig "release/usertasks-$ED_CORE.tar.gz" release/install.sh release/install.ps1; do
+    printf '%s  %s\n' "$(sha256_of "$_bd_f")" "$_bd_f"; done) > "$_bd_s/SHA256SUMS.bundle"
+  step "Writing $_bd_out"
+  tar -cf "$_bd_out.tmp" -C "$_bd_stage" "$_bd_name" && mv "$_bd_out.tmp" "$_bd_out"
+  rm -rf "$_bd_stage" "$ED_WORK"
+  sha256_of "$_bd_out" > "$_bd_out.sha256"
+  say ""
+  say "${G}${B}Offline bundle ready:${N} $_bd_out ($(du -h "$_bd_out" | cut -f1 | tr -d ' '))"
+  say "  sha256:   $(cat "$_bd_out.sha256")  (also in $(basename "$_bd_out").sha256: compare it on the offline host)"
+  say "  contents: $(edition_name "$_bd_ed") $ED_VERSION ($_bd_plat), UserTasks $ED_CORE release, $(printf '%s' "$_bd_imgs" | wc -w | tr -d ' ') images"
+  say "On the offline host (Docker installed), with the bundle and your licence file:"
+  say "  tar -xOf $(basename "$_bd_out") $_bd_name/release/install.sh > install.sh"
+  say "  sh install.sh --bundle $(basename "$_bd_out") --licence <your .licence file>"
+  say "Upgrades: the same with a newer bundle, then: usertasks upgrade --bundle <file>"
 }
 
 # ── service choices (the install profile) ───────────────────────────────────
@@ -546,15 +867,17 @@ open_browser() {
 
 cmd_install() {
   # Called as releases/<v>/usertasks install --dir … --version …
-  _port=""; _url=""; _v=""; _build=0
+  _port=""; _url=""; _v=""; _build=0; _edition=""; _licence=""; _bundle=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --dir) DIR=$2; shift 2 ;; --version) _v=$2; shift 2 ;; --port) _port=$2; shift 2 ;;
       --url) _url=$2; shift 2 ;; --project) USERTASKS_PROJECT=$2; shift 2 ;; --preset) USERTASKS_PRESET_CHOICE=$2; shift 2 ;;
       --build) _build=1; shift ;; --release-base) USERTASKS_RELEASE_BASE=$2; shift 2 ;;
+      --edition) _edition=$2; shift 2 ;; --licence|--license) _licence=$2; shift 2 ;; --bundle) _bundle=$2; shift 2 ;;
       *) die "install: unknown option $1" ;;
     esac
   done
+  if [ -n "$_edition" ] && [ "$_edition" != core ]; then valid_edition "$_edition" || die "unknown edition: $_edition (editions: sharepoint)"; fi
   if [ -z "$DIR" ] || [ -z "$_v" ]; then die "install: --dir and --version are required"; fi
   STATE="$DIR/state.env"; ENV_FILE="$DIR/.env"; REL="$DIR/releases/$_v"
   [ -f "$REL/manifest.json" ] || die "release $_v is not in $DIR/releases"
@@ -567,13 +890,40 @@ cmd_install() {
       _v=$VERSION; REL="$DIR/releases/$VERSION"
     fi
     say "Existing install found: re-checking it (secrets and data are kept)."
+    if [ -n "$_edition" ] && [ "$_edition" != "${EDITION:-core}" ] && [ -z "$_bundle" ]; then
+      say "This install runs $( [ -n "$EDITION" ] && edition_name "$EDITION" || printf 'the public image' ). To switch it, keeping its data: usertasks upgrade --edition $_edition"
+      _edition=""
+    fi
   else
     PROJECT=${USERTASKS_PROJECT:-usertasks}
     printf '%s' "$PROJECT" | grep -Eq '^[a-z0-9][a-z0-9_-]*$' || die "project name: lowercase letters, digits, - and _"
-    PRESET=""
+    PRESET=""; EDITION=""; EDITION_VERSION=""
   fi
   VERSION=$_v
-  IMAGE=$(release_image "$REL")
+  _prev_image=${IMAGE:-}
+  [ "$_edition" = core ] && _edition=""
+  [ -n "$_edition" ] && EDITION=$_edition
+  _lic_file=""
+  if [ -n "$_bundle" ]; then
+    # Offline bundle (unpacked and its release verified by install.sh --bundle).
+    bundle_check "$_bundle"
+    [ "$BUNDLE_VERSION" = "$VERSION" ] || die "the bundle is for UserTasks $BUNDLE_VERSION, not $VERSION"
+    bundle_load "$_bundle"
+    EDITION=$ED_EDITION; EDITION_VERSION=$ED_VERSION
+    if [ -n "$_licence" ]; then _lic_file=$(edition_licence "$EDITION" "$_licence"); fi
+  elif [ -n "$EDITION" ]; then
+    # Licence-gated edition image: kept when this install already has it.
+    if [ $_existing = 1 ] && [ -n "$_prev_image" ] && [ -z "$_licence" ] && [ -n "$EDITION_VERSION" ] && [ -f "$DIR/editions/$EDITION_VERSION/edition.json" ] \
+      && edition_image_ok "$_prev_image" "$DIR/editions/$EDITION_VERSION/edition.json"; then
+      IMAGE=$_prev_image
+    else
+      _lic_file=$(edition_licence "$EDITION" "$_licence")
+      edition_fetch "$EDITION" "$_lic_file" "$VERSION" install || die "$EDITION_ERROR. Nothing was installed."
+      IMAGE=$EDITION_IMAGE; EDITION_VERSION=$ED_VERSION
+    fi
+  else
+    IMAGE=$(release_image "$REL")
+  fi
 
   # Port and address.
   if [ ! -f "$ENV_FILE" ]; then
@@ -616,6 +966,7 @@ cmd_install() {
   start_stack "$IMAGE" 600 || { dc logs --tail 80 app >&2 || true; die "UserTasks did not become healthy. Logs: usertasks logs. Re-run the installer when fixed (it is safe to re-run)."; }
   install_wrapper_from "$REL"
   link_command
+  [ -n "$_lic_file" ] && edition_install_licence "$_lic_file"
   finish_message
   open_browser "$APP_URL/setup"
 }
@@ -629,6 +980,8 @@ save_state() {
     echo "USERTASKS_PROJECT=$PROJECT"
     echo "USERTASKS_PRESET=${PRESET:-standalone}"
     echo "USERTASKS_COMPOSE_PROFILES=$PROFILES"
+    [ -n "${EDITION:-}" ] && echo "USERTASKS_EDITION=$EDITION"
+    [ -n "${EDITION:-}" ] && [ -n "${EDITION_VERSION:-}" ] && echo "USERTASKS_EDITION_VERSION=$EDITION_VERSION"
     [ -n "${USERTASKS_RELEASE_BASE:-}" ] && echo "USERTASKS_RELEASE_BASE=$USERTASKS_RELEASE_BASE"
     [ -n "${PREV_VERSION:-}" ] && echo "USERTASKS_PREVIOUS_VERSION=$PREV_VERSION"
     [ -n "${PREV_IMAGE:-}" ] && echo "USERTASKS_PREVIOUS_IMAGE=$PREV_IMAGE"
@@ -652,7 +1005,7 @@ start_stack() { # <image> <timeout seconds>
 
 finish_message() {
   say ""
-  say "${G}${B}UserTasks $VERSION is running.${N}"
+  say "${G}${B}UserTasks $VERSION is running.${N}$( [ -n "${EDITION:-}" ] && printf ' (%s %s)' "$(edition_name "$EDITION")" "$EDITION_VERSION")"
   say "  Address:  $APP_URL"
   _code=$(env_get USERTASKS_SETUP_CODE "$ENV_FILE")
   if admin setup-code status 2>/dev/null | grep -q '^Setup is complete'; then
@@ -669,7 +1022,7 @@ finish_message() {
 # ── status, logs, start/stop ────────────────────────────────────────────────
 
 cmd_status() {
-  say "UserTasks $VERSION  ($PRESET, project $PROJECT)"
+  say "UserTasks $VERSION  ($PRESET, project $PROJECT)$( [ -n "${EDITION:-}" ] && printf '  edition: %s %s' "$EDITION" "$EDITION_VERSION")"
   say "  image:   $IMAGE"
   say "  address: $APP_URL"
   say "  folder:  $DIR"
@@ -802,45 +1155,97 @@ run_migrations() { # <release dir> <image>
 }
 
 cmd_upgrade() {
-  _to=""; _skip_backup=0; _downgrade=0; _build=0; _force=0
+  _to=""; _skip_backup=0; _downgrade=0; _build=0; _force=0; _edition=""; _licence=""; _bundle=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --to) _to=$2; shift 2 ;; --yes|-y) ASSUME_YES=1; shift ;; --skip-backup) _skip_backup=1; shift ;;
       --allow-downgrade) _downgrade=1; shift ;; --build) _build=1; shift ;; --force) _force=1; shift ;;
+      --edition) _edition=$2; shift 2 ;; --licence|--license) _licence=$2; shift 2 ;; --bundle) _bundle=$2; shift 2 ;;
       *) die "upgrade: unknown option $1" ;;
     esac
   done
   lock
-  _from=$VERSION; _from_img=$IMAGE; _from_rel=$REL
-  [ -n "$_to" ] || { step "Looking up the latest release"; _to=$(latest_version); }
+  _from=$VERSION; _from_img=$IMAGE; _from_rel=$REL; _from_edition=${EDITION:-}
+  # The edition to end up on: --edition (core = the public image), else the current one.
+  _ed=${_edition:-$_from_edition}; [ "$_ed" = core ] && _ed=""
+  if [ -n "$_ed" ]; then valid_edition "$_ed" || die "unknown edition: $_ed (editions: sharepoint, or core for the public image)"; fi
+  if [ -n "$_bundle" ]; then
+    _bundle=$(cd "$(dirname "$_bundle")" && pwd)/$(basename "$_bundle")
+    bundle_open "$_bundle"
+    [ -z "$_to" ] || [ "${_to#v}" = "$BUNDLE_VERSION" ] || die "the bundle is for UserTasks $BUNDLE_VERSION, not $_to"
+    _to=$BUNDLE_VERSION; _ed=$BUNDLE_EDITION
+  fi
+  _switch=1; [ "$_ed" != "$_from_edition" ] || _switch=0
+  if [ -z "$_to" ]; then
+    step "Looking up the latest release"
+    [ -n "$_ed" ] && _to=$(edition_latest_core "$_ed")
+    [ -n "$_to" ] || _to=$(latest_version)
+  fi
   _to=${_to#v}; valid_version "$_to" || die "not a version: $_to"
   _c=$(version_cmp "$_to" "$_from")
-  if [ "$_c" = 0 ] && [ $_force = 0 ]; then say "UserTasks $_from is already installed (latest: $_to)."; return 0; fi
-  if [ "$_c" = -1 ] && [ $_downgrade = 0 ]; then die "$_to is older than the installed $_from (pass --allow-downgrade to go back on purpose)"; fi
-  say "Upgrade UserTasks $_from → $_to (project $PROJECT). Release notes: $RELEASE_BASE/tag/v$_to"
+  if [ "$_c" = 0 ] && [ $_force = 0 ] && [ "$_switch" = 0 ]; then say "UserTasks $_from is already installed (latest: $_to)."; return 0; fi
+  if [ "$_c" = -1 ] && [ $_downgrade = 0 ]; then
+    [ -n "$_ed" ] && [ "$_switch" = 1 ] && die "the newest $(edition_name "$_ed") build is for UserTasks $_to, older than the installed $_from. It usually follows a release within a few hours: try again later (or pass --to <version> --allow-downgrade)."
+    die "$_to is older than the installed $_from (pass --allow-downgrade to go back on purpose)"
+  fi
+  _what="UserTasks $_from → $_to"
+  if [ "$_switch" = 1 ]; then _what="$_what, switching to $( [ -n "$_ed" ] && edition_name "$_ed" || printf 'the public image (paid extensions removed; their data is kept)')"; fi
+  say "Upgrade $_what (project $PROJECT). Release notes: $RELEASE_BASE/tag/v$_to"
   confirm "Continue?" y || die "not upgraded"
   DONE=""
   note() { DONE="${DONE}  - $*
 "; }
 
+  # 0. Editions: the licence check comes first, so a refusal changes nothing.
+  _lic_file=""
+  if [ -n "$_ed" ] && [ -z "$_bundle" ]; then
+    _lic_file=$(edition_licence "$_ed" "$_licence")
+    _purpose=upgrade; [ "$_switch" = 1 ] && _purpose=switch
+    rm -rf "$DIR/editions/.request"
+    if ! edition_request "$_ed" "$_lic_file" "$_to" "$_purpose" "$DIR/editions/.request" "$DIR/release-key.pub.pem"; then
+      say ""
+      case "$EDITION_ERROR_CODE" in
+        licence_expired|licence_revoked|licence_not_yet_valid) say "${R}Upgrade refused: the licence is not active.${N}" ;;
+        *) say "${R}Upgrade refused.${N}" ;;
+      esac
+      say "$EDITION_ERROR"
+      say "UserTasks $_from keeps running, unchanged. Renewed? Install the new licence (Settings → Licence, or --licence <file>) and run usertasks upgrade again."
+      exit 1
+    fi
+    note "licence checked with usertasks.com: $(edition_name "$_ed") $ED_VERSION"
+  elif [ -n "$_licence" ] && [ -n "$_ed" ]; then
+    _lic_file=$(edition_licence "$_ed" "$_licence")
+  fi
+
   # 1. Backup.
   if [ $_skip_backup = 1 ]; then warn "no backup (--skip-backup): a failed migration can then only be undone from your own backups"
   else do_backup "$DIR/backups/$(now_stamp)-$_from-before-$_to"; note "backup: $BACKUP_DIR"; fi
 
-  # 2. Download and verify.
-  fetch_release "$_to"; note "downloaded and verified release $_to (signature + checksum)"
+  # 2. Download (or take from the bundle) and verify.
+  if [ -n "$_bundle" ]; then fetch_release "$_to" "$BUNDLE_DIR/release"; note "release $_to from the offline bundle (signature + checksum)"
+  else fetch_release "$_to"; note "downloaded and verified release $_to (signature + checksum)"; fi
   _new_rel="$DIR/releases/$_to"
-  _new_img=$(release_image "$_new_rel")
 
   # 3. Image.
-  if ! docker image inspect "$_new_img" >/dev/null 2>&1; then
-    step "Pulling $_new_img"
-    if ! docker pull "$_new_img"; then
-      [ $_build = 1 ] || die "could not pull $_new_img; nothing changed (UserTasks $_from keeps running). Re-run with --build to build it locally."
-      build_image_from_source "$_to"; _new_img=$BUILT_IMAGE
+  _new_ed_version=""
+  if [ -n "$_bundle" ]; then
+    _keep_img=$IMAGE; bundle_load "$BUNDLE_DIR"; _new_img=$IMAGE; IMAGE=$_keep_img; _new_ed_version=$ED_VERSION
+    note "images loaded from the bundle; $(edition_name "$_ed") $ED_VERSION verified against its signed manifest"
+  elif [ -n "$_ed" ]; then
+    edition_refresh "$_lic_file" "$_to" upgrade || die "$EDITION_ERROR; nothing changed (UserTasks $_from keeps running)."
+    _new_img=$EDITION_IMAGE; _new_ed_version=$ED_VERSION
+    note "image $_new_img (verified against the signed edition manifest)"
+  else
+    _new_img=$(release_image "$_new_rel")
+    if ! docker image inspect "$_new_img" >/dev/null 2>&1; then
+      step "Pulling $_new_img"
+      if ! docker pull "$_new_img"; then
+        [ $_build = 1 ] || die "could not pull $_new_img; nothing changed (UserTasks $_from keeps running). Re-run with --build to build it locally."
+        build_image_from_source "$_to"; _new_img=$BUILT_IMAGE
+      fi
     fi
+    note "image $_new_img"
   fi
-  note "image $_new_img"
   fill_missing_env "$_new_rel"
 
   # 4. Migrations, with the new code, while the current version keeps serving (they are additive).
@@ -858,9 +1263,11 @@ cmd_upgrade() {
   REL=$_new_rel; IMAGE=$_new_img
   if start_stack "$_new_img" "${USERTASKS_UPGRADE_TIMEOUT:-300}" && running_image_is "$_new_img"; then
     PREV_VERSION=$_from; PREV_IMAGE=$_from_img; VERSION=$_to
+    EDITION=$_ed; EDITION_VERSION=$_new_ed_version
     save_state
     install_wrapper_from "$_new_rel"
     note "switched the app and worker to $_to; health check passed"
+    if [ -n "$_licence" ] && [ -n "$_lic_file" ]; then edition_install_licence "$_lic_file"; fi
     say ""
     say "${G}${B}Upgraded UserTasks $_from → $_to.${N} What was done:"
     printf '%s' "$DONE"
@@ -959,13 +1366,21 @@ forward_cli() {
   die "'$1' is not a server command (usertasks help). For the UserTasks CLI: npm install -g @user-tasks/cli"
 }
 
-usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; }
 
 main() {
   _cmd=${1:-help}; [ $# -gt 0 ] && shift
   case "$_cmd" in
     help|-h|--help) usage; return 0 ;;
     install) DIR=""; BUILT_IMAGE=""; PROFILES=standalone; cmd_install "$@"; return ;;
+    bundle-download)
+      # Works without an install (install.sh --bundle-download passes --work <folder>).
+      _work=""; _prev=""
+      for _a in "$@"; do [ "$_prev" = --work ] && _work=$_a; _prev=$_a; done
+      if [ -n "$_work" ]; then
+        mkdir -p "$_work"; DIR=$(cd "$_work" && pwd); RELEASE_BASE=${USERTASKS_RELEASE_BASE:-$DEFAULT_RELEASE_BASE}; IMAGE=""; PROJECT=""
+      else resolve_dir; load_state; fi
+      cmd_bundle_download "$@"; return ;;
     cli) forward_cli "$@" ;;
     status|logs|backup|restore|upgrade|config|uninstall|setup-code|admin|start|stop|restart|version|--version) : ;;
     *) forward_cli "$_cmd" "$@" ;;
@@ -984,7 +1399,7 @@ main() {
     start) start_stack "$IMAGE" 600 ;;
     stop) dc stop ;;
     restart) dc restart; wait_healthy 180 && ok "healthy" ;;
-    version|--version) say "UserTasks $VERSION ($IMAGE)" ;;
+    version|--version) say "UserTasks $VERSION ($IMAGE)$( [ -n "${EDITION:-}" ] && printf ', %s %s' "$(edition_name "$EDITION")" "$EDITION_VERSION")" ;;
   esac
 }
 

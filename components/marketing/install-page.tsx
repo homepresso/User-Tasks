@@ -102,7 +102,7 @@ export function InstallPage() {
           intro={<>On any machine with Docker: the installer checks it, downloads a <strong className="text-white">signed release</strong>, asks which services to use, starts everything and prints your setup code. Then <InlineCode>usertasks upgrade</InlineCode> keeps it current.</>}
           primary={{ href: "#install", label: "Install now" }}
           secondary={{ href: "#manage", label: "Upgrade and back up" }}
-          bullets={["Linux, macOS and Windows", "Signed, pinned releases", "Safe to run again"]}
+          bullets={["Production-ready for self-hosting today", "Linux, macOS and Windows", "Signed, pinned releases", "Safe to run again"]}
         />
 
         <section id="install" className="scroll-mt-24 border-t border-(color:--mkt-ink)/[0.07]">

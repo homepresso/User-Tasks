@@ -16,7 +16,7 @@ import {
   type TaskFieldDef, type TaskFieldType,
 } from '@/lib/task-field-schema'
 import {
-  defaultFormLayout, findCell, isPaged, mapStateTargets, layoutKeyOrder, normalizeFormLayout, pageGrid, pageOfField, placeField, removeFieldFromLayout,
+  addRow, defaultFormLayout, findCell, isPaged, mapStateTargets, layoutKeyOrder, normalizeFormLayout, pageGrid, pageOfField, placeField, placeFieldInSection, removeFieldFromLayout,
   renameLayoutKey, withPageGrid, groupSectionRows, CHOICE_GROUP_LIMITS, type FormChoiceGroup, type FormLayout, type FormPage, type FormRow, type FormSection,
 } from './layout'
 import { choiceGroupKeys, sectionIncludedKey, sectionKeyFromTitle, sectionKeyProblem } from './sections'
@@ -37,6 +37,7 @@ import { formStateConfig, parseTarget } from './form-state'
 import { formRuleProblem, newRuleId, normalizeFormRules, promptIds, renameRuleKey, type FormRule, type RuleKnown } from './form-rules'
 import type { DataTableCondition, DataTableConditionGroup } from './data-table'
 import { layoutFormVariables } from './form-params'
+import { isBindingRuleId } from './data-binding'
 import { expressionKnown, expressionProblems, labelOrder, renameExpressionKey } from './label-field'
 
 export interface DesignerField extends TaskFieldDef {
@@ -73,9 +74,11 @@ export function designerStateFrom(def: FormDefinition): DesignerState {
   const keys = fields.map((f) => f.key)
   // New (empty) forms start with a header; existing forms keep theirs (or none).
   const header = def.header ?? (def.fields.length === 0 ? defaultFormHeader() : { ...defaultFormHeader(), enabled: false })
+  const layout = def.layout ?? normalizeFormLayout(null, keys) ?? defaultFormLayout(keys)
   return {
     fields,
-    layout: def.layout ?? normalizeFormLayout(null, keys) ?? defaultFormLayout(keys),
+    // A data binding's managed rules are derived (lib/forms/data-binding.ts): the designer edits the binding, the save regenerates them.
+    layout: layout.rules?.some((r) => isBindingRuleId(r.id)) ? { ...layout, rules: layout.rules.filter((r) => !isBindingRuleId(r.id)) } : layout,
     theme: def.theme,
     buttons: normalizeFormButtons(def.buttons ?? null),
     header,
@@ -345,6 +348,49 @@ export function addField(state: DesignerState, type: TaskFieldType, at?: { row: 
     layout: at ? placeField(view.layout, field.key, at.row, at.index) : placeField(view.layout, field.key, view.layout.rows.length, 0),
   }))
   return { state: next, field }
+}
+
+/**
+ * Data binding (lib/forms/data-binding.ts): the binding part of a layout a
+ * bind returned (`data_target` — an extension's config — or `data_binding`)
+ * put into the designer's layout, the rest of the designer's layout kept.
+ */
+export function withSourceBinding(state: DesignerState, bound: Record<string, unknown>): DesignerState {
+  const layout = { ...state.layout } as FormLayout & Record<string, unknown>
+  if ('data_target' in bound) layout.data_target = bound.data_target as FormLayout['data_target']
+  if ('data_binding' in bound) layout.data_binding = bound.data_binding as FormLayout['data_binding']
+  return { ...state, layout }
+}
+
+/**
+ * Fields a bind created (bound to source fields), placed where they were
+ * dropped: the first at `at` (default: new rows at the end; of page
+ * `pageId`), the others each in a new row after it; into `section` when
+ * dropped on a section's foot. Their keys are made unique against the form.
+ */
+export function addBoundFields(state: DesignerState, fields: TaskFieldDef[], options: { at?: { row: number; index: number }; pageId?: string | null; section?: string } = {}): { state: DesignerState; fields: DesignerField[]; renamed: Record<string, string> } {
+  const taken = takenKeys(state)
+  const renamed: Record<string, string> = {}
+  const added: DesignerField[] = fields.map((f) => {
+    const key = taken.includes(f.key) ? uniqueFieldKey(f.key, taken) : f.key
+    if (key !== f.key) renamed[f.key] = key
+    taken.push(key)
+    return { ...f, key, _id: designerId(), _keyLocked: true }
+  })
+  const next = onPage(state, options.pageId, (view) => {
+    let layout = view.layout
+    added.forEach((field, i) => {
+      if (options.section) { layout = placeFieldInSection(layout, field.key, options.section); return }
+      if (!options.at || options.at.row >= layout.rows.length) { layout = placeField(layout, field.key, layout.rows.length, 0); return }
+      if (i === 0) { layout = placeField(layout, field.key, options.at.row, options.at.index); return }
+      // The others: each in a new full-width row right after the previous one.
+      const after = (findCell(layout, added[i - 1].key)?.row ?? layout.rows.length - 1) + 1
+      const section = layout.rows[after - 1]?.section
+      layout = placeField(addRow(layout, 1, after, section), field.key, after, 0)
+    })
+    return { ...view, fields: [...view.fields, ...added], layout }
+  })
+  return { state: next, fields: added, renamed }
 }
 
 /**

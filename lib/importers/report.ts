@@ -26,12 +26,15 @@ export function importComplexityLevel(score: number): 'low' | 'medium' | 'high' 
 }
 
 /**
- * auto: everything mapped and not complex; rebuild: under half mapped or very
- * complex; review otherwise.
+ * Coverage weighs more than size: a long workflow that maps well is
+ * "review", not "rebuild".
+ *   auto     everything mapped and not very complex (score ≤ 66)
+ *   rebuild  under half mapped, or under 65% mapped and very complex (≥ 85)
+ *   review   otherwise
  */
 export function importReadiness(coverage: ImportCoverage, score: number): ImportReport['readiness'] {
-  if (coverage.percent < 50 || score >= 85) return 'rebuild'
-  if (coverage.placeholder === 0 && coverage.partial === 0 && coverage.skipped === 0 && score <= 33) return 'auto'
+  if (coverage.percent < 50 || (coverage.percent < 65 && score >= 85)) return 'rebuild'
+  if (coverage.placeholder === 0 && coverage.partial === 0 && coverage.skipped === 0 && score <= 66) return 'auto'
   return 'review'
 }
 

@@ -21,7 +21,7 @@ import type { EndpointDef } from '@/lib/api-schemas/registry'
 import type { ActionField } from '@/lib/custom-actions/contract'
 import type { ExtensionManifestInput, SettingsScope } from '@/lib/extensions/manifest'
 import type { EntitlementDecision } from '@/lib/extensions/entitlement-port'
-import type { TaskFieldDef } from '@/lib/task-field-schema'
+import type { TaskFieldDef, TaskFieldType } from '@/lib/task-field-schema'
 import type { FIELD_PATCH_KEYS, FormDataTargetRef } from '@/lib/forms/data-target'
 export type { FormDataTargetRef } from '@/lib/forms/data-target'
 
@@ -50,6 +50,12 @@ export {
 export type { FieldFilterGroup, FieldFilterRule, FieldFilterOperator, FieldFilterType, FieldFilterField, FieldChange } from '@/lib/extensions/field-filters'
 export { toOpenApiDocument } from '@/lib/extensions/api-reference'
 export { importCoverage, importComplexityLevel, importReadiness, importReportMarkdown } from '@/lib/importers/report'
+/**
+ * Schedule math of the core Schedule trigger (pure): for an extension trigger that also runs on a
+ * schedule (e.g. a SharePoint site workflow), with the same settings and semantics — the most
+ * recent occurrence at or before now fires once (catch-up limited to that one slot).
+ */
+export { normalizeScheduleConfig, getDueOccurrence, getNextOccurrence, describeSchedule, type ScheduleConfig, type ScheduleMode } from '@/lib/workflow-schedule'
 
 /**
  * An error with an HTTP status and a machine code, for endpoint, MCP tool,
@@ -177,9 +183,24 @@ export interface ExtensionContext {
      * to the trigger) and without `matches()` — a person starting one
      * workflow by hand on a record. `byPerson` (with `workflowId`, a signed-in
      * person): the run records them as its starter (Started by, run visibility,
-     * {{workflow_started_by}}), signed like every other start.
+     * {{workflow_started_by}}), signed like every other start. A hand start
+     * (`workflowId` + `byPerson`, or `inputs`) also checks the workflow's
+     * declared inputs server-side (types, required, choices; declared keys
+     * only) and passes them as the run's start variables next to the payload —
+     * a declared input wins over a payload field of the same name; invalid or
+     * missing ones throw ExtensionError 400 `invalid_inputs` with
+     * `details.fields` (key → message).
      */
-    trigger(key: string, payload: Record<string, unknown>, options?: { dedupeKey?: string; workflowId?: string; byPerson?: boolean }): Promise<{ started: number; duplicate: boolean }>
+    trigger(key: string, payload: Record<string, unknown>, options?: { dedupeKey?: string; workflowId?: string; byPerson?: boolean; inputs?: Record<string, unknown> }): Promise<{ started: number; duplicate: boolean }>
+    /**
+     * The start inputs (input parameters) of one of the extension's workflows —
+     * what the Run dialog asks for: key, label, type, required, default,
+     * choices and help, from the published version (the draft while never
+     * published). `supported: false` marks inputs a hand start from an
+     * extension page can't carry (attachments, custom form controls). Empty
+     * without workflows.view / start / activate / edit.
+     */
+    inputs(workflowId: string): Promise<ExtensionWorkflowInput[]>
     /**
      * Create a draft workflow (inactive) whose trigger is one of this
      * extension's triggers, pre-configured — e.g. "new workflow for this
@@ -202,8 +223,12 @@ export interface ExtensionContext {
      * bound to this record". Empty without workflows.view.
      */
     list(options?: { trigger?: string }): Promise<ExtensionWorkflowSummary[]>
-    /** Publish the draft and activate (workflows.activate), as the caller. Only this extension's workflows. */
-    publish(workflowId: string): Promise<{ id: string; version: number | null }>
+    /**
+     * Publish the draft and activate (workflows.activate), as the caller. Only this extension's
+     * workflows. A trigger overlapping with other workflows (TriggerHandler.conflicts) needs an
+     * answer in the draft or `onConflict`, else 409 (code conflict, details.conflicts).
+     */
+    publish(workflowId: string, options?: { onConflict?: TriggerConflictChoice; notes?: string }): Promise<{ id: string; version: number | null }>
     /** Activate / deactivate (workflows.activate), as the caller. */
     setActive(workflowId: string, active: boolean): Promise<void>
     /** Queue the workflow for deletion (workflows.delete), as the caller. */
@@ -214,6 +239,14 @@ export interface ExtensionContext {
      * Automations list. Tags are lower-case, at most 40 characters.
      */
     setTags(workflowId: string, tags: string[], options: { prefix: string }): Promise<void>
+    /**
+     * The draft graph of one of this extension's workflows (workflows.view): nodes, edges, variables,
+     * the trigger node's id and settings, and whether the draft has unpublished changes — e.g. to
+     * copy it (create with nodes / edges) when splitting one workflow into several.
+     */
+    definition(workflowId: string): Promise<{ id: string; triggerNodeId: string | null; triggerConfig: Record<string, unknown>; nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>>; variables: Array<Record<string, unknown>>; hasUnpublishedChanges: boolean; published: boolean; active: boolean }>
+    /** Replace the trigger's settings in the draft (as the person: workflows.edit or a design grant; audited); publish to make a new version. */
+    setTriggerConfig(workflowId: string, config: Record<string, unknown>): Promise<{ changed: boolean }>
     /**
      * Give the signed-in person an Edit grant on this workflow (one of this
      * extension's), so the designer lets them save, restore and test it without
@@ -340,13 +373,23 @@ export interface ExtensionContext {
    *                         registered usage counter (ServerExtension.usageCounters);
    *   assertLimit(key, …)   throws 402 extension_limit_reached when adding would
    *                         exceed the limit (and the licence error when not licensed).
-   * Limits are checked when something is added, never retroactively.
+   *   pausedRuns()          workflow runs of the workspace parked because an
+   *                         extension's licence lapsed (paused at a step that
+   *                         failed with extension_licence_expired);
+   *   resumePausedRuns(…)   resume them (only while this extension is licensed;
+   *                         audited; a run blocked by another lapsed extension
+   *                         simply parks again).
+   * Limits are checked when something is added, never retroactively. The
+   * decision also says whether the deciding grant is a trial, its expiry /
+   * cutoff / days left, and the farms it is bound to (farmIds; unset = any).
    */
   licence: {
     check(feature?: string): Promise<EntitlementDecision>
     assert(feature?: string): Promise<void>
     limit(key: string, options?: LimitOptions): Promise<LimitVerdict>
     assertLimit(key: string, options?: LimitOptions): Promise<LimitVerdict>
+    pausedRuns(): Promise<number>
+    resumePausedRuns(options?: { limit?: number; deadline?: number }): Promise<{ resumed: number; failed: number; remaining: number }>
   }
   /**
    * The workspace's connections (integrations) of THIS extension's connectors
@@ -428,6 +471,28 @@ export interface ExtensionContext {
   archives: {
     unpack(bytes: Uint8Array, options?: { maxFiles?: number; maxFileBytes?: number; maxTotalBytes?: number }): Promise<{ format: 'zip' | 'cab'; entries: Array<{ name: string; bytes: Uint8Array }> }>
   }
+  /**
+   * Event waits for workflow steps: a step pauses its run until an event
+   * (from the extension's own trigger pipeline: push receivers, pollers)
+   * matches, or a timeout. No polling per run: waits are stored with an
+   * indexed match key; `resume` looks up the waiters of that key.
+   *
+   *   // in a node handler — return what waitFor gives back
+   *   return ctx.runs.waitFor({ key: 'item_update', match: { list: id, item: 4 },
+   *     conditions: { logic: 'and', rules: [{ field: 'Status', operator: 'equals', value: 'Approved' }] },
+   *     timeoutMinutes: 1440, onTimeout: 'branch', description: 'Status = Approved on item 4' })
+   *
+   *   // in the trigger pipeline, when an item changes
+   *   await ctx.runs.resume({ key: 'item_update', match: { list: id, item: 4 }, data: fields })
+   *
+   * The step resumes with `event` (the data) and `timed_out: false`; on a
+   * timeout: onTimeout 'continue' (timed_out: true), 'fail' (the step fails)
+   * or 'branch' (the edges labelled "Timed out"; others on a match).
+   */
+  runs: {
+    waitFor(input: ExtensionWaitInput): ExtensionWaitRequest
+    resume(input: { key: string; match: Record<string, string | number | boolean>; data?: Record<string, unknown> }): Promise<{ resumed: number; waiting: number }>
+  }
   logger: ExtensionLogger
   /**
    * Instance-level contexts only (public routes with `auth: none`, instance
@@ -446,7 +511,7 @@ export interface FormCreateInput {
   /** Grid, parameters, rules … (lib/forms/layout.ts); `data_target` is set from `target`. */
   layout?: Record<string, unknown> | null
   /** The binding: one of this extension's form target keys and its settings. */
-  target: { key: string; config: FormDataTargetRef['config']; label?: string }
+  target: { key: string; config: FormDataTargetRef['config']; label?: string; writes?: 'rules' }
   /** Override the default buttons (lib/forms/buttons.ts). */
   buttons?: unknown[] | null
 }
@@ -458,8 +523,8 @@ export interface FormUpdateInput {
   fields?: FormCreateInput['fields']
   layout?: FormCreateInput['layout']
   buttons?: FormCreateInput['buttons']
-  /** New config of the form's binding (its target key stays). */
-  target?: { config: Record<string, unknown>; label?: string }
+  /** New config of the form's binding (its target key stays); `writes: 'rules'`: only the Save to … action writes (FormDataTargetRef.writes). */
+  target?: { config: Record<string, unknown>; label?: string; writes?: 'rules' }
 }
 
 /** A form bound to one of the extension's targets. */
@@ -501,6 +566,21 @@ export interface ExtensionWorkflowRun {
   completedAt: string | null
   /** The run page (/automations/runs/<id>), null while queued. */
   path: string | null
+}
+
+/** A start input of a workflow (ctx.workflows.inputs). */
+export interface ExtensionWorkflowInput {
+  key: string
+  label: string
+  type: 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'json' | 'select' | 'email' | 'url' | 'attachments' | 'custom'
+  required: boolean
+  /** Typed default, or null. */
+  default: unknown
+  /** Choices of a `select` input. */
+  options: Array<{ value: string; label: string }> | null
+  help: string | null
+  /** False for inputs only UserTasks itself can collect (attachments, custom form controls). */
+  supported: boolean
 }
 
 /** Objects ctx.grants manages. */
@@ -554,6 +634,8 @@ export interface ExtensionRunHistoryOptions {
   /** Page size, 1–100 (default 25). */
   limit?: number
   offset?: number
+  /** Keyset paging (newest-first order): the previous page's `nextCursor`; deep pages without OFFSET. */
+  cursor?: string
 }
 
 export interface ExtensionRunTask {
@@ -589,8 +671,11 @@ export interface ExtensionRunHistoryItem extends ExtensionWorkflowRun {
 
 export interface ExtensionRunHistory {
   runs: ExtensionRunHistoryItem[]
-  /** Runs matching the filters (queued jobs not included). */
+  /** Runs matching the filters (queued jobs not included), counted up to 10 000 (`totalCapped`: more). */
   total: number
+  totalCapped: boolean
+  /** Pass as `cursor` for the next page (newest-first order); null on the last page. */
+  nextCursor: string | null
   /** Queued jobs that have not started yet (in `runs` on the first page when `waiting` is asked for). */
   queued: number
   hasMore: boolean
@@ -652,6 +737,8 @@ export interface BoundForm {
   key: string
   config: FormDataTargetRef['config']
   label: string | null
+  /** `rules`: only buttons with a Save to … action write the record. */
+  writes?: 'rules' | null
   updatedAt: string | null
   designerUrl: string
   pageUrl: string
@@ -747,6 +834,12 @@ export interface DirectorySourceGroup {
   description?: string | null
   /** Where the group comes from, shown with its team, e.g. "SharePoint · Sales". */
   label?: string | null
+  /**
+   * The group's origin badge when it differs from the source's `kind`
+   * (manifest contributes.directorySources[].kind), e.g. an Active Directory
+   * group a SharePoint source lists as such: 'active_directory'.
+   */
+  kind?: 'sharepoint' | 'active_directory' | 'ldap' | 'entra' | 'okta' | 'google' | 'extension' | null
   /** externalIds of this source's users (direct members). */
   members: string[]
   nested?: DirectorySourceNestedGroup[]
@@ -879,6 +972,46 @@ export interface TriggerHandler {
    * every active workflow with the trigger starts.
    */
   matches?(config: Record<string, unknown>, payload: Record<string, unknown>): boolean
+  /**
+   * Other workflows this configuration would overlap with (e.g. another workflow already
+   * starting on the same event of the same record set). The designer asks the person about
+   * each one when the trigger settings change and stores the answer in the draft
+   * (`config[TRIGGER_CONFLICT_CHOICES]`, conflict key → choice); publishing checks again and
+   * refuses unanswered conflicts (API: `on_conflict`). Runs as the person.
+   */
+  conflicts?(input: { ctx: ExtensionContext; workflowId: string | null; config: Record<string, unknown> }): Promise<TriggerConflict[]>
+  /**
+   * The current values of the record behind a run (manifest `record`), by
+   * field key in the shape of the run variable (e.g. `after`): core asks when
+   * a task whose form is prefilled from the record opens, so the person sees
+   * the record as it is now (fields they already edited keep their value).
+   * `ids` holds the run variables named in `record.idFrom`. Return null when
+   * the record is gone or can't be read (the stored values stay). Runs as
+   * the person opening the task; check they may read the record.
+   */
+  readRecord?(input: { ctx: ExtensionContext; config: Record<string, unknown>; ids: Record<string, unknown> }): Promise<Record<string, unknown> | null>
+  /**
+   * Apply the answers when the workflow is published, before its new version goes live:
+   * `take_over` (e.g. take the event out of the other workflow — a new version of THAT one) or
+   * `keep_both` (record that both run). Runs as the person; throw to stop the publish.
+   */
+  resolveConflicts?(input: { ctx: ExtensionContext; workflowId: string; config: Record<string, unknown>; choices: Record<string, TriggerConflictChoice> }): Promise<{ notes?: string[] }>
+}
+
+/** Where the designer stores the answers to trigger conflicts in the trigger's settings. */
+export const TRIGGER_CONFLICT_CHOICES = '_conflict_choices'
+export type TriggerConflictChoice = 'keep_both' | 'take_over'
+
+export interface TriggerConflict {
+  /** Stable key of this overlap (e.g. "created:<other workflow id>"); answers are stored by it. */
+  key: string
+  /** One plain sentence: "'Contracts – Item created' already starts when an item is created." */
+  message: string
+  workflow: { id: string; name: string }
+  /** Label of the take-over button ("Remove this event from 'Contracts – Item created'"). */
+  takeOverLabel: string
+  /** Taking over leaves the other workflow with nothing to start on (it is turned off, never deleted). */
+  deactivates?: boolean
 }
 
 export interface ExtensionEndpoint {
@@ -926,6 +1059,14 @@ export interface ExtensionJob {
   budgetMs?: number
   /** Run once per workspace that has the extension enabled and licensed (default), or once per instance. */
   scope?: 'tenant' | 'instance'
+  /**
+   * Also run while the extension is NOT licensed (expired / never licensed) in
+   * workspaces that have it enabled — for licence-lapse housekeeping only
+   * (give back what the extension changed outside UserTasks when its licence
+   * ends, and put it back when a licence arrives). Check ctx.licence yourself;
+   * never do licensed work from such a job.
+   */
+  runWhenUnlicensed?: boolean
   run(input: { ctx: ExtensionContext; deadline: number }): Promise<unknown>
 }
 
@@ -979,6 +1120,8 @@ export interface UiActionResult {
   tone?: 'success' | 'info' | 'warning' | 'danger'
   /** Navigate after the action (a path inside the app). */
   redirect?: string
+  /** Per-field messages (form field name → message) shown under those fields of an ExtensionActionForm. */
+  fieldErrors?: Record<string, string>
   /** Re-fetch the page's data. */
   refresh?: boolean
 }
@@ -1001,6 +1144,8 @@ export interface FormTargetForm {
   /** The binding's provider settings (layout.data_target.config). */
   config: FormDataTargetRef['config']
   fields: FormTargetField[]
+  /** `rules`: only a button's Save to … step writes (FormDataTargetRef.writes); null: an older binding (every submit writes). */
+  writes?: 'rules' | null
 }
 
 export interface FormTargetPrepareInput {
@@ -1039,6 +1184,14 @@ export interface FormTargetPrepared {
   canDelete?: boolean | null
   /** Named pages for the record, for {{target.url.<name>}} button redirects (e.g. `{ edit: '/f/<id>?ItemId=12' }`): app paths or http(s). */
   urls?: Record<string, string> | null
+  /**
+   * The record's own values by token name, for {{target.<name>}} in the
+   * Save to … step's expressions and the button's other steps (workflow
+   * inputs, messages): e.g. `{ id: 12, created_by: 'Jane', version: '3.0' }`.
+   * Return them for `purpose: 'submit'` (read on the server when the form is
+   * saved; never taken from the browser). Scalars, bounded.
+   */
+  context?: Record<string, string | number | boolean | null> | null
 }
 
 /** A person chosen in a Person field, as `submit` sees it. */
@@ -1056,6 +1209,23 @@ export interface FormTargetSubmitInput {
   people: Record<string, FormTargetPerson>
   /** The bytes of a file value (attachments / image fields of THIS submission only); null when it is not one of them. */
   readFile(file: unknown): Promise<{ name: string; contentType: string; bytes: Uint8Array } | null>
+  /**
+   * The button's visible "Save to …" action (bindings with `writes: 'rules'`):
+   * do exactly this. operation null = the provider's default for the form;
+   * conflict "overwrite" = `version` is null (no conflict check); `extra`:
+   * source fields set from the action's expressions (source key → value,
+   * resolved on the server), written besides the mapped form fields;
+   * `options`: the provider's own (e.g. upload: false). Absent: an older
+   * binding's implicit write.
+   */
+  action?: FormTargetSaveAction
+}
+
+export interface FormTargetSaveAction {
+  operation: 'create' | 'update' | null
+  conflict: 'refuse' | 'overwrite'
+  extra?: Record<string, unknown>
+  options?: Record<string, string | boolean>
 }
 
 export interface FormTargetResult {
@@ -1080,6 +1250,107 @@ export interface FormTargetProblem {
   field?: string
   severity: 'error' | 'warning' | 'info'
   message: string
+}
+
+/* ── form data targets: the binding, described and edited in the designer ─ */
+
+/**
+ * A field of the system a bound form writes (e.g. a SharePoint column), as
+ * the designer offers it: the "Connected to …" panel's mapping table and the
+ * Data panel's draggable fields use the same list.
+ */
+export interface FormTargetSourceField {
+  /** Stable key in the source (e.g. the column's internal name); what `bind` takes. */
+  key: string
+  label: string
+  /** The source's own type name, shown to people ("Choice", "Person or group"). */
+  typeLabel: string
+  /** Form field types that can hold it, the suggested one first; an empty list = cannot be bound. */
+  fieldTypes: TaskFieldType[]
+  required?: boolean
+  readOnly?: boolean
+  multi?: boolean
+  choices?: string[]
+  /** A lookup to another list / table (its name). */
+  lookup?: string | null
+  help?: string | null
+  /** How the Data panel groups it, e.g. 'columns' | 'lookups' | 'system' (provider-defined, plain). */
+  group?: string | null
+  /**
+   * Where a structured value's plain value is (e.g. `value` of a lookup's
+   * `{ id, value }`, `url` of a link): a workflow prefill reads
+   * `{{<record>.<key>.<valuePath>}}`. People need none (core maps their
+   * `email` to a workspace member).
+   */
+  valuePath?: string | null
+  /** A lookup column whose list this extension offers as a lookup source: dropping it makes an Autocomplete bound to that list. */
+  lookupSource?: { extension: string; provider: string; source: string; value_field?: string; label_field?: string } | null
+  /** Added in the source since the last look (e.g. by the latest schema refresh). */
+  isNew?: boolean
+}
+
+/** One form field's link to a source field (null = not mapped). `locked`: managed by the provider (e.g. the uploaded file), shown but not editable. */
+export interface FormTargetMapping { field: string; source: string | null; locked?: boolean; note?: string | null }
+
+/**
+ * What a provider tells the designer about a form's binding, in plain words
+ * (no ids or JSON): what it is connected to, how records load, the mapping,
+ * editable options, actions and warnings.
+ */
+export interface FormTargetDescription {
+  /** "SharePoint list "Requests"". */
+  title: string
+  /** Open the source (e.g. the list in SharePoint). */
+  link?: { label: string; url: string } | null
+  /** Read-only facts: role, which record loads, replacement state … */
+  facts?: Array<{ label: string; value: string; help?: string | null }>
+  sourceFields: FormTargetSourceField[]
+  mappings: FormTargetMapping[]
+  notes?: Array<{ severity: 'error' | 'warning' | 'info'; message: string }>
+  /** Editable settings of the binding (saved into data_target.config through `bind`). */
+  options?: Array<{ key: string; label: string; help?: string | null; type: 'boolean' | 'select'; value: string | boolean; choices?: Array<{ value: string; label: string }> }>
+  /** Actions that act at once (not through the form save), e.g. "Use SharePoint's forms again". */
+  actions?: Array<{ id: string; label: string; help?: string | null; confirm?: string | null; tone?: 'danger' | 'default' }>
+  /** Plain labels of the {{target.*}} redirect targets ("return_url" → "Back to the SharePoint list"). */
+  tokens?: Record<string, string>
+  /**
+   * The provider's own buttons for this form (FormButton shapes, by id): the
+   * designer offers "Reset to <defaultsLabel>" on a button with the same id —
+   * label, style, look and behaviours as the provider makes them.
+   */
+  defaultButtons?: Array<Record<string, unknown>>
+  /** What the defaults are called ("SharePoint default"). */
+  defaultsLabel?: string | null
+  /**
+   * The "Save to …" action as the designer shows it: its name ("Save to
+   * SharePoint list "Requests""), the operations it offers (value '' = the
+   * default, described), whether it can overwrite on a conflict, and its
+   * own options.
+   */
+  save?: {
+    label: string
+    operations: Array<{ value: '' | 'create' | 'update'; label: string; help?: string | null }>
+    conflict?: boolean
+    options?: Array<{ key: string; label: string; help?: string | null; type: 'boolean'; value: boolean }>
+  } | null
+}
+
+export interface FormTargetBindInput {
+  ctx: ExtensionContext
+  form: FormTargetForm
+  /** The mapping as the designer wants it (form field key → source field key, or null). */
+  mappings?: Array<{ field: string; source: string | null }>
+  /** Source fields to add to the form (new fields bound to them). */
+  add?: string[]
+  /** New option values (FormTargetDescription.options keys). */
+  options?: Record<string, string | boolean>
+}
+
+export interface FormTargetBindResult {
+  /** The binding's new config (saved with the form; its identity must stay the same). */
+  config: FormDataTargetRef['config']
+  /** New form fields for `add` (keys unique against the form's). */
+  fields?: TaskFieldDef[]
 }
 
 /**
@@ -1123,8 +1394,91 @@ export interface FormTarget {
    * Delete button.
    */
   remove?(input: FormTargetRemoveInput): Promise<{ record?: { id: string; label?: string | null } | null; message?: string | null; returnUrl?: string | null }>
+  /**
+   * The designer: what the binding is (the "Connected to …" panel and the
+   * Data panel). `form` is the designer's current, unsaved state.
+   */
+  describe?(input: { ctx: ExtensionContext; form: FormTargetForm }): Promise<FormTargetDescription>
+  /**
+   * The designer changed the mapping / options or adds source fields: return
+   * the new config (and new fields). Validate here (e.g. refuse a field type
+   * that cannot hold the column, with ExtensionError details.fields). Saved
+   * with the form, never on its own.
+   */
+  bind?(input: FormTargetBindInput): Promise<FormTargetBindResult>
+  /** A FormTargetDescription action (acts at once, as the person; e.g. replace / restore a list's forms). */
+  runAction?(input: { ctx: ExtensionContext; form: FormTargetForm & { id: string }; action: string }): Promise<{ message?: string | null }>
   /** The form was deleted or unbound (runs after the response; errors are logged). */
   deleted?(input: { ctx: ExtensionContext; formId: string; config: FormDataTargetRef['config'] }): Promise<void>
+}
+
+/* ── lookup sources: lists a form's Dropdown / Autocomplete reads ─── */
+
+/** A column of a lookup source list, as the designer offers it. */
+export interface LookupSourceColumn {
+  key: string
+  label: string
+  /** string (default), number, date, boolean, choice, user, lookup. */
+  type?: string
+  choices?: string[]
+}
+
+/** A list a lookup can read (e.g. a connected SharePoint list), with its columns. */
+export interface LookupSourceList {
+  id: string
+  label: string
+  columns: LookupSourceColumn[]
+  /** The column stored as the value by default (e.g. `id`). */
+  valueColumn?: string
+  /** The column shown by default (e.g. `Title`). */
+  labelColumn?: string
+}
+
+/** One filter of a lookup query: its value already resolved by core (cascading filters read other fields). */
+export interface LookupQueryFilter {
+  column: string
+  operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'is_set' | 'is_not_set'
+  value?: string
+}
+
+export interface LookupQueryInput {
+  ctx: ExtensionContext
+  /** LookupSourceList.id */
+  listId: string
+  /** The typed text ('' = no search). */
+  search: string
+  match: 'contains' | 'prefix'
+  searchColumns: string[]
+  /** All must hold. */
+  filters: LookupQueryFilter[]
+  sort: { column: string; direction: 'asc' | 'desc' } | null
+  /** Page size and start (server-side paging). */
+  limit: number
+  offset: number
+  /** Only the rows whose `valueColumn` is one of these (checking stored / submitted values). */
+  values?: string[]
+  valueColumn: string
+  /** The columns core needs back (display, value, fill); return no others. */
+  columns: string[]
+}
+
+/**
+ * A lookup source (ServerExtension.lookupSources): lists of the system the
+ * extension connects (e.g. SharePoint lists) that a form's Autocomplete /
+ * Dropdown reads its options from. Core resolves the filters, checks the
+ * stored value is one of the source's rows on submit and keeps only the
+ * configured columns. Runs as the person filling the form (anonymous
+ * visitors only when the field allows it).
+ */
+export interface LookupSourceProvider {
+  /** What it is ("SharePoint list"). */
+  label: string
+  /** Licence feature checked before every call. */
+  feature?: string
+  /** The lists a designer may pick (as the designer). */
+  lists(input: { ctx: ExtensionContext }): Promise<LookupSourceList[]>
+  /** One page of rows. `more`: there are rows after this page. */
+  query(input: LookupQueryInput): Promise<{ rows: Array<Record<string, unknown>>; more?: boolean }>
 }
 
 /* ── workflows created by extensions ─────────────────────────────── */
@@ -1284,6 +1638,216 @@ export interface InfoPathEnrichResult {
   notes?: string[]
 }
 
+/** A place the core Nintex importer can put a workflow, offered by an extension ("a connected SharePoint list"). */
+export interface NintexImportTarget {
+  /** Unique within the extension; the importer addresses it as `ext.<extension>.<key>`. */
+  key: string
+  label: string
+  description?: string
+  /** What the person picks for it (e.g. the list, the events): select options are resolved for the workspace. */
+  fields: Array<{ name: string; label: string; type: 'select' | 'multiselect' | 'text' | 'boolean'; options?: Array<{ value: string; label: string }>; required?: boolean; default?: string | string[] | boolean; description?: string }>
+}
+
+/** The Nintex workflow's start settings, as read from the export. */
+export interface NintexStartOptions { manual: boolean; onCreate: boolean; onChange: boolean; conditions: boolean; workflowType: string }
+
+/** A SharePoint list action of the Nintex workflow, for the extension to map onto its own step. */
+export interface NintexListActionInput {
+  kind: 'update' | 'create' | 'delete' | 'query'
+  label: string
+  fields: Record<string, string>
+  currentItem: boolean
+  caml?: string
+  top?: number
+  outputVar?: string
+  /** Query list: the CAML translated — OData $filter / $orderby, a readable form; `exact` false when part of it could not be translated (keep `caml`). */
+  query?: { filter: string; orderby: string; text: string; exact: boolean; unsupported: string[]; listId: string | null; select: string[] }
+}
+
+/**
+ * One Nintex action as this extension's step(s): `node`, then `nodes` in order (e.g. "stop
+ * inheriting permissions" and one grant per principal for Set item permissions).
+ */
+export interface NintexActionMapping {
+  node: Omit<WorkflowGraphNode, 'id'>
+  nodes?: Array<Omit<WorkflowGraphNode, 'id'>>
+  status?: ImportReportItem['status']
+  mappedTo: string
+  detail?: string
+}
+
+/** What a target makes of an import: the trigger, the first step, and how list actions map. */
+export interface NintexTargetPlan {
+  /** One of this extension's trigger keys and its config (e.g. the list and events). */
+  trigger: { key: string; config: Record<string, unknown>; label?: string }
+  /** A step the target needs first (e.g. remember the item id); its id must not be `trigger`. */
+  firstStep?: WorkflowGraphNode | null
+  /** Map a list action onto this extension's step (null: the importer's placeholder). */
+  listAction?(action: NintexListActionInput): { node: Omit<WorkflowGraphNode, 'id'>; status?: ImportReportItem['status']; mappedTo: string; detail?: string } | null
+  /**
+   * Map another Nintex action onto this extension's step (null: the importer's placeholder):
+   * the SharePoint-only ones — NWSetItemPermissions, SPCheckOutItemWithKeyAdapter,
+   * NWCheckInItemWithKeyAdapter, NWSetModerationStatusAdapter, NWStartWorkflow2Adapter … —
+   * with their parameters as UserTasks templates.
+   */
+  otherAction?(action: { type: string; label: string; params: Record<string, string>; currentItem: boolean }): NintexActionMapping | null
+  /** Shown before the import: other workflows on the same events, … */
+  conflicts?: Array<{ workflowId: string; name: string; detail: string }>
+  warnings?: string[]
+  /** After the workflow is made / replaced (e.g. resolve the event conflicts the person chose); returns notes. */
+  after?(input: { workflowId: string; conflictChoice: 'keep_both' | 'remove_from_other' }): Promise<string[]>
+  /**
+   * The workflow that already covers this target (e.g. one workflow per event of a list): the
+   * import becomes a new draft version of it — same id, trigger, versions and run history —
+   * instead of a second workflow on the same events. Ignored when the person picked a workflow.
+   */
+  into?: { workflowId: string; name: string } | null
+}
+
+/**
+ * A column of the record a target writes (e.g. a SharePoint list column), as the core Nintex
+ * importer compares it with the columns the workflow references. `kind` is the provider's type in
+ * the importer's plain vocabulary; `typeLabel` its own name for people ("Person or group").
+ */
+export type ImportColumnKind =
+  | 'text' | 'note' | 'number' | 'currency' | 'integer' | 'datetime' | 'boolean' | 'choice' | 'multichoice'
+  | 'person' | 'people' | 'lookup' | 'lookupmulti' | 'url' | 'calculated' | 'system' | 'other'
+
+export interface ImportTargetColumn {
+  /** Stable key (the internal name): what `{{after.<key>}}` and list steps use. */
+  key: string
+  /** Display name. */
+  label: string
+  kind: ImportColumnKind
+  typeLabel: string
+  readOnly?: boolean
+  choices?: string[]
+}
+
+/** The columns of a target (NintexImportHook.columns). */
+export interface ImportTargetColumns {
+  /** What they belong to, in plain words ("Expense Claims"). */
+  title: string
+  columns: ImportTargetColumn[]
+  /** Ids / names the export may use for this record type (e.g. the SharePoint list GUID and title): lookups to them are lookups to the current list. */
+  aliases?: string[]
+  /** Kinds `createColumns` can add; empty / absent: none. */
+  creatable?: ImportColumnKind[]
+  /** The person may add columns here (e.g. manages the list); else `createReason` says why not. */
+  canCreate?: boolean
+  createReason?: string | null
+}
+
+/** A column to add (NintexImportHook.createColumns). */
+export interface ImportColumnRequest { key: string; label: string; kind: ImportColumnKind; choices?: string[]; description?: string | null }
+
+/** What "create a new record type for this workflow" offers (NintexImportHook.createTargetInfo), e.g. a SharePoint list. */
+export interface NintexCreateTargetInfo {
+  /** The button: "Create a SharePoint list for this workflow". */
+  label: string
+  description?: string | null
+  /** Where it can go (e.g. connected sites), and the default (the current site in the designer embedded there). */
+  containers: Array<{ value: string; label: string }>
+  defaultContainer?: string | null
+  containerLabel?: string
+  /** Kinds of record type (e.g. list / document library). */
+  kinds: Array<{ value: string; label: string }>
+  /** Column kinds it can create. */
+  creatable: ImportColumnKind[]
+  canCreate: boolean
+  reason?: string | null
+}
+
+export interface NintexCreateTargetInput {
+  name: string
+  container: string
+  kind: string
+  columns: Array<ImportColumnRequest & { required?: boolean }>
+  /** A record type of that name exists: `fail` (409 code `exists`, details.existing) or `use` it (connect it; columns go through the column check). */
+  ifExists: 'fail' | 'use'
+  /** The dialog's id for this attempt: a retry of the same request finishes it instead of clashing with itself. */
+  requestId: string
+}
+
+export interface NintexCreatedTarget {
+  /** The import target it makes (one of this extension's target keys) and its settings. */
+  target: string
+  config: Record<string, unknown>
+  title: string
+  /** It existed already (ifExists: use). */
+  existing: boolean
+  created: Array<{ key: string; label: string }>
+  failed: Array<{ label: string; reason: string }>
+  url?: string | null
+  notes?: string[]
+}
+
+/** The target a workflow already is bound to (NintexImportHook.boundTarget): the embedded designer's default "Connect to this …". */
+export interface NintexBoundTarget {
+  /** One of this extension's target keys (as in `targets`). */
+  target: string
+  /** The target's settings for this workflow (e.g. its list and events), passed to `plan`. */
+  config: Record<string, unknown>
+  /** "Connect to this SharePoint list". */
+  label: string
+  /** "Expense Claims · Item created". */
+  description?: string | null
+}
+
+/**
+ * Hooks into the core Nintex importer (ServerExtension.nintex): targets the
+ * person can choose under "Where should this go?", and the plan for one.
+ * Runs only where the extension is usable (and `feature` licensed).
+ */
+export interface NintexImportHook {
+  feature?: string
+  targets(input: { ctx: ExtensionContext }): Promise<NintexImportTarget[]>
+  plan(input: { ctx: ExtensionContext; target: string; config: Record<string, unknown>; start: NintexStartOptions; workflowName: string; replacingWorkflowId?: string | null }): Promise<NintexTargetPlan>
+  /**
+   * The target one of this extension's workflows is bound to (its trigger settings), or null:
+   * the import dialog of that workflow's designer offers it first ("Connect to this list") and
+   * imports as a new draft of that workflow, keeping its trigger.
+   */
+  /**
+   * The extension's mapping of its own Nintex actions when the import has no target of this
+   * extension (a standalone workflow, a replaced core workflow, the first preview): the steps
+   * come in with their record (e.g. the list) left to choose. Without it those actions are
+   * placeholders.
+   */
+  unbound?(input: { ctx: ExtensionContext }): Promise<Pick<NintexTargetPlan, 'otherAction'>>
+  boundTarget?(input: { ctx: ExtensionContext; workflow: { id: string; name: string; trigger: string; config: Record<string, unknown> } }): Promise<NintexBoundTarget | null>
+  /** The target's real columns (read live where possible), for the importer's column check. */
+  columns?(input: { ctx: ExtensionContext; target: string; config: Record<string, unknown> }): Promise<ImportTargetColumns | null>
+  /**
+   * Add columns the workflow needs to the target (after the person confirmed each one). Check
+   * the person may change the target's schema (e.g. manages the list); refuse with ExtensionError
+   * 403. Partial success is fine: report what failed per column.
+   */
+  /** "Create a <list> for this workflow": what can be created and where (null: not offered here). */
+  createTargetInfo?(input: { ctx: ExtensionContext; workflow?: { id: string; trigger: string; config: Record<string, unknown> } | null }): Promise<NintexCreateTargetInfo | null>
+  /** Create (or, ifExists: use, connect) the record type with its columns; check the person may (ExtensionError 403). */
+  createTarget?(input: { ctx: ExtensionContext; input: NintexCreateTargetInput }): Promise<NintexCreatedTarget>
+  createColumns?(input: { ctx: ExtensionContext; target: string; config: Record<string, unknown>; columns: ImportColumnRequest[] }): Promise<{ created: Array<{ key: string; label: string }>; failed: Array<{ label: string; reason: string }> }>
+}
+
+/** ctx.runs.waitFor input. */
+export interface ExtensionWaitInput {
+  /** What kind of event (the extension's own name, e.g. "item_update"); at most 60 characters. */
+  key: string
+  /** Exact values the event must carry (e.g. list and item id): they form the indexed match key. */
+  match: Record<string, string | number | boolean>
+  /** Conditions on the event's data (core rule operators: equals, not_equals, contains, gt, is_empty, changed …); none: any event of the key and match. */
+  conditions?: { logic?: 'and' | 'or'; rules: Array<{ field: string; operator: string; value?: unknown }> }
+  /** Minutes until the wait times out (none: waits until the event or a cancel). */
+  timeoutMinutes?: number
+  onTimeout?: 'continue' | 'fail' | 'branch'
+  /** Shown in the run's process view ("Waiting for Status = Approved on item 4"). */
+  description: string
+}
+
+/** What waitFor returns: the node handler returns it to pause the run. */
+export interface ExtensionWaitRequest { __ext_wait: ExtensionWaitInput }
+
 /** One reference method an extension generates for a connection (see ServerExtension.connectionReferences). */
 export interface ConnectionReferenceMethod {
   /** Stable id, unique within the connection (≤ 300 characters). */
@@ -1317,13 +1881,33 @@ export interface ConnectionReferenceProvider {
   run(input: { ctx: ExtensionContext; connectionId: string; methodId: string; inputs: Record<string, unknown> }): Promise<unknown>
 }
 
+/** A note about the extension's licence state for Settings → Extensions (e.g. what was given back when a trial ended). */
+export interface LicensingNotice {
+  tone: 'info' | 'success' | 'warning' | 'danger'
+  message: string
+}
+
 export interface ServerExtension {
   /** Must equal manifest.id. */
   id: string
+  /**
+   * Licensing hooks (paid extensions):
+   *   notices      plain-language notes Settings → Extensions shows under the
+   *                extension's licence state (called with the workspace's
+   *                system context; may run while unlicensed; keep it cheap);
+   *   trialFarms   farms this installation already knows (manifest
+   *                licence.trial with unit 'farm'), to pre-fill "Start a trial".
+   */
+  licensing?: {
+    notices?(input: { ctx: ExtensionContext }): Promise<LicensingNotice[]>
+    trialFarms?(input: { ctx: ExtensionContext }): Promise<Array<{ id: string; label?: string }>>
+  }
   /** Reference methods of this extension's connections (Integrations → References, Test dialog). */
   connectionReferences?: ConnectionReferenceProvider
   /** Form data targets by key: forms bound to records this extension provides (layout.data_target = { extension, key, config }). */
   formTargets?: Record<string, FormTarget>
+  /** Lookup sources by key: lists a form's Autocomplete / Dropdown reads (lookup source `extension`). */
+  lookupSources?: Record<string, LookupSourceProvider>
   /** Node behaviour by node key (manifest.contributes.nodes). */
   nodes?: Record<string, NodeHandler>
   triggers?: Record<string, TriggerHandler>
@@ -1345,6 +1929,8 @@ export interface ServerExtension {
    * licensed); a failing hook is logged and skipped.
    */
   infopath?: { feature?: string; enrich(input: InfoPathEnrichInput): Promise<InfoPathEnrichResult | void> }
+  /** Targets for the core Nintex importer (bind to a record of this extension, map its list actions). */
+  nintex?: NintexImportHook
   /**
    * Usage counters for the extension's licence limits, by limit key
    * (`<id>.<name>`, e.g. `sharepoint.farms`). Core registers them so

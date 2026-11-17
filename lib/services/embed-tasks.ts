@@ -17,7 +17,8 @@
 import { dbError, ilikeTerm, serviceRoleClient } from './_shared'
 import { hasPerm, requirePerm, ServiceError, type ServiceContext } from './context'
 import { queueSources, shapeTasks, TASK_COLUMNS, type HomeTask } from './home'
-import { dueBefore, taskRowActions, type TaskListOptions, type TaskRowAction } from '@/lib/embed/task-list'
+import { doneWindow, dueWindow, taskRowActions, type TaskListOptions, type TaskRowAction, type TrackerScope } from '@/lib/embed/task-list'
+import { withUnread } from './task-reads'
 import { queueActionFor, type QueueScope } from '@/lib/tasks/unified-list'
 import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
 
@@ -33,15 +34,35 @@ export interface EmbedTask extends HomeTask {
   outcomes: string[]
   /** The task waits for someone of a team (unclaimed) or I hold it for my team. */
   team_task: boolean
+  /** Not opened by me since it became mine (lib/tasks/unread.ts). */
+  unread: boolean
+  progress_pct: number
+  subtasks: { total: number; done: number }
+  /** Who holds it (Following / Task tracker rows show it). */
+  assignee_name: string | null
+}
+
+export interface EmbedTaskFacets {
+  workflows: Array<{ id: string; name: string }>
+  assignees: Array<{ id: string; name: string }>
 }
 
 export interface EmbedTaskList {
   tasks: EmbedTask[]
+  /** Matching tasks, at most COUNT_CAP counted (`capped`: COUNT_CAP or more — "1,000+"). */
   total: number
+  capped: boolean
+  /** The next page's keyset cursor (null: last page; the title sort pages by number). */
+  nextCursor: string | null
   page: number
   size: number
   /** The caller may see every task (the "All" view lists the workspace). */
   view_all: boolean
+  /** Task tracker: the scopes this person has (the app's own rules), and the one shown. */
+  scopes?: TrackerScope[]
+  scope?: TrackerScope | null
+  /** Task tracker / Following: filter choices from the whole result (not just this page). */
+  facets?: EmbedTaskFacets
 }
 
 /** Does a task form need filling before it can complete (a required value field, or its own button bar)? */
@@ -52,57 +73,18 @@ export function taskNeedsForm(fields: unknown, formButtons: unknown): boolean {
 
 const inList = (ids: string[]) => ids.filter((id) => UUID_RE.test(id)).join(',')
 
-export async function listEmbedTasks(ctx: ServiceContext, o: TaskListOptions): Promise<EmbedTaskList> {
-  requirePerm(ctx, 'tasks.view_own')
-  const me = ctx.actorId
-  if (!me) throw ServiceError.forbidden('Sign in to see your tasks')
-  const empty: EmbedTaskList = { tasks: [], total: 0, page: o.page, size: o.size, view_all: hasPerm(ctx, 'tasks.view_all') }
-  if (o.workflowIds && o.workflowIds.length === 0) return empty
-  const db = await serviceRoleClient(ctx)
+/** The columns a row needs (the app's Home list columns + what the row actions and the richness use). */
+const ROW_COLUMNS = `${TASK_COLUMNS}, assignee_id, assignment_type, is_workflow_task, available_outcomes, outcome, completed_at, progress_pct, child_count, completed_child_count, fields:metadata->fields, form_buttons:metadata->form_buttons`
 
-  // Workflow scope: the ids given, narrowed by a tag.
-  let workflowIds = o.workflowIds
-  if (o.tag) {
-    let wq = (db as any).from('workflows').select('id').eq('tenant_id', ctx.tenantId).contains('tags', [o.tag]).limit(200)
-    if (workflowIds) wq = wq.in('id', workflowIds)
-    const { data, error } = await wq
-    if (error) throw dbError(error)
-    workflowIds = ((data ?? []) as any[]).map((w) => String(w.id))
-    if (!workflowIds.length) return empty
-  }
-
-  const [{ teams, collabIds, candidateIds }, { data: assigneeRows }] = await Promise.all([
-    queueSources(db, ctx.tenantId, me),
-    (db as any).from('task_assignees').select('task_id').eq('tenant_id', ctx.tenantId).eq('user_id', me).limit(500),
+/** Rows (ROW_COLUMNS) → list rows: the Home shape, the row actions, unread, progress, subtasks, assignee. */
+async function shapeEmbedRows(ctx: ServiceContext, db: any, me: string, rows: any[], scope: QueueScope): Promise<EmbedTask[]> {
+  const [shaped, unread, names] = await Promise.all([
+    shapeTasks(db, ctx.tenantId, rows),
+    withUnread(ctx, rows.map((r) => ({ id: String(r.id) }))),
+    assigneeNames(db, rows.map((r) => r.assignee_id).filter(Boolean)),
   ])
-  const onTask = [...new Set(((assigneeRows ?? []) as any[]).map((r) => String(r.task_id ?? '')))]
-  const mineParts = [`assignee_id.eq.${me}`, ...(inList(onTask) ? [`id.in.(${inList(onTask)})`] : [])]
-  const groupParts = [
-    `and(assignee_id.eq.${me},assigned_team_id.not.is.null)`,
-    ...(inList(teams) ? [`and(assignee_id.is.null,assigned_team_id.in.(${inList(teams)}))`] : []),
-    ...(inList(candidateIds) ? [`and(assignee_id.is.null,id.in.(${inList(candidateIds)}))`] : []),
-  ]
-  const parts = o.view === 'mine' ? mineParts : o.view === 'groups' ? groupParts : empty.view_all ? null : [...mineParts, ...groupParts]
-
-  const columns = `${TASK_COLUMNS}, assignee_id, assignment_type, is_workflow_task, available_outcomes, outcome, completed_at, fields:metadata->fields, form_buttons:metadata->form_buttons`
-  let query = (db as any).from('tasks').select(columns, { count: 'exact' })
-    .eq('tenant_id', ctx.tenantId).is('deleted_at', null).is('parent_task_id', null)
-  if (parts) query = query.or(parts.join(','))
-  query = o.status === 'completed' ? query.eq('status', 'completed') : query.in('status', OPEN)
-  const before = dueBefore(o)
-  if (before) query = query.not('due_date', 'is', null).lte('due_date', before)
-  if (o.q.trim()) query = query.ilike('title', `%${ilikeTerm(o.q)}%`)
-  if (workflowIds) query = query.in('workflow_id', workflowIds)
-  query = o.status === 'completed'
-    ? query.order('completed_at', { ascending: false, nullsFirst: false })
-    : query.order('due_date', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false })
-  const offset = (o.page - 1) * o.size
-  const { data, count, error } = await query.order('id').range(offset, offset + o.size - 1)
-  if (error) throw dbError(error)
-  const rows = (data ?? []) as any[]
-  const shaped = await shapeTasks(db, ctx.tenantId, rows)
-  const scope: QueueScope = { userId: me, teamIds: new Set(teams), collabPendingIds: new Set(collabIds), claimCandidateIds: new Set(candidateIds) }
-  const tasks = shaped.map((t, i): EmbedTask => {
+  const unreadIds = new Set(unread.filter((r) => r.unread).map((r) => r.id))
+  return shaped.map((t, i): EmbedTask => {
     const r = rows[i]
     const { actions, outcomes } = taskRowActions({
       status: r.status, assignee_id: r.assignee_id ?? null, assigned_team_id: r.assigned_team_id ?? null, assignment_type: r.assignment_type ?? null,
@@ -113,8 +95,66 @@ export async function listEmbedTasks(ctx: ServiceContext, o: TaskListOptions): P
     return {
       ...t, outcome: r.outcome ?? null, completed_at: r.completed_at ?? null, actions, outcomes,
       overdue: t.overdue && OPEN.includes(r.status), team_task: Boolean(r.assigned_team_id),
+      unread: unreadIds.has(String(r.id)),
+      progress_pct: Math.max(0, Math.min(100, Math.round(Number(r.progress_pct) || 0))),
+      subtasks: { total: Number(r.child_count ?? 0) || 0, done: Number(r.completed_child_count ?? 0) || 0 },
+      assignee_name: r.assignee_id ? (names.get(String(r.assignee_id)) ?? null) : null,
     }
   })
-  return { ...empty, tasks, total: count ?? tasks.length }
 }
 
+async function assigneeNames(db: any, ids: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids.map(String))].filter((id) => UUID_RE.test(id))
+  if (!unique.length) return new Map()
+  const { data } = await db.from('users').select('id, display_name, email').in('id', unique)
+  return new Map(((data ?? []) as any[]).map((u) => [String(u.id), String(u.display_name || u.email || 'Someone')]))
+}
+
+/** Task tracker scopes this person has (the shared search's rules). */
+export async function trackerScopes(ctx: ServiceContext): Promise<TrackerScope[]> {
+  const { searchScopes } = await import('./task-search')
+  return searchScopes(ctx)
+}
+
+/**
+ * One page of a tab: the shared server-side search (lib/services/task-search.ts —
+ * the same one the app's Completed / All views use), shaped into list rows with
+ * the row actions of the app's rules (a manager viewing a report's task gets
+ * Open only; completed rows: Open only, read-only panel).
+ */
+export async function listEmbedTab(ctx: ServiceContext, o: TaskListOptions): Promise<EmbedTaskList> {
+  const { searchTasks } = await import('./task-search')
+  const r = await searchTasks(ctx, {
+    tab: o.tab, view: o.view, scope: o.scope, status: o.status, q: o.q, priority: o.priority,
+    due: dueWindow(o), completed: doneWindow(o), workflowIds: o.workflowIds, tag: o.tag, workflowId: o.wf,
+    assigneeId: o.assignee, teamId: o.team, unread: o.unread, sort: o.sort, dir: o.dir, size: o.size,
+    cursor: o.cursor, page: o.page, columns: ROW_COLUMNS,
+  })
+  const me = ctx.actorId as string
+  const db = await serviceRoleClient(ctx)
+  const qs: QueueScope = { userId: me, teamIds: new Set(r.queue.teams), collabPendingIds: new Set(r.queue.collabIds), claimCandidateIds: new Set(r.queue.candidateIds) }
+  return {
+    tasks: await shapeEmbedRows(ctx, db, me, r.rows, qs),
+    total: r.total, capped: r.capped, nextCursor: r.nextCursor, page: o.page, size: o.size,
+    view_all: hasPerm(ctx, 'tasks.view_all'),
+    ...(o.tab === 'tracker' ? { scopes: r.scopes ?? [], scope: r.scope ?? null } : {}),
+  }
+}
+
+/** Back-compat name (My tasks). */
+export const listEmbedTasks = (ctx: ServiceContext, o: TaskListOptions) => listEmbedTab(ctx, { ...o, tab: 'mine' })
+
+/** Filter choices for the list: the workspace's workflows and the people a tab may filter by (bounded). */
+export async function embedTaskFacets(ctx: ServiceContext): Promise<EmbedTaskFacets> {
+  requirePerm(ctx, 'tasks.view_own')
+  const db = await serviceRoleClient(ctx)
+  const [{ data: wfs }, { data: members }] = await Promise.all([
+    (db as any).from('workflows').select('id, name').eq('tenant_id', ctx.tenantId).order('name').limit(300),
+    (db as any).from('user_memberships').select('user_id').eq('tenant_id', ctx.tenantId).eq('is_active', true).limit(300),
+  ])
+  const names = await assigneeNames(db, ((members ?? []) as any[]).map((m) => String(m.user_id)))
+  return {
+    workflows: ((wfs ?? []) as any[]).map((w) => ({ id: String(w.id), name: String(w.name ?? 'Workflow') })),
+    assignees: [...names].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name)),
+  }
+}

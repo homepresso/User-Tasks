@@ -30,7 +30,7 @@ import type { FormLookupSource } from '@/components/forms/lookup-field'
 import { AnonymousCaptcha, AnonymousHoneypot, submitAnonymous } from '@/components/forms/anonymous-form-parts'
 import { useAssistantSurface } from '@/lib/assistants/client-registry'
 import type { FormDataTargetState } from '@/lib/forms/data-target'
-import { FORM_EVENT_MESSAGE_TYPE, formEventMessage, type FormEventMessage } from '@/lib/forms/embed'
+import { FORM_EVENT_MESSAGE_TYPE, formEventMessage, hostRedirectUrl, type FormEventMessage } from '@/lib/forms/embed'
 
 const DRAFT_STORAGE = 'usertasks.form-draft.'
 
@@ -110,12 +110,13 @@ function DataTargetActions({ actions, trusted }: { actions: NonNullable<FormData
 }
 
 /** Tell the framing page what happened (no values or record data — just the event; lib/forms/embed.ts). */
-function notifyHost(event: FormEventMessage['event']) {
+function notifyHost(event: FormEventMessage['event'], redirect?: string | null) {
   if (typeof window === 'undefined') return
   // Same page too (components/embed/embed-form-host.tsx: what to do after a submit).
   window.dispatchEvent(new CustomEvent(FORM_EVENT_MESSAGE_TYPE, { detail: event }))
   if (window.parent === window) return
-  try { window.parent.postMessage(formEventMessage(event), '*') } catch { /* parent gone */ }
+  // The button's own rule decides where the top window goes (lib/forms/embed.ts hostRedirectUrl).
+  try { window.parent.postMessage(formEventMessage(event, hostRedirectUrl(redirect, window.location.origin)), '*') } catch { /* parent gone */ }
 }
 
 function newKey(): string {
@@ -295,8 +296,9 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
       // An address on another site (e.g. {{target.return_url}}, the list a record lives in): a full page load.
       // In a trusted-embedding frame the host page goes there itself (it got the host event).
       if (/^https?:\/\//i.test(next.redirect)) { if (!trusted) window.location.assign(next.redirect); return }
-      // Inside a trusted-embedding frame another form stays in the frame.
-      router.push(trusted && /^\/f\//.test(next.redirect) ? `/embed${next.redirect}` : next.redirect); return
+      // Inside a trusted-embedding frame another form stays in the frame; other app pages open in the top window (the host was told).
+      if (trusted && !/^\/f\//.test(next.redirect)) return
+      router.push(trusted ? `/embed${next.redirect}` : next.redirect); return
     }
     if (next.close && !next.success_screen) { setClosed(true) }
     setEffects(next)
@@ -311,7 +313,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         setValues({}); setErrors({}); setConfirmCancel(false)
         forgetDraft()
         keyRef.current = newKey()
-        if (trusted) notifyHost(displayOnly ? 'closed' : 'cancelled')
+        if (trusted) notifyHost(displayOnly ? 'closed' : 'cancelled', planned.redirect)
         finish(planned)
         return
       }
@@ -329,8 +331,8 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
           const result = await deleteStandaloneFormRecord(formId, { button_id: button.id, params: params?.parsed.values ?? null, target_version: form!.target?.version ?? null })
           if (!result.ok) { setFailure(result.error); return }
           setValues({}); forgetDraft()
-          if (trusted) notifyHost('deleted')
           const next = result.data.effects
+          if (trusted) notifyHost('deleted', next.redirect)
           if (!next.redirect && !next.close && !next.success_screen) { setEffects({ ...next, messages: next.messages.length ? next.messages : [{ text: 'Deleted.', tone: 'success' }] }); setClosed(true); return }
           finish(next)
         } finally {
@@ -357,7 +359,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         forgetDraft()
         if (!anonymous) drafts.submitted()
         setDraftDecided(true)
-        if (trusted) notifyHost('submitted')
+        if (trusted) notifyHost('submitted', result.data.effects.redirect)
         // A bound record changed: read it again (fresh values and version for the next save).
         if (form!.target) void refetch()
         if (!result.data.effects.success_screen && !result.data.effects.redirect && !result.data.effects.close) {
@@ -454,7 +456,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
                 {/* Delete shows only when the provider says the person may delete this record; a display form keeps Cancel (Close) and Delete. */}
                 <FormButtonBar
                   buttons={form.buttons.filter((b) => b.kind !== 'draft' && (b.kind !== 'delete' || (form.target?.can_delete === true && form.target.mode !== 'create')) && (!displayOnly || b.kind === 'cancel' || b.kind === 'delete' || b.kind === 'link'))}
-                  placement={form.theme_overrides?.button_placement} busy={busy} onClick={(b) => void press(b)} />
+                  placement={form.theme_overrides?.button_placement} sticky={form.theme_overrides?.button_sticky === true} values={values} busy={busy} onClick={(b) => void press(b)} />
               </FormStepActions>
               </FormPagesProvider>
             </FormLookupProvider>

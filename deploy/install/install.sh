@@ -16,6 +16,13 @@
 #   --build                                  build the image locally if it can't be downloaded
 #   --no-browser         USERTASKS_NO_BROWSER=1
 #
+# UserTasks for SharePoint Server (a licence-gated image; trial or purchased licence):
+#   --edition sharepoint USERTASKS_EDITION   install the SharePoint edition
+#   --licence <file>     USERTASKS_LICENCE_FILE   your .licence file (checked with usertasks.com)
+#   --bundle <file>                          install from an offline bundle (air-gapped hosts)
+#   --bundle-download                        make an offline bundle here instead of installing
+#                                            (with --edition and --licence; --platform linux/amd64|linux/arm64, --out <file>)
+#
 # It checks the machine and Docker, downloads a pinned release, verifies its
 # signature and checksum before running anything from it, then hands over to
 # that release's `usertasks install`. Safe to run again: existing secrets and
@@ -37,41 +44,81 @@ ut_install() {
   set -eu
   RELEASE_BASE=${USERTASKS_RELEASE_BASE:-https://github.com/homepresso/User-Tasks/releases}
   VERIFY_IMAGE="node:22-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a"
+  EDITION_API=${USERTASKS_EDITION_API:-https://usertasks.com/api/public/extensions}
   V=${USERTASKS_VERSION:-}; DIR=${USERTASKS_DIR:-}; PORT=${USERTASKS_PORT:-}; URL=${USERTASKS_APP_URL:-}
   PRESET=${USERTASKS_PRESET:-}; PROJECT=${USERTASKS_PROJECT:-}; INSTALL_DOCKER=0; BUILD=0
+  EDITION=${USERTASKS_EDITION:-}; LICENCE=${USERTASKS_LICENCE_FILE:-}; BUNDLE=""; BUNDLE_DOWNLOAD=0; PLATFORM=""; OUT=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --version) V=${2#v}; shift 2 ;; --dir) DIR=$2; shift 2 ;; --port) PORT=$2; shift 2 ;; --url) URL=$2; shift 2 ;;
       --preset) PRESET=$2; shift 2 ;; --project) PROJECT=$2; shift 2 ;;
       --non-interactive|-y) USERTASKS_NONINTERACTIVE=1; shift ;; --install-docker) INSTALL_DOCKER=1; shift ;;
       --build) BUILD=1; shift ;; --no-browser) USERTASKS_NO_BROWSER=1; shift ;;
-      -h|--help) sed -n '2,24p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//' || echo "See https://usertasks.com/install"; return 0 ;;
+      --edition) EDITION=$2; shift 2 ;; --licence|--license) LICENCE=$2; shift 2 ;; --bundle) BUNDLE=$2; shift 2 ;;
+      --bundle-download) BUNDLE_DOWNLOAD=1; shift ;; --platform) PLATFORM=$2; shift 2 ;; --out) OUT=$2; shift 2 ;;
+      -h|--help) sed -n '2,31p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//' || echo "See https://usertasks.com/install"; return 0 ;;
       *) ut_die "unknown option $1 (see --help)" ;;
     esac
   done
   export USERTASKS_NONINTERACTIVE="${USERTASKS_NONINTERACTIVE:-0}" USERTASKS_NO_BROWSER="${USERTASKS_NO_BROWSER:-0}"
+  case "$EDITION" in ""|core) EDITION="" ;; sharepoint) : ;; *) ut_die "unknown edition: $EDITION (editions: sharepoint)" ;; esac
+  if [ -n "$LICENCE" ]; then
+    [ -f "$LICENCE" ] || ut_die "licence file not found: $LICENCE"
+    LICENCE="$(cd "$(dirname "$LICENCE")" && pwd)/$(basename "$LICENCE")"
+  fi
+  if [ -n "$BUNDLE" ]; then
+    [ -f "$BUNDLE" ] || ut_die "bundle not found: $BUNDLE"
+    BUNDLE="$(cd "$(dirname "$BUNDLE")" && pwd)/$(basename "$BUNDLE")"
+  fi
+  if [ "$BUNDLE_DOWNLOAD" = 1 ]; then
+    [ -n "$EDITION" ] && [ -n "$LICENCE" ] || ut_die "--bundle-download needs --edition sharepoint and --licence <file>"
+  elif [ -n "$EDITION" ] && [ -z "$LICENCE" ] && [ -z "$BUNDLE" ]; then
+    ut_die "--edition $EDITION needs your licence: --licence <file> (start a 30-day trial at https://usertasks.com/sharepoint/trial)"
+  fi
 
   ut_say ""
   ut_say "${UT_B}UserTasks installer${UT_N}"
   ut_check_machine
   ut_check_docker
-  if [ -z "$DIR" ]; then
+  if [ "$BUNDLE_DOWNLOAD" = 1 ]; then
+    DIR=${DIR:-$PWD/usertasks-bundle-work}
+  elif [ -z "$DIR" ]; then
     if [ "$(id -u)" = 0 ]; then DIR=/opt/usertasks; else DIR="$HOME/usertasks"; fi
     [ -f "$DIR/state.env" ] || DIR=$(ut_ask "Install folder" "$DIR")
   fi
   mkdir -p "$DIR/releases"; chmod 700 "$DIR"; DIR=$(cd "$DIR" && pwd)
   ut_check_disk
   ut_trust_key
+  BUNDLE_DIR=""
+  if [ -n "$BUNDLE" ]; then ut_open_bundle; V=$BUNDLE_V; fi
   if [ -z "$V" ] && [ -f "$DIR/state.env" ]; then V=$(sed -n 's/^USERTASKS_VERSION=//p' "$DIR/state.env" | tail -n 1); fi
+  if [ -z "$V" ] && [ -n "$EDITION" ]; then
+    # The newest UserTasks release that has an edition build (it follows a release within hours).
+    if ut_get "$EDITION_API/$EDITION" "$DIR/releases/.edition.json" 2>/dev/null; then
+      V=$(sed -n 's/.*"latest_core_version": *"\([^"]*\)".*/\1/p' "$DIR/releases/.edition.json" | head -n 1)
+    fi
+    rm -f "$DIR/releases/.edition.json"
+  fi
   if [ -z "$V" ]; then
     ut_step "Looking up the latest release"
     ut_get "$RELEASE_BASE/latest/download/release.json" "$DIR/releases/.latest.json" || ut_die "could not reach $RELEASE_BASE (check the network or proxy settings)"
     V=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$DIR/releases/.latest.json" | head -n 1); rm -f "$DIR/releases/.latest.json"
   fi
   printf '%s' "$V" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$' || ut_die "not a release version: '$V'"
-  ut_fetch "$V"
+  ut_fetch "$V" "${BUNDLE_DIR:+$BUNDLE_DIR/release}"
+
+  if [ "$BUNDLE_DOWNLOAD" = 1 ]; then
+    set -- bundle-download --work "$DIR" --version "$V" --edition "$EDITION" --licence "$LICENCE"
+    [ -n "$PLATFORM" ] && set -- "$@" --platform "$PLATFORM"
+    [ -n "$OUT" ] && set -- "$@" --out "$OUT"
+    sh "$DIR/releases/$V/usertasks" "$@"
+    return
+  fi
 
   set -- install --dir "$DIR" --version "$V"
+  [ -n "$BUNDLE_DIR" ] && set -- "$@" --bundle "$BUNDLE_DIR"
+  [ -n "$EDITION" ] && [ -z "$BUNDLE_DIR" ] && set -- "$@" --edition "$EDITION"
+  [ -n "$LICENCE" ] && set -- "$@" --licence "$LICENCE"
   [ -n "$PORT" ] && set -- "$@" --port "$PORT"
   [ -n "$URL" ] && set -- "$@" --url "$URL"
   [ -n "$PRESET" ] && set -- "$@" --preset "$PRESET"
@@ -239,19 +286,21 @@ ut_verify_sig() { # <data> <sig> <key>
   rm -rf "$_vd"; return $_rc
 }
 
+# ut_fetch <version> [folder]: download (or copy from [folder]: an offline
+# bundle's release/), verify, unpack into releases/<version>.
 ut_fetch() {
-  _v=$1; _dest="$DIR/releases/$_v"
+  _v=$1; _src=${2:-}; _dest="$DIR/releases/$_v"
   if [ -f "$_dest/.verified" ] && [ -f "$_dest/usertasks" ]; then ut_ok "release $_v already downloaded and verified"; return; fi
   _dl="$DIR/releases/.download-$_v"; rm -rf "$_dl"; mkdir -p "$_dl"
   _url="$RELEASE_BASE/download/v$_v"; _b="usertasks-$_v.tar.gz"
-  ut_step "Downloading UserTasks $_v"
-  ut_get "$_url/SHA256SUMS" "$_dl/SHA256SUMS" || ut_die "release $_v not found ($_url)"
-  ut_get "$_url/SHA256SUMS.sig" "$_dl/SHA256SUMS.sig" || ut_die "release $_v has no signature file"
+  if [ -n "$_src" ]; then ut_step "Checking UserTasks $_v from the bundle"; else ut_step "Downloading UserTasks $_v"; fi
+  ut_rel_get "$_src" "$_url" SHA256SUMS "$_dl/SHA256SUMS" || ut_die "release $_v not found (${_src:-$_url})"
+  ut_rel_get "$_src" "$_url" SHA256SUMS.sig "$_dl/SHA256SUMS.sig" || ut_die "release $_v has no signature file"
   ut_verify_sig "$_dl/SHA256SUMS" "$_dl/SHA256SUMS.sig" "$KEY" || ut_die "signature check FAILED: SHA256SUMS of $_v was not signed by the UserTasks release key. Nothing was installed."
   ut_ok "signature"
   _want=$(awk -v f="$_b" '$2 == f || $2 == "*" f { print $1 }' "$_dl/SHA256SUMS")
   [ -n "$_want" ] || ut_die "SHA256SUMS does not list $_b"
-  ut_get "$_url/$_b" "$_dl/$_b" || ut_die "could not download $_b"
+  ut_rel_get "$_src" "$_url" "$_b" "$_dl/$_b" || ut_die "could not download $_b"
   [ "$(ut_sha256 "$_dl/$_b")" = "$_want" ] || ut_die "checksum mismatch for $_b: the download is damaged or was changed. Nothing was installed."
   ut_ok "checksum"
   mkdir -p "$_dl/x"; tar -xzf "$_dl/$_b" -C "$_dl/x"
@@ -260,6 +309,34 @@ ut_fetch() {
   cp "$_dl/SHA256SUMS" "$_dl/SHA256SUMS.sig" "$_dl/x/usertasks-$_v/"
   : > "$_dl/x/usertasks-$_v/.verified"
   rm -rf "$_dest"; mv "$_dl/x/usertasks-$_v" "$_dest"; rm -rf "$_dl"
+}
+
+ut_rel_get() { # <local folder or ""> <release url> <file> <dest>
+  if [ -n "$1" ]; then [ -f "$1/$3" ] && cp "$1/$3" "$4"; else ut_get "$2/$3" "$4"; fi
+}
+
+# ut_open_bundle: unpack the offline bundle ($BUNDLE) into releases/.bundle.
+# Sets BUNDLE_DIR and BUNDLE_V. Its release is then verified like a download
+# (ut_fetch) and the edition image by the release's `usertasks install --bundle`.
+ut_open_bundle() {
+  if [ -f "$BUNDLE.sha256" ]; then
+    [ "$(ut_sha256 "$BUNDLE")" = "$(cut -d' ' -f1 < "$BUNDLE.sha256")" ] || ut_die "$BUNDLE does not match $BUNDLE.sha256: the bundle is damaged or was changed"
+    ut_ok "bundle checksum ($BUNDLE.sha256)"
+  fi
+  _bo="$DIR/releases/.bundle"; rm -rf "$_bo"; mkdir -p "$_bo"
+  ut_step "Unpacking $(basename "$BUNDLE")"
+  tar -xf "$BUNDLE" -C "$_bo" || ut_die "could not unpack $BUNDLE"
+  BUNDLE_DIR=$(find "$_bo" -mindepth 2 -maxdepth 2 -name bundle.json -exec dirname {} \; | head -n 1)
+  [ -n "$BUNDLE_DIR" ] || ut_die "$BUNDLE is not a UserTasks offline bundle"
+  BUNDLE_V=$(sed -n 's/.*"core_version": *"\([^"]*\)".*/\1/p' "$BUNDLE_DIR/bundle.json" | head -n 1)
+  [ -n "$BUNDLE_V" ] || ut_die "the bundle names no UserTasks version"
+  ut_say "  release key fingerprint (the signer fingerprint in the release notes): $(ut_key_fingerprint)"
+}
+
+ut_key_fingerprint() {
+  _o=openssl; for _c in /opt/homebrew/opt/openssl@3/bin/openssl /usr/local/opt/openssl@3/bin/openssl; do [ -x "$_c" ] && _o=$_c; done
+  if ut_have "$_o"; then "$_o" pkey -pubin -in "$KEY" -outform DER 2>/dev/null | { if ut_have sha256sum; then sha256sum; else shasum -a 256; fi; } | cut -d' ' -f1 | sed 's/../&:/g; s/:$//' | cut -c1-47
+  else printf 'unavailable (no openssl)'; fi
 }
 
 ut_colors

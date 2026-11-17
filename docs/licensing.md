@@ -1,10 +1,11 @@
 # Licences for paid extensions
 
 UserTasks itself is open source (Apache-2.0) and needs no licence. Paid
-extensions (for example SharePoint) ship in the Enterprise build but stay
-switched off until a **licence** enables them. Without one, the Enterprise
-build behaves like the Community edition and lists the extensions as
-"available, not licensed".
+extensions (for example SharePoint) ship in their own image, an
+[edition](self-hosting.md#editions) that usertasks.com lets you download with
+a valid licence, and stay switched off until a **licence** enables them.
+Without one, an edition behaves like the public image and lists the
+extensions as "available, not licensed".
 
 This page covers self-hosted and air-gapped installs (licence files) and the
 hosted cloud (workspace entitlements).
@@ -203,3 +204,47 @@ tsx scripts/licence-issue.ts verify example.licence
 You can also pass the key as `USERTASKS_LICENCE_SIGNING_KEY_FILE` or
 `USERTASKS_LICENCE_SIGNING_KEY`. To rotate keys, add the new key with a new
 `kid` and keep the old entry until every licence signed with it has expired.
+
+## Self-serve trials (30 days)
+
+Paid extensions can declare a self-serve trial in their manifest (`licence.trial: { days, unit: 'farm' }`; today only the SharePoint extension, SKU `sharepoint-se`). A trial is an ordinary licence file with `"trial": true`, a `"sku"`, a term of at most 30 days and `"binding": { "farm_ids": ["<farm GUID>"] }` (plus `instance_ids` when the request came from an installation). It is installed, listed, warned about and expires like any licence. The user guide is the public docs page **SharePoint trial** (`/docs/sharepoint/trial`).
+
+### The trial-only signing key
+
+Trials are signed on usertasks.com with a **separate trial key**; the main licence key stays offline and is never needed. In the keyring (`lib/licensing/keyring.ts`) the trial key has `kind: 'trial'` and `trialSkus`. An installation accepts a licence signed by a trial key only when **all** of these hold (`lib/licensing/trial-policy.ts`), otherwise it gets the `trial_policy` problem and is refused (never installed, never granting anything):
+
+- `trial: true`;
+- `sku` is one of the key's `trialSkus` and has rules in `TRIAL_SKUS`, and the licence grants only that SKU's extension and only its limits;
+- at most 30 days from `max(issued_at, not_before)` to `expires_at` (10 minutes clock skew), `issued_at` not in the future, `not_before` not before `issued_at`;
+- bound to exactly one farm (`binding.farm_ids`, a GUID) with at most one farm in its limits.
+
+Even a leaked trial key can therefore only mint 30-day, one-farm trials starting now. Retire it by removing its keyring entry (trial licences it signed then fail with `unknown_key`) and generating a new one.
+
+**Owner steps (once):**
+
+1. `npx tsx scripts/licensing/new-trial-key.ts --kid trial-1 --out ~/secure/usertasks-trial-1.pem` — writes the private key (mode 600, outside the repository, never over an existing file) and prints only the public keyring entry.
+2. Set the private key as the Vercel production secret `TRIAL_LICENCE_SIGNING_KEY` (and `TRIAL_LICENCE_KID` if the kid is not the only trial key). Optional: `TRIAL_IP_SALT` for the stored IP hashes.
+3. Paste the printed entry into `LICENCE_KEYRING` and release (installations must have the public key to accept trials).
+4. Apply migration `20270117090000_licence_trials.sql` on the cloud database.
+
+Until steps 2–4 are done the endpoint answers `503 trials_unavailable` ("Trials aren't available yet") and the website shows **Contact us** instead of the trial buttons. The issuer refuses to sign unless the key's public half matches a `kind: 'trial'` keyring entry, so it can never sign with a main key.
+
+### Issuing (usertasks.com only)
+
+`POST /api/public/trials/sharepoint` (cloud only; 404 elsewhere), JSON `{ name, email, company, farm_id | request_code, accept_terms, source?, website }` (`website` is a honeypot). `GET` answers `{ available }`.
+
+- Work email only (free and disposable domains are refused: `lib/licensing/free-mail.ts`).
+- Rate limits per IP: 5 an hour, 20 a day; 300 an hour for everyone.
+- One trial per farm and per email domain (table `licence_trials`, unique per SKU): the same farm while its trial runs gets **the same licence back** (and it is e-mailed again to whoever started it); the same domain with another farm is refused while its trial runs; a farm or domain whose trial ended is refused (buy, or contact us).
+- After the response (never blocking it): the licence is e-mailed to the requester (attached and pasted) and the team is notified through the shared team pipeline (`lib/contact/trial-chirp.ts`: ChirpMe sub-tab **Trials**, reply-to the requester, new vs re-sent).
+- Instance admins of usertasks.com see every trial in **Settings › Licence › Trials issued**.
+
+### Inside an installation
+
+**Settings › Extensions** shows **Start a 30-day trial** on an unlicensed extension that offers one (self-hosted; instance admins). The server posts the request with a request code (farm ID, instance ID, hostnames; no secrets) to `USERTASKS_TRIAL_URL` (default `https://usertasks.com`, https only) and installs the returned licence through the normal install path (audited as `installed`). When usertasks.com can't be reached it shows the request code (`UTTRIAL1-…`) to paste on the website and a box to paste the licence back. `/settings/extensions?trial=<extension>&farm=<id>` opens the form pre-filled (the SharePoint add-in links here).
+
+During a trial instance admins see "Trial: N days left · Buy" in the shell banner and on the extension card. Trial e-mails start 7 days before the end (7, 1, expired, stopped); the 30 / 14-day notices of paid licences are skipped.
+
+### When a licence lapses: extension housekeeping
+
+An extension job with `runWhenUnlicensed: true` still runs (in workspaces with the extension enabled) when the only problem is the licence, so the extension can give back what it changed outside UserTasks and put it back later. `ctx.licence.check()` says whether the deciding grant is a trial, its expiry, cutoff, days left and the farms it is bound to; `ctx.licence.pausedRuns()` / `resumePausedRuns()` count and resume the runs a lapsed licence paused (each resume audited on the run). `ServerExtension.licensing.notices` returns plain-language notes shown under the extension in Settings › Extensions. What the SharePoint extension does (forms restored, workflows paused, everything put back) is in the public **SharePoint trial** page.

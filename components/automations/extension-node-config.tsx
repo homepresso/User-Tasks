@@ -14,7 +14,11 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { checkTriggerConflicts } from '@/app/actions/automations'
+import { TRIGGER_CONFLICT_CHOICES, type TriggerConflict } from '@/lib/extensions/sdk'
+import { TriggerConflictDialog } from './trigger-conflict-dialog'
 import type { ActionField } from '@/lib/custom-actions/contract'
 import { loadExtensionUiData } from '@/app/actions/extensions'
 import { Input } from '@/components/ui/input'
@@ -173,6 +177,7 @@ export function ExtensionNodeConfig({ node, onUpdate, onBatchUpdate, extraVariab
   const dynamicOptions = useDynamicOptions(entry?.extensionId, node.type, entry?.optionsFrom, currentValues, usable)
   const filterSource = useSourceData(entry?.extensionId, node.type, trigger ? entry?.filters?.fieldsFrom : undefined, currentValues, usable)
   const filterFields = filterFieldsOf(filterSource.data)
+  const conflicts = useTriggerConflicts(trigger && usable ? node : null, onUpdate, onBatchUpdate)
 
   // Keep the outputs snapshot (data picker) and the prefix in step with the installed manifest.
   useEffect(() => {
@@ -191,6 +196,8 @@ export function ExtensionNodeConfig({ node, onUpdate, onBatchUpdate, extraVariab
   const prefix = String(config._output_prefix || snake(entry.key))
 
   return (
+    <>
+    {conflicts}
     <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()} data-extension-node={node.type}>
       <Card variant="inset" padding="sm" className="space-y-1">
         <p className="text-xs font-semibold text-fg">{entry.label}</p>
@@ -254,5 +261,53 @@ export function ExtensionNodeConfig({ node, onUpdate, onBatchUpdate, extraVariab
         </div>
       )}
     </div>
+    </>
+  )
+}
+
+/**
+ * Trigger settings that overlap with other workflows (the extension's TriggerHandler.conflicts):
+ * checked shortly after each change; each unanswered conflict asks Remove / Keep both / Cancel.
+ * The answer is stored in the draft (TRIGGER_CONFLICT_CHOICES) and applied when publishing;
+ * Cancel puts the settings back as they were before the change.
+ */
+function useTriggerConflicts(node: WorkflowNode | null, onUpdate: (key: string, value: any) => void, onBatchUpdate: (updates: Record<string, any>) => void) {
+  const params = useParams<{ id?: string }>()
+  const workflowId = typeof params?.id === 'string' ? params.id : ''
+  const config = (node?.config ?? {}) as Record<string, any>
+  const { [TRIGGER_CONFLICT_CHOICES]: stored, ...settings } = config
+  const key = node ? JSON.stringify(settings) : ''
+  const previous = useRef<Record<string, any> | null>(null)
+  const last = useRef<string>('')
+  const [open, setOpen] = useState<TriggerConflict[]>([])
+  useEffect(() => {
+    if (!node || !key) return
+    if (!last.current) { last.current = key; previous.current = config; return } // the settings as loaded: nothing to ask
+    if (key === last.current) return
+    const before = previous.current
+    const timer = setTimeout(async () => {
+      const r = await checkTriggerConflicts(workflowId, [{ ...node, config }]).catch(() => null)
+      last.current = key
+      if (!r?.unanswered.length) { previous.current = config; return }
+      setOpen(r.conflicts.filter((c) => r.unanswered.includes(c.key)))
+      previous.current = before
+    }, 600)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the settings' content is the trigger
+  }, [key])
+  const current = open[0] ?? null
+  return (
+    <TriggerConflictDialog
+      conflict={current}
+      onChoose={(choice) => {
+        onUpdate(TRIGGER_CONFLICT_CHOICES, { ...((stored ?? {}) as Record<string, string>), [current!.key]: choice })
+        setOpen((rest) => rest.slice(1))
+        previous.current = config
+      }}
+      onCancel={() => {
+        setOpen([])
+        if (previous.current) { last.current = ''; onBatchUpdate(previous.current) }
+      }}
+    />
   )
 }

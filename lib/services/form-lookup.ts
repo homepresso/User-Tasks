@@ -32,12 +32,13 @@
 import { createHash } from 'node:crypto'
 import {
   LOOKUP_LIMITS, LOOKUP_ROW_ID, isLookupColumn, lookupFillValues, lookupItemKey, lookupMaxResults, lookupMinChars, lookupResultsArray,
-  lookupLabelKey, lookupStoredLabels, lookupTableColumns, lookupValueField, lookupValues, normalizeLookupConfig, resolveLookupTemplate, toLookupItem,
+  lookupItemFields, lookupLabelKey, lookupStoredLabels, lookupTableColumns, lookupValueField, lookupValues, normalizeLookupConfig, resolveLookupTemplate, toLookupItem,
   type LookupConfig, type LookupFilter, type LookupItem,
 } from '@/lib/forms/lookup'
 import { answersLookups, normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { LOOKUP_ROW_KEY } from '@/lib/forms/lookup'
 import { childListAt, type ListFieldConfig } from '@/lib/forms/list-field'
+import type { DataTableColumn } from '@/lib/forms/data-table'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { serviceRoleClient } from './_shared'
@@ -233,6 +234,132 @@ async function runTable(db: AnySupabaseClient, tenantId: string, config: LookupC
   return { items, truncated: rows.length > max }
 }
 
+/* ── Extension lists (ServerExtension.lookupSources) ──────────────────── */
+
+export interface ExtensionQueryPlan {
+  listId: string
+  search: string
+  match: 'contains' | 'prefix'
+  searchColumns: string[]
+  filters: Array<{ column: string; operator: LookupFilter['operator']; value?: string }>
+  sort: { column: string; direction: 'asc' | 'desc' } | null
+  limit: number
+  offset: number
+  values?: string[]
+  valueColumn: string
+  columns: string[]
+}
+
+/**
+ * The query an extension list lookup sends its provider (pure): the
+ * configured search columns, filters with their templates resolved against
+ * the form's values (cascading: {{task_data.<key>}} / {{form.<key>}} read
+ * the other fields as they are now), sort and one page.
+ */
+export function buildExtensionQueryPlan(
+  config: LookupConfig,
+  input: { search: string; values: Record<string, unknown>; task?: Record<string, unknown> | null },
+  options: { byValues?: string[]; offset?: number } = {},
+): ExtensionQueryPlan {
+  if (!config.source_id) throw ServiceError.validation('The lookup has no list')
+  const filters: ExtensionQueryPlan['filters'] = (config.filters ?? []).map((f) => {
+    if (f.operator === 'is_set' || f.operator === 'is_not_set') return { column: f.column, operator: f.operator }
+    const resolved = resolveLookupTemplate(f.value ?? '', { search: input.search, values: input.values, task: input.task })
+    const text = resolved === null || resolved === undefined ? '' : Array.isArray(resolved) ? resolved.map(String).join(',') : typeof resolved === 'object' ? JSON.stringify(resolved) : String(resolved)
+    return { column: f.column, operator: f.operator, value: f.operator === 'contains' ? lookupSearchTerm(text) : text }
+  })
+  const valueColumn = lookupValueField(config)
+  const searchColumns = [...(config.search_columns ?? [])]
+  if (config.search_value && !searchColumns.includes(valueColumn)) searchColumns.push(valueColumn)
+  return {
+    listId: config.source_id,
+    search: options.byValues ? '' : input.search,
+    match: config.match === 'prefix' ? 'prefix' : 'contains',
+    searchColumns,
+    filters,
+    sort: config.sort ?? null,
+    limit: options.byValues ? Math.max(1, options.byValues.length) : lookupMaxResults(config) + 1,
+    offset: Math.max(0, Math.floor(options.offset ?? 0)),
+    ...(options.byValues ? { values: options.byValues.slice(0, LOOKUP_LIMITS.maxSelections) } : {}),
+    valueColumn,
+    columns: lookupItemFields(config),
+  }
+}
+
+/** A filter that compares to an empty value (a cascading parent not chosen yet): no rows rather than every row. */
+function blockedByEmptyParent(config: LookupConfig, plan: ExtensionQueryPlan): boolean {
+  return plan.filters.some((f, i) => f.operator !== 'is_set' && f.operator !== 'is_not_set' && f.value === '' && /\{\{/.test(config.filters?.[i]?.value ?? ''))
+}
+
+async function extensionProvider(config: { extension?: string; provider?: string }) {
+  if (!config.extension || !config.provider) throw ServiceError.validation('The lookup has no list')
+  const { getServerExtension } = await import('@/lib/extensions/server-registry')
+  const provider = getServerExtension(config.extension)?.lookupSources?.[config.provider]
+  if (!provider) throw new ServiceError('validation_error', 'The list this lookup reads is not available (its extension is not installed)', { status: 400 })
+  return provider
+}
+
+/** The provider runs with no permissions of its own: it may only read the list through its connection (core keeps the configured columns). */
+async function extensionContext(extensionId: string, tenantId: string) {
+  const { createExtensionContext } = await import('@/lib/extensions/host')
+  return createExtensionContext({ extensionId, tenantId, permissions: [] } as any)
+}
+
+/** One page of an extension list (the provider's `query`), as no one in particular: core keeps only the configured columns. */
+export async function queryExtensionList(tenantId: string, source: { extension?: string; provider?: string }, plan: ExtensionQueryPlan): Promise<{ rows: Array<Record<string, unknown>>; more?: boolean }> {
+  const provider = await extensionProvider(source)
+  const ctx = await extensionContext(source.extension!, tenantId)
+  if (provider.feature) await (ctx as any).licence?.assert?.(provider.feature)
+  try {
+    const result = await provider.query({ ctx, ...plan })
+    const rows = (Array.isArray(result?.rows) ? result.rows : []).filter(isPlainObject).map((row) => {
+      const kept: Record<string, unknown> = {}
+      for (const c of new Set([...plan.columns, plan.valueColumn])) if (Object.prototype.hasOwnProperty.call(row, c)) kept[c] = row[c]
+      return kept
+    })
+    return { rows, ...(result?.more ? { more: true } : {}) }
+  } catch (error) {
+    console.error('[forms.lookup] extension list query failed:', (error as Error)?.message)
+    throw new ServiceError('internal', 'The list is not available right now', { status: 502 })
+  }
+}
+
+async function runExtension(tenantId: string, config: LookupConfig, input: { search: string; values: Record<string, unknown>; task?: Record<string, unknown> | null }, byValues?: string[]): Promise<{ items: LookupItem[]; truncated: boolean }> {
+  const plan = buildExtensionQueryPlan(config, input, { byValues })
+  if (byValues && !plan.values?.length) return { items: [], truncated: false }
+  if (!byValues && blockedByEmptyParent(config, plan)) return { items: [], truncated: false }
+  const result = await queryExtensionList(tenantId, { extension: config.extension, provider: config.provider }, plan)
+  const rows = Array.isArray(result?.rows) ? result.rows : []
+  const max = byValues ? rows.length : lookupMaxResults(config)
+  const items: LookupItem[] = []
+  for (const row of rows.slice(0, max)) {
+    const item = toLookupItem(config, row)
+    if (item && (!byValues || byValues.includes(item.value))) items.push(item)
+  }
+  return { items, truncated: rows.length > max || Boolean(result?.more && !byValues) }
+}
+
+/** The lists every installed extension offers as lookup sources (the designer's "Connected list" picker), as the person. */
+export async function extensionLookupLists(ctx: ServiceContext): Promise<Array<{ extension: string; provider: string; label: string; lists: Array<{ id: string; label: string; columns: Array<{ key: string; label: string; type?: string; choices?: string[] }>; valueColumn?: string; labelColumn?: string }>; error?: string }>> {
+  const { getServerExtensions } = await import('@/lib/extensions/server-registry')
+  const all = getServerExtensions() as Array<{ id: string; lookupSources?: Record<string, any> }>
+  const out: Awaited<ReturnType<typeof extensionLookupLists>> = []
+  for (const ext of all) {
+    for (const [key, provider] of Object.entries(ext.lookupSources ?? {})) {
+      try {
+        const { createExtensionContext } = await import('@/lib/extensions/host')
+        const xctx = createExtensionContext({ extensionId: ext.id, tenantId: ctx.tenantId, actorId: ctx.actorId ?? undefined, permissions: ctx.permissions === null ? undefined : [...ctx.permissions] } as any)
+        if (provider.feature) await (xctx as any).licence?.assert?.(provider.feature)
+        const lists = await provider.lists({ ctx: xctx })
+        out.push({ extension: ext.id, provider: key, label: String(provider.label ?? key), lists: (Array.isArray(lists) ? lists : []).slice(0, 500) })
+      } catch (error) {
+        out.push({ extension: ext.id, provider: key, label: String(provider.label ?? key), lists: [], error: (error as Error)?.message?.slice(0, 200) ?? 'Not available' })
+      }
+    }
+  }
+  return out
+}
+
 /* ── Reference queries ───────────────────────────────────────────────── */
 
 const responseCache = new Map<string, { expires: number; items: LookupItem[]; truncated: boolean }>()
@@ -394,6 +521,10 @@ async function runLookup(db: AnySupabaseClient, tenantId: string, config: Lookup
     const { items, truncated, cached } = await runReference(db, tenantId, config, input, callerId)
     return { items, ...(truncated ? { truncated } : {}), ...(cached ? { cached } : {}) }
   }
+  if (config.source === 'extension') {
+    const { items, truncated } = await runExtension(tenantId, config, input)
+    return { items, ...(truncated ? { truncated } : {}) }
+  }
   const { items, truncated } = await runTable(db, tenantId, config, input)
   return { items, ...(truncated ? { truncated } : {}) }
 }
@@ -500,6 +631,9 @@ export function lookupTargetField(fields: TaskFieldDef[], key: unknown): TaskFie
   const k = String(key ?? '')
   const direct = fields.find((f) => f.key === k && answersLookups(f))
   if (direct) return direct
+  // A Data table's bound column (lib/grid/column-model.ts): `<field>.<column>` — the column key may be an API path.
+  const table = dataTableColumnAt(fields, k)
+  if (table) return table.column.binding ? { key: k, label: table.column.label, type: 'lookup', lookup: table.column.binding } : null
   // A nested List's lookup column too: `orders.lines.product` (the List, its nested List columns, the lookup column).
   const m = /^([a-z0-9][a-z0-9_]*)((?:\.[a-z][a-z0-9_]*){0,2})\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(k)
   if (!m) return null
@@ -516,10 +650,20 @@ function listLevel(fields: TaskFieldDef[], listKey: string, nested: string): Lis
   return path.length ? childListAt(list.list, path)?.config ?? null : list.list
 }
 
-/** {{row.<column>}} for a List lookup column: the row being edited, its declared columns' plain values only. */
+/** The Data table field and column a `<field>.<column>` key names (null when the field is not a Data table). */
+function dataTableColumnAt(fields: TaskFieldDef[], key: string): { field: TaskFieldDef; column: DataTableColumn } | null {
+  const dot = key.indexOf('.')
+  if (dot <= 0) return null
+  const field = fields.find((f) => f.key === key.slice(0, dot) && f.type === 'data_table')
+  const column = field?.data_table?.columns.find((c) => c.key === key.slice(dot + 1))
+  return field && column ? { field, column } : null
+}
+
+/** {{row.<column>}} for a List lookup column or a Data table bound column: the row being edited, its declared columns' plain values only. */
 function rowScope(fields: TaskFieldDef[], key: string, values: unknown): Record<string, unknown> {
   const parts = key.split('.')
-  const config = parts.length >= 2 ? listLevel(fields, parts[0], parts.slice(1, -1).join('.')) : null
+  const table = dataTableColumnAt(fields, key)
+  const config: { columns: Array<{ key: string }> } | null = table ? table.field.data_table ?? null : parts.length >= 2 ? listLevel(fields, parts[0], parts.slice(1, -1).join('.')) : null
   const raw = isPlainObject(values) ? values[LOOKUP_ROW_KEY] : undefined
   if (!config || !isPlainObject(raw)) return {}
   const row: Record<string, unknown> = {}
@@ -696,6 +840,11 @@ export async function resolveLookupSelections(
 
 async function findByValues(db: AnySupabaseClient, tenantId: string, field: TaskFieldDef, config: LookupConfig, selected: string[], values: Record<string, unknown>, options: { taskId?: string | null; task?: Record<string, unknown> | null }): Promise<Map<string, LookupItem>> {
   const found = new Map<string, LookupItem>()
+  if (config.source === 'extension') {
+    const { items } = await runExtension(tenantId, config, { search: '', values, task: options.task ?? null }, selected)
+    for (const item of items) if (selected.includes(item.value)) found.set(item.value, item)
+    return found
+  }
   if (config.source === 'table') {
     const { items } = await runTable(db, tenantId, config, { search: '', values, task: options.task ?? null }, selected)
     for (const item of items) if (selected.includes(item.value)) found.set(item.value, item)
@@ -710,4 +859,46 @@ async function findByValues(db: AnySupabaseClient, tenantId: string, field: Task
     if (hit) found.set(value, hit)
   }
   return found
+}
+
+/* ── Other grids: the Data grid's bound columns (lib/services/data-table-views.ts) ── */
+
+/**
+ * The lookup engine on a config the CALLER loaded from saved state (a Data
+ * grid view's column binding): search, or resolve stored values to their
+ * items. `scope` names the served-items memory (reference values confirmed
+ * later without calling the API again) — e.g. `grid:<table>:<view>:<user>`.
+ * Authorisation is the caller's job; this only runs the query.
+ */
+export async function runBoundLookup(
+  db: AnySupabaseClient,
+  tenantId: string,
+  config: LookupConfig,
+  input: { query?: string; values?: Record<string, unknown>; resolve?: string[] },
+  scope: { key: string; column: string },
+): Promise<LookupResult> {
+  const values = isPlainObject(input.values) ? input.values : {}
+  const field: TaskFieldDef = { key: scope.column, label: scope.column, type: 'lookup', lookup: config }
+  if (input.resolve) return resolveItems(db, tenantId, field, config, input.resolve.slice(0, LOOKUP_LIMITS.maxSelections), values, { taskId: scope.key, task: null })
+  const result = await runLookup(db, tenantId, config, { search: lookupSearchTerm(input.query), values, task: null }, scope.key)
+  if (config.source === 'reference' && result.items.length) rememberServedInBackground(scope.key, scope.column, result.items)
+  return result
+}
+
+/** Which of `values` the bound source offers (with the same row scope a search had): value → item. */
+export async function confirmBoundValues(
+  db: AnySupabaseClient,
+  tenantId: string,
+  config: LookupConfig,
+  values: string[],
+  scopeValues: Record<string, unknown>,
+  scope: { key: string; column: string },
+): Promise<Map<string, LookupItem>> {
+  const field: TaskFieldDef = { key: scope.column, label: scope.column, type: 'lookup', lookup: config }
+  return findByValues(db, tenantId, field, config, values, scopeValues, { taskId: scope.key, task: null })
+}
+
+/** The per-user lookup rate limit (shared with form lookups). */
+export async function lookupRateLimit(ctx: ServiceContext) {
+  await rateLimited(ctx)
 }

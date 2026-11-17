@@ -1,16 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronLeft, ChevronRight, Filter, Loader2, Plus, RotateCcw, Search, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronLeft, ChevronRight, Filter, Loader2, Lock, PencilLine, Plus, RefreshCw, RotateCcw, Search, Trash2, X } from 'lucide-react'
 import {
-  DATA_TABLE_OPERATOR_LABELS, addableColumns, changeCount, changedFields, coerceCell, columnFormat, dataTableDependencies, dataTableKeyColumn,
+  DATA_TABLE_OPERATOR_LABELS, addableColumns, changeCount, coerceCell, columnFormat, dataTableDependencies, dataTableKeyColumn,
   dataTablePageSize, editableColumns, emptyChangeSet, formatCell, isChangeSet, userOperatorsFor,
   type DataTableChangeSet, type DataTableColumn, type DataTableFieldConfig, type DataTableOperator, type DataTableRow, type DataTableSort,
 } from '@/lib/forms/data-table'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import { cn } from '@/lib/utils'
 import { controlClass } from '@/components/ui/input'
-import { formApiUrl, useFormLookupSource, type FormLookupSource } from './lookup-field'
+import { formApiHeaders, formApiUrl, useFormLookupSource, type FormLookupSource } from './lookup-field'
+import { GridSurfaceProvider, GridLabelsProvider, usePageLabels, type GridOptionsRequest, type GridSurface } from '@/components/grid/grid-context'
+import { GridCellEditor, editorFloats } from '@/components/grid/cell-editor'
+import { GridCellDisplay } from '@/components/grid/cell-display'
+import { dependentColumns, gridColumnFromForm, hasCustomControl, type GridColumnDef } from '@/lib/grid/column-model'
+import { LOOKUP_ROW_KEY } from '@/lib/forms/lookup'
 import { FormattedCellView } from './data-table-cell'
 import { useFormRules } from './form-rules-runtime'
 import type { FormRuleEventType } from '@/lib/forms/form-rules'
@@ -18,6 +23,12 @@ import { CONTROLS_KEY } from '@/lib/forms/form-params'
 import { ROW_ID_KEY, rowCellErrors, rowDraftState } from '@/lib/forms/row-markers'
 import { commitRow, currentRowRef, discardRow, newRowId, type RowTarget } from '@/lib/forms/row-rules'
 import { CONTROL_LIMITS } from '@/lib/forms/rule-variables'
+import { applyTableEdits, type TableEdit } from '@/lib/forms/data-table-edits'
+import { canUndo, changedRowCount, errorCount, hasChanges, inRange, isCellChanged, registerRows as registerEditAllRows, type CellChange } from '@/lib/grid/edit-all'
+import { isMultiValue } from '@/lib/grid/column-model'
+import { useEditAll } from '@/components/grid/use-edit-all'
+import { EDIT_ALL_CHANGED_WASH, EDIT_ALL_FIELD, EDIT_ALL_READONLY, EditAllBar } from '@/components/grid/edit-all-bar'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 /**
  * The Data table field (lib/forms/data-table.ts) on a form: rows from the
@@ -113,6 +124,41 @@ function rawEditorValue(col: DataTableColumn, v: unknown): string {
   return String(v)
 }
 
+/** A new row with nothing typed in it (its row id aside). */
+function isBlankAdded(row: Record<string, unknown>): boolean {
+  return Object.entries(row).every(([k, v]) => k === ROW_ID_KEY || k.startsWith('__') || v === null || v === undefined || v === '' || v === false || (Array.isArray(v) && !v.length))
+}
+
+/** Columns drawn and edited by the shared grid engine (a picked control or a data binding). */
+function usesEngine(col: DataTableColumn): boolean {
+  return hasCustomControl(col) || Boolean(col.binding)
+}
+
+/** A bound column's options for this form (forms.lookup, key `<field>.<column>`; the designer preview sends the binding itself). */
+function formOptionsFetcher(source: FormLookupSource, field: TaskFieldDef, getValues: () => Record<string, unknown>) {
+  return async (req: GridOptionsRequest, signal: AbortSignal) => {
+    const key = `${field.key}.${req.column}`
+    const column = field.data_table?.columns.find((c) => c.key === req.column)
+    const values = { ...getValues(), [LOOKUP_ROW_KEY]: req.row }
+    const extra = req.resolve ? { resolve: req.resolve } : {}
+    const body = source.kind === 'task'
+      ? { task_id: source.taskId, field_key: key, query: req.query, values, ...extra }
+      : source.kind === 'form'
+        ? { form_id: source.formId, field_key: key, query: req.query, values, ...extra }
+        : { field: { key, label: column?.label ?? req.column, type: 'lookup', lookup: column?.binding }, query: req.query, values, ...extra }
+    const res = await fetch(formApiUrl(source, 'lookup'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...formApiHeaders(source) }, credentials: 'same-origin', body: JSON.stringify(body), signal })
+    const json = await res.json().catch(() => null) as { items?: unknown[]; truncated?: boolean; too_short?: boolean; error?: string } | null
+    if (!res.ok) throw new Error(res.status === 429 ? 'Too many lookups — wait a moment' : json?.error ?? 'The options are not available right now')
+    return { items: (Array.isArray(json?.items) ? json!.items : []) as never, truncated: json?.truncated, too_short: json?.too_short }
+  }
+}
+
+/** Resolves the labels of a page's bound values once, for every cell below. */
+function PageLabels({ columns, rows, children }: { columns: GridColumnDef[]; rows: Array<Record<string, unknown>>; children: React.ReactNode }) {
+  const labels = usePageLabels(columns, rows)
+  return <GridLabelsProvider value={labels}>{children}</GridLabelsProvider>
+}
+
 /** The in-place editor of one cell (type-matched input). */
 function CellEditor({ col, value, label, onCommit, onCancel }: { col: DataTableColumn; value: unknown; label: string; onCommit: (raw: unknown, next?: boolean) => void; onCancel: () => void }) {
   const [text, setText] = useState(() => rawEditorValue(col, value))
@@ -147,7 +193,7 @@ function CellEditor({ col, value, label, onCommit, onCancel }: { col: DataTableC
   )
 }
 
-export function DataTableField({ field, value, values, onChange, onControl, reportRows, id, describedBy, invalid, disabled }: {
+export function DataTableField({ field, value, values, onChange, onControl, reportRows, people, id, describedBy, invalid, disabled }: {
   field: TaskFieldDef
   value: unknown
   values: Record<string, unknown>
@@ -156,6 +202,8 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
   onControl?: (patch: Record<string, unknown>) => void
   /** Also report the loaded rows ({{control.<key>.rows}} — a Label's expression reads them; lib/forms/label-field.ts). */
   reportRows?: boolean
+  /** People a people-picker cell offers (the form's people list). */
+  people?: Array<{ id: string; display_name: string | null; email: string | null }>
   id: string
   describedBy?: string
   invalid?: boolean
@@ -163,6 +211,20 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
 }) {
   const config = field.data_table as DataTableFieldConfig | undefined
   const source = useFormLookupSource()
+  // The shared grid engine (components/grid): bound options through forms.lookup, signature PNGs through the form's upload pipeline.
+  const valuesRef = useRef(values)
+  valuesRef.current = values
+  const peopleKey = (people ?? []).map((p) => p.id).join(',')
+  const surface = useMemo<GridSurface>(() => ({
+    scope: `form:${source?.kind === 'task' ? source.taskId : source?.kind === 'form' ? source.formId : 'preview'}:${field.key}`,
+    fetchOptions: source ? formOptionsFetcher(source, field, () => valuesRef.current) : undefined,
+    signatureUploadKey: (col) => `${field.key}.${col.key}`,
+    people,
+    locale: config?.locale,
+  // Keyed on the people's ids, not the array (a caller's default [] is a new array each render).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [source, field, peopleKey, config?.locale])
+  const gridCols = useMemo(() => (config?.columns ?? []).filter(usesEngine).map(gridColumnFromForm), [config])
   const [state, setState] = useState<QueryState>({ search: '', filters: {}, sort: null, page: 1 })
   const [searchText, setSearchText] = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -197,7 +259,8 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
 
   const deps = useMemo(() => (config ? dataTableDependencies(config) : []), [config])
   const depValues = useMemo(() => Object.fromEntries(deps.map((k) => [k, values[k]])), [deps, values])
-  const depKey = JSON.stringify(depValues)
+  // refresh_on_change false: the fields the source reads are sent with each query, but a change doesn't reload by itself.
+  const depKey = config?.refresh_on_change === false ? '' : JSON.stringify(depValues)
   const mode = config?.mode ?? 'display'
   const keyColumn = config ? dataTableKeyColumn(config) : ''
   const visibleCols = useMemo(() => (config?.columns ?? []).filter((c) => !c.hidden), [config])
@@ -263,6 +326,46 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
   }, [config, source, state, depKey, reload, refresh, field.key])
   useEffect(() => () => abortRef.current?.abort(), [])
 
+  /*
+   * "Edit all rows" (lib/grid/edit-all.ts): every row's cells editable at
+   * once. Each change is folded into the control's value (the change set) as
+   * a whole, in one update, and the cell rules fire per changed cell, so the
+   * "for each changed row" rules see exactly what single edits produce.
+   * Cancel puts the value back as it was when the session began.
+   */
+  const eaCtx = useRef<{ rowKeys: string[]; colKeys: string[]; canEdit: (row: string, col: string) => boolean; col: (key: string) => DataTableColumn | undefined; onChanged: (moved: CellChange[]) => void; locale?: string }>({
+    rowKeys: [], colKeys: [], canEdit: () => false, col: () => undefined, onChanged: () => {},
+  })
+  const ea = useEditAll({
+    get rowKeys() { return eaCtx.current.rowKeys },
+    get colKeys() { return eaCtx.current.colKeys },
+    canEdit: (row, col) => eaCtx.current.canEdit(row, col),
+    isBoolean: (k) => eaCtx.current.col(k)?.type === 'boolean',
+    pasteColumn: (k) => {
+      const col = eaCtx.current.col(k)!
+      const g = gridColumnFromForm(col)
+      return { key: col.key, label: col.label, control: g.control, choices: g.control_options?.choices, multiple: isMultiValue(g), bound: Boolean(col.binding) }
+    },
+    coerce: (k, raw) => coerceCell(eaCtx.current.col(k)!, raw),
+    dependents: (k) => dependentColumns(gridCols, k),
+    allowAdd: false,
+    blankRow: () => ({}),
+    people,
+    get locale() { return eaCtx.current.locale },
+    focusDom: (r, c) => focusCellRef.current(r, c),
+    onChanged: (moved) => eaCtx.current.onChanged(moved),
+    onSave: () => finishRef.current(),
+    announce: (m) => setAnnounceText(m),
+  })
+  const [announceText, setAnnounceText] = useState('')
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const snapshotRef = useRef<unknown>(null)
+  const valueRef = useRef(value)
+  valueRef.current = value
+  const focusCellRef = useRef<(r: number, c: number) => void>(() => {})
+  const finishRef = useRef<() => void>(() => {})
+  const autoOpened = useRef(false)
+
   if (!config) return null
   const pageSize = result?.page_size ?? dataTablePageSize(config)
   const rows = result?.rows ?? []
@@ -291,24 +394,21 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
     const errKey = `${row?.key ?? `new-${addedIndex}`}:${col.key}`
     if ('error' in coerced) { setCellErrors((e) => ({ ...e, [errKey]: coerced.error })); return false }
     setCellErrors((e) => { const n = { ...e }; delete n[errKey]; return n })
+    // Cascading: a bound column whose filter reads this one ({{row.<column>}}) starts again empty.
+    const cleared = Object.fromEntries(dependentColumns(gridCols, col.key).map((k) => [k, null]))
     if (addedIndex !== null) {
-      const added = changes.added.map((r, i) => (i === addedIndex ? { ...r, [col.key]: coerced.value } : r))
+      const added = changes.added.map((r, i) => (i === addedIndex ? { ...r, ...cleared, [col.key]: coerced.value } : r))
       setChanges({ ...changes, added })
       emit('cell_edit', { row: added[addedIndex], column: col.key, value: coerced.value, previous: changes.added[addedIndex]?.[col.key] ?? null })
       emit('cell_change', { row: added[addedIndex], row_number: addedIndex + 1, column: col.key, value: coerced.value, previous: changes.added[addedIndex]?.[col.key] ?? null })
       return true
     }
     if (!row) return false
+    // The same folding as an "Edit all rows" batch (lib/forms/data-table-edits.ts).
     const existing = changes.updated.find((x) => x.key === row.key)
-    const after = { ...(existing?.after ?? {}), [col.key]: coerced.value }
-    const changed = changedFields(config!, row.values, after)
-    const kept = Object.fromEntries(changed.map((k) => [k, after[k]]))
-    const updated = changes.updated.filter((x) => x.key !== row.key)
-    // A pending row (a rule's Set row values) stays pending; its cell's commit message goes once the cell changes.
-    const errors = { ...(existing?.errors ?? {}) }
-    delete errors[col.key]
-    if (changed.length) updated.push({ key: row.key, before: row.values, after: kept, changed_fields: changed, ...(existing?.draft ? { draft: true } : {}), ...(Object.keys(errors).length ? { errors } : {}) })
-    setChanges({ ...changes, updated })
+    const after = { ...(existing?.after ?? {}), ...cleared, [col.key]: coerced.value }
+    const edits: TableEdit[] = Object.entries({ ...cleared, [col.key]: coerced.value }).map(([k, v]) => ({ kind: 'row', key: row.key, before: row.values, col: k, value: v }))
+    setChanges(applyTableEdits(config!, changes, edits))
     emit('cell_edit', { row: { ...row.values, ...after }, key: row.key, column: col.key, value: coerced.value, previous: displayed(row)[col.key] ?? null })
     emit('cell_change', { row: { ...row.values, ...after }, key: row.key, row_number: null, column: col.key, value: coerced.value, previous: displayed(row)[col.key] ?? null })
     return true
@@ -318,6 +418,16 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
     const blank: Record<string, unknown> = {}
     for (const c of addableColumns(config!)) blank[c.key] = c.type === 'boolean' ? false : null
     blank[ROW_ID_KEY] = newRowId()
+    if (ea.session) {
+      // Editing all rows: the new row goes at the bottom, its first editable cell focused.
+      setChanges({ ...changes, added: [...changes.added, blank] })
+      const r = rows.length + changes.added.length
+      ea.setPos({ r, c: 0 })
+      // The latest render's focus helper (this render's lines don't have the new row yet).
+      requestAnimationFrame(() => requestAnimationFrame(() => focusCellRef.current(r, 0)))
+      emit('row_add', { row: blank })
+      return
+    }
     setChanges({ ...changes, added: [blank, ...changes.added] })
     setFocus({ r: 0, c: 0 })
     emit('row_add', { row: blank })
@@ -366,13 +476,16 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
   /* ── Rows drawn ────────────────────────────────────────────────────── */
 
   type Line = { kind: 'added'; index: number; values: Record<string, unknown> } | { kind: 'row'; row: DataTableRow; values: Record<string, unknown>; deleted: boolean; changed: string[] }
+  const addedLines: Line[] = mode === 'edit' ? changes.added.map((values, index) => ({ kind: 'added' as const, index, values })) : []
   const lines: Line[] = [
-    ...(mode === 'edit' ? changes.added.map((values, index) => ({ kind: 'added' as const, index, values })) : []),
+    // Editing all rows: new rows are drawn at the bottom (added there too).
+    ...(ea.session ? [] : addedLines),
     ...rows.map((row) => ({
       kind: 'row' as const, row, values: mode === 'edit' ? displayed(row) : row.values,
       deleted: mode === 'edit' && changes.deleted.some((d) => d.key === row.key),
       changed: mode === 'edit' ? changes.updated.find((u) => u.key === row.key)?.changed_fields ?? [] : [],
     })),
+    ...(ea.session ? addedLines : []),
   ]
   const editableKeys = new Set(editableColumns(config).map((c) => c.key))
   const addableKeys = new Set(addableColumns(config).map((c) => c.key))
@@ -421,6 +534,139 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
   const lineId = (line: Line) => (line.kind === 'added' ? `new-${line.index}` : line.row.key)
   const canEdit = (line: Line, col: DataTableColumn) => !disabled && mode === 'edit' && (line.kind === 'added' ? addableKeys.has(col.key) : !line.deleted && editableKeys.has(col.key))
 
+  /* ── Edit all rows: the session's view of the lines ─────────────────── */
+  const eaKey = (line: Line) => (line.kind === 'added' ? `rid:${String(line.values[ROW_ID_KEY] ?? `i${line.index}`)}` : line.row.key)
+  const lineByKey = new Map(lines.map((l) => [eaKey(l), l]))
+  const session = ea.session
+  const editAllAllowed = mode === 'edit' && !disabled && Boolean(source)
+  function foldEdits(moved: CellChange[]) {
+    const current: DataTableChangeSet = isChangeSet(valueRef.current) ? { added: valueRef.current.added ?? [], updated: valueRef.current.updated ?? [], deleted: valueRef.current.deleted ?? [] } : emptyChangeSet()
+    const edits: TableEdit[] = []
+    for (const m of moved) {
+      const line = lineByKey.get(m.row)
+      if (!line) continue
+      edits.push(line.kind === 'added' ? { kind: 'added', rid: String(line.values[ROW_ID_KEY] ?? ''), col: m.col, value: m.value } : { kind: 'row', key: line.row.key, before: line.row.values, col: m.col, value: m.value })
+    }
+    if (!edits.length) return
+    const next = applyTableEdits(config!, current, edits)
+    valueRef.current = changeCount(next) ? next : null
+    onChange(valueRef.current)
+    // The cell rules, once per changed cell (as single edits fire them).
+    for (const m of moved) {
+      const line = lineByKey.get(m.row)
+      if (!line) continue
+      const previous = line.values[m.col] ?? null
+      if (line.kind === 'added') {
+        const row = next.added.find((r) => String(r[ROW_ID_KEY] ?? '') === String(line.values[ROW_ID_KEY] ?? '')) ?? line.values
+        emit('cell_edit', { row, column: m.col, value: m.value, previous })
+        emit('cell_change', { row, row_number: line.index + 1, column: m.col, value: m.value, previous })
+      } else {
+        const row = { ...line.row.values, ...(next.updated.find((u) => u.key === line.row.key)?.after ?? {}) }
+        emit('cell_edit', { row, key: line.row.key, column: m.col, value: m.value, previous })
+        emit('cell_change', { row, key: line.row.key, row_number: null, column: m.col, value: m.value, previous })
+      }
+    }
+  }
+  eaCtx.current = {
+    rowKeys: lines.map(eaKey),
+    colKeys: visibleCols.map((c) => c.key),
+    canEdit: (key, colKey) => { const line = lineByKey.get(key); const col = visibleCols.find((c) => c.key === colKey); return Boolean(line && col && canEdit(line, col)) },
+    col: (k) => visibleCols.find((c) => c.key === k),
+    onChanged: foldEdits,
+    locale: config.locale,
+  }
+  focusCellRef.current = (r, c) => focusCell(r, c + leadCols)
+  finishRef.current = () => finishEditAll()
+  function startEditAll() {
+    if (!editAllAllowed) return
+    snapshotRef.current = value ?? null
+    setEditing(null)
+    ea.start(lines.map((l) => ({ key: eaKey(l), values: l.values, version: null })))
+    setAnnounceText('Editing all rows. Arrow keys move, type to edit, Escape reverts a cell.')
+    const first = visibleCols.findIndex((c) => lines[0] && canEdit(lines[0], c))
+    requestAnimationFrame(() => focusCell(0, Math.max(0, first) + leadCols))
+  }
+  if (session) {
+    // New lines (the next page, a row added) join the session.
+    const next = registerEditAllRows(session, lines.map((l) => ({ key: eaKey(l), values: l.values, version: null })))
+    if (next !== session) queueMicrotask(() => { if (ea.current() === session) ea.set(next) })
+  } else if (config.open_in_edit_mode && editAllAllowed && status === 'done' && !autoOpened.current) {
+    autoOpened.current = true
+    queueMicrotask(startEditAll)
+  }
+  /** Done: the changes stay in the value; new rows left blank are dropped. */
+  function finishEditAll() {
+    const current = valueRef.current
+    if (isChangeSet(current) && (current.added ?? []).some((r) => isBlankAdded(r))) {
+      const next = { added: (current.added ?? []).filter((r) => !isBlankAdded(r)), updated: current.updated ?? [], deleted: current.deleted ?? [] }
+      valueRef.current = changeCount(next) ? next : null
+      onChange(valueRef.current)
+    }
+    ea.stop()
+    setAnnounceText('Done — the changes are part of the form; submit it to save them')
+  }
+  function cancelEditAll() {
+    if (session && hasChanges(session)) { setConfirmCancel(true); return }
+    ea.stop()
+  }
+
+  /** One cell of an "Edit all rows" session (the value shown is the control's value; the session tracks what changed). */
+  function editAllCell(line: Line, col: DataTableColumn, ci: number, r: number) {
+    const s = session!
+    const key = eaKey(line)
+    const c = ci + leadCols
+    const g = gridColumnFromForm(col)
+    const editable = canEdit(line, col)
+    const value = line.values[col.key]
+    const changed = isCellChanged(s, key, col.key) || line.kind === 'added' || (line.kind === 'row' && line.changed.includes(col.key))
+    const err = s.errors[key]?.[col.key] ?? cellErrors[`${lineId(line)}:${col.key}`] ?? commitErrorsOf(line)[col.key]
+    const isEditing = ea.editing?.row === key && ea.editing.col === col.key
+    const selected = ea.multi && inRange(ea.range, r, ci)
+    const focused = ea.pos.r === r && ea.pos.c === ci
+    const cell = formatCell(col, value, fmt)
+    const label = `${col.label}, row ${r + 1}`
+    return (
+      <td key={col.key} role="gridcell" data-cell={`${r}:${c}`} data-col={col.key} aria-colindex={c + 1} tabIndex={focused ? 0 : -1}
+        aria-readonly={!editable || undefined} aria-invalid={err ? true : undefined} aria-selected={ea.multi ? selected : undefined} title={err ?? (!editable ? 'Read-only' : undefined)}
+        onFocus={() => { if (!focused) ea.setPos({ r, c: ci }) }}
+        onKeyDown={(e) => ea.onCellKey(e, r, ci)}
+        onMouseDown={(e) => { if (e.shiftKey && !isEditing) { e.preventDefault(); ea.setAnchor((a) => a ?? ea.pos); ea.setPos({ r, c: ci }) } }}
+        onClick={(e) => {
+          if (e.shiftKey || isEditing) return
+          ea.setAnchor(null); ea.setPos({ r, c: ci })
+          if (editable && col.type !== 'boolean') ea.setEditing({ row: key, col: col.key })
+          emit('row_click', { row: line.values, key: line.kind === 'row' ? line.row.key : null, column: col.key })
+        }}
+        className={cn('px-1.5 py-1', alignClass(cell.align), isEditing && editorFloats(g) && 'relative', selected && 'bg-primary-wash', line.kind === 'row' && line.deleted && 'line-through', ci === 0 && STICKY,
+          focused && !isEditing && 'outline outline-2 -outline-offset-2 outline-primary')}
+        style={{
+          ...(col.width ? { minWidth: col.width } : {}),
+          ...(changed && !selected ? { backgroundColor: EDIT_ALL_CHANGED_WASH } : {}),
+          ...(ci === 0 ? stickyStyle(firstLeft, changed ? EDIT_ALL_CHANGED_WASH : undefined) : {}),
+          ...(err ? { outline: '1px solid var(--status-blocked)', outlineOffset: '-1px' } : {}),
+        }}
+        data-dt-sticky={ci === 0 || undefined} data-changed={changed || undefined} data-dt-readonly={!editable || undefined}>
+        {isEditing ? (
+          <GridCellEditor col={g} value={value} row={line.values} label={label} invalid={Boolean(err)} initialText={ea.editing?.initial}
+            onCommit={(next, move) => { ea.commit(key, col.key, next); ea.afterEdit(r, ci, key, col.key, move) }}
+            onCancel={() => ea.afterCancel(r, ci, key, col.key)} />
+        ) : col.type === 'boolean' && !usesEngine(col) ? (
+          <span className="flex justify-center">
+            <input type="checkbox" tabIndex={-1} className="accent-primary size-4" checked={value === true} disabled={!editable} aria-label={label}
+              onChange={(e) => ea.apply([{ row: key, col: col.key, value: e.target.checked }])} />
+          </span>
+        ) : (
+          <span className={cn(editable ? EDIT_ALL_FIELD : EDIT_ALL_READONLY, cell.align === 'right' && 'justify-end', changed && editable && 'border-primary font-medium')} style={changed && editable ? { backgroundColor: EDIT_ALL_CHANGED_WASH } : undefined}>
+            {usesEngine(col) ? <GridCellDisplay col={g} value={value} row={line.values} locale={config!.locale} /> : <FormattedCellView cell={cell} wrap={false} />}
+            {!editable && <Lock size={11} className="ml-auto shrink-0" aria-hidden />}
+          </span>
+        )}
+        <span className="sr-only">{changed ? ', changed' : ''}{editable ? '' : ', read-only'}</span>
+        {err && !isEditing && <span className="block text-2xs text-(--status-blocked)" data-dt-cell-error={col.key}>{err}</span>}
+      </td>
+    )
+  }
+
   const statusText = status === 'loading' ? 'Loading rows…'
     : status === 'error' ? (error ?? 'The table is not available right now')
       : status === 'done' && !rows.length ? 'No rows match'
@@ -432,8 +678,10 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
   const selectText = mode === 'select' && selected.length ? ` · ${selected.length} selected` : ''
 
   return (
+    <GridSurfaceProvider value={surface}>
+    <PageLabels columns={gridCols} rows={lines.map((l) => l.values)}>
     <div className="min-w-0 max-w-full space-y-2" data-data-table-field={field.key} data-mode={mode}>
-      {(config.searchable !== false || filterable.length > 0 || (mode === 'edit' && config.allow_add && !disabled)) && (
+      {(config.searchable !== false || filterable.length > 0 || config.refresh_button || editAllAllowed || (mode === 'edit' && config.allow_add && !disabled)) && (
         <div className="flex flex-wrap items-center gap-2">
           {config.searchable !== false && (
             <div className="relative min-w-[10rem] flex-1">
@@ -446,6 +694,18 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
             <button type="button" aria-expanded={showFilters} aria-controls={`${id}-filters`} onClick={() => setShowFilters((v) => !v)}
               className="inline-flex h-8 items-center gap-1 rounded border px-2 text-xs border-border text-fg">
               <Filter size={12} aria-hidden /> Filters{Object.values(state.filters).filter((f) => f.value || f.operator === 'is_set' || f.operator === 'is_not_set').length ? ` (${Object.values(state.filters).filter((f) => f.value || f.operator === 'is_set' || f.operator === 'is_not_set').length})` : ''}
+            </button>
+          )}
+          {config.refresh_button && (
+            <button type="button" onClick={() => setReload((n) => n + 1)} disabled={!source || status === 'loading'} aria-label={`Refresh ${field.label}`}
+              className="inline-flex h-8 items-center gap-1 rounded border px-2 text-xs border-border text-fg disabled:opacity-50" data-dt-refresh>
+              <RefreshCw size={12} aria-hidden className={status === 'loading' ? 'animate-spin' : undefined} /> Refresh
+            </button>
+          )}
+          {editAllAllowed && !session && (
+            <button type="button" onClick={startEditAll} className="inline-flex h-8 items-center gap-1 rounded border px-2 text-xs font-medium border-border text-fg"
+              title="Every row becomes editable at once (Shift+E)" aria-keyshortcuts="Shift+E" data-dt-edit-all>
+              <PencilLine size={12} aria-hidden /> Edit all
             </button>
           )}
           {mode === 'edit' && config.allow_add && !disabled && (
@@ -496,6 +756,11 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
         </fieldset>
       )}
 
+      {session && (
+        <EditAllBar changedRows={changedRowCount(session)} errors={errorCount(session)} conflicts={0} canUndo={canUndo(session)} saveLabel="Done"
+          saveHint="Keep the changes in the form (submit the form to save them)" onUndo={ea.undo} onCancel={cancelEditAll} onSave={finishEditAll} />
+      )}
+      <p className="sr-only" role="status" aria-live="polite">{announceText}</p>
       {/* A grid (select / edit) is reached cell by cell — arrow keys scroll it; a display table is one focusable scroll region. */}
       <div className={cn(SCROLL_BOX, invalid ? 'border-(--status-blocked)' : 'border-border')} data-dt-scroll
         role={interactive ? undefined : 'region'} aria-label={interactive ? undefined : `${field.label} (scrollable)`} tabIndex={interactive ? undefined : 0}>
@@ -503,8 +768,14 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
           <p className="p-3 text-xs text-fg-muted">The rows appear when the form is filled in.</p>
         ) : (
           <table ref={gridRef} id={`${id}-grid`} role={interactive ? 'grid' : undefined} aria-labelledby={`${id}-label`} aria-describedby={[describedBy, `${id}-status`].filter(Boolean).join(' ')}
-            aria-busy={status === 'loading' || undefined} aria-multiselectable={mode === 'select' ? Boolean(config.multiple) : undefined} aria-invalid={invalid || undefined}
-            className="w-full border-collapse text-xs text-fg" data-dt-table data-fm-table>
+            aria-busy={status === 'loading' || undefined} aria-invalid={invalid || undefined}
+            className="w-full border-collapse text-xs text-fg" data-dt-table data-fm-table
+            aria-multiselectable={session ? true : mode === 'select' ? Boolean(config.multiple) : undefined} data-edit-all={session ? true : undefined}
+            onPaste={session ? ea.onPaste : undefined} onCopy={session ? ea.onCopy : undefined}
+            onKeyDown={(e) => {
+              const t = e.target as HTMLElement
+              if (e.key === 'E' && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && !session && editAllAllowed && !['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)) { e.preventDefault(); startEditAll() }
+            }}>
             <thead className="bg-primary-wash">
               <tr>
                 {mode === 'select' && <th scope="col" className={cn(cellPad, STICKY)} style={selectColStyle(HEAD_WASH)}><span className="sr-only">Select</span></th>}
@@ -546,6 +817,7 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
                       </td>
                     )}
                     {visibleCols.map((col, ci) => {
+                      if (session) return editAllCell(line, col, ci, r)
                       const c = ci + leadCols
                       const cell = formatCell(col, line.values[col.key], fmt)
                       const isEditing = editing?.row === lid && editing.col === col.key
@@ -567,7 +839,7 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
                             if (canEdit(line, col)) setEditing({ row: lid, col: col.key })
                             emit('row_double_click', { row: line.values, key: line.kind === 'row' ? line.row.key : null, column: col.key })
                           }}
-                          className={cn(cellPad, alignClass(cell.align), !columnFormat(col).wrap && 'whitespace-nowrap', mode === 'select' && !disabled && 'cursor-pointer', canEdit(line, col) && 'cursor-text', mode === 'edit' && !disabled && !canEdit(line, col) && 'text-fg-muted', line.kind === 'row' && line.deleted && 'line-through', ci === 0 && STICKY)}
+                          className={cn(cellPad, alignClass(cell.align), !columnFormat(col).wrap && 'whitespace-nowrap', isEditing && editorFloats(gridColumnFromForm(col)) && 'relative', mode === 'select' && !disabled && 'cursor-pointer', canEdit(line, col) && 'cursor-text', mode === 'edit' && !disabled && !canEdit(line, col) && 'text-fg-muted', line.kind === 'row' && line.deleted && 'line-through', ci === 0 && STICKY)}
                           data-dt-readonly={mode === 'edit' && !canEdit(line, col) ? true : undefined}
                           style={{
                             ...(changed && mode === 'edit' ? { backgroundColor: CHANGED_WASH } : {}),
@@ -576,7 +848,19 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
                           }}
                           data-dt-sticky={ci === 0 || undefined}
                           data-col={col.key}>
-                          {isEditing ? (
+                          {isEditing && usesEngine(col) ? (
+                            <GridCellEditor col={gridColumnFromForm(col)} value={line.values[col.key]} row={line.values} label={`${col.label}, row ${r + 1}`} invalid={Boolean(err)}
+                              onCommit={(next, move) => {
+                                if (!editCell(line.kind === 'row' ? line.row : null, line.kind === 'added' ? line.index : null, col, next)) return
+                                setEditing(null)
+                                // Spreadsheet keys: Tab / Shift+Tab along the row's editable cells, Enter down the column.
+                                if (move === 'down') { focusCell(r + 1, c); return }
+                                const editableIdx = visibleCols.map((x, xi) => (canEdit(line, x) ? xi : -1)).filter((xi) => xi >= 0)
+                                const after = move === 'prev' ? editableIdx.filter((xi) => xi < ci).pop() ?? -1 : move === 'next' ? editableIdx.find((xi) => xi > ci) ?? -1 : -1
+                                focusCell(r, after >= 0 ? after + leadCols : c)
+                              }}
+                              onCancel={() => { setEditing(null); setCellErrors((e) => { const n = { ...e }; delete n[`${lid}:${col.key}`]; return n }); focusCell(r, c) }} />
+                          ) : isEditing ? (
                             <CellEditor col={col} value={line.values[col.key]} label={`${col.label}, row ${r + 1}`}
                               onCommit={(raw, next) => {
                                 if (!editCell(line.kind === 'row' ? line.row : null, line.kind === 'added' ? line.index : null, col, raw)) return
@@ -588,7 +872,9 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
                               onCancel={() => { setEditing(null); setCellErrors((e) => { const n = { ...e }; delete n[`${lid}:${col.key}`]; return n }) }} />
                           ) : (
                             <>
-                              <FormattedCellView cell={cell} wrap={columnFormat(col).wrap} />
+                              {usesEngine(col)
+                                ? <GridCellDisplay col={gridColumnFromForm(col)} value={line.values[col.key]} row={line.values} locale={config.locale} />
+                                : <FormattedCellView cell={cell} wrap={columnFormat(col).wrap} />}
                               {ci === 0 && pendingState && <span className="ml-1 rounded-full border border-primary px-1.5 py-0.5 text-2xs font-medium text-primary-text" data-row-badge={pendingState}>{pendingState === 'new' ? 'New' : 'Edited'}</span>}
                               {canEdit(line, col) && <span className="sr-only">, editable — press Enter</span>}
                               {mode === 'edit' && !canEdit(line, col) && <span className="sr-only">, read-only</span>}
@@ -654,7 +940,13 @@ export function DataTableField({ field, value, values, onChange, onControl, repo
           {Object.entries(cellErrors).map(([k, message]) => <li key={k}>Row {k.split(':')[0].replace(/^new-(\d+)$/, (_m, n) => `new ${Number(n) + 1}`)}: {message}</li>)}
         </ul>
       )}
+      <ConfirmDialog open={confirmCancel} onOpenChange={setConfirmCancel} destructive
+        title={`Discard ${session ? changedRowCount(session) : 0} changed row${session && changedRowCount(session) === 1 ? '' : 's'}?`}
+        description="The table goes back to how it was before you pressed Edit all." confirmLabel="Discard changes"
+        onConfirm={() => { setConfirmCancel(false); onChange(snapshotRef.current); valueRef.current = snapshotRef.current; ea.stop(); setAnnounceText('Changes discarded') }} />
     </div>
+    </PageLabels>
+    </GridSurfaceProvider>
   )
 }
 
@@ -702,7 +994,7 @@ export function DataTableValueView({ field, value }: { field: TaskFieldDef; valu
                 return (
                   <td key={c.key} className={cn(cellPad, alignClass(cell.align), line.deleted && 'line-through', !columnFormat(c).wrap && 'whitespace-nowrap', sticky && STICKY)}
                     style={{ ...(line.changed?.includes(c.key) ? { fontWeight: 600 } : {}), ...(sticky ? stickyStyle('0') : {}) }}>
-                    <FormattedCellView cell={cell} wrap={columnFormat(c).wrap} />
+                    {usesEngine(c) ? <GridCellDisplay col={gridColumnFromForm(c)} value={line.values[c.key]} row={line.values} locale={config.locale} /> : <FormattedCellView cell={cell} wrap={columnFormat(c).wrap} />}
                     {line.changed?.includes(c.key) && <span className="sr-only"> (changed)</span>}
                   </td>
                 )

@@ -100,21 +100,8 @@ export default function CustomTablePage({
     queryFn: async () => ((await serverRead('data.table', { id })).data ?? null) as CustomTable | null,
   })
 
-  // Pull rows with BOTH creator and updater joins so the grid and
-  // the detail drawer can show "created by X / last edited by Y"
-  // without extra round-trips.
-  const { data: rows, isLoading: isRowsLoading } = useQuery({
-    queryKey: ['custom-table-rows', id],
-    queryFn: async () => {
-      // Rows are hydrated server-side; one broken join can't blank the grid.
-      const { data, error } = await serverRead('data.rows', { tableId: id })
-      if (error) {
-        console.error('[data/page] failed to load custom table rows', error)
-        return [] as CustomTableRow[]
-      }
-      return (data ?? []) as CustomTableRow[]
-    },
-  })
+  // Rows are paged by the grid itself (data.rowPage); it reports the table's row count here.
+  const [rowTotal, setRowTotal] = useState<number | null>(null)
 
   // The Agent: this table is the open item ("add 10 rows to this table"); its rows refresh after a confirmed change (the Agent invalidates queries).
   useDesignerContext(table ? {
@@ -123,7 +110,7 @@ export default function CustomTablePage({
   } : null)
 
   const colCount = table?.columns?.length ?? 0
-  const rowCount = rows?.length ?? 0
+  const rowCount = rowTotal ?? 0
   const retentionStatus = getRetentionStatus({
     policy: table?.retention_policy ?? null,
     appliedAt: table?.retention_applied_at ?? null,
@@ -155,7 +142,7 @@ export default function CustomTablePage({
             <span className="mt-1 block text-xs text-fg-muted">
               <span className="num">{plural(colCount, 'column')}</span>
               {' · '}
-              <span className="num">{isRowsLoading && !rows ? '… rows' : plural(rowCount, 'row')}</span>
+              <span className="num">{rowTotal === null ? '… rows' : plural(rowCount, 'row')}</span>
               {' · '}
               <span title={formatAbsolute(updated)}>Updated {formatRelative(updated)}</span>
               {' · '}
@@ -194,7 +181,7 @@ export default function CustomTablePage({
             tableId={table.id}
             tenantId={table.tenant_id}
             columns={table.columns}
-            rows={rows ?? []}
+            onTotal={setRowTotal}
           />
         </TabPanel>
       )}

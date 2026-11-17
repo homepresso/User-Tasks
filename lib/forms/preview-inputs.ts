@@ -36,9 +36,12 @@ export const EMPTY_PREVIEW_INPUTS: PreviewTestInputs = { params: {}, vars: {} }
  * parameters; any other placeholder has nothing to fill it on a form page
  * (the field starts empty). The form page and the designer preview both use it.
  */
-export function openingFieldDefaults(fields: TaskFieldDef[], params: Record<string, unknown> | null): Record<string, unknown> {
+export function openingFieldDefaults(fields: TaskFieldDef[], params: Record<string, unknown> | null, samples?: Record<string, unknown>): Record<string, unknown> {
   return defaultTaskFieldValues(fields, (v) => {
     const s = params ? substituteParams(v, params) : v
+    // Workflow data (lib/forms/workflow-data.ts): a default that is one workflow token shows its sample value in the designer's preview.
+    const whole = samples ? /^\{\{\s*([A-Za-z_][\w.$-]*)\s*\}\}$/.exec(s.trim()) : null
+    if (whole && samples && Object.prototype.hasOwnProperty.call(samples, whole[1])) return samples[whole[1]]
     return /\{\{/.test(s) ? '' : s
   })
 }
@@ -91,7 +94,7 @@ export interface PreviewSeed {
 }
 
 /** The preview's starting point for these test inputs: what the form page computes on open with them. */
-export function previewSeed(fields: TaskFieldDef[], layout: unknown, inputs: PreviewTestInputs = EMPTY_PREVIEW_INPUTS): PreviewSeed {
+export function previewSeed(fields: TaskFieldDef[], layout: unknown, inputs: PreviewTestInputs = EMPTY_PREVIEW_INPUTS, samples?: Record<string, unknown>): PreviewSeed {
   const declared = layoutFormParams(layout)
   const raw: Record<string, unknown> = {}
   // Blank = not given (the default applies), as a URL without the parameter.
@@ -108,7 +111,7 @@ export function previewSeed(fields: TaskFieldDef[], layout: unknown, inputs: Pre
   return {
     params,
     message: params ? formParamsMessage(declared, params) : null,
-    defaults: openingFieldDefaults(fields, params?.values ?? null),
+    defaults: openingFieldDefaults(fields, params?.values ?? null, samples),
     vars,
     varErrors,
     initialValues: Object.keys(vars).length ? { [FORM_VARS_KEY]: vars } : {},

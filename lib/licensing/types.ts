@@ -15,6 +15,16 @@ export type EntitlementDecision = {
   state: EntitlementState
   reason?: string
   limits?: Record<string, number>
+  /** The deciding grant is a trial. */
+  trial?: boolean
+  /** Expiry of the deciding grant (null: none). */
+  expiresAt?: string | null
+  /** expiresAt + 24 h: when the extension stops. */
+  cutoffAt?: string | null
+  /** Whole days until expiry. */
+  daysLeft?: number | null
+  /** Farms the usable grants are bound to (unset: any farm). */
+  farmIds?: string[]
 }
 
 export interface EntitlementCheckInput {
@@ -69,8 +79,16 @@ export interface LicenceDocument {
   expires_at: string
   /** Newest extension release date this licence covers (informational for now). */
   updates_until?: string
-  /** Empty or missing = unbound (trials). Either list matching is enough. */
-  binding?: { instance_ids?: string[]; hostnames?: string[] }
+  /**
+   * Empty or missing instance_ids / hostnames = not bound to an installation.
+   * Either list matching is enough. `farm_ids`: the SharePoint farms
+   * (SPFarm.Id / OAuth realm, lower-case GUIDs) the licence may be used with —
+   * checked by the extension, not by the installation binding (trials are
+   * always bound to exactly one farm).
+   */
+  binding?: { instance_ids?: string[]; hostnames?: string[]; farm_ids?: string[] }
+  /** Commercial SKU (e.g. `sharepoint-se`); required on licences signed with a trial key. */
+  sku?: string
   /** Deployment kinds the licence is for (informational). */
   deployment?: Array<'self_hosted' | 'cloud'>
   extensions: LicenceExtensionGrant[]
@@ -115,6 +133,8 @@ export type LicenceProblemCode =
   | 'not_yet_valid'
   | 'expired'
   | 'binding_mismatch'
+  /** Signed with a trial-only key but breaks the trial rules (not a trial, too long, wrong SKU, no farm binding …). */
+  | 'trial_policy'
 
 export interface LicenceProblem {
   code: LicenceProblemCode

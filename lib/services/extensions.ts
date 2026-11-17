@@ -45,7 +45,20 @@ export interface ExtensionSummary {
   description: string | null
   version: string
   publisher: { id: string; name: string }
-  licence: { tier: 'free' | 'paid'; sku: string | null; state: string; allowed: boolean; reason: string | null }
+  licence: {
+    tier: 'free' | 'paid'; sku: string | null; state: string; allowed: boolean; reason: string | null
+    /** The deciding grant is a trial. */
+    trial: boolean
+    expires_at: string | null
+    cutoff_at: string | null
+    days_left: number | null
+    /** Farms the licence is bound to (empty: any). */
+    farm_ids: string[]
+    /** Self-serve trial offered here (manifest licence.trial, self-hosted, not licensed now). */
+    trial_offer: { days: number; unit: 'farm' } | null
+    /** What the extension says about its licence state (e.g. what it gave back when a trial ended). */
+    notices: Array<{ tone: 'info' | 'success' | 'warning' | 'danger'; message: string }>
+  }
   compatible: boolean
   runs_here: boolean
   problems: string[]
@@ -57,8 +70,28 @@ export interface ExtensionSummary {
   contributes: { nodes: number; triggers: number; connectors: number; nav_items: number; settings_pages: number; pages: number }
 }
 
+/** The extension's licensing notices for this workspace (never throws; 3 s budget). */
+async function licensingNotices(tenantId: string, extensionId: string): Promise<ExtensionSummary['licence']['notices']> {
+  const hook = getServerExtension(extensionId)?.licensing?.notices
+  if (!hook || !isExtensionRunnable(extensionId)) return []
+  try {
+    const notes = await Promise.race([
+      hook({ ctx: createExtensionContext({ extensionId, tenantId, actorId: null }) }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timed out')), 3000)),
+    ])
+    return (Array.isArray(notes) ? notes : []).slice(0, 10).map((n) => ({ tone: (['info', 'success', 'warning', 'danger'] as const).includes(n.tone) ? n.tone : 'info', message: String(n.message).slice(0, 1000) }))
+  } catch (error) {
+    console.warn(`[extensions] ${extensionId} licensing notices failed: ${error instanceof Error ? error.message : String(error)}`)
+    return []
+  }
+}
+
 async function summarize(ctx: ServiceContext, manifest: ExtensionManifest, rows: Map<string, any>): Promise<ExtensionSummary> {
   const decision = await getEntitlementPort().check({ tenantId: ctx.tenantId, extensionId: manifest.id })
+  const { isCloud } = await import('@/lib/deployment')
+  const trialDecl = manifest.licence.trial
+  const trialOffer = trialDecl && manifest.licence.tier === 'paid' && !isCloud() && !(decision.allowed && !decision.trial) ? { days: trialDecl.days, unit: trialDecl.unit } : null
+  const notices = manifest.licence.tier === 'paid' && rows.get(manifest.id)?.enabled === true ? await licensingNotices(ctx.tenantId, manifest.id) : []
   const compat = checkCompatibility(manifest)
   const problems = [
     ...compat.problems,
@@ -73,7 +106,11 @@ async function summarize(ctx: ServiceContext, manifest: ExtensionManifest, rows:
     description: manifest.description ?? null,
     version: manifest.version,
     publisher: { id: manifest.publisher.id, name: manifest.publisher.name },
-    licence: { tier: manifest.licence.tier, sku: manifest.licence.sku ?? null, state: decision.state, allowed: decision.allowed, reason: decision.reason ?? null },
+    licence: {
+      tier: manifest.licence.tier, sku: manifest.licence.sku ?? null, state: decision.state, allowed: decision.allowed, reason: decision.reason ?? null,
+      trial: decision.trial === true, expires_at: decision.expiresAt ?? null, cutoff_at: decision.cutoffAt ?? null, days_left: decision.daysLeft ?? null,
+      farm_ids: decision.farmIds ?? [], trial_offer: trialOffer, notices,
+    },
     compatible: compat.compatible,
     runs_here: isExtensionRunnable(manifest.id),
     problems: [...new Set(problems)],
@@ -93,13 +130,42 @@ async function summarize(ctx: ServiceContext, manifest: ExtensionManifest, rows:
   }
 }
 
+/**
+ * Editions this build does not include (self-hosted only): a paid extension
+ * that ships as its own image (lib/editions/catalog.ts). Settings → Extensions
+ * explains how to switch the install to it (`usertasks upgrade --edition …`),
+ * with the licence state for its extension (a trial started here counts).
+ */
+export interface MissingEditionSummary {
+  id: string
+  name: string
+  extension_id: string
+  sku: string
+  trial_days: number
+  licence: { state: string; allowed: boolean; trial: boolean; days_left: number | null; expires_at: string | null }
+}
+
+async function missingEditions(ctx: ServiceContext, compiled: Set<string>): Promise<MissingEditionSummary[]> {
+  const [{ isCloud }, { EDITIONS }, { TRIAL_DAYS }] = await Promise.all([import('@/lib/deployment'), import('@/lib/editions/catalog'), import('@/lib/licensing/trial-policy')])
+  if (isCloud()) return []
+  return Promise.all(Object.values(EDITIONS).filter((e) => !compiled.has(e.extensionId)).map(async (e) => {
+    const d = await getEntitlementPort().check({ tenantId: ctx.tenantId, extensionId: e.extensionId }).catch(() => null)
+    return {
+      id: e.id, name: e.name, extension_id: e.extensionId, sku: e.sku, trial_days: TRIAL_DAYS,
+      licence: { state: d?.state ?? 'unlicensed', allowed: d?.allowed === true, trial: d?.trial === true, days_left: d?.daysLeft ?? null, expires_at: d?.expiresAt ?? null },
+    }
+  }))
+}
+
 export async function listExtensions(ctx: ServiceContext) {
   requirePerm(ctx, 'settings.view')
   const manifests = getExtensionManifests()
   const { rows, missingTable } = await loadTenantExtensions(ctx.tenantId)
   const extensions = await Promise.all(manifests.map((m) => summarize(ctx, m, rows)))
+  const editions = await missingEditions(ctx, new Set(manifests.map((m) => m.id)))
   return {
     extensions,
+    editions,
     total: extensions.length,
     platform_version: PLATFORM_VERSION,
     problems: loadExtensionsReport().problems,

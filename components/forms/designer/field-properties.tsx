@@ -57,8 +57,10 @@ function numberOrUndefined(value: string): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
-export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeState, onRemove, onDuplicate, onConvertToSection }: {
+export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeState, onRemove, onDuplicate, onConvertToSection, binding }: {
   state: DesignerState
+  /** Data binding: the field's "Bound to" control (data-binding-panel BoundToProperty). */
+  binding?: React.ReactNode
   field: DesignerField
   allowedTypes: TaskFieldType[]
   onPatch: (patch: Partial<TaskFieldDef>, tag?: string) => void
@@ -99,6 +101,7 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
         <button type="button" onClick={onDuplicate} className="rounded p-1" aria-label="Duplicate field" title="Duplicate"><Copy size={12} /></button>
         <button type="button" onClick={onRemove} className="rounded p-1" aria-label="Remove field" title="Remove (Delete)"><Trash2 size={12} /></button>
       </div>
+      {binding}
 
       {field.type !== 'divider' && (field.type === 'heading' || field.type === 'button' ? (
         <div>
@@ -178,6 +181,13 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
             ))}
           </div>
         </div>
+      )}
+
+      {/* A Data table starts with where its rows come from ("Get rows from…"), above the generic settings. */}
+      {field.type === 'data_table' && (
+        <DataTableProperties state={state} field={field} onPatch={(data_table, tag) => onPatch({ data_table }, tag)}
+          onAddCommitKit={(options) => { const kit = addRowCommitKit(state, field._id, options); if (kit) onChangeState(kit.state) }}
+          onConvertToList={allowedTypes.includes('list') ? () => onPatch({ type: 'list', list: field.list ?? structuredClone(DEFAULT_LIST_CONFIG), data_table: undefined }) : undefined} />
       )}
 
       {field.type === 'heading' && (
@@ -307,10 +317,6 @@ export function FieldProperties({ state, field, allowedTypes, onPatch, onChangeS
         <LabelProperties state={state} field={field} onPatch={(label_config, tag) => onPatch({ label_config }, tag)} />
       )}
 
-      {field.type === 'data_table' && (
-        <DataTableProperties state={state} field={field} onPatch={(data_table, tag) => onPatch({ data_table }, tag)}
-          onAddCommitKit={(options) => { const kit = addRowCommitKit(state, field._id, options); if (kit) onChangeState(kit.state) }} />
-      )}
 
       {field.type === 'list' && (
         <ListProperties field={field} onPatch={(list, tag) => onPatch({ list }, tag)}

@@ -19,16 +19,21 @@ import { LICENCE_NOTICES_SETTING } from '@/lib/licensing/store'
 export type NoticeKey = `d${number}` | 'cutoff_pending' | 'expired'
 
 /** The notice that applies to a licence now (null: none). */
-export function noticeFor(l: Pick<LicenceSummary, 'valid' | 'timeState' | 'daysLeft'>): NoticeKey | null {
+export function noticeFor(l: Pick<LicenceSummary, 'valid' | 'timeState' | 'daysLeft'> & { trial?: boolean }): NoticeKey | null {
   if (!l.valid) return null
   if (l.timeState === 'expired') return 'expired'
   if (l.timeState === 'cutoff_pending') return 'cutoff_pending'
   if (l.timeState === 'expiring') {
     const threshold = warningThreshold(l.daysLeft)
+    // A 30-day trial is "expiring" from day one: its warnings start 7 days before the end.
+    if (l.trial && threshold !== null && threshold > TRIAL_FIRST_NOTICE_DAYS) return null
     return threshold === null ? null : `d${threshold}`
   }
   return null
 }
+
+/** Trials: e-mail notices from this many days before the end (then the day before, the end, the stop). */
+export const TRIAL_FIRST_NOTICE_DAYS = 7
 
 export type Notices = Record<string, Partial<Record<NoticeKey, string>>>
 
@@ -61,6 +66,11 @@ async function defaultDeps(): Promise<LicenceCheckDeps> {
 
 function subjectFor(key: NoticeKey, l: LicenceSummary): string {
   const exts = l.extensions.map((e) => e.id).join(', ')
+  if (l.trial) {
+    if (key === 'expired') return `UserTasks ${exts} trial ended: ${exts} stopped`
+    if (key === 'cutoff_pending') return `UserTasks ${exts} trial ended: ${exts} stops within 24 hours`
+    return `UserTasks ${exts} trial: ${l.daysLeft} day${l.daysLeft === 1 ? '' : 's'} left`
+  }
   if (key === 'expired') return `UserTasks licence ${l.licenceId} expired: ${exts} stopped`
   if (key === 'cutoff_pending') return `UserTasks licence ${l.licenceId} expired: ${exts} stop within 24 hours`
   return `UserTasks licence ${l.licenceId} expires in ${l.daysLeft} day${l.daysLeft === 1 ? '' : 's'}`
@@ -75,6 +85,13 @@ function bodyFor(key: NoticeKey, l: LicenceSummary, appUrl: string): string {
     `Extensions stop at: ${l.cutoffAt} (24 hours after expiry)`,
     '',
   ]
+  if (l.trial) {
+    if (key === 'expired') lines.push('The trial has ended and the extension has stopped. Lists that used UserTasks forms are back on SharePoint\'s own forms and SharePoint-triggered workflows are paused. Nothing has been deleted: add a licence and everything comes back (the same forms, the paused workflows resumed).')
+    else if (key === 'cutoff_pending') lines.push('The trial has ended. The extension keeps working for 24 hours, then stops: lists go back to SharePoint\'s own forms and SharePoint-triggered workflows pause (nothing is deleted). Add a licence now to avoid the interruption.')
+    else lines.push('Buy a licence ($7,500 USD per farm per year) before the trial ends to keep everything running: https://usertasks.com/sharepoint#pricing')
+    lines.push('', `Settings → Licence: ${appUrl.replace(/\/$/, '')}/settings/licence`)
+    return lines.join('\n')
+  }
   if (key === 'expired') {
     lines.push('The licence has expired and the licensed extensions have stopped: their triggers no longer start runs, their API returns a licence error, and workflow steps that use them fail with a retryable "licence expired" error. Nothing has been deleted.')
     lines.push('Install a renewed licence, then retry the failed jobs from the workflow queue.')

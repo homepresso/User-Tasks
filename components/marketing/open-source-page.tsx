@@ -136,7 +136,7 @@ export function OpenSourcePage() {
           intro={<>Every part of UserTasks — the workflow engine, forms, tasks, data, reports, the Agent, the API, the CLI — is open source under <strong className="text-white">Apache-2.0</strong>. Clone it from GitHub, run it on your own machine, and take it to Docker, Kubernetes or an air-gapped network when you&rsquo;re ready.</>}
           primary={repoUrl ? { href: repoUrl, label: "View on GitHub" } : { href: "#get-started", label: "Ways to run it" }}
           secondary={{ href: "#first-time", label: "Step-by-step install" }}
-          bullets={["Apache-2.0 licence", "Runs on Windows, macOS and Linux", "Same code as usertasks.com"]}
+          bullets={["Apache-2.0 licence", "Production-ready for self-hosting today", "Runs on Windows, macOS and Linux", "Same code as usertasks.com (cloud in beta)"]}
         />
 
         {/* Beginner guide */}

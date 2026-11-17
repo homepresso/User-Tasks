@@ -194,6 +194,11 @@
  * (on-premises gateways): no client grants at all — every caller gets 42501
  * for every statement.
  *
+ * 20270116120000_team_requests.sql added team_requests and
+ * team_request_events (requests to the UserTasks team and their triage
+ * history; instance level): no client grants at all — every caller gets
+ * 42501 for every statement.
+ *
  * 20270114400000_provision_auth_user_in_workspace.sql added a function only
  * (provision_auth_user_in, executable by the service role only): no table
  * entry changed.
@@ -557,6 +562,9 @@ const SPECS: Spec[] = [
   { table: 'gateway_nonces', make: (k, v) => ({ key_id: id('gateway_keys', k), nonce: `rls-${v}`, expires_at: future }), move: null, touch: 'expires_at' },
   // bigserial id (not identity): explicit deterministic ids.
   { table: 'gateway_events', make: (k, v) => ({ id: parseInt(uid(`gateway_events:${k}:${v}`).slice(0, 7), 16), tenant_id: TENANT[k], gateway_id: id('gateways', k), type: 'rls', message: `ev ${v}` }) },
+  // Team requests (20270116120000): instance level, service role only.
+  { table: 'team_requests', make: (k, v) => ({ kind: 'contact', title: `request ${k} ${v}` }), move: null, touch: 'note' },
+  { table: 'team_request_events', make: (k, v) => ({ request_id: id('team_requests', k), to_status: 'new', note: `event ${v}` }), move: null, touch: 'note' },
 ]
 
 /** Tables seeded by the fixture setup itself rather than SPECS. */

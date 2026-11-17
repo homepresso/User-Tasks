@@ -15,7 +15,7 @@
  */
 
 import { useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AlertTriangle, CheckCircle2, ChevronDown, Download, FileUp, Upload } from 'lucide-react'
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -32,6 +32,7 @@ import type { ImportReport, ImportReportItem } from '@/lib/extensions/sdk'
 import { getExtensionManifest } from '@/lib/extensions/registry'
 import { useExtensionResolveContext } from './extensions-provider'
 import { ExtIcon } from './ext-icon'
+import { NintexImportDialog } from '@/components/importers/nintex-import-dialog'
 
 export interface ResolvedImporter extends ImporterContribution {
   /** `ext.<extension>.<key>` */
@@ -82,8 +83,15 @@ export function ExtensionImporterMenuItems({ produces, onPick, separator = true 
 /** A stand-alone "Import from…" menu of the extension importers (renders nothing without any). */
 export function ExtensionImportButton({ produces, onImported, variant = 'outline' }: { produces: 'workflow' | 'form'; onImported?: () => void; variant?: 'outline' | 'secondary' }) {
   const importers = useExtensionImporters(produces)
+  const { subject } = useExtensionResolveContext()
   const [picked, setPicked] = useState<ResolvedImporter | null>(null)
-  if (!importers.length) return null
+  // The core Nintex importer (everyone who may create workflows); ?import=nintex opens it with presets (SharePoint dashboard links).
+  const params = useSearchParams()
+  const deepLink = params?.get('import') === 'nintex'
+  const [nintex, setNintex] = useState(deepLink)
+  const nintexAllowed = subject.has('workflows.create') || subject.has('workflows.edit')
+  const presets = deepLink ? { target: params?.get('target') ?? undefined, targetConfig: params?.get('target_config') ?? undefined, workflowId: params?.get('workflow_id') ?? undefined } : {}
+  if (!importers.length && !nintexAllowed) return null
   return (
     <>
       <DropdownMenu>
@@ -91,18 +99,20 @@ export function ExtensionImportButton({ produces, onImported, variant = 'outline
           <Button size="sm" variant={variant} leadingIcon={<Upload />} trailingIcon={<ChevronDown />} data-testid="extension-import-menu">Import from…</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <ExtensionImporterMenuItems produces={produces} onPick={setPicked} separator={false} />
+          {nintexAllowed && <DropdownMenuItem icon={<Upload />} onSelect={() => setNintex(true)} data-importer="nintex">Nintex workflow (.nwf / .nwp)</DropdownMenuItem>}
+          <ExtensionImporterMenuItems produces={produces} onPick={setPicked} separator={nintexAllowed} />
         </DropdownMenuContent>
       </DropdownMenu>
       {picked && <ImporterDialog importer={picked} open={Boolean(picked)} onOpenChange={(o) => { if (!o) setPicked(null) }} onImported={onImported} />}
+      {nintex && nintexAllowed && <NintexImportDialog open={nintex} onOpenChange={setNintex} onImported={onImported} presets={presets} />}
     </>
   )
 }
 
-interface Analysis { importer: string; report: ImportReport; markdown: string }
-interface Outcome extends Analysis { created: Array<{ kind: string; id: string; name: string; href: string | null }>; warnings: string[] }
+export interface Analysis { importer: string; report: ImportReport; markdown: string }
+export interface Outcome extends Analysis { created: Array<{ kind: string; id: string; name: string; href: string | null }>; warnings: string[] }
 
-async function post(importer: string, files: File[], action: 'analyze' | 'import', options: Record<string, unknown>): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
+export async function post(importer: string, files: File[], action: 'analyze' | 'import', options: Record<string, unknown>): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
   const body = new FormData()
   for (const f of files) body.append('file', f)
   body.append('action', action)
@@ -117,7 +127,7 @@ async function post(importer: string, files: File[], action: 'analyze' | 'import
   }
 }
 
-function download(name: string, text: string, type: string) {
+export function download(name: string, text: string, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }))
   const a = document.createElement('a')
   a.href = url
@@ -126,9 +136,9 @@ function download(name: string, text: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-const STATUS_TONE: Record<ImportReportItem['status'], string> = { mapped: 'text-success', partial: 'text-warning', placeholder: 'text-danger', skipped: 'text-fg-muted', info: 'text-fg-muted' }
-const STATUS_TEXT: Record<ImportReportItem['status'], string> = { mapped: 'Mapped', partial: 'Review', placeholder: 'Placeholder', skipped: 'Skipped', info: 'Info' }
-const READINESS: Record<ImportReport['readiness'], string> = { auto: 'Ready to import', review: 'Import, then review', rebuild: 'Rebuild recommended' }
+export const STATUS_TONE: Record<ImportReportItem['status'], string> = { mapped: 'text-success', partial: 'text-warning', placeholder: 'text-danger', skipped: 'text-fg-muted', info: 'text-fg-muted' }
+export const STATUS_TEXT: Record<ImportReportItem['status'], string> = { mapped: 'Mapped', partial: 'Review', placeholder: 'Placeholder', skipped: 'Skipped', info: 'Info' }
+export const READINESS: Record<ImportReport['readiness'], string> = { auto: 'Ready to import', review: 'Import, then review', rebuild: 'Rebuild recommended' }
 
 type Step = 'pick' | 'busy' | 'review' | 'done'
 
@@ -302,7 +312,7 @@ function OptionField({ option, value, onChange }: { option: ImporterContribution
   )
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-lg border border-border px-3 py-2">
       <p className="text-2xs uppercase tracking-wide text-fg-muted">{label}</p>

@@ -24,7 +24,7 @@ export const USER_TASK_RESUME_VARIABLES = [
   'outcome', 'outcome_notes', 'actioned_by', 'actioned_by_name',
   'completed_by', 'completed_by_name', 'completed_by_email', 'completed_at',
   'actioned_on_behalf_of', 'actioned_on_behalf_of_name', 'on_behalf_note',
-  'user_task_id', 'response_count', 'outcome_counts', 'task_data', 'attachments',
+  'user_task_id', 'response_count', 'outcome_counts', 'task_data', 'attachments', 'responses',
 ] as const
 
 /**
@@ -33,7 +33,7 @@ export const USER_TASK_RESUME_VARIABLES = [
  * hide an earlier one's values.
  */
 export const USER_TASK_PER_STEP_VARIABLES = [
-  'task_data', 'outcome', 'outcome_notes', 'completed_by', 'completed_by_name', 'completed_by_email', 'completed_at', 'attachments',
+  'task_data', 'outcome', 'outcome_notes', 'completed_by', 'completed_by_name', 'completed_by_email', 'completed_at', 'attachments', 'responses',
 ] as const
 
 /** Set while a User Task waits (and kept after): the generic and `<prefix>_` names. */

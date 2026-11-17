@@ -509,6 +509,7 @@ export type Database = {
           slug: string
           tenant_id: string
           updated_at: string
+          views: Json
         }
         Insert: {
           columns?: Json
@@ -522,6 +523,7 @@ export type Database = {
           slug: string
           tenant_id: string
           updated_at?: string
+          views?: Json
         }
         Update: {
           columns?: Json
@@ -535,6 +537,7 @@ export type Database = {
           slug?: string
           tenant_id?: string
           updated_at?: string
+          views?: Json
         }
         Relationships: [
           {

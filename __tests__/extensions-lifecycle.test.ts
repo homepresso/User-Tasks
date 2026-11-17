@@ -66,6 +66,29 @@ describe('enable / disable', () => {
     expect(list.extensions[0].settings_pages.map((p) => p.scope)).toEqual(['workspace', 'instance', 'user'])
   })
 
+  it('offers editions this build lacks (self-hosted), with the licence state of their extension and the switch command', async () => {
+    seed()
+    setEntitlementPort({ check: async ({ extensionId }) => (extensionId === 'sharepoint' ? { allowed: true, state: 'licensed', trial: true, daysLeft: 12, expiresAt: '2027-01-01T00:00:00Z' } : { allowed: true, state: 'not_required' }) })
+    const list = await service.listExtensions(ctx(['settings.view']))
+    expect(list.editions).toEqual([{ id: 'sharepoint', name: 'UserTasks for SharePoint Server', extension_id: 'sharepoint', sku: 'sharepoint-se', trial_days: 30, licence: { state: 'licensed', allowed: true, trial: true, days_left: 12, expires_at: '2027-01-01T00:00:00Z' } }])
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const { createElement } = await import('react')
+    const { EditionSwitchCard } = await import('@/components/extensions/edition-switch-card')
+    const html = renderToStaticMarkup(createElement(EditionSwitchCard, { edition: list.editions[0], onStartTrial: () => {} }))
+    expect(html).toContain('usertasks upgrade --edition sharepoint')
+    expect(html).toContain('usertasks upgrade -Edition sharepoint')
+    expect(html).toContain('Trial licence: 12 days left')
+    expect(html).not.toContain('Start a 30-day trial')
+    const prev = process.env.DEPLOYMENT_MODE
+    process.env.DEPLOYMENT_MODE = 'cloud'
+    try {
+      // UserTasks Cloud never offers editions (lib/config/bootstrap reads DEPLOYMENT_MODE on every call).
+      expect((await service.listExtensions(ctx(['settings.view']))).editions).toEqual([])
+    } finally {
+      if (prev === undefined) delete process.env.DEPLOYMENT_MODE; else process.env.DEPLOYMENT_MODE = prev
+    }
+  })
+
   it('enables (seeding default roles, audited) and disables keeping settings', async () => {
     const mem = seed()
     const enabled = await service.enableExtension(ctx(['settings.edit']), 'example-hello')

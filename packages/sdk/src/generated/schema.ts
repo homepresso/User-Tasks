@@ -1629,6 +1629,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/data-tables/{id}/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a table's grid views (columns, controls, bindings, editing) */
+        get: operations["getDataTableViews"];
+        /**
+         * Replace a table's grid views
+         * @description Per view: the columns shown and, per column, the control (signature pad, dropdown, autocomplete, multi-select, people, currency, rich text, calculated…), its binding to a data table or an API reference (filter, sort, value and display fields), editable / read-only, required and width; plus inline editing of all rows. Columns not in the table are dropped; a bound control without a source or choices is refused; bindings must name a table / read-only reference of this workspace.
+         */
+        put: operations["updateDataTableViews"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data-tables/{id}/rows/{rowId}/cells": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Inline edit: write cells of a row through a grid view
+         * @description The view's rules are enforced on the server: inline editing must be on and every cell must be an editable column of the view (read-only, hidden and calculated columns are refused even when sent), typed by its control; bound values must be options of their source; people must be in this workspace; a new signature is stamped with the signer and time. With expected_updated_at a row changed since you read it answers 409 with the current row. Created and updated rows fire data_table_event workflows.
+         */
+        patch: operations["writeDataRowCells"];
+        trace?: never;
+    };
+    "/data-tables/{id}/rows/cells": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Batch inline edit: write cells of many rows through a grid view
+         * @description "Edit all rows" in one call. Each row is checked exactly as the single-row cells write (inline editing on, editable columns only, typed by the control, bound values / people / files settled, the row's own access rules) and gets its own outcome: saved, unchanged, conflict (with the current row, when expected_updated_at is older than the row), invalid (cells: column → reason), not_found or forbidden. One row's refusal never stops the others and nothing is rolled back: re-send only the rows that failed. New rows (inserts) need the view's Add rows and every required editable column. Workflows: one data_table_event "updated" per row whose cells changed (unchanged and refused rows fire nothing) and one "created" per inserted row.
+         */
+        patch: operations["writeDataRowsCells"];
+        trace?: never;
+    };
+    "/data-tables/{id}/views/{viewId}/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Options of a bound grid column (search or resolve labels)
+         * @description Runs the SAVED binding of the view's column: a data table with your own access, an API reference server-side with the workspace's credentials (cached per its cache_ttl_s). Rate limited like form lookups.
+         */
+        post: operations["getDataGridColumnOptions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/integrations": {
         parameters: {
             query?: never;
@@ -2026,7 +2107,7 @@ export interface paths {
         put?: never;
         /**
          * Create a reusable task form (version 1)
-         * @description fields is the User Task field list (key, label, type, required, options, bounds, ...; any field takes text_style? { label?, value? } (font styling of the label and of the value — for a List column: the header and the cells — each { size? xs|sm|base|lg|xl|2xl|<8-48>px, font? sans|serif|mono|calibri|segoe_ui|arial|verdana|tahoma|times_new_roman|georgia|courier_new or google:<Family> (any Google Fonts family, e.g. google:Lato — served from this site, never from Google), color? danger|warning|success|info|accent|neutral|muted|#rrggbb (kept readable in light and dark mode), bold?, italic?, underline? }; whitelisted values only); type image = one picture the person provides: image { max_mb? (default 10, max 20), camera?, types? [png|jpeg|webp|gif], default_file? { name, url } }, its value ONE file object (uploaded like an attachment; EXIF / GPS stripped); type signature = an electronic signature (not a cryptographic digital signature): signature { mode? draw|type|both, statement?, capture_audit?, resign_on_change? }, its value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? } with the person, time and audit details set by the server; type display_image = a static picture, no value: display_image { src (https or an uploaded form image), alt (required), width? sm|md|lg|full, align? left|center|right }; type rich_text = formatted text: rich_text { max_length? (characters, default 20000), toolbar? basic|full }, its value sanitised HTML (p, br, strong, em, u, s, ul, ol, li, h3, h4, blockquote, code, a href https/mailto) with the plain text stored as <key>_text; type text_list = a list of text items: text_list { style? bulleted|numbered|plain, min_items?, max_items? (default 50), item_max_length? (default 500) }, its value an array of strings; type url takes url_config { text_field?, link_text?, new_tab? } (link text for read-only views; the value stays the http(s) / mailto URL); type user takes user_config { multiple?, allow_teams?, max? } — the value stays one user id unless multiple / allow_teams is set, then an array of { kind: user|team, id, name } (ids checked against the workspace, names set by the server); multi_choice display? checkboxes|listbox; type repeating_section = InfoPath's repeating section: a group of ANY controls (every type but data_table and custom; nested list / repeating_section up to 3 levels; a signature inside signs per item — the signature of each item is uploaded under the inner key, re-read and stamped by the server like a field) repeated per item, each item a card with Add / Remove / Move / Collapse — repeating_section { fields [field definitions; inner keys are unique over the whole form], layout? { rows [{ columns 1-4, cells [{ field_key: <inner key>, span }] }], sections?, rules? [form rules run in each item: {{item.<key>}} / {{row.<key>}} = this item, {{parent.<key>}} = the item holding a nested section, {{form.<key>}} = the form] }, add_label?, item_title? ({{index}} 1-based, {{item.<key>}}), min_items?, max_items? (default 50, max 200), start_items?, allow_remove? (default true), allow_reorder? (default true), collapsible? (default true), confirm_remove?, totals? [{ field, fn sum|avg|count, label? }], key_field? (an inner key identifying an item: items the form opened with keep the stored value of each control an item rule makes read only) }; its value is an array of item objects keyed by the inner keys (the List shape: loop over it), with <key>_count and <key>_total_<field> / <key>_avg_<field> / <key>_count_<field> stored beside it; item errors come back at paths like expenses[1].amount; a bound dropdown inside an item may filter on {{item.<key>}} (a cascade within the item); the List rule actions (add_list_row, new_row, set_row_values, update_list_row, remove_list_row, clear_list, commit_row) and data / API outputs (to: <key>, columns) accept it as their List. type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated|signature|list, required?, options?, min?, max?, formula?, signature? (type signature: an electronic signature per row — { mode? draw|type|both, statement?, capture_audit? }; the cell holds the Signature value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }; its PNG is uploaded with field_key "<list>.<column>" (nested: "<list>.<child>.<column>"), re-read from the upload records and stamped by the server; cannot be the key_column), validations? [{ if: { match, conditions [{ column: row.<column>|parent.<column>|form.<field>|user.roles, operator, value }] }, message }] (an error on the cell while the condition holds, checked on the server too), list? (type list: a nested List { columns, totals?, min_rows?, max_rows?, row_validations? } — up to 3 levels; its rows sit in each row: [{ customer, lines: [{ sku, qty }] }]; list steps take child: <column> and parent_row: current|selected|<n>) }], min_rows?, max_rows?, row_validations? [{ if, message, column? }] (a row-level error), row_styles? [{ if, style { tone? success|warning|danger|info|neutral|accent, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) }, column? }] (conditional styling of the row or one cell while if holds; any level; presentation only), cell_rules? [{ if (same subjects as validations), column, hide?: true, read_only?: true }] (per row: while if holds for a row, that row's cell of column is hidden (an empty cell, the header stays; not required or checked) and / or read only (not required; the server keeps the value the cell had when the form opened — rows matched by key_column, else by position while the row count is unchanged); any level, up to 20), entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards, row_editing? inline|popout|both (default both: cells in place plus Open row / Add in form opening the row as a form in a dialog, one column below 768px, two from 768px), row_form? { title? ("Expense: {{row.description}}"), layout? [{ column } | { section }], hide_view_icon? (read-only Lists otherwise show View row, the row read-only with formatted values) } }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: "{{<input>}}" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row "selected", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table, open_row_form (opens a row in its pop-out form; row current | selected | new | first | last | <n>; child?, parent_row?) (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; show_hide targets may be "column:<list>.<column>" (hides a whole List column — header and cells — or, for a repeating section key, that inner control in every item; not required while hidden, values kept); set_style (event always only) { targets: ["field:<key>" | "section:<key>"], style: { tone?, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) } } styles its targets with theme tones while the condition holds (presentation only); a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); layout.choice_groups is the optional list of choice groups [{ key, label, sections: [2-6 section keys on one page], default?, display? radio | tabs | dropdown }] — one alternative section shows at a time, the chosen section key is submitted as <key> (refused unless it is one of the sections; rules read {{form.<key>}}) and the fields of the other alternatives are not required and stored empty; rule conditions may test user.roles / user.teams (role / team names and ids; contains = has, neq = has not; judged on the server with its own view of the person); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }.
+         * @description fields is the User Task field list (key, label, type, required, options, bounds, ...; any field takes text_style? { label?, value? } (font styling of the label and of the value — for a List column: the header and the cells — each { size? xs|sm|base|lg|xl|2xl|<8-48>px, font? sans|serif|mono|calibri|segoe_ui|arial|verdana|tahoma|times_new_roman|georgia|courier_new or google:<Family> (any Google Fonts family, e.g. google:Lato — served from this site, never from Google), color? danger|warning|success|info|accent|neutral|muted|#rrggbb (kept readable in light and dark mode), bold?, italic?, underline? }; whitelisted values only); type image = one picture the person provides: image { max_mb? (default 10, max 20), camera?, types? [png|jpeg|webp|gif], default_file? { name, url } }, its value ONE file object (uploaded like an attachment; EXIF / GPS stripped); type signature = an electronic signature (not a cryptographic digital signature): signature { mode? draw|type|both, statement?, capture_audit?, resign_on_change? }, its value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? } with the person, time and audit details set by the server; type display_image = a static picture, no value: display_image { src (https or an uploaded form image), alt (required), width? sm|md|lg|full, align? left|center|right }; type rich_text = formatted text: rich_text { max_length? (characters, default 20000), toolbar? basic|full }, its value sanitised HTML (p, br, strong, em, u, s, ul, ol, li, h3, h4, blockquote, code, a href https/mailto) with the plain text stored as <key>_text; type text_list = a list of text items: text_list { style? bulleted|numbered|plain, min_items?, max_items? (default 50), item_max_length? (default 500) }, its value an array of strings; type url takes url_config { text_field?, link_text?, new_tab? } (link text for read-only views; the value stays the http(s) / mailto URL); type user takes user_config { multiple?, allow_teams?, max? } — the value stays one user id unless multiple / allow_teams is set, then an array of { kind: user|team, id, name } (ids checked against the workspace, names set by the server); multi_choice display? checkboxes|listbox; type repeating_section = InfoPath's repeating section: a group of ANY controls (every type but data_table and custom; nested list / repeating_section up to 3 levels; a signature inside signs per item — the signature of each item is uploaded under the inner key, re-read and stamped by the server like a field) repeated per item, each item a card with Add / Remove / Move / Collapse — repeating_section { fields [field definitions; inner keys are unique over the whole form], layout? { rows [{ columns 1-4, cells [{ field_key: <inner key>, span }] }], sections?, rules? [form rules run in each item: {{item.<key>}} / {{row.<key>}} = this item, {{parent.<key>}} = the item holding a nested section, {{form.<key>}} = the form] }, add_label?, item_title? ({{index}} 1-based, {{item.<key>}}), min_items?, max_items? (default 50, max 200), start_items?, allow_remove? (default true), allow_reorder? (default true), collapsible? (default true), confirm_remove?, totals? [{ field, fn sum|avg|count, label? }], key_field? (an inner key identifying an item: items the form opened with keep the stored value of each control an item rule makes read only) }; its value is an array of item objects keyed by the inner keys (the List shape: loop over it), with <key>_count and <key>_total_<field> / <key>_avg_<field> / <key>_count_<field> stored beside it; item errors come back at paths like expenses[1].amount; a bound dropdown inside an item may filter on {{item.<key>}} (a cascade within the item); the List rule actions (add_list_row, new_row, set_row_values, update_list_row, remove_list_row, clear_list, commit_row) and data / API outputs (to: <key>, columns) accept it as their List. type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated|signature|list, required?, options?, min?, max?, formula?, signature? (type signature: an electronic signature per row — { mode? draw|type|both, statement?, capture_audit? }; the cell holds the Signature value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }; its PNG is uploaded with field_key "<list>.<column>" (nested: "<list>.<child>.<column>"), re-read from the upload records and stamped by the server; cannot be the key_column), validations? [{ if: { match, conditions [{ column: row.<column>|parent.<column>|form.<field>|user.roles, operator, value }] }, message }] (an error on the cell while the condition holds, checked on the server too), list? (type list: a nested List { columns, totals?, min_rows?, max_rows?, row_validations? } — up to 3 levels; its rows sit in each row: [{ customer, lines: [{ sku, qty }] }]; list steps take child: <column> and parent_row: current|selected|<n>) }], min_rows?, max_rows?, row_validations? [{ if, message, column? }] (a row-level error), row_styles? [{ if, style { tone? success|warning|danger|info|neutral|accent, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) }, column? }] (conditional styling of the row or one cell while if holds; any level; presentation only), cell_rules? [{ if (same subjects as validations), column, hide?: true, read_only?: true }] (per row: while if holds for a row, that row's cell of column is hidden (an empty cell, the header stays; not required or checked) and / or read only (not required; the server keeps the value the cell had when the form opened — rows matched by key_column, else by position while the row count is unchanged); any level, up to 20), entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards, row_editing? inline|popout|both (default both: cells in place plus Open row / Add in form opening the row as a form in a dialog, one column below 768px, two from 768px), row_form? { title? ("Expense: {{row.description}}"), layout? [{ column } | { section }], hide_view_icon? (read-only Lists otherwise show View row, the row read-only with formatted values) } }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: "{{<input>}}" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row "selected", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table, open_row_form (opens a row in its pop-out form; row current | selected | new | first | last | <n>; child?, parent_row?) (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; show_hide targets may be "column:<list>.<column>" (hides a whole List column — header and cells — or, for a repeating section key, that inner control in every item; not required while hidden, values kept); set_style (event always only) { targets: ["field:<key>" | "section:<key>"], style: { tone?, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) } } styles its targets with theme tones while the condition holds (presentation only); a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); layout.choice_groups is the optional list of choice groups [{ key, label, sections: [2-6 section keys on one page], default?, display? radio | tabs | dropdown }] — one alternative section shows at a time, the chosen section key is submitted as <key> (refused unless it is one of the sections; rules read {{form.<key>}}) and the fields of the other alternatives are not required and stored empty; rule conditions may test user.roles / user.teams (role / team names and ids; contains = has, neq = has not; judged on the server with its own view of the person); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); layout.data_binding binds the form to a core data source — { kind: table | reference, source_id (the Data table / API reference id), integration_id? (reference), label?, fields { <field key>: <source field key> (table: column key; reference: response path such as data.email) }, record_param? (table: a declared URL parameter holding the row id to load / update), inputs? (reference: input name → template, e.g. {{param.customer_id}}), save? (table: write the row on submit — updated when record_param names one, else added; with the submitter's own data rights) } — and generates the load / save rules (ids data_binding_*: a Form loads Read a row / Call an API reference filling the bound fields, Before submit Update / Create a row); API references are read only; a form with layout.data_target (an extension's records, e.g. a SharePoint list; its field mapping lives in data_target.config and is changed through that extension) has no data_binding; POST /forms/{id}/data-source lists a source's fields; theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }.
          */
         post: operations["createForm"];
         delete?: never;
@@ -2055,7 +2136,7 @@ export interface paths {
         head?: never;
         /**
          * Update a form
-         * @description A change to fields, layout or theme bumps version and stores an immutable snapshot (published workflow versions pin the version they were published with; drafts follow the latest). Name, description and tag edits do not. PATCH publishes directly (as before); to stage changes first, save them to the draft (PUT /forms/{id}/draft) and publish it (POST /forms/{id}/publish). fields is the User Task field list (key, label, type, required, options, bounds, ...; any field takes text_style? { label?, value? } (font styling of the label and of the value — for a List column: the header and the cells — each { size? xs|sm|base|lg|xl|2xl|<8-48>px, font? sans|serif|mono|calibri|segoe_ui|arial|verdana|tahoma|times_new_roman|georgia|courier_new or google:<Family> (any Google Fonts family, e.g. google:Lato — served from this site, never from Google), color? danger|warning|success|info|accent|neutral|muted|#rrggbb (kept readable in light and dark mode), bold?, italic?, underline? }; whitelisted values only); type image = one picture the person provides: image { max_mb? (default 10, max 20), camera?, types? [png|jpeg|webp|gif], default_file? { name, url } }, its value ONE file object (uploaded like an attachment; EXIF / GPS stripped); type signature = an electronic signature (not a cryptographic digital signature): signature { mode? draw|type|both, statement?, capture_audit?, resign_on_change? }, its value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? } with the person, time and audit details set by the server; type display_image = a static picture, no value: display_image { src (https or an uploaded form image), alt (required), width? sm|md|lg|full, align? left|center|right }; type rich_text = formatted text: rich_text { max_length? (characters, default 20000), toolbar? basic|full }, its value sanitised HTML (p, br, strong, em, u, s, ul, ol, li, h3, h4, blockquote, code, a href https/mailto) with the plain text stored as <key>_text; type text_list = a list of text items: text_list { style? bulleted|numbered|plain, min_items?, max_items? (default 50), item_max_length? (default 500) }, its value an array of strings; type url takes url_config { text_field?, link_text?, new_tab? } (link text for read-only views; the value stays the http(s) / mailto URL); type user takes user_config { multiple?, allow_teams?, max? } — the value stays one user id unless multiple / allow_teams is set, then an array of { kind: user|team, id, name } (ids checked against the workspace, names set by the server); multi_choice display? checkboxes|listbox; type repeating_section = InfoPath's repeating section: a group of ANY controls (every type but data_table and custom; nested list / repeating_section up to 3 levels; a signature inside signs per item — the signature of each item is uploaded under the inner key, re-read and stamped by the server like a field) repeated per item, each item a card with Add / Remove / Move / Collapse — repeating_section { fields [field definitions; inner keys are unique over the whole form], layout? { rows [{ columns 1-4, cells [{ field_key: <inner key>, span }] }], sections?, rules? [form rules run in each item: {{item.<key>}} / {{row.<key>}} = this item, {{parent.<key>}} = the item holding a nested section, {{form.<key>}} = the form] }, add_label?, item_title? ({{index}} 1-based, {{item.<key>}}), min_items?, max_items? (default 50, max 200), start_items?, allow_remove? (default true), allow_reorder? (default true), collapsible? (default true), confirm_remove?, totals? [{ field, fn sum|avg|count, label? }], key_field? (an inner key identifying an item: items the form opened with keep the stored value of each control an item rule makes read only) }; its value is an array of item objects keyed by the inner keys (the List shape: loop over it), with <key>_count and <key>_total_<field> / <key>_avg_<field> / <key>_count_<field> stored beside it; item errors come back at paths like expenses[1].amount; a bound dropdown inside an item may filter on {{item.<key>}} (a cascade within the item); the List rule actions (add_list_row, new_row, set_row_values, update_list_row, remove_list_row, clear_list, commit_row) and data / API outputs (to: <key>, columns) accept it as their List. type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated|signature|list, required?, options?, min?, max?, formula?, signature? (type signature: an electronic signature per row — { mode? draw|type|both, statement?, capture_audit? }; the cell holds the Signature value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }; its PNG is uploaded with field_key "<list>.<column>" (nested: "<list>.<child>.<column>"), re-read from the upload records and stamped by the server; cannot be the key_column), validations? [{ if: { match, conditions [{ column: row.<column>|parent.<column>|form.<field>|user.roles, operator, value }] }, message }] (an error on the cell while the condition holds, checked on the server too), list? (type list: a nested List { columns, totals?, min_rows?, max_rows?, row_validations? } — up to 3 levels; its rows sit in each row: [{ customer, lines: [{ sku, qty }] }]; list steps take child: <column> and parent_row: current|selected|<n>) }], min_rows?, max_rows?, row_validations? [{ if, message, column? }] (a row-level error), row_styles? [{ if, style { tone? success|warning|danger|info|neutral|accent, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) }, column? }] (conditional styling of the row or one cell while if holds; any level; presentation only), cell_rules? [{ if (same subjects as validations), column, hide?: true, read_only?: true }] (per row: while if holds for a row, that row's cell of column is hidden (an empty cell, the header stays; not required or checked) and / or read only (not required; the server keeps the value the cell had when the form opened — rows matched by key_column, else by position while the row count is unchanged); any level, up to 20), entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards, row_editing? inline|popout|both (default both: cells in place plus Open row / Add in form opening the row as a form in a dialog, one column below 768px, two from 768px), row_form? { title? ("Expense: {{row.description}}"), layout? [{ column } | { section }], hide_view_icon? (read-only Lists otherwise show View row, the row read-only with formatted values) } }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: "{{<input>}}" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row "selected", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table, open_row_form (opens a row in its pop-out form; row current | selected | new | first | last | <n>; child?, parent_row?) (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; show_hide targets may be "column:<list>.<column>" (hides a whole List column — header and cells — or, for a repeating section key, that inner control in every item; not required while hidden, values kept); set_style (event always only) { targets: ["field:<key>" | "section:<key>"], style: { tone?, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) } } styles its targets with theme tones while the condition holds (presentation only); a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); layout.choice_groups is the optional list of choice groups [{ key, label, sections: [2-6 section keys on one page], default?, display? radio | tabs | dropdown }] — one alternative section shows at a time, the chosen section key is submitted as <key> (refused unless it is one of the sections; rules read {{form.<key>}}) and the fields of the other alternatives are not required and stored empty; rule conditions may test user.roles / user.teams (role / team names and ids; contains = has, neq = has not; judged on the server with its own view of the person); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
+         * @description A change to fields, layout or theme bumps version and stores an immutable snapshot (published workflow versions pin the version they were published with; drafts follow the latest). Name, description and tag edits do not. PATCH publishes directly (as before); to stage changes first, save them to the draft (PUT /forms/{id}/draft) and publish it (POST /forms/{id}/publish). fields is the User Task field list (key, label, type, required, options, bounds, ...; any field takes text_style? { label?, value? } (font styling of the label and of the value — for a List column: the header and the cells — each { size? xs|sm|base|lg|xl|2xl|<8-48>px, font? sans|serif|mono|calibri|segoe_ui|arial|verdana|tahoma|times_new_roman|georgia|courier_new or google:<Family> (any Google Fonts family, e.g. google:Lato — served from this site, never from Google), color? danger|warning|success|info|accent|neutral|muted|#rrggbb (kept readable in light and dark mode), bold?, italic?, underline? }; whitelisted values only); type image = one picture the person provides: image { max_mb? (default 10, max 20), camera?, types? [png|jpeg|webp|gif], default_file? { name, url } }, its value ONE file object (uploaded like an attachment; EXIF / GPS stripped); type signature = an electronic signature (not a cryptographic digital signature): signature { mode? draw|type|both, statement?, capture_audit?, resign_on_change? }, its value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? } with the person, time and audit details set by the server; type display_image = a static picture, no value: display_image { src (https or an uploaded form image), alt (required), width? sm|md|lg|full, align? left|center|right }; type rich_text = formatted text: rich_text { max_length? (characters, default 20000), toolbar? basic|full }, its value sanitised HTML (p, br, strong, em, u, s, ul, ol, li, h3, h4, blockquote, code, a href https/mailto) with the plain text stored as <key>_text; type text_list = a list of text items: text_list { style? bulleted|numbered|plain, min_items?, max_items? (default 50), item_max_length? (default 500) }, its value an array of strings; type url takes url_config { text_field?, link_text?, new_tab? } (link text for read-only views; the value stays the http(s) / mailto URL); type user takes user_config { multiple?, allow_teams?, max? } — the value stays one user id unless multiple / allow_teams is set, then an array of { kind: user|team, id, name } (ids checked against the workspace, names set by the server); multi_choice display? checkboxes|listbox; type repeating_section = InfoPath's repeating section: a group of ANY controls (every type but data_table and custom; nested list / repeating_section up to 3 levels; a signature inside signs per item — the signature of each item is uploaded under the inner key, re-read and stamped by the server like a field) repeated per item, each item a card with Add / Remove / Move / Collapse — repeating_section { fields [field definitions; inner keys are unique over the whole form], layout? { rows [{ columns 1-4, cells [{ field_key: <inner key>, span }] }], sections?, rules? [form rules run in each item: {{item.<key>}} / {{row.<key>}} = this item, {{parent.<key>}} = the item holding a nested section, {{form.<key>}} = the form] }, add_label?, item_title? ({{index}} 1-based, {{item.<key>}}), min_items?, max_items? (default 50, max 200), start_items?, allow_remove? (default true), allow_reorder? (default true), collapsible? (default true), confirm_remove?, totals? [{ field, fn sum|avg|count, label? }], key_field? (an inner key identifying an item: items the form opened with keep the stored value of each control an item rule makes read only) }; its value is an array of item objects keyed by the inner keys (the List shape: loop over it), with <key>_count and <key>_total_<field> / <key>_avg_<field> / <key>_count_<field> stored beside it; item errors come back at paths like expenses[1].amount; a bound dropdown inside an item may filter on {{item.<key>}} (a cascade within the item); the List rule actions (add_list_row, new_row, set_row_values, update_list_row, remove_list_row, clear_list, commit_row) and data / API outputs (to: <key>, columns) accept it as their List. type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated|signature|list, required?, options?, min?, max?, formula?, signature? (type signature: an electronic signature per row — { mode? draw|type|both, statement?, capture_audit? }; the cell holds the Signature value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }; its PNG is uploaded with field_key "<list>.<column>" (nested: "<list>.<child>.<column>"), re-read from the upload records and stamped by the server; cannot be the key_column), validations? [{ if: { match, conditions [{ column: row.<column>|parent.<column>|form.<field>|user.roles, operator, value }] }, message }] (an error on the cell while the condition holds, checked on the server too), list? (type list: a nested List { columns, totals?, min_rows?, max_rows?, row_validations? } — up to 3 levels; its rows sit in each row: [{ customer, lines: [{ sku, qty }] }]; list steps take child: <column> and parent_row: current|selected|<n>) }], min_rows?, max_rows?, row_validations? [{ if, message, column? }] (a row-level error), row_styles? [{ if, style { tone? success|warning|danger|info|neutral|accent, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) }, column? }] (conditional styling of the row or one cell while if holds; any level; presentation only), cell_rules? [{ if (same subjects as validations), column, hide?: true, read_only?: true }] (per row: while if holds for a row, that row's cell of column is hidden (an empty cell, the header stays; not required or checked) and / or read only (not required; the server keeps the value the cell had when the form opened — rows matched by key_column, else by position while the row count is unchanged); any level, up to 20), entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards, row_editing? inline|popout|both (default both: cells in place plus Open row / Add in form opening the row as a form in a dialog, one column below 768px, two from 768px), row_form? { title? ("Expense: {{row.description}}"), layout? [{ column } | { section }], hide_view_icon? (read-only Lists otherwise show View row, the row read-only with formatted values) } }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: "{{<input>}}" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row "selected", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table, open_row_form (opens a row in its pop-out form; row current | selected | new | first | last | <n>; child?, parent_row?) (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; show_hide targets may be "column:<list>.<column>" (hides a whole List column — header and cells — or, for a repeating section key, that inner control in every item; not required while hidden, values kept); set_style (event always only) { targets: ["field:<key>" | "section:<key>"], style: { tone?, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) } } styles its targets with theme tones while the condition holds (presentation only); a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); layout.choice_groups is the optional list of choice groups [{ key, label, sections: [2-6 section keys on one page], default?, display? radio | tabs | dropdown }] — one alternative section shows at a time, the chosen section key is submitted as <key> (refused unless it is one of the sections; rules read {{form.<key>}}) and the fields of the other alternatives are not required and stored empty; rule conditions may test user.roles / user.teams (role / team names and ids; contains = has, neq = has not; judged on the server with its own view of the person); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); layout.data_binding binds the form to a core data source — { kind: table | reference, source_id (the Data table / API reference id), integration_id? (reference), label?, fields { <field key>: <source field key> (table: column key; reference: response path such as data.email) }, record_param? (table: a declared URL parameter holding the row id to load / update), inputs? (reference: input name → template, e.g. {{param.customer_id}}), save? (table: write the row on submit — updated when record_param names one, else added; with the submitter's own data rights) } — and generates the load / save rules (ids data_binding_*: a Form loads Read a row / Call an API reference filling the bound fields, Before submit Update / Create a row); API references are read only; a form with layout.data_target (an extension's records, e.g. a SharePoint list; its field mapping lives in data_target.config and is changed through that extension) has no data_binding; POST /forms/{id}/data-source lists a source's fields; theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }. The body may also be the matching GET response, edited: read-only fields are ignored and null for a field that cannot be null means unchanged.
          */
         patch: operations["updateForm"];
         trace?: never;
@@ -2188,7 +2269,7 @@ export interface paths {
         get: operations["getFormDraft"];
         /**
          * Save the form's working draft (not visible to others until published)
-         * @description Creates or replaces the draft; fields you omit are kept. Lighter checks than publishing (shape, limits, theme); publish_problems says what would block publishing. mode is draft, or live when drafts are not available on this server (then the change was published as a new version, like PATCH). Form drafts: a form has a published version (what everyone sees: form pages, start forms, the Forms menu, public links, task forms, workflow drafts and test runs, GET /forms/{id}) and at most one working draft, shared by every editor (forms.edit). The draft records who saved it last and when, and the version it started from (base_version). Publishing makes it a new version (same validation as a save; blocked with the problems) and clears it; discarding throws it away. People and teams it is shared with may preview it (/forms/{id}/draft-preview, read only, nothing submitted) until it is published or discarded. Before the drafts migration is applied the draft endpoints answer 409 and PUT /forms/{id}/draft publishes directly (mode: live). fields is the User Task field list (key, label, type, required, options, bounds, ...; any field takes text_style? { label?, value? } (font styling of the label and of the value — for a List column: the header and the cells — each { size? xs|sm|base|lg|xl|2xl|<8-48>px, font? sans|serif|mono|calibri|segoe_ui|arial|verdana|tahoma|times_new_roman|georgia|courier_new or google:<Family> (any Google Fonts family, e.g. google:Lato — served from this site, never from Google), color? danger|warning|success|info|accent|neutral|muted|#rrggbb (kept readable in light and dark mode), bold?, italic?, underline? }; whitelisted values only); type image = one picture the person provides: image { max_mb? (default 10, max 20), camera?, types? [png|jpeg|webp|gif], default_file? { name, url } }, its value ONE file object (uploaded like an attachment; EXIF / GPS stripped); type signature = an electronic signature (not a cryptographic digital signature): signature { mode? draw|type|both, statement?, capture_audit?, resign_on_change? }, its value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? } with the person, time and audit details set by the server; type display_image = a static picture, no value: display_image { src (https or an uploaded form image), alt (required), width? sm|md|lg|full, align? left|center|right }; type rich_text = formatted text: rich_text { max_length? (characters, default 20000), toolbar? basic|full }, its value sanitised HTML (p, br, strong, em, u, s, ul, ol, li, h3, h4, blockquote, code, a href https/mailto) with the plain text stored as <key>_text; type text_list = a list of text items: text_list { style? bulleted|numbered|plain, min_items?, max_items? (default 50), item_max_length? (default 500) }, its value an array of strings; type url takes url_config { text_field?, link_text?, new_tab? } (link text for read-only views; the value stays the http(s) / mailto URL); type user takes user_config { multiple?, allow_teams?, max? } — the value stays one user id unless multiple / allow_teams is set, then an array of { kind: user|team, id, name } (ids checked against the workspace, names set by the server); multi_choice display? checkboxes|listbox; type repeating_section = InfoPath's repeating section: a group of ANY controls (every type but data_table and custom; nested list / repeating_section up to 3 levels; a signature inside signs per item — the signature of each item is uploaded under the inner key, re-read and stamped by the server like a field) repeated per item, each item a card with Add / Remove / Move / Collapse — repeating_section { fields [field definitions; inner keys are unique over the whole form], layout? { rows [{ columns 1-4, cells [{ field_key: <inner key>, span }] }], sections?, rules? [form rules run in each item: {{item.<key>}} / {{row.<key>}} = this item, {{parent.<key>}} = the item holding a nested section, {{form.<key>}} = the form] }, add_label?, item_title? ({{index}} 1-based, {{item.<key>}}), min_items?, max_items? (default 50, max 200), start_items?, allow_remove? (default true), allow_reorder? (default true), collapsible? (default true), confirm_remove?, totals? [{ field, fn sum|avg|count, label? }], key_field? (an inner key identifying an item: items the form opened with keep the stored value of each control an item rule makes read only) }; its value is an array of item objects keyed by the inner keys (the List shape: loop over it), with <key>_count and <key>_total_<field> / <key>_avg_<field> / <key>_count_<field> stored beside it; item errors come back at paths like expenses[1].amount; a bound dropdown inside an item may filter on {{item.<key>}} (a cascade within the item); the List rule actions (add_list_row, new_row, set_row_values, update_list_row, remove_list_row, clear_list, commit_row) and data / API outputs (to: <key>, columns) accept it as their List. type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated|signature|list, required?, options?, min?, max?, formula?, signature? (type signature: an electronic signature per row — { mode? draw|type|both, statement?, capture_audit? }; the cell holds the Signature value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }; its PNG is uploaded with field_key "<list>.<column>" (nested: "<list>.<child>.<column>"), re-read from the upload records and stamped by the server; cannot be the key_column), validations? [{ if: { match, conditions [{ column: row.<column>|parent.<column>|form.<field>|user.roles, operator, value }] }, message }] (an error on the cell while the condition holds, checked on the server too), list? (type list: a nested List { columns, totals?, min_rows?, max_rows?, row_validations? } — up to 3 levels; its rows sit in each row: [{ customer, lines: [{ sku, qty }] }]; list steps take child: <column> and parent_row: current|selected|<n>) }], min_rows?, max_rows?, row_validations? [{ if, message, column? }] (a row-level error), row_styles? [{ if, style { tone? success|warning|danger|info|neutral|accent, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) }, column? }] (conditional styling of the row or one cell while if holds; any level; presentation only), cell_rules? [{ if (same subjects as validations), column, hide?: true, read_only?: true }] (per row: while if holds for a row, that row's cell of column is hidden (an empty cell, the header stays; not required or checked) and / or read only (not required; the server keeps the value the cell had when the form opened — rows matched by key_column, else by position while the row count is unchanged); any level, up to 20), entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards, row_editing? inline|popout|both (default both: cells in place plus Open row / Add in form opening the row as a form in a dialog, one column below 768px, two from 768px), row_form? { title? ("Expense: {{row.description}}"), layout? [{ column } | { section }], hide_view_icon? (read-only Lists otherwise show View row, the row read-only with formatted values) } }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: "{{<input>}}" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row "selected", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table, open_row_form (opens a row in its pop-out form; row current | selected | new | first | last | <n>; child?, parent_row?) (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; show_hide targets may be "column:<list>.<column>" (hides a whole List column — header and cells — or, for a repeating section key, that inner control in every item; not required while hidden, values kept); set_style (event always only) { targets: ["field:<key>" | "section:<key>"], style: { tone?, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) } } styles its targets with theme tones while the condition holds (presentation only); a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); layout.choice_groups is the optional list of choice groups [{ key, label, sections: [2-6 section keys on one page], default?, display? radio | tabs | dropdown }] — one alternative section shows at a time, the chosen section key is submitted as <key> (refused unless it is one of the sections; rules read {{form.<key>}}) and the fields of the other alternatives are not required and stored empty; rule conditions may test user.roles / user.teams (role / team names and ids; contains = has, neq = has not; judged on the server with its own view of the person); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }.
+         * @description Creates or replaces the draft; fields you omit are kept. Lighter checks than publishing (shape, limits, theme); publish_problems says what would block publishing. mode is draft, or live when drafts are not available on this server (then the change was published as a new version, like PATCH). Form drafts: a form has a published version (what everyone sees: form pages, start forms, the Forms menu, public links, task forms, workflow drafts and test runs, GET /forms/{id}) and at most one working draft, shared by every editor (forms.edit). The draft records who saved it last and when, and the version it started from (base_version). Publishing makes it a new version (same validation as a save; blocked with the problems) and clears it; discarding throws it away. People and teams it is shared with may preview it (/forms/{id}/draft-preview, read only, nothing submitted) until it is published or discarded. Before the drafts migration is applied the draft endpoints answer 409 and PUT /forms/{id}/draft publishes directly (mode: live). fields is the User Task field list (key, label, type, required, options, bounds, ...; any field takes text_style? { label?, value? } (font styling of the label and of the value — for a List column: the header and the cells — each { size? xs|sm|base|lg|xl|2xl|<8-48>px, font? sans|serif|mono|calibri|segoe_ui|arial|verdana|tahoma|times_new_roman|georgia|courier_new or google:<Family> (any Google Fonts family, e.g. google:Lato — served from this site, never from Google), color? danger|warning|success|info|accent|neutral|muted|#rrggbb (kept readable in light and dark mode), bold?, italic?, underline? }; whitelisted values only); type image = one picture the person provides: image { max_mb? (default 10, max 20), camera?, types? [png|jpeg|webp|gif], default_file? { name, url } }, its value ONE file object (uploaded like an attachment; EXIF / GPS stripped); type signature = an electronic signature (not a cryptographic digital signature): signature { mode? draw|type|both, statement?, capture_audit?, resign_on_change? }, its value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? } with the person, time and audit details set by the server; type display_image = a static picture, no value: display_image { src (https or an uploaded form image), alt (required), width? sm|md|lg|full, align? left|center|right }; type rich_text = formatted text: rich_text { max_length? (characters, default 20000), toolbar? basic|full }, its value sanitised HTML (p, br, strong, em, u, s, ul, ol, li, h3, h4, blockquote, code, a href https/mailto) with the plain text stored as <key>_text; type text_list = a list of text items: text_list { style? bulleted|numbered|plain, min_items?, max_items? (default 50), item_max_length? (default 500) }, its value an array of strings; type url takes url_config { text_field?, link_text?, new_tab? } (link text for read-only views; the value stays the http(s) / mailto URL); type user takes user_config { multiple?, allow_teams?, max? } — the value stays one user id unless multiple / allow_teams is set, then an array of { kind: user|team, id, name } (ids checked against the workspace, names set by the server); multi_choice display? checkboxes|listbox; type repeating_section = InfoPath's repeating section: a group of ANY controls (every type but data_table and custom; nested list / repeating_section up to 3 levels; a signature inside signs per item — the signature of each item is uploaded under the inner key, re-read and stamped by the server like a field) repeated per item, each item a card with Add / Remove / Move / Collapse — repeating_section { fields [field definitions; inner keys are unique over the whole form], layout? { rows [{ columns 1-4, cells [{ field_key: <inner key>, span }] }], sections?, rules? [form rules run in each item: {{item.<key>}} / {{row.<key>}} = this item, {{parent.<key>}} = the item holding a nested section, {{form.<key>}} = the form] }, add_label?, item_title? ({{index}} 1-based, {{item.<key>}}), min_items?, max_items? (default 50, max 200), start_items?, allow_remove? (default true), allow_reorder? (default true), collapsible? (default true), confirm_remove?, totals? [{ field, fn sum|avg|count, label? }], key_field? (an inner key identifying an item: items the form opened with keep the stored value of each control an item rule makes read only) }; its value is an array of item objects keyed by the inner keys (the List shape: loop over it), with <key>_count and <key>_total_<field> / <key>_avg_<field> / <key>_count_<field> stored beside it; item errors come back at paths like expenses[1].amount; a bound dropdown inside an item may filter on {{item.<key>}} (a cascade within the item); the List rule actions (add_list_row, new_row, set_row_values, update_list_row, remove_list_row, clear_list, commit_row) and data / API outputs (to: <key>, columns) accept it as their List. type list = repeating rows kept in the submission: list { columns [{ key, label, type text|textarea|number|currency|date|choice|boolean|email|calculated|signature|list, required?, options?, min?, max?, formula?, signature? (type signature: an electronic signature per row — { mode? draw|type|both, statement?, capture_audit? }; the cell holds the Signature value { file (PNG), method, typed_name?, signed_at, user_id?, user_name?, ip?, user_agent? }; its PNG is uploaded with field_key "<list>.<column>" (nested: "<list>.<child>.<column>"), re-read from the upload records and stamped by the server; cannot be the key_column), validations? [{ if: { match, conditions [{ column: row.<column>|parent.<column>|form.<field>|user.roles, operator, value }] }, message }] (an error on the cell while the condition holds, checked on the server too), list? (type list: a nested List { columns, totals?, min_rows?, max_rows?, row_validations? } — up to 3 levels; its rows sit in each row: [{ customer, lines: [{ sku, qty }] }]; list steps take child: <column> and parent_row: current|selected|<n>) }], min_rows?, max_rows?, row_validations? [{ if, message, column? }] (a row-level error), row_styles? [{ if, style { tone? success|warning|danger|info|neutral|accent, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) }, column? }] (conditional styling of the row or one cell while if holds; any level; presentation only), cell_rules? [{ if (same subjects as validations), column, hide?: true, read_only?: true }] (per row: while if holds for a row, that row's cell of column is hidden (an empty cell, the header stays; not required or checked) and / or read only (not required; the server keeps the value the cell had when the form opened — rows matched by key_column, else by position while the row count is unchanged); any level, up to 20), entry_mode? inline (absent = the list view, filled by rules), totals? [{ column, fn sum|avg|count }], display? auto|table|cards, row_editing? inline|popout|both (default both: cells in place plus Open row / Add in form opening the row as a form in a dialog, one column below 768px, two from 768px), row_form? { title? ("Expense: {{row.description}}"), layout? [{ column } | { section }], hide_view_icon? (read-only Lists otherwise show View row, the row read-only with formatted values) } }, its value an array of row objects; rows are added by the rule action add_list_row { list_field, values { <column>: "{{<input>}}" }, require?, clear_fields? }, with remove_list_row { list_field, row? } and clear_list { list_field }); layout is the optional grid ({ rows: [{ columns, cells: [{ field_key, span }] }] }), or steps / tabs ({ mode: "steps" | "tabs", pages: [{ id, title, description?, icon?, visible_when?, load?, preload?, rows }], page_settings?: { indicator, next_label, back_label, allow_skip, review, review_title, resume }, rows: [] }; each field on one page; values stay flat); layout.rules is the optional list of form rules [{ id, name?, disabled?, event (always, form_load, value_change, focus, blur, button_click, row_click, row_select, row_deselect, row_double_click, cell_edit, row_add, row_delete, item_select, page_change, before_submit, after_submit, flag_change, message_answered, section_change, label_change, part_loaded), target?, if?: { match: all | any, conditions: [{ column, operator, value? } | group] }, then: [actions] }] (When → If → Then; server actions run from the saved form — call_reference { reference_id, inputs, wait?, timeout_ms?, rows_path?, filter?, sort?, limit?, outputs?, on_success?, on_failure? } and the data table steps table_read / table_list / table_create / table_update / table_delete { table_id, row_id?, filter?, sort?, limit?, column_values?, outputs [{ path, to, as?: options, mode?, columns?, value_path?, label_path? }], open_access?, on_success?, on_failure? }; list steps add_list_row, edit_list_row, cancel_list_edit, update_list_row, remove_list_row, clear_list (list columns may be type lookup or read_only — read-only when editing; list.selectable single | multiple, row "selected", confirm_text, empty_text); editable table steps on a List or an editable Data table new_row, set_row_values, commit_row { commit_mode? stage | save_now, on_failure? }, discard_row, revert_row, delete_row, refresh_table, open_row_form (opens a row in its pop-out form; row current | selected | new | first | last | <n>; child?, parent_row?) (field: <key>; row current | selected | <n>; list / data_table on_submit_pending block | exclude | commit, row_commit_controls; events row_created, row_values_changed, row_committed, row_commit_failed, cell_change); event list_row_button for a List’s row buttons ({{row.*}}); a message action has style banner | inline, tone, title, duration and seconds; show_hide targets may be "column:<list>.<column>" (hides a whole List column — header and cells — or, for a repeating section key, that inner control in every item; not required while hidden, values kept); set_style (event always only) { targets: ["field:<key>" | "section:<key>"], style: { tone?, background?, text?, bold?, italic?, underline?, strike?, border?, icon?, size? (xs…2xl | <n>px), font? (a curated font key or google:<Family>), color? (theme token | #hex) } } styles its targets with theme tones while the condition holds (presentation only); a prompt action asks a question — prompt: { id, display banner | dialog, preset, buttons [{ value, label, style, then, continue }], escape } — and each answer runs its own actions); layout.sections is the optional list of sections [{ key, title, description?, optional?, collapsible?, collapsed?, style?: bordered | plain, add_label?, visible_when?, load?, preload? }] and a row joins one with rows[].section = <key> (targets section:<key>; the fields of an optional section are kept only when <key>_included is true, which the submission records); layout.choice_groups is the optional list of choice groups [{ key, label, sections: [2-6 section keys on one page], default?, display? radio | tabs | dropdown }] — one alternative section shows at a time, the chosen section key is submitted as <key> (refused unless it is one of the sections; rules read {{form.<key>}}) and the fields of the other alternatives are not required and stored empty; rule conditions may test user.roles / user.teams (role / team names and ids; contains = has, neq = has not; judged on the server with its own view of the person); the load of a page or section is when it loads in the browser — eager (default, on form open), visible (when first shown) or rule (when a load_part rule action runs; targets section:<key> / page:<id>) — with preload: true to warm a lazy part once the form is idle (presentation only: values, defaults and validation are unchanged); layout.params is the optional list of form parameters [{ name, label?, type (text, number, boolean, date, text_list), default?, required?, source (url | context), query_name?, allowed?, pattern?, min?, max?, include? }] and layout.variables the form variables [{ name, label?, type (text, number, boolean, date, text_list, object), initial? { kind: constant | param | expression, value }, include? }] — {{param.<name>}} / {{var.<name>}} in rules, defaults, Data table base filters, lookup filters and API mappings; layout.submitted_page is the optional Submitted page shown after a submission { enabled, icon (check_circle, party, mail_sent, calendar_check, thumbs_up, clipboard_check, badge_check, send, heart, star, trophy, rocket, upload, none), icon_url?, icon_alt?, icon_color? (success | primary | #hex), heading?, subheading?, summary_fields? [field keys], note?, submit_another { enabled, label? }, close { enabled, label? } } (placeholders as in button texts; a button redirect, close or own success screen wins; not used for task forms); layout.form_actions turns off the icons in the top-right corner of a form where a person fills it in — { favorite?: false, draft?: false } (absent = both on: the favourite heart and the Save draft icon); layout.animation is the form’s animation style — { style?: none | expressive, confetti?: true } (absent = subtle, the default: short fades and rises; expressive moves more and, with confetti: true, adds a light confetti burst to a success-tone Submitted page; reduced motion is always respected); layout.data_binding binds the form to a core data source — { kind: table | reference, source_id (the Data table / API reference id), integration_id? (reference), label?, fields { <field key>: <source field key> (table: column key; reference: response path such as data.email) }, record_param? (table: a declared URL parameter holding the row id to load / update), inputs? (reference: input name → template, e.g. {{param.customer_id}}), save? (table: write the row on submit — updated when record_param names one, else added; with the submitter's own data rights) } — and generates the load / save rules (ids data_binding_*: a Form loads Read a row / Call an API reference filling the bound fields, Before submit Update / Create a row); API references are read only; a form with layout.data_target (an extension's records, e.g. a SharePoint list; its field mapping lives in data_target.config and is changed through that extension) has no data_binding; POST /forms/{id}/data-source lists a source's fields; theme is { source: "workspace" } (default), { source: "custom", overrides } or { source: "saved", theme_id }.
          */
         put: operations["saveFormDraft"];
         post?: never;
@@ -2463,6 +2544,26 @@ export interface paths {
          * @description Runs the WCAG 2.2 AA checker (labels, instructions, error messages, focus order, headings, language, input purpose / autocomplete, steps, timing, header image alt text, buttons, custom controls, target size, and colour contrast of the form theme on the workspace theme in light and dark). Returns score (0-100, 100 = no findings), findings [{ id, rule, severity (critical, serious, moderate, minor, review), wcag [success criteria], level, field_key?, mode?, message, help, fix? { kind, label, field_key?, patch, prompt? } }], summary counts, passed rules and the workspace policy ({ mode: off | warn | block, min_score, passes }). With mode block, saving a form below min_score is refused.
          */
         post: operations["checkFormAccessibility"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/forms/{id}/data-source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Describe the form's data source (data binding): source fields and the mapping
+         * @description The data source the form is bound to (data binding) and its fields, in one shape for every source: kind none | table (layout.data_binding, a Data table) | reference (layout.data_binding, an API reference; read only) | target (layout.data_target, an extension's records such as a SharePoint list item, bound by that extension). description { title, link?, facts [{ label, value }] (what loads, what saves), sourceFields [{ key, label, typeLabel, fieldTypes (form field types that can hold it, the suggested first; empty = cannot be bound), required?, readOnly?, multi?, choices?, lookup?, help?, group? (columns | lookups | system | fields | nested), isNew? }], mappings [{ field (form field key), source (source field key) | null, locked?, note? }], notes [{ severity, message }] }, bind (the mapping can be changed), locked (bound by an extension), writable (submissions are written to the source). To bind a field, create it and add { <field key>: <source key> } to layout.data_binding.fields in a form update (or save the draft); the binding's load / save rules (ids data_binding_*) are generated from it.
+         */
+        post: operations["describeFormDataSource"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3303,7 +3404,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List teams with member counts */
+        /**
+         * List teams with member counts
+         * @description Every team says where it comes from (`origin`, `origin_label`): Internal, or the directory that keeps it. Filter by name (`search`) and origin (`origin`).
+         */
         get: operations["listTeams"];
         put?: never;
         /** Create a team */
@@ -7769,6 +7873,11 @@ export interface operations {
                 "application/json": {
                     /** @description Publish notes describing what changed */
                     notes?: string;
+                    /**
+                     * @description When the trigger overlaps with other workflows (409 trigger_conflict, details.conflicts) and the draft has no answer yet: keep_both (both run) or take_over (the other workflows give up the overlapping part, as new versions of those)
+                     * @enum {string}
+                     */
+                    on_conflict?: "keep_both" | "take_over";
                 };
             };
         };
@@ -15262,6 +15371,521 @@ export interface operations {
             };
         };
     };
+    getDataTableViews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            table_id: string;
+                            views: {
+                                [key: string]: unknown;
+                            }[];
+                            columns: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateDataTableViews: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Full replacement list of the table's grid views */
+                    views: ({
+                        /** @description Stable view id (kept when given; generated otherwise) */
+                        id?: string;
+                        name: string;
+                        /** @description The columns shown, in order */
+                        columns: ({
+                            /** @description The table column key */
+                            key: string;
+                            /** @description Header (default the key) */
+                            label?: string;
+                            /** @description Width in px */
+                            width?: number;
+                            /**
+                             * @description How the cell is shown and edited (default inferred from the column type: longtext → multiline, select → dropdown, file → file, lookup → dropdown bound to the source table…)
+                             * @enum {string}
+                             */
+                            control?: "text" | "multiline" | "number" | "currency" | "date" | "datetime" | "boolean" | "dropdown" | "autocomplete" | "multiselect" | "people" | "lookup" | "signature" | "file" | "link" | "rich_text" | "display";
+                            /** @description choices [{ value, label }] (dropdown / multiselect without a binding), currency, min, max, decimals, max_length, boolean_style (checkbox | toggle), multiple / allow_teams (people), formula (display), signature { mode, statement }, placeholder */
+                            control_options?: {
+                                [key: string]: unknown;
+                            };
+                            /** @description dropdown / autocomplete / multiselect / lookup: options from a data table or an API reference — the form lookup config: source (table | reference), table_id or reference_id (+ integration_id, input_mappings, results_path), filters [{ column, operator, value }] (values may read {{row.<column>}} for cascading choices), sort { column, direction }, value_column / value_field (the stored id), display_columns / display_fields and label_template (what people see), search_columns, min_chars, max_results, cache_ttl_s, allow_free_text */
+                            binding?: {
+                                [key: string]: unknown;
+                            };
+                            /** @description false: read-only — inline writes of this column are refused */
+                            editable?: boolean;
+                            required?: boolean;
+                            hidden?: boolean;
+                            /** @description Display format (lib/formatting/cell-format.ts) */
+                            format?: {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                        /** @description Allow inline editing (all rows): editable columns save per cell */
+                        inline_edit?: boolean;
+                        /** @description With inline_edit: the grid opens in "Edit all rows" mode (every row editable at once, saved as one batch) */
+                        open_in_edit_mode?: boolean;
+                        allow_add?: boolean;
+                        allow_delete?: boolean;
+                        /** @description Rows per page (default 100) */
+                        page_size?: number;
+                        /** @description The view the grid opens on */
+                        default?: boolean;
+                    } & {
+                        [key: string]: unknown;
+                    })[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            table_id: string;
+                            views: {
+                                [key: string]: unknown;
+                            }[];
+                            columns: {
+                                [key: string]: unknown;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    writeDataRowCells: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Table id */
+                id: string;
+                /** @description Row id */
+                rowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The saved view whose rules apply (inline editing on, editable columns only) */
+                    view_id: string;
+                    /** @description Column key → new value (typed by the column's control: text, number, YYYY-MM-DD, ISO date-time, true / false, a bound option's value, an array for multiselect, [{ kind, id }] for people, { name, url, path } for a file stored with this table) */
+                    cells: {
+                        [key: string]: unknown;
+                    };
+                    /** @description The row's updated_at as you read it: a newer row is a 409 conflict instead of an overwrite (omit: last write wins) */
+                    expected_updated_at?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            row: {
+                                [key: string]: unknown;
+                            };
+                            updated_at: string;
+                            changed: string[];
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    writeDataRowsCells: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description The saved view whose rules apply (inline editing on, editable columns only) */
+                    view_id: string;
+                    /** @description Edited rows (at most 500 rows per call, new rows included) */
+                    rows?: {
+                        /** @description Row id */
+                        row_id: string;
+                        /** @description Column key → new value (typed as for the single-row cells write) */
+                        cells: {
+                            [key: string]: unknown;
+                        };
+                        /** @description The row's updated_at as you read it: a newer row comes back as a conflict for that row */
+                        expected_updated_at?: string | null;
+                    }[];
+                    /** @description New rows (the view must allow adding rows) */
+                    inserts?: {
+                        /** @description Your id for the new row, echoed in its outcome */
+                        client_id?: string;
+                        /** @description Column key → value; every required editable column of the view must be filled */
+                        cells: {
+                            [key: string]: unknown;
+                        };
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            table_id: string;
+                            view_id: string;
+                            rows: ({
+                                row_id: string;
+                                /** @enum {string} */
+                                status: "saved" | "unchanged" | "conflict" | "invalid" | "not_found" | "forbidden" | "error";
+                                row?: {
+                                    [key: string]: unknown;
+                                };
+                                updated_at?: string;
+                                changed?: string[];
+                                error?: string;
+                                /** @description Column key → why that cell was refused */
+                                cells?: {
+                                    [key: string]: string;
+                                };
+                                /** @description Conflict: the row as it is now */
+                                current?: {
+                                    [key: string]: unknown;
+                                } | null;
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            inserts: ({
+                                client_id: string;
+                                /** @enum {string} */
+                                status: "saved" | "invalid" | "forbidden" | "error";
+                                row?: {
+                                    [key: string]: unknown;
+                                };
+                                error?: string;
+                                cells?: {
+                                    [key: string]: string;
+                                };
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            saved: number;
+                            failed: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getDataGridColumnOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Table id */
+                id: string;
+                /** @description View id (`default`: the built-in view) */
+                viewId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description A bound column of the view */
+                    column: string;
+                    /** @description Typed text (autocomplete search; server-side) */
+                    query?: string;
+                    /** @description Resolve these stored values to their options (labels) instead of searching */
+                    resolve?: (string | number)[];
+                    /** @description The row being edited, for {{row.<column>}} in the binding (cascading) */
+                    row?: {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            items: ({
+                                value: string;
+                                label: string;
+                                description?: string;
+                                fields: {
+                                    [key: string]: unknown;
+                                };
+                            } & {
+                                [key: string]: unknown;
+                            })[];
+                            truncated?: boolean;
+                            too_short?: boolean;
+                            cached?: boolean;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listIntegrations: {
         parameters: {
             query?: {
@@ -18029,7 +18653,7 @@ export interface operations {
                     theme?: {
                         [key: string]: unknown;
                     } | null;
-                    /** @description The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
+                    /** @description The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, outline, danger), outcome? (outcome buttons: the task outcome), hidden? (not shown in the bar), icon? (a button icon name: chevron-right, save, send, check, pencil, x …), icon_after?, size? (sm | md | lg), color? (#rrggbb: its own fill, or border and text for secondary / outline), visible_when? { field, operator, value? } (shown only while it holds), actions? [{ type: save_target | message | success_screen | start_workflow | redirect | close (save_target, forms bound to a record whose binding has writes: rules: write the record, always first — operation? create | update, conflict? refuse | overwrite, values? { <source field>: "<template, e.g. {{user.email}}>" }, options? { <provider option>: bool }), text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
                     buttons?: {
                         [key: string]: unknown;
                     }[] | null;
@@ -18263,7 +18887,7 @@ export interface operations {
                     theme?: {
                         [key: string]: unknown;
                     } | null;
-                    /** @description New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
+                    /** @description New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, outline, danger), outcome? (outcome buttons: the task outcome), hidden? (not shown in the bar), icon? (a button icon name: chevron-right, save, send, check, pencil, x …), icon_after?, size? (sm | md | lg), color? (#rrggbb: its own fill, or border and text for secondary / outline), visible_when? { field, operator, value? } (shown only while it holds), actions? [{ type: save_target | message | success_screen | start_workflow | redirect | close (save_target, forms bound to a record whose binding has writes: rules: write the record, always first — operation? create | update, conflict? refuse | overwrite, values? { <source field>: "<template, e.g. {{user.email}}>" }, options? { <provider option>: bool }), text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
                     buttons?: {
                         [key: string]: unknown;
                     }[] | null;
@@ -18875,7 +19499,7 @@ export interface operations {
                     theme?: {
                         [key: string]: unknown;
                     } | null;
-                    /** @description The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
+                    /** @description The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, outline, danger), outcome? (outcome buttons: the task outcome), hidden? (not shown in the bar), icon? (a button icon name: chevron-right, save, send, check, pencil, x …), icon_after?, size? (sm | md | lg), color? (#rrggbb: its own fill, or border and text for secondary / outline), visible_when? { field, operator, value? } (shown only while it holds), actions? [{ type: save_target | message | success_screen | start_workflow | redirect | close (save_target, forms bound to a record whose binding has writes: rules: write the record, always first — operation? create | update, conflict? refuse | overwrite, values? { <source field>: "<template, e.g. {{user.email}}>" }, options? { <provider option>: bool }), text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: "{{field}}" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add. */
                     buttons?: {
                         [key: string]: unknown;
                     }[] | null;
@@ -19544,7 +20168,7 @@ export interface operations {
                 "application/json": {
                     name: string;
                     description?: string | null;
-                    /** @description Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header */
+                    /** @description Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, button_sticky, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header */
                     overrides: {
                         [key: string]: unknown;
                     };
@@ -20336,6 +20960,94 @@ export interface operations {
                             policy: {
                                 [key: string]: unknown;
                             };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Missing, invalid or expired credential */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Credential lacks the required permission or resource scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    describeFormDataSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description An unsaved definition to describe instead of the latest version: { fields, layout? } */
+                    definition?: {
+                        [key: string]: unknown;
+                    } | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        success: true;
+                        data: {
+                            form_id: string;
+                            form_version: number;
+                            /** @enum {string} */
+                            checked: "saved" | "definition";
+                            /** @enum {string} */
+                            kind: "none" | "table" | "reference" | "target";
+                            label: string;
+                            description: {
+                                [key: string]: unknown;
+                            } | null;
+                            bind: boolean;
+                            locked: boolean;
+                            writable: boolean;
                         } & {
                             [key: string]: unknown;
                         };
@@ -25584,7 +26296,14 @@ export interface operations {
     };
     listTeams: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Team name contains (case-insensitive) */
+                search?: string;
+                /** @description Only teams from this origin */
+                origin?: "internal" | "active_directory" | "ldap" | "entra" | "okta" | "google" | "scim" | "sharepoint" | "extension";
+                /** @description At most this many teams (default: all) */
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -25601,14 +26320,40 @@ export interface operations {
                         /** @constant */
                         success: true;
                         data: {
-                            teams: {
+                            teams: ({
+                                id: string;
+                                name: string;
+                                description?: string | null;
+                                /**
+                                 * @description Where the team comes from: internal (created in UserTasks), active_directory, ldap, entra, okta, google, scim, sharepoint or extension
+                                 * @enum {string}
+                                 */
+                                origin: "internal" | "active_directory" | "ldap" | "entra" | "okta" | "google" | "scim" | "sharepoint" | "extension";
+                                /** @description The origin as shown on the badge, e.g. "Entra ID" */
+                                origin_label: string;
+                                /** @description The group's id in the directory that keeps the team; null for internal teams */
+                                external_id: string | null;
+                                /** @description Extension directory source keeping the team (ext.<id>.<key>): such teams are read-only */
+                                source?: string | null;
+                                source_label?: string | null;
+                                member_count?: number;
+                            } & {
                                 [key: string]: unknown;
-                            }[];
+                            })[];
                             total: number;
                         } & {
                             [key: string]: unknown;
                         };
                     };
+                };
+            };
+            /** @description Validation failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Missing, invalid or expired credential */
@@ -25728,6 +26473,23 @@ export interface operations {
                         success: true;
                         data: {
                             team: {
+                                id: string;
+                                name: string;
+                                description?: string | null;
+                                /**
+                                 * @description Where the team comes from: internal (created in UserTasks), active_directory, ldap, entra, okta, google, scim, sharepoint or extension
+                                 * @enum {string}
+                                 */
+                                origin: "internal" | "active_directory" | "ldap" | "entra" | "okta" | "google" | "scim" | "sharepoint" | "extension";
+                                /** @description The origin as shown on the badge, e.g. "Entra ID" */
+                                origin_label: string;
+                                /** @description The group's id in the directory that keeps the team; null for internal teams */
+                                external_id: string | null;
+                                /** @description Extension directory source keeping the team (ext.<id>.<key>): such teams are read-only */
+                                source?: string | null;
+                                source_label?: string | null;
+                                member_count?: number;
+                            } & {
                                 [key: string]: unknown;
                             };
                         } & {
@@ -38001,6 +38763,26 @@ export interface operations {
                                     state: string;
                                     allowed: boolean;
                                     reason: string | null;
+                                    /** @description The deciding licence is a trial */
+                                    trial: boolean;
+                                    expires_at: string | null;
+                                    /** @description expires_at + 24 hours: when the extension stops */
+                                    cutoff_at: string | null;
+                                    days_left: number | null;
+                                    /** @description Farms the licence is bound to (empty: any farm) */
+                                    farm_ids: string[];
+                                    /** @description A self-serve trial can be started here (self-hosted, not licensed) */
+                                    trial_offer: {
+                                        days: number;
+                                        /** @enum {string} */
+                                        unit: "farm";
+                                    } | null;
+                                    /** @description What the extension says about its licence state */
+                                    notices: {
+                                        /** @enum {string} */
+                                        tone: "info" | "success" | "warning" | "danger";
+                                        message: string;
+                                    }[];
                                 };
                                 /** @description engines.usertasks / extension_sdk accept this build */
                                 compatible: boolean;
@@ -38100,6 +38882,26 @@ export interface operations {
                                     state: string;
                                     allowed: boolean;
                                     reason: string | null;
+                                    /** @description The deciding licence is a trial */
+                                    trial: boolean;
+                                    expires_at: string | null;
+                                    /** @description expires_at + 24 hours: when the extension stops */
+                                    cutoff_at: string | null;
+                                    days_left: number | null;
+                                    /** @description Farms the licence is bound to (empty: any farm) */
+                                    farm_ids: string[];
+                                    /** @description A self-serve trial can be started here (self-hosted, not licensed) */
+                                    trial_offer: {
+                                        days: number;
+                                        /** @enum {string} */
+                                        unit: "farm";
+                                    } | null;
+                                    /** @description What the extension says about its licence state */
+                                    notices: {
+                                        /** @enum {string} */
+                                        tone: "info" | "success" | "warning" | "danger";
+                                        message: string;
+                                    }[];
                                 };
                                 /** @description engines.usertasks / extension_sdk accept this build */
                                 compatible: boolean;
@@ -38212,6 +39014,26 @@ export interface operations {
                                     state: string;
                                     allowed: boolean;
                                     reason: string | null;
+                                    /** @description The deciding licence is a trial */
+                                    trial: boolean;
+                                    expires_at: string | null;
+                                    /** @description expires_at + 24 hours: when the extension stops */
+                                    cutoff_at: string | null;
+                                    days_left: number | null;
+                                    /** @description Farms the licence is bound to (empty: any farm) */
+                                    farm_ids: string[];
+                                    /** @description A self-serve trial can be started here (self-hosted, not licensed) */
+                                    trial_offer: {
+                                        days: number;
+                                        /** @enum {string} */
+                                        unit: "farm";
+                                    } | null;
+                                    /** @description What the extension says about its licence state */
+                                    notices: {
+                                        /** @enum {string} */
+                                        tone: "info" | "success" | "warning" | "danger";
+                                        message: string;
+                                    }[];
                                 };
                                 /** @description engines.usertasks / extension_sdk accept this build */
                                 compatible: boolean;
@@ -38324,6 +39146,26 @@ export interface operations {
                                     state: string;
                                     allowed: boolean;
                                     reason: string | null;
+                                    /** @description The deciding licence is a trial */
+                                    trial: boolean;
+                                    expires_at: string | null;
+                                    /** @description expires_at + 24 hours: when the extension stops */
+                                    cutoff_at: string | null;
+                                    days_left: number | null;
+                                    /** @description Farms the licence is bound to (empty: any farm) */
+                                    farm_ids: string[];
+                                    /** @description A self-serve trial can be started here (self-hosted, not licensed) */
+                                    trial_offer: {
+                                        days: number;
+                                        /** @enum {string} */
+                                        unit: "farm";
+                                    } | null;
+                                    /** @description What the extension says about its licence state */
+                                    notices: {
+                                        /** @enum {string} */
+                                        tone: "info" | "success" | "warning" | "danger";
+                                        message: string;
+                                    }[];
                                 };
                                 /** @description engines.usertasks / extension_sdk accept this build */
                                 compatible: boolean;

@@ -19,6 +19,23 @@ import { isPlainObject } from '@/lib/utils/guards'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import { findFieldDeep, innerFieldsDeep } from './repeating-section'
 import { hasSignatureColumns, listSignatureColumns, listUploadKey, signatureColumnAt, type ListColumn, type ListFieldConfig } from './list-field'
+import type { DataTableColumn, DataTableFieldConfig } from './data-table'
+
+/* ── Data table signature cells (lib/grid/column-model.ts control `signature`) ── */
+
+/** A Data table's signature columns (edit mode: each added / changed row signs its own cell). */
+export function dataTableSignatureColumns(config: DataTableFieldConfig | undefined): DataTableColumn[] {
+  if (!config || config.mode !== 'edit') return []
+  return config.columns.filter((c) => c.control === 'signature' && !c.read_only && !c.hidden)
+}
+
+/** A Data table signature column as a Signature field (upload key `<table>.<column>`). */
+export function signatureFieldForTableColumn(tableKey: string, column: DataTableColumn): TaskFieldDef {
+  const field: TaskFieldDef = { key: `${tableKey}.${column.key}`, label: column.label, type: 'signature' }
+  if (column.control_options?.signature) field.signature = column.control_options.signature
+  if (column.required) field.required = true
+  return field
+}
 
 /** A List signature column as a Signature field (its upload key, label, config) — what the upload pipeline and the checks read. */
 export function signatureFieldForColumn(listKey: string, columnPath: string[], column: ListColumn): TaskFieldDef {
@@ -42,6 +59,11 @@ export function resolveFileControl(fields: TaskFieldDef[], key: string): { field
     return found ? { field: found.field, repeated: found.sections.length > 0 } : null
   }
   const [listKey, ...path] = raw.split('.')
+  const table = fields.find((f) => f.key === listKey && f.type === 'data_table')
+  if (table) {
+    const column = dataTableSignatureColumns(table.data_table).find((c) => c.key === path.join('.'))
+    return column ? { field: signatureFieldForTableColumn(table.key, column), repeated: true, list: table } : null
+  }
   if (!listKey || !path.length || path.some((p) => !/^[a-z][a-z0-9_]{0,63}$/.test(p))) return null
   const found = findFieldDeep(fields, listKey)
   if (!found || found.field.type !== 'list') return null
@@ -53,12 +75,14 @@ export function resolveFileControl(fields: TaskFieldDef[], key: string): { field
 /** The upload key of every List signature column of a form (Lists at the top level and inside sections, any level). */
 export function listSignatureUploadKeys(fields: TaskFieldDef[]): string[] {
   const lists = [...fields, ...innerFieldsDeep(fields).map((x) => x.field)].filter((f) => f.type === 'list')
-  return lists.flatMap((f) => listSignatureColumns(f.list).map((c) => listUploadKey(f.key, c.path)))
+  const tables = fields.filter((f) => f.type === 'data_table').flatMap((f) => dataTableSignatureColumns(f.data_table).map((c) => `${f.key}.${c.key}`))
+  return [...lists.flatMap((f) => listSignatureColumns(f.list).map((c) => listUploadKey(f.key, c.path))), ...tables]
 }
 
 /** Whether a field holds repeating signatures: a section with a Signature inside, a List with a signature column (any level). */
-export function holdsNestedSignatures(field: Pick<TaskFieldDef, 'type' | 'list' | 'repeating_section'>): boolean {
+export function holdsNestedSignatures(field: Pick<TaskFieldDef, 'type' | 'list' | 'repeating_section' | 'data_table'>): boolean {
   if (field.type === 'list') return hasSignatureColumns(field.list)
+  if (field.type === 'data_table') return dataTableSignatureColumns(field.data_table).length > 0
   if (field.type === 'repeating_section') return (field.repeating_section?.fields ?? []).some((f) => f.type === 'signature' || holdsNestedSignatures(f))
   return false
 }
@@ -101,6 +125,28 @@ function mapItems(section: TaskFieldDef, value: unknown, path: string, top: Task
   })
 }
 
+/** A Data table change set's signature cells: new rows (`<key>.added[i].<col>`) and changed rows' new values (`<key>.updated[i].after.<col>`). */
+function mapChangeSet(field: TaskFieldDef, value: unknown, visit: SignatureCellVisitor): unknown {
+  const columns = dataTableSignatureColumns(field.data_table)
+  if (!columns.length || !isPlainObject(value)) return value
+  let changed = false
+  const visitRow = (row: Record<string, unknown>, path: string, index: number): Record<string, unknown> => {
+    let next: Record<string, unknown> | null = null
+    for (const column of columns) {
+      if (!Object.prototype.hasOwnProperty.call(row, column.key)) continue
+      const out = visit(signatureFieldForTableColumn(field.key, column), row[column.key], { path: `${path}.${column.key}`, top: field, index })
+      if (out !== row[column.key]) { next ??= { ...row }; next[column.key] = out }
+    }
+    if (next) changed = true
+    return next ?? row
+  }
+  const added = Array.isArray(value.added) ? value.added.map((r, i) => (isPlainObject(r) ? visitRow(r, `${field.key}.added[${i}]`, i) : r)) : value.added
+  const updated = Array.isArray(value.updated)
+    ? value.updated.map((u, i) => (isPlainObject(u) && isPlainObject(u.after) ? (() => { const after = visitRow(u.after as Record<string, unknown>, `${field.key}.updated[${i}].after`, i); return after === u.after ? u : { ...u, after } })() : u))
+    : value.updated
+  return changed ? { ...value, added, updated } : value
+}
+
 /**
  * Every repeating signature of a field's value through `visit` (the field —
  * a section's inner Signature, or a List column as a Signature field — the
@@ -110,6 +156,7 @@ function mapItems(section: TaskFieldDef, value: unknown, path: string, top: Task
  */
 export function mapNestedSignatures(field: TaskFieldDef, value: unknown, visit: SignatureCellVisitor): unknown {
   if (field.type === 'list') return mapListRows(field.key, field.list, value, [], field.key, field, visit)
+  if (field.type === 'data_table') return mapChangeSet(field, value, visit)
   if (field.type === 'repeating_section') return mapItems(field, value, field.key, field, visit)
   return value
 }

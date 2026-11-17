@@ -296,6 +296,7 @@ function FieldControl({ field, value, onChange, error, id, people, values, setVa
           onChange={onChange}
           onControl={(patch) => setValue(CONTROLS_KEY, reportControl(values, field.key, patch))}
           reportRows={reportRows}
+          people={people}
           id={id}
           describedBy={describedBy}
           invalid={invalid}

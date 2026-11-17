@@ -140,7 +140,8 @@ export const reads = {
       const { data } = await (getDb(ctx) as any).from('teams')
         .select('*, member_count:user_teams(count)')
         .order('name')
-      return (data ?? []) as any[]
+      const { withOrigin } = await import('../teams')
+      return ((data ?? []) as any[]).map((t) => withOrigin(t))
     },
   }),
 

@@ -12,7 +12,7 @@ import { summarise, verifyLicence, type LicenceSummary } from './service'
 import type { InstanceIdentity, LicenceDocument, LicenceProblem } from './types'
 
 /** Problems that make a licence useless here: installing it is refused. */
-const REFUSED: ReadonlySet<LicenceProblem['code']> = new Set(['malformed', 'unsupported_format', 'unknown_key', 'bad_signature', 'binding_mismatch', 'expired'])
+const REFUSED: ReadonlySet<LicenceProblem['code']> = new Set(['malformed', 'unsupported_format', 'unknown_key', 'bad_signature', 'binding_mismatch', 'trial_policy', 'expired'])
 
 export interface InstallCheck {
   ok: boolean

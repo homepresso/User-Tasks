@@ -180,6 +180,7 @@ const EDITORS: Record<string, { sets?: string[]; renderedBy?: string[]; workflow
   'designer/call-reference-editor.tsx': { renderedBy: ['designer/rules-panel.tsx'] },
   'designer/data-action-editor.tsx': { renderedBy: ['designer/rules-panel.tsx'] },
   'designer/list-action-editor.tsx': { renderedBy: ['designer/rules-panel.tsx'] },
+  'designer/save-target-action.tsx': { renderedBy: ['designer/form-settings.tsx'] },
   // A workflow step's form parameters (workflow designer): the workflow lists.
   'node-form-section.tsx': { workflow: true },
 }
@@ -217,6 +218,14 @@ describe('regression: no forms-designer input falls back to the workflow lists',
     expect(dialog.indexOf('<RulesPanel', at)).toBeGreaterThan(at)
     expect(dialog.indexOf('<FieldProperties', at)).toBeGreaterThan(at)
     expect(dialog.indexOf('<FormSettings', at)).toBeGreaterThan(at)
+  })
+
+  it('designed from a workflow step, the whole panel gets the step\'s workflow data (every editor inside reads it)', () => {
+    const dialog = readFileSync(path.join(formsDir, 'designer/form-designer.tsx'), 'utf8')
+    const at = dialog.indexOf('<DesignerWorkflowDataProvider value={wfEntries ?? null}>')
+    expect(at).toBeGreaterThan(0)
+    expect(dialog.indexOf("<DesignerVariableScope state={state} context={{ kind: 'header' }}>", at)).toBeGreaterThan(at)
+    expect(readFileSync(path.join(formsDir, 'designer/designer-variable-scope.tsx'), 'utf8')).toMatch(/workflow\?\.length \? \{ workflow \}/)
   })
 
   it('every scoped kind lists every one of its groups for a form that has them', () => {

@@ -156,6 +156,51 @@ export const reads = {
     run: async (ctx) => (await import('../form-sign-in-page')).getFormSignInSettings(ctx),
   }),
 
+  /**
+   * The designer's "Connected to …" / Data panel: what a bound form's
+   * provider says about its binding, for the designer's current (unsaved)
+   * fields and layout. forms.view (the designer).
+   */
+  'forms.targetDescribe': defineRead({
+    args: z.object({ id, fields: z.array(z.record(z.string(), z.unknown())).max(500).optional(), layout: z.record(z.string(), z.unknown()).optional() }),
+    perm: VIEW,
+    run: async (ctx, { id: formId, fields, layout }) => {
+      const form = await forms.getForm(ctx, formId)
+      const { normalizeFormDefinition } = await import('@/lib/forms/definition')
+      const def = normalizeFormDefinition(form as never)
+      const { normalizeTaskFields } = await import('@/lib/task-field-schema')
+      return (await import('../form-targets')).describeFormTarget(ctx, { id: String(form.id), name: String(form.name), version: Number(form.version), fields: fields ? normalizeTaskFields(fields) : def.fields, layout: layout ?? def.layout })
+    },
+  }),
+
+  /**
+   * The hosts outside the app that button redirects and links may go to
+   * (FORM_REDIRECT_ALLOWLIST), so the designer judges an address the way
+   * the server does. forms.view (the designer).
+   */
+  'forms.redirectHosts': defineRead({
+    args: NO_ARGS,
+    perm: VIEW,
+    run: async () => ({ allowedHosts: (await import('@/lib/forms/buttons')).redirectAllowlistFromEnv() }),
+  }),
+
+  /**
+   * The designer's Data panel (data binding): the source the form is bound
+   * to — an extension target (its provider's describe) or a Data table / API
+   * reference (lib/services/form-sources.ts) — with its fields and the
+   * mapping, for the designer's current (unsaved) fields and layout. A new,
+   * unsaved form has no id. forms.view (the designer).
+   */
+  'forms.sourceDescribe': defineRead({
+    args: z.object({ id: z.string().uuid().optional(), name: z.string().max(200).optional(), fields: z.array(z.record(z.string(), z.unknown())).max(500), layout: z.record(z.string(), z.unknown()).nullable() }),
+    perm: VIEW,
+    run: async (ctx, { id: formId, name, fields, layout }) => {
+      const { normalizeTaskFields } = await import('@/lib/task-field-schema')
+      const form = formId ? await forms.getForm(ctx, formId) : null
+      return (await import('../form-sources')).describeFormSource(ctx, { id: form ? String(form.id) : null, name: form ? String(form.name) : name ?? 'New form', version: form ? Number(form.version) : null, fields: normalizeTaskFields(fields), layout: layout ?? {} })
+    },
+  }),
+
   /** A form as its own page (/f/<id>) draws it (forms.submit). */
   'forms.submittable': defineRead({
     // query: the page's URL query — the form's declared URL parameters are read from it on the server (a form with a data target loads the record they name).
@@ -251,6 +296,16 @@ export const reads = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- form_controls is not in the generated types
       const { data } = await (getDb(ctx) as any).from('form_controls').select('tag, trusted, enabled').in('tag', args.tags)
       return ((data ?? []) as Array<{ tag: string; trusted: boolean; enabled: boolean }>).map((r) => ({ tag: String(r.tag), trusted: r.trusted === true, enabled: r.enabled !== false }))
+    },
+  }),
+
+  /** Lists extensions offer as lookup sources (e.g. connected SharePoint lists) with their columns: the designer's "Connected list" source. */
+  'forms.lookupLists': defineRead({
+    args: NO_ARGS,
+    perm: VIEW,
+    run: async (ctx) => {
+      const { extensionLookupLists } = await import('../form-lookup')
+      return extensionLookupLists(ctx)
     },
   }),
 

@@ -45,6 +45,7 @@ export const SECTION_META: Record<string, SectionMeta> = {
   'Media (images, audio, video)': { icon: 'image', blurb: 'Transcribe, analyse, redact and generate images, audio and video.', tab: 'guides' },
   Tasks: { icon: 'inbox', blurb: 'People in the loop: forms, fields, outcomes, assignment and SLAs.', tab: 'guides' },
   Integrations: { icon: 'plug', blurb: 'Call any API, use connectors, OAuth, OpenAPI import and webhooks.', tab: 'guides' },
+  'SharePoint Server': { icon: 'server', blurb: 'Replace SharePoint 2010 and 2013 workflows and InfoPath forms: list-event triggers, embedded forms, the list dashboard and web parts.', tab: 'guides' },
   'Building blocks': { icon: 'blocks', blurb: 'Decision tables, data tables, reports, email templates and custom steps.', tab: 'guides' },
   'AI assistant (Agent)': { icon: 'bot', blurb: 'Bring your own model key and let the Agent build and run work with you.', tab: 'guides' },
   'Governance and security': { icon: 'shield', blurb: 'Roles, teams, SSO, SCIM, API keys, audit and retention.', tab: 'guides' },

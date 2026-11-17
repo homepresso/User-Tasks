@@ -22,6 +22,7 @@ import { checkUsageLimit } from '@/lib/licensing/limits'
 import { holdsPermission } from '@/lib/permissions'
 import { hostForms } from './forms'
 import { hostFormObjects, hostWorkflowObjects } from './objects-host'
+import { waitRequest } from './event-waits'
 import { hostInsightsForms, hostInsightsWorkflows } from './insights-host'
 import { hostGrants } from './grants-host'
 import { configuredAppUrl } from '@/lib/config/bootstrap'
@@ -151,7 +152,25 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
       async trigger(key, payload, opts) {
         if (!tenantId) throw new Error('workflows.trigger needs a workspace')
         const { startExtensionTrigger } = await import('./triggers')
-        return startExtensionTrigger({ tenantId, extensionId, key, payload, dedupeKey: opts?.dedupeKey, workflowId: opts?.workflowId, startedBy: opts?.workflowId && opts?.byPerson ? actorId : null })
+        let data = payload
+        if (opts?.inputs !== undefined || (opts?.workflowId && opts?.byPerson)) {
+          // A hand start: the workflow's declared inputs, checked server-side, as start variables.
+          if (!opts?.workflowId) throw new ExtensionError('invalid_request', 'inputs need a workflowId (one workflow started by hand)', 400)
+          const { ownWorkflow } = await import('./objects-host')
+          const { checkStartInputs, workflowInputFields } = await import('./inputs-host')
+          await ownWorkflow(objectsHost, opts.workflowId)
+          const values = checkStartInputs(await workflowInputFields(objectsHost, opts.workflowId), opts.inputs ?? {})
+          data = { ...payload, ...values }
+        }
+        return startExtensionTrigger({ tenantId, extensionId, key, payload: data, dedupeKey: opts?.dedupeKey, workflowId: opts?.workflowId, startedBy: opts?.workflowId && opts?.byPerson ? actorId : null })
+      },
+      async inputs(workflowId) {
+        if (!tenantId) throw new Error('workflows.inputs needs a workspace')
+        const { ownWorkflow } = await import('./objects-host')
+        const { canReadInputs, presentInput, workflowInputFields } = await import('./inputs-host')
+        if (!canReadInputs(objectsHost)) return []
+        await ownWorkflow(objectsHost, workflowId)
+        return (await workflowInputFields(objectsHost, workflowId)).map(presentInput)
       },
       async create(input) {
         if (!tenantId) throw new Error('workflows.create needs a workspace')
@@ -218,6 +237,17 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
         if (!verdict.allowed) throw new LicenceLimitError(verdict)
         return verdict
       },
+      async pausedRuns() {
+        if (!tenantId) return 0
+        const { countLicencePausedRuns } = await import('@/lib/licensing/paused-runs')
+        return countLicencePausedRuns(getServiceDb() as any, tenantId)
+      },
+      async resumePausedRuns(opts) {
+        if (!tenantId) return { resumed: 0, failed: 0, remaining: 0 }
+        assertEntitled(extensionId, await getEntitlementPort().check({ tenantId, extensionId }))
+        const { resumeLicencePausedRuns } = await import('@/lib/licensing/paused-runs')
+        return resumeLicencePausedRuns(getServiceDb() as any, { tenantId, extensionId, limit: opts?.limit, deadline: opts?.deadline })
+      },
     },
     connections: {
       list: (opts) => listExtensionConnections(extensionId, tenantId, opts),
@@ -252,6 +282,16 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
         if (!tenantId) throw new Error('importers.infopath needs a workspace')
         const { runInfoPathForExtension } = await import('@/lib/importers/host')
         return runInfoPathForExtension({ extensionId, tenantId, actorId, db, permissions: held }, input)
+      },
+    },
+    runs: {
+      waitFor(input) {
+        return waitRequest(input)
+      },
+      async resume(input) {
+        if (!tenantId) throw new Error('runs.resume needs a workspace')
+        const { resumeWaits } = await import('./event-waits')
+        return resumeWaits(getServiceDb(), { tenantId, extensionId }, input)
       },
     },
     archives: {

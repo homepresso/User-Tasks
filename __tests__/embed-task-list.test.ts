@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueBefore, outcomeAsksComment, outcomeButtonLabel, parseTaskListOptions, TASK_LIST_DEFAULTS, taskListQuery, taskRowActions, type TaskRowFacts } from '@/lib/embed/task-list'
+import { countLabel, dueWindow, localDueRange, dueBefore, outcomeAsksComment, outcomeButtonLabel, parseTaskListOptions, TASK_LIST_DEFAULTS, taskListQuery, taskRowActions, type TaskRowFacts } from '@/lib/embed/task-list'
 import { appPartResizeMessage, hostResizeMessages, isTaskEventMessage, resizeDisabled, senderIdFrom, taskEventMessage } from '@/lib/embed/host-messages'
 import { parseEmbedFormOptions, safeRedirectUrl } from '@/lib/embed/form-options'
 import { taskNeedsForm } from '@/lib/services/embed-tasks'
@@ -33,6 +33,37 @@ describe('parseTaskListOptions', () => {
   })
   it('strips control characters from text options', () => {
     expect(parseTaskListOptions({ q: 'a\u0000b\nc' }).q).toBe('a b c')
+  })
+})
+
+describe('tabs, tracker scope, filters, sort', () => {
+  it('tabs: offered ones only; the default is the first offered', () => {
+    expect(parseTaskListOptions({})).toMatchObject({ tab: 'mine', tabs: ['mine', 'following', 'tracker'] })
+    expect(parseTaskListOptions({ tabs: 'tracker,following', tab: 'mine' })).toMatchObject({ tabs: ['following', 'tracker'], tab: 'following' })
+    expect(parseTaskListOptions({ tabs: 'nothing' })).toMatchObject({ tabs: ['mine'], tab: 'mine' })
+    expect(parseTaskListOptions({ tab: 'tracker', scope: 'reports' })).toMatchObject({ tab: 'tracker', scope: 'reports' })
+    expect(parseTaskListOptions({ scope: 'everyone' }).scope).toBeNull()
+  })
+  it('filters and sort round-trip through the frame URL', () => {
+    const o = parseTaskListOptions({ tab: 'tracker', scope: 'team', priority: 'high,bogus,critical', assignee: W1, wf: W2, sort: 'updated', dir: 'desc', due: 'custom', due_from: '2026-11-01T00:00:00Z', due_to: '2026-11-08T00:00:00Z', unread: '1', team: W1, status: 'any', size: '25' })
+    expect(o).toMatchObject({ priority: ['high', 'critical'], assignee: W1, wf: W2, sort: 'updated', dir: 'desc', due: 'custom', unread: true, team: W1, status: 'any', size: 25 })
+    expect(parseTaskListOptions(new URLSearchParams(taskListQuery(o)))).toEqual(o)
+    // "newest" (earlier URLs) = created, descending.
+    expect(parseTaskListOptions({ sort: 'newest' })).toMatchObject({ sort: 'created', dir: 'desc' })
+  })
+  it('due windows', () => {
+    const now = new Date('2026-11-15T10:00:00Z')
+    expect(dueWindow({ due: 'overdue', soonDays: 3, dueFrom: null, dueTo: null }, now)).toEqual({ from: null, to: '2026-11-15T10:00:00.000Z' })
+    expect(dueWindow({ due: 'week', soonDays: 3, dueFrom: '2026-11-09T00:00:00.000Z', dueTo: '2026-11-16T00:00:00.000Z' }, now)).toEqual({ from: '2026-11-09T00:00:00.000Z', to: '2026-11-16T00:00:00.000Z' })
+    expect(dueWindow({ due: 'any', soonDays: 3, dueFrom: null, dueTo: null }, now)).toBeNull()
+    const today = localDueRange('today', now)
+    expect(new Date(today.dueTo).getTime() - new Date(today.dueFrom).getTime()).toBe(86_400_000)
+    const week = localDueRange('week', now)
+    expect(new Date(week.dueFrom).getDay()).toBe(1)
+  })
+  it('count label', () => {
+    expect(countLabel(42, false)).toBe('42')
+    expect(countLabel(1000, true)).toBe('1,000+')
   })
 })
 
@@ -70,8 +101,9 @@ describe('taskRowActions', () => {
     expect(taskRowActions({ ...base, is_workflow_task: false, event_id: null }, me).actions).toEqual(['open'])
     expect(taskRowActions({ ...base, status: 'completed' }, me)).toEqual({ actions: ['open'], outcomes: [] })
   })
-  it('at most four outcome buttons', () => {
-    expect(taskRowActions({ ...base, available_outcomes: ['a', 'b', 'c', 'd', 'e'] }, me).outcomes).toHaveLength(4)
+  it('every outcome goes in the Actions menu (12 here)', () => {
+    const twelve = Array.from({ length: 12 }, (_, i) => `outcome_${i + 1}`)
+    expect(taskRowActions({ ...base, available_outcomes: twelve }, me).outcomes).toEqual(twelve)
   })
 })
 
@@ -131,5 +163,17 @@ describe('embedded form options', () => {
     expect(safeRedirectUrl('https://u:p@example.com/')).toBeNull()
     expect(safeRedirectUrl('/relative')).toBeNull()
     expect(safeRedirectUrl('http://sharepoint/sites/a/Pages/Thanks.aspx')).toBe('http://sharepoint/sites/a/Pages/Thanks.aspx')
+  })
+})
+
+describe('floatingBottom (EmbedFrame: open menus count towards the frame height)', () => {
+  it('the lowest open popper plus a margin; closed (zero-height) ones ignored', async () => {
+    const { floatingBottom } = await import('@/components/forms/embed-frame')
+    const el = (bottom: number, height = 100) => ({ getBoundingClientRect: () => ({ bottom, height }) })
+    const doc = (els: unknown[], scrollY = 0) => ({ querySelectorAll: () => els, defaultView: { scrollY } }) as unknown as Document
+    expect(floatingBottom(doc([]))).toBe(0)
+    expect(floatingBottom(doc([el(300), el(520)]))).toBe(532)
+    expect(floatingBottom(doc([el(900, 0)]))).toBe(0)
+    expect(floatingBottom(doc([el(400)], 50))).toBe(462)
   })
 })

@@ -1,5 +1,6 @@
 "use client"
 
+import { importReviewNotes } from "@/lib/workflow-wiring"
 import { NodeBrandIcon } from '@/lib/connectors/connector-brand'
 import { useState } from "react"
 import { nodeCatalogEntry, nodeColorCategory, nodeColorTextVar, nodeColorVar, type NodeColorCategory, type PortSide, type WorkflowNode } from "@/lib/workflow-schema"
@@ -101,7 +102,8 @@ export function nodeCardModel(node: WorkflowNode, lookups: SummaryLookups = {}):
     showIfBadge: node.type === "condition" || node.type === "switch_case",
     width: node.collapsed ? COLLAPSED_NODE_WIDTH : DEFAULT_NODE_WIDTH,
     collapsed: !!node.collapsed,
-    validationErrors: safe ? [] : validateNode(node),
+    // An importer's open questions (e.g. a column the list lacks) show like errors until marked reviewed.
+    validationErrors: safe ? [] : [...validateNode(node), ...importReviewNotes(config)],
     customIcon: {
       svg: (config.node_icon_svg as string | undefined) ?? null,
       url: resolveStorageUrl((config.node_icon_url as string | undefined) ?? null),

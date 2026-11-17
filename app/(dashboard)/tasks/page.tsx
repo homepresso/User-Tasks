@@ -64,6 +64,7 @@ import { UnreadDot, unreadTitleClass } from "@/components/tasks/unread-dot"
 import { MarkAllReadButton } from "@/components/tasks/task-read-controls"
 import { showsUnread } from "@/lib/tasks/unread"
 import { ListRefreshButton } from "@/components/tasks/list-refresh-button"
+import { TASK_SEARCH_STATUS_OPTIONS, TaskSearchList, type TaskSearchStatus } from "@/components/tasks/task-search-list"
 import { QueueRulesButton } from "@/components/tasks/queue-rules-dialog"
 import { QUEUED_STATUS, type QueueAction } from "@/lib/tasks/unified-list"
 import { DEFAULT_TASK_STATUS_FILTER } from "@/stores/app-store"
@@ -106,6 +107,8 @@ export default function TasksPage() {
   const [pageSize, setPageSize] = useState(25)
   // The last quick action's message (the row may leave the list after it).
   const [quickNotice, setQuickNotice] = useState<string | null>(null)
+  // Open (the list below, unchanged) | Completed | All (server-side search, components/tasks/task-search-list.tsx).
+  const [statusMode, setStatusMode] = useState<TaskSearchStatus>("open")
   const layout = (layoutPreference.tasks === "calendar" ? "calendar" : "list") as "calendar" | "list"
   const setLayout = (v: "calendar" | "list") => setLayoutPreference("tasks", v)
   const [calMonth, setCalMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1) })
@@ -270,7 +273,9 @@ export default function TasksPage() {
           aria-label="Search tasks"
           wrapperClassName="order-1 min-w-0 flex-1 sm:max-w-sm"
         />
-        <div className="order-3 -mx-4 flex basis-full items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:order-2 sm:mx-0 sm:basis-auto sm:flex-wrap sm:overflow-visible sm:px-0 [&>*]:shrink-0" data-tasks-filters>
+        <SegmentedControl size="sm" aria-label="Open or completed tasks" className="order-1" options={TASK_SEARCH_STATUS_OPTIONS} value={statusMode} onValueChange={setStatusMode}/>
+        {/* The Open list's own filters; Completed / All have theirs in the search list below. */}
+        {statusMode === "open" && <div className="order-3 -mx-4 flex basis-full items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:order-2 sm:mx-0 sm:basis-auto sm:flex-wrap sm:overflow-visible sm:px-0 [&>*]:shrink-0" data-tasks-filters>
           <FilterMenu label="Priority" options={PRIORITY_OPTIONS} selected={taskFilters.priority} onChange={(priority) => setTaskFilters({ priority })} />
           <StatusFilterControls options={STATUS_OPTIONS} selected={statusView.selected}
             onSelectedChange={(selected) => setTaskFilters({ status: explicitStatusList(selected, statusView.showCompleted, OPEN_VALUES) })}
@@ -278,7 +283,7 @@ export default function TasksPage() {
             onShowCompletedChange={(on) => setTaskFilters({ status: explicitStatusList(statusView.selected, on, OPEN_VALUES) })} />
           {mobile && <MobileSortMenu sort={sort} onSort={setSort} />}
           {filtered && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button>}
-        </div>
+        </div>}
         <div className="order-2 flex shrink-0 items-center gap-1 sm:order-3 sm:gap-2">
           <MarkAllReadButton unreadCount={unreadCount} onDone={setQuickNotice} />
           <QueueRulesButton />
@@ -286,6 +291,8 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {statusMode !== "open" && <TaskSearchList tab="mine" status={statusMode} search={debouncedSearch} />}
+      {statusMode === "open" && <>
       {quickNotice && layout === "list" && <InlineNotice tone="success" onDismiss={() => setQuickNotice(null)}>{quickNotice}</InlineNotice>}
 
       {/* Calendar view */}
@@ -387,6 +394,7 @@ export default function TasksPage() {
           />
         </>
       )}
+      </>}
     </div>
   )
 }

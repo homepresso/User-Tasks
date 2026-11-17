@@ -40,16 +40,18 @@ export function extensionJobDefinitions(): JobDefinition[] {
         budgetMs: Math.min(job.budgetMs ?? 20_000, 50_000),
         isEnabled: async () => scope === 'instance' || (await tenantsWithExtension(server.id)).length > 0,
         run: async (ctx: JobContext) => {
+          // runWhenUnlicensed: licence-lapse housekeeping still runs when the only problem is the licence (402).
+          const allowed = (access: Awaited<ReturnType<typeof extensionAccess>>) => access.usable || (job.runWhenUnlicensed === true && access.status === 402)
           if (scope === 'instance') {
             const access = await extensionAccess(null, server.id)
-            if (!access.usable) return { skipped: access.reason }
+            if (!allowed(access)) return { skipped: access.reason }
             return job.run({ ctx: createExtensionContext({ extensionId: server.id, tenantId: null }), deadline: ctx.deadline })
           }
           const results: Record<string, unknown> = {}
           for (const tenantId of await tenantsWithExtension(server.id)) {
             if (Date.now() >= ctx.deadline) { results._stopped = 'deadline'; break }
             const access = await extensionAccess(tenantId, server.id)
-            if (!access.usable) continue
+            if (!allowed(access)) continue
             try {
               results[tenantId] = await job.run({ ctx: createExtensionContext({ extensionId: server.id, tenantId }), deadline: ctx.deadline })
             } catch (error) {

@@ -7,6 +7,24 @@ import { hostResizeMessages, postToHost } from '@/lib/embed/host-messages'
 const EMBED_CSS = 'html,body{background:transparent!important;min-height:0!important}'
   + '[data-public-form-layout],[data-form-link-layout]{background:transparent!important;min-height:0!important;padding:0!important}'
   + '[data-form-canvas]{display:none!important}'
+  // Menus and lists keep their natural height (no inner scrollbar for short lists; about 13 rows before one shows):
+  // the frame grows to fit them instead (floatingBottom below). Not the frame-limited "available height".
+  + '[data-radix-popper-content-wrapper] [role=menu],[data-radix-popper-content-wrapper] [role=listbox]{max-height:30rem!important}'
+
+/** Floating content (menus, selects, popovers) renders in portals outside the measured root. */
+const FLOATING_SELECTOR = '[data-radix-popper-content-wrapper]'
+/** Room under an open menu, so its shadow isn't cut by the frame edge. */
+const FLOATING_MARGIN = 12
+
+/** The lowest bottom edge of any open floating element, in page coordinates (0: none open). */
+export function floatingBottom(doc: Document = document): number {
+  let bottom = 0
+  for (const el of Array.from(doc.querySelectorAll(FLOATING_SELECTOR))) {
+    const r = el.getBoundingClientRect()
+    if (r.height > 0) bottom = Math.max(bottom, r.bottom + (doc.defaultView?.scrollY ?? 0) + FLOATING_MARGIN)
+  }
+  return Math.ceil(bottom)
+}
 
 /**
  * The page body of a form link page. With `embed` (?embed=1, or opened in a
@@ -30,7 +48,9 @@ export function EmbedFrame({ embed, trusted = false, children }: { embed: boolea
     const el = ref.current
     let last = -1
     const send = () => {
-      const height = Math.ceil(el.getBoundingClientRect().height)
+      // The page, or an open menu / popover below it (portals render outside `el`): the frame grows to show
+      // the whole menu, then shrinks back when it closes.
+      const height = Math.max(Math.ceil(el.getBoundingClientRect().bottom + window.scrollY), floatingBottom())
       if (height === last) return
       last = height
       // usertasks:resize, plus the add-in part message when the frame URL has a SenderId (lib/embed/host-messages.ts).
@@ -39,7 +59,15 @@ export function EmbedFrame({ embed, trusted = false, children }: { embed: boolea
     send()
     const observer = new ResizeObserver(send)
     observer.observe(el)
-    return () => observer.disconnect()
+    // Floating content comes and goes in body-level portals: watch for it, and size changes of what is open.
+    const watched = new Set<Element>()
+    const portals = new MutationObserver(() => {
+      for (const node of Array.from(document.querySelectorAll(FLOATING_SELECTOR))) if (!watched.has(node)) { watched.add(node); observer.observe(node) }
+      for (const node of Array.from(watched)) if (!node.isConnected) { watched.delete(node); observer.unobserve(node) }
+      requestAnimationFrame(send)
+    })
+    portals.observe(document.body, { childList: true, subtree: true })
+    return () => { observer.disconnect(); portals.disconnect() }
   }, [embed, nested])
   return (
     <div ref={ref} data-embed-frame={embed ? 'embedded' : undefined} className={embed ? 'bg-transparent' : undefined}>

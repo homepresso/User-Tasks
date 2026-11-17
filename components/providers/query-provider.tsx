@@ -18,7 +18,12 @@ const NON_PERSISTED_PREFIXES = new Set([
   "trace",
   "timeline",
   "custom-table-rows",
+  // The workflow designer's draft: it must always be read fresh (lib/automations/designer-query).
+  "workflow",
 ])
+
+/** Bumped when persisted entries must not be restored any more (old caches are dropped). */
+export const PERSIST_BUSTER = "2026-11-designer-fresh"
 
 /** Single queries larger than this (serialised) are not persisted either. */
 const MAX_PERSISTED_QUERY_CHARS = 200_000
@@ -78,6 +83,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       persistOptions={{
         persister,
         maxAge: 5 * 60 * 1000,
+        buster: PERSIST_BUSTER,
         dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
       }}
     >

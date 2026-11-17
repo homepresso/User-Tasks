@@ -39,6 +39,8 @@ import { FormQrDialog } from '@/components/forms/form-qr-dialog'
 import { FormAccessSections, FormDetailsEditor, parseTags, type FormDetailsDraft } from '@/components/forms/form-details-editor'
 import type { FormDetail } from '@/components/forms/forms-library-parts'
 import { FormDesigner, type DesignerAction, type DesignerPageChrome } from './form-designer'
+import { useWorkflowDataScope } from './workflow-data-panel'
+import type { PickerEdgeLike, PickerNodeLike, PickerWorkflowVariable } from '@/lib/workflow-data-picker'
 import type { SavedFormTheme } from './theme-editor'
 import { CompareDialog, designDraftKey, DiscardDraftDialog, DraftBanner, PublishDialog, ShareDraftDialog, useDesignDraft, VersionHistoryDialog } from './form-draft-controls'
 
@@ -82,7 +84,23 @@ function DataTargetProblems({ check }: { check: TargetCheck }) {
 const EMPTY_FORM: FormDefinition = { fields: [], layout: { rows: [] }, theme: { source: 'workspace' } }
 const NEW_DRAFT: FormDetailsDraft = { name: 'Untitled form', description: '', tags: '', available: false, systemName: '' }
 
-export function FormDesignerPage({ formId, returnTo }: { formId: string | null; returnTo?: { href: string; label: string } | null }) {
+/** The step's scope for the page frame (null when there is none, the workflow can't be read or the step isn't a User Task). */
+function usePageWorkflowData(step: { workflowId: string; stepId: string } | null) {
+  const { data } = useQuery({
+    queryKey: ['workflow-step-context', step?.workflowId, step?.stepId],
+    enabled: Boolean(step),
+    staleTime: 30_000,
+    queryFn: async () => ((await serverRead('automations.stepContext', { id: step!.workflowId, step: step!.stepId })).data ?? null),
+  })
+  const input = useMemo(() => (data && data.step.type === 'user_task'
+    ? { nodes: data.nodes as PickerNodeLike[], edges: data.edges as PickerEdgeLike[], nodeId: data.step.id, workflowVariables: data.variables as PickerWorkflowVariable[] }
+    : null), [data])
+  const scope = useWorkflowDataScope(input)
+  return input && data ? { ...scope, stepLabel: `${data.step.label || 'User task'} (${data.name})` } : undefined
+}
+
+export function FormDesignerPage({ formId, returnTo, step = null }: { formId: string | null; returnTo?: { href: string; label: string } | null; step?: { workflowId: string; stepId: string } | null }) {
+  const workflowData = usePageWorkflowData(step)
   const router = useRouter()
   const queryClient = useQueryClient()
   const jobs = useJobs()
@@ -338,6 +356,7 @@ export function FormDesignerPage({ formId, returnTo }: { formId: string | null; 
           canSaveTheme={canEdit}
           onSaveTheme={saveTheme}
           actions={actions}
+          workflowData={workflowData}
         />
         </div>
       </div>

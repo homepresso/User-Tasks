@@ -738,6 +738,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "string",
           "required": false,
           "description": "Publish notes describing what changed"
+        },
+        {
+          "name": "on_conflict",
+          "type": "string",
+          "required": false,
+          "description": "When the trigger overlaps with other workflows (409 trigger_conflict, details.conflicts) and the draft has no answer yet: keep_both (both run) or take_over (the other workflows give up the overlapping part, as new versions of those)"
         }
       ]
     },
@@ -3635,6 +3641,179 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": false
   },
   {
+    "operationId": "getDataTableViews",
+    "method": "GET",
+    "path": "/data-tables/{id}/views",
+    "resource": "tables",
+    "verb": "views",
+    "summary": "Get a table's grid views (columns, controls, bindings, editing)",
+    "permission": "data.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateDataTableViews",
+    "method": "PUT",
+    "path": "/data-tables/{id}/views",
+    "resource": "tables",
+    "verb": "set-views",
+    "summary": "Replace a table's grid views",
+    "permission": "data.edit_schema",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "views",
+          "type": "array",
+          "required": true,
+          "description": "Full replacement list of the table's grid views"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "writeDataRowCells",
+    "method": "PATCH",
+    "path": "/data-tables/{id}/rows/{rowId}/cells",
+    "resource": "rows",
+    "verb": "cells",
+    "summary": "Inline edit: write cells of a row through a grid view",
+    "permission": "data.manage_rows",
+    "positional": [
+      "id",
+      "rowId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": true,
+          "description": "The saved view whose rules apply (inline editing on, editable columns only)"
+        },
+        {
+          "name": "cells",
+          "type": "object",
+          "required": true,
+          "description": "Column key → new value (typed by the column's control: text, number, YYYY-MM-DD, ISO date-time, true / false, a bound option's value, an array for multiselect, [{ kind, id }] for people, { name, url, path } for a file stored with this table)"
+        },
+        {
+          "name": "expected_updated_at",
+          "required": false,
+          "description": "The row's updated_at as you read it: a newer row is a 409 conflict instead of an overwrite (omit: last write wins)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "writeDataRowsCells",
+    "method": "PATCH",
+    "path": "/data-tables/{id}/rows/cells",
+    "resource": "rows",
+    "verb": "cells-batch",
+    "summary": "Batch inline edit: write cells of many rows through a grid view",
+    "permission": "data.manage_rows",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "view_id",
+          "type": "string",
+          "required": true,
+          "description": "The saved view whose rules apply (inline editing on, editable columns only)"
+        },
+        {
+          "name": "rows",
+          "type": "array",
+          "required": false,
+          "description": "Edited rows (at most 500 rows per call, new rows included)"
+        },
+        {
+          "name": "inserts",
+          "type": "array",
+          "required": false,
+          "description": "New rows (the view must allow adding rows)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getDataGridColumnOptions",
+    "method": "POST",
+    "path": "/data-tables/{id}/views/{viewId}/options",
+    "resource": "tables",
+    "verb": "options",
+    "summary": "Options of a bound grid column (search or resolve labels)",
+    "permission": "data.view",
+    "positional": [
+      "id",
+      "viewId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "column",
+          "type": "string",
+          "required": true,
+          "description": "A bound column of the view"
+        },
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "description": "Typed text (autocomplete search; server-side)"
+        },
+        {
+          "name": "resolve",
+          "type": "array",
+          "required": false,
+          "description": "Resolve these stored values to their options (labels) instead of searching"
+        },
+        {
+          "name": "row",
+          "type": "object",
+          "required": false,
+          "description": "The row being edited, for {{row.<column>}} in the binding (cascading)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
     "operationId": "listIntegrations",
     "method": "GET",
     "path": "/integrations",
@@ -4848,7 +5027,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "buttons",
           "required": false,
-          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, outline, danger), outcome? (outcome buttons: the task outcome), hidden? (not shown in the bar), icon? (a button icon name: chevron-right, save, send, check, pencil, x …), icon_after?, size? (sm | md | lg), color? (#rrggbb: its own fill, or border and text for secondary / outline), visible_when? { field, operator, value? } (shown only while it holds), actions? [{ type: save_target | message | success_screen | start_workflow | redirect | close (save_target, forms bound to a record whose binding has writes: rules: write the record, always first — operation? create | update, conflict? refuse | overwrite, values? { <source field>: \"<template, e.g. {{user.email}}>\" }, options? { <provider option>: bool }), text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
         },
         {
           "name": "header",
@@ -4954,7 +5133,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "buttons",
           "required": false,
-          "description": "New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+          "description": "New buttons (a content change). The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, outline, danger), outcome? (outcome buttons: the task outcome), hidden? (not shown in the bar), icon? (a button icon name: chevron-right, save, send, check, pencil, x …), icon_after?, size? (sm | md | lg), color? (#rrggbb: its own fill, or border and text for secondary / outline), visible_when? { field, operator, value? } (shown only while it holds), actions? [{ type: save_target | message | success_screen | start_workflow | redirect | close (save_target, forms bound to a record whose binding has writes: rules: write the record, always first — operation? create | update, conflict? refuse | overwrite, values? { <source field>: \"<template, e.g. {{user.email}}>\" }, options? { <provider option>: bool }), text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
         },
         {
           "name": "header",
@@ -5189,7 +5368,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "buttons",
           "required": false,
-          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, danger), outcome? (outcome buttons: the task outcome), hidden? (cancel), actions? [{ type: message | success_screen | start_workflow | redirect | close, text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
+          "description": "The button bar: [{ id, label, kind (submit, cancel, draft, outcome, delete, link — delete: forms bound to an external record whose provider can delete it; confirms, then deletes the record; link: only opens its redirect, no submission), style (primary, secondary, outline, danger), outcome? (outcome buttons: the task outcome), hidden? (not shown in the bar), icon? (a button icon name: chevron-right, save, send, check, pencil, x …), icon_after?, size? (sm | md | lg), color? (#rrggbb: its own fill, or border and text for secondary / outline), visible_when? { field, operator, value? } (shown only while it holds), actions? [{ type: save_target | message | success_screen | start_workflow | redirect | close (save_target, forms bound to a record whose binding has writes: rules: write the record, always first — operation? create | update, conflict? refuse | overwrite, values? { <source field>: \"<template, e.g. {{user.email}}>\" }, options? { <provider option>: bool }), text?, title?, screen_button?, url? (an app page, an allowed address, {{target.return_url}} = back to where the bound record lives, or {{target.url.<name>}} = a page the system holding the record names, e.g. edit), workflow_id?, inputs? { <workflow input>: \"{{field}}\" } }] }]; null = Submit and Cancel. A start_workflow action needs workflows.activate to add."
         },
         {
           "name": "header",
@@ -5412,7 +5591,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "overrides",
           "type": "object",
           "required": true,
-          "description": "Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
+          "description": "Mini-theme overrides: colors { light, dark: { accent, background, text, page, page_to, input, border, button } }, radius, font, heading_font, button_shape (square | rounded | pill), shadow (none | subtle | medium | strong), field_style (outlined | filled | underline), appearance (workspace | system | light | dark), density, label_position, button_placement, button_sticky, form_width (narrow | normal | wide | full | custom), form_width_pct (40-100, custom only), header"
         }
       ]
     },
@@ -5755,6 +5934,33 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "definition",
           "required": false,
           "description": "An unsaved definition to check instead of the latest version: { fields, layout?, theme?, buttons?, header? }"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "describeFormDataSource",
+    "method": "POST",
+    "path": "/forms/{id}/data-source",
+    "resource": "forms",
+    "verb": "data-source",
+    "summary": "Describe the form's data source (data binding): source fields and the mapping",
+    "permission": "forms.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "definition",
+          "required": false,
+          "description": "An unsaved definition to describe instead of the latest version: { fields, layout? }"
         }
       ]
     },
@@ -7834,10 +8040,37 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "permission": "team.view_members",
     "positional": [],
     "pathFlags": [],
-    "query": [],
+    "query": [
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Team name contains (case-insensitive)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "origin",
+        "flag": "origin",
+        "description": "Only teams from this origin",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "internal",
+          "active_directory",
+          "ldap",
+          "entra",
+          "okta",
+          "google",
+          "scim",
+          "sharepoint",
+          "extension"
+        ]
+      }
+    ],
     "body": null,
     "listKey": "teams",
     "paginated": false,
+    "cursor": true,
     "envelope": true,
     "destructive": false
   },

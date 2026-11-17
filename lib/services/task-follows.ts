@@ -272,3 +272,17 @@ export async function pageFollowedTasks(ctx: ServiceContext, filters: FollowedTa
   const end = page.limit == null ? undefined : page.offset + page.limit
   return { tasks: all.slice(page.offset, end), total: all.length }
 }
+
+/**
+ * Every task id the app's Following tab lists for me (followed directly,
+ * through a run I follow, shared with me), without loading the tasks — for
+ * lists that filter, sort and page on the server (the embeddable task list).
+ */
+export async function followedTaskIdSet(ctx: ServiceContext): Promise<string[]> {
+  const me = actor(ctx)
+  const { rows, tenantId } = await visibleFollows(ctx, me)
+  const ids = new Set(rows.map((row) => String(row.task_id)))
+  for (const row of await followedRunTasks(ctx, me, tenantId, true)) ids.add(String(row.task_id))
+  for (const row of await sharedTasks(ctx, me, tenantId)) ids.add(String(row.task_id))
+  return [...ids].filter((id) => UUID_RE.test(id))
+}

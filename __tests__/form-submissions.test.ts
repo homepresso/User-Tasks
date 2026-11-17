@@ -164,6 +164,14 @@ const audits: any[] = []
 vi.mock('@/lib/audit-log', () => ({ writeAudit: vi.fn(async (entry: any) => { audits.push(entry) }) }))
 vi.mock('@/lib/process-queue', () => ({ kickQueueProcessor: vi.fn() }))
 
+// Forms bound to a record (data target): the write is the provider's (recorded here).
+const targetCalls: Array<{ values: Record<string, unknown>; input: any }> = []
+vi.mock('@/lib/services/form-targets', async (orig) => ({
+  ...(await orig() as object),
+  prepareFormTarget: async (_ctx: unknown, form: any, _params: unknown, purpose: string) => ({ fields: form.fields, state: purpose === 'render' ? { return_url: 'https://sp.example/list' } : null }),
+  submitFormTarget: async (_ctx: unknown, _form: unknown, values: Record<string, unknown>, input: any) => { targetCalls.push({ values, input }); return { label: 'Acme', record: { id: '7', label: 'Item 7', url: null }, version: null, message: 'Saved in Acme.', returnUrl: 'https://sp.example/list' } },
+}))
+
 let db: any
 let rpcCalls: Array<{ name: string; args: any }>
 vi.mock('@/lib/services/_shared', async (orig) => ({ ...(await orig() as object), serviceRoleClient: async () => db }))
@@ -424,3 +432,48 @@ describe('designing forms', () => {
       .rejects.toThrow(/upload in this workspace/)
   })
 })
+
+describe('submitForm: the Save to … step (data target writes)', () => {
+  const bound = (buttons: unknown[], writes?: 'rules') => makeDb({
+    forms: [{ id: FORM, tenant_id: TENANT, name: 'Bound', description: null, fields: FIELDS, theme: { source: 'workspace' }, version: 1, header: null, buttons,
+      layout: { rows: [], data_target: { extension: 'acme', key: 'record', config: { list: 'L1' }, label: 'Acme', ...(writes ? { writes } : {}) } } }],
+  })
+  const back = { type: 'redirect', url: '{{target.return_url}}' }
+  beforeEach(() => { targetCalls.length = 0 })
+
+  it('writes exactly as the step says: operation, overwrite (no version), expressions resolved on the server, options', async () => {
+    db = bound([{ id: 'save', kind: 'submit', label: 'Save', style: 'primary', actions: [back, { type: 'save_target', operation: 'create', conflict: 'overwrite', values: { Owner: '{{user.email}}', Source: 'Web form', Copy: '{{name}}' }, options: { upload: false } }] }], 'rules')
+    const { submitForm } = await import('@/lib/services/form-submissions')
+    const result = await submitForm(ctx(), FORM, { values: { name: 'Nancy', amount: '5' }, button_id: 'save', target_version: 'etag-1' })
+    expect(targetCalls).toHaveLength(1)
+    expect(targetCalls[0].input).toMatchObject({ version: null, action: { operation: 'create', conflict: 'overwrite', options: { upload: false }, extra: { Owner: 'nancy@northwind.example', Source: 'Web form', Copy: 'Nancy' } } })
+    expect(result.effects.redirect).toBe('https://sp.example/list')
+  })
+
+  it('a rules binding writes nothing from a button without the step (the submission is still stored, back to the record still works)', async () => {
+    db = bound([{ id: 'save', kind: 'submit', label: 'Save', style: 'primary', actions: [back] }], 'rules')
+    const { submitForm } = await import('@/lib/services/form-submissions')
+    const result = await submitForm(ctx(), FORM, { values: { name: 'Nancy', amount: '5' }, button_id: 'save' })
+    expect(targetCalls).toHaveLength(0)
+    expect(db.tables.form_submissions).toHaveLength(1)
+    expect(result.effects.redirect).toBe('https://sp.example/list')
+  })
+
+  it('older bindings (no writes marker) keep writing on every submit, with the version read when the form opened', async () => {
+    db = bound([{ id: 'save', kind: 'submit', label: 'Save', style: 'primary', actions: [back] }])
+    const { submitForm } = await import('@/lib/services/form-submissions')
+    await submitForm(ctx(), FORM, { values: { name: 'Nancy', amount: '5' }, button_id: 'save', target_version: 'etag-1' })
+    expect(targetCalls).toHaveLength(1)
+    expect(targetCalls[0].input.version).toBe('etag-1')
+    expect(targetCalls[0].input.action).toBeUndefined()
+  })
+
+  it('the step always runs first and appears once', async () => {
+    const { normalizeFormButtons } = await import('@/lib/forms/buttons')
+    const [b] = normalizeFormButtons([{ id: 'save', kind: 'submit', label: 'Save', style: 'primary', actions: [back, { type: 'save_target' }, { type: 'save_target', operation: 'update' }] }])
+    expect(b.actions?.map((a) => a.type)).toEqual(['save_target', 'redirect'])
+    const [, c] = normalizeFormButtons([{ id: 'cancel', kind: 'cancel', label: 'Cancel', style: 'secondary', actions: [{ type: 'save_target' }, back] }])
+    expect(c.actions?.map((a) => a.type)).toEqual(['redirect'])
+  })
+})
+

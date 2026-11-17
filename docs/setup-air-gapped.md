@@ -171,9 +171,58 @@ npm install -g --offline ./npm/user-tasks-cli-0.1.0.tgz
 usertasks login --url https://tasks.corp.example
 ```
 
+## SharePoint edition
+
+The SharePoint extension ships in its own image, the
+[SharePoint edition](self-hosting.md#editions), downloaded with your licence.
+For an offline host, make a signed offline bundle on any connected machine
+with Docker (Linux, macOS or Windows; it does not need UserTasks installed):
+
+```bash
+curl -fsSL https://usertasks.com/install.sh | sh -s -- --bundle-download --edition sharepoint --licence usertasks.licence
+# → usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64.tar (+ .sha256)
+#   --platform linux/arm64 for an Arm host, --version <x.y.z> for an older release, --out <file>
+```
+
+```powershell
+& ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -BundleDownload -Edition sharepoint -Licence .\usertasks.licence
+```
+
+The same licence check as an online install (an expired licence is refused).
+The bundle holds:
+
+| | |
+|---|---|
+| `release/` | the UserTasks release as published: `SHA256SUMS` and its signature (the release key), `usertasks-<version>.tar.gz`, `install.sh`, `install.ps1` |
+| `edition.json`, `edition.json.sig` | the edition manifest (image digests), signed by the release key |
+| `images.tar` | the SharePoint edition image and the images of the bundled services (PostgreSQL, MinIO, Valkey, Mailpit) |
+| `bundle.json`, `SHA256SUMS.bundle` | what it is, and checksums of every file |
+
+On the offline host (Docker installed), with the bundle and your licence:
+
+```bash
+sha256sum usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64.tar   # compare with the .sha256 from the connected machine
+tar -xOf usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64.tar usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64/release/install.sh > install.sh
+sh install.sh --bundle usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64.tar --licence usertasks.licence
+```
+
+`install.sh --bundle` checks the bundle's checksums, verifies the UserTasks
+release against the release key built into `install.sh` (it prints the key's
+fingerprint: compare it with the signer fingerprint in the release notes) and
+hands over to that release's `usertasks install --bundle`, which verifies
+`edition.json`, loads the images and checks the SharePoint image against the
+signed digests before anything starts. Nothing is downloaded. Windows:
+`install.ps1 -Bundle <file> -Licence <file>`.
+
+**Upgrades**: make a newer bundle the same way, carry it over, and run
+`usertasks upgrade --bundle <file>` (backup, migrations, health check and
+rollback as usual). The SharePoint edition's licence is checked when the
+bundle is made, so a bundle made with a lapsed licence can't be made at all;
+the offline host itself never contacts usertasks.com.
+
 ## Licences for paid extensions
 
-Paid extensions in the Enterprise bundle stay switched off until a licence
+Paid extensions in an edition stay switched off until a licence
 enables them. Licences are verified offline. Get one bound to this install
 with `usertasks-admin licence request`: carry the request file to a connected
 machine, upload it in the licensing portal, then run `usertasks-admin licence

@@ -192,6 +192,13 @@ export interface ResumePayload {
    * Loop can walk and file steps can read.
    */
   attachments: import("@/lib/task-attachments").TaskAttachment[];
+  /**
+   * Every response to the task (multi-assignee / team tasks): who, which
+   * outcome, their comment and when — `{{responses}}`, a list a Loop can
+   * walk. The form values are shared by the task (the last responder's
+   * values are `task_data`); there are no per-responder values.
+   */
+  responses: Array<{ user_id: string; outcome: string; outcome_notes: string; responded_at: string | null }>;
 }
 
 export type RecordTaskResponseResult =
@@ -304,11 +311,13 @@ export async function recordTaskResponse(params: {
 
   const { data: allResponses } = await (supabase as any)
     .from("task_responses")
-    .select("user_id, outcome")
+    .select("user_id, outcome, outcome_notes, responded_at")
     .eq("task_id", taskId);
   const responses = (allResponses ?? []) as Array<{
     user_id: string;
     outcome: string;
+    outcome_notes?: string | null;
+    responded_at?: string | null;
   }>;
   if (!userId && responses.length === 0) {
     // Synthetic single response so the evaluation has something to count.
@@ -462,6 +471,7 @@ export async function recordTaskResponse(params: {
       outcome_counts: evaluation.outcomeCounts,
       task_data: templateValues,
       attachments,
+      responses: responses.filter((r) => r.user_id !== "api").slice(0, 200).map((r) => ({ user_id: String(r.user_id), outcome: String(r.outcome ?? ""), outcome_notes: String(r.outcome_notes ?? ""), responded_at: r.responded_at ?? null })),
     },
   };
 }

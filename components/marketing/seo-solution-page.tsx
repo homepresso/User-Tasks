@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import { ArrowRight, BookOpen, Check, CalendarClock, ExternalLink, FileStack, GitBranch, ListChecks, Server, Workflow, Layers } from 'lucide-react'
+import { ArrowRight, BookOpen, Check, CalendarClock, ExternalLink, FileStack, GitBranch, ListChecks, Repeat, Server, Workflow, Layers } from 'lucide-react'
 import { seoPageJsonLd, type SeoPage } from '@/lib/seo-pages'
 import { MarketingFooter, MarketingHeader, SectionHeading } from '@/components/marketing/marketing-ui'
 import { ProductHero } from '@/components/marketing/product-hero'
@@ -23,6 +23,7 @@ const ICONS: Record<string, typeof Workflow> = {
   'sharepoint-workflow-migration': ListChecks,
   'infopath-migration-guide': FileStack,
   'open-source-workflow-engine': GitBranch,
+  'nintex-alternative': Repeat,
 }
 
 const THEME = {
@@ -49,8 +50,8 @@ export function SeoSolutionPage({ page }: { page: SeoPage }) {
           icon={Icon}
           title={page.title}
           intro={page.intro}
-          primary={page.related ? { href: page.related.href, label: page.related.label } : { href: START_HREF, label: 'Start free' }}
-          secondary={page.related ? { href: START_HREF, label: 'Start free' } : { href: '/docs', label: 'Read the docs' }}
+          primary={page.related ? { href: page.related.href, label: page.related.label } : { href: START_HREF, label: 'Start free (cloud beta)' }}
+          secondary={page.related ? { href: START_HREF, label: 'Start free (cloud beta)' } : { href: '/docs', label: 'Read the docs' }}
           visual={
             <div className="rounded-3xl border border-white/10 bg-(color:--mkt-paper) p-6 text-(color:--mkt-ink) shadow-2xl sm:p-8">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze)">In short</p>
@@ -64,6 +65,22 @@ export function SeoSolutionPage({ page }: { page: SeoPage }) {
             </div>
           }
         />
+
+        {page.facts && (
+          <section aria-labelledby="key-facts" className="border-b border-(color:--mkt-ink)/[0.07]">
+            <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+              <h2 id="key-facts" className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze)">Key facts</h2>
+              <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {page.facts.map((fact) => (
+                  <div key={fact.label} className="rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-4">
+                    <dt className="text-sm font-semibold">{fact.label}</dt>
+                    <dd className="mt-1.5 text-sm leading-6 text-(color:--mkt-text)">{fact.value}{fact.source && <> <a href={fact.source.href} rel="noopener" className="text-(color:--mkt-bronze) hover:underline">Source</a></>}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+        )}
 
         <section className="mx-auto max-w-6xl space-y-6 px-4 py-16 sm:px-6 sm:py-20">
           {page.sections.map((section, index) => (
@@ -121,6 +138,34 @@ export function SeoSolutionPage({ page }: { page: SeoPage }) {
                 </table>
               </div>
               {page.comparison.note && <p className="mt-4 text-sm text-(color:--mkt-muted)">{page.comparison.note}</p>}
+            </div>
+          </section>
+        )}
+
+        {page.alternatives && (
+          <section id="compare" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
+            <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+              <SectionHeading eyebrow="Your options" title={page.alternatives.title}>{page.alternatives.body}</SectionHeading>
+              <div className="mt-10 overflow-x-auto rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)">
+                <table className="w-full min-w-[56rem] text-left text-sm">
+                  <thead className="bg-(color:--mkt-sand) text-xs uppercase tracking-wider text-(color:--mkt-muted)">
+                    <tr>{page.alternatives.columns.map((column, index) => <th key={index} scope="col" className="px-4 py-3 align-bottom">{column}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {page.alternatives.rows.map((row) => (
+                      <tr key={row[0]} className="border-t border-(color:--mkt-ink)/[0.06] align-top">
+                        {row.map((cell, index) => index === 0
+                          ? <th key={index} scope="row" className="px-4 py-3 font-semibold">{cell}</th>
+                          : <td key={index} className="px-4 py-3 leading-6 text-(color:--mkt-text)">{cell}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {page.alternatives.note && <p className="mt-4 text-xs leading-5 text-(color:--mkt-muted)">{page.alternatives.note}</p>}
+              <ul className="mt-2 space-y-1 text-xs">
+                {page.alternatives.sources.map((source) => <li key={source.href}><a href={source.href} rel="noopener" className="inline-flex items-center gap-1 text-(color:--mkt-bronze) hover:underline">{source.label} <ExternalLink size={11} aria-hidden="true" /></a></li>)}
+              </ul>
             </div>
           </section>
         )}

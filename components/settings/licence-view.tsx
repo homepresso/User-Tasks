@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { getLicenceStatusAction, installLicenceAction, licenceRequestAction, removeLicenceAction } from '@/app/actions/licence'
 import type { LicenceStatusView } from '@/lib/licensing/admin'
 import type { LicenceSummary } from '@/lib/licensing/service'
+import { IssuedTrials } from './issued-trials'
 
 /**
  * Settings → Licence body: warnings, the instance identity, licensed
@@ -144,7 +145,7 @@ export function LicenceView({ initialStatus }: { initialStatus: LicenceStatusVie
         <CardHeader title="Licensed extensions" />
         <CardBody>
           {!status.extensions.length ? (
-            <p className="text-ui text-fg-muted">No paid extension is licensed. Extensions in this build stay available but switched off until a licence enables them.</p>
+            <p className="text-ui text-fg-muted">No paid extension is licensed. Extensions in this build stay available but switched off until a licence enables them. To try one free for 30 days, open Settings → Extensions and choose <strong>Start a 30-day trial</strong>.</p>
           ) : (
             <ul className="divide-y divide-border">
               {status.extensions.map((e) => (
@@ -153,9 +154,11 @@ export function LicenceView({ initialStatus }: { initialStatus: LicenceStatusVie
                     <span className="font-semibold">{e.id}</span>
                     <StatusPill status={e.state} tone={e.allowed ? (e.timeState === 'active' ? 'success' : 'warning') : 'danger'} label={e.allowed ? 'Licensed' : e.state === 'expired' ? 'Expired' : 'Not licensed'} />
                     {e.trial && <StatusPill status="trial" tone="info" label="Trial" />}
+                    {e.trial && e.allowed && <a href="https://usertasks.com/sharepoint#pricing" target="_blank" rel="noopener noreferrer" className="text-xs font-medium underline">Buy</a>}
                     <span className="text-fg-muted">{countdown(e.daysLeft, e.timeState)}</span>
                   </div>
                   <div className="text-fg-muted">Expires {when(e.expiresAt)} · stops {when(e.cutoffAt)} · features: {e.features?.length ? e.features.join(', ') : 'all'}</div>
+                  {e.farmIds.length > 0 && <div className="text-fg-muted">Farm{e.farmIds.length === 1 ? '' : 's'}: {e.farmIds.map((f) => <Mono key={f}>{f}</Mono>)}</div>}
                   {Object.entries(e.limits).map(([key, limit]) => {
                     const used = status.usage[key]
                     return (
@@ -204,6 +207,8 @@ export function LicenceView({ initialStatus }: { initialStatus: LicenceStatusVie
           <Button disabled={busy || !text.trim()} loading={busy} onClick={() => void install(text)}>Install licence</Button>
         </CardBody>
       </Card>
+
+      <IssuedTrials />
 
       <ConfirmDialog
         open={removing !== null}

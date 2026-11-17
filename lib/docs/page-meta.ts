@@ -20,6 +20,7 @@ import { GALLERY_FORM_CONTROLS_PAGE } from './content/gallery-form-controls'
 import { FORM_WIZARD_PAGE } from './content/form-wizard'
 import { SURVEY_CONTROLS_PAGE } from './content/survey-controls'
 import { INFOPATH_IMPORT_PAGE } from './content/infopath-import'
+import { NINTEX_IMPORT_PAGE } from './content/nintex-import'
 import { INTEGRATION_PAGES } from './content/integrations'
 import { BUILDING_BLOCK_PAGES } from './content/building-blocks'
 import { GOVERNANCE_PAGES } from './content/governance'
@@ -27,6 +28,7 @@ import { AI_ASSISTANT_PAGES } from './content/ai-assistants'
 import { TUTORIAL_PAGES } from './content/tutorials'
 import { API_PAGES, CLI_PAGES, SDK_PAGES } from './content/developers'
 import { EXTENSION_PAGES } from './content/extensions'
+import { SHAREPOINT_PAGES } from './content/sharepoint'
 import { OBSERVABILITY_PAGES, PROJECT_PAGES, SELF_HOSTING_PAGES } from './content/operations'
 import { SERVICE_PAGES, TOPOLOGY_PAGES } from './content/deploy'
 import { SELF_HOSTING_GUIDE_PAGES } from './content/self-hosting-guide'
@@ -46,6 +48,7 @@ const SOURCES: Array<[DocPageDef | DocPageDef[], string]> = [
   [FORM_WIZARD_PAGE, `${CONTENT}/form-wizard.ts`],
   [SURVEY_CONTROLS_PAGE, `${CONTENT}/survey-controls.ts`],
   [INFOPATH_IMPORT_PAGE, `${CONTENT}/infopath-import.ts`],
+  [NINTEX_IMPORT_PAGE, `${CONTENT}/nintex-import.ts`],
   [GETTING_STARTED_PAGES, `${CONTENT}/getting-started.ts`],
   [WORKFLOW_PAGES, `${CONTENT}/workflows.ts`],
   [DOCUMENT_PAGES, `${CONTENT}/documents.ts`],
@@ -58,6 +61,7 @@ const SOURCES: Array<[DocPageDef | DocPageDef[], string]> = [
   [TUTORIAL_PAGES, `${CONTENT}/tutorials.ts`],
   [[...API_PAGES, ...CLI_PAGES, ...SDK_PAGES], `${CONTENT}/developers.ts`],
   [EXTENSION_PAGES, `${CONTENT}/extensions.ts`],
+  [SHAREPOINT_PAGES, `${CONTENT}/sharepoint.ts`],
   [[...OBSERVABILITY_PAGES, ...PROJECT_PAGES, ...SELF_HOSTING_PAGES], `${CONTENT}/operations.ts`],
   [[...SERVICE_PAGES, ...TOPOLOGY_PAGES], `${CONTENT}/deploy.ts`],
   [SELF_HOSTING_GUIDE_PAGES, `${CONTENT}/self-hosting-guide.ts`],

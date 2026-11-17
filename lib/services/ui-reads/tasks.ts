@@ -14,6 +14,10 @@ import { CLAIM_CANDIDATE_ROLE, displayStatus, matchesStatusFilter, queueActionFo
  */
 
 const TASK_VIEW = ['tasks.view_own', 'tasks.view_all'] as const
+
+/** Row columns of the server-side search views (components/tasks/task-search-list.tsx). */
+const TASK_SEARCH_COLUMNS = `id, title, status, priority, due_date, completed_at, outcome, created_at, updated_at, assignee_id, workflow_id, workflow_run_id,
+  progress_pct, child_count, completed_child_count, workflow:workflows(id, name), assignee:users!tasks_assignee_id_fkey(id, display_name, email)`
 // Subtasks expand inline in the task list and in the queue.
 const TASK_OR_QUEUE_VIEW = ['tasks.view_own', 'tasks.view_all', 'tasks.manage_queue'] as const
 
@@ -186,6 +190,38 @@ export const reads = {
   }),
 
   /** Task detail: the tree (RPC) plus tenant badge, assignee/assigner names and workflow source. */
+  /**
+   * Server-side search (lib/services/task-search.ts — the one implementation the
+   * embeddable task list uses too): the "Open | Completed | All" views of My
+   * tasks and Following, one keyset page at a time (search, completed window,
+   * sort incl. completed date; count capped at 1,000).
+   */
+  'tasks.search': defineRead({
+    args: z.object({
+      tab: z.enum(['mine', 'following']),
+      status: z.enum(['open', 'completed', 'any']),
+      search: search.optional(),
+      priority: statusList.optional(),
+      completedFrom: isoTime.optional(),
+      completedTo: isoTime.optional(),
+      sort: z.enum(['due', 'priority', 'created', 'updated', 'completed', 'title']).optional(),
+      dir: z.enum(['asc', 'desc']).optional(),
+      size: z.number().int().min(1).max(50).optional(),
+      cursor: z.string().max(600).regex(/^[A-Za-z0-9_-]*$/).nullish(),
+      page: z.number().int().min(1).max(10_000).optional(),
+    }),
+    perm: TASK_VIEW,
+    run: async (ctx, args) => {
+      const { searchTasks } = await import('../task-search')
+      const r = await searchTasks(ctx, {
+        tab: args.tab, status: args.status, q: args.search, priority: args.priority,
+        completed: args.completedFrom || args.completedTo ? { from: args.completedFrom ?? null, to: args.completedTo ?? null } : null,
+        sort: args.sort ?? (args.status === 'open' ? 'due' : 'completed'), dir: args.dir ?? (args.status === 'open' ? 'asc' : 'desc'),
+        size: args.size ?? 25, cursor: args.cursor ?? null, page: args.page ?? 1, columns: TASK_SEARCH_COLUMNS,
+      })
+      return { tasks: await withUnread(ctx, r.rows), total: r.total, capped: r.capped, nextCursor: r.nextCursor }
+    },
+  }),
   'tasks.detail': defineRead({
     args: z.object({ id }),
     perm: TASK_VIEW,
@@ -194,6 +230,11 @@ export const reads = {
       if (!tree) return null
       const treeData = tree as any
       const db = getDb(ctx) as any
+      // Fields prefilled from the trigger's record show it as it is now, unless already edited (lib/forms/live-prefill.ts).
+      if (treeData.task?.metadata?.live_prefill || treeData.task?.metadata?.workflow_templates) {
+        const { refreshTaskLivePrefill } = await import('../task-live-prefill')
+        treeData.task = await refreshTaskLivePrefill(ctx, treeData.task)
+      }
       const task = treeData.task
       // getTaskTree also opens tasks shared by an invite (read only): adding subtasks needs real reach.
       const reachable = tasksService.requireTaskReach({ ...ctx, tenantId: String(task.tenant_id) }, id).then(() => true, () => false)
@@ -532,16 +573,22 @@ export const reads = {
     run: async (ctx) => {
       const [{ serviceRoleClient }] = await Promise.all([import('../_shared')])
       const db = await serviceRoleClient(ctx) as any
-      const [members, teams] = await Promise.all([
+      const teamQuery = (columns: string) => db.from('teams').select(columns).eq('tenant_id', ctx.tenantId).order('name').limit(500)
+      const [members, teamsFull, { withOrigin }] = await Promise.all([
         db.from('user_memberships').select('user_id').eq('tenant_id', ctx.tenantId).eq('is_active', true).limit(2000),
-        db.from('teams').select('id, name').eq('tenant_id', ctx.tenantId).order('name').limit(500),
+        teamQuery('id, name, source, source_label, origin'),
+        import('../teams'),
       ])
+      const teams = teamsFull.error ? await teamQuery('id, name') : teamsFull
       const ids = ((members.data ?? []) as any[]).map((m) => String(m.user_id))
       const { data: users } = ids.length ? await db.from('users').select('id, display_name, email').in('id', ids).is('deleted_at', null) : { data: [] }
       return {
         users: ((users ?? []) as any[]).map((u) => ({ id: String(u.id), name: String(u.display_name || u.email || 'Someone'), email: u.email ?? null }))
           .sort((a, b) => a.name.localeCompare(b.name)),
-        teams: ((teams.data ?? []) as any[]).map((t) => ({ id: String(t.id), name: String(t.name ?? 'Team') })),
+        teams: ((teams.data ?? []) as any[]).map((t) => {
+          const team = withOrigin(t)
+          return { id: String(t.id), name: String(t.name ?? 'Team'), origin: team.origin, origin_label: team.origin_label }
+        }),
       }
     },
   }),
@@ -733,12 +780,46 @@ export const reads = {
     },
   }),
 
+  /** Every team of the workspace by name, with where it comes from (people fields, pickers without search). */
   'tasks.teams': defineRead({
     args: NO_ARGS,
     run: async (ctx) => {
-      const { data } = await (getDb(ctx) as any).from('teams').select('id, name').order('name')
-      return (data ?? []) as Array<{ id: string; name: string }>
+      const { withOrigin } = await import('../teams')
+      const db = getDb(ctx) as any
+      let { data, error } = await db.from('teams').select('id, name, source, source_label, origin').order('name')
+      if (error) ({ data } = await db.from('teams').select('id, name').order('name'))
+      return ((data ?? []) as any[]).map((t) => {
+        const team = withOrigin(t)
+        return { id: String(team.id), name: String(team.name), origin: team.origin, origin_label: team.origin_label }
+      }) as Array<{ id: string; name: string; origin: import('@/lib/teams/origin').TeamOrigin; origin_label: string }>
     },
+  }),
+
+  /**
+   * Assignee pickers' type-ahead (lib/services/assignee-search.ts): people
+   * (active members) and teams of the workspace matching `q`, each team with
+   * its origin badge and member count. `origin` narrows teams to one origin.
+   */
+  'tasks.assigneeSearch': defineRead({
+    args: z.object({
+      q: z.string().max(200).optional(),
+      kinds: z.array(z.enum(['person', 'team'])).max(2).optional(),
+      origin: z.string().max(40).nullish(),
+      limit: z.number().int().min(1).max(50).optional(),
+    }).optional(),
+    run: async (ctx, args) => (await import('../assignee-search')).searchAssignees(ctx, args ?? {}),
+  }),
+
+  /** The team origins present in the workspace, with counts (the pickers' filter chips). */
+  'tasks.teamOrigins': defineRead({
+    args: NO_ARGS,
+    run: async (ctx) => (await import('../assignee-search')).teamOriginCounts(ctx),
+  }),
+
+  /** A team's first members and member count (picker hover / expand). */
+  'tasks.teamPreview': defineRead({
+    args: z.object({ teamId: id, limit: z.number().int().min(1).max(20).optional() }),
+    run: async (ctx, { teamId, limit }) => (await import('../assignee-search')).teamMemberPreview(ctx, teamId, limit ?? 5),
   }),
 
   /** A team's members as users (assignee picker). */

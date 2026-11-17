@@ -85,7 +85,7 @@ export function WorkflowStartFormView({
               {messages && messages.length > 0 && <FormMessages messages={messages} />}
               {note}
               <FormStepActions>
-                <FormButtonBar buttons={form.buttons.filter((b) => b.kind !== 'draft')} placement={form.theme_overrides?.button_placement} busy={busy} disabled={disabled} onClick={onPress} />
+                <FormButtonBar buttons={form.buttons.filter((b) => b.kind !== 'draft')} placement={form.theme_overrides?.button_placement} sticky={form.theme_overrides?.button_sticky === true} values={values} busy={busy} disabled={disabled} onClick={onPress} />
               </FormStepActions>
               </FormPagesProvider>
             </FormLookupProvider>

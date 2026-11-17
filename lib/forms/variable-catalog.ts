@@ -116,6 +116,28 @@ export interface FormVariableSource {
   /** The designer's live preview values (samples). */
   values?: Record<string, unknown> | null
   now?: Date
+  /**
+   * The workflow data in scope when the form is designed from a workflow
+   * step (lib/forms/workflow-data.ts): offered in every context, grouped
+   * "Workflow · …"; resolved on the server when the task is created and
+   * opened (lib/forms/workflow-tokens.ts). Absent for a standalone form.
+   */
+  workflow?: ReadonlyArray<{ path: string; label: string; group: 'list' | 'start' | 'variables' | 'steps'; source: string; typeLabel: string; control: { type: string }; sample?: unknown }>
+}
+
+const WORKFLOW_GROUP_NAMES = { list: 'Workflow · List item', start: 'Workflow · Start inputs', variables: 'Workflow · Variables', steps: 'Workflow · Earlier steps' } as const
+
+/** The step's workflow data as picker entries (after the form's own groups). */
+export function workflowEntries(source: FormVariableSource): PickerVariable[] {
+  return (source.workflow ?? []).map((e) => {
+    const t = e.control.type
+    const type: PickerVariable['type'] = t === 'number' || t === 'currency' ? 'number' : t === 'date' || t === 'datetime' ? 'date' : t === 'boolean' ? 'boolean' : 'text'
+    return {
+      path: e.path, label: e.group === 'list' ? e.label : `${e.source} › ${e.label}`, group: WORKFLOW_GROUP_NAMES[e.group], type,
+      keywords: `${e.source} ${e.typeLabel} workflow`, hint: `${e.typeLabel} · filled in when the task opens`,
+      ...(e.sample !== undefined && e.sample !== null ? { sample: e.sample } : {}),
+    }
+  })
 }
 
 const RECENT_KEY = 'ut.forms.recentVariables'
@@ -418,7 +440,7 @@ export function formVariableScope(source: FormVariableSource, ctx: FormVariableC
     Flags: () => flagEntries(source.layout),
   }
   // A Label's expression also lists the functions (inserted as text: their names and "(").
-  const catalog = [...groups.flatMap((g) => byGroup[g]()), ...(ctx.kind === 'expression' ? functionEntries() : [])]
+  const catalog = [...groups.flatMap((g) => byGroup[g]()), ...(ctx.kind === 'expression' ? functionEntries() : []), ...workflowEntries(source)]
   const taken = new Set(catalog.map((i) => i.path))
   const local = legacyPickerEntries(extras).filter((e) => !taken.has(e.path) && !FORM_VARIABLE_GROUPS.includes(e.group as FormVariableGroup))
   const items = [...local, ...catalog]

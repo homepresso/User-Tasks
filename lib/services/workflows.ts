@@ -327,7 +327,7 @@ export async function updateWorkflow(ctx: ServiceContext, workflowId: string, in
 }
 
 /** Snapshot the current draft as the next active version (what runs execute) and activate the workflow. */
-export async function publishWorkflow(ctx: ServiceContext, workflowId: string, notes?: string | null) {
+export async function publishWorkflow(ctx: ServiceContext, workflowId: string, notes?: string | null, options: { onConflict?: 'keep_both' | 'take_over' | null } = {}) {
   requirePerm(ctx, 'workflows.activate')
   requireWorkflowScope(ctx, workflowId)
   const db = ctx.supabase as any
@@ -341,6 +341,16 @@ export async function publishWorkflow(ctx: ServiceContext, workflowId: string, n
   if ((workflow.nodes ?? []).some((n: { type?: unknown }) => typeof n?.type === 'string' && n.type.startsWith('ext.'))) {
     const { assertWorkflowExtensionsPublishable } = await import('@/lib/extensions/workflow-gate')
     await assertWorkflowExtensionsPublishable(ctx.tenantId, workflow.nodes)
+    // Trigger overlaps with other workflows (TriggerHandler.conflicts): answered in the draft or by on_conflict, else no publish.
+    const { resolveConflictsForPublish, TriggerConflictError } = await import('@/lib/extensions/trigger-conflicts')
+    try {
+      await resolveConflictsForPublish({ tenantId: ctx.tenantId, actorId: ctx.actorId, permissions: ctx.permissions }, workflowId, workflow.nodes, options.onConflict)
+    } catch (e) {
+      if (e instanceof TriggerConflictError) throw new ServiceError('conflict', e.message, { status: 409, details: { code: 'trigger_conflict', conflicts: e.conflicts } })
+      const { isExtensionError } = await import('@/lib/extensions/sdk')
+      if (isExtensionError(e)) throw new ServiceError((e as any).code, (e as any).message, { status: (e as any).status })
+      throw e
+    }
   }
 
   const { data: last, error: lastError } = await db.from('workflow_versions')

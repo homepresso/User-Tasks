@@ -66,3 +66,5 @@ export const PALETTE_GROUPS: Array<{ label: string; types: TaskFieldType[] }> = 
 export const DRAG_NEW_TYPE = 'application/x-usertasks-form-type'
 export const DRAG_FIELD_KEY = 'application/x-usertasks-form-field'
 export const DRAG_PAGE_ID = 'application/x-usertasks-form-page'
+/** A data source field (the designer's Data panel, data binding): dropped, it becomes a bound input. */
+export const DRAG_SOURCE_FIELD = 'application/x-usertasks-source-field'

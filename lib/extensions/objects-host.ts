@@ -50,7 +50,7 @@ export async function asExtensionError<T>(run: () => Promise<T>): Promise<T> {
   try {
     return await run()
   } catch (error) {
-    if (isServiceError(error)) throw new ExtensionError(error.code, error.message, error.status)
+    if (isServiceError(error)) throw new ExtensionError(error.code, error.message, error.status, error.details as Record<string, unknown> | undefined)
     throw error
   }
 }
@@ -168,6 +168,18 @@ export function mergeManagedTags(current: unknown, tags: string[], prefix: strin
   return [...new Set([...kept, ...wanted])]
 }
 
+/**
+ * A workflow's trigger settings as the extension sees them: the trigger node's config (the
+ * designer's), over the workflow-level `trigger_config` some older rows still carry, so a
+ * workflow is never left out of its list because of where its settings were stored.
+ */
+export function summaryTriggerConfig(r: { trigger_type?: unknown; trigger_config?: unknown; nodes?: unknown }): Record<string, unknown> {
+  const obj = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {})
+  const nodes = Array.isArray(r.nodes) ? r.nodes : []
+  const node = nodes.find((n: any) => n?.type === r.trigger_type) ?? nodes.find((n: any) => n?.type === 'trigger' || n?.data?.type === r.trigger_type)
+  return { ...obj(r.trigger_config), ...obj((node as any)?.config) }
+}
+
 export function hostWorkflowObjects(host: ObjectsHost) {
   return {
     async list(options: { trigger?: string } = {}): Promise<ExtensionWorkflowSummary[]> {
@@ -175,18 +187,23 @@ export function hostWorkflowObjects(host: ObjectsHost) {
       if (host.permissions && !host.permissions.has('workflows.view')) return []
       const types = await triggerTypes(host.extensionId, options.trigger)
       if (!types.length) return []
-      const { data, error } = await host.serviceDb.from('workflows')
-        .select('id, name, trigger_type, nodes, is_active, published_version_id, has_unpublished_changes, run_count, last_run_at, tags, updated_at')
-        .eq('tenant_id', tenantId).in('trigger_type', types).order('updated_at', { ascending: false }).limit(2000)
-      if (error) throw new Error(`workflows.list failed: ${error.message}`)
-      const rows = (data ?? []) as Array<Record<string, any>>
+      // Every one of the extension's workflows: the data API returns at most 1 000 rows a request, so page.
+      const PAGE = 1000
+      const rows: Array<Record<string, any>> = []
+      for (let from = 0; from < 20 * PAGE; from += PAGE) {
+        const { data, error } = await host.serviceDb.from('workflows')
+          .select('id, name, trigger_type, trigger_config, nodes, is_active, published_version_id, has_unpublished_changes, run_count, last_run_at, tags, updated_at')
+          .eq('tenant_id', tenantId).in('trigger_type', types).order('updated_at', { ascending: false }).order('id').range(from, from + PAGE - 1)
+        if (error) throw new Error(`workflows.list failed: ${error.message}`)
+        rows.push(...((data ?? []) as Array<Record<string, any>>))
+        if ((data ?? []).length < PAGE) break
+      }
       const editors = await lastEditors(host, 'workflow', rows.map((r) => String(r.id)))
       return rows.map((r) => {
-        const trigger = (Array.isArray(r.nodes) ? r.nodes : []).find((n: any) => n?.type === r.trigger_type)
         const published = Boolean(r.published_version_id)
         return {
           id: String(r.id), name: String(r.name), trigger: String(r.trigger_type).split('.').pop() ?? '',
-          config: trigger?.config && typeof trigger.config === 'object' ? trigger.config : {},
+          config: summaryTriggerConfig(r),
           status: !published ? 'draft' : r.is_active ? 'active' : 'disabled',
           published, active: r.is_active === true, hasUnpublishedChanges: r.has_unpublished_changes !== false,
           runCount: Number(r.run_count ?? 0), lastRunAt: r.last_run_at ?? null, tags: Array.isArray(r.tags) ? r.tags : [],
@@ -194,12 +211,12 @@ export function hostWorkflowObjects(host: ObjectsHost) {
         } satisfies ExtensionWorkflowSummary
       })
     },
-    async publish(workflowId: string) {
+    async publish(workflowId: string, options: { onConflict?: 'keep_both' | 'take_over'; notes?: string } = {}) {
       await ownWorkflow(host, workflowId)
       const ctx = await serviceContext(host)
       const { publishWorkflow, setWorkflowActive } = await import('@/lib/services/workflows')
       return asExtensionError(async () => {
-        const published: any = await publishWorkflow(ctx as any, workflowId, 'Published from an extension page')
+        const published: any = await publishWorkflow(ctx as any, workflowId, options.notes ?? 'Published from an extension page', { onConflict: options.onConflict ?? null })
         await setWorkflowActive(ctx as any, workflowId, true)
         return { id: workflowId, version: Number(published?.version_number ?? published?.version?.version_number ?? 0) || null }
       })
@@ -231,7 +248,7 @@ export function hostWorkflowObjects(host: ObjectsHost) {
       const match = Object.entries(options?.match ?? {}).filter(([k]) => /^[a-z_][a-z0-9_]{0,62}$/i.test(k))
       if (!types.length || !match.length) return []
       let q = host.serviceDb.from('workflow_queue').select('id, workflow_id, status, trigger_data, result, created_at, started_at, completed_at, error')
-        .eq('tenant_id', tenantId).in('trigger_type', types)
+        .eq('tenant_id', tenantId).in('trigger_type', types).like('trigger_type', 'ext.%')
       for (const [k, v] of match) q = q.filter(`trigger_data->>${k}`, 'eq', String(v))
       const { data, error } = await q.order('created_at', { ascending: false }).limit(Math.min(Math.max(Number(options?.limit) || 10, 1), 50))
       if (error) throw new Error(`workflows.runs failed: ${error.message}`)
@@ -254,6 +271,34 @@ export function hostWorkflowObjects(host: ObjectsHost) {
           path: runId ? `/automations/runs/${runId}` : null,
         } satisfies ExtensionWorkflowRun
       })
+    },
+    /** The workflow's draft graph (one of this extension's): nodes, edges and variables, the trigger node marked. */
+    async definition(workflowId: string) {
+      if (host.permissions && !host.permissions.has('workflows.view')) throw new ExtensionError('forbidden', 'Forbidden: you lack workflows.view', 403)
+      const wf = await ownWorkflow(host, workflowId)
+      const { data } = await host.serviceDb.from('workflows').select('nodes, edges, user_variables, has_unpublished_changes, published_version_id, is_active').eq('tenant_id', host.tenantId).eq('id', wf.id).maybeSingle()
+      const nodes = (Array.isArray(data?.nodes) ? data.nodes : []) as Array<Record<string, unknown>>
+      const trigger = nodes.find((n) => n?.type === wf.trigger_type)
+      return {
+        id: wf.id, triggerNodeId: trigger ? String(trigger.id) : null, triggerConfig: (trigger?.config && typeof trigger.config === 'object' ? trigger.config : {}) as Record<string, unknown>,
+        nodes, edges: (Array.isArray(data?.edges) ? data.edges : []) as Array<Record<string, unknown>>, variables: (Array.isArray(data?.user_variables) ? data.user_variables : []) as Array<Record<string, unknown>>,
+        hasUnpublishedChanges: data?.has_unpublished_changes !== false, published: Boolean(data?.published_version_id), active: data?.is_active === true,
+      }
+    },
+    /**
+     * Replace the trigger node's settings in the draft (as the person, through the workflow update
+     * service: workflows.edit or a design grant; audited). Publish to make it a new version.
+     */
+    async setTriggerConfig(workflowId: string, config: Record<string, unknown>) {
+      const wf = await ownWorkflow(host, workflowId)
+      const { data } = await host.serviceDb.from('workflows').select('nodes').eq('tenant_id', host.tenantId).eq('id', wf.id).maybeSingle()
+      const nodes = (Array.isArray(data?.nodes) ? data.nodes : []) as Array<Record<string, any>>
+      if (!nodes.some((n) => n?.type === wf.trigger_type)) throw new ExtensionError('conflict', 'The workflow has no trigger step', 409)
+      const next = nodes.map((n) => (n?.type === wf.trigger_type ? { ...n, config: { ...(config ?? {}) } } : n))
+      const ctx = await serviceContext(host)
+      const { updateWorkflow } = await import('@/lib/services/workflows')
+      const saved: any = await asExtensionError(() => updateWorkflow(ctx as any, wf.id, { nodes: next } as any))
+      return { changed: Boolean(saved?.changed ?? true) }
     },
     async setTags(workflowId: string, tags: string[], options: { prefix: string }) {
       await ownWorkflow(host, workflowId)

@@ -49,7 +49,7 @@ import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
 import { hasSignatureColumns, type ListFieldConfig } from '@/lib/forms/list-field'
-import { listSignatureUploadKeys, nestedSignatureCells, resolveFileControl, signatureFieldForColumn } from '@/lib/forms/signature-cells'
+import { holdsNestedSignatures, listSignatureUploadKeys, mapNestedSignatures, nestedSignatureCells, resolveFileControl, signatureFieldForColumn } from '@/lib/forms/signature-cells'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- form_files is not in the generated Database types */
 
@@ -733,6 +733,17 @@ export async function resolveAttachmentValues(
     })
   }
   for (const field of containers) {
+    // A Data table's change set: each signature cell of a new / changed row rebuilt in place.
+    if (field.type === 'data_table') {
+      const rebuilt = mapNestedSignatures(field, values[field.key], (cell, value, at) => {
+        if (value === null || value === undefined || value === '') return value
+        const judged = judge(cell, value)
+        if ('problem' in judged) { report(field, at.path, at.index, judged.problem, 'row'); return value }
+        return judged.values[cell.key] ?? null
+      })
+      if (!errors[field.key]) out[field.key] = rebuilt
+      continue
+    }
     const rebuilt = field.type === 'list'
       ? rebuildRows(field.key, field.list, values[field.key], [], field.key, field)
       : rebuildItems(field, values[field.key], field.key, field)
@@ -744,12 +755,14 @@ export async function resolveAttachmentValues(
 /** A repeating section with a file control inside, or a List with a signature column (any level). */
 function holdsRepeatingFiles(field: TaskFieldDef): boolean {
   if (field.type === 'list') return hasSignatureColumns(field.list)
+  if (field.type === 'data_table') return holdsNestedSignatures(field)
   if (field.type !== 'repeating_section') return false
   return (field.repeating_section?.fields ?? []).some((f) => usesFileUploads(f) || holdsRepeatingFiles(f))
 }
 
 /** The upload ids a repeating section's items or a List's signature cells name (any level). */
 function repeatingFileIds(field: TaskFieldDef, value: unknown): string[] {
+  if (field.type === 'data_table') return nestedSignatureCells(field, value).flatMap((c) => fileIdsOf(c.field, c.value))
   if (!Array.isArray(value)) return []
   if (field.type === 'list') return nestedSignatureCells(field, value).flatMap((c) => fileIdsOf(c.field, c.value))
   const out: string[] = []
@@ -787,7 +800,7 @@ function storedFileIds(fields: TaskFieldDef[], stored: Record<string, unknown>):
   for (const field of valueFields(fields)) {
     if (usesFileUploads(field)) add(field, stored[field.key])
     else if (field.type === 'repeating_section') walkItems(field, stored[field.key])
-    else if (field.type === 'list') for (const c of nestedSignatureCells(field, stored[field.key])) add(c.field, c.value)
+    else if (field.type === 'list' || field.type === 'data_table') for (const c of nestedSignatureCells(field, stored[field.key])) add(c.field, c.value)
   }
   return out
 }

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { INVITABLE_ROLES } from '@/lib/invitation-roles'
 import { OBJECT_PERMISSION_TYPES } from '@/lib/object-permission-types'
 import { defineEndpoint } from './registry'
+import { TEAM_ORIGINS } from '@/lib/teams/origin'
 import { booleanFlag, deletedResponse, idParams, itemResponse, listResponse, paginationQuery } from './common'
 
 const SYSTEM_ROLE_NOTE = 'System roles keep their name and cannot be deleted; their description and permissions can be edited. Unknown permission keys are dropped.'
@@ -151,10 +152,29 @@ export const listUserReportsEndpoint = defineEndpoint({
   cli: { resource: 'users', verb: 'reports', positional: ['id'] },
 })
 
+/** A team as the API returns it: its columns, where it comes from and (lists) its member count. */
+export const teamItem = z.looseObject({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  origin: z.enum(TEAM_ORIGINS).describe('Where the team comes from: internal (created in UserTasks), active_directory, ldap, entra, okta, google, scim, sharepoint or extension'),
+  origin_label: z.string().describe('The origin as shown on the badge, e.g. "Entra ID"'),
+  external_id: z.string().nullable().describe('The group\'s id in the directory that keeps the team; null for internal teams'),
+  source: z.string().nullable().optional().describe('Extension directory source keeping the team (ext.<id>.<key>): such teams are read-only'),
+  source_label: z.string().nullable().optional(),
+  member_count: z.number().int().optional(),
+})
+
 export const listTeamsEndpoint = defineEndpoint({
   method: 'GET', path: '/teams', operationId: 'listTeams', tags: teamTags,
   summary: 'List teams with member counts', permission: 'team.view_members',
-  response: listResponse('teams'), listKey: 'teams',
+  description: 'Every team says where it comes from (`origin`, `origin_label`): Internal, or the directory that keeps it. Filter by name (`search`) and origin (`origin`).',
+  query: z.object({
+    search: z.string().max(200).optional().describe('Team name contains (case-insensitive)'),
+    origin: z.enum(TEAM_ORIGINS).optional().describe('Only teams from this origin'),
+    limit: z.coerce.number().int().min(1).max(5000).optional().describe('At most this many teams (default: all)'),
+  }),
+  response: listResponse('teams', teamItem), listKey: 'teams',
   cli: { resource: 'teams', verb: 'list' },
 })
 
@@ -167,7 +187,7 @@ export const createTeamEndpoint = defineEndpoint({
 
 export const getTeamEndpoint = defineEndpoint({
   method: 'GET', path: '/teams/{id}', operationId: 'getTeam', tags: teamTags,
-  summary: 'Get a team with its members', permission: 'team.view_members', params: idParams, response: itemResponse('team'),
+  summary: 'Get a team with its members', permission: 'team.view_members', params: idParams, response: itemResponse('team', teamItem),
   cli: { resource: 'teams', verb: 'get', positional: ['id'] },
 })
 

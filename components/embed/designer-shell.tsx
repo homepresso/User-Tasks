@@ -17,12 +17,16 @@
  *    state (dirty, name), done / deleted; the host acks `done` when it
  *    navigates itself, else the frame navigates the top window;
  *  - the unsaved-changes guard: Back / Done ask first, and the browser's
- *    "leave page" prompt is armed while there are unsaved changes.
+ *    "leave page" prompt is armed while there are unsaved changes;
+ *  - workflows: "Import from Nintex" (components/importers/nintex-import-dialog):
+ *    by default onto the list and event this workflow is bound to, as a new
+ *    draft of it; the designer then reloads to show that draft.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Upload } from 'lucide-react'
+import { NintexImportDialog } from '@/components/importers/nintex-import-dialog'
 import { DashboardAuthProvider, useDashboardAuth } from '@/lib/dashboard-auth-context'
 import { PermissionsProvider } from '@/lib/permissions-context'
 import { BreadcrumbsProvider } from '@/lib/breadcrumbs-context'
@@ -126,6 +130,7 @@ function DesignerFrame({ kind, id, appPath, ret, hostOrigin, header, carried, ch
   const name = designer?.item_name ?? null
   const [confirm, setConfirm] = useState<null | { reason: 'done' | 'deleted' | 'link'; url: string | null }>(null)
   const [closed, setClosed] = useState(false)
+  const [importing, setImporting] = useState(false)
   const acked = useRef(false)
   const dirtyRef = useRef(dirty)
   useEffect(() => { dirtyRef.current = dirty }, [dirty])
@@ -242,6 +247,9 @@ function DesignerFrame({ kind, id, appPath, ret, hostOrigin, header, carried, ch
               </span>
             )}
             <div className="ml-auto flex items-center gap-1.5">
+              {kind === 'workflow' && (
+                <Button size="sm" variant="ghost" leadingIcon={<Upload aria-hidden="true" />} onClick={() => setImporting(true)} data-embed-import-nintex="">Import from Nintex</Button>
+              )}
               <a href={appPath} target="_blank" rel="noopener" className={buttonVariants({ variant: 'ghost', size: 'sm' })} data-embed-open-app="">
                 Open in UserTasks <ExternalLink className="size-3.5" aria-hidden="true" />
               </a>
@@ -251,6 +259,20 @@ function DesignerFrame({ kind, id, appPath, ret, hostOrigin, header, carried, ch
         )}
         <div className="min-h-0 flex-1 overflow-auto p-2">{children}</div>
       </div>
+      {kind === 'workflow' && importing && (
+        <NintexImportDialog
+          open={importing}
+          onOpenChange={setImporting}
+          designer={{ workflowId: id, dirty }}
+          onOpenResult={(href, same) => {
+            // The designer's own workflow: load the new draft (nothing unsaved is left to keep). Another one: its embedded designer.
+            if (same) { dirtyRef.current = false; window.location.reload(); return }
+            const mapped = embedPathFor(href)
+            if (mapped) router.push(withEmbedParams(mapped, carried))
+            else window.open(href, '_blank', 'noopener')
+          }}
+        />
+      )}
       <ConfirmDialog
         open={Boolean(confirm)}
         onOpenChange={(open) => { if (!open) setConfirm(null) }}

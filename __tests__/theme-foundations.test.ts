@@ -42,7 +42,10 @@ describe('fonts', () => {
 
   it('the root layout loads them through next/font and the bootstrap defaults to sans headings', () => {
     const layout = readFileSync(path.join(ROOT, 'app/layout.tsx'), 'utf8')
-    expect(layout).toMatch(/import \{ Inter, JetBrains_Mono, Fraunces \} from "next\/font\/google"/)
+    // Bundled with the app (next/font/local), never downloaded from Google at build time.
+    expect(layout).toContain('import localFont from "next/font/local"')
+    expect(layout).not.toContain('next/font/google')
+    for (const file of ['inter-latin-opsz-wght.woff2', 'jetbrains-mono-latin-wght.woff2', 'fraunces-latin-wght.woff2']) expect(layout).toContain(`./_fonts/${file}`)
     expect(layout).not.toMatch(/DM_Sans|Space_Mono/)
     expect(layout).toContain("getItem('theme_headings')||'sans'")
   })

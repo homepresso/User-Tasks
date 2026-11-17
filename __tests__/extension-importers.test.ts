@@ -138,6 +138,10 @@ describe('report helpers', () => {
     expect(importReadiness({ ...c, partial: 0, placeholder: 0, total: 2, percent: 100 }, 10)).toBe('auto')
     expect(importReadiness(c, 40)).toBe('review')
     expect(importReadiness({ ...c, percent: 30 }, 10)).toBe('rebuild')
+    // Coverage weighs more than size: a large, well-mapped workflow is review, not rebuild.
+    expect(importReadiness({ ...c, percent: 90 }, 100)).toBe('review')
+    expect(importReadiness({ ...c, percent: 60 }, 90)).toBe('rebuild')
+    expect(importReadiness({ ...c, partial: 0, placeholder: 0, total: 2, percent: 100 }, 60)).toBe('auto')
   })
 
   it('normalises an extension report and renders Markdown', () => {
@@ -145,7 +149,7 @@ describe('report helpers', () => {
     expect(r.items[0].status).toBe('info')
     expect(r.coverage).toMatchObject({ total: 1, mapped: 1, percent: 100 })
     expect(r.complexity).toMatchObject({ score: 100, level: 'high' })
-    expect(r.readiness).toBe('rebuild')
+    expect(r.readiness).toBe('review')
     expect(r.preview).toBe(true)
     const md = importReportMarkdown(r)
     expect(md).toContain('# Import report: T')
@@ -174,11 +178,13 @@ describe('importers service', () => {
   it('lists core InfoPath and the extension importers with availability', async () => {
     const mem = seed()
     const { importers } = await listImporterViews(svc(mem))
-    expect(importers.map((i) => i.id)).toEqual(['infopath', 'ext.acme-import.flow', 'ext.acme-import.legacy'])
+    expect(importers.map((i) => i.id)).toEqual(['infopath', 'nintex', 'ext.acme-import.flow', 'ext.acme-import.legacy'])
     expect(importers[0]).toMatchObject({ endpoint: '/forms/import/infopath', produces: ['form'] })
-    expect(importers[1]).toMatchObject({ available: true, feature: 'flows', multiple: true })
-    expect((await listImporterViews(svc(mem), { produces: 'form' })).importers.map((i) => i.id)).toEqual(['infopath'])
+    expect(importers[1]).toMatchObject({ endpoint: null, extension_id: null, available: true, feature: null })
+    expect(importers[2]).toMatchObject({ available: true, feature: 'flows', multiple: true })
+    expect((await listImporterViews(svc(mem), { produces: 'form' })).importers.map((i) => i.id)).toEqual(['infopath', 'nintex'])
     const viewer = await listImporterViews(svc(mem, ['workflows.view']))
+    expect(viewer.importers[2]).toMatchObject({ available: false, unavailable_reason: 'Needs workflows.create or workflows.edit' })
     expect(viewer.importers[1]).toMatchObject({ available: false, unavailable_reason: 'Needs workflows.create or workflows.edit' })
   })
 
@@ -279,7 +285,7 @@ describe('archives and optional files', () => {
     setEntitlementPort({ check: async () => ({ allowed: true, state: 'licensed' }) })
     const mem = seed()
     expect((await analyzeImport(svc(mem), 'ext.acme-import.flow', [], { name: 'From options' })).report.title).toBe('Approval')
-    expect((await listImporterViews(svc(mem))).importers[1]).toMatchObject({ files_optional: true })
+    expect((await listImporterViews(svc(mem))).importers[2]).toMatchObject({ files_optional: true })
     await expect(analyzeImport(svc(mem), 'ext.acme-import.legacy', [])).rejects.toMatchObject({ message: 'No file was sent' })
   })
 })

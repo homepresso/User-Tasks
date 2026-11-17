@@ -13,6 +13,7 @@ import {
   Brush,
   Building2,
   Globe,
+  Inbox,
   GitBranch,
   Key,
   KeyRound,
@@ -123,6 +124,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
       { label: "Licence", href: "/settings/licence", icon: BadgeCheck, instanceAdmin: true },
       { label: "Packages", href: "/settings/packages", icon: Package, permission: "packages.view" },
       { label: "Gallery review", href: "/settings/gallery-review", icon: UsersRound, instanceAdmin: true },
+      { label: "Requests", href: "/settings/requests", icon: Inbox, instanceAdmin: true },
     ],
   },
 ]

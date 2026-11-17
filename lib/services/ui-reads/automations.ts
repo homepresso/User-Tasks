@@ -203,6 +203,26 @@ export const reads = {
     },
   }),
 
+  /**
+   * A workflow's graph for the form designer's "Workflow data" (the form page
+   * opened from a User Task with ?workflow=<id>&step=<node id>): nodes, edges
+   * and input variables only — no runs, no secrets beyond the definition the
+   * person may already view.
+   */
+  'automations.stepContext': defineRead({
+    args: z.object({ id, step: z.string().min(1).max(100) }),
+    perm: VIEW,
+    run: async (ctx, { id: workflowId, step }) => {
+      const db = getDb(ctx) as any
+      const { data: workflow } = await db.from('workflows').select('*').eq('id', workflowId).maybeSingle()
+      if (!workflow) return null
+      const nodes = (Array.isArray(workflow.nodes) ? workflow.nodes : []) as any[]
+      const node = nodes.find((n) => n?.id === step)
+      if (!node) return null
+      return { id: String(workflow.id), name: String(workflow.name ?? ''), step: { id: String(node.id), label: String(node.label ?? ''), type: String(node.type ?? '') }, nodes, edges: (Array.isArray(workflow.edges) ? workflow.edges : []) as any[], variables: (Array.isArray(workflow.user_variables) ? workflow.user_variables : []) as any[] }
+    },
+  }),
+
   'automations.scheduled': defineRead({
     args: NO_ARGS,
     perm: VIEW,
@@ -630,8 +650,14 @@ export const reads = {
     args: NO_ARGS,
     perm: VIEW,
     run: async (ctx) => {
-      const { data } = await (getDb(ctx) as any).from('teams').select('id, name').order('name')
-      return (data ?? []) as any[]
+      const { withOrigin } = await import('../teams')
+      const db = getDb(ctx) as any
+      let { data, error } = await db.from('teams').select('id, name, source, source_label, origin').order('name')
+      if (error) ({ data } = await db.from('teams').select('id, name').order('name'))
+      return ((data ?? []) as any[]).map((t) => {
+        const team = withOrigin(t)
+        return { id: team.id, name: team.name, origin: team.origin, origin_label: team.origin_label }
+      })
     },
   }),
 

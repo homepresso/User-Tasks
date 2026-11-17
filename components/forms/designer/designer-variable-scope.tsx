@@ -5,6 +5,7 @@ import { VariableScopeProvider } from '@/components/automations/variable-scope'
 import { formVariableScope, type FormVariableContext } from '@/lib/forms/variable-catalog'
 import type { PickerScope } from '@/lib/variable-picker'
 import { useDesignerPreviewValues } from './designer-preview-context'
+import type { WorkflowDataEntry } from '@/lib/forms/workflow-data'
 
 /**
  * The variable picker's scope for a part of the form designer: every
@@ -20,13 +21,25 @@ type SampleFn = (path: string, context: FormVariableContext) => unknown
 const TestSampleContext = createContext<SampleFn | null>(null)
 export const DesignerTestSampleProvider = TestSampleContext.Provider
 
+/**
+ * The workflow data in scope when the form is designed from a workflow step
+ * (lib/forms/workflow-data.ts): every picker in the designer also offers it
+ * (grouped "Workflow · …"). Null for a form designed on its own.
+ */
+const WorkflowEntriesContext = createContext<readonly WorkflowDataEntry[] | null>(null)
+export const DesignerWorkflowDataProvider = WorkflowEntriesContext.Provider
+export function useDesignerWorkflowEntries(): readonly WorkflowDataEntry[] | null {
+  return useContext(WorkflowEntriesContext)
+}
+
 export function useDesignerVariableScope(state: { fields: readonly unknown[]; layout: unknown }, context: FormVariableContext, extras?: Array<{ name: string; group: string; label?: string }>): PickerScope {
   const values = useDesignerPreviewValues()
   const testSample = useContext(TestSampleContext)
+  const workflow = useContext(WorkflowEntriesContext)
   const key = JSON.stringify(context)
   const extrasKey = JSON.stringify(extras ?? [])
   return useMemo(() => {
-    const scope = formVariableScope({ fields: state.fields as never, layout: state.layout, values }, context, extras)
+    const scope = formVariableScope({ fields: state.fields as never, layout: state.layout, values, ...(workflow?.length ? { workflow } : {}) }, context, extras)
     if (!testSample) return scope
     return {
       ...scope,
@@ -36,7 +49,7 @@ export function useDesignerVariableScope(state: { fields: readonly unknown[]; la
       }),
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.fields, state.layout, values, key, extrasKey, testSample])
+  }, [state.fields, state.layout, values, key, extrasKey, testSample, workflow])
 }
 
 export function DesignerVariableScope({ state, context, extras, children }: {

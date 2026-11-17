@@ -38,9 +38,10 @@ export interface ActionFormField {
   /**
    * text inputs; `select` (one of `options`); `checkboxes` (several of
    * `options`, sent as a string array); `checkbox` (sent as "true" / "");
-   * `hidden` (sent as `defaultValue`, not shown).
+   * `hidden` (sent as `defaultValue`, not shown); `date` (YYYY-MM-DD) and
+   * `datetime-local` (YYYY-MM-DDTHH:mm, the browser's local time).
    */
-  type?: 'text' | 'textarea' | 'number' | 'email' | 'url' | 'password' | 'select' | 'checkboxes' | 'checkbox' | 'hidden'
+  type?: 'text' | 'textarea' | 'number' | 'email' | 'url' | 'password' | 'date' | 'datetime-local' | 'select' | 'checkboxes' | 'checkbox' | 'hidden'
   placeholder?: string
   required?: boolean
   help?: string
@@ -70,13 +71,22 @@ export function ExtensionActionForm({ extensionId, action, fields, submitLabel =
 }) {
   const { execute, busy } = useExtensionAction()
   const [values, setValues] = useState<Record<string, FormValue>>(() => initialValues(fields))
-  const set = (name: string, value: FormValue) => setValues((v) => ({ ...v, [name]: value }))
+  // Per-field messages from the action (UiActionResult.fieldErrors), cleared as the field changes.
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const set = (name: string, value: FormValue) => {
+    setValues((v) => ({ ...v, [name]: value }))
+    setErrors((e) => (e[name] ? Object.fromEntries(Object.entries(e).filter(([k]) => k !== name)) : e))
+  }
+  const errorOf = (name: string) => (errors[name] ? <p id={`ext-form-${name}-error`} role="alert" className="text-xs text-danger" data-field-error={name}>{errors[name]}</p> : null)
   return (
     <form
       className="max-w-[560px] space-y-4"
       onSubmit={async (event) => {
         event.preventDefault()
+        setErrors({})
         const out = await execute({ extensionId, action, label: submitLabel, values })
+        const fieldErrors = (out as { fieldErrors?: Record<string, string> } | null)?.fieldErrors
+        if (fieldErrors && typeof fieldErrors === 'object') { setErrors(Object.fromEntries(Object.entries(fieldErrors).map(([k, m]) => [k, String(m).slice(0, 300)]))); return }
         if (out && !out.redirect && resetOnSuccess) setValues(initialValues(fields))
       }}
     >
@@ -112,11 +122,14 @@ export function ExtensionActionForm({ extensionId, action, fields, submitLabel =
           return (
             <div key={field.name} className="space-y-1.5">
               <Checkbox id={id} label={field.label} description={field.help} checked={value === 'true'} onChange={(e) => set(field.name, e.target.checked ? 'true' : '')} />
+              {errorOf(field.name)}
             </div>
           )
         } else {
           const common = {
             id,
+            'aria-invalid': errors[field.name] ? true : undefined,
+            'aria-describedby': errors[field.name] ? `${id}-error` : undefined,
             value: String(value ?? ''),
             placeholder: field.placeholder,
             required: field.required,
@@ -129,6 +142,7 @@ export function ExtensionActionForm({ extensionId, action, fields, submitLabel =
             {label}
             {control}
             {field.help && <p className="text-xs text-fg-muted">{field.help}</p>}
+            {errorOf(field.name)}
           </div>
         )
       })}

@@ -4,7 +4,7 @@ import { safeReturnPath } from '@/lib/signup-link'
 
 export const metadata: Metadata = {
   title: 'Start free | UserTasks',
-  description: 'Create your own UserTasks workspace: workflows, forms, tasks and the AI Agent, free during the beta.',
+  description: 'Create your own UserTasks workspace: workflows, forms, tasks and the AI Agent, in UserTasks Cloud, which is in beta and free during the beta.',
   alternates: { canonical: '/start' },
   // A sign-up step, not a landing page: kept out of search results and the sitemap.
   robots: { index: false, follow: true },

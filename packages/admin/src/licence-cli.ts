@@ -12,6 +12,8 @@ import { decodeSettings, encodeSetting, notifyConfigChanged, readSettingRows, up
 
 /**
  * usertasks-admin licence status [--json] | install <file> | remove <licence-id> | remove --all | request [--out <file>] [--json]
+ *                 export --ext <extension>   (the best installed licence for it, verbatim, on stdout:
+ *                                             `usertasks upgrade` sends it for an edition download)
  * usertasks-admin entitlements list [--tenant <id>] [--ext <id>] [--json]
  *                 grant --tenant <id> --ext <id> [--until <ISO date>] [--features a,b] [--limits key=n,…]
  *                 revoke --tenant <id> --ext <id>
@@ -21,7 +23,7 @@ import { decodeSettings, encodeSetting, notifyConfigChanged, readSettingRows, up
  * verifier as the app checks signature, key id, binding and dates.
  */
 
-export type LicenceAction = 'status' | 'install' | 'remove' | 'request'
+export type LicenceAction = 'status' | 'install' | 'remove' | 'request' | 'export'
 export type EntitlementsAction = 'list' | 'grant' | 'revoke'
 
 export interface LicenceIO {
@@ -153,7 +155,7 @@ function printLicence(io: LicenceIO, l: LicenceSummary): void {
   for (const p of l.problems) io.out(`  problem       ${p.code}: ${p.message}`)
 }
 
-export async function runLicence(action: LicenceAction, args: string[], values: { json?: boolean; all?: boolean; out?: string; actor: string }, store: LicenceCliStore, io: LicenceIO, deps: LicenceCliDeps = {}): Promise<number> {
+export async function runLicence(action: LicenceAction, args: string[], values: { json?: boolean; all?: boolean; out?: string; ext?: string; actor: string }, store: LicenceCliStore, io: LicenceIO, deps: LicenceCliDeps = {}): Promise<number> {
   const now = (deps.now ?? (() => new Date()))()
   const keyring = deps.keyring ?? LICENCE_KEYRING
   const identity = await identityOf(store, io.env)
@@ -204,6 +206,26 @@ export async function runLicence(action: LicenceAction, args: string[], values: 
     printLicence(io, check.summary)
     for (const note of check.notes) io.out(`note: ${note}`)
     io.out('Running app processes pick it up within a minute.')
+    return 0
+  }
+
+  if (action === 'export') {
+    // Valid (genuine, for this installation) licences granting the extension;
+    // usable now first, then the latest expiry. Printed verbatim: the
+    // signature covers the exact document.
+    const ext = values.ext ?? ''
+    const raw: RawLicence[] = [
+      ...storedLicences(await store.readSetting(LICENCES_SETTING)).map((r) => ({ source: 'setting' as const, raw: r })),
+      ...await envLicences({ env: io.env }),
+    ]
+    const candidates = raw
+      .map((r) => ({ r, v: verifyLicence(r, identity, now, keyring) }))
+      .filter(({ v }) => v.valid && v.licence?.extensions.some((e) => e.id === ext))
+      .sort((a, b) => Number(b.v.timing?.usable ?? false) - Number(a.v.timing?.usable ?? false)
+        || Date.parse(b.v.licence!.expires_at) - Date.parse(a.v.licence!.expires_at))
+    const best = candidates[0]
+    if (!best) { io.err(`No installed licence grants the ${ext} extension (Settings → Licence, or usertasks-admin licence install <file>).`); return 1 }
+    io.out(JSON.stringify(best.v.licence, null, 2))
     return 0
   }
 

@@ -3,6 +3,7 @@ import { SEO_PAGES } from '@/lib/seo-pages'
 import { DEPLOY_ANYWHERE } from '@/lib/topologies'
 import { USE_CASES } from '@/lib/use-cases'
 import { SITE_CONTENT_UPDATED } from '@/lib/seo/site'
+import { SHAREPOINT_GET_STARTED, SHAREPOINT_TRIAL } from '@/lib/seo/sharepoint-facts'
 
 /**
  * Every indexable top-level page of the public site, in one list: the
@@ -55,7 +56,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
   product(DOCUMENTS_PAGE),
   product(MEDIA_PAGE),
   product(DEPLOY_ANYWHERE),
-  product(INFOPATH_PAGE),
+  { ...product(INFOPATH_PAGE), updated: INFOPATH_PAGE.updated },
   { ...product(SHAREPOINT_PAGE), updated: SHAREPOINT_PAGE.updated },
   ...SEO_PAGES.map((page): PublicPage => ({ path: `/${page.slug}`, title: page.title, description: page.description, group: 'guide', updated: page.updated })),
   { path: '/use-cases', title: USE_CASES_INDEX.title, description: USE_CASES_INDEX.description, group: 'guide' },
@@ -63,6 +64,8 @@ export const PUBLIC_PAGES: PublicPage[] = [
   { path: '/docs', title: 'UserTasks documentation', description: 'Guides and reference for the UserTasks workflow engine: designer, nodes, expressions, tasks, integrations, decision tables, agents, governance, REST API, MCP, CLI, log export and self-hosting.', group: 'company' },
   { path: '/install', title: INSTALL_PAGE.title, description: INSTALL_PAGE.description, group: 'company' },
   { path: '/open-source', title: OPEN_SOURCE_PAGE.title, description: OPEN_SOURCE_PAGE.description, group: 'company' },
+  { path: SHAREPOINT_GET_STARTED.path, title: SHAREPOINT_GET_STARTED.title, description: SHAREPOINT_GET_STARTED.description, group: 'product' },
+  { path: SHAREPOINT_TRIAL.path, title: SHAREPOINT_TRIAL.title, description: SHAREPOINT_TRIAL.description, group: 'product' },
   { path: '/contact', title: CONTACT_PAGE.title, description: CONTACT_PAGE.description, group: 'company' },
 ]
 

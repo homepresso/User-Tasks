@@ -5,6 +5,7 @@ import { mcpOk, mcpErr } from '../server'
 import { canAccessTable } from '@/lib/api-key-permissions'
 import { fromMcpContext, type ServiceContext } from '@/lib/services/context'
 import * as dataTables from '@/lib/services/data-tables'
+import * as dataTableViews from '@/lib/services/data-table-views'
 import { decodeBase64, importRowsNow, planImport, type DataImportOptions } from '@/lib/services/data-import'
 import { DATA_IMPORT_LIMITS } from '@/lib/data-import/parse'
 import { messageOf } from './_util'
@@ -304,6 +305,39 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
 
     return mcpOk({ results, count: results.length, scope: 'table' })
   })
+
+  server.tool('data_views_get', 'Get the grid views of a custom table: per view the columns shown and, per column, its control (text, multiline, number, currency, date, datetime, boolean, dropdown, autocomplete, multiselect, people, lookup, signature, file, link, rich_text, display), its binding to a data table or an API reference (filters, sort, value / display fields), editable / read-only, required and width, plus inline_edit, allow_add, allow_delete and page_size.', {
+    table_id: z.string().describe('Table ID, name or system name'),
+  }, async (args) => run(async () => dataTableViews.getTableViews(readCtx(), await resolveTableRef(readCtx(), args.table_id))))
+
+  server.tool('data_views_update', 'Replace the grid views of a custom table (data.edit_schema). Each view: { id?, name, columns: [{ key, label?, width?, control?, control_options?, binding?, editable?, required?, hidden? }], inline_edit?, allow_add?, allow_delete?, page_size?, default? }. control defaults from the column type; binding (dropdown / autocomplete / multiselect / lookup) is a lookup config: { source: "table", table_id, value_column, display_columns, label_template?, filters: [{ column, operator, value }] (value may read {{row.<column>}} for cascading), sort } or { source: "reference", reference_id, input_mappings, results_path, value_field, display_fields }. Read data_views_get first and send every view back.', {
+    table_id: z.string().describe('Table ID, name or system name'),
+    views: z.array(z.record(z.string(), z.any())).max(20).describe('Full replacement list of views'),
+  }, async (args) => run(async () => dataTableViews.saveTableViews(writeCtx(), await resolveTableRef(writeCtx(), args.table_id), args.views)))
+
+  server.tool('data_views_options', 'Options of a bound column of a grid view (its saved binding): search with query, or resolve stored values to their labels. A data table source is read with your access; an API reference runs server-side.', {
+    table_id: z.string().describe('Table ID, name or system name'),
+    view_id: z.string().describe('View ID (default: the built-in view)'),
+    column: z.string().describe('Bound column key'),
+    query: z.string().max(500).optional().describe('Search text'),
+    resolve: z.array(z.string()).max(50).optional().describe('Stored values to resolve to labels'),
+    row: z.record(z.string(), z.any()).optional().describe('The row being edited, for {{row.<column>}} filters'),
+  }, async (args) => run(async () => dataTableViews.gridColumnOptions(readCtx(), await resolveTableRef(readCtx(), args.table_id), args.view_id, { column: args.column, query: args.query, resolve: args.resolve, row: args.row })))
+
+  server.tool('data_rows_write_cells', 'Inline edit: change cells of one row through a grid view. The server enforces the view: inline editing on, only editable columns (read-only, hidden and calculated columns are refused), values typed by each column\'s control, bound values must be options of their source, people must be in the workspace. Pass expected_updated_at (the row\'s updated_at you read) to get a conflict instead of overwriting a newer change. data-table event workflows fire for the update.', {
+    table_id: z.string().describe('Table ID, name or system name'),
+    row_id: z.string().describe('Row ID'),
+    view_id: z.string().describe('View ID'),
+    cells: z.record(z.string(), z.any()).describe('Column key → new value'),
+    expected_updated_at: z.string().optional().describe('The row\'s updated_at as read'),
+  }, async (args) => run(async () => dataTableViews.writeGridCells(writeCtx(), await resolveTableRef(writeCtx(), args.table_id), args.row_id, { view_id: args.view_id, cells: args.cells, expected_updated_at: args.expected_updated_at })))
+
+  server.tool('data_rows_write_cells_batch', 'Batch inline edit ("Edit all rows"): change cells of many rows (and add new rows) through a grid view in one call. Each row is checked exactly as data_rows_write_cells and gets its own outcome (saved, unchanged, conflict with the current row, invalid with per-column reasons, not_found, forbidden); one refusal never stops the others and nothing is rolled back, so re-send only the failed rows. New rows need the view\'s Add rows. One data-table "updated" workflow event fires per row whose cells changed, one "created" per new row.', {
+    table_id: z.string().describe('Table ID, name or system name'),
+    view_id: z.string().describe('View ID'),
+    rows: z.array(z.object({ row_id: z.string(), cells: z.record(z.string(), z.any()), expected_updated_at: z.string().optional() })).max(500).optional().describe('Edited rows: id, column key → new value, the updated_at you read'),
+    inserts: z.array(z.object({ client_id: z.string().optional(), cells: z.record(z.string(), z.any()) })).max(200).optional().describe('New rows: column key → value'),
+  }, async (args) => run(async () => dataTableViews.writeGridRows(writeCtx(), await resolveTableRef(writeCtx(), args.table_id), { view_id: args.view_id, rows: args.rows, inserts: args.inserts })))
 
   server.tool('data_rows_get', 'Get one row of a custom table by ID.', {
     table_id: z.string().describe('Table ID'),

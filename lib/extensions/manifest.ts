@@ -17,6 +17,7 @@
 import { z } from 'zod'
 import { ACTION_FIELD_TYPES, type ActionField } from '@/lib/custom-actions/contract'
 import { isSemver, isValidRange, satisfiesRange } from '@/lib/packages/semver'
+import { DIRECTORY_SOURCE_KINDS } from '@/lib/teams/origin'
 
 export const EXTENSION_MANIFEST_VERSION = 1
 /** The extension SDK contract core implements (engines.extension_sdk is checked against it). */
@@ -211,6 +212,22 @@ const triggerContributionSchema = z.object({
    * sample of the run variables and whether this configuration would start).
    */
   previewFrom: z.string().regex(CONTRIBUTION_KEY_RE).optional(),
+  /**
+   * The record behind a run (e.g. the list item that changed): run variable
+   * `variable` holds its field values by field key (`{{after.Title}}`).
+   * `fieldsFrom` is a UI data source asked with the trigger's settings,
+   * returning `{ fields: FormTargetSourceField[] }` (key, label, typeLabel,
+   * fieldTypes, choices, readOnly, group, `valuePath` for structured values)
+   * — the form designer offers them as "Workflow data" on a task's form.
+   * `idFrom`: run variables that identify the record; with the handler's
+   * `readRecord`, core reads its current values when the task opens.
+   */
+  record: z.object({
+    variable: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]{0,62}$/),
+    fieldsFrom: z.string().regex(CONTRIBUTION_KEY_RE),
+    label: text(60).optional(),
+    idFrom: z.array(z.string().regex(/^[A-Za-z_][A-Za-z0-9_]{0,62}$/)).max(5).optional(),
+  }).strict().optional(),
 }).strict()
 export type TriggerContribution = z.infer<typeof triggerContributionSchema>
 
@@ -227,6 +244,14 @@ const directorySourceSchema = z.object({
   /** Shown in Settings → SSO & Directory and on the source's teams, e.g. "SharePoint". */
   label: text(60),
   description: z.string().max(300).optional(),
+  /**
+   * What kind of directory the source's groups come from — the origin badge
+   * on its teams in the assignee pickers and `origin` on team objects
+   * (lib/teams/origin.ts): sharepoint, active_directory, ldap, entra, okta,
+   * google or extension. Omitted: derived from the label ("SharePoint"),
+   * else extension. A snapshot group's own `kind` overrides it.
+   */
+  kind: z.enum(DIRECTORY_SOURCE_KINDS).optional(),
   /** Licence feature the source needs (manifest licence.features). */
   feature: z.string().max(60).optional(),
   /** Default minutes between scheduled syncs (10 – 10 080; default 60). */
@@ -439,6 +464,12 @@ export const extensionManifestSchema = z.object({
     sku: z.string().regex(/^[a-z][a-z0-9._-]{1,80}$/).optional(),
     /** Licence features this extension checks (subsets of the product). */
     features: z.array(z.string().regex(/^[a-z][a-z0-9_-]{0,59}$/)).max(40).default([]),
+    /**
+     * Self-serve trials (self-hosted): Settings → Extensions offers "Start a
+     * N-day trial" for the SKU while the extension is unlicensed. `unit`: what
+     * the trial licence is bound to ('farm': a SharePoint farm id).
+     */
+    trial: z.object({ days: z.number().int().min(1).max(30), unit: z.enum(['farm']) }).strict().optional(),
   }).strict(),
   deployments: z.array(z.enum(DEPLOYMENT_MODES)).min(1).default(['cloud', 'self_hosted']),
   homepage: z.string().url().optional(),

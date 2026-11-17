@@ -164,7 +164,7 @@ export function BetaSignupForm({ defaultEmail = '', next, redirect = null }: { d
       </button>
 
       <p className="text-center text-xs text-(color:--mkt-subtle)">
-        Free during the beta · No credit card · Your data lives in its own isolated tenant
+        UserTasks Cloud is in beta and free during the beta · No credit card · Your data lives in its own isolated tenant · Need production today? <a href="/install" className="font-semibold text-(color:--mkt-bronze) hover:underline">Self-hosted UserTasks is production-ready</a>
       </p>
       <div className="grid grid-cols-3 gap-2 border-t border-(color:--mkt-ink)/[0.06] pt-4 text-center">
         <div><p className="text-sm font-semibold text-(color:--mkt-ink)">Full access</p><p className="text-2xs text-(color:--mkt-subtle)">No feature-gated trial</p></div>

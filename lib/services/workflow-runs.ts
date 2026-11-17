@@ -202,6 +202,9 @@ export async function actOnWorkflowRun(ctx: ServiceContext, ref: WorkflowRunRef,
       if (error) throw dbError(error)
       if (!data?.length) throw ServiceError.conflict('The run changed state; reload and try again')
       const closed = await closeOpenTasks(ctx, run.event_id)
+      // Event waits of extension steps (ctx.runs.waitFor) end with the run.
+      const { clearRunWaits } = await import('@/lib/extensions/event-waits')
+      await clearRunWaits(db, run.id).catch(() => undefined)
       await auditRun(ctx, run, 'Cancelled workflow run', { action: 'cancel', previous_status: run.status, closed_task_ids: closed })
       return { action: 'cancelled', run_id: run.id, closed_task_ids: closed }
     }

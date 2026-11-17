@@ -1,4 +1,5 @@
 import { FormDesignerPage } from '@/components/forms/designer/form-designer-page'
+import { stepFromQuery } from '@/lib/forms/designer-step'
 import { returnToFrom } from '@/lib/navigation/return-to'
 
 /**
@@ -10,5 +11,6 @@ export default async function FormDesignerRoute({ params, searchParams }: { para
   const { id } = await params
   const query = await searchParams
   const returnTo = returnToFrom((name) => { const v = query[name]; return Array.isArray(v) ? v[0] : v })
-  return <FormDesignerPage formId={id} returnTo={returnTo} />
+  // Opened from a User Task (?workflow=&step=): that step's workflow data in the Data panel.
+  return <FormDesignerPage formId={id} returnTo={returnTo} step={stepFromQuery(query)} />
 }

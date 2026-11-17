@@ -9,6 +9,7 @@ import * as invitations from '@/lib/services/invitations'
 import * as managers from '@/lib/services/manager-tasks'
 import * as objectPermissions from '@/lib/services/object-permissions'
 import { OBJECT_PERMISSION_TYPES } from '@/lib/object-permission-types'
+import { TEAM_ORIGINS } from '@/lib/teams/origin'
 import { messageOf } from './_util'
 
 /*
@@ -153,8 +154,12 @@ export function registerGovernanceTools(server: McpToolServer, ctx: McpContext) 
 
   // --- Teams ---
 
-  server.tool('teams_list', 'List teams with member counts so MCP can discover assignment targets, routing groups, and team organization.', {}, async () => run(async () => {
-    const { teams: rows } = await teams.listTeams(svc())
+  server.tool('teams_list', 'List teams with member counts so MCP can discover assignment targets, routing groups, and team organization. Each team has an origin (internal, active_directory, ldap, entra, okta, google, scim, sharepoint or extension); filter by name with search and by origin.', {
+    search: z.string().max(200).optional().describe('Team name contains (case-insensitive)'),
+    origin: z.enum(TEAM_ORIGINS).optional().describe('Only teams from this origin, e.g. entra or sharepoint'),
+    limit: z.number().int().min(1).max(5000).optional().describe('At most this many teams (default: all)'),
+  }, async (args) => run(async () => {
+    const { teams: rows } = await teams.listTeams(svc(), { search: args.search, origin: args.origin, limit: args.limit })
     return { teams: rows, count: rows.length }
   }))
 

@@ -7,7 +7,7 @@ import { addPage, moveFieldToPage, movePage, movePageTo, pageFieldKeys, pageMode
 import { addField, type DesignerState } from '@/lib/forms/designer-state'
 import type { TaskFieldType } from '@/lib/task-field-schema'
 import { PageIcon } from '@/components/forms/page-icons'
-import { DRAG_FIELD_KEY, DRAG_NEW_TYPE, DRAG_PAGE_ID } from './field-icons'
+import { DRAG_FIELD_KEY, DRAG_NEW_TYPE, DRAG_PAGE_ID, DRAG_SOURCE_FIELD } from './field-icons'
 import { cn } from '@/lib/utils'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 
@@ -21,8 +21,10 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 
 const MODES: Array<[FormPageMode, string]> = [['single', 'Single page'], ['steps', 'Steps'], ['tabs', 'Tabs']]
 
-export function PageStrip({ state, activeId, onSelect, onChange, onFieldAdded, announce }: {
+export function PageStrip({ state, activeId, onSelect, onChange, onFieldAdded, announce, onDropSource }: {
   state: DesignerState
+  /** A data source field (data binding) dropped on a chip: bound and added to that page. */
+  onDropSource?: (sourceKey: string, pageId: string) => void
   activeId: string | null
   onSelect: (id: string) => void
   onChange: (next: DesignerState, tag?: string) => void
@@ -58,6 +60,8 @@ export function PageStrip({ state, activeId, onSelect, onChange, onFieldAdded, a
     const page = e.dataTransfer.getData(DRAG_PAGE_ID)
     const key = e.dataTransfer.getData(DRAG_FIELD_KEY)
     const type = e.dataTransfer.getData(DRAG_NEW_TYPE) as TaskFieldType
+    const sourceKey = e.dataTransfer.getData(DRAG_SOURCE_FIELD)
+    if (sourceKey && onDropSource) { onSelect(pageId); onDropSource(sourceKey, pageId); return }
     if (page) {
       onChange({ ...state, layout: movePageTo(state.layout, page, index) })
       announce(`Moved to position ${index + 1}`)
@@ -111,7 +115,7 @@ export function PageStrip({ state, activeId, onSelect, onChange, onFieldAdded, a
                   onKeyDown={(e) => onChipKey(e, page.id)}
                   onDragStart={(e) => { e.dataTransfer.setData(DRAG_PAGE_ID, page.id); e.dataTransfer.effectAllowed = 'move' }}
                   onDragOver={(e) => {
-                    if (![...e.dataTransfer.types].some((t) => t === DRAG_PAGE_ID || t === DRAG_FIELD_KEY || t === DRAG_NEW_TYPE)) return
+                    if (![...e.dataTransfer.types].some((t) => t === DRAG_PAGE_ID || t === DRAG_FIELD_KEY || t === DRAG_NEW_TYPE || (t === DRAG_SOURCE_FIELD && Boolean(onDropSource)))) return
                     e.preventDefault()
                     if (dropTarget !== page.id) setDropTarget(page.id)
                   }}

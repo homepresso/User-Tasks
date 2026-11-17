@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ArrowDown, ArrowUp, GripVertical, LayoutList, Plus, Trash2 } from 'lucide-react'
 import { addRow, findCell, moveRow, nudgeField, placeField, placeFieldInSection, removeRow, rowFree, setRowColumns, setRowSection, MAX_FORM_COLUMNS, type FormRow, type FormSection } from '@/lib/forms/layout'
 import { sectionBlocks } from '@/lib/forms/sections'
+import { DataTableCanvasSummary } from '@/components/data-sources/data-table-canvas-summary'
 import { addField, designerProblems, extractField, moveIntoSection, removeField, sectionView, withSectionView, type DesignerField, type DesignerState } from '@/lib/forms/designer-state'
 import { REPEATING_EXCLUDED_TYPES, REPEATING_MAX_DEPTH } from '@/lib/forms/repeating-section'
 import { TASK_FIELD_TYPE_LABELS, type TaskFieldType } from '@/lib/task-field-schema'
@@ -12,7 +13,9 @@ import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { DRAG_FIELD_KEY, DRAG_NEW_TYPE, FIELD_ICONS } from './field-icons'
+import { DRAG_FIELD_KEY, DRAG_NEW_TYPE, DRAG_SOURCE_FIELD, FIELD_ICONS } from './field-icons'
+import { singleTokenPath } from '@/lib/forms/workflow-data'
+import { TokenPill } from './workflow-data-panel'
 
 /**
  * The designer's grid: rows of 1–4 columns holding field cards. Drag a type
@@ -37,8 +40,12 @@ const SPAN = ['', 'col-span-1', 'col-span-2', 'col-span-3', 'col-span-4']
 /** A row's toolbar shows on hover or focus (always on touch). */
 const ROW_TOOLS = 'opacity-0 transition-opacity duration-[var(--ds-dur-fast)] group-hover/row:opacity-100 group-focus-within/row:opacity-100 [@media(pointer:coarse)]:opacity-100'
 
-export function GridCanvas({ state, selectedId, problems, onSelect, onChange, announce, sections = [], selectedSection = null, onSelectSection = () => {}, sectionProblems = {}, depth = 0, onAdopt }: {
+export function GridCanvas({ state, selectedId, problems, onSelect, onChange, announce, sections = [], selectedSection = null, onSelectSection = () => {}, sectionProblems = {}, depth = 0, onAdopt, onDropSource, tokenLabels }: {
   state: DesignerState
+  /** Workflow data (lib/forms/workflow-data.ts): token path → label; a field whose default is one shows it as a pill. */
+  tokenLabels?: Map<string, string>
+  /** A data source field (the Data panel) dropped here: the designer binds it and places the new field (the form's own grid only). */
+  onDropSource?: (sourceKey: string, at: { row: number; index: number } | null, section?: string) => void
   /** Repeating sections around this grid (0 = the form's own grid). */
   depth?: number
   /** A field from the outer grid dropped here (an inner grid): the outer grid moves it in. */
@@ -60,9 +67,10 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
   const sectionsByKey = new Map(sections.map((s) => [s.key, s]))
 
   /** Drop at a section's foot: a new field (palette) or a moved one goes to the end of the section. */
+  const accepts = (e: React.DragEvent) => [...e.dataTransfer.types].some((t) => t === DRAG_NEW_TYPE || t === DRAG_FIELD_KEY || (t === DRAG_SOURCE_FIELD && Boolean(onDropSource)))
   const sectionDropProps = (id: string, sectionKey: string) => ({
     onDragOver: (e: React.DragEvent) => {
-      if (![...e.dataTransfer.types].some((t) => t === DRAG_NEW_TYPE || t === DRAG_FIELD_KEY)) return
+      if (!accepts(e)) return
       e.preventDefault()
       e.stopPropagation()
       if (dropTarget !== id) setDropTarget(id)
@@ -72,6 +80,8 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
       e.preventDefault()
       e.stopPropagation()
       setDropTarget(null)
+      const sourceKey = e.dataTransfer.getData(DRAG_SOURCE_FIELD)
+      if (sourceKey && onDropSource) { onDropSource(sourceKey, null, sectionKey); return }
       const type = e.dataTransfer.getData(DRAG_NEW_TYPE) as TaskFieldType
       const key = e.dataTransfer.getData(DRAG_FIELD_KEY)
       if (type) {
@@ -99,6 +109,11 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
     e.preventDefault()
     e.stopPropagation()
     setDropTarget(null)
+    const sourceKey = e.dataTransfer.getData(DRAG_SOURCE_FIELD)
+    if (sourceKey) {
+      if (onDropSource) onDropSource(sourceKey, row >= state.layout.rows.length ? null : { row, index })
+      return
+    }
     const type = e.dataTransfer.getData(DRAG_NEW_TYPE) as TaskFieldType
     const key = e.dataTransfer.getData(DRAG_FIELD_KEY)
     if (type && refused(type)) { announce(refused(type)!); return }
@@ -126,10 +141,10 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
 
   const dropProps = (id: string, row: number, index: number) => ({
     onDragOver: (e: React.DragEvent) => {
-      if (![...e.dataTransfer.types].some((t) => t === DRAG_NEW_TYPE || t === DRAG_FIELD_KEY)) return
+      if (!accepts(e)) return
       e.preventDefault()
       e.stopPropagation()
-      e.dataTransfer.dropEffect = [...e.dataTransfer.types].includes(DRAG_NEW_TYPE) ? 'copy' : 'move'
+      e.dataTransfer.dropEffect = [...e.dataTransfer.types].some((t) => t === DRAG_NEW_TYPE || t === DRAG_SOURCE_FIELD) ? 'copy' : 'move'
       if (dropTarget !== id) setDropTarget(id)
     },
     onDragLeave: () => setDropTarget((t) => (t === id ? null : t)),
@@ -298,7 +313,13 @@ export function GridCanvas({ state, selectedId, problems, onSelect, onChange, an
                         {field.type === 'button' ? `Button · ${!field.button?.actions.length && (state.layout.rules ?? []).some((r) => r.event === 'button_click' && r.target === field.key && !r.disabled) ? 'Runs its click rules' : describeFieldButton(field.button)}` : field.type === 'heading' || field.type === 'divider' || field.type === 'display_image' ? TASK_FIELD_TYPE_LABELS[field.type] : field.key}
                         {cell.span > 1 && ` · span ${cell.span}`}
                       </p>
+                      {(() => {
+                        const path = tokenLabels?.size ? singleTokenPath(field.default) : null
+                        const label = path ? tokenLabels!.get(path) : undefined
+                        return label ? <p className="mt-0.5 flex min-w-0 items-center gap-1 text-2xs text-fg-muted">{field.read_only || field.type === 'label' ? 'Shows' : 'Starts with'} <TokenPill label={label} token={`{{${path}}}`} /></p> : null
+                      })()}
                       {problem && <p className="mt-0.5 text-2xs text-danger">{problem}</p>}
+                      {field.type === 'data_table' && <DataTableCanvasSummary config={field.data_table} />}
                     </div>
                   </div>
                 )

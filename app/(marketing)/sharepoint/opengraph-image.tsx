@@ -7,5 +7,5 @@ export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 
 export default function Image() {
-  return renderOgImage({ eyebrow: SHAREPOINT_PAGE.eyebrow, title: 'Workflows and forms for SharePoint Server.', subtitle: 'An add-in for 2016, 2019 and Subscription Edition: embedded forms, list-event triggers, the full REST API and InfoPath migration.' })
+  return renderOgImage({ eyebrow: SHAREPOINT_PAGE.eyebrow, title: 'Replace SharePoint 2010 workflows and InfoPath.', subtitle: 'An add-in for SharePoint Server 2016, 2019 and Subscription Edition. $7,500 USD per farm per year.' })
 }

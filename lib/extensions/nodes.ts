@@ -38,6 +38,8 @@ export interface ExtensionCatalogEntry {
   filters?: { config: string; fieldsFrom: string }
   /** Triggers: data source of "Test with the latest event". */
   previewFrom?: string
+  /** Triggers: the record behind a run (its values in run variable `variable`, its fields from data source `fieldsFrom`). */
+  record?: { variable: string; fieldsFrom: string; label?: string; idFrom?: string[] }
 }
 
 /** Lucide name in Pascal case for a manifest icon (SVG icons → fallback). */
@@ -60,7 +62,7 @@ export function extensionNodeCatalog(): ExtensionCatalogEntry[] {
       entries.push({
         type: extKey(m.id, t.key) as `ext.${string}`, label: t.label, icon: iconName(t.icon, 'Zap'), category: 'trigger', color: '#22C55E',
         description: t.description, extensionId: m.id, extensionName: m.name, key: t.key, inputs: t.config, outputs: t.variables, feature: t.feature, optionsFrom: t.optionsFrom,
-        ...(t.filters ? { filters: t.filters } : {}), ...(t.previewFrom ? { previewFrom: t.previewFrom } : {}),
+        ...(t.filters ? { filters: t.filters } : {}), ...(t.previewFrom ? { previewFrom: t.previewFrom } : {}), ...(t.record ? { record: t.record } : {}),
       })
     }
   }

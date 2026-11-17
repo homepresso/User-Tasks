@@ -221,7 +221,122 @@ export const importRowsEndpoint = defineEndpoint({
   async: true,
 })
 
+// ─── Grid views and inline cell writes (lib/grid/column-model.ts) ──────────
+
+const GRID_CONTROL_VALUES = ['text', 'multiline', 'number', 'currency', 'date', 'datetime', 'boolean', 'dropdown', 'autocomplete', 'multiselect', 'people', 'lookup', 'signature', 'file', 'link', 'rich_text', 'display'] as const
+
+export const gridColumnSchema = z.looseObject({
+  key: z.string().min(1).max(600).describe('The table column key'),
+  label: z.string().max(120).optional().describe('Header (default the key)'),
+  width: z.number().int().min(40).max(800).optional().describe('Width in px'),
+  control: z.enum(GRID_CONTROL_VALUES).optional().describe('How the cell is shown and edited (default inferred from the column type: longtext → multiline, select → dropdown, file → file, lookup → dropdown bound to the source table…)'),
+  control_options: looseObject.optional().describe('choices [{ value, label }] (dropdown / multiselect without a binding), currency, min, max, decimals, max_length, boolean_style (checkbox | toggle), multiple / allow_teams (people), formula (display), signature { mode, statement }, placeholder'),
+  binding: looseObject.optional().describe('dropdown / autocomplete / multiselect / lookup: options from a data table or an API reference — the form lookup config: source (table | reference), table_id or reference_id (+ integration_id, input_mappings, results_path), filters [{ column, operator, value }] (values may read {{row.<column>}} for cascading choices), sort { column, direction }, value_column / value_field (the stored id), display_columns / display_fields and label_template (what people see), search_columns, min_chars, max_results, cache_ttl_s, allow_free_text'),
+  editable: z.boolean().optional().describe('false: read-only — inline writes of this column are refused'),
+  required: z.boolean().optional(),
+  hidden: z.boolean().optional(),
+  format: looseObject.optional().describe('Display format (lib/formatting/cell-format.ts)'),
+})
+
+export const gridViewSchema = z.looseObject({
+  id: z.string().max(40).optional().describe('Stable view id (kept when given; generated otherwise)'),
+  name: z.string().min(1).max(80),
+  columns: z.array(gridColumnSchema).max(40).describe('The columns shown, in order'),
+  inline_edit: z.boolean().optional().describe('Allow inline editing (all rows): editable columns save per cell'),
+  open_in_edit_mode: z.boolean().optional().describe('With inline_edit: the grid opens in "Edit all rows" mode (every row editable at once, saved as one batch)'),
+  allow_add: z.boolean().optional(),
+  allow_delete: z.boolean().optional(),
+  page_size: z.number().int().min(10).max(500).optional().describe('Rows per page (default 100)'),
+  default: z.boolean().optional().describe('The view the grid opens on'),
+})
+
+export const tableViewsBody = z.object({ views: z.array(gridViewSchema).max(20).describe('Full replacement list of the table\'s grid views') })
+
+export const gridCellsBody = z.object({
+  view_id: z.string().min(1).max(40).describe('The saved view whose rules apply (inline editing on, editable columns only)'),
+  cells: z.record(z.string(), z.any()).describe('Column key → new value (typed by the column\'s control: text, number, YYYY-MM-DD, ISO date-time, true / false, a bound option\'s value, an array for multiselect, [{ kind, id }] for people, { name, url, path } for a file stored with this table)'),
+  expected_updated_at: z.string().max(40).nullable().optional().describe('The row\'s updated_at as you read it: a newer row is a 409 conflict instead of an overwrite (omit: last write wins)'),
+})
+
+export const gridOptionsBody = z.object({
+  column: z.string().min(1).max(600).describe('A bound column of the view'),
+  query: z.string().max(500).optional().describe('Typed text (autocomplete search; server-side)'),
+  resolve: z.array(z.union([z.string().max(1000), z.number()]).transform(String)).max(50).optional().describe('Resolve these stored values to their options (labels) instead of searching'),
+  row: z.record(z.string(), z.any()).optional().describe('The row being edited, for {{row.<column>}} in the binding (cascading)'),
+})
+
+const viewParams = z.object({ id: z.string().describe('Table id'), viewId: z.string().describe('View id (`default`: the built-in view)') })
+const viewsResponse = z.looseObject({ table_id: z.string(), views: z.array(looseObject), columns: z.array(looseObject) })
+
+export const getTableViewsEndpoint = defineEndpoint({
+  method: 'GET', path: '/data-tables/{id}/views', operationId: 'getDataTableViews', tags,
+  summary: 'Get a table\'s grid views (columns, controls, bindings, editing)', permission: 'data.view',
+  params: idParams, response: viewsResponse,
+  cli: { resource: 'tables', verb: 'views', positional: ['id'] },
+})
+
+export const updateTableViewsEndpoint = defineEndpoint({
+  method: 'PUT', path: '/data-tables/{id}/views', operationId: 'updateDataTableViews', tags,
+  summary: 'Replace a table\'s grid views', permission: 'data.edit_schema',
+  description: 'Per view: the columns shown and, per column, the control (signature pad, dropdown, autocomplete, multi-select, people, currency, rich text, calculated…), its binding to a data table or an API reference (filter, sort, value and display fields), editable / read-only, required and width; plus inline editing of all rows. Columns not in the table are dropped; a bound control without a source or choices is refused; bindings must name a table / read-only reference of this workspace.',
+  params: idParams, body: tableViewsBody, response: viewsResponse,
+  cli: { resource: 'tables', verb: 'set-views', positional: ['id'] },
+})
+
+export const writeRowCellsEndpoint = defineEndpoint({
+  method: 'PATCH', path: '/data-tables/{id}/rows/{rowId}/cells', operationId: 'writeDataRowCells', tags,
+  summary: 'Inline edit: write cells of a row through a grid view', permission: 'data.manage_rows',
+  description: `The view's rules are enforced on the server: inline editing must be on and every cell must be an editable column of the view (read-only, hidden and calculated columns are refused even when sent), typed by its control; bound values must be options of their source; people must be in this workspace; a new signature is stamped with the signer and time. With expected_updated_at a row changed since you read it answers 409 with the current row. ${TRIGGER_NOTE}`,
+  params: rowParams, body: gridCellsBody,
+  response: z.looseObject({ row: looseObject, updated_at: z.string(), changed: z.array(z.string()) }),
+  cli: { resource: 'rows', verb: 'cells', positional: ['id', 'rowId'] },
+})
+
+export const gridRowsBody = z.object({
+  view_id: z.string().min(1).max(40).describe('The saved view whose rules apply (inline editing on, editable columns only)'),
+  rows: z.array(z.object({
+    row_id: z.string().describe('Row id'),
+    cells: z.record(z.string(), z.any()).describe('Column key → new value (typed as for the single-row cells write)'),
+    expected_updated_at: z.string().max(40).nullable().optional().describe('The row\'s updated_at as you read it: a newer row comes back as a conflict for that row'),
+  })).max(500).optional().describe('Edited rows (at most 500 rows per call, new rows included)'),
+  inserts: z.array(z.object({
+    client_id: z.string().max(64).optional().describe('Your id for the new row, echoed in its outcome'),
+    cells: z.record(z.string(), z.any()).describe('Column key → value; every required editable column of the view must be filled'),
+  })).max(200).optional().describe('New rows (the view must allow adding rows)'),
+})
+
+const rowOutcome = z.looseObject({
+  row_id: z.string(),
+  status: z.enum(['saved', 'unchanged', 'conflict', 'invalid', 'not_found', 'forbidden', 'error']),
+  row: looseObject.optional(), updated_at: z.string().optional(), changed: z.array(z.string()).optional(),
+  error: z.string().optional(), cells: z.record(z.string(), z.string()).optional().describe('Column key → why that cell was refused'),
+  current: looseObject.nullable().optional().describe('Conflict: the row as it is now'),
+})
+
+export const writeRowsCellsEndpoint = defineEndpoint({
+  method: 'PATCH', path: '/data-tables/{id}/rows/cells', operationId: 'writeDataRowsCells', tags,
+  summary: 'Batch inline edit: write cells of many rows through a grid view', permission: 'data.manage_rows',
+  description: `"Edit all rows" in one call. Each row is checked exactly as the single-row cells write (inline editing on, editable columns only, typed by the control, bound values / people / files settled, the row's own access rules) and gets its own outcome: saved, unchanged, conflict (with the current row, when expected_updated_at is older than the row), invalid (cells: column → reason), not_found or forbidden. One row's refusal never stops the others and nothing is rolled back: re-send only the rows that failed. New rows (inserts) need the view's Add rows and every required editable column. Workflows: one data_table_event "updated" per row whose cells changed (unchanged and refused rows fire nothing) and one "created" per inserted row.`,
+  params: idParams, body: gridRowsBody,
+  response: z.looseObject({
+    table_id: z.string(), view_id: z.string(), rows: z.array(rowOutcome),
+    inserts: z.array(z.looseObject({ client_id: z.string(), status: z.enum(['saved', 'invalid', 'forbidden', 'error']), row: looseObject.optional(), error: z.string().optional(), cells: z.record(z.string(), z.string()).optional() })),
+    saved: z.number().int(), failed: z.number().int(),
+  }),
+  cli: { resource: 'rows', verb: 'cells-batch', positional: ['id'] },
+})
+
+export const gridOptionsEndpoint = defineEndpoint({
+  method: 'POST', path: '/data-tables/{id}/views/{viewId}/options', operationId: 'getDataGridColumnOptions', tags,
+  summary: 'Options of a bound grid column (search or resolve labels)', permission: 'data.view',
+  description: 'Runs the SAVED binding of the view\'s column: a data table with your own access, an API reference server-side with the workspace\'s credentials (cached per its cache_ttl_s). Rate limited like form lookups.',
+  params: viewParams, body: gridOptionsBody,
+  response: z.looseObject({ items: z.array(z.looseObject({ value: z.string(), label: z.string(), description: z.string().optional(), fields: looseObject })), truncated: z.boolean().optional(), too_short: z.boolean().optional(), cached: z.boolean().optional() }),
+  cli: { resource: 'tables', verb: 'options', positional: ['id', 'viewId'] },
+})
+
 export const dataTableEndpoints = [
   listDataTablesEndpoint, createDataTableEndpoint, getDataTableEndpoint, updateDataTableEndpoint, deleteDataTableEndpoint,
   listRowsEndpoint, upsertRowsEndpoint, getRowEndpoint, updateRowEndpoint, deleteRowEndpoint, bulkDeleteRowsEndpoint, importRowsEndpoint,
+  getTableViewsEndpoint, updateTableViewsEndpoint, writeRowCellsEndpoint, writeRowsCellsEndpoint, gridOptionsEndpoint,
 ]

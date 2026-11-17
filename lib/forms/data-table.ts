@@ -36,6 +36,11 @@ import { pathValue } from './lookup'
 import { CONTROLS_KEY, FORM_PARAMS_KEY, FORM_VARS_KEY, formContextPath } from './form-params'
 import { isCollectionPath, normalizeCollectionPath } from '@/lib/response-collections'
 import { defaultFormatKind, formatCellValue, isLocale, normalizeCellFormat, type CellFormat, type CellFormatKind, type FormattedCell } from '@/lib/formatting/cell-format'
+import {
+  BOUND_CONTROLS, READ_ONLY_CONTROLS, bindingForControl, coerceGridValue, gridColumnFromForm, gridColumnProblem, hasCustomControl, isGridControl, normalizeBinding, normalizeControlOptions,
+  type GridControl, type GridControlOptions,
+} from '@/lib/grid/column-model'
+import type { LookupConfig } from './lookup'
 
 export type DataTableSource = 'table' | 'reference'
 export type DataTableMode = 'display' | 'select' | 'edit'
@@ -77,6 +82,24 @@ export interface DataTableColumn {
   max_length?: number
   /** Width in px (a hint). */
   width?: number
+  /**
+   * The cell's control (lib/grid/column-model.ts — the shared column engine
+   * of form Data tables and the Data grid): signature pad, dropdown,
+   * autocomplete, multi-select, people, currency, rich text… Absent: the
+   * control the type implies. Editing and the server's checks follow it.
+   */
+  control?: GridControl
+  /** The control's own options (choices, currency, decimals, toggle, formula, signature mode…). */
+  control_options?: GridControlOptions
+  /**
+   * dropdown / autocomplete / multi-select / lookup: the options from a data
+   * table or an API reference (the Autocomplete field's lookup config — filter,
+   * sort, value and display columns, display template, search, caching). Its
+   * filters may read the same row ({{row.<column>}}: cascading) and the form
+   * ({{form.x}}). Run by the server from the SAVED form (forms.lookup with the
+   * key `<field>.<column>`), with the same permission rules as an Autocomplete.
+   */
+  binding?: LookupConfig
 }
 
 export type DataTableOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'starts_with' | 'ends_with' | 'in' | 'is_set' | 'is_not_set'
@@ -168,6 +191,16 @@ export interface DataTableFieldConfig {
   on_submit_pending?: 'exclude' | 'block' | 'commit'
   /** Edit mode: pending rows show ✓ Commit and ✕ Discard on the row. */
   row_commit_controls?: boolean
+  /** Edit mode: the table opens in "Edit all rows" (every row's cells editable at once) instead of one cell at a time. */
+  open_in_edit_mode?: boolean
+  /**
+   * When the rows load again. Always when the form opens; by default also
+   * when a field the source reads ({{form.x}}, params, variables) changes —
+   * false: only on open and by the Refresh button / a rule's Refresh.
+   */
+  refresh_on_change?: false
+  /** A Refresh button above the table (people reload the rows themselves). */
+  refresh_button?: boolean
 }
 
 export const DATA_TABLE_LIMITS = {
@@ -252,7 +285,21 @@ function normalizeColumn(raw: unknown, source: DataTableSource): DataTableColumn
   }
   const width = intIn(raw.width, 40, 800)
   if (width !== undefined) col.width = width
+  if (isGridControl(raw.control)) {
+    col.control = raw.control
+    const options = normalizeControlOptions(raw.control, raw.control_options)
+    if (options) col.control_options = options
+    if (BOUND_CONTROLS.has(raw.control)) {
+      const binding = bindingForControl(raw.control, normalizeBinding(raw.binding))
+      if (binding) col.binding = JSON.parse(JSON.stringify(binding))
+    }
+  }
   return col
+}
+
+/** Whether a column's cells are never edited (a calculated / display control). */
+export function isDisplayColumn(col: Pick<DataTableColumn, 'control'>): boolean {
+  return Boolean(col.control && READ_ONLY_CONTROLS.has(col.control))
 }
 
 function normalizeCondition(raw: unknown): DataTableCondition | null {
@@ -351,6 +398,7 @@ export function normalizeDataTableConfig(raw: unknown): DataTableFieldConfig {
     if (src.allow_delete === true) out.allow_delete = true
     if (src.on_submit_pending === 'exclude' || src.on_submit_pending === 'commit') out.on_submit_pending = src.on_submit_pending
     if (src.row_commit_controls === true) out.row_commit_controls = true
+    if (src.open_in_edit_mode === true) out.open_in_edit_mode = true
   }
   if (mode !== 'display') {
     const cap = mode === 'select' ? DATA_TABLE_LIMITS.maxSelected : DATA_TABLE_LIMITS.maxChanges
@@ -360,6 +408,8 @@ export function normalizeDataTableConfig(raw: unknown): DataTableFieldConfig {
   if (source === 'table' && src.open_access === true) out.open_access = true
   if (src.anonymous_read === true) out.anonymous_read = true
   if (src.full_width === true) out.full_width = true
+  if (src.refresh_on_change === false) out.refresh_on_change = false
+  if (src.refresh_button === true) out.refresh_button = true
   return out
 }
 
@@ -398,7 +448,8 @@ export function referencedColumns(config: DataTableFieldConfig): string[] {
  */
 export function dataTableConfigProblem(config: DataTableFieldConfig | undefined): string | null {
   if (!config) return 'Choose where the rows come from'
-  if (config.source === 'table' && !config.table_id) return 'Choose a data table'
+  // Nothing chosen yet (a new control): where the rows come from, in the designer's words.
+  if (config.source === 'table' && !config.table_id) return config.columns.length ? 'Choose a data table' : 'Get rows from: choose a data table or an API'
   if (config.source === 'reference' && !config.reference_id) return 'Choose an API reference'
   if (!config.columns.length) return 'Choose at least one column'
   if (!config.columns.some((c) => !c.hidden)) return 'Show at least one column'
@@ -413,6 +464,11 @@ export function dataTableConfigProblem(config: DataTableFieldConfig | undefined)
     if (config.source === 'reference' && !known.has(s.column)) return `The sort uses "${s.column}", which is not one of the columns`
   }
   for (const c of config.columns) {
+    if (hasCustomControl(c) || c.binding) {
+      const problem = config.mode === 'edit' && !c.read_only ? gridColumnProblem(gridColumnFromForm(c)) : null
+      if (problem) return problem
+      continue
+    }
     if (c.type === 'choice' && config.mode === 'edit' && !c.read_only && !(c.options ?? []).length) return `Column "${c.label}": add the choices`
     if (c.min !== undefined && c.max !== undefined && c.min > c.max) return `Column "${c.label}": minimum is greater than maximum`
   }
@@ -931,6 +987,8 @@ export function changeCount(value: unknown): number {
 
 /** Coerce one cell to its column type; returns an error message instead when it doesn't fit. */
 export function coerceCell(col: DataTableColumn, raw: unknown): { value: unknown } | { error: string } {
+  // A picked control (signature, multi-select, people, currency, rich text…): the shared engine's rules.
+  if (hasCustomControl(col)) return coerceGridValue({ ...gridColumnFromForm(col), required: false }, raw)
   if (raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '')) {
     return col.type === 'boolean' ? { value: false } : { value: null }
   }
@@ -990,17 +1048,17 @@ export function changedFields(config: DataTableFieldConfig, before: Record<strin
 /** Columns people may change on an existing row (not read-only, not hidden, not the key column). */
 export function editableColumns(config: DataTableFieldConfig): DataTableColumn[] {
   const key = dataTableKeyColumn(config)
-  return config.columns.filter((c) => !c.read_only && !c.hidden && c.key !== key)
+  return config.columns.filter((c) => !c.read_only && !c.hidden && !isDisplayColumn(c) && c.key !== key)
 }
 
 /** Columns people may fill on a new row (not read-only, not hidden; the key column too). */
 export function addableColumns(config: DataTableFieldConfig): DataTableColumn[] {
-  return config.columns.filter((c) => !c.read_only && !c.hidden)
+  return config.columns.filter((c) => !c.read_only && !c.hidden && !isDisplayColumn(c))
 }
 
 /** Columns a new row may carry: the addable ones, plus read-only / hidden columns a default fills ("New row"). */
 export function insertableColumns(config: DataTableFieldConfig): DataTableColumn[] {
-  return config.columns.filter((c) => (!c.read_only && !c.hidden) || c.default !== undefined)
+  return config.columns.filter((c) => !isDisplayColumn(c) && ((!c.read_only && !c.hidden) || c.default !== undefined))
 }
 
 function cleanRow(config: DataTableFieldConfig, raw: unknown, errors: string[], label: string, keep: 'editable' | 'addable' | 'all', requireAll: boolean): Record<string, unknown> {
@@ -1054,7 +1112,7 @@ export function validateChangeSet(config: DataTableFieldConfig, raw: unknown): {
   }
   // Read-only columns (lib/forms/row-rules.ts): an existing row's read-only cell never changes. A change the
   // browser marked as such (changed_fields naming it) is tampering — refused; any other stray value is dropped (warned).
-  const locked = config.columns.filter((c) => c.read_only || c.hidden).map((c) => c.key)
+  const locked = config.columns.filter((c) => c.read_only || c.hidden || isDisplayColumn(c)).map((c) => c.key)
   const keyCol = dataTableKeyColumn(config)
   updated.forEach((entry) => {
     if (!isPlainObject(entry) || !isPlainObject(entry.after)) return

@@ -484,6 +484,23 @@ Either way, the designer has three parts:
 - **Grid** (centre): rows of 1 to 4 columns. Choose the column count per row, add, move and remove rows, drag fields between cells, and set how many columns a field spans. Dropping onto a full row puts the field in a new row below it.
 - **Properties** (right): the selected field's label, key, type, width, help text, placeholder, required, read-only, default value (expressions and the **Insert data** picker work), validation (min / max, length, pattern with a message, date range, selection count), options with values and labels (or loaded from a data table column when the task is created) and **Visible when** (show the field only when another field equals / doesn't equal / contains a value, or has a value). The **Form theme** tab styles the form.
 
+### Workflow data in a task's form
+
+When you design a User Task's form from its step (**Form → Design form**, or **Open form page** on a step that links a saved form — the page opens with \`?workflow=<id>&step=<step id>\`, also inside an embedded designer), the **Data** panel lists everything the task can use at that step, grouped and searchable:
+
+- **List item** — the columns of the item that started the run (a SharePoint list or library item, a data table row), with their types and choices, system and read-only columns included, and the trigger's other values (item id, URL, list title…);
+- **Start inputs** — the workflow's input parameters and the fields of a form or task that started it;
+- **Variables** — Set Variable results and the current loop item;
+- **Earlier steps** — earlier tasks' outcomes and form fields, lookups, HTTP and reference results.
+
+Drag an entry onto the grid (or select it and press Enter). It becomes the control for its type — text, long text, number, currency, date, person, single select with its choices, checkbox, an **Autocomplete** bound to a lookup column's list, or read-only display text for attachments and files — labelled with the column's name. **Add as** chooses how: **Prefill from list data** (the default for list columns: the field starts with the item's value and can be changed; on a form whose Save rule writes the item, the field is also mapped back to the same column), **Show read-only**, or **Empty field** (only the type and label). Change it later in the field's **Workflow data** property. **Prefill all fields from list data** fills every field without a default whose key or label matches a column.
+
+The binding is the field's default — \`{{after.Title}}\` — resolved by the engine when the task is created, like any default. Fields prefilled from the list item also follow the item: when the task **opens**, the item is read again and a field that still holds the value it was given shows the item's current value; a field someone already changed (typed in, saved as a draft, set by a rule) keeps its value. The grid shows the token as a labelled pill and **Preview** shows a sample value. Credential-shaped columns (passwords, tokens, secrets) are never offered or copied.
+
+**Workflow variables in any value.** Designed from a workflow step, every place you can type a value in the designer — labels and help text, defaults, visibility and validation conditions, rule conditions and actions, Set a variable and Save to SharePoint mappings, button steps, Data table and lookup filters, dynamic values, the submitted and task completed messages — also lists that step's workflow data in its picker, grouped **Workflow · List item / Start inputs / Variables / Earlier steps**. They are filled in on the server when the task is created and again when it opens, from the run's current values; the form's own values (\`{{form.x}}\`, \`{{user.*}}\`, dates…) work as always, and credential-shaped variables are never filled in. A form designed on its own shows none of them.
+
+**Form values downstream.** When the task completes, every field is available to the later steps — \`{{task_data.<key>}}\` (the latest task's) and \`{{<step>_task_data.<key>}}\` (this step's), typed and listed under the step's name in the workflow's pickers, with the outcome, comments, completed by / at, attachments and \`{{<step>_responses}}\` (every response of a multi-assignee task: who, outcome, comment, when; the form values are the task's, so the last response's values are \`task_data\`). Repeating sections and Data tables come through as lists a Loop can walk. Adding, renaming or removing a field updates the pickers, and a reference to a field that no longer exists is a warning on the step. **Save to workflow variables** on the User Task overwrites a workflow variable with a field's value (offered for a field prefilled from that variable). A field whose key names a secret (password, passphrase, secret, private key) stays out of the workflow unless it sets \`expose_downstream\`.
+
 **Preview** shows exactly what the assignee sees, in light or dark mode and at desktop or phone width, with **Check validation** to try the rules. On phones every row collapses to one column.
 
 The designer has undo and redo (**Ctrl+Z**, **Ctrl+Shift+Z** or **Ctrl+Y** outside text boxes) and asks before you leave unsaved changes: closing the dialog, or following a link away from the page (reloading or closing the tab asks too).
@@ -760,7 +777,9 @@ Renaming a key that later steps use opens a list of those references (step, sett
 
 ## Autocomplete lookup fields
 
-An **Autocomplete / lookup** field suggests values as the assignee types, from a **data table** or an **API reference**, and stores the one they pick.
+An **Autocomplete / lookup** field suggests values as the assignee types, from a **data table**, a **connected list** (a list an extension provides, such as a SharePoint list or the list a SharePoint lookup column points at) or an **API reference**, and stores the one they pick.
+
+**Connected list.** Choose the list, then search, show and value columns, filters, sort, several selections and fill exactly as for a data table. The list is searched on the server as people type, one page at a time, so large lists work; a filter value such as \`{{task_data.country}}\` makes a cascade (no suggestions until that field has a value). The stored value is the item's **ID** by default — what a SharePoint lookup column saves, so an Autocomplete bound to a lookup column (its **Bound to**) writes the right item. A **single select** (dropdown) can take its options from a connected list too: **Where the options come from → Connected list** (value and label columns, filter — every condition must hold, cascading the same way — and sort).
 
 **Data table.** Choose the table, the **columns to search** (one or more, matched case-insensitively — *contains* or *starts with*), the **columns to show** (the first is the main text of a suggestion, the others its second line) and the column **stored as the value** (the row id by default). **Only rows where** adds fixed filters (column, operator, value); a value can use another field of the form (\`{{task_data.region}}\`), the task (\`{{task.title}}\`) or a workflow variable (resolved when the task is created). Set a sort, the maximum number of suggestions (default 10) and the minimum characters before searching (default 1).
 
@@ -805,16 +824,43 @@ A **Data table** field (palette group **Data**) puts a table on the form: rows f
 
 ::image forms-data-table | A form with a Data table of vendors: a search box, an open Filters panel (Risk equals Low), a Name sort, status badges for category and risk, and a row count | A Data table bound to a data table: search, a column filter and a sort, all run on the server.
 
+### Edit all rows (Editable mode)
+
+An editable Data table edits one cell at a time by default. **Edit all** above the table (or **Shift+E** in the table) makes every row editable at once. You type, **Tab** / **Enter** / arrows to move, **Esc** to put a cell back, paste a block from a spreadsheet (values are converted per column; ones that don't fit are marked), **Ctrl/⌘+D** to fill down and **Ctrl/⌘+Z** to undo. **Add row** adds rows at the bottom when the table allows adding. Read-only columns and deleted rows stay read-only. Each change goes into the field's value as a whole, as \`updated\` / \`added\` rows like single edits, so **Cell changed** rules and **For each changed row** rules work the same. **Done** keeps the changes in the form (they are saved when it is submitted), and **Cancel** puts the table back as it was before you pressed Edit all. In the designer, **Always open in edit mode** under *What people can do* opens the table this way.
+
+### Get rows from an API, step by step
+
+Select the Data table on the canvas. Its properties start with **Get rows from…**:
+
+::image forms-data-table-get-rows-from | The form designer with a new Data table selected: the canvas card says "Get rows from…" and the properties panel offers A data table, An API and Type them in | A new Data table asks where its rows come from.
+
+1. **Choose An API.** Pick a saved API under **Which API?**, or choose **New API from a web address** and paste the address you would open in a browser, for example \`https://billing.example.com/invoices?status=open\`. UserTasks reuses your connection to that site if you have one (otherwise it makes one, and asks whether the API needs a key). The parameters in the address become settings you can fill in from the form. **Open its settings** goes to the full reference settings in Integrations.
+2. **What to send.** Each parameter is listed in plain words. Parameters named like a field on the form are filled in for you (a \`status\` parameter reads the **Invoice status** field), and \`search\`, \`page\` and \`per_page\`-style parameters are connected to the table's search box and pages. Type a fixed value, or press **{x}** to pick a form field, a workflow variable or the current user. **Fill in from matching fields** runs the matching again.
+3. **Test it.** **Test** calls the API once. Parameters that come from the form get a test value box. When it works you see how many rows came back; when it doesn't, you see what went wrong in plain words and how to fix it. For example, *The API needs a key or a sign-in* comes with a link to the reference settings.
+4. **Pick the rows.** The response is shown as badges. Lists show their row count (\`invoices · 6 rows\`), and lists inside each row show as **items (per row)**. Fields show a type icon and an example value. The most likely list of records is picked for you, marked **rows in use**. To use another list, drag its badge, or click it and choose **Use as rows**. You never type a path.
+5. **Columns to show.** A column is made for every field of the rows, with a type, a format and a label: amounts as US dollars, dates as dates, \`customer.name\` as *Customer name*. The first six are ticked. Tick the ones you want, or drag a field badge onto the list (or click it and choose **Add as column**). The test's first rows are shown as the table will show them, and the canvas shows them too, under **Rows from: List invoices · Refresh**.
+6. **When to load the rows.** The rows always load when the form opens. Untick **Again when a field it uses changes** to load them only then. Tick **Show a Refresh button** to let people reload them. When the API pages its results, tick **Let the API send one page at a time**.
+
+::image forms-data-table-api | The Data table's API picker after a test: the response badges with "invoices · 6 rows" in use, the Columns to show checklist (ID, Number, Customer name, Customer city, Amount USD, Status and the dragged-in Paid ticked), sample rows with USD amounts and status badges, and the canvas card "Rows from: List invoices · Refresh" with the same rows | Badges, ticked columns and sample rows; the canvas shows the same rows.
+
+**Type them in** turns the control into a [List](#list-fields-repeating-rows): people type the rows into the form instead.
+
+#### Choices for a dropdown column from an API
+
+A Data table column (or a [Data grid](/docs/data-tables) column) shown as a **Dropdown**, **Autocomplete**, **Multi-select** or **Lookup** can take its choices from an API in the same way. Choose **A data table or API**, then **An API**, pick or create the API and **Test** it. Under **What people pick**, set **What people see** (usually a name) and **What is stored** (usually its id). Drag a field badge onto either one, or pick from the list. Search, filters, labels and caching are under **All settings**.
+
+::image data-grid-api-choices | The Data grid's View settings: a Customer column shown as a Dropdown with its choices from the List customers API, the response badges (response · 6 rows) and a city badge being dragged onto "What people see", which is highlighted | A dropdown column's choices from an API: drag a field onto what people see or what is stored.
+
 ### Set up the query (designer)
 
 Everything the server runs is set by the form's author on the field's properties and stored in the form:
 
-- **Rows from** — a data table, or an API reference (connector operations are references too).
+- **Rows from**: a data table, or an API reference (connector operations are references too). See [Get rows from an API, step by step](#get-rows-from-an-api-step-by-step).
 - **Columns** — add columns with the searchable picker (the table's columns, or the fields of the API's results list from its response model), reorder them, rename them, choose the type (text, number, date, date & time, choice, yes / no) and the **display format**, hide a column (fetched for the value and rules, not drawn), and tick **People can sort** / **People can filter** per column. Only these columns are ever sent to the browser — the projection is applied on the server, for API sources too.
 - **Row key** — the column that identifies a row (a data table's own row id by default). Select and edit modes need it.
 - **Base filter (always applied)** — a visual condition builder: column, operator (equals, does not equal, greater / less than, at least / at most, contains, starts with, is one of, is not empty, is empty) and value, combined with **All (AND)** or **Any (OR)**, with one level of nested groups. A value is a constant or an expression: another field (\`{{form.region}}\`), the current user (\`{{user.id}}\`, \`{{user.email}}\`, \`{{user.name}}\`), a date (\`{{today}}\`, \`{{now}}\`, \`{{today-30d}}\`, \`{{today+1m}}\`, \`{{start_of_month}}\`, \`{{start_of_year}}\`) or a workflow variable (resolved when the task is created). The table refreshes when a field it reads changes.
 - **Sort and paging** — a default sort on up to three columns, the rows per page (at most 100), the search box on or off, and a fixed locale for formats (the viewer's by default).
-- **Live preview** — **Run the query** runs the real query on the server (with your access and the live preview's form values) and shows the first page and the row count.
+- **Live preview** — **Show the rows as people will see them** runs the real query on the server (with your access and the live preview's form values) and shows the first page and the row count.
 
 ::image forms-data-table-designer | The form designer with a Data table selected: the base filter (Active equals true AND Terms at least form.min_terms), sort and paging, and the live preview listing the first rows and "7 rows match" | The field's query in the designer, with the live preview.
 
@@ -822,7 +868,7 @@ Everything the server runs is set by the form's author on the field's properties
 
 ### API sources
 
-Map the reference's inputs to the table's state: \`{{search}}\`, \`{{page}}\` (1-based), \`{{page_size}}\`, \`{{offset}}\`, \`{{sort}}\` and \`{{sort_dir}}\`, \`{{filter.<column>}}\`, as well as form values, the user and dates. Choose the **rows list** from the response model and, when the API pages itself, the path of its **total count**. What isn't mapped is applied by the server to the rows the API returned (at most 1,000) — the designer says which — and the base filter is always applied there too. When the API pages itself, a filter or search the server applies covers that page only; the table says so under the rows. Credentials stay on the server.
+The guided steps above set all of this for you. For reference, they map the reference's inputs to the table's state: \`{{search}}\`, \`{{page}}\` (1-based), \`{{page_size}}\`, \`{{offset}}\`, \`{{sort}}\` and \`{{sort_dir}}\`, \`{{filter.<column>}}\`, as well as form values, the user and dates. Choose the **rows list** from the response model and, when the API pages itself, the path of its **total count**. What isn't mapped is applied by the server to the rows the API returned (at most 1,000) — the designer says which — and the base filter is always applied there too. When the API pages itself, a filter or search the server applies covers that page only; the table says so under the rows. Credentials stay on the server.
 
 #### Pick a list from a nested response
 

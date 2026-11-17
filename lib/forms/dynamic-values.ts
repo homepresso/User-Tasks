@@ -49,9 +49,9 @@ import { CONTROLS_KEY, FORM_PARAMS_KEY, FORM_VARS_KEY } from './form-params'
 import { isCollectionPath, normalizeCollectionPath } from '@/lib/response-collections'
 import type { ControlPropSpec, ControlPropType } from './custom-controls/contract'
 
-export type DynamicBindingKind = 'expr' | 'table' | 'reference'
-export const DYNAMIC_BINDING_KINDS: DynamicBindingKind[] = ['expr', 'table', 'reference']
-export const DYNAMIC_BINDING_KIND_LABELS: Record<DynamicBindingKind, string> = { expr: 'Expression', table: 'Data table', reference: 'API reference' }
+export type DynamicBindingKind = 'expr' | 'table' | 'reference' | 'extension'
+export const DYNAMIC_BINDING_KINDS: DynamicBindingKind[] = ['expr', 'table', 'reference', 'extension']
+export const DYNAMIC_BINDING_KIND_LABELS: Record<DynamicBindingKind, string> = { expr: 'Expression', table: 'Data table', reference: 'API reference', extension: 'Connected list' }
 
 /** What a property expects (the binding's result is coerced to it, or refused). */
 export type DynamicValueType = 'string' | 'number' | 'boolean' | 'date' | 'options' | 'string_list' | 'list' | 'object' | 'any'
@@ -103,8 +103,22 @@ export interface ReferenceBinding extends SourceShape {
   results_path?: string
   expects?: DynamicValueType
 }
-export type DynamicBinding = ExprBinding | TableBinding | ReferenceBinding
-export type SourceBinding = TableBinding | ReferenceBinding
+/**
+ * A list an extension offers as a lookup source (ServerExtension.lookupSources,
+ * e.g. a connected SharePoint list): read by its provider with the filter's
+ * conditions (all must hold; values resolved — cascading reads other fields),
+ * the sort and the limit.
+ */
+export interface ExtensionBinding extends SourceShape {
+  kind: 'extension'
+  extension: string
+  provider: string
+  source_id: string
+  source_label?: string
+  expects?: DynamicValueType
+}
+export type DynamicBinding = ExprBinding | TableBinding | ReferenceBinding | ExtensionBinding
+export type SourceBinding = TableBinding | ReferenceBinding | ExtensionBinding
 export type DynamicBindings = Record<string, DynamicBinding>
 
 export const DYNAMIC_LIMITS = {
@@ -196,10 +210,10 @@ function str(raw: unknown, max: number): string | undefined {
   return s ? s.slice(0, max) : undefined
 }
 
-function sourceKey(kind: 'table' | 'reference', raw: unknown): string | undefined {
+function sourceKey(kind: 'table' | 'reference' | 'extension', raw: unknown): string | undefined {
   const s = str(raw, 200)
   if (!s || UNSAFE.test(s)) return undefined
-  return (kind === 'table' ? COLUMN_RE : PATH_RE).test(s) ? s : undefined
+  return (kind === 'reference' ? PATH_RE : COLUMN_RE).test(s) ? s : undefined
 }
 
 function intIn(raw: unknown, min: number, max: number): number | undefined {
@@ -211,7 +225,7 @@ function normalizeExpects(raw: unknown): DynamicValueType | undefined {
   return typeof raw === 'string' && raw in DYNAMIC_VALUE_TYPE_LABELS ? raw as DynamicValueType : undefined
 }
 
-function normalizeShape(kind: 'table' | 'reference', src: Record<string, unknown>, out: SourceShape) {
+function normalizeShape(kind: 'table' | 'reference' | 'extension', src: Record<string, unknown>, out: SourceShape) {
   const value = sourceKey(kind, src.value)
   const label = sourceKey(kind, src.label)
   if (value) out.value = value
@@ -265,6 +279,20 @@ export function normalizeDynamicBinding(raw: unknown): DynamicBinding | null {
     if (expects) out.expects = expects
     return out
   }
+  if (raw.kind === 'extension') {
+    const extension = typeof raw.extension === 'string' && /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(raw.extension) ? raw.extension : ''
+    const provider = typeof raw.provider === 'string' && /^[a-z][a-z0-9_]{0,40}$/.test(raw.provider) ? raw.provider : ''
+    const sourceId = str(raw.source_id, 200)
+    if (!extension || !provider || !sourceId) return null
+    const out: ExtensionBinding = { kind: 'extension', extension, provider, source_id: sourceId }
+    const label = str(raw.source_label, 200)
+    if (label) out.source_label = label.replace(/[<>]/g, '')
+    normalizeShape('extension', raw, out)
+    // Connected lists filter on every condition (no "any" groups).
+    if (out.base_filter && (out.base_filter.match !== 'all' || out.base_filter.conditions.some((c) => 'conditions' in c))) out.base_filter = { match: 'all', conditions: groupConditions(out.base_filter) }
+    if (expects) out.expects = expects
+    return out
+  }
   if (raw.kind === 'reference') {
     const referenceId = str(raw.reference_id, 64)
     if (!referenceId) return null
@@ -309,7 +337,7 @@ export function normalizeDynamicBindings(raw: unknown, field: FieldLike): Dynami
 }
 
 export function isSourceBinding(binding: DynamicBinding | null | undefined): binding is SourceBinding {
-  return binding?.kind === 'table' || binding?.kind === 'reference'
+  return binding?.kind === 'table' || binding?.kind === 'reference' || binding?.kind === 'extension'
 }
 
 /** Problems the designer flags for a field's bindings (key → message; none = {}). */
@@ -536,8 +564,9 @@ export function bindingColumns(binding: SourceBinding): string[] {
  */
 export function bindingQueryConfig(binding: SourceBinding, types?: Record<string, DataTableColumnType>): DataTableFieldConfig {
   const columns = bindingColumns(binding).map((key) => ({ key, label: key, type: types?.[key] ?? 'text' as DataTableColumnType }))
-  const out: DataTableFieldConfig = { source: binding.kind, mode: 'display', columns }
-  if (binding.kind === 'table') {
+  // A connected list reads through its provider; the config only carries the filter templates, sort and projection.
+  const out: DataTableFieldConfig = { source: binding.kind === 'extension' ? 'table' : binding.kind, mode: 'display', columns }
+  if (binding.kind === 'extension') { /* no table / reference */ } else if (binding.kind === 'table') {
     out.table_id = binding.table_id
     if (binding.open_access) out.open_access = true
   } else {
@@ -645,7 +674,7 @@ export function anonymousDynamicSources(fields: Array<FieldLike & { key: string;
 /** A short description of a binding (designer chips, read-outs). */
 export function describeBinding(binding: DynamicBinding, names: { table?: string; reference?: string } = {}): string {
   if (binding.kind === 'expr') return binding.expr.length > 60 ? `${binding.expr.slice(0, 57)}…` : binding.expr
-  const what = binding.kind === 'table' ? `table ${names.table ?? binding.table_id.slice(0, 8)}` : `API ${names.reference ?? binding.reference_id.slice(0, 8)}`
+  const what = binding.kind === 'table' ? `table ${names.table ?? binding.table_id.slice(0, 8)}` : binding.kind === 'extension' ? `list ${binding.source_label ?? binding.source_id.slice(0, 20)}` : `API ${names.reference ?? binding.reference_id.slice(0, 8)}`
   const cols = bindingColumns(binding)
   const filtered = binding.base_filter ? ', filtered' : ''
   return `${what}${cols.length ? ` · ${cols.join(', ')}` : ''}${filtered}`

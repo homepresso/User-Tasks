@@ -19,9 +19,20 @@ export const SITE_NAME = 'UserTasks'
  * marketing copy changes; never derive it from the build time (a value that
  * changes on every deploy tells crawlers nothing).
  */
-export const SITE_CONTENT_UPDATED = '2026-11-13'
+export const SITE_CONTENT_UPDATED = '2026-11-16'
 /** Same, for the generated docs under /docs. */
-export const DOCS_UPDATED = '2026-11-14'
+export const DOCS_UPDATED = '2026-11-16'
+
+/**
+ * Edition status, stated the same way everywhere (pages, docs, llms.txt):
+ * UserTasks Cloud is in beta; self-hosted UserTasks is production-ready.
+ * Never a schema field: structured data mentions it in description text only.
+ */
+export const EDITION_STATUS = {
+  cloud: 'UserTasks Cloud is in beta and free during the beta.',
+  selfHosted: 'Self-hosted UserTasks is production-ready: install it on your own servers with Docker, Kubernetes or air-gapped today.',
+  short: 'UserTasks Cloud is in beta; self-hosted UserTasks is production-ready.',
+} as const
 
 /** The one-sentence definition used across the site, llms.txt and structured data. */
 export const PRODUCT_DEFINITION = 'UserTasks is an open-source (Apache-2.0) workflow, forms and tasks platform: a visual workflow designer, a grid form designer, one task list for approvals, data tables and reports, integrations with any system and an optional AI Agent, driven by a REST API, an MCP server and a CLI. It runs in the UserTasks cloud, on Docker, on Kubernetes or air-gapped on your own servers.'
@@ -91,8 +102,8 @@ export function siteGraph(baseUrl: string, { description, repoUrl, featureList }
       operatingSystem: 'Web browser; self-hosted on Linux with Docker or Kubernetes',
       license: 'https://www.apache.org/licenses/LICENSE-2.0',
       isAccessibleForFree: true,
-      // True today: the cloud edition is free during the beta and self-hosting is free under Apache-2.0.
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Open source (Apache-2.0). The cloud edition is free during the beta.' },
+      // True today: self-hosting is free under Apache-2.0 and production-ready; the cloud edition is in beta and free during it. Status in text only.
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Open source (Apache-2.0). Self-hosted UserTasks is production-ready and free to run. UserTasks Cloud is in beta and free during the beta.' },
       ...(featureList?.length ? { featureList } : {}),
       publisher: { '@id': `${baseUrl}/#organization` },
       ...(repoUrl ? { sameAs: [repoUrl] } : {}),

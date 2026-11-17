@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { rateLimit as countHit } from '@/lib/rate-limit'
 import { isCloud, publicBaseUrl } from '@/lib/deployment'
-import { contactDeliveryConfigured, deliverChirp, escapeHtml } from '@/lib/contact/chirpme'
+import { escapeHtml } from '@/lib/contact/chirpme'
+import { notifyTeam, teamNotifyAvailable } from '@/lib/contact/team-requests'
 import { getDocPage } from '@/lib/docs/registry'
 
 /**
  * POST /api/docs-feedback — "Was this page helpful?" on the public docs
  * (components/docs/article-client.tsx). Deliberately open (signed-out
- * readers), cloud only, rate-limited per IP. Nothing is stored: the vote, the
- * page and an optional short comment go to the team's ChirpMe channel. No
- * name, email or IP is forwarded.
+ * readers), cloud only, rate-limited per IP. The vote, the page and an
+ * optional short comment become a team request (Settings → Requests) and a
+ * ChirpMe notification (lib/contact/team-requests). No name, email or IP is
+ * stored or forwarded.
  */
 const feedbackSchema = z.object({
   path: z.string().max(300).regex(/^\/docs(\/[a-z0-9/-]*)?$/),
@@ -34,21 +36,26 @@ export async function POST(request: NextRequest) {
   if (!parsed.success || !isDocsPath(parsed.data.path)) {
     return NextResponse.json({ error: 'Invalid feedback.' }, { status: 400 })
   }
-  if (!contactDeliveryConfigured()) {
+  if (!teamNotifyAvailable()) {
     // Readers still see their thanks; the vote is simply not forwarded.
     return NextResponse.json({ ok: true, delivered: false })
   }
 
   const { path, helpful, comment } = parsed.data
   const verdict = helpful ? 'helpful' : 'not helpful'
-  const delivered = await deliverChirp({
-    title: `Docs feedback: ${verdict}`,
-    body: `${path} was marked ${verdict}${comment ? ' with a comment' : ''}.`,
-    url: `${publicBaseUrl()}${path}`,
-    detail: `<h2>Docs feedback</h2><p><strong>Page:</strong> ${escapeHtml(path)}</p><p><strong>Helpful:</strong> ${helpful ? 'Yes' : 'No'}</p>${comment ? `<h3>Comment</h3><p>${escapeHtml(comment).replace(/\n/g, '<br>')}</p>` : ''}`,
-    notificationIcon: helpful ? 'thumb_up' : 'thumb_down',
-    subTab: 'Docs feedback',
-    subTabColor: '#B08A54',
-  }, 'docs-feedback')
+  const delivered = await notifyTeam({
+    kind: 'docs_feedback',
+    facts: { page: path, helpful, ...(comment ? { comment } : {}) },
+    logTag: 'docs-feedback',
+    message: {
+      title: `Docs feedback: ${verdict}`,
+      body: `${path} was marked ${verdict}${comment ? ' with a comment' : ''}.`,
+      url: `${publicBaseUrl()}${path}`,
+      detail: `<h2>Docs feedback</h2><p><strong>Page:</strong> ${escapeHtml(path)}</p><p><strong>Helpful:</strong> ${helpful ? 'Yes' : 'No'}</p>${comment ? `<h3>Comment</h3><p>${escapeHtml(comment).replace(/\n/g, '<br>')}</p>` : ''}`,
+      notificationIcon: helpful ? 'thumb_up' : 'thumb_down',
+      subTab: 'Docs feedback',
+      subTabColor: '#B08A54',
+    },
+  })
   return NextResponse.json({ ok: true, delivered: delivered.ok })
 }

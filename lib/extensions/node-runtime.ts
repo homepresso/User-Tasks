@@ -21,6 +21,7 @@ import { createExtensionContext } from './host'
 import { extensionCatalogEntry } from './nodes'
 import { getServerExtension } from './server-registry'
 import { extensionAccess, extensionAccessError } from './state'
+import { isWaitRequest } from './event-waits'
 
 export interface ExtensionNodeRunInput {
   node: { id: string; type: string; label: string; config: Record<string, unknown> }
@@ -89,6 +90,11 @@ export async function runExtensionNode(input: ExtensionNodeRunInput) {
     })) ?? {}
   } catch (error) {
     throw new ExtensionNodeError(`${entry.label}: ${error instanceof Error ? error.message : String(error)}`, 'failed')
+  }
+  // A step that waits for an event (ctx.runs.waitFor): the engine records the wait and pauses the run.
+  if (isWaitRequest(outputs)) {
+    input.log('info', `[${entry.label}] waits: ${outputs.__ext_wait.description}`, { extension: entry.extensionId, node: entry.key, wait_key: outputs.__ext_wait.key })
+    return { extension: entry.extensionId, node_key: entry.key, ext_wait: outputs.__ext_wait }
   }
   if (typeof outputs !== 'object' || Array.isArray(outputs)) outputs = { result: outputs }
   for (const [name, value] of Object.entries(outputs)) input.setVar(name, value)

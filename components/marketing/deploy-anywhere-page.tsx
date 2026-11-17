@@ -159,6 +159,7 @@ export function DeployAnywherePage() {
           icon={CloudCog}
           title={<>Start on Supabase. <span className="mkt-gradient-text">Move each piece when you’re ready.</span></>}
           intro={<>UserTasks splits its infrastructure into eleven areas — database, auth, storage, realtime, scheduler, email, secrets, KMS, cache, log export and directory sync — and each one has its own provider. Supabase is an excellent platform and our recommended way to run UserTasks: deploy on it with nothing else to configure. If you&rsquo;d like to use other services, move areas to <strong className="text-white">AWS</strong>, <strong className="text-white">Azure</strong>, <strong className="text-white">Google Cloud</strong> or <strong className="text-white">your own servers</strong> whenever you&rsquo;re ready, one checked, reversible switch at a time.</>}
+          bullets={["Production-ready for self-hosting today", "Supabase, AWS, Azure, Google Cloud or your own servers", "Air-gapped from a signed bundle"]}
           primary={{ href: "/docs/topologies", label: "Choose your topology" }}
           secondary={{ href: "/docs/self-hosting/choose", label: "Self-hosting guide" }}
         />

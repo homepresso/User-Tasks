@@ -47,6 +47,8 @@ regexes = [
   '''whsec-test-0123456789''',
   '''Bearer abcdefghijklmnopq''',
   '''AKIAABCDEFGHIJKLMNOP''',
+  # SharePoint internal field names in tests ("Approved Amount" encoded as _x0020_; verified 2026-11-16).
+  '''key: 'Approved_x0020_Amount''',
   # The crypto-ids gallery package's sample JWT (sub user-42, signed with its documented example secret).
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJzdWIiOiJ1c2VyLTQyIiwicm9sZSI6ImFwcHJvdmVyIiwiaXNzIjoidXNlcnRhc2tzIiwiYXVkIjoiYXBwcm92YWxzIn0''',
 ]

@@ -23,9 +23,11 @@ export const INFOPATH_PAGE = {
   slug: 'infopath',
   eyebrow: 'Migrate from InfoPath',
   title: 'Bring your InfoPath forms to UserTasks',
-  metaTitle: 'Migrate InfoPath Forms: Upload an .xsn, Get Working Forms | UserTasks',
+  metaTitle: 'InfoPath Replacement: Migrate InfoPath Forms (.xsn) Free | UserTasks',
   description:
-    'Upload a Microsoft InfoPath form template (.xsn) and see it rebuilt as UserTasks forms: one form per view, with repeating tables and sections, pictures, signatures, conditional formatting, rules, validation and formulas converted, and a clear list of what needs a person. Free preview, nothing stored.',
+    'The InfoPath replacement that reads your .xsn: upload an InfoPath form template and see it rebuilt as web forms, one per view, with repeating tables, rules, validation and formulas converted and a list of what needs a person. Free preview, nothing stored.',
+  /** When the InfoPath dates on the page were last checked against Microsoft's own pages. */
+  updated: '2026-11-15',
 }
 
 /** /sharepoint: the paid SharePoint Server extension (add-in, forms, triggers, REST surface, migration). */
@@ -33,11 +35,11 @@ export const SHAREPOINT_PAGE = {
   slug: 'sharepoint',
   eyebrow: 'SharePoint on-premises',
   title: 'The replacement for SharePoint workflows and InfoPath forms, on premises',
-  metaTitle: 'SharePoint Server Workflow and InfoPath Replacement Add-in | UserTasks',
+  metaTitle: 'SharePoint 2010 Workflow & InfoPath Replacement | UserTasks',
   description:
-    'A UserTasks add-in for SharePoint Server 2016, 2019 and Subscription Edition: forms embedded in your lists and document libraries, workflows triggered by list and library events, the full SharePoint REST API as workflow steps, and InfoPath and SharePoint Designer 2010 migration. $7,500 per farm per year.',
+    'Replace SharePoint 2010 and 2013 workflows and InfoPath forms on SharePoint Server 2016, 2019 and Subscription Edition before Microsoft removes them in July 2027: list-event workflows, embedded forms, per-list metrics and permissions. $7,500 USD per farm per year.',
   /** When the Microsoft dates on the page were last checked against Microsoft's own pages. */
-  updated: '2026-11-14',
+  updated: '2026-11-15',
 }
 
 export const DOCUMENTS_PAGE = {

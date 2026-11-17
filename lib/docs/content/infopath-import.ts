@@ -126,5 +126,9 @@ Each of these is listed in the report. Behaviour is kept as a **turned-off rule*
 - **MCP**: \`forms_import_infopath\`, with the same arguments.
 - **CLI**: \`usertasks forms import-infopath --set file_base64=@@Expense.xsn --set file_name=Expense.xsn --set dry_run:=true\`. \`@@\` reads a file as base64.
 - **Agent**: attach an .xsn in the Agent panel. The Agent reads the analysis and can explain what converts. **Import this InfoPath form** imports it after you confirm.
+
+## InfoPath list forms on SharePoint Server
+
+With the [SharePoint extension](/docs/sharepoint), an InfoPath form that served as a SharePoint list's form can be imported straight from the connected site, and the imported form then becomes the list's New, Edit and Display form, opening inside the SharePoint page. InfoPath's original form addresses are kept, so switching back is one explicit click. See [SharePoint list forms](/docs/sharepoint/forms).
 `,
 }

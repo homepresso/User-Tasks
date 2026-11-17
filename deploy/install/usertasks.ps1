@@ -5,6 +5,8 @@
 #   usertasks backup [-Out <dir>]          database dump + files + .env, in backups\
 #   usertasks restore <backup|latest> [-Yes]
 #   usertasks upgrade [-To <version>] [-Yes] [-SkipBackup] [-AllowDowngrade] [-Build]
+#                     [-Edition sharepoint|core] [-Licence <file>] [-Bundle <offline bundle>]
+#   usertasks bundle-download -Edition sharepoint -Licence <file> [-Version <v>] [-Platform linux/amd64] [-Out <file.tar>]
 #   usertasks config [-Preset <name>] [-Force]   re-run the service choices
 #   usertasks setup-code                   a new first-run setup code for /setup
 #   usertasks admin <args>                 usertasks-admin inside the app container
@@ -120,6 +122,8 @@ function Initialize-State([string]$dir) {
   $script:Project = Get-EnvValue 'USERTASKS_PROJECT' $script:StateFile
   $script:Preset = Get-EnvValue 'USERTASKS_PRESET' $script:StateFile
   $script:Profiles = Get-EnvValue 'USERTASKS_COMPOSE_PROFILES' $script:StateFile
+  $script:Edition = Get-EnvValue 'USERTASKS_EDITION' $script:StateFile
+  $script:EditionVersion = Get-EnvValue 'USERTASKS_EDITION_VERSION' $script:StateFile
   $rb = $env:USERTASKS_RELEASE_BASE
   if (-not $rb) { $rb = Get-EnvValue 'USERTASKS_RELEASE_BASE' $script:StateFile }
   if (-not $rb) { $rb = $script:DefaultReleaseBase }
@@ -141,6 +145,7 @@ function Save-State {
     "USERTASKS_VERSION=$($script:Version)", "USERTASKS_IMAGE=$($script:Image)", "USERTASKS_PROJECT=$($script:Project)",
     "USERTASKS_PRESET=$($script:Preset)", "USERTASKS_COMPOSE_PROFILES=$($script:Profiles)"
   )
+  if ($script:Edition) { $lines += "USERTASKS_EDITION=$($script:Edition)"; if ($script:EditionVersion) { $lines += "USERTASKS_EDITION_VERSION=$($script:EditionVersion)" } }
   if ($env:USERTASKS_RELEASE_BASE) { $lines += "USERTASKS_RELEASE_BASE=$($env:USERTASKS_RELEASE_BASE)" }
   if ($script:PrevVersion) { $lines += "USERTASKS_PREVIOUS_VERSION=$($script:PrevVersion)"; $lines += "USERTASKS_PREVIOUS_IMAGE=$($script:PrevImage)" }
   $lines += "USERTASKS_UPDATED=$(Get-Stamp)"
@@ -248,7 +253,12 @@ function Get-LatestVersion {
   if (-not (Test-Version $v)) { Fail 'the latest release has no valid version' }
   return $v
 }
-function Get-Release([string]$v) {
+function Get-RelFile([string]$src, [string]$url, [string]$name, [string]$dest) {
+  if ($src) { if (-not (Test-Path (Join-Path $src $name))) { throw "$name is not in $src" }; Copy-Item (Join-Path $src $name) $dest }
+  else { Invoke-WebRequest -UseBasicParsing "$url/$name" -OutFile $dest }
+}
+# Get-Release <version> [folder]: download (or copy from [folder]: an offline bundle's release\), verify, unpack.
+function Get-Release([string]$v, [string]$src = '') {
   $dest = Join-Path $script:Dir "releases\$v"
   if ((Test-Path (Join-Path $dest '.verified')) -and (Test-Path (Join-Path $dest 'manifest.json'))) { Ok "release $v already downloaded and verified"; return }
   $key = Join-Path $script:Dir 'release-key.pub.pem'
@@ -257,17 +267,17 @@ function Get-Release([string]$v) {
   if (Test-Path $dl) { Remove-Item -Recurse -Force $dl }
   New-Item -ItemType Directory -Path $dl | Out-Null
   $url = "$($script:ReleaseBase)/download/v$v"; $bundle = "usertasks-$v.tar.gz"
-  Step "Downloading UserTasks $v"
+  if ($src) { Step "Checking UserTasks $v from $src" } else { Step "Downloading UserTasks $v" }
   try {
-    Invoke-WebRequest -UseBasicParsing "$url/SHA256SUMS" -OutFile (Join-Path $dl 'SHA256SUMS')
-    Invoke-WebRequest -UseBasicParsing "$url/SHA256SUMS.sig" -OutFile (Join-Path $dl 'SHA256SUMS.sig')
+    Get-RelFile $src $url 'SHA256SUMS' (Join-Path $dl 'SHA256SUMS')
+    Get-RelFile $src $url 'SHA256SUMS.sig' (Join-Path $dl 'SHA256SUMS.sig')
   } catch { Fail "release v$v not found at $url" }
   if (-not (Test-Signature (Join-Path $dl 'SHA256SUMS') (Join-Path $dl 'SHA256SUMS.sig') $key)) { Fail "signature check FAILED for v${v}: SHA256SUMS was not signed by the UserTasks release key. Nothing was changed." }
   Ok 'signature of SHA256SUMS'
   $want = $null
   foreach ($l in Get-Content (Join-Path $dl 'SHA256SUMS')) { if ($l -match '^([0-9a-f]{64}) [ *](.+)$' -and $Matches[2] -eq $bundle) { $want = $Matches[1] } }
   if (-not $want) { Fail "SHA256SUMS does not list $bundle" }
-  Invoke-WebRequest -UseBasicParsing "$url/$bundle" -OutFile (Join-Path $dl $bundle)
+  Get-RelFile $src $url $bundle (Join-Path $dl $bundle)
   if ((Get-FileHash -Algorithm SHA256 (Join-Path $dl $bundle)).Hash.ToLowerInvariant() -ne $want) { Fail "checksum mismatch for ${bundle}: the download is damaged or was changed. Nothing was changed." }
   Ok "checksum of $bundle"
   $x = Join-Path $dl 'x'; New-Item -ItemType Directory -Path $x | Out-Null
@@ -293,6 +303,256 @@ function Ensure-Image([string]$image, [bool]$allowBuild, [string]$version) {
   if ($LASTEXITCODE -eq 0) { return $image }
   if ($allowBuild -or (Confirm-Step 'The image could not be downloaded. Build it locally from source (needs ~10 GB of memory for Docker, 10-20 minutes)?' $false)) { return (Build-FromSource $version) }
   Fail "could not pull $image (re-run with -Build to build it locally)"
+}
+
+# ── editions: licence-gated images (-Edition sharepoint) ────────────────────
+# The same flow as the sh wrapper: usertasks.com checks the licence and returns
+# a 30-minute read-only credential for its registry front with the edition
+# manifest (edition.json) signed by the release key; the image is pulled by the
+# signed digest, checked against it and tagged <registry>/<repository>:<edition version>.
+
+$script:EditionApi = $env:USERTASKS_EDITION_API
+if (-not $script:EditionApi) { $script:EditionApi = 'https://usertasks.com/api/public/extensions' }
+$script:Ed = $null; $script:EditionError = ''; $script:EditionErrorCode = ''
+
+function Test-Edition([string]$e) { return ($e -eq 'sharepoint') }
+function Get-EditionName([string]$e) { if ($e -eq 'sharepoint') { return 'UserTasks for SharePoint Server' }; return "the $e edition" }
+function Get-EditionLatestCore([string]$e) {
+  try { $r = Invoke-RestMethod -UseBasicParsing "$($script:EditionApi)/$e"; if (Test-Version ([string]$r.latest_core_version)) { return [string]$r.latest_core_version } } catch { }
+  return ''
+}
+# The licence to send, kept as licences\<edition>.licence: an explicit file, else the
+# licence installed in UserTasks (usertasks-admin licence export), else the kept copy.
+function Get-EditionLicence([string]$e, [string]$file) {
+  $dir = Join-Path $script:Dir 'licences'; New-Item -ItemType Directory -Force -Path $dir | Out-Null
+  $keep = Join-Path $dir "$e.licence"
+  if ($file) {
+    if (-not (Test-Path $file)) { Fail "licence file not found: $file" }
+    Copy-Item -Force $file $keep; Protect-File $keep
+  } elseif ($script:Image -and $script:Project -and (Test-Path $script:StateFile)) {
+    $out = Get-AdminOutput @('licence', 'export', '--ext', $e)
+    if ($out -match '"licence_id"') { [IO.File]::WriteAllText($keep, $out + "`n"); Protect-File $keep }
+  }
+  if (-not (Test-Path $keep)) { Fail "$(Get-EditionName $e) needs a licence: pass -Licence <file> (your trial or purchased .licence file; start a trial at https://usertasks.com/sharepoint/trial)" }
+  return $keep
+}
+function Test-EditionImage([string]$image, [string]$manifest) {
+  $id = (& docker image inspect --format '{{.Id}}' $image 2>$null)
+  if ($LASTEXITCODE -ne 0 -or -not $id -or -not ([string]$id).StartsWith('sha256:')) { return $false }
+  return ((Get-Content -Raw $manifest).Contains('"' + $id + '"'))
+}
+function Test-EditionManifest([string]$dir, [string]$key, [string]$e) {
+  if (-not (Test-Signature (Join-Path $dir 'edition.json') (Join-Path $dir 'edition.json.sig') $key)) { $script:EditionError = 'signature check FAILED: edition.json was not signed by the UserTasks release key'; return $null }
+  $m = Get-Content -Raw (Join-Path $dir 'edition.json') | ConvertFrom-Json
+  if ($m.kind -ne 'usertasks.edition' -or $m.edition -ne $e) { $script:EditionError = "edition.json is not a $(Get-EditionName $e) manifest"; return $null }
+  Ok 'signature of the edition manifest'
+  return $m
+}
+# Request-Edition: the licence check and the download details; $false with $script:EditionError when refused.
+function Request-Edition([string]$e, [string]$licence, [string]$version, [string]$purpose, [string]$work, [string]$key) {
+  $script:EditionError = ''; $script:EditionErrorCode = ''
+  if (Test-Path $work) { Remove-Item -Recurse -Force $work }
+  New-Item -ItemType Directory -Force -Path $work | Out-Null
+  $body = @{ licence = [Convert]::ToBase64String([IO.File]::ReadAllBytes($licence)); version = $version; purpose = $purpose } | ConvertTo-Json -Compress
+  Step "Checking the licence with usertasks.com ($(Get-EditionName $e))"
+  try {
+    $r = Invoke-RestMethod -UseBasicParsing -Method Post -Uri "$($script:EditionApi)/$e/pull-token" -ContentType 'application/json' -Body $body -UserAgent 'usertasks-installer/ps1'
+  } catch {
+    $msg = ''
+    if ($_.ErrorDetails -and $_.ErrorDetails.Message) { try { $j = $_.ErrorDetails.Message | ConvertFrom-Json; $msg = [string]$j.error; $script:EditionErrorCode = [string]$j.code } catch { } }
+    if (-not $_.Exception.Response) { $msg = "could not reach $($script:EditionApi) (check the network or proxy settings; offline hosts: usertasks bundle-download on a connected machine)" }
+    if (-not $msg) { $msg = "the download was refused ($($_.Exception.Message))" }
+    $script:EditionError = $msg
+    return $false
+  }
+  if ([string]$r.registry -notmatch '^[a-z0-9.-]+(:[0-9]+)?$' -or [string]$r.repository -notmatch '^[a-z0-9][a-z0-9/._-]*$' -or [string]$r.index_digest -notmatch '^sha256:[0-9a-f]{64}$' -or -not (Test-Version ([string]$r.core_version)) -or -not $r.password) {
+    $script:EditionError = 'usertasks.com sent an answer this installer does not understand'; return $false
+  }
+  [IO.File]::WriteAllBytes((Join-Path $work 'edition.json'), [Convert]::FromBase64String([string]$r.edition_manifest))
+  [IO.File]::WriteAllBytes((Join-Path $work 'edition.json.sig'), [Convert]::FromBase64String([string]$r.edition_signature))
+  $m = Test-EditionManifest $work $key $e
+  if (-not $m) { return $false }
+  if ($m.edition_version -ne $r.edition_version -or $m.index_digest -ne $r.index_digest -or $m.core_version -ne $r.core_version) { $script:EditionError = 'the download details do not match the signed edition manifest'; return $false }
+  if ($version -ne 'latest' -and $version -ne $r.core_version -and $version -ne $r.edition_version) { $script:EditionError = "asked for $version but got the edition for $($r.core_version)"; return $false }
+  $script:Ed = @{ edition = $e; registry = [string]$r.registry; repository = [string]$r.repository; username = [string]$r.username; password = [string]$r.password
+    version = [string]$r.edition_version; core = [string]$r.core_version; digest = [string]$r.index_digest; work = $work; at = (Get-Date) }
+  $trial = ''; if ($r.trial -eq $true) { $trial = ' (trial)' }
+  Ok "licence accepted$trial, valid until $($r.licence_expires_at); edition $($r.edition_version)"
+  return $true
+}
+# Invoke-EditionPull [platform]: pull by the signed digest, check, tag. Returns the tag, or '' with $script:EditionError.
+function Invoke-EditionPull([string]$platform) {
+  $ed = $script:Ed
+  $ref = "$($ed.registry)/$($ed.repository)@$($ed.digest)"; $tag = "$($ed.registry)/$($ed.repository):$($ed.version)"
+  $manifest = Join-Path $ed.work 'edition.json'
+  if (-not $platform -and (Test-EditionImage $tag $manifest)) { Ok "image $tag is present and matches the signed manifest"; return $tag }
+  Step "Pulling $(Get-EditionName $ed.edition) $($ed.version)"
+  $ed.password | & docker login $ed.registry -u $ed.username --password-stdin *> $null
+  if ($LASTEXITCODE -ne 0) { $script:EditionError = "docker login to $($ed.registry) failed (the download credential may have expired: run the command again)"; return '' }
+  if ($platform) { & docker pull --platform $platform $ref | Out-Host } else { & docker pull $ref | Out-Host }
+  $rc = $LASTEXITCODE
+  & docker logout $ed.registry *> $null
+  $ed.password = ''
+  if ($rc -ne 0) { $script:EditionError = "could not pull the $(Get-EditionName $ed.edition) image from $($ed.registry)"; return '' }
+  if (-not (Test-EditionImage $ref $manifest)) { $script:EditionError = 'the pulled image is not the one the signed edition manifest names: not used'; return '' }
+  & docker tag $ref $tag | Out-Null
+  Ok "image verified against the signed manifest ($($ed.digest))"
+  return $tag
+}
+function Save-EditionManifest {
+  $keep = Join-Path $script:Dir "editions\$($script:Ed.version)"
+  if ($script:Ed.work -ne $keep) {
+    if (Test-Path $keep) { Remove-Item -Recurse -Force $keep }
+    New-Item -ItemType Directory -Force -Path (Join-Path $script:Dir 'editions') | Out-Null
+    Move-Item $script:Ed.work $keep; $script:Ed.work = $keep
+  }
+}
+# Get-EditionImage: request (unless a fresh one is at hand) + pull for this install. Returns the tag or fails.
+function Get-EditionImage([string]$e, [string]$licence, [string]$version, [string]$purpose, [string]$failSuffix) {
+  $fresh = $script:Ed -and $script:Ed.edition -eq $e -and (((Get-Date) - $script:Ed.at).TotalSeconds -lt 1500)
+  if (-not $fresh) {
+    if (-not (Request-Edition $e $licence $version $purpose (Join-Path $script:Dir 'editions\.request') (Join-Path $script:Dir 'release-key.pub.pem'))) { Fail "$($script:EditionError)$failSuffix" }
+  }
+  Save-EditionManifest
+  $img = Invoke-EditionPull ''
+  if (-not $img) { Fail "$($script:EditionError)$failSuffix" }
+  return $img
+}
+function Install-EditionLicence([string]$file) {
+  if (-not $file -or -not (Test-Path $file)) { return }
+  $env:USERTASKS_ENV_FILE = $script:EnvFile; $env:USERTASKS_IMAGE = $script:Image
+  $a = @('compose', '-p', $script:Project, '--project-directory', $script:Rel, '-f', (Join-Path $script:Rel 'docker-compose.yml'), '--env-file', $script:EnvFile, 'exec', '-T', 'app', 'node', 'admin.cjs', 'licence', 'install', '/dev/stdin')
+  Get-Content -Raw $file | & docker @a *> $null
+  if ($LASTEXITCODE -eq 0) { Ok 'licence installed in UserTasks (Settings -> Licence)' } else { Warn 'could not install the licence automatically: add it in Settings -> Licence' }
+}
+
+# ── offline bundles (the same format as the sh wrapper) ─────────────────────
+
+function Open-Bundle([string]$file) {
+  if (-not (Test-Path $file)) { Fail "bundle not found: $file" }
+  $bo = Join-Path $script:Dir 'releases\.bundle'
+  if (Test-Path $bo) { Remove-Item -Recurse -Force $bo }
+  New-Item -ItemType Directory -Force -Path $bo | Out-Null
+  Step "Unpacking $(Split-Path -Leaf $file)"
+  & tar -xf $file -C $bo; if ($LASTEXITCODE -ne 0) { Fail "could not unpack $file" }
+  $bj = Get-ChildItem -Path $bo -Filter 'bundle.json' -Recurse -Depth 1 | Select-Object -First 1
+  if (-not $bj) { Fail "$file is not a UserTasks offline bundle (no bundle.json)" }
+  $dir = $bj.DirectoryName
+  Test-Bundle $dir
+  return $dir
+}
+function Test-Bundle([string]$dir) {
+  $sums = Join-Path $dir 'SHA256SUMS.bundle'
+  if (-not (Test-Path $sums)) { Fail 'the bundle has no SHA256SUMS.bundle' }
+  foreach ($l in Get-Content $sums) {
+    if ($l -notmatch '^([0-9a-f]{64})  (.+)$') { continue }
+    $want = $Matches[1]; $f = $Matches[2]
+    if ($f.StartsWith('/') -or $f.Contains('..')) { Fail "SHA256SUMS.bundle lists an unexpected path: $f" }
+    $p = Join-Path $dir $f
+    if (-not (Test-Path $p)) { Fail "the bundle is missing $f" }
+    if ((Get-FileHash -Algorithm SHA256 $p).Hash.ToLowerInvariant() -ne $want) { Fail "checksum mismatch for ${f}: the bundle is damaged or was changed" }
+  }
+  Ok 'bundle checksums'
+  $b = Get-Content -Raw (Join-Path $dir 'bundle.json') | ConvertFrom-Json
+  if (-not (Test-Edition ([string]$b.edition))) { Fail "the bundle is for an unknown edition: $($b.edition)" }
+  if (-not (Test-Version ([string]$b.core_version))) { Fail 'the bundle has no valid UserTasks version' }
+  $script:Bundle = $b
+}
+# Import-Bundle: edition manifest signature, docker load, image check. Returns the image.
+function Import-Bundle([string]$dir) {
+  $b = $script:Bundle
+  $m = Test-EditionManifest $dir (Join-Path $script:Dir 'release-key.pub.pem') ([string]$b.edition)
+  if (-not $m) { Fail "$($script:EditionError). Nothing was installed." }
+  if ($m.edition_version -ne $b.edition_version -or $m.core_version -ne $b.core_version) { Fail 'bundle.json does not match the signed edition manifest' }
+  if (-not ([string]$b.image).EndsWith(":$($b.edition_version)")) { Fail "bundle.json names an unexpected image: $($b.image)" }
+  Step 'Loading the images (docker load)'
+  & docker load -i (Join-Path $dir 'images.tar') | Out-Null; if ($LASTEXITCODE -ne 0) { Fail 'docker load failed' }
+  if (-not (Test-EditionImage ([string]$b.image) (Join-Path $dir 'edition.json'))) { Fail "the loaded image $($b.image) is not the one the signed edition manifest names. Nothing was started." }
+  Ok "image $($b.image) verified against the signed manifest"
+  $keep = Join-Path $script:Dir "editions\$($b.edition_version)"
+  New-Item -ItemType Directory -Force -Path $keep | Out-Null
+  Copy-Item -Force (Join-Path $dir 'edition.json'), (Join-Path $dir 'edition.json.sig') $keep
+  return [string]$b.image
+}
+function Invoke-BundleDownload([string[]]$rest) {
+  $e = ''; $lic = ''; $ver = ''; $plat = ''; $out = ''; $deps = $true
+  for ($i = 0; $i -lt $rest.Count; $i++) {
+    switch ($rest[$i]) {
+      { $_ -in '-Edition', '--edition' } { $e = $rest[++$i] } { $_ -in '-Licence', '--licence', '-License', '--license' } { $lic = $rest[++$i] }
+      { $_ -in '-Version', '--version' } { $ver = $rest[++$i].TrimStart('v') } { $_ -in '-Platform', '--platform' } { $plat = $rest[++$i] }
+      { $_ -in '-Out', '--out' } { $out = $rest[++$i] } { $_ -in '-NoDeps', '--no-deps' } { $deps = $false } { $_ -in '-Work', '--work' } { $i++ }
+      default { Fail "bundle-download: unknown option $($rest[$i])" }
+    }
+  }
+  if (-not (Test-Edition $e)) { Fail 'bundle-download: -Edition sharepoint is required' }
+  if ($lic) { if (-not (Test-Path $lic)) { Fail "licence file not found: $lic" }; $lic = (Resolve-Path $lic).Path }
+  elseif (Test-Path (Join-Path $script:Dir 'state.env')) { $lic = Get-EditionLicence $e '' }
+  else { Fail 'bundle-download: -Licence <file> is required' }
+  if (-not $plat) { $plat = 'linux/amd64'; if ((& docker version --format '{{.Server.Arch}}' 2>$null) -match 'arm64|aarch64') { $plat = 'linux/arm64' } }
+  if ($plat -notin 'linux/amd64', 'linux/arm64') { Fail '-Platform must be linux/amd64 or linux/arm64' }
+  if (-not $ver) { $ver = Get-EditionLatestCore $e }
+  if (-not (Test-Version $ver)) { Fail "could not find the newest $(Get-EditionName $e) build: pass -Version <x.y.z>" }
+  $key = Join-Path $script:Dir 'release-key.pub.pem'
+  if (-not (Test-Path $key)) { Fail "no release signing key in $key (use the installer: install.ps1 -BundleDownload ...)" }
+  if (-not (Request-Edition $e $lic $ver 'bundle' (Join-Path $script:Dir 'editions\.bundle-request') $key)) { Fail $script:EditionError }
+  $ed = $script:Ed
+  $name = "usertasks-edition-$e-$($ed.version)-$($plat -replace '/', '-')"
+  if (-not $out) { $out = Join-Path (Get-Location).Path "$name.tar" }
+  $stage = Join-Path $script:Dir 'editions\.bundle-stage'
+  if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+  $s = Join-Path $stage $name; New-Item -ItemType Directory -Force -Path (Join-Path $s 'release') | Out-Null
+  $url = "$($script:ReleaseBase)/download/v$($ed.core)"
+  Step "Downloading UserTasks $($ed.core) (release files)"
+  try {
+    Invoke-WebRequest -UseBasicParsing "$url/SHA256SUMS" -OutFile (Join-Path $s 'release\SHA256SUMS')
+    Invoke-WebRequest -UseBasicParsing "$url/SHA256SUMS.sig" -OutFile (Join-Path $s 'release\SHA256SUMS.sig')
+  } catch { Fail "release v$($ed.core) not found at $url" }
+  if (-not (Test-Signature (Join-Path $s 'release\SHA256SUMS') (Join-Path $s 'release\SHA256SUMS.sig') $key)) { Fail "signature check FAILED for release v$($ed.core)" }
+  foreach ($f in @("usertasks-$($ed.core).tar.gz", 'install.sh', 'install.ps1')) {
+    $want = $null
+    foreach ($l in Get-Content (Join-Path $s 'release\SHA256SUMS')) { if ($l -match '^([0-9a-f]{64}) [ *](.+)$' -and $Matches[2] -eq $f) { $want = $Matches[1] } }
+    if (-not $want) { Fail "SHA256SUMS does not list $f" }
+    Invoke-WebRequest -UseBasicParsing "$url/$f" -OutFile (Join-Path $s "release\$f")
+    if ((Get-FileHash -Algorithm SHA256 (Join-Path $s "release\$f")).Hash.ToLowerInvariant() -ne $want) { Fail "checksum mismatch for $f" }
+  }
+  Ok "release $($ed.core) (signature + checksums)"
+  $img = Invoke-EditionPull $plat
+  if (-not $img) { Fail $script:EditionError }
+  $imgs = @($img)
+  if ($deps) {
+    $x = Join-Path $stage 'x'; New-Item -ItemType Directory -Force -Path $x | Out-Null
+    & tar -xzf (Join-Path $s "release\usertasks-$($ed.core).tar.gz") -C $x
+    $rel = Join-Path $x "usertasks-$($ed.core)"
+    $env:USERTASKS_IMAGE = $img
+    foreach ($i in (& docker compose -f (Join-Path $rel 'docker-compose.yml') --env-file (Join-Path $rel 'env.template') --profile standalone config --images 2>$null | Sort-Object -Unique)) {
+      if (-not $i -or $i -eq $img) { continue }
+      Step "Pulling $i ($plat)"; & docker pull --platform $plat $i | Out-Null
+      if ($LASTEXITCODE -ne 0) { Fail "could not pull $i" }
+      $imgs += $i
+    }
+    Remove-Item -Recurse -Force $x
+  }
+  Copy-Item (Join-Path $ed.work 'edition.json'), (Join-Path $ed.work 'edition.json.sig') $s
+  Step "Saving the images ($($imgs.Count))"
+  & docker save -o (Join-Path $s 'images.tar') @imgs; if ($LASTEXITCODE -ne 0) { Fail 'docker save failed' }
+  $bundle = [ordered]@{ format = 1; kind = 'usertasks.bundle'; edition = $e; edition_version = $ed.version; core_version = $ed.core; platform = $plat; image = $img; images = ($imgs -join ' '); created_at = (Get-Stamp) }
+  [IO.File]::WriteAllText((Join-Path $s 'bundle.json'), (($bundle | ConvertTo-Json) + "`n"))
+  $lines = foreach ($f in @('bundle.json', 'edition.json', 'edition.json.sig', 'images.tar', 'release/SHA256SUMS', 'release/SHA256SUMS.sig', "release/usertasks-$($ed.core).tar.gz", 'release/install.sh', 'release/install.ps1')) {
+    "$((Get-FileHash -Algorithm SHA256 (Join-Path $s $f)).Hash.ToLowerInvariant())  $f"
+  }
+  [IO.File]::WriteAllText((Join-Path $s 'SHA256SUMS.bundle'), (($lines -join "`n") + "`n"))
+  Step "Writing $out"
+  & tar -cf $out -C $stage $name; if ($LASTEXITCODE -ne 0) { Fail 'could not write the bundle (tar)' }
+  Remove-Item -Recurse -Force $stage, $ed.work
+  $sum = (Get-FileHash -Algorithm SHA256 $out).Hash.ToLowerInvariant()
+  [IO.File]::WriteAllText("$out.sha256", "$sum`n")
+  Say ''; Write-Host "Offline bundle ready: $out" -ForegroundColor Green
+  Say "  sha256:   $sum  (also in $(Split-Path -Leaf $out).sha256: compare it on the offline host)"
+  Say "  contents: $(Get-EditionName $e) $($ed.version) ($plat), UserTasks $($ed.core) release, $($imgs.Count) images"
+  Say 'On the offline host (Docker Desktop installed), with the bundle and your licence file:'
+  Say "  tar -xf $(Split-Path -Leaf $out) $name/release/install.ps1"
+  Say "  & .\$name\release\install.ps1 -Bundle .\$(Split-Path -Leaf $out) -Licence <your .licence file>"
+  Say 'Upgrades: usertasks upgrade -Bundle <newer bundle>'
 }
 
 # ── service choices (the install profile) ───────────────────────────────────
@@ -492,28 +752,52 @@ function Add-ToPath {
 # ── commands ────────────────────────────────────────────────────────────────
 
 function Invoke-Install([string[]]$rest) {
-  $dir = ''; $v = ''; $port = ''; $url = ''; $build = $false
+  $dir = ''; $v = ''; $port = ''; $url = ''; $build = $false; $edition = ''; $licence = ''; $bundle = ''
   for ($i = 0; $i -lt $rest.Count; $i++) {
     switch ($rest[$i]) {
       '-Dir' { $dir = $rest[++$i] } '-Version' { $v = $rest[++$i] } '-Port' { $port = $rest[++$i] } '-Url' { $url = $rest[++$i] }
       '-Project' { $env:USERTASKS_PROJECT = $rest[++$i] } '-Preset' { $env:USERTASKS_PRESET_CHOICE = $rest[++$i] } '-Build' { $build = $true }
+      '-Edition' { $edition = $rest[++$i] } { $_ -in '-Licence', '-License' } { $licence = $rest[++$i] } '-Bundle' { $bundle = $rest[++$i] }
       default { Fail "install: unknown option $($rest[$i])" }
     }
   }
   if (-not $dir -or -not $v) { Fail 'install: -Dir and -Version are required' }
+  if ($edition -eq 'core') { $edition = '' }
+  if ($edition -and -not (Test-Edition $edition)) { Fail "unknown edition: $edition (editions: sharepoint)" }
   $script:Dir = $dir; $script:StateFile = Join-Path $dir 'state.env'; $script:EnvFile = Join-Path $dir '.env'
   Enter-Lock
   try {
-    if (Test-Path $script:StateFile) {
+    $existing = Test-Path $script:StateFile
+    if ($existing) {
       Initialize-State $dir
       if ($script:Version -ne $v) { Say "UserTasks $($script:Version) is installed in $dir. To move to $v run: usertasks upgrade -To $v" }
       Say 'Existing install found: re-checking it (secrets and data are kept).'
+      if ($edition -and $edition -ne $script:Edition -and -not $bundle) { Say "To switch this install to $(Get-EditionName $edition), keeping its data: usertasks upgrade -Edition $edition"; $edition = '' }
     } else {
       $script:Project = $env:USERTASKS_PROJECT; if (-not $script:Project) { $script:Project = 'usertasks' }
       if ($script:Project -notmatch '^[a-z0-9][a-z0-9_-]*$') { Fail 'project name: lowercase letters, digits, - and _' }
-      $script:Version = $v; $script:Rel = Join-Path $dir "releases\$v"; $script:Profiles = 'standalone'
+      $script:Version = $v; $script:Rel = Join-Path $dir "releases\$v"; $script:Profiles = 'standalone'; $script:Edition = ''; $script:EditionVersion = ''
     }
-    $script:Image = Get-ReleaseImage $script:Rel
+    $prevImage = $script:Image
+    if ($edition) { $script:Edition = $edition }
+    $licFile = ''
+    if ($bundle) {
+      Test-Bundle $bundle
+      if ($script:Bundle.core_version -ne $script:Version) { Fail "the bundle is for UserTasks $($script:Bundle.core_version), not $($script:Version)" }
+      $script:Image = Import-Bundle $bundle
+      $script:Edition = [string]$script:Bundle.edition; $script:EditionVersion = [string]$script:Bundle.edition_version
+      if ($licence) { $licFile = Get-EditionLicence $script:Edition $licence }
+    } elseif ($script:Edition) {
+      $kept = Join-Path $dir "editions\$($script:EditionVersion)\edition.json"
+      if ($existing -and $prevImage -and -not $licence -and $script:EditionVersion -and (Test-Path $kept) -and (Test-EditionImage $prevImage $kept)) { $script:Image = $prevImage }
+      else {
+        $licFile = Get-EditionLicence $script:Edition $licence
+        $script:Image = Get-EditionImage $script:Edition $licFile $script:Version 'install' '. Nothing was installed.'
+        $script:EditionVersion = $script:Ed.version
+      }
+    } else {
+      $script:Image = Get-ReleaseImage $script:Rel
+    }
     if (-not (Test-Path $script:EnvFile)) {
       if (-not $port) { $port = '3000' }
       if (Test-PortBusy ([int]$port)) {
@@ -540,6 +824,7 @@ function Invoke-Install([string[]]$rest) {
     if (-not (Start-Stack $script:Image 600)) { Invoke-Compose @('logs', '--tail', '80', 'app') | Out-Null; Fail 'UserTasks did not become healthy. Logs: usertasks logs. Re-run the installer when fixed (it is safe to re-run).' }
     Install-Wrapper $script:Rel
     Add-ToPath
+    if ($licFile) { Install-EditionLicence $licFile }
     Show-Finish
     if ($env:USERTASKS_NO_BROWSER -ne '1' -and (Test-Interactive) -and $env:OS -eq 'Windows_NT') { Start-Process "$($script:AppUrl)/setup" }
   } finally { Exit-Lock }
@@ -643,37 +928,82 @@ function Invoke-Migrations([string]$rel, [string]$image) {
   return ((Invoke-ComposeFor $rel $image @('run', '--rm', '--no-deps', '-T', 'app', 'node', 'admin.cjs', 'ext', 'migrate')) -eq 0)
 }
 function Invoke-Upgrade([string[]]$rest) {
-  $to = ''; $skipBackup = $false; $downgrade = $false; $build = $false; $force = $false
+  $to = ''; $skipBackup = $false; $downgrade = $false; $build = $false; $force = $false; $edition = $null; $licence = ''; $bundle = ''
   for ($i = 0; $i -lt $rest.Count; $i++) {
     switch ($rest[$i]) {
       { $_ -in '-To', '--to' } { $to = $rest[++$i] } { $_ -in '-Yes', '--yes', '-y' } { $script:AssumeYes = $true }
       { $_ -in '-SkipBackup', '--skip-backup' } { $skipBackup = $true } { $_ -in '-AllowDowngrade', '--allow-downgrade' } { $downgrade = $true }
       { $_ -in '-Build', '--build' } { $build = $true } { $_ -in '-Force', '--force' } { $force = $true }
+      { $_ -in '-Edition', '--edition' } { $edition = $rest[++$i] } { $_ -in '-Licence', '--licence', '-License', '--license' } { $licence = $rest[++$i] }
+      { $_ -in '-Bundle', '--bundle' } { $bundle = $rest[++$i] }
       default { Fail "upgrade: unknown option $($rest[$i])" }
     }
   }
   Enter-Lock
   try {
-    $from = $script:Version; $fromImg = $script:Image; $fromRel = $script:Rel
-    if (-not $to) { Step 'Looking up the latest release'; $to = Get-LatestVersion }
+    $from = $script:Version; $fromImg = $script:Image; $fromRel = $script:Rel; $fromEdition = $script:Edition
+    $ed = $fromEdition; if ($null -ne $edition) { $ed = $edition }; if ($ed -eq 'core') { $ed = '' }
+    if ($ed -and -not (Test-Edition $ed)) { Fail "unknown edition: $ed (editions: sharepoint, or core for the public image)" }
+    $bundleDir = ''
+    if ($bundle) {
+      $bundleDir = Open-Bundle (Resolve-Path $bundle).Path
+      if ($to -and $to.TrimStart('v') -ne $script:Bundle.core_version) { Fail "the bundle is for UserTasks $($script:Bundle.core_version), not $to" }
+      $to = [string]$script:Bundle.core_version; $ed = [string]$script:Bundle.edition
+    }
+    $switching = ($ed -ne $fromEdition)
+    if (-not $to) {
+      Step 'Looking up the latest release'
+      if ($ed) { $to = Get-EditionLatestCore $ed }
+      if (-not $to) { $to = Get-LatestVersion }
+    }
     $to = $to.TrimStart('v'); if (-not (Test-Version $to)) { Fail "not a version: $to" }
     $c = Compare-Version $to $from
-    if ($c -eq 0 -and -not $force) { Say "UserTasks $from is already installed (latest: $to)."; return }
-    if ($c -lt 0 -and -not $downgrade) { Fail "$to is older than the installed $from (pass -AllowDowngrade to go back on purpose)" }
-    Say "Upgrade UserTasks $from -> $to (project $($script:Project)). Release notes: $($script:ReleaseBase)/tag/v$to"
+    if ($c -eq 0 -and -not $force -and -not $switching) { Say "UserTasks $from is already installed (latest: $to)."; return }
+    if ($c -lt 0 -and -not $downgrade) {
+      if ($ed -and $switching) { Fail "the newest $(Get-EditionName $ed) build is for UserTasks $to, older than the installed $from. It usually follows a release within a few hours: try again later." }
+      Fail "$to is older than the installed $from (pass -AllowDowngrade to go back on purpose)"
+    }
+    $what = "UserTasks $from -> $to"
+    if ($switching) { if ($ed) { $what += ", switching to $(Get-EditionName $ed)" } else { $what += ', switching to the public image (paid extensions removed; their data is kept)' } }
+    Say "Upgrade $what (project $($script:Project)). Release notes: $($script:ReleaseBase)/tag/v$to"
     if (-not (Confirm-Step 'Continue?' $true)) { Fail 'not upgraded' }
     $done = New-Object System.Collections.Generic.List[string]
+    # Editions: the licence check comes first, so a refusal changes nothing.
+    $licFile = ''
+    if ($ed -and -not $bundle) {
+      $licFile = Get-EditionLicence $ed $licence
+      $purpose = 'upgrade'; if ($switching) { $purpose = 'switch' }
+      if (-not (Request-Edition $ed $licFile $to $purpose (Join-Path $script:Dir 'editions\.request') (Join-Path $script:Dir 'release-key.pub.pem'))) {
+        Say ''
+        if ($script:EditionErrorCode -in 'licence_expired', 'licence_revoked', 'licence_not_yet_valid') { Write-Host 'Upgrade refused: the licence is not active.' -ForegroundColor Red } else { Write-Host 'Upgrade refused.' -ForegroundColor Red }
+        Say $script:EditionError
+        Say "UserTasks $from keeps running, unchanged. Renewed? Install the new licence (Settings -> Licence, or -Licence <file>) and run usertasks upgrade again."
+        exit 1
+      }
+      $done.Add("licence checked with usertasks.com: $(Get-EditionName $ed) $($script:Ed.version)")
+    } elseif ($ed -and $licence) { $licFile = Get-EditionLicence $ed $licence }
     $script:BackupDir = ''
     if ($skipBackup) { Warn 'no backup (-SkipBackup)' } else { Invoke-BackupTo (Join-Path $script:Dir "backups\$(Get-Stamp)-$from-before-$to"); $done.Add("backup: $($script:BackupDir)") }
-    Get-Release $to; $done.Add("downloaded and verified release $to (signature + checksum)")
+    if ($bundleDir) { Get-Release $to (Join-Path $bundleDir 'release'); $done.Add("release $to from the offline bundle (signature + checksum)") }
+    else { Get-Release $to; $done.Add("downloaded and verified release $to (signature + checksum)") }
     $newRel = Join-Path $script:Dir "releases\$to"
-    $newImg = Get-ReleaseImage $newRel
-    & docker image inspect $newImg *> $null
-    if ($LASTEXITCODE -ne 0) {
-      Step "Pulling $newImg"; & docker pull $newImg | Out-Host
-      if ($LASTEXITCODE -ne 0) { if (-not $build) { Fail "could not pull $newImg; nothing changed (UserTasks $from keeps running). Re-run with -Build to build it locally." }; $newImg = Build-FromSource $to }
+    $newEdVersion = ''
+    if ($bundleDir) {
+      $newImg = Import-Bundle $bundleDir; $newEdVersion = [string]$script:Bundle.edition_version
+      $done.Add("images loaded from the bundle; $(Get-EditionName $ed) $newEdVersion verified against its signed manifest")
+    } elseif ($ed) {
+      $newImg = Get-EditionImage $ed $licFile $to 'upgrade' "; nothing changed (UserTasks $from keeps running)."
+      $newEdVersion = $script:Ed.version
+      $done.Add("image $newImg (verified against the signed edition manifest)")
+    } else {
+      $newImg = Get-ReleaseImage $newRel
+      & docker image inspect $newImg *> $null
+      if ($LASTEXITCODE -ne 0) {
+        Step "Pulling $newImg"; & docker pull $newImg | Out-Host
+        if ($LASTEXITCODE -ne 0) { if (-not $build) { Fail "could not pull $newImg; nothing changed (UserTasks $from keeps running). Re-run with -Build to build it locally." }; $newImg = Build-FromSource $to }
+      }
+      $done.Add("image $newImg")
     }
-    $done.Add("image $newImg")
     Add-MissingEnv $newRel
     if (-not (Invoke-Migrations $newRel $newImg)) {
       Say ''; Write-Host "The migrations failed. UserTasks $from is still running, unchanged: no code was switched." -ForegroundColor Red
@@ -687,8 +1017,10 @@ function Invoke-Upgrade([string[]]$rest) {
     $timeout = 300; if ($env:USERTASKS_UPGRADE_TIMEOUT) { $timeout = [int]$env:USERTASKS_UPGRADE_TIMEOUT }
     if ((Start-Stack $newImg $timeout) -and (Test-RunningImage $newImg)) {
       $script:PrevVersion = $from; $script:PrevImage = $fromImg; $script:Version = $to
+      $script:Edition = $ed; $script:EditionVersion = $newEdVersion
       Save-State; Install-Wrapper $newRel
       $done.Add("switched the app and worker to $to; health check passed")
+      if ($licence -and $licFile) { Install-EditionLicence $licFile }
       Say ''; Write-Host "Upgraded UserTasks $from -> $to. What was done:" -ForegroundColor Green
       foreach ($d in $done) { Say "  - $d" }
       Say 'Check it: sign in, open a task, run a test workflow (docs: /docs/self-hosting/upgrade#check-it-worked).'
@@ -768,8 +1100,18 @@ function Invoke-Cli([string[]]$rest) {
 $cmd = 'help'; $rest = @()
 if ($args.Count -gt 0) { $cmd = [string]$args[0]; if ($args.Count -gt 1) { $rest = [string[]]$args[1..($args.Count - 1)] } }
 $serverCommands = 'status', 'logs', 'backup', 'restore', 'upgrade', 'config', 'uninstall', 'setup-code', 'admin', 'start', 'stop', 'restart', 'version', '--version'
-if ($cmd -in 'help', '-h', '--help', '-?') { Get-Content $PSCommandPath | Select-Object -Skip 1 -First 15 | ForEach-Object { $_ -replace '^# ?', '' }; exit 0 }
+if ($cmd -in 'help', '-h', '--help', '-?') { Get-Content $PSCommandPath | Select-Object -Skip 1 -First 17 | ForEach-Object { $_ -replace '^# ?', '' }; exit 0 }
 if ($cmd -eq 'install') { $script:Dir = ''; Invoke-Install $rest; exit 0 }
+if ($cmd -eq 'bundle-download') {
+  # Works without an install (install.ps1 -BundleDownload passes -Work <folder>).
+  $work = ''; for ($i = 0; $i -lt $rest.Count - 1; $i++) { if ($rest[$i] -in '-Work', '--work') { $work = $rest[$i + 1] } }
+  if ($work) {
+    New-Item -ItemType Directory -Force -Path $work | Out-Null
+    $script:Dir = (Resolve-Path $work).Path; $script:StateFile = Join-Path $script:Dir 'state.env'
+    $script:ReleaseBase = $env:USERTASKS_RELEASE_BASE; if (-not $script:ReleaseBase) { $script:ReleaseBase = $script:DefaultReleaseBase }
+  } else { $script:Dir = Find-Dir; Initialize-State $script:Dir }
+  Invoke-BundleDownload $rest; exit 0
+}
 $script:Dir = Find-Dir
 Initialize-State $script:Dir
 if ($cmd -eq 'cli') { Invoke-Cli $rest }
@@ -787,6 +1129,6 @@ switch ($cmd) {
   'start' { if (-not (Start-Stack $script:Image 600)) { exit 1 } }
   'stop' { exit (Invoke-Compose @('stop')) }
   'restart' { Invoke-Compose @('restart') | Out-Null; if (Wait-Healthy 180) { Ok 'healthy' } }
-  { $_ -in 'version', '--version' } { Say "UserTasks $($script:Version) ($($script:Image))" }
+  { $_ -in 'version', '--version' } { $e = ''; if ($script:Edition) { $e = ", $(Get-EditionName $script:Edition) $($script:EditionVersion)" }; Say "UserTasks $($script:Version) ($($script:Image))$e" }
 }
 exit 0

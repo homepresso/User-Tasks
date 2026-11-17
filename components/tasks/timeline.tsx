@@ -27,6 +27,8 @@ interface TimelineProps {
   events: TimelineEvent[]
   taskId: string
   tenantId: string
+  /** Read only (e.g. a completed task in a compact list): the comments show, the composer doesn't. */
+  readOnly?: boolean
 }
 
 const eventLabels: Record<string, string> = {
@@ -63,7 +65,7 @@ const eventDots: Record<string, string> = {
   task_rejected: 'bg-danger',
 }
 
-export function ActivityTimeline({ events, taskId }: TimelineProps) {
+export function ActivityTimeline({ events, taskId, readOnly = false }: TimelineProps) {
   const [comment, setComment] = useState('')
   const [sending, setSending] = useState(false)
   // Synchronous guard: a double Enter / click in one frame would post the comment twice.
@@ -106,7 +108,7 @@ export function ActivityTimeline({ events, taskId }: TimelineProps) {
       <CardHeader title="Comments and activity" />
 
       {/* Comment input: stays in view on a phone while the thread scrolls. */}
-      <form onSubmit={handleSubmit} className="flex gap-2 px-4 pb-4 max-md:sticky max-md:top-0 max-md:z-10 max-md:bg-panel max-md:pt-2" data-task-comment-composer>
+      {!readOnly && <form onSubmit={handleSubmit} className="flex gap-2 px-4 pb-4 max-md:sticky max-md:top-0 max-md:z-10 max-md:bg-panel max-md:pt-2" data-task-comment-composer>
         <Input
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -116,7 +118,7 @@ export function ActivityTimeline({ events, taskId }: TimelineProps) {
           wrapperClassName="flex-1"
         />
         <IconButton type="submit" variant="primary" label="Post comment" icon={<Send />} disabled={!comment.trim()} loading={sending} />
-      </form>
+      </form>}
 
       {/* Events */}
       {allEvents.length > 0 && (

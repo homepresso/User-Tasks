@@ -21,6 +21,7 @@ import { plural } from '@/lib/format/plural'
 import { useAssistantChanges, type AssistantChange } from '@/lib/assistants/client-registry'
 import { useSearchParams } from 'next/navigation'
 import { returnToFrom } from '@/lib/navigation/return-to'
+import { DESIGNER_QUERY_OPTIONS, designerDataReady } from '@/lib/automations/designer-query'
 
 const LiveInstancesPanel = dynamic(() => import('@/components/automations/live-instances').then((m) => m.LiveInstancesPanel))
 
@@ -34,9 +35,11 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
   const searchParams = useSearchParams()
   const returnTo = returnToFrom((name) => searchParams?.get(name))
 
-  const { data, isLoading, refetch } = useQuery({
+  // Always the latest saved draft: never a cached / persisted snapshot (lib/automations/designer-query).
+  const { data, isLoading, isFetchedAfterMount, refetch } = useQuery({
     queryKey: ['workflow', id],
     queryFn: async () => (await serverRead('automations.builder', { id })).data,
+    ...DESIGNER_QUERY_OPTIONS,
   })
   const { data: formEntries } = useWorkflowFormEntries(id, Boolean(data?.workflow))
   // The designer assistant changed this workflow's draft: reload it into the builder (which keeps local state).
@@ -46,7 +49,7 @@ export default function WorkflowBuilderPage({ params }: { params: Promise<{ id: 
     void refetch().then(() => setAssistantRev((r) => r + 1))
   }, [id, refetch]))
 
-  if (isLoading) return <WorkflowBuilderSkeleton />
+  if (isLoading || !designerDataReady({ data, isFetchedAfterMount })) return <WorkflowBuilderSkeleton />
   if (!data?.workflow) {
     return (
       <EmptyState

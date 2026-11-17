@@ -183,11 +183,30 @@ describe('proxy', () => {
     expect(res.headers.get('location')).toBe('https://acme.usertasks.test/form/employee-onboarding?ref=qr')
     for (const bad of ['/ws/evil.com/x', '/ws/acme//evil.com', '/ws/www/', '/ws/a.b/x']) {
       const r = await run(`https://usertasks.test${bad}`)
-      expect(r.headers.get('location'), bad).toBeNull()
+      // Never a hop. '/ws/www/' only gets the usual trailing-slash normalisation
+      // (same host, the path without the slash; next.config skipTrailingSlashRedirect).
+      const loc = r.headers.get('location')
+      expect(loc === null || loc === `https://usertasks.test${bad.replace(/\/+$/, '')}`, `${bad} → ${loc}`).toBe(true)
     }
     // Not on a workspace host or a foreign host.
     expect((await run('https://acme.usertasks.test/ws/other/x')).headers.get('location')).toBeNull()
     expect((await run('https://evil.example/ws/acme/x')).headers.get('location')).toBeNull()
+  })
+
+  it('keeps /v2/ (the registry front) as it is and strips other trailing slashes like Next', async () => {
+    const v2 = await run('https://usertasks.test/v2/')
+    expect(v2.headers.get('location')).toBeNull()
+    expect(v2.headers.get('content-security-policy')).toBeNull()
+    expect((await run('https://usertasks.test/v2/editions/sharepoint/manifests/latest')).headers.get('location')).toBeNull()
+    const docs = await run('https://usertasks.test/docs/self-hosting/?a=1')
+    expect(docs.status).toBe(308)
+    expect(docs.headers.get('location')).toBe('https://usertasks.test/docs/self-hosting?a=1')
+    expect((await run('https://usertasks.test/')).headers.get('location')).toBeNull()
+    // Never a protocol-relative (open) redirect.
+    for (const evil of ['//evil.example/', '/\\evil.example/', '///evil.example//']) {
+      const loc = (await run(`https://usertasks.test${evil}`)).headers.get('location')
+      expect(loc === null || new URL(loc).host === 'usertasks.test', `${evil} → ${loc}`).toBe(true)
+    }
   })
 
   it('a friendly form link for a visitor without a session gets the public-form headers', async () => {

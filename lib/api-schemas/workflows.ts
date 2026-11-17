@@ -120,6 +120,7 @@ export function unwrapWorkflowBody(raw: unknown): unknown {
 
 export const workflowPublishBody = z.object({
   notes: z.string().max(2000).optional().describe('Publish notes describing what changed'),
+  on_conflict: z.enum(['keep_both', 'take_over']).optional().describe('When the trigger overlaps with other workflows (409 trigger_conflict, details.conflicts) and the draft has no answer yet: keep_both (both run) or take_over (the other workflows give up the overlapping part, as new versions of those)'),
 })
 
 // ─── Execution schemas ───

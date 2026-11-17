@@ -176,6 +176,32 @@ usertasks rows import <table-id> --set file_name=orders.csv --set file_base64=@@
 
 The CLI waits for the job and prints the summary. MCP clients and the Agent use \`data_rows_import\`, which also accepts \`csv_text\` (for example data pasted into a chat); the Agent shows a preview of what will be imported and waits for your confirmation.
 
+## Views, cell controls and inline editing
+
+The **Rows** tab shows a **view** of the table. **View settings** (needs Edit schema) lists the table's views — add, duplicate, rename, delete, pick the one the grid opens on — and, per view:
+
+- **Columns** — which columns show and in what order, each column's header and width, and its **control**: text, multi-line text, number, currency, date, date & time, yes / no (checkbox or switch), dropdown, autocomplete, multi-select, people picker, lookup, signature pad, file, link, rich text, or a calculated / read-only display (an optional formula such as \`quantity * unit_price\`). The control is inferred from the column type until you pick another.
+- **Options from a data table or an API** — a dropdown, autocomplete, multi-select or lookup can list a fixed set of choices or be **bound** to another data table or an API reference: filter (values may read the same row with \`{{row.<column>}}\`, so a Region dropdown can depend on the Country cell), sort, the column stored as the value (the id) and what people see (display columns or a template such as \`{{name}} ({{city}})\`). Autocompletes search on the server as people type; options are cached per binding (an API reference's cache time applies). Choose **A data table or API**, then **An API**: pick or create the API, **Test** it, and drag a field badge onto **What people see** and **What is stored** (the same steps as a form's Data table — see [Get rows from an API](/docs/tasks/forms#get-rows-from-an-api-step-by-step)).
+- **Read-only / required** per column.
+- **Allow inline editing (all rows)** — cells of editable columns edit in place: Enter, F2 or a double click starts editing; arrows move between cells; Tab and Enter save and move on; Escape cancels. Each cell saves on its own with an instant update that is rolled back if the server refuses it. If someone else changed the row since you opened it, your edit is not saved and the grid shows the latest values with a message. Also **Add rows**, **Delete rows** and **Rows per page**.
+
+### Edit all rows at once
+
+When a view allows inline editing, **Edit all** (or **Shift+E**) turns every row on the page into editable cells at once — like a spreadsheet — and you save them together:
+
+1. Press **Edit all**. Editable cells show as fields; read-only, calculated and system columns stay flat with a lock. A bar above the rows shows **12 rows changed**, **Undo**, **Cancel** and **Save**.
+2. Type straight into a cell (or press Enter / F2, or click it). **Tab** / **Shift+Tab** move across, **Enter** moves down, **arrows** move between cells, **Esc** puts a cell back. Each cell uses its column's control: currency, date, dropdown, a bound autocomplete, yes / no, people…
+3. **Paste a block** copied from Excel or Google Sheets: it fills the cells from the focused one. Values are converted for each column (\`$1,234.50\` → 1234.5, \`11/30/2026\` → a date in your locale's order, TRUE / Yes → yes); a value that doesn't fit is marked on its cell and not pasted. **Ctrl/⌘+D** fills down, **Ctrl/⌘+Z** undoes, **Ctrl/⌘+C** copies the selected cells (Shift+arrows select). When the view allows adding rows, **Add row** adds one at the bottom, and a paste that runs past the last row adds rows.
+4. **Save** (or **Ctrl/⌘+S**) sends all changed rows in one batch. The server checks every row as it checks a single edit. Rows that saved are done, and the ones it refused keep your edits with the reason on the cell, so you fix them and save again. If someone else changed a row since you started, the row shows **Keep mine** (your edits overwrite theirs on the next save) or **Take theirs**.
+
+Changed cells are highlighted until saved. Your edits stay when you change page, so you can edit several pages and save once. Leaving the page with unsaved changes asks first. **Always open in edit mode** (View settings) opens the view in this mode. Each saved row fires the table's **updated** workflows once, exactly as a single edit does. Rows you didn't change, and rows that were refused, fire nothing. The batch is also available as \`PATCH /api/v1/data-tables/{id}/rows/cells\`, the MCP tool \`data_rows_write_cells_batch\` and \`usertasks rows cells-batch\`.
+
+The server enforces the view: inline writes need the Manage rows permission, inline editing turned on and an editable column — read-only, hidden and calculated columns are refused even if a client sends them; values must fit the control, bound values must be options of their source, people must be in the workspace, and a new signature is stamped with who signed and when. Rows load a page at a time; long pages are drawn as you scroll.
+
+The same column engine powers the **Data table** control on forms: in the form designer each column gets a **Cell control** (signature pad, dropdown bound to a table, autocomplete bound to an API reference, …) and **Allow inline editing (all rows)** turns on editing; edits are part of the form's value and written back by the form's rules on submit.
+
+**API, CLI and MCP.** \`GET\` / \`PUT /api/v1/data-tables/{id}/views\` (\`usertasks tables views\` / \`tables set-views\`, MCP \`data_views_get\` / \`data_views_update\`); inline cell writes \`PATCH /api/v1/data-tables/{id}/rows/{rowId}/cells\` with \`view_id\`, \`cells\` and optionally \`expected_updated_at\` (409 when the row changed; \`usertasks rows cells\`, MCP \`data_rows_write_cells\`); a bound column's options \`POST /api/v1/data-tables/{id}/views/{viewId}/options\` (\`usertasks tables options\`, MCP \`data_views_options\`).
+
 ## Using tables
 
 - **Workflows** — the **Data** node inserts, gets, updates, deletes and lists rows; **Data Table Event** triggers start a run when rows change (\`row\`, \`row_id\` and one variable per column).

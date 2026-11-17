@@ -140,8 +140,20 @@ export async function createTask(formData: FormData) {
   if (assigneeIds.length === 0 && assigneeId) {
     assigneeIds = [assigneeId]
   }
+  // A team task (assignment_mode 'team'): one task for the team, nobody on
+  // it until a member claims it — the same semantics as Assign to… a team
+  // and a workflow User Task assigned to a team (lib/services/home claimTask).
+  const teamQueue = assignmentMode === 'team' && Boolean(assignedTeamId)
+  if (teamQueue) {
+    const { data: team } = await supabase.from('teams').select('id').eq('id', assignedTeamId).eq('tenant_id', createTenantId ?? '').maybeSingle()
+    if (!team) {
+      await restoreTenantView()
+      throw new Error('Team not found')
+    }
+    assigneeIds = []
+  }
   // If team selected but no explicit user list, resolve from team
-  if (assigneeIds.length === 0 && assignedTeamId) {
+  if (!teamQueue && assigneeIds.length === 0 && assignedTeamId) {
     const { data: members } = await supabase
       .from('user_teams')
       .select('user_id')
@@ -166,7 +178,15 @@ export async function createTask(formData: FormData) {
   const assignedBody = (assignee: string) =>
     acceptanceFor(assignee) === 'pending' ? `"${title}" needs your acceptance` : `"${title}" was added to your tasks`
 
-  if (assignmentMode === 'individual' && assigneeIds.length > 1) {
+  if (teamQueue) {
+    // ─── Team task: the team's members claim it ───
+    updates.assignment_mode = 'team'
+    updates.assignment_type = 'team'
+    updates.assignee_id = null
+    updates.assigned_team_id = assignedTeamId
+    updates.acceptance_status = acceptanceFor(null)
+    await supabase.from('tasks').update(updates as any).eq('id', taskData.task.id)
+  } else if (assignmentMode === 'individual' && assigneeIds.length > 1) {
     // ─── Individual mode: create copies ───
     const groupId = crypto.randomUUID()
     updates.assignment_mode = 'individual'

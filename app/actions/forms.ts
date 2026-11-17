@@ -116,6 +116,50 @@ export async function deleteStandaloneFormRecord(formId: string, input: { button
   return run('deleteStandaloneFormRecord', 'Could not delete the record.', async (ctx) => (await import('@/lib/services/form-submissions')).deleteFormRecord(ctx, formId, input))
 }
 
+/**
+ * The designer's "Connected to …" panel: the binding's new config (and new
+ * fields) for a mapping / option change — nothing is saved; the designer
+ * puts the result in its state and the normal save stores it (forms.edit).
+ */
+export async function bindFormDataTarget(formId: string, input: { fields: unknown[]; layout: Record<string, unknown>; mappings?: Array<{ field: string; source: string | null }>; add?: string[]; options?: Record<string, string | boolean> }) {
+  return run('bindFormDataTarget', 'Could not change the connection.', async (ctx) => {
+    const { requirePerm } = await import('@/lib/services/context')
+    requirePerm(ctx, 'forms.edit')
+    const form = await forms.getForm(ctx, formId)
+    const { normalizeTaskFields } = await import('@/lib/task-field-schema')
+    return (await import('@/lib/services/form-targets')).bindFormTarget(ctx, { id: String(form.id), name: String(form.name), version: Number(form.version), fields: normalizeTaskFields(input.fields), layout: input.layout }, { mappings: input.mappings, add: input.add, options: input.options })
+  })
+}
+
+/** A "Connected to …" panel action on the saved form (e.g. "Use SharePoint's forms again"); the provider checks the person's rights. */
+export async function runFormDataTargetAction(formId: string, action: string) {
+  return run('runFormDataTargetAction', 'Could not do that.', async (ctx) => {
+    const form = await forms.getForm(ctx, formId)
+    const { normalizeFormDefinition } = await import('@/lib/forms/definition')
+    const def = normalizeFormDefinition(form as never)
+    return (await import('@/lib/services/form-targets')).runFormTargetAction(ctx, { id: String(form.id), name: String(form.name), version: Number(form.version), fields: def.fields, layout: def.layout }, action)
+  })
+}
+
+/**
+ * The designer's Data panel (data binding): drag / add source fields, bind /
+ * unbind a field. Returns the new layout (data_target config or
+ * data_binding) and the new fields; nothing is saved (the normal save
+ * stores them). A new, unsaved form has no id.
+ */
+export async function bindFormSource(formId: string | null, input: { name?: string; fields: unknown[]; layout: Record<string, unknown>; mappings?: Array<{ field: string; source: string | null }>; add?: string[]; types?: Record<string, string>; options?: Record<string, string | boolean> }) {
+  return run('bindFormSource', 'Could not change the data binding.', async (ctx) => {
+    const { requirePerm } = await import('@/lib/services/context')
+    requirePerm(ctx, 'forms.edit')
+    const form = formId ? await forms.getForm(ctx, formId) : null
+    const { normalizeTaskFields, TASK_FIELD_TYPES } = await import('@/lib/task-field-schema')
+    const types = Object.fromEntries(Object.entries(input.types ?? {}).filter(([, t]) => (TASK_FIELD_TYPES as string[]).includes(t))) as never
+    return (await import('@/lib/services/form-sources')).bindFormSource(ctx,
+      { id: form ? String(form.id) : null, name: form ? String(form.name) : String(input.name ?? 'New form'), version: form ? Number(form.version) : null, fields: normalizeTaskFields(input.fields), layout: input.layout },
+      { mappings: input.mappings, add: input.add, types, options: input.options })
+  })
+}
+
 /** Submit a workflow's trigger form from the Run dialog ({{submission.source}} = run_dialog; set here, never by the request). */
 export async function submitRunDialogForm(formId: string, input: SubmitFormInput): Promise<SubmitActionResult> {
   return submitFrom(formId, input, 'run_dialog', 'submitRunDialogForm')

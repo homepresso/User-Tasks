@@ -8,6 +8,7 @@ import { useFollowedTaskIds } from "@/components/tasks/task-follow-button"
 import { ASSIGNED_TASK_COLUMNS, AssignedTaskRow } from "@/components/tasks/assigned-task-row"
 import { Pagination } from "@/components/ui/list-controls"
 import { SearchInput } from "@/components/ui/input"
+import { TASK_SEARCH_STATUS_OPTIONS, TaskSearchList, type TaskSearchStatus } from "@/components/tasks/task-search-list"
 import { Select } from "@/components/ui/select"
 import { Bell, ChevronDown, ChevronRight, Eye, ListChecks, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -104,6 +105,8 @@ export default function AssignedTasksPage() {
       ? null
       : rememberedTab ?? (followingCount.isPending ? null : defaultTrackerTab(null, followingCount.data?.total)))
   const onFollowing = tab === 'following'
+  // Following: Open (the table below) | Completed | All (server-side search, components/tasks/task-search-list.tsx).
+  const [followMode, setFollowMode] = useState<TaskSearchStatus>("open")
   // Team members: the reporting-line tree by default (remembered); other tabs: None / People / Teams.
   const groupBy: GroupBy = tab === 'team_members' ? teamGroupBy : pickedGroupBy === 'reporting' ? 'none' : pickedGroupBy
   const setGroupBy = (next: GroupBy) => (tab === 'team_members' ? setTeamGroupBy(next) : setPickedGroupBy(next))
@@ -124,7 +127,7 @@ export default function AssignedTasksPage() {
     search: debouncedSearch || undefined,
     hideCompleted: !statusFilter.showCompleted,
     sharedOnly: sharedOnly || undefined,
-  }, { enabled: onFollowing })
+  }, { enabled: onFollowing && followMode === "open" })
   const active = onFollowing ? followed : assigned
   // Sorted before paging (and within groups) so every page follows the sort.
   const tasks = useMemo(() => (active.data ? sorted(active.data as any[]) : active.data), [active.data, sorted])
@@ -293,9 +296,10 @@ export default function AssignedTasksPage() {
               Shared with me
             </Button>
           )}
+          {onFollowing && <SegmentedControl size="sm" aria-label="Open or completed followed tasks" options={TASK_SEARCH_STATUS_OPTIONS} value={followMode} onValueChange={setFollowMode} />}
           {onFollowing && <FollowPreferenceSwitch name="auto_follow_acted_runs" />}
-          <StatusFilterControls options={STATUS_OPTIONS} selected={statusFilter.selected} onSelectedChange={statusFilter.setSelected}
-            showCompleted={statusFilter.showCompleted} onShowCompletedChange={statusFilter.setShowCompleted} />
+          {!(onFollowing && followMode !== "open") && <StatusFilterControls options={STATUS_OPTIONS} selected={statusFilter.selected} onSelectedChange={statusFilter.setSelected}
+            showCompleted={statusFilter.showCompleted} onShowCompletedChange={statusFilter.setShowCompleted} />}
         </div>
       </div>
 
@@ -303,6 +307,8 @@ export default function AssignedTasksPage() {
       {onTree ? (
         <TeamHierarchy list="tracker" readOnly={isMobile}
           filters={{ status: statuses, includeClosed: statusFilter.showCompleted, priority: priorityFilter, search: debouncedSearch }} />
+      ) : onFollowing && followMode !== "open" ? (
+        <TaskSearchList tab="following" status={followMode} search={debouncedSearch} />
       ) : (
       <>
       <Table label="Tracked tasks" stickyFirstColumn stickyColumns={2} className={cn("transition-opacity duration-[var(--ds-dur-base)]", isFetching && tasks?.length ? "opacity-80" : "opacity-100")}>

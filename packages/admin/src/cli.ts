@@ -90,6 +90,7 @@ Usage:
   usertasks-admin licence install <file>                   (install or replace a licence; signature and binding checked)
   usertasks-admin licence remove <licence-id> | --all
   usertasks-admin licence request [--out <file>] [--json]  (offline activation request: instance id, hostnames)
+  usertasks-admin licence export --ext <extension>          (the installed licence for an extension, as a .licence file on stdout)
   usertasks-admin entitlements list [--tenant <workspace id>] [--ext <extension>] [--json]
   usertasks-admin entitlements grant --tenant <workspace id> --ext <extension> [--until <ISO date>]
                                      [--features a,b] [--limits sharepoint.farms=2,…]
@@ -369,7 +370,8 @@ export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.en
     case 'licence':
     case 'license': {
       const action = (sub ?? 'status') as LicenceAction
-      if (!['status', 'install', 'remove', 'request'].includes(action)) throw new UsageError(`Unknown command: licence ${sub}`)
+      if (!['status', 'install', 'remove', 'request', 'export'].includes(action)) throw new UsageError(`Unknown command: licence ${sub}`)
+      if (action === 'export' && (rest.length || !values.ext)) throw new UsageError('licence export needs --ext <extension> (e.g. --ext sharepoint)')
       if (action === 'install' && rest.length !== 1) throw new UsageError('licence install needs one licence file')
       if (action === 'remove' && (rest.length > 1 || (!rest.length && !values.all) || (rest.length && values.all))) throw new UsageError('licence remove needs one licence id, or --all')
       if ((action === 'status' || action === 'request') && rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
@@ -671,7 +673,7 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
 
     case 'licence': {
       const code = await withStore(url, io, (db) => runLicence(command.action, command.args, {
-        json: values.json, all: values.all, out: values.out, actor: values.actor || defaultActor(),
+        json: values.json, all: values.all, out: values.out, ext: values.ext, actor: values.actor || defaultActor(),
       }, sqlLicenceStore(db), io))
       return code ?? needDb('read and write the installed licences (instance settings)')
     }

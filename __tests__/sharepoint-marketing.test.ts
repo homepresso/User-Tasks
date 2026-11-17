@@ -14,6 +14,10 @@ import { GUIDES, SOLUTIONS_BY_USE_CASE } from '@/lib/marketing-nav'
 import { SHAREPOINT_PAGE } from '@/lib/marketing-pages'
 import { PUBLIC_PAGES } from '@/lib/seo/public-pages'
 import { getUseCase } from '@/lib/use-cases'
+import { SEO_PAGES } from '@/lib/seo-pages'
+import { SHAREPOINT_PAGES } from '@/lib/docs/content/sharepoint'
+import { ALTERNATIVES_COMPARISON, SHAREPOINT_KEY_FACTS } from '@/lib/seo/sharepoint-facts'
+import { buildLlmsTxt } from '@/lib/seo/llms'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: () => {} }), usePathname: () => '/sharepoint' }))
 // The page shows real SharePoint screenshots through next/image; under Vitest the .webp imports are plain URLs.
@@ -80,7 +84,8 @@ describe('SharePoint solution page', () => {
     expect(html).toMatch(/real SharePoint Server Subscription Edition screens with demo data/i)
     expect(html).not.toMatch(/contoso\.local|ut-addin|>Illustration</i)
     const external = [...html.slice(html.indexOf('<main'), html.indexOf('</main>')).matchAll(/href="(https?:[^"]+)"/g)].map((m) => m[1])
-    for (const href of external) expect(href, href).toMatch(/^https:\/\/(support\.microsoft\.com|learn\.microsoft\.com)\//)
+    // Microsoft for every Microsoft fact; Nintex's own documentation for the one Nintex fact in the comparison.
+    for (const href of external) expect(href, href).toMatch(/^https:\/\/(support\.microsoft\.com|learn\.microsoft\.com|help\.nintex\.com)\//)
     const main = html.slice(html.indexOf('<main'), html.indexOf('</main>'))
     const internal = [...main.matchAll(/href="(\/[^"]*)"/g)].map((m) => m[1])
     expect(internal).toContain('/contact')
@@ -95,5 +100,47 @@ describe('SharePoint solution page', () => {
     const faq = graph.find((node) => node['@type'] === 'FAQPage')!
     expect(faq.mainEntity.length).toBeGreaterThanOrEqual(6)
     for (const question of faq.mainEntity) expect(question.name).toMatch(/\?$/)
+  })
+
+  it('shows the list dashboard (Overview, Runs, Metrics, Permissions), manual start and the web parts with real screenshots', () => {
+    const html = renderToStaticMarkup(SharePointPage())
+    for (const id of ['summary', 'dashboard', 'dashboard-overview', 'dashboard-runs', 'dashboard-metrics', 'dashboard-permissions', 'start', 'web-parts', 'compare']) expect(html, id).toContain(`id="${id}"`)
+    expect(html).toContain('See every workflow and form on the list.')
+    for (const shot of ['sharepoint-dashboard-overview', 'sharepoint-dashboard-runs', 'sharepoint-dashboard-metrics', 'sharepoint-dashboard-permissions', 'sharepoint-start-menu', 'sharepoint-start-page', 'sharepoint-my-tasks']) expect(html, shot).toContain(shot)
+    expect(html).toContain('Start a UserTasks workflow')
+    expect(html).toMatch(/UserTasks – My tasks/)
+    // Lab names and test data never reach the public page.
+    expect(html).not.toMatch(/contoso|spsites|ut-test|utadmin|UT Dash|Orders/i)
+  })
+
+  it('opens with an answer and quotable key facts, and compares the options factually', () => {
+    const html = renderToStaticMarkup(SharePointPage())
+    expect(html.indexOf('id="summary"')).toBeLessThan(html.indexOf('id="retirement"'))
+    for (const fact of SHAREPOINT_KEY_FACTS) expect(html).toContain(fact.label)
+    expect(ALTERNATIVES_COMPARISON.columns).toHaveLength(5)
+    for (const row of ALTERNATIVES_COMPARISON.rows) expect(row).toHaveLength(5)
+    expect(JSON.stringify(ALTERNATIVES_COMPARISON)).not.toMatch(/best|worse|better|outdated|legacy|cheaper|expensive/i)
+    expect(html).toMatch(/Last updated/)
+  })
+
+  it('describes the Nintex importer as available (free in core), never as coming', () => {
+    const nintex = SEO_PAGES.find((page) => page.slug === 'nintex-alternative')!
+    const text = JSON.stringify([nintex, SHAREPOINT_KEY_FACTS, getUseCase('nintex-migration'), renderToStaticMarkup(SharePointPage()), buildLlmsTxt('https://usertasks.com')])
+    expect(text).toMatch(/free Nintex (workflow )?importer in UserTasks core/i)
+    expect(text).toMatch(/\.nwf/)
+    expect(text).toMatch(/\.nwp/)
+    expect(text).toMatch(/placeholders to rebuild/)
+    expect(text).not.toMatch(/nintex.{0,80}(coming|not released|in development|being built|soon|not yet)/i)
+    expect(text).not.toMatch(/nintex[^"]{0,200}100 ?%|100 ?%[^"]{0,200}nintex/i)
+    expect(nintex.faqs.find((faq) => /import Nintex/.test(faq.question))!.answer).toMatch(/^Yes\./)
+  })
+
+  it('documents the extension: dashboard, triggers, manual start, forms, web parts, permissions and migration, without private details', () => {
+    expect(SHAREPOINT_PAGES.map((page) => page.slug)).toEqual(['sharepoint', 'sharepoint/list-dashboard', 'sharepoint/triggers', 'sharepoint/manual-start', 'sharepoint/forms', 'sharepoint/web-parts', 'sharepoint/permissions', 'sharepoint/migration', 'sharepoint/trial'])
+    for (const page of SHAREPOINT_PAGES) {
+      expect(getDocPage(page.slug), page.slug).toBeDefined()
+      expect(page.body, page.slug).not.toMatch(/contoso|spsites|ut-addin|src\/|ext_sharepoint__|usertasks-sharepoint|ctx\.|lab-results/i)
+    }
+    expect(buildLlmsTxt('https://usertasks.com')).toContain('https://usertasks.com/docs/sharepoint/list-dashboard')
   })
 })

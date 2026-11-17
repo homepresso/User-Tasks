@@ -14,6 +14,15 @@
 #   -Build              build the image locally if it can't be downloaded
 #   -NoBrowser          USERTASKS_NO_BROWSER=1
 #
+# UserTasks for SharePoint Server (a licence-gated image; trial or purchased licence):
+#   -Edition sharepoint USERTASKS_EDITION        install the SharePoint edition
+#   -Licence <file>     USERTASKS_LICENCE_FILE   your .licence file (checked with usertasks.com)
+#   -Bundle <file>      install from an offline bundle (air-gapped hosts)
+#   -BundleDownload     make an offline bundle here instead of installing (with -Edition and
+#                       -Licence; -Platform linux/amd64|linux/arm64, -Out <file>)
+#
+#   & ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -Edition sharepoint -Licence .\usertasks.licence
+#
 # It checks the machine and Docker, downloads a pinned release, verifies its
 # signature and checksum before running anything from it, then hands over to
 # that release's `usertasks install`. Safe to run again: existing secrets and
@@ -41,7 +50,13 @@ function Invoke-UserTasksInstall {
     [string]$Project = $env:USERTASKS_PROJECT,
     [switch]$NonInteractive,
     [switch]$Build,
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [string]$Edition = $env:USERTASKS_EDITION,
+    [Alias('License')][string]$Licence = $env:USERTASKS_LICENCE_FILE,
+    [string]$Bundle,
+    [switch]$BundleDownload,
+    [string]$Platform,
+    [string]$Out
   )
   $ErrorActionPreference = 'Stop'
   $ProgressPreference = 'SilentlyContinue'
@@ -50,12 +65,21 @@ function Invoke-UserTasksInstall {
   if ($NoBrowser) { $env:USERTASKS_NO_BROWSER = '1' }
   $releaseBase = $env:USERTASKS_RELEASE_BASE
   if (-not $releaseBase) { $releaseBase = 'https://github.com/homepresso/User-Tasks/releases' }
+  $editionApi = $env:USERTASKS_EDITION_API
+  if (-not $editionApi) { $editionApi = 'https://usertasks.com/api/public/extensions' }
+  if ($Edition -eq 'core') { $Edition = '' }
+  if ($Edition -and $Edition -ne 'sharepoint') { throw "unknown edition: $Edition (editions: sharepoint)" }
+  if ($Licence) { if (-not (Test-Path $Licence)) { throw "licence file not found: $Licence" }; $Licence = (Resolve-Path $Licence).Path }
+  if ($Bundle) { if (-not (Test-Path $Bundle)) { throw "bundle not found: $Bundle" }; $Bundle = (Resolve-Path $Bundle).Path }
+  if ($BundleDownload) { if (-not $Edition -or -not $Licence) { throw '-BundleDownload needs -Edition sharepoint and -Licence <file>' } }
+  elseif ($Edition -and -not $Licence -and -not $Bundle) { throw "-Edition $Edition needs your licence: -Licence <file> (start a 30-day trial at https://usertasks.com/sharepoint/trial)" }
 
   Write-Host ''
   Write-Host 'UserTasks installer' -ForegroundColor White
   Test-UtMachine
   Test-UtDocker
-  if (-not $Dir) {
+  if ($BundleDownload) { if (-not $Dir) { $Dir = Join-Path (Get-Location).Path 'usertasks-bundle-work' } }
+  elseif (-not $Dir) {
     $Dir = Join-Path $HOME 'usertasks'
     if (-not (Test-Path (Join-Path $Dir 'state.env'))) { $Dir = Read-UtAnswer 'Install folder' $Dir }
   }
@@ -63,9 +87,31 @@ function Invoke-UserTasksInstall {
   $Dir = (Resolve-Path $Dir).Path
   Test-UtDisk $Dir
   $key = Set-UtTrustKey $Dir
+  $bundleDir = ''
+  if ($Bundle) {
+    if (Test-Path "$Bundle.sha256") {
+      $want = ((Get-Content -Raw "$Bundle.sha256").Trim() -split '\s+')[0]
+      if ((Get-FileHash -Algorithm SHA256 $Bundle).Hash.ToLowerInvariant() -ne $want) { throw "$Bundle does not match $Bundle.sha256: the bundle is damaged or was changed" }
+      Write-UtOk "bundle checksum ($Bundle.sha256)"
+    }
+    $bo = Join-Path $Dir 'releases\.bundle'
+    if (Test-Path $bo) { Remove-Item -Recurse -Force $bo }
+    New-Item -ItemType Directory -Force -Path $bo | Out-Null
+    Write-UtStep "Unpacking $(Split-Path -Leaf $Bundle)"
+    & tar -xf $Bundle -C $bo
+    if ($LASTEXITCODE -ne 0) { throw "could not unpack $Bundle (tar)" }
+    $bj = Get-ChildItem -Path $bo -Filter 'bundle.json' -Recurse -Depth 1 | Select-Object -First 1
+    if (-not $bj) { throw "$Bundle is not a UserTasks offline bundle" }
+    $bundleDir = $bj.DirectoryName
+    $Version = [string](Get-Content -Raw $bj.FullName | ConvertFrom-Json).core_version
+  }
   if (-not $Version -and (Test-Path (Join-Path $Dir 'state.env'))) {
     $line = Get-Content (Join-Path $Dir 'state.env') | Where-Object { $_ -like 'USERTASKS_VERSION=*' } | Select-Object -Last 1
     if ($line) { $Version = $line.Substring(18) }
+  }
+  if (-not $Version -and $Edition) {
+    # The newest UserTasks release that has an edition build (it follows a release within hours).
+    try { $Version = [string](Invoke-RestMethod -UseBasicParsing "$editionApi/$Edition").latest_core_version } catch { $Version = '' }
   }
   if (-not $Version) {
     Write-UtStep 'Looking up the latest release'
@@ -74,17 +120,29 @@ function Invoke-UserTasksInstall {
   }
   $Version = $Version.TrimStart('v')
   if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$') { throw "not a release version: '$Version'" }
-  Get-UtRelease -Base $releaseBase -Version $Version -Dir $Dir -Key $key
+  $src = ''; if ($bundleDir) { $src = Join-Path $bundleDir 'release' }
+  Get-UtRelease -Base $releaseBase -Version $Version -Dir $Dir -Key $key -Source $src
+
+  $wrapper = Join-Path $Dir "releases\$Version\usertasks.ps1"
+  $shell = 'powershell.exe'
+  if ($PSVersionTable.PSEdition -eq 'Core') { $shell = (Get-Process -Id $PID).Path }
+  if ($BundleDownload) {
+    $a = @('bundle-download', '-Work', $Dir, '-Version', $Version, '-Edition', $Edition, '-Licence', $Licence)
+    if ($Platform) { $a += @('-Platform', $Platform) }
+    if ($Out) { $a += @('-Out', $Out) }
+    & $shell -NoProfile -ExecutionPolicy Bypass -File $wrapper @a
+    if ($LASTEXITCODE -ne 0) { throw "the bundle was not made (exit code $LASTEXITCODE)" }
+    return
+  }
 
   $a = @('install', '-Dir', $Dir, '-Version', $Version)
+  if ($bundleDir) { $a += @('-Bundle', $bundleDir) } elseif ($Edition) { $a += @('-Edition', $Edition) }
+  if ($Licence) { $a += @('-Licence', $Licence) }
   if ($Port) { $a += @('-Port', $Port) }
   if ($Url) { $a += @('-Url', $Url) }
   if ($Preset) { $a += @('-Preset', $Preset) }
   if ($Project) { $a += @('-Project', $Project) }
   if ($Build) { $a += '-Build' }
-  $wrapper = Join-Path $Dir "releases\$Version\usertasks.ps1"
-  $shell = 'powershell.exe'
-  if ($PSVersionTable.PSEdition -eq 'Core') { $shell = (Get-Process -Id $PID).Path }
   & $shell -NoProfile -ExecutionPolicy Bypass -File $wrapper @a
   if ($LASTEXITCODE -ne 0) { throw "the install did not finish (exit code $LASTEXITCODE); it is safe to run the installer again" }
 }
@@ -186,17 +244,23 @@ function Test-UtSignature([string]$data, [string]$sig, [string]$key) {
   } finally { Remove-Item -Recurse -Force $vd -ErrorAction SilentlyContinue }
 }
 
-function Get-UtRelease([string]$Base, [string]$Version, [string]$Dir, [string]$Key) {
+function Get-UtRelFile([string]$src, [string]$url, [string]$name, [string]$dest) {
+  if ($src) { if (-not (Test-Path (Join-Path $src $name))) { throw "$name is not in $src" }; Copy-Item (Join-Path $src $name) $dest }
+  else { Invoke-WebRequest -UseBasicParsing "$url/$name" -OutFile $dest }
+}
+
+# Get-UtRelease: download (or copy from -Source: an offline bundle's release\), verify, unpack.
+function Get-UtRelease([string]$Base, [string]$Version, [string]$Dir, [string]$Key, [string]$Source = '') {
   $dest = Join-Path $Dir "releases\$Version"
   if ((Test-Path (Join-Path $dest '.verified')) -and (Test-Path (Join-Path $dest 'usertasks.ps1'))) { Write-UtOk "release $Version already downloaded and verified"; return }
   $dl = Join-Path $Dir "releases\.download-$Version"
   if (Test-Path $dl) { Remove-Item -Recurse -Force $dl }
   New-Item -ItemType Directory -Path $dl | Out-Null
   $url = "$Base/download/v$Version"; $bundle = "usertasks-$Version.tar.gz"
-  Write-UtStep "Downloading UserTasks $Version"
+  if ($Source) { Write-UtStep "Checking UserTasks $Version from the bundle" } else { Write-UtStep "Downloading UserTasks $Version" }
   try {
-    Invoke-WebRequest -UseBasicParsing "$url/SHA256SUMS" -OutFile (Join-Path $dl 'SHA256SUMS')
-    Invoke-WebRequest -UseBasicParsing "$url/SHA256SUMS.sig" -OutFile (Join-Path $dl 'SHA256SUMS.sig')
+    Get-UtRelFile $Source $url 'SHA256SUMS' (Join-Path $dl 'SHA256SUMS')
+    Get-UtRelFile $Source $url 'SHA256SUMS.sig' (Join-Path $dl 'SHA256SUMS.sig')
   } catch { throw "release $Version not found at ${url}: $($_.Exception.Message)" }
   if (-not (Test-UtSignature (Join-Path $dl 'SHA256SUMS') (Join-Path $dl 'SHA256SUMS.sig') $Key)) {
     throw "signature check FAILED: SHA256SUMS of $Version was not signed by the UserTasks release key. Nothing was installed."
@@ -205,7 +269,7 @@ function Get-UtRelease([string]$Base, [string]$Version, [string]$Dir, [string]$K
   $want = $null
   foreach ($l in Get-Content (Join-Path $dl 'SHA256SUMS')) { if ($l -match '^([0-9a-f]{64}) [ *](.+)$' -and $Matches[2] -eq $bundle) { $want = $Matches[1] } }
   if (-not $want) { throw "SHA256SUMS does not list $bundle" }
-  Invoke-WebRequest -UseBasicParsing "$url/$bundle" -OutFile (Join-Path $dl $bundle)
+  Get-UtRelFile $Source $url $bundle (Join-Path $dl $bundle)
   $have = (Get-FileHash -Algorithm SHA256 (Join-Path $dl $bundle)).Hash.ToLowerInvariant()
   if ($have -ne $want) { throw "checksum mismatch for ${bundle}: the download is damaged or was changed. Nothing was installed." }
   Write-UtOk 'checksum'

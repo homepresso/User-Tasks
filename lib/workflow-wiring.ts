@@ -57,9 +57,11 @@ export interface WiringWarning {
    * `prefill`: a User Task's read-only form fields that nothing fills;
    * `unassigned`: a User Task with no assignee (the task sits in the queue
    * with nobody assigned); `assigned_for_testing`: an info note — the task
-   * is assigned to the workflow's creator for testing (the Agent's default).
+   * is assigned to the workflow's creator for testing (the Agent's default);
+   * `import_review`: what an importer could not wire (config._import_review,
+   * e.g. a column the connected list does not have) until marked reviewed.
    */
-  kind: 'reference' | 'config_key' | 'syntax' | 'prefill' | 'unassigned' | 'assigned_for_testing'
+  kind: 'reference' | 'config_key' | 'syntax' | 'prefill' | 'unassigned' | 'assigned_for_testing' | 'import_review'
   /** `info` for notes that need no fix (assigned_for_testing); warnings otherwise. */
   severity?: 'warning' | 'info'
   message: string
@@ -484,6 +486,7 @@ export function validateWorkflowWiring(input: WiringInput): WiringWarning[] {
     configStrings(node.config, '', strings, 0, node.type === 'user_task' ? FORM_DESIGN_KEYS : undefined)
     const base = { node_id: node.id, node_label: node.label }
     warnings.push(...configKeyWarnings(node).map((w) => ({ ...base, ...w })))
+    for (const note of importReviewNotes(node.config)) warnings.push({ ...base, kind: 'import_review', key: '_import_review', message: note })
     if (node.type === 'user_task') warnings.push(...prefillWarnings(node, input.linkedForms, scope.formKeys).map((w) => ({ ...base, ...w })))
     if (node.type === 'user_task') warnings.push(...assignmentWarnings(node, triggers).map((w) => ({ ...base, ...w })))
     if (!strings.length) continue
@@ -908,6 +911,12 @@ function configKeyWarnings(node: PickerNodeLike): Omit<WiringWarning, 'node_id' 
 }
 
 /** One line per warning (for logs, CLI and plain-text surfaces). */
+/** An importer's notes on a step (config._import_review): shown until the person marks the step reviewed. */
+export function importReviewNotes(config: Record<string, any> | null | undefined): string[] {
+  const raw = config?._import_review
+  return Array.isArray(raw) ? raw.map((x) => String(x ?? '').trim()).filter(Boolean).slice(0, 20) : []
+}
+
 export function formatWiringWarning(w: WiringWarning): string {
   return `${w.node_label}: ${w.message}${w.suggestion && !w.message.includes(w.suggestion) ? ` — use ${w.suggestion}` : ''}`
 }

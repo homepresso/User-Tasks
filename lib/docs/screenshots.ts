@@ -66,6 +66,9 @@ import formsSubmittedPage from '@/public/screenshots/forms-submitted-page.webp'
 import formsDataTable from '@/public/screenshots/forms-data-table.webp'
 import formsDataTableDesigner from '@/public/screenshots/forms-data-table-designer.webp'
 import formsDataTableCollections from '@/public/screenshots/forms-data-table-collections.webp'
+import formsDataTableGetRowsFrom from '@/public/screenshots/forms-data-table-get-rows-from.webp'
+import formsDataTableApi from '@/public/screenshots/forms-data-table-api.webp'
+import dataGridApiChoices from '@/public/screenshots/data-grid-api-choices.webp'
 import formsDynamicProperties from '@/public/screenshots/forms-dynamic-properties.webp'
 import formsTableChanges from '@/public/screenshots/forms-table-changes.webp'
 import formsTableChangesRule from '@/public/screenshots/forms-table-changes-rule.webp'
@@ -107,6 +110,16 @@ import homeSubmissions from '@/public/screenshots/home-submissions.webp'
 import homeViewFlow from '@/public/screenshots/home-view-flow.webp'
 import type { ScreenshotName } from './screenshot-names'
 
+import sharepointDashboardOverview from '@/public/screenshots/sharepoint-dashboard-overview.webp'
+import sharepointDashboardRuns from '@/public/screenshots/sharepoint-dashboard-runs.webp'
+import sharepointDashboardMetrics from '@/public/screenshots/sharepoint-dashboard-metrics.webp'
+import sharepointDashboardPermissions from '@/public/screenshots/sharepoint-dashboard-permissions.webp'
+import sharepointStartMenu from '@/public/screenshots/sharepoint-start-menu.webp'
+import sharepointStartPage from '@/public/screenshots/sharepoint-start-page.webp'
+import sharepointMyTasks from '@/public/screenshots/sharepoint-my-tasks.webp'
+import sharepointFormEmbedded from '@/public/screenshots/sharepoint-form-embedded.webp'
+import sharepointDesigner from '@/public/screenshots/sharepoint-designer.webp'
+import sharepointSetup from '@/public/screenshots/sharepoint-setup.webp'
 /** Static imports of public/screenshots (width, height and blur placeholder come from the files). */
 export const SCREENSHOTS: Record<ScreenshotName, StaticImageData> = {
   'designer': designer,
@@ -176,6 +189,9 @@ export const SCREENSHOTS: Record<ScreenshotName, StaticImageData> = {
   'forms-data-table': formsDataTable,
   'forms-data-table-designer': formsDataTableDesigner,
   'forms-data-table-collections': formsDataTableCollections,
+  'forms-data-table-get-rows-from': formsDataTableGetRowsFrom,
+  'forms-data-table-api': formsDataTableApi,
+  'data-grid-api-choices': dataGridApiChoices,
   'forms-dynamic-properties': formsDynamicProperties,
   'forms-table-changes': formsTableChanges,
   'forms-table-changes-rule': formsTableChangesRule,
@@ -215,4 +231,14 @@ export const SCREENSHOTS: Record<ScreenshotName, StaticImageData> = {
   'home-layout': homeLayout,
   'home-submissions': homeSubmissions,
   'home-view-flow': homeViewFlow,
+  'sharepoint-dashboard-overview': sharepointDashboardOverview,
+  'sharepoint-dashboard-runs': sharepointDashboardRuns,
+  'sharepoint-dashboard-metrics': sharepointDashboardMetrics,
+  'sharepoint-dashboard-permissions': sharepointDashboardPermissions,
+  'sharepoint-start-menu': sharepointStartMenu,
+  'sharepoint-start-page': sharepointStartPage,
+  'sharepoint-my-tasks': sharepointMyTasks,
+  'sharepoint-form-embedded': sharepointFormEmbedded,
+  'sharepoint-designer': sharepointDesigner,
+  'sharepoint-setup': sharepointSetup,
 }

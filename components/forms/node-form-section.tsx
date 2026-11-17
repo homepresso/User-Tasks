@@ -4,7 +4,7 @@ import { isPaged } from '@/lib/forms/layout'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Library, Link2, PencilRuler, Search, Unlink, X } from 'lucide-react'
+import { ExternalLink, Library, Link2, PencilRuler, Search, Unlink, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePermissions } from '@/lib/permissions-context'
 import { serverRead } from '@/lib/server-read'
@@ -19,6 +19,12 @@ import { FIELD_ICONS } from './designer/field-icons'
 import { VariableInput } from '@/components/automations/variable-input'
 import { layoutFormParams } from '@/lib/forms/form-params'
 import { cn } from '@/lib/utils'
+import { useLinkedForms } from '@/components/automations/linked-forms'
+import { useAppNavigation } from '@/lib/embed/navigation'
+import { useWorkflowDataScope } from './designer/workflow-data-panel'
+import type { PickerNodeLike } from '@/lib/workflow-data-picker'
+import { isSecretField, saveToVariableMap, suggestedSaveTargets } from '@/lib/forms/task-outputs'
+import { setVariableNames } from '@/lib/workflow-set-variable'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
@@ -36,9 +42,14 @@ import { cn } from '@/lib/utils'
 
 interface FormListItem { id: string; name: string; description: string | null; tags: string[]; version: number; field_count: number; usage_count: number }
 
-export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, variant }: {
+export function NodeFormSection({ node, allNodes, allEdges, workflowVariables, workflowId, onPatch, onUpdateOtherNode, variant }: {
   node: RefNode & { config: Record<string, any> }
   allNodes: RefNode[]
+  /** The workflow's edges and input variables: the step's scope as "Workflow data" in the designer. */
+  allEdges?: Array<{ id?: string; source: string; target: string; label?: string }>
+  workflowVariables?: Array<{ name: string; type?: string; defaultValue?: string; description?: string }>
+  /** The workflow (the form page's ?workflow=&step= link for a linked form). */
+  workflowId?: string
   onPatch: (patch: Record<string, unknown>) => void
   onUpdateOtherNode: (id: string, config: Record<string, any>) => void
   variant: 'user_task' | 'task_trigger'
@@ -52,7 +63,15 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
   const [designerOpen, setDesignerOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [showAllPrefill, setShowAllPrefill] = useState(false)
+  const [showAllSaves, setShowAllSaves] = useState(false)
   const prefix = variant === 'user_task' ? 'task_data' : 'task.data'
+  // Workflow data: everything in scope at this User Task, offered in the designer's Data panel.
+  const linkedForms = useLinkedForms()
+  const nav = useAppNavigation()
+  const scopeInput = useMemo(() => (variant === 'user_task' && designerOpen
+    ? { nodes: allNodes as unknown as PickerNodeLike[], edges: allEdges ?? [], nodeId: node.id, workflowVariables, linkedForms }
+    : null), [variant, designerOpen, allNodes, allEdges, node.id, workflowVariables, linkedForms])
+  const workflowScope = useWorkflowDataScope(scopeInput)
 
   const { data: linkedForm } = useQuery({
     queryKey: ['form', link?.form_id],
@@ -187,6 +206,12 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
             <Library size={12} /> Use a saved form
           </Button>
         )}
+        {link && workflowId && variant === 'user_task' && canView && (
+          <Button size="sm" variant="outline" onClick={() => nav.push(`/automations/forms/${link.form_id}?workflow=${encodeURIComponent(workflowId)}&step=${encodeURIComponent(node.id)}`)} data-testid="open-form-page"
+            title="The form's own page, with this step's workflow data (as last saved) in its Data panel">
+            <ExternalLink size={12} /> Open form page
+          </Button>
+        )}
         {link && (
           <Button size="sm" variant="outline" onClick={() => onPatch(nodeFormPatch(def, null))} data-testid="detach-form" title="Keep a local copy of the form on this step and stop following the library form">
             <Unlink size={12} /> Detach
@@ -248,6 +273,41 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
         </div>
       )}
 
+      {variant === 'user_task' && fields.length > 0 && (() => {
+        // "Save to workflow variable" (lib/forms/task-outputs.ts): a field's value overwrites a workflow variable when the task completes.
+        const outputFields = fields.filter((f) => !isSecretField(f) && f.type !== 'label')
+        const saveMap = saveToVariableMap(node.config?.save_to_variables, outputFields)
+        const names = [...new Set([...(workflowVariables ?? []).map((v) => v.name), ...allNodes.flatMap((n) => (n.type === 'set_variable' ? setVariableNames((n as any).config) : []))])]
+        const suggested = Object.entries(suggestedSaveTargets(outputFields, names, node.config?.field_values)).filter(([key]) => !saveMap[key])
+        const setSave = (key: string, name: string) => {
+          const next: Record<string, string> = { ...saveMap }
+          if (name.trim()) next[key] = name.trim(); else delete next[key]
+          onPatch({ save_to_variables: Object.keys(next).length ? next : undefined })
+        }
+        return (
+          <div className="space-y-1.5 rounded-lg border px-2.5 py-2 border-border" data-testid="task-save-to-variables">
+            <p className="text-2xs font-semibold">Save to workflow variables</p>
+            <p className="text-2xs text-fg-muted">Every field is available to later steps as <code className="text-primary-text">{`{{${prefix}.<key>}}`}</code>. Also overwrite a workflow variable with a field&rsquo;s value when the task completes (e.g. an approved amount).</p>
+            <datalist id={`save-vars-${node.id}`}>{names.map((n) => <option key={n} value={n} />)}</datalist>
+            {suggested.map(([key, name]) => (
+              <button key={key} type="button" className="block text-2xs font-medium text-primary-text hover:underline" onClick={() => setSave(key, name)} data-save-suggestion={key}>
+                Save {outputFields.find((f) => f.key === key)?.label || key} back to {`{{${name}}}`} (it is prefilled from it)
+              </button>
+            ))}
+            {outputFields.filter((f) => saveMap[f.key] || showAllSaves).map((f) => (
+              <label key={f.key} className="flex items-center gap-1.5 text-2xs" data-save-field={f.key}>
+                <span className="min-w-0 flex-1 truncate">{f.label || f.key} <span className="font-mono opacity-70">{f.key}</span></span>
+                <input list={`save-vars-${node.id}`} className="h-6 w-36 rounded border border-border bg-input px-1 font-mono text-2xs" placeholder="variable name" aria-label={`Workflow variable for ${f.label || f.key}`}
+                  value={saveMap[f.key] ?? ''} onChange={(e) => setSave(f.key, e.target.value.replace(/[^A-Za-z0-9_]/g, ''))} />
+              </label>
+            ))}
+            {!showAllSaves && outputFields.some((f) => !saveMap[f.key]) && (
+              <button type="button" className="text-2xs font-medium text-primary-text hover:underline" onClick={() => setShowAllSaves(true)}>Save another field to a variable</button>
+            )}
+          </div>
+        )
+      })()}
+
       <FormDesignerDialog
         open={designerOpen}
         onClose={() => setDesignerOpen(false)}
@@ -262,6 +322,7 @@ export function NodeFormSection({ node, allNodes, onPatch, onUpdateOtherNode, va
         onSaveTheme={saveTheme}
         findReferences={(key) => findFieldReferences(allNodes, key, node.id)}
         pageOptions={{ resume: false }}
+        workflowData={variant === 'user_task' ? { ...workflowScope, stepLabel: node.label || 'User task' } : undefined}
         formSettings={variant === 'user_task' ? { outcomes: Array.isArray(node.config?.outcomes) ? (node.config.outcomes as string[]) : undefined, showDraft: true } : false}
         saveAsReusable={canEdit ? {
           run: async (next, meta) => {

@@ -41,6 +41,7 @@ import { normalizeFormAnimation, type FormAnimationConfig } from './motion'
 import { normalizeTaskCompletedOverride, type TaskCompletedOverride } from '@/lib/tasks/completion-screen'
 import { normalizeFormSource, type FormSourceInfo } from './form-source'
 import { normalizeDataTarget, type FormDataTargetRef } from './data-target'
+import { dropBindingKey, normalizeDataBinding, renameBindingKey, withBindingRules, type FormDataBinding } from './data-binding'
 
 export const MAX_FORM_COLUMNS = 4
 export const MAX_FORM_ROWS = 200
@@ -195,6 +196,8 @@ export interface FormLayout {
   source?: FormSourceInfo
   /** Bound to a record an extension provides (lib/forms/data-target.ts): load on open, write on submit. */
   data_target?: FormDataTargetRef
+  /** Bound to a core data source (a Data table / an API reference) for its fields, loads and table writes (lib/forms/data-binding.ts). Never with data_target. */
+  data_binding?: FormDataBinding
 }
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -286,8 +289,8 @@ export function normalizeFormLayout(raw: unknown, fieldKeys: string[]): FormLayo
   const flagKeys = new Set((normalizeFormStateConfig(raw.state)?.flags ?? []).map((f) => f.key))
   // State + button bar, cleaned against the fields / pages that end up in the layout.
   const declared = normalizeFormSections(raw.sections, known)
-  const extras = (pageIds: Set<string>, sectionKeys: Set<string>): Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed' | 'source' | 'data_target'> => {
-    const out: Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed' | 'source' | 'data_target'> = {}
+  const extras = (pageIds: Set<string>, sectionKeys: Set<string>): Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed' | 'source' | 'data_target' | 'data_binding'> => {
+    const out: Pick<FormLayout, 'state' | 'application_mode' | 'rules' | 'params' | 'variables' | 'assistant' | 'submitted_page' | 'form_actions' | 'animation' | 'task_completed' | 'source' | 'data_target' | 'data_binding'> = {}
     const source = normalizeFormSource(raw.source)
     if (source) out.source = source
     const target = normalizeDataTarget(raw.data_target)
@@ -295,9 +298,11 @@ export function normalizeFormLayout(raw: unknown, fieldKeys: string[]): FormLayo
     const state = normalizeFormStateConfig(raw.state, { fieldKeys: known, pageIds, sectionKeys })
     if (state) out.state = state
     if (raw.application_mode === true) out.application_mode = true
-    const rules = normalizeFormRules(raw.rules)
-    if (rules.length) out.rules = rules
     Object.assign(out, contextExtras(raw))
+    const binding = target ? undefined : normalizeDataBinding(raw.data_binding, known)
+    if (binding) out.data_binding = binding
+    const rules = withBindingRules(normalizeFormRules(raw.rules), binding, { params: (out.params ?? []).map((p) => p.name) })
+    if (rules.length) out.rules = rules
     const submitted = normalizeSubmittedPage(raw.submitted_page, known)
     if (submitted) out.submitted_page = submitted
     const actions = normalizeFormActions(raw.form_actions)
@@ -714,6 +719,7 @@ export function nudgeField(layout: FormLayout, key: string, direction: 'left' | 
 /** Remove a field from the grid (its row stays, possibly empty). A page rule on it and start-hidden targets on it are dropped. */
 export function removeFieldFromLayout(layout: FormLayout, key: string): FormLayout {
   const out = mapGrids(layout, (grid) => ({ rows: grid.rows.map((row) => ({ columns: row.columns, cells: row.cells.filter((cell) => cell.field_key !== key).map((cell) => ({ ...cell })), ...rowTag(row) })) }))
+  if (out.data_binding) out.data_binding = dropBindingKey(out.data_binding, key)
   if (out.sections) out.sections = out.sections.map((section) => (section.visible_when?.field === key ? withoutRule(section) : section))
   if (out.pages) out.pages = out.pages.map((page) => (page.visible_when?.field === key ? withoutRule(page) : page))
   return mapStateTargets(out, (target) => (fieldTargetKey(target) === key ? null : target))
@@ -748,6 +754,7 @@ export function renameLayoutKey(layout: FormLayout, from: string, to: string): F
   const out = mapGrids(layout, (grid) => ({ rows: grid.rows.map((row) => ({ columns: row.columns, cells: row.cells.map((cell) => (cell.field_key === from ? { ...cell, field_key: to } : { ...cell })), ...rowTag(row) })) }))
   if (out.pages) out.pages = out.pages.map((page) => (page.visible_when?.field === from ? { ...page, visible_when: { ...page.visible_when, field: to } } : page))
   if (out.sections) out.sections = out.sections.map((section) => (section.visible_when?.field === from ? { ...section, visible_when: { ...section.visible_when, field: to } } : section))
+  if (out.data_binding) out.data_binding = renameBindingKey(out.data_binding, from, to)
   const renamed = mapStateTargets(out, (target) => (fieldTargetKey(target) === from ? target.replace(/:.*$/, `:${to}`) : target))
   // The Submitted page's summary follows the field.
   if (renamed.submitted_page?.summary_fields?.includes(from)) {
@@ -786,16 +793,19 @@ export function compactLayoutForSave(layout: FormLayout, fieldKeys: string[]): F
   }
   const rows = compactRows(layout.rows)
   const trivial = rows.length === fieldKeys.length && rows.every((row, i) => row.columns === 1 && row.cells.length === 1 && row.cells[0].field_key === fieldKeys[i])
-  return trivial && !layout.source && !layout.data_target && !layout.state && !layout.application_mode && !layout.rules?.length && !layout.params?.length && !layout.variables?.length && !layout.sections?.length && !layout.submitted_page && !normalizeFormActions(layout.form_actions) && !normalizeFormAnimation(layout.animation) && !normalizeTaskCompletedOverride(layout.task_completed) && !(layout.assistant === 'on' || layout.assistant === 'off') ? null : withExtras({ rows }, layout)
+  return trivial && !layout.source && !layout.data_target && !layout.data_binding && !layout.state && !layout.application_mode && !layout.rules?.length && !layout.params?.length && !layout.variables?.length && !layout.sections?.length && !layout.submitted_page && !normalizeFormActions(layout.form_actions) && !normalizeFormAnimation(layout.animation) && !normalizeTaskCompletedOverride(layout.task_completed) && !(layout.assistant === 'on' || layout.assistant === 'off') ? null : withExtras({ rows }, layout)
 }
 
 function withExtras(out: FormLayout, layout: FormLayout): FormLayout {
   const state = normalizeFormStateConfig(layout.state)
   if (state) out.state = state
   if (layout.application_mode === true) out.application_mode = true
-  const rules = normalizeFormRules(layout.rules)
-  if (rules.length) out.rules = rules
   Object.assign(out, contextExtras(layout))
+  const target = normalizeDataTarget(layout.data_target)
+  const binding = target ? undefined : normalizeDataBinding(layout.data_binding)
+  if (binding) out.data_binding = binding
+  const rules = withBindingRules(normalizeFormRules(layout.rules), binding, { params: (out.params ?? []).map((p) => p.name) })
+  if (rules.length) out.rules = rules
   const submitted = normalizeSubmittedPage(layout.submitted_page)
   if (submitted) out.submitted_page = submitted
   const actions = normalizeFormActions(layout.form_actions)
@@ -806,7 +816,6 @@ function withExtras(out: FormLayout, layout: FormLayout): FormLayout {
   if (completed) out.task_completed = completed
   const source = normalizeFormSource(layout.source)
   if (source) out.source = source
-  const target = normalizeDataTarget(layout.data_target)
   if (target) out.data_target = target
   const used = new Set(allRows(out).map((r) => r.section).filter(Boolean))
   const sections = normalizeFormSections(layout.sections).filter((s) => used.has(s.key))

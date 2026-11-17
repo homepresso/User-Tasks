@@ -683,7 +683,7 @@ To stream UserTasks events to your own endpoint with HMAC signatures, use a [log
     title: 'On-premises gateways',
     description: 'Reach systems behind your firewall (SharePoint Server, internal APIs) from UserTasks Cloud: an outbound-only gateway on your network, with its own allowlist and credentials.',
     body: `
-An **on-premises gateway** lets UserTasks reach systems on your network — SharePoint Server, internal REST APIs — when UserTasks cannot open a connection to them (UserTasks Cloud, or a self-hosted instance in another network). You run the gateway on a server inside your network; it connects **out** to UserTasks over HTTPS and nothing connects in.
+An **on-premises gateway** (used by the [SharePoint extension](/docs/sharepoint) with UserTasks Cloud) lets UserTasks reach systems on your network — SharePoint Server, internal REST APIs — when UserTasks cannot open a connection to them (UserTasks Cloud, or a self-hosted instance in another network). You run the gateway on a server inside your network; it connects **out** to UserTasks over HTTPS and nothing connects in.
 
 ## How it works
 

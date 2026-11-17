@@ -23,7 +23,10 @@ import { listExtensionsAction, setExtensionEnabledAction } from '@/app/actions/e
 import { EXTENSIONS_CHANGED_EVENT } from './extensions-provider'
 import { ExtIcon } from './ext-icon'
 import { getExtensionManifest } from '@/lib/extensions/registry'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { TrialStart } from '@/components/licensing/trial-start'
+import { EditionSwitchCard } from './edition-switch-card'
 
 const LICENCE: Record<string, { label: string; tone: Tone }> = {
   not_required: { label: 'Free', tone: 'neutral' },
@@ -38,6 +41,15 @@ export function ExtensionsAdmin() {
   const queryClient = useQueryClient()
   const jobs = useJobs()
   const [busy, setBusy] = useState<string | null>(null)
+  const [trialFor, setTrialFor] = useState<{ id: string; name: string; days: number } | null>(null)
+  const [linkFarm, setLinkFarm] = useState<string | null>(null)
+  const [linkTrial, setLinkTrial] = useState<string | null>(null)
+  useEffect(() => {
+    // ?trial=<extension>&farm=<id>: sent here by the SharePoint add-in's first-run page.
+    const q = new URLSearchParams(window.location.search)
+    setLinkTrial(q.get('trial'))
+    setLinkFarm(q.get('farm'))
+  }, [])
   const { data, isLoading, error } = useQuery({
     queryKey: ['extensions'],
     queryFn: async () => {
@@ -46,6 +58,14 @@ export function ExtensionsAdmin() {
       return result.data
     },
   })
+
+  const [autoOpened, setAutoOpened] = useState(false)
+  useEffect(() => {
+    if (autoOpened || !linkTrial || !data) return
+    const ext = data.extensions.find((e) => e.id === linkTrial && e.licence.trial_offer && e.licence.state === 'unlicensed')
+    setAutoOpened(true)
+    if (ext?.licence.trial_offer) setTrialFor({ id: ext.id, name: ext.name, days: ext.licence.trial_offer.days })
+  }, [autoOpened, linkTrial, data])
 
   async function toggle(id: string, name: string, enabled: boolean) {
     setBusy(id)
@@ -70,12 +90,15 @@ export function ExtensionsAdmin() {
       {error && <InlineNotice tone="danger">{(error as Error).message}</InlineNotice>}
       {data?.notice && <InlineNotice tone="warning">{data.notice}</InlineNotice>}
       {data?.problems.map((p) => <InlineNotice key={p} tone="warning">{p}</InlineNotice>)}
-      {data && data.extensions.length === 0 && (
+      {data && data.extensions.length === 0 && (data.editions ?? []).length === 0 && (
         <EmptyState icon={Blocks} title="No extensions in this build" description="Extensions are added when the app is built (USERTASKS_EXTENSIONS)." />
+      )}
+      {data && data.extensions.length === 0 && (data.editions ?? []).length > 0 && (
+        <p className="text-ui text-fg-muted">No extensions are built into this install.</p>
       )}
       <div className="space-y-3">
         {data?.extensions.map((ext) => {
-          const licence = LICENCE[ext.licence.state] ?? { label: ext.licence.state, tone: 'neutral' as Tone }
+          const licence = ext.licence.trial && ext.licence.allowed ? { label: 'Trial', tone: 'info' as Tone } : LICENCE[ext.licence.state] ?? { label: ext.licence.state, tone: 'neutral' as Tone }
           const icon = getExtensionManifest(ext.id)?.icon
           const disabledReason = !ext.runs_here ? 'Cannot run in this build' : !ext.licence.allowed && !ext.enabled ? ext.licence.reason ?? 'Not licensed' : null
           return (
@@ -93,6 +116,21 @@ export function ExtensionsAdmin() {
                   {ext.description && <p className="text-ui text-fg-muted">{ext.description}</p>}
                   {ext.problems.map((p) => <InlineNotice key={p} tone="warning" className="text-xs">{p}</InlineNotice>)}
                   {!ext.licence.allowed && ext.licence.reason && <p className="text-xs text-fg-muted">{ext.licence.reason}</p>}
+                  {ext.licence.trial && ext.licence.allowed && (
+                    <p className="text-xs font-medium text-fg" data-testid={`extension-trial-${ext.id}`}>
+                      Trial: {ext.licence.days_left ?? '?'} day{ext.licence.days_left === 1 ? '' : 's'} left · <a href="https://usertasks.com/sharepoint#pricing" target="_blank" rel="noopener noreferrer" className="text-primary-text underline">Buy</a>
+                    </p>
+                  )}
+                  {ext.licence.notices.map((n, i) => <InlineNotice key={i} tone={n.tone} className="text-xs">{n.message}</InlineNotice>)}
+                  {ext.licence.trial_offer && ext.licence.state === 'unlicensed' && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <Button size="sm" onClick={() => setTrialFor({ id: ext.id, name: ext.name, days: ext.licence.trial_offer!.days })} data-testid={`extension-start-trial-${ext.id}`}>Start a {ext.licence.trial_offer.days}-day trial</Button>
+                      <span className="text-xs text-fg-muted">Instance admins · or <Link href="/settings/licence" className="underline">install a licence</Link></span>
+                    </div>
+                  )}
+                  {ext.licence.trial_offer && ext.licence.state === 'expired' && (
+                    <p className="text-xs text-fg-muted"><a href="https://usertasks.com/sharepoint#pricing" target="_blank" rel="noopener noreferrer" className="font-medium text-primary-text underline">Buy a licence</a>, then install it in <Link href="/settings/licence" className="underline">Settings → Licence</Link>: everything comes back.</p>
+                  )}
                   {ext.enabled && ext.settings_pages.length > 0 && (
                     <div className="flex flex-wrap gap-3 pt-1">
                       {ext.settings_pages.map((page) => (
@@ -120,7 +158,21 @@ export function ExtensionsAdmin() {
           )
         })}
       </div>
+      {(data?.editions ?? []).map((edition) => (
+        <EditionSwitchCard key={edition.id} edition={edition} onStartTrial={() => setTrialFor({ id: edition.extension_id, name: edition.name, days: edition.trial_days })} />
+      ))}
       {data && <p className="text-xs text-fg-subtle">UserTasks {data.platform_version}</p>}
+      {trialFor && (
+        <TrialStart
+          extensionId={trialFor.id}
+          extensionName={trialFor.name}
+          days={trialFor.days}
+          open
+          onOpenChange={(open) => { if (!open) setTrialFor(null) }}
+          initialFarmId={linkTrial === trialFor.id ? linkFarm : null}
+          onStarted={() => { void queryClient.invalidateQueries({ queryKey: ['extensions'] }); window.dispatchEvent(new Event(EXTENSIONS_CHANGED_EVENT)) }}
+        />
+      )}
     </div>
   )
 }

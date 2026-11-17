@@ -2,7 +2,7 @@
 
 import { AnonymousStepToggle } from './anonymous-step-toggle'
 import { TableChangesEditor } from './table-changes-editor'
-import { useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, Plus, Trash2, Upload, X } from 'lucide-react'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
@@ -10,7 +10,7 @@ import { VariableInput } from '@/components/automations/variable-input'
 import { serverRead } from '@/lib/server-read'
 import { uploadFormHeaderImage } from '@/app/actions/forms'
 import {
-  allowedActions, BUTTON_LIMITS, FORM_ACTION_LABELS,
+  allowedActions, BUTTON_LIMITS, FORM_ACTION_LABELS, normalizeFormButtons,
   type FormAction, type FormActionType, type FormButton, type FormButtonKind, type FormButtonStyle,
   TARGET_RETURN_URL,
 } from '@/lib/forms/buttons'
@@ -29,6 +29,10 @@ import { formActions, withFormAction } from '@/lib/forms/form-actions'
 import { FORM_MOTION_LABELS, FORM_MOTION_STYLES, formAnimation, withFormAnimation, type FormMotionStyle } from '@/lib/forms/motion'
 import { cn } from '@/lib/utils'
 import { isPlainObject } from '@/lib/utils/guards'
+import { DataTargetPanel, useTargetDescription } from './data-target-panel'
+import { SAVE_TARGET_REMOVE_WARNING, SaveTargetActionEditor, SaveTargetContext } from './save-target-action'
+import { VisibleWhenEditor } from './field-properties'
+import { FIELD_BUTTON_ICONS } from '@/lib/forms/field-buttons'
 import { designerInputClass as inputClass } from './designer-controls'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow option rows are loose JSON */
@@ -157,6 +161,37 @@ function newButtonId(buttons: FormButton[], kind: FormButtonKind): string {
   return id
 }
 
+/** The form's connection (data target label), when it has one: redirect targets it fills are explained in plain words. */
+const TargetLabelContext = createContext<string | null>(null)
+
+/** A {{target.*}} redirect target in plain words, or null. */
+function targetTokenLabel(url: string | undefined, connection: string | null): string | null {
+  const where = connection ? ` — the default for forms connected to ${connection}` : ''
+  if (url === TARGET_RETURN_URL) return `Goes back to where the record lives (the page the person came from, or the list)${where}. Type another address to send people elsewhere, or remove this behaviour to stay on the form.`
+  if (url === '{{target.url.edit}}') return `Opens the record's edit form${where}.`
+  if (/^\{\{target\.url\.[a-z][a-z0-9_]*\}\}$/.test(url ?? '')) return `Opens a page the connection names for the record${where}.`
+  return null
+}
+
+/** Under a redirect address: what a {{target.*}} address means (marked as the connection's default), and a way back to it. */
+/** The save step's name: "Save to <the connection>" (e.g. SharePoint list "Requests"). */
+function saveLabel(connection: string | null): string {
+  return connection ? `Save to ${connection}` : FORM_ACTION_LABELS.save_target
+}
+
+function RedirectTargetNote({ url, onChange }: { url: string | undefined; onChange: (url: string) => void }) {
+  const connection = useContext(TargetLabelContext)
+  if (connection === null) return null
+  const label = targetTokenLabel(url, connection)
+  return label ? (
+    <p className="rounded border border-border px-2 py-1 text-2xs text-fg-muted" data-target-default>
+      <span className="mr-1 rounded bg-surface-sunken px-1 font-medium text-fg">Default</span>{label}
+    </p>
+  ) : (
+    <button type="button" className="text-2xs text-primary-text underline" onClick={() => onChange(TARGET_RETURN_URL)}>Go back to where the record lives instead</button>
+  )
+}
+
 export function BarActionEditor({ action, onChange, onRemove, workflows, placeholders, fields }: {
   fields: DesignerState['fields']
   action: FormAction
@@ -165,14 +200,17 @@ export function BarActionEditor({ action, onChange, onRemove, workflows, placeho
   workflows: any[]
   placeholders: Array<{ name: string; group: string; label?: string }>
 }) {
+  const connection = useContext(TargetLabelContext)
   const workflow = workflows.find((w) => w.id === action.workflow_id)
   const inputs: string[] = Array.isArray(workflow?.user_variables) ? workflow.user_variables.map((v: any) => String(v?.name ?? '')).filter(Boolean) : []
   return (
     <div className="space-y-1.5 rounded border p-2 border-border" data-action-type={action.type}>
       <div className="flex items-center gap-1">
-        <p className="flex-1 text-2xs font-semibold">{FORM_ACTION_LABELS[action.type]}</p>
-        <button type="button" className="rounded p-0.5" aria-label={`Remove ${FORM_ACTION_LABELS[action.type]}`} onClick={onRemove}><X size={11} /></button>
+        <p className="flex-1 text-2xs font-semibold">{action.type === 'save_target' ? saveLabel(connection) : FORM_ACTION_LABELS[action.type]}</p>
+        <button type="button" className="rounded p-0.5" aria-label={`Remove ${action.type === 'save_target' ? saveLabel(connection) : FORM_ACTION_LABELS[action.type]}`}
+          onClick={() => { if (action.type !== 'save_target' || window.confirm(SAVE_TARGET_REMOVE_WARNING)) onRemove() }}><X size={11} /></button>
       </div>
+      {action.type === 'save_target' && <SaveTargetActionEditor action={action} onChange={onChange} placeholders={placeholders} />}
       {action.type === 'message' && (
         <VariableInput value={action.text ?? ''} extraVariables={placeholders} placeholder="Thanks {{name}} — we got it."
           onChange={(v) => onChange({ ...action, text: v }, 'action-text')} />
@@ -222,6 +260,7 @@ export function BarActionEditor({ action, onChange, onRemove, workflows, placeho
       {action.type === 'redirect' && (
         <>
           <input aria-label="Redirect address" className={inputClass} value={action.url ?? ''} placeholder="/tasks or an allowed https:// address" onChange={(e) => onChange({ ...action, url: e.target.value }, 'action-url')} />
+          <RedirectTargetNote url={action.url} onChange={(url) => onChange({ ...action, url }, 'action-url')} />
           <Hint>App pages (/…), addresses on the allow list, or <code>{TARGET_RETURN_URL}</code> — back to where the record lives (forms bound to an external record, e.g. its SharePoint list); <code>{'{{target.url.edit}}'}</code> and other <code>{'{{target.url.<name>}}'}</code> pages the record's system names.</Hint>
         </>
       )}
@@ -239,8 +278,13 @@ export function BarActionEditor({ action, onChange, onRemove, workflows, placeho
   )
 }
 
-function ButtonEditor({ button, index, count, outcomes, problem, onChange, onMove, onRemove, workflows, placeholders, fields }: {
+function ButtonEditor({ button, index, count, outcomes, problem, onChange, onMove, onRemove, workflows, placeholders, fields, selected, defaults, defaultsLabel }: {
   fields: DesignerState['fields']
+  /** Picked on the canvas: highlighted and scrolled into view. */
+  selected?: boolean
+  /** The connection's own version of this button (same id), for "Reset to … default". */
+  defaults?: FormButton | null
+  defaultsLabel?: string | null
   button: FormButton
   index: number
   count: number
@@ -253,9 +297,14 @@ function ButtonEditor({ button, index, count, outcomes, problem, onChange, onMov
   placeholders: Array<{ name: string; group: string; label?: string }>
 }) {
   const id = (n: string) => `fb-${button.id}-${n}`
-  const available = allowedActions(button.kind).filter((t) => !(button.actions ?? []).some((a) => a.type === t) || t === 'message' || t === 'start_workflow' || t === 'apply_table_changes')
+  const box = useRef<HTMLDivElement | null>(null)
+  useEffect(() => { if (selected) box.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }, [selected])
+  const isDefault = defaults ? JSON.stringify(normalizeFormButtons([defaults])[0]) === JSON.stringify(normalizeFormButtons([button])[0]) : false
+  const connection = useContext(TargetLabelContext)
+  // "Save to …" only on forms bound to a record, once per button.
+  const available = allowedActions(button.kind).filter((t) => (t !== 'save_target' || connection !== null) && (!(button.actions ?? []).some((a) => a.type === t) || t === 'message' || t === 'start_workflow' || t === 'apply_table_changes'))
   return (
-    <div className={cn('space-y-2 rounded-lg border p-2.5', problem ? 'border-danger' : 'border-border')} data-button-editor={button.id}>
+    <div ref={box} className={cn('space-y-2 rounded-lg border p-2.5', problem ? 'border-danger' : 'border-border', selected && 'ring-2 ring-primary')} data-button-editor={button.id} data-selected={selected || undefined}>
       <div className="flex items-center gap-1">
         <p className="flex-1 text-2xs font-semibold text-fg-muted">{KIND_LABELS[button.kind]} button</p>
         <button type="button" className="rounded p-0.5 disabled:opacity-30" disabled={index === 0} aria-label={`Move ${button.label} left`} onClick={() => onMove(-1)}><ArrowUp size={11} /></button>
@@ -269,9 +318,41 @@ function ButtonEditor({ button, index, count, outcomes, problem, onChange, onMov
         </div>
         <div className="w-28">
           <Label>Style</Label>
-          <AutocompleteSelect value={button.style} options={[{ value: 'primary', label: 'Primary' }, { value: 'secondary', label: 'Secondary' }, { value: 'danger', label: 'Danger' }]}
+          <AutocompleteSelect value={button.style} options={[{ value: 'primary', label: 'Primary' }, { value: 'secondary', label: 'Secondary' }, { value: 'outline', label: 'Outline' }, { value: 'danger', label: 'Danger' }]}
             onChange={(v) => onChange({ ...button, style: (v || 'primary') as FormButtonStyle })} />
         </div>
+      </div>
+      <div className="grid grid-cols-[1fr_auto_auto] items-end gap-1" data-button-look>
+        <div>
+          <Label>Icon</Label>
+          <AutocompleteSelect value={button.icon ?? ''} placeholder="None"
+            options={[{ value: '', label: 'None' }, ...FIELD_BUTTON_ICONS.map((i) => ({ value: i, label: i }))]}
+            onChange={(v) => { const next = { ...button }; if (v) next.icon = v; else { delete next.icon; delete next.icon_after } onChange(next) }} />
+        </div>
+        <div>
+          <Label>Size</Label>
+          <Segmented label="Button size" value={button.size ?? 'md'} options={[['sm', 'S'], ['md', 'M'], ['lg', 'L']]}
+            onChange={(v) => { const next = { ...button }; if (v === 'md') delete next.size; else next.size = v as FormButton['size']; onChange(next) }} />
+        </div>
+        <div>
+          <Label htmlFor={id('color')}>Colour</Label>
+          <div className="flex items-center gap-1">
+            <input id={id('color')} type="color" className="h-7 w-9 cursor-pointer rounded border border-border bg-bg p-0.5" value={button.color ?? '#2563eb'} data-button-color
+              onChange={(e) => onChange({ ...button, color: e.target.value.toLowerCase() }, `color-${button.id}`)} />
+            {button.color && <button type="button" className="text-2xs text-primary-text underline" onClick={() => { const next = { ...button }; delete next.color; onChange(next) }}>Theme</button>}
+          </div>
+        </div>
+      </div>
+      {button.icon && (
+        <label className="flex items-center gap-1.5 text-2xs">
+          <input className="accent-primary" type="checkbox" checked={button.icon_after === true} onChange={(e) => { const next = { ...button }; if (e.target.checked) next.icon_after = true; else delete next.icon_after; onChange(next) }} />
+          Icon after the label
+        </label>
+      )}
+      <div>
+        <Label>Shown</Label>
+        <VisibleWhenEditor rule={button.visible_when} fields={fields.filter((f) => !DISPLAY_FIELD_TYPES.has(f.type))} emptyLabel="Always"
+          onChange={(rule, typing) => { const next = { ...button }; if (rule) next.visible_when = rule; else delete next.visible_when; onChange(next, typing ? `shown-${button.id}` : undefined) }} />
       </div>
       {button.kind === 'outcome' && (
         <div>
@@ -283,11 +364,16 @@ function ButtonEditor({ button, index, count, outcomes, problem, onChange, onMov
           )}
         </div>
       )}
-      {button.kind === 'cancel' && (
-        <label className="flex items-center gap-1.5 text-2xs">
-          <input className="accent-primary" type="checkbox" checked={button.hidden === true} onChange={(e) => onChange({ ...button, hidden: e.target.checked || undefined })} />
-          Hide this button
-        </label>
+      <label className="flex items-center gap-1.5 text-2xs">
+        <input className="accent-primary" type="checkbox" checked={button.hidden === true} data-button-hidden onChange={(e) => { const next = { ...button }; if (e.target.checked) next.hidden = true; else delete next.hidden; onChange(next) }} />
+        Hide this button
+      </label>
+      {defaults && (
+        isDefault ? (
+          <p className="text-2xs text-fg-muted" data-button-is-default><span className="mr-1 rounded bg-surface-sunken px-1 font-medium text-fg">Default</span>As the connection makes it ({defaultsLabel ?? 'default'}).</p>
+        ) : (
+          <button type="button" className="text-2xs text-primary-text underline" data-button-reset onClick={() => onChange({ ...defaults }, undefined)}>Reset to {defaultsLabel ?? 'default'}</button>
+        )
       )}
       {!button.hidden && (
         <div className="space-y-1.5">
@@ -301,7 +387,7 @@ function ButtonEditor({ button, index, count, outcomes, problem, onChange, onMov
           ))}
           {(button.actions ?? []).length < BUTTON_LIMITS.actions && available.length > 0 && (
             <AutocompleteSelect value="" placeholder="+ Add a step…"
-              options={available.map((t) => ({ value: t, label: FORM_ACTION_LABELS[t] }))}
+              options={available.map((t) => ({ value: t, label: t === 'save_target' ? saveLabel(connection) : FORM_ACTION_LABELS[t] }))}
               onChange={(v) => {
                 if (!v) return
                 const type = v as FormActionType
@@ -309,7 +395,8 @@ function ButtonEditor({ button, index, count, outcomes, problem, onChange, onMov
                   : type === 'success_screen' ? { type, title: 'Thank you', screen_button: 'submit_another' }
                     : type === 'apply_table_changes' ? { type, table_changes: { field: '', target: 'table', operation: 'auto' } }
                       : { type }
-                onChange({ ...button, actions: [...(button.actions ?? []), action] })
+                // "Save to …" runs first.
+                onChange({ ...button, actions: type === 'save_target' ? [action, ...(button.actions ?? [])] : [...(button.actions ?? []), action] })
               }} />
           )}
         </div>
@@ -319,8 +406,12 @@ function ButtonEditor({ button, index, count, outcomes, problem, onChange, onMov
   )
 }
 
-export function FormSettings({ state, onChange, outcomes, problems, showDraft }: {
+export function FormSettings({ state, onChange, outcomes, problems, showDraft, formId, selectedButton }: {
   state: DesignerState
+  /** The bar button picked on the canvas (its editor is highlighted). */
+  selectedButton?: string | null
+  /** The saved form (the "Connected to …" panel needs it). */
+  formId?: string
   onChange: (next: DesignerState, tag?: string) => void
   /** The step's outcomes (task forms): outcome buttons pick one. */
   outcomes?: string[]
@@ -345,16 +436,34 @@ export function FormSettings({ state, onChange, outcomes, problems, showDraft }:
     ...contextVariableOptions(state.layout),
   ]
   const buttons = state.buttons
+  // A form connected to an external record (data target): its label, for the "Connected to …" panel and the default redirect notes.
+  const target = isPlainObject(state.layout.data_target) ? state.layout.data_target as Record<string, unknown> : null
+  const targetLabel = target ? (typeof target.label === 'string' && target.label ? target.label : 'an external system') : null
   const setButtons = (next: FormButton[], tag?: string) => onChange({ ...state, buttons: next }, tag)
   const add = (kind: FormButtonKind) => {
     const outcome = kind === 'outcome' ? (outcomes ?? []).find((o) => !buttons.some((b) => b.kind === 'outcome' && b.outcome === o)) ?? 'Approved' : undefined
     const button: FormButton = { id: newButtonId(buttons, kind), label: outcome ?? (kind === 'delete' ? 'Delete' : KIND_LABELS[kind]), kind, style: kind === 'cancel' || kind === 'draft' ? 'secondary' : kind === 'delete' || (kind === 'outcome' && /reject|decline|deny/i.test(outcome ?? '')) ? 'danger' : 'primary', ...(outcome ? { outcome } : {}) }
     setButtons([...buttons, button])
   }
+  // The connection's own buttons (e.g. SharePoint's Save / Cancel / Close / Edit item / Delete item), for "Reset to … default".
+  const { data: described } = useTargetDescription(targetLabel !== null ? formId : null, state)
+  const defaultList = (described?.description?.defaultButtons ?? []) as unknown as FormButton[]
+  // By id, else the one default of the same kind (older forms named Save "submit"); the reset keeps the button's own id.
+  const defaultFor = (button: FormButton): FormButton | null => {
+    const match = defaultList.find((d) => d.id === button.id) ?? (defaultList.filter((d) => d.kind === button.kind).length === 1 ? defaultList.find((d) => d.kind === button.kind) : undefined)
+    return match ? { ...match, id: button.id } : null
+  }
   const appMode = state.layout.application_mode === true
   const noSubmit = submitPathProblem(state.fields, state.layout, showDraft ? 'task' : 'any')
   return (
+    <TargetLabelContext value={targetLabel}>
+    <SaveTargetContext value={formId ? { formId, state, onChange } : null}>
     <div className="space-y-4 text-xs" data-testid="form-settings">
+      {targetLabel !== null && formId && (
+        <Section title="Connected to">
+          <DataTargetPanel formId={formId} state={state} onChange={onChange} />
+        </Section>
+      )}
       <HeaderEditor header={state.header} placeholders={placeholders} onChange={(header, tag) => onChange({ ...state, header }, tag)} />
       <AppearanceEditor state={state} onChange={onChange} />
       {!showDraft && <FormIconsEditor state={state} onChange={onChange} />}
@@ -384,6 +493,7 @@ export function FormSettings({ state, onChange, outcomes, problems, showDraft }:
         <div className="space-y-2">
           {buttons.map((button, i) => (
             <ButtonEditor key={button.id} button={button} index={i} count={buttons.length} outcomes={outcomes} problem={problems[button.id]} workflows={workflows} placeholders={placeholders} fields={state.fields}
+              selected={selectedButton === button.id} defaults={defaultFor(button)} defaultsLabel={described?.description?.defaultsLabel ?? null}
               onChange={(next, tag) => setButtons(buttons.map((b, j) => (j === i ? next : b)), tag)}
               onMove={(delta) => { const next = [...buttons]; const [b] = next.splice(i, 1); next.splice(Math.max(0, Math.min(next.length, i + delta)), 0, b); setButtons(next) }}
               onRemove={buttons.filter((b) => b.kind === 'submit' || b.kind === 'outcome').length > 1 || (button.kind !== 'submit' && button.kind !== 'outcome') ? () => setButtons(buttons.filter((_, j) => j !== i)) : undefined} />
@@ -411,6 +521,8 @@ export function FormSettings({ state, onChange, outcomes, problems, showDraft }:
         </Section>
       )}
     </div>
+    </SaveTargetContext>
+    </TargetLabelContext>
   )
 }
 

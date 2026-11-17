@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { Plus, X, GripVertical } from 'lucide-react'
 import { OUTCOME_PRESETS } from '@/components/tasks/task-outcome-dialog'
-import { MultiAssigneePicker } from '@/components/tasks/multi-assignee-picker'
+import { MultiAssigneePicker, type AssignmentMode } from '@/components/tasks/multi-assignee-picker'
 import { useTenantUsers } from '@/hooks/use-tenant-users'
 import { getInitials } from '@/lib/utils'
 import { TaskDescriptionEditor } from '@/components/tasks/task-description'
@@ -53,7 +53,7 @@ export function CreateTaskForm() {
   const [selectedOutcomePreset, setSelectedOutcomePreset] = useState("complete")
   const [customOutcomes, setCustomOutcomes] = useState<string[]>([""])
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([])
-  const [assignmentMode, setAssignmentMode] = useState<'single' | 'individual' | 'collaborative'>('single')
+  const [assignmentMode, setAssignmentMode] = useState<AssignmentMode>('single')
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [allowRedirect, setAllowRedirect] = useState(false)
   const [allowInviteOnRedirect, setAllowInviteOnRedirect] = useState(false)

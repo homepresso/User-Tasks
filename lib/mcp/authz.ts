@@ -47,6 +47,9 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   data_rows_delete: 'data.manage_rows',
   data_rows_bulk_delete: 'data.manage_rows',
   data_rows_import: 'data.manage_rows',
+  data_rows_write_cells: 'data.manage_rows',
+  data_rows_write_cells_batch: 'data.manage_rows',
+  data_views_update: 'data.edit_schema',
   // decision tables (governed by workflow permissions)
   decision_tables_create: 'workflows.create',
   decision_tables_update: 'workflows.edit',
@@ -323,6 +326,8 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   data_rows_query: 'data.view',
   data_rows_search: 'data.view',
   data_rows_get: 'data.view',
+  data_views_get: 'data.view',
+  data_views_options: 'data.view',
   // reports
   reports_query: 'reports.view',
   reports_sources_list: 'reports.view',
@@ -404,6 +409,7 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   anonymous_forms_settings_get: 'settings.view',
   object_permissions_list: 'team.change_roles',
   forms_check_accessibility: 'forms.view',
+  forms_data_source: 'forms.view',
   forms_submissions_list: 'forms.submit',
   forms_submission_get: 'forms.submit',
   forms_lookup: 'forms.submit',

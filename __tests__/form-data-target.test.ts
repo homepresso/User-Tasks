@@ -261,7 +261,14 @@ describe('submit', () => {
     }
     await expect(run(new ExtensionError('invalid_field_value', 'Amount must be positive', 400, { fields: { amount: 'Must be positive', bogus: 3 } }))).rejects.toMatchObject({ code: 'validation_error', status: 400, details: { fields: { amount: 'Must be positive' } } })
     await expect(run(new ExtensionError('etag_mismatch', 'The item changed since it was read', 412))).rejects.toMatchObject({ code: 'conflict', status: 412 })
-    await expect(run(new ExtensionError('upstream_error', 'Upstream down', 502))).rejects.toMatchObject({ status: 502, message: 'Acme records failed: Upstream down' })
+    // Form users never see the upstream's raw answer (status lines, API paths); designers do.
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const upstream = run(new ExtensionError('upstream_error', 'SharePoint answered 500 (POST /_api/web/ensureuser): boom', 502))
+    await expect(upstream).rejects.toMatchObject({ status: 502, message: "Acme records couldn't be reached to save this. Try again in a moment; if it keeps happening, tell your administrator.", details: { code: 'upstream_error' } })
+    await expect(upstream).rejects.not.toMatchObject({ message: expect.stringContaining('ensureuser') })
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining('/_api/web/ensureuser'))
+    logged.mockRestore()
+    expect(targetError(new ExtensionError('upstream_error', 'Upstream down', 502), 'Acme records')).toMatchObject({ status: 502, message: 'Acme records failed: Upstream down' })
     const plain = new Error('boom')
     await expect(run(plain)).rejects.toBe(plain)
     expect(targetError(plain, 'x')).toBe(plain)
@@ -376,5 +383,103 @@ describe('registry and ctx.forms', () => {
     expect(await extCtx.forms.delete('nope')).toEqual({ deleted: false })
     expect(await extCtx.forms.delete('0f000000-0000-4000-8000-00000000f001')).toEqual({ deleted: true })
     expect(deletedForms.ids).toEqual(['0f000000-0000-4000-8000-00000000f001'])
+  })
+})
+
+describe('designer: describe / bind / actions', () => {
+  beforeEach(() => { vi.spyOn(formTargetDeps, 'context').mockImplementation(async () => ({}) as never) })
+  const form = { id: 'f', name: 'F', version: 1, fields, layout }
+
+  it('bounds the description: known field types only, http(s) links, group / isNew passed through, tokens by name', async () => {
+    provider = {
+      label: 'x', submit: async () => ({ record: { id: '1' } }),
+      describe: async () => ({
+        title: 'Acme list "Requests"', link: { label: 'Open', url: 'javascript:alert(1)' },
+        sourceFields: [
+          { key: 'Title', label: 'Title', typeLabel: 'Text', fieldTypes: ['text', 'bogus' as never], required: true, group: 'columns' },
+          { key: 'New1', label: 'New one', typeLabel: 'Number', fieldTypes: ['number'], group: 'columns', isNew: true },
+        ],
+        mappings: [{ field: 'title', source: 'Title' }],
+        tokens: { return_url: 'Back to the list', 'url.edit': 'Edit form', evil: 'x' },
+      }),
+    }
+    const out = await (await import('@/lib/services/form-targets')).describeFormTarget(ctx(), form)
+    expect(out.description?.link ?? null).toBeNull()
+    expect(out.description?.sourceFields[0]).toMatchObject({ key: 'Title', fieldTypes: ['text'], required: true, group: 'columns' })
+    expect(out.description?.sourceFields[1]).toMatchObject({ isNew: true })
+    expect(out.description?.tokens).toEqual({ return_url: 'Back to the list', 'url.edit': 'Edit form' })
+    expect(out).toMatchObject({ actions: false, bind: false })
+  })
+
+  it('bind returns the new binding and only new fields; it never changes what the form is connected to', async () => {
+    const { bindFormTarget } = await import('@/lib/services/form-targets')
+    provider = {
+      label: 'x', submit: async () => ({ record: { id: '1' } }),
+      identity: (c) => String(c.list),
+      bind: async ({ form: f }) => ({ config: { ...f.config, ids: ['a'] }, fields: [{ key: 'title', label: 'Dup', type: 'text' }, { key: 'due', label: 'Due', type: 'date' }] }),
+    }
+    const out = await bindFormTarget(ctx(), form, { mappings: [{ field: 'title', source: null }] })
+    expect((out.layout.data_target as { config: unknown }).config).toEqual({ list: 'L1', ids: ['a'] })
+    expect(out.fields.map((f) => f.key)).toEqual(['due'])
+    provider = { ...provider, bind: async () => ({ config: { list: 'OTHER' } }) }
+    await expect(bindFormTarget(ctx(), form, {})).rejects.toMatchObject({ code: 'validation_error', message: expect.stringContaining('connect the form to something else') })
+    provider = { ...provider, bindPermission: 'ext.acme.write' }
+    await expect(bindFormTarget(ctx(['forms.edit']), form, {})).rejects.toMatchObject({ status: 403 })
+  })
+
+  it('provider refusals (incompatible types) come back as field errors', async () => {
+    const { bindFormTarget } = await import('@/lib/services/form-targets')
+    provider = { label: 'x', submit: async () => ({ record: { id: '1' } }), bind: async () => { throw new ExtensionError('invalid_mapping', '"Due" (Date) can\'t hold this kind of field.', 400, { fields: { amount: '"Due" (Date) can\'t hold this kind of field.' } }) } }
+    await expect(bindFormTarget(ctx(), form, { mappings: [{ field: 'amount', source: 'Due' }] })).rejects.toMatchObject({ status: 400, details: { fields: { amount: expect.stringContaining("can't hold") } } })
+  })
+
+  it('runs actions with the message; providers without actions refuse', async () => {
+    const { runFormTargetAction } = await import('@/lib/services/form-targets')
+    provider = { label: 'x', submit: async () => ({ record: { id: '1' } }), runAction: async ({ action }) => ({ message: `did ${action}` }) }
+    expect(await runFormTargetAction(ctx(), form, 'use_sharepoint')).toEqual({ message: 'did use_sharepoint' })
+    provider = { label: 'x', submit: async () => ({ record: { id: '1' } }) }
+    await expect(runFormTargetAction(ctx(), form, 'x')).rejects.toMatchObject({ code: 'validation_error' })
+  })
+})
+
+describe('hostRedirectUrl', () => {
+  it('passes http(s), keeps other forms in the frame, makes app paths absolute', async () => {
+    const { hostRedirectUrl } = await import('@/lib/forms/embed')
+    expect(hostRedirectUrl('https://sp.example/list', 'https://app.example')).toBe('https://sp.example/list')
+    expect(hostRedirectUrl('/f/abc?x=1', 'https://app.example')).toBeNull()
+    expect(hostRedirectUrl('/tasks', 'https://app.example')).toBe('https://app.example/tasks')
+    expect(hostRedirectUrl('//evil.example', 'https://app.example')).toBeNull()
+    expect(hostRedirectUrl(null, 'https://app.example')).toBeNull()
+  })
+})
+
+describe('bar buttons: look and feel, show-when, provider defaults', () => {
+  it('keeps icon, size, colour, outline, hidden (any kind) and a show-when rule; drops junk', async () => {
+    const { normalizeFormButtons, barButtonShown } = await import('@/lib/forms/buttons')
+    const [save, del] = normalizeFormButtons([
+      { id: 'save', kind: 'submit', label: 'Save', style: 'outline', icon: 'save', icon_after: true, size: 'lg', color: '#A945B0', visible_when: { field: 'status', operator: 'equals', value: 'Done' } },
+      { id: 'delete', kind: 'delete', label: 'Delete item', style: 'danger', hidden: true, icon: 'not-an-icon', size: 'xl', color: 'red' },
+    ])
+    expect(save).toMatchObject({ style: 'outline', icon: 'save', icon_after: true, size: 'lg', color: '#a945b0', visible_when: { field: 'status', operator: 'equals', value: 'Done' } })
+    expect(del).toMatchObject({ hidden: true })
+    expect(del).not.toHaveProperty('icon'); expect(del).not.toHaveProperty('size'); expect(del).not.toHaveProperty('color')
+    expect(barButtonShown(save, { status: 'Done' })).toBe(true)
+    expect(barButtonShown(save, { status: 'New' })).toBe(false)
+    expect(barButtonShown(del, {})).toBe(false)
+  })
+
+  it('passes the provider\'s default buttons (normalized, its ids only) and their name', async () => {
+    const { normalizeTargetDescription } = await import('@/lib/services/form-targets')
+    const d = normalizeTargetDescription({ title: 't', sourceFields: [], mappings: [], defaultButtons: [{ id: 'save', kind: 'submit', label: 'Save', style: 'primary', actions: [{ type: 'redirect', url: '{{target.return_url}}' }] }, { id: 'cancel', kind: 'cancel', label: 'Cancel', style: 'secondary' }], defaultsLabel: 'SharePoint default' })
+    expect(d?.defaultButtons?.map((b) => b.id)).toEqual(['save', 'cancel'])
+    expect(d?.defaultsLabel).toBe('SharePoint default')
+    expect(normalizeTargetDescription({ title: 't', sourceFields: [], mappings: [] })).not.toHaveProperty('defaultButtons')
+  })
+
+  it('canvas reorder moves one button, ignores moves out of range', async () => {
+    const { moveButton } = await import('@/components/forms/designer/canvas-button-bar')
+    const bs = ['save', 'cancel', 'delete'].map((id) => ({ id, kind: 'submit', label: id, style: 'primary' })) as never[]
+    expect((moveButton(bs, 1, 0) as Array<{ id: string }>).map((b) => b.id)).toEqual(['cancel', 'save', 'delete'])
+    expect(moveButton(bs, 0, -1)).toBe(bs)
   })
 })

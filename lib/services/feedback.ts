@@ -1,6 +1,6 @@
 /**
  * In-app feedback ("Send feedback" in the welcome and the Help menu):
- * delivered through the contact pipeline (lib/contact/chirpme) server-side,
+ * kept as a team request and sent to ChirpMe (lib/contact/team-requests) server-side,
  * with the workspace and the person attached from the session — never from
  * the browser. Rate limited per person.
  */
@@ -8,7 +8,8 @@
 import { z } from 'zod'
 import { dbError, serviceRoleClient } from './_shared'
 import { ServiceError, type ServiceContext } from './context'
-import { contactDeliveryConfigured, deliverChirp, escapeHtml } from '@/lib/contact/chirpme'
+import { escapeHtml } from '@/lib/contact/chirpme'
+import { notifyTeam, teamNotifyAvailable } from '@/lib/contact/team-requests'
 import { rateLimit } from '@/lib/rate-limit'
 import { publicBaseUrl } from '@/lib/deployment'
 
@@ -27,7 +28,7 @@ export const feedbackSchema = z.object({
 export type FeedbackInput = z.input<typeof feedbackSchema>
 
 export function feedbackAvailable(): boolean {
-  return contactDeliveryConfigured()
+  return teamNotifyAvailable()
 }
 
 export async function sendFeedback(ctx: ServiceContext, input: unknown): Promise<{ sent: true }> {
@@ -58,15 +59,33 @@ export async function sendFeedback(ctx: ServiceContext, input: unknown): Promise
     ...(stars ? [['Rating', stars]] : []),
     ...(page ? [['Page', page]] : []),
   ]
-  const result = await deliverChirp({
-    title: `UserTasks feedback — ${category ?? 'general'}${stars ? ` ${stars}` : ''}`,
-    body: `${who} (${workspace}): ${message.slice(0, 140)}`,
-    url: `${publicBaseUrl()}${page ?? '/home'}`,
-    detail: `<h2>In-app feedback</h2>${rows.map(([k, v]) => `<p><strong>${escapeHtml(k)}:</strong> ${escapeHtml(v)}</p>`).join('')}<h3>Message</h3><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`,
-    notificationIcon: 'feedback',
-    subTab: 'Feedback',
-    subTabColor: '#A78BFA',
-  }, 'feedback')
+  const result = await notifyTeam({
+    kind: 'feedback',
+    name: who,
+    email: email || null,
+    company: workspace,
+    facts: {
+      message,
+      user_id: ctx.actorId,
+      workspace,
+      workspace_slug: tenantRes.data?.slug ? String(tenantRes.data.slug) : null,
+      workspace_id: ctx.tenantId,
+      category: category ?? null,
+      rating: rating ?? null,
+      page: page ?? null,
+    },
+    logTag: 'feedback',
+    message: {
+      title: `UserTasks feedback — ${category ?? 'general'}${stars ? ` ${stars}` : ''}`,
+      body: `${who} (${workspace}): ${message.slice(0, 140)}`,
+      url: `${publicBaseUrl()}${page ?? '/home'}`,
+      detail: `<h2>In-app feedback</h2>${rows.map(([k, v]) => `<p><strong>${escapeHtml(k)}:</strong> ${escapeHtml(v)}</p>`).join('')}<h3>Message</h3><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`,
+      notificationIcon: 'feedback',
+      subTab: 'Feedback',
+      subTabColor: '#A78BFA',
+      ...(email ? { replyTo: email } : {}),
+    },
+  })
   if (!result.ok) throw new ServiceError('internal', 'We couldn’t send your feedback. Please try again.', { status: 502 })
   return { sent: true }
 }

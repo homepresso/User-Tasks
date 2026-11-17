@@ -5,6 +5,7 @@ import {
   provisionDirectoryUser,
   resolveProvisionRoleId,
   revokeDirectoryAccess,
+  tagTeamOrigin,
 } from '@/lib/directory-sync/sync'
 import { looksLikeEmail } from '@/lib/directory-sync/types'
 import { ScimError } from './errors'
@@ -555,6 +556,7 @@ async function reconcileGroup(ctx: ScimRequestContext, row: ResourceRow, memberI
     row = (data as ResourceRow | null) ?? { ...row, local_id: teamId }
   }
   await upsertLink(ctx, 'group', row.id, teamId, row.display_name)
+  await tagTeamOrigin(ctx.db as any, ctx.tenantId, [teamId], 'scim', row.id)
 
   // Desired team members: the linked users among the group's members.
   const desired = new Set<string>()

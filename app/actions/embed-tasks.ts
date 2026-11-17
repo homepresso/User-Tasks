@@ -17,7 +17,15 @@ export async function listEmbedTasks(options: TaskListOptions) {
   const clean = parseTaskListOptions(new URLSearchParams(taskListQuery(options)))
   return runAction('listEmbedTasks', 'Could not load your tasks.', async () => {
     const svc = await import('@/lib/services/embed-tasks')
-    return svc.listEmbedTasks(await fromSession(), clean)
+    return svc.listEmbedTab(await fromSession(), clean)
+  })
+}
+
+/** Filter choices (workflows, people) — loaded when the filter menu first opens. */
+export async function embedTaskFacets() {
+  return runAction('embedTaskFacets', 'Could not load the filters.', async () => {
+    const svc = await import('@/lib/services/embed-tasks')
+    return svc.embedTaskFacets(await fromSession())
   })
 }
 

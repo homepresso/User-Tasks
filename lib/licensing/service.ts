@@ -40,6 +40,7 @@ import {
 } from './format'
 import { envLicences, LICENCES_SETTING, storedLicences, type RawLicence } from './store'
 import { getInstanceIdentity } from './instance'
+import { checkTrialPolicy } from './trial-policy'
 import { recordLicenceEvent, shouldAuditDenial, type LicenceEvent } from './audit'
 import type {
   EntitlementCheckInput,
@@ -154,6 +155,11 @@ export function verifyLicence(entry: RawLicence, identity: InstanceIdentity, now
   const problems: LicenceProblem[] = []
   const signature = checkLicenceSignature(licence, keyring)
   if (signature) problems.push(signature)
+  else {
+    // A trial-only key is trusted only for licences that keep the trial rules.
+    const trialProblem = checkTrialPolicy(licence, keyring.find((k) => k.kid === licence.kid), now)
+    if (trialProblem) problems.push(trialProblem)
+  }
   if (!bindingMatches(licence, identity)) {
     problems.push({ code: 'binding_mismatch', message: `Issued for another installation (instance ${licence.binding?.instance_ids?.join(', ') || '-'}; hosts ${licence.binding?.hostnames?.join(', ') || '-'}); this one is ${identity.instanceId ?? 'unknown'} at ${identity.hostnames.join(', ') || 'no APP_URL'}` })
   }
@@ -161,7 +167,7 @@ export function verifyLicence(entry: RawLicence, identity: InstanceIdentity, now
   if (timing.state === 'not_yet_valid') problems.push({ code: 'not_yet_valid', message: `Valid from ${licence.not_before}` })
   if (timing.state === 'expired') problems.push({ code: 'expired', message: `Expired ${licence.expires_at}; licensed extensions stopped at ${timing.cutoffAt}` })
   // `valid` = genuine and for this installation; timing decides whether it is usable now.
-  const valid = !problems.some((p) => p.code === 'bad_signature' || p.code === 'unknown_key' || p.code === 'binding_mismatch')
+  const valid = !problems.some((p) => p.code === 'bad_signature' || p.code === 'unknown_key' || p.code === 'binding_mismatch' || p.code === 'trial_policy')
   return { source: entry.source, licence, valid, problems, timing }
 }
 
@@ -205,6 +211,8 @@ export interface Grant {
   limits: Record<string, number>
   timing: LicenceTiming
   trial?: boolean
+  /** Farms the grant is bound to (unset / empty: any farm). */
+  farmIds?: string[]
 }
 
 /** Grants for one extension from verified licences (valid ones only). */
@@ -214,7 +222,7 @@ export function licenceGrants(licences: VerifiedLicence[], extensionId: string):
     if (!v.valid || !v.licence || !v.timing) continue
     for (const grant of v.licence.extensions) {
       if (grant.id !== extensionId) continue
-      out.push({ source: 'licence', ref: v.licence.licence_id, features: grant.features ?? null, limits: licenceLimitsFor(v.licence, extensionId), timing: v.timing, trial: v.licence.trial })
+      out.push({ source: 'licence', ref: v.licence.licence_id, features: grant.features ?? null, limits: licenceLimitsFor(v.licence, extensionId), timing: v.timing, trial: v.licence.trial, ...(v.licence.binding?.farm_ids?.length ? { farmIds: v.licence.binding.farm_ids.map((f) => f.toLowerCase()) } : {}) })
     }
   }
   return out
@@ -241,6 +249,19 @@ function day(iso: string | null): string {
   return iso ? iso.replace('T', ' ').replace(/:\d\d(\.\d+)?Z$/, ' UTC') : ''
 }
 
+/** What a decision says about its deciding grant (trial, expiry, farms). */
+function grantFacts(best: Grant, usable: Grant[] = []): Pick<EntitlementDecision, 'trial' | 'expiresAt' | 'cutoffAt' | 'daysLeft' | 'farmIds'> {
+  const out: Pick<EntitlementDecision, 'trial' | 'expiresAt' | 'cutoffAt' | 'daysLeft' | 'farmIds'> = {
+    trial: best.trial === true,
+    expiresAt: best.timing.expiresAt,
+    cutoffAt: best.timing.cutoffAt,
+    daysLeft: best.timing.daysLeft,
+  }
+  // Farm-bound only when every usable grant is (one unbound licence = any farm).
+  if (usable.length && usable.every((g) => g.farmIds?.length)) out.farmIds = [...new Set(usable.flatMap((g) => g.farmIds ?? []))].sort()
+  return out
+}
+
 export function resolveDecision(input: { extensionId: string; feature?: string; declaration?: ExtensionLicenceDeclaration | null; grants: Grant[]; inactiveRows?: TenantEntitlementRow[] }): EntitlementDecision {
   const { extensionId, feature, declaration, grants } = input
   if (declaration?.tier === 'free') return { allowed: true, state: 'not_required' }
@@ -253,8 +274,8 @@ export function resolveDecision(input: { extensionId: string; feature?: string; 
     for (const g of usable) for (const [k, v] of Object.entries(g.limits)) limits[k] = Math.max(limits[k] ?? 0, v)
     let reason: string | undefined
     if (best.timing.state === 'cutoff_pending') reason = `The licence for ${what} expired at ${day(best.timing.expiresAt)}; the extension stops at ${day(best.timing.cutoffAt)} (24 hours after expiry). Renew the licence now.`
-    else if (best.timing.state === 'expiring') reason = `The licence for ${what} expires in ${best.timing.daysLeft} day${best.timing.daysLeft === 1 ? '' : 's'} (${day(best.timing.expiresAt)}); the extension stops 24 hours later.`
-    return { allowed: true, state: 'licensed', ...(reason ? { reason } : {}), limits }
+    else if (best.timing.state === 'expiring') reason = `The ${best.trial ? 'trial' : 'licence'} for ${what} expires in ${best.timing.daysLeft} day${best.timing.daysLeft === 1 ? '' : 's'} (${day(best.timing.expiresAt)}); the extension stops 24 hours later.`
+    return { allowed: true, state: 'licensed', ...(reason ? { reason } : {}), limits, ...grantFacts(best, usable) }
   }
   const expired = featured.filter((g) => g.timing.state === 'expired')
   if (expired.length) {
@@ -262,7 +283,8 @@ export function resolveDecision(input: { extensionId: string; feature?: string; 
     return {
       allowed: false,
       state: 'expired',
-      reason: `The licence for ${what} expired at ${day(last.timing.expiresAt)} and the extension stopped at ${day(last.timing.cutoffAt)} (24 hours after expiry). Install a renewed licence; steps that failed with "licence expired" can be retried afterwards.`,
+      ...grantFacts(last),
+      reason: `The ${last.trial ? 'trial' : 'licence'} for ${what} expired at ${day(last.timing.expiresAt)} and the extension stopped at ${day(last.timing.cutoffAt)} (24 hours after expiry). Install a renewed licence; steps that failed with "licence expired" can be retried afterwards.`,
     }
   }
   if (featured.some((g) => g.timing.state === 'not_yet_valid')) {
@@ -317,7 +339,7 @@ async function auditDenial(input: EntitlementCheckInput, decision: EntitlementDe
 
 export interface LicenceWarning {
   level: 'info' | 'warn' | 'error'
-  code: 'expiring' | 'cutoff_pending' | 'expired' | 'invalid' | 'not_yet_valid'
+  code: 'expiring' | 'cutoff_pending' | 'expired' | 'invalid' | 'not_yet_valid' | 'trial'
   licenceId: string | null
   message: string
   /** Days left until expiry (expiring). */
@@ -337,6 +359,8 @@ export interface ExtensionStatus {
   daysLeft: number | null
   timeState: LicenceTiming['state'] | null
   trial: boolean
+  /** Farms the licence is bound to (empty: any farm). */
+  farmIds: string[]
 }
 
 export interface LicenceSummary {
@@ -351,7 +375,8 @@ export interface LicenceSummary {
   timeState: LicenceTiming['state'] | null
   valid: boolean
   trial: boolean
-  bound: { instanceIds: string[]; hostnames: string[] }
+  bound: { instanceIds: string[]; hostnames: string[]; farmIds: string[] }
+  sku: string | null
   extensions: Array<{ id: string; edition: string | null; features: string[] | null }>
   limits: Record<string, number>
   kid: string | null
@@ -382,7 +407,8 @@ export function summarise(v: VerifiedLicence): LicenceSummary {
     timeState: v.timing?.state ?? null,
     valid: v.valid,
     trial: l?.trial === true,
-    bound: { instanceIds: l?.binding?.instance_ids ?? [], hostnames: l?.binding?.hostnames ?? [] },
+    bound: { instanceIds: l?.binding?.instance_ids ?? [], hostnames: l?.binding?.hostnames ?? [], farmIds: l?.binding?.farm_ids ?? [] },
+    sku: l?.sku ?? null,
     extensions: l?.extensions.map((g) => ({ id: g.id, edition: g.edition ?? null, features: g.features ?? null })) ?? [],
     limits,
     kid: l?.kid ?? null,
@@ -403,6 +429,14 @@ export function licenceWarnings(licences: VerifiedLicence[]): LicenceWarning[] {
     const t = v.timing
     if (!t) continue
     const exts = v.licence!.extensions.map((g) => g.id).join(', ')
+    if (v.licence!.trial && (t.state === 'active' || t.state === 'expiring')) {
+      // Trials: one short line from the start ("Trial: N days left · Buy"); a warning from 7 days before.
+      out.push({ level: (t.daysLeft ?? 99) <= 7 ? 'warn' : 'info', code: 'trial', licenceId: id, daysLeft: t.daysLeft, cutoffAt: t.cutoffAt, message: `${exts} trial: ${t.daysLeft} day${t.daysLeft === 1 ? '' : 's'} left (ends ${day(t.expiresAt)}; stops 24 hours later).` })
+      continue
+    }
+    const label = v.licence!.trial ? `The ${exts} trial` : name
+    if (v.licence!.trial && t.state === 'expired') { out.push({ level: 'error', code: 'expired', licenceId: id, cutoffAt: t.cutoffAt, message: `${label} ended at ${day(t.expiresAt)} and ${exts} stopped at ${day(t.cutoffAt)}. Nothing was deleted: add a licence to bring it back.` }); continue }
+    if (v.licence!.trial && t.state === 'cutoff_pending') { out.push({ level: 'error', code: 'cutoff_pending', licenceId: id, cutoffAt: t.cutoffAt, message: `${label} ended at ${day(t.expiresAt)}: ${exts} stops at ${day(t.cutoffAt)} unless a licence is added.` }); continue }
     if (t.state === 'expired') out.push({ level: 'error', code: 'expired', licenceId: id, cutoffAt: t.cutoffAt, message: `${name} expired at ${day(t.expiresAt)}: ${exts} stopped at ${day(t.cutoffAt)}.` })
     else if (t.state === 'cutoff_pending') out.push({ level: 'error', code: 'cutoff_pending', licenceId: id, cutoffAt: t.cutoffAt, message: `${name} expired at ${day(t.expiresAt)}: ${exts} stop at ${day(t.cutoffAt)} unless it is renewed.` })
     else if (t.state === 'expiring') out.push({ level: warningThreshold(t.daysLeft) !== null && (t.daysLeft ?? 99) <= 7 ? 'warn' : 'info', code: 'expiring', licenceId: id, daysLeft: t.daysLeft, cutoffAt: t.cutoffAt, message: `${name} expires in ${t.daysLeft} day${t.daysLeft === 1 ? '' : 's'} (${day(t.expiresAt)}); ${exts} stop 24 hours later unless it is renewed.` })
@@ -432,6 +466,7 @@ export async function getLicenceStatus(options: { fresh?: boolean } = {}): Promi
       daysLeft: best?.timing.daysLeft ?? null,
       timeState: best?.timing.state ?? null,
       trial: best?.trial === true,
+      farmIds: decision.farmIds ?? best?.farmIds ?? [],
     }
   })
   return { instance, now: now.toISOString(), licences: licences.map(summarise), extensions, warnings: licenceWarnings(licences) }

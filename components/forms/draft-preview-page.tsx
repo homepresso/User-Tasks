@@ -123,7 +123,7 @@ function DraftPreviewForm({ preview }: { preview: Preview }) {
                 }} />
               {result && <FormMessages messages={[{ text: result, tone: 'info' }]} onDismiss={() => setResult(null)} />}
               <FormStepActions>
-                <FormButtonBar buttons={buttons} placement={preview.theme_overrides?.button_placement} busy={null} onClick={press} />
+                <FormButtonBar buttons={buttons} placement={preview.theme_overrides?.button_placement} sticky={preview.theme_overrides?.button_sticky === true} values={shown} busy={null} onClick={press} />
               </FormStepActions>
             </FormPagesProvider>
           </FormLookupProvider>

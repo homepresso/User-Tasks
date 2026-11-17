@@ -6,7 +6,12 @@ export const GETTING_STARTED_PAGES: DocPageDef[] = [
     title: 'Quickstart: cloud',
     description: 'Sign in to the hosted edition, build and run a first workflow, and drive it from the CLI.',
     body: `
-The cloud edition at usertasks.com runs the same open-source code as a self-hosted install, operated for you. This page takes you from sign-in to a running workflow in about ten minutes.
+The cloud edition at usertasks.com runs the same open-source code as a self-hosted install, operated for you.
+
+> [!NOTE]
+> **UserTasks Cloud is in beta** and free during the beta. For production today, [self-host UserTasks](/docs/quickstart/self-host): self-hosted UserTasks is production-ready.
+
+This page takes you from sign-in to a running workflow in about ten minutes.
 
 ## 1. Sign in
 
@@ -443,7 +448,7 @@ Worked examples with an architecture sketch, the features involved and a snippet
 - [Approvals and compliance](https://usertasks.com/use-cases/approvals-and-compliance) — approval matrices in [decision tables](/docs/decision-tables), SLAs, escalation and audit.
 - [AI agent orchestration](https://usertasks.com/use-cases/ai-agent-orchestration) — [agents](/docs/agents) as workflow steps with a person reviewing the result.
 - [Middleware and integration hub](https://usertasks.com/use-cases/middleware-integration-hub) — [webhooks](/docs/integrations/webhooks) in, transforms, calls out, retries and log export.
-- [Replacing SharePoint 2010 and 2013 workflows](https://usertasks.com/use-cases/sharepoint-workflow-replacement), and migration guides for [Nintex](https://usertasks.com/use-cases/nintex-migration) and [K2](https://usertasks.com/use-cases/k2-migration).
+- [Replacing SharePoint 2010 and 2013 workflows](https://usertasks.com/use-cases/sharepoint-workflow-replacement) (on SharePoint Server, with the [SharePoint extension](/docs/sharepoint)), and migration guides for [Nintex](https://usertasks.com/use-cases/nintex-migration) and [K2](https://usertasks.com/use-cases/k2-migration).
 `,
   },
 ]

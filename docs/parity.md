@@ -145,6 +145,7 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | lookup | `POST /forms/{id}/lookup` | `forms_lookup` | `forms lookup` |  |
 | data table rows | `POST /forms/{id}/data-table` | `forms_data_table` | `forms data-table` |  |
 | check accessibility | `POST /forms/{id}/accessibility` | `forms_check_accessibility` | `forms check-accessibility` |  |
+| describe data source | `POST /forms/{id}/data-source` | `forms_data_source` | `forms data-source` | data binding: the source's fields and the mapping; bind with update (layout.data_binding) |
 | import InfoPath | `POST /forms/import/infopath` | `forms_import_infopath` | `forms import-infopath` | an .xsn → one form per view (or views as steps); dry_run returns the analysis report |
 | governance | `GET /forms/{id}/governance` | `forms_governance_get` | `forms governance` | retention policy, legal hold and submission count |
 | legal hold | `POST /forms/{id}/legal-hold` | `forms_legal_hold` | `forms legal-hold` | team.change_roles; while held nothing of the form is purged or deleted |
@@ -290,6 +291,9 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | create | `POST /data-tables` | `data_tables_create` | `tables create` |  |
 | update | `PATCH /data-tables/{id}` | `data_tables_update_schema` | `tables update` |  |
 | delete | `DELETE /data-tables/{id}` | `data_tables_delete` | `tables delete` |  |
+| get views | `GET /data-tables/{id}/views` | `data_views_get` | `tables views` | grid views: per column control, binding, editable, width |
+| update views | `PUT /data-tables/{id}/views` | `data_views_update` | `tables set-views` |  |
+| column options | `POST /data-tables/{id}/views/{viewId}/options` | `data_views_options` | `tables options` | a bound column's options from its saved binding |
 | export | `GET /config/export` | `config_export` | `config export` | one data table (include_rows for its rows): config export with ids=<id> |
 | import | `POST /config/apply` | `config_apply` | `config apply` | config apply of the exported data table (dry run first) |
 
@@ -304,6 +308,8 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | delete | `DELETE /data-tables/{id}/rows/{rowId}` | `data_rows_delete` | `rows delete` |  |
 | bulk delete | `POST /data-tables/{id}/rows/bulk-delete` | `data_rows_bulk_delete` | `rows bulk-delete` |  |
 | import | `POST /data-tables/{id}/rows/import` | `data_rows_import` | `rows import` | CSV / TSV / .xlsx: insert, upsert or replace; dry_run validates; MCP also takes csv_text |
+| write cells | `PATCH /data-tables/{id}/rows/{rowId}/cells` | `data_rows_write_cells` | `rows cells` | inline edit through a grid view: read-only columns refused, 409 on a stale row |
+| write cells (batch) | `PATCH /data-tables/{id}/rows/cells` | `data_rows_write_cells_batch` | `rows cells-batch` | edit all rows: an outcome per row (conflict / invalid / saved), nothing rolled back, one workflow event per changed row |
 
 ## Reports
 
@@ -399,7 +405,7 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
 |---|---|---|---|---|
-| list | `GET /teams` | `teams_list` | `teams list` |  |
+| list | `GET /teams` | `teams_list` | `teams list` | search= (name contains) and origin= (internal, active_directory, entra, sharepoint …); every team carries origin / origin_label |
 | get | `GET /teams/{id}` | `teams_get` | `teams get` |  |
 | create | `POST /teams` | `teams_create` | `teams create` |  |
 | update | `PATCH /teams/{id}` | `teams_update` | `teams update` |  |

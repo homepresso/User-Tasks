@@ -2,10 +2,14 @@
 
 import { ExtensionNodeConfig } from './extension-node-config'
 import { AddTaskAttachmentConfig } from "@/components/task-attachments/add-task-attachment-config"
+import { TeamPicker } from "@/components/tasks/assignee-search"
 import { useState, useMemo, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { serverRead, type ReadArgs } from "@/lib/server-read"
 import { cachedTableNameOf, dataTableIdOf, dataTableLabel, resolvePickerSelection, type TableNames } from "@/lib/workflow-table-refs"
+
+/** Team sources shown in the team picker (teams.origin, set by directory sync). */
+const TEAM_ORIGIN_LABELS: Record<string, string> = { internal: 'Internal', ad: 'AD', ldap: 'AD', entra: 'Entra', aad: 'Entra', google: 'Google', sharepoint: 'SharePoint', scim: 'SCIM' }
 
 /** id → name map of a loaded table list; undefined while loading. */
 function tableNamesOf(tables: { id: string; name: string }[] | undefined): TableNames | undefined {
@@ -425,6 +429,11 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
               </li>
             ))}
           </ul>
+          {wiringWarnings.some((w) => w.kind === 'import_review') && (
+            <Button type="button" size="sm" variant="secondary" className="mt-2" data-import-reviewed="" onClick={() => updateConfig('_import_review', undefined)}>
+              Mark as reviewed
+            </Button>
+          )}
         </InlineNotice>
       )}
       {wiringNotes.length > 0 && (
@@ -2353,7 +2362,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           </InlineNotice>
         ) : (
           <UserTaskConfig config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} emailTemplates={emailTemplates}
-            formSection={<NodeFormSection variant="user_task" node={node} allNodes={allNodes ?? []} onPatch={batchUpdateConfig} onUpdateOtherNode={(id, config) => onUpdateNode(id, { config })} />} />
+            formSection={<NodeFormSection variant="user_task" node={node} allNodes={allNodes ?? []} allEdges={allEdges ?? []} workflowVariables={workflowVariables} workflowId={workflowId} onPatch={batchUpdateConfig} onUpdateOtherNode={(id, config) => onUpdateNode(id, { config })} />} />
         )
       )}
 
@@ -2991,12 +3000,19 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
           />
         )}
 
+        {(config.assignment_type ?? 'individual') === 'individual' && (
+          <label className="mt-1.5 flex items-center gap-2 text-xs text-fg-muted">
+            <input type="checkbox" checked={config.assignee_relation === 'initiator_manager'} onChange={(e) => onUpdate('assignee_relation', e.target.checked ? 'initiator_manager' : undefined)} data-testid="assignee-initiator-manager" />
+            The manager of the person who started the workflow (reporting lines; the person above is the fallback)
+          </label>
+        )}
+
         {config.assignment_type === 'team' && (
-          <AutocompleteSelect
-            value={config.team_id ?? ''}
-            placeholder="Select a team..."
-            options={(teams ?? []).map((t: any) => ({ value: t.id, label: t.name }))}
-            onChange={(value) => onUpdate('team_id', value)}
+          <TeamPicker
+            value={config.team_id ?? null}
+            valueName={(teams ?? []).find((t: any) => t.id === config.team_id)?.name ?? null}
+            valueOrigin={(teams ?? []).find((t: any) => t.id === config.team_id)?.origin ?? null}
+            onChange={(team) => onUpdate('team_id', team?.id ?? '')}
           />
         )}
 
@@ -3246,7 +3262,7 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
               <AutocompleteSelect
                 value={config.escalation_team_id ?? ''}
                 placeholder="Select team..."
-                options={(teams ?? []).map((t: any) => ({ value: t.id, label: t.name }))}
+                options={(teams ?? []).map((t: any) => ({ value: t.id, label: t.name, hint: t.origin_label ?? undefined }))}
                 onChange={(value) => onUpdate('escalation_team_id', value)}
               />
             )}

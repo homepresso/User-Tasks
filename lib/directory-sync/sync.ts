@@ -3,6 +3,7 @@ import { syncDirectoryOrg } from './profiles'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { invalidateCredentialCache } from '@/lib/api-auth-cache'
 import { writeAudit } from '@/lib/audit-log'
+import { originForDirectoryProvider, type TeamOrigin } from '@/lib/teams/origin'
 import { createEntraClient } from '@/lib/directory-sync/entra'
 import { createGoogleDirectoryClient } from '@/lib/directory-sync/google'
 import { createLdapClient } from '@/lib/directory-sync/ldap'
@@ -100,6 +101,22 @@ function chunk<T>(items: T[], size: number): T[][] {
 /** Escape LIKE wildcards so an email can be used as an exact ilike pattern. */
 function escapeLikePattern(value: string): string {
   return value.replace(/[\\%_]/g, (m) => `\\${m}`)
+}
+
+/**
+ * Record where directory teams come from (teams.origin, external_id —
+ * migration 20270116050000). Only teams still marked 'internal' are tagged
+ * (a team is never moved between directories); best effort: before the
+ * migration, or on any error, the sync goes on untagged.
+ */
+export async function tagTeamOrigin(supabase: SupabaseClient, tenantId: string, teamIds: string[], origin: TeamOrigin, externalId?: string | null): Promise<void> {
+  if (!teamIds.length || origin === 'internal') return
+  for (const ids of chunk([...new Set(teamIds)], CHUNK)) {
+    await (supabase as any).from('teams')
+      .update({ origin, ...(externalId && ids.length === 1 ? { external_id: externalId } : {}) })
+      .eq('tenant_id', tenantId).eq('origin', 'internal').in('id', ids)
+      .then(() => undefined, () => undefined)
+  }
 }
 
 /** Full syncs at least this often for delta-capable directories (and on demand). */
@@ -607,6 +624,9 @@ export async function runDirectorySync(
       for (const row of (data ?? []) as any[]) linkedTeams.set(String(row.id), { name: row.name ?? null, description: row.description ?? null })
     }
     const seenGroupLinkIds: string[] = []
+    // Where these teams come from (the badge): teams linked before origin was recorded get it now.
+    const teamOrigin = originForDirectoryProvider(provider, typeof connection.settings?.flavor === 'string' ? connection.settings.flavor : null)
+    await tagTeamOrigin(supabase, tenantId, linkedTeamIds, teamOrigin)
 
     for (const group of directoryGroups) {
       let teamId: string
@@ -642,6 +662,7 @@ export async function runDirectorySync(
         }
         teamId = String(team.id)
         await recordLink('group', group.externalId, teamId, group.displayName)
+        await tagTeamOrigin(supabase, tenantId, [teamId], teamOrigin, group.externalId)
         stats.groups_created++
       }
 

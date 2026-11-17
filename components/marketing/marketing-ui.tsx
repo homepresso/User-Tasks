@@ -41,6 +41,16 @@ export const USE_CASE_ICONS: Record<UseCaseIcon, typeof Inbox> = {
   signature: FileSignature,
 }
 
+/** "Beta" next to every UserTasks Cloud offer (EDITION_STATUS). */
+export function BetaBadge({ tone = "light" }: { tone?: "light" | "dark" }) {
+  return <span data-edition="cloud-beta" className={`inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-semibold uppercase leading-4 tracking-wider ${tone === "dark" ? "bg-[#F0C27B]/15 text-[#F0C27B] ring-1 ring-[#F0C27B]/30" : "bg-(color:--mkt-gold)/15 text-(color:--mkt-bronze) ring-1 ring-(color:--mkt-bronze)/25"}`}>Beta</span>
+}
+
+/** "Production-ready" next to self-hosted offers (EDITION_STATUS). */
+export function ProductionReadyBadge({ tone = "light" }: { tone?: "light" | "dark" }) {
+  return <span data-edition="self-hosted-ga" className={`inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-semibold uppercase leading-4 tracking-wider ${tone === "dark" ? "bg-[#7FA98A]/15 text-[#A8D0B2] ring-1 ring-[#7FA98A]/35" : "bg-(color:--mkt-green)/10 text-(color:--mkt-green) ring-1 ring-(color:--mkt-green)/25"}`}>Production-ready</span>
+}
+
 export function SectionHeading({ eyebrow, title, children, as: Heading = "h2", align = "left" }: { eyebrow: string; title: ReactNode; children?: ReactNode; as?: "h1" | "h2"; align?: "left" | "center" }) {
   return (
     <div className={align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-2xl"} data-reveal>
@@ -61,14 +71,15 @@ export function Shot({ name, alt, sizes, priority = false }: { name: ScreenshotN
   )
 }
 
-export function Snippet({ code, language = "shell" }: { code: string; language?: string }) {
+/** `wrap`: long one-line commands wrap instead of scrolling sideways (a hidden scrollbar looks cut off). */
+export function Snippet({ code, language = "shell", wrap = false }: { code: string; language?: string; wrap?: boolean }) {
   return (
     <div className="overflow-hidden rounded-xl bg-(color:--mkt-code-bg)">
       <div className="flex items-center justify-between border-b border-(color:--mkt-white)/[0.08] px-4 py-1">
         <LanguageTag lang={language} />
         <CopyButton text={code} />
       </div>
-      <pre className="overflow-x-auto p-4 font-mono text-ui leading-6 text-(color:--mkt-code-text)"><code className="font-mono">{code}</code></pre>
+      <pre className={`${wrap ? "whitespace-pre-wrap break-all" : "overflow-x-auto"} p-4 font-mono text-ui leading-6 text-(color:--mkt-code-text)`}><code className="font-mono">{code}</code></pre>
     </div>
   )
 }
@@ -105,7 +116,7 @@ export function MarketingFooter({ cta = true }: { cta?: boolean }) {
           <div className="flex flex-col items-start justify-between gap-6 border-b border-white/10 py-14 md:flex-row md:items-end">
             <div>
               <p className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">The open source <span className="mkt-gradient-text">process platform.</span></p>
-              <p className="mt-2 text-[#C9BFAE]">Open source, on your cloud or ours.</p>
+              <p className="mt-2 text-[#C9BFAE]">Production-ready on your own servers today. UserTasks Cloud <BetaBadge tone="dark" /> is free during the beta.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link href={START_HREF} className="mkt-btn-ember inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold">Start free <ArrowRight size={16} aria-hidden="true" /></Link>

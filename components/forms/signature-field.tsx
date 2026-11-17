@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Eraser, Loader2, PenLine, Redo2, Type as TypeIcon, Undo2 } from 'lucide-react'
-import { attachmentPath } from '@/lib/forms/attachments'
+import { attachmentPath, type AttachmentFile } from '@/lib/forms/attachments'
 import {
   describeSignature, normalizeSignatureValue, SIGNATURE_DISCLAIMER, signatureMethods, type SignatureMethod, type SignatureValue,
 } from '@/lib/forms/media-fields'
@@ -105,7 +105,7 @@ export function SignatureView({ value, preview }: { value: unknown; preview?: st
  * who signed and when on submit. With `resign_on_change`, changing another
  * answer after signing (in this visit) clears the signature.
  */
-export function SignatureField({ field, value, onChange, id, describedBy, invalid, disabled, watch }: {
+export function SignatureField({ field, value, onChange, id, describedBy, invalid, disabled, watch, upload }: {
   field: TaskFieldDef
   value: unknown
   onChange: (value: SignatureValue | null) => void
@@ -115,6 +115,8 @@ export function SignatureField({ field, value, onChange, id, describedBy, invali
   disabled?: boolean
   /** The other answers (JSON) — a change clears the signature when the field asks to re-sign. */
   watch?: string
+  /** Store the PNG somewhere else than the form's upload pipeline (the Data grid's signature cells: a table file). */
+  upload?: (png: Blob, name: string) => Promise<AttachmentFile>
 }) {
   const source = useAttachmentSource()
   const sig = normalizeSignatureValue(value)
@@ -134,7 +136,7 @@ export function SignatureField({ field, value, onChange, id, describedBy, invali
   const [localPng, setLocalPng] = useState<{ id: string; url: string } | null>(null)
   const statementId = useId()
   const helpId = useId()
-  const canSign = !disabled && Boolean(source) && source!.kind !== 'preview'
+  const canSign = !disabled && (Boolean(upload) || (Boolean(source) && source!.kind !== 'preview'))
   const strokesRef = useRef(strokes)
 
   const redraw = useCallback((list: Point[][]) => {
@@ -187,14 +189,14 @@ export function SignatureField({ field, value, onChange, id, describedBy, invali
   }
 
   async function adopt() {
-    if (!source || !canSign) return
+    if ((!source && !upload) || !canSign) return
     setError(null)
     if (method === 'draw' && !strokes.some((s) => s.length)) { setError('Draw your signature in the box first'); return }
     if (method === 'type' && !typed.trim()) { setError('Type your name first'); return }
     setBusy(true)
     try {
       const blob = method === 'draw' ? await strokesPng(strokes) : await typedPng(typed.trim())
-      const file = await uploadFieldFile(source, field.key, blob, 'signature.png')
+      const file = upload ? await upload(blob, 'signature.png') : await uploadFieldFile(source!, field.key, blob, 'signature.png')
       sessionFile.current = file.id
       setLocalPng((old) => { if (old) URL.revokeObjectURL(old.url); return { id: file.id, url: URL.createObjectURL(blob) } })
       signedWith.current = watch ?? null
@@ -208,14 +210,14 @@ export function SignatureField({ field, value, onChange, id, describedBy, invali
   }
 
   function clearSigned() {
-    if (sig && source && sessionFile.current === sig.file.id) { void removeFieldFile(source, sig.file.id); sessionFile.current = null }
+    if (!upload && sig && source && sessionFile.current === sig.file.id) { void removeFieldFile(source, sig.file.id); sessionFile.current = null }
     signedWith.current = null
     setStrokes([]); setRedo([])
     onChange(null)
   }
 
   const statement = field.signature?.statement
-  const preview = !source || source.kind === 'preview'
+  const preview = !upload && (!source || source.kind === 'preview')
 
   if (sig) {
     return (

@@ -7,8 +7,9 @@ import { UserCheck, UserPlus, UserX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
-import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
-import { SegmentedControl } from '@/components/ui/segmented-control'
+import { AssigneeSearch, assigneeKey, type AssigneePick } from '@/components/tasks/assignee-search'
+import { TeamOriginBadge } from '@/components/teams/team-origin-badge'
+import { plural } from '@/lib/format/plural'
 import { Textarea } from '@/components/ui/textarea'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { serverQuery } from '@/lib/server-read'
@@ -85,25 +86,20 @@ export function AssignTaskDialog({ taskIds, open, onOpenChange, title, descripti
   onDone?: (message: string) => void
 }) {
   const bulk = taskIds.length > 1
-  const { data: targets } = useAssignTargets(open)
-  const [kind, setKind] = useState<'person' | 'team'>('person')
-  const [target, setTarget] = useState('')
+  const [target, setTarget] = useState<AssigneePick | null>(null)
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const refresh = useRefreshAfterAssign()
 
-  const reset = () => { setTarget(''); setReason(''); setError(null); setKind('person') }
-  const options = kind === 'person'
-    ? (targets?.users ?? []).map((u) => ({ value: u.id, label: u.name, hint: u.email && u.email !== u.name ? u.email : undefined }))
-    : (targets?.teams ?? []).map((t) => ({ value: t.id, label: t.name }))
-  const targetName = (kind === 'person' ? targets?.users.find((u) => u.id === target)?.name : targets?.teams.find((t) => t.id === target)?.name) ?? null
+  const reset = () => { setTarget(null); setReason(''); setError(null) }
+  const targetName = target?.name ?? null
 
   async function submit() {
-    if (!target) { setError(kind === 'person' ? 'Choose a person' : 'Choose a team'); return }
+    if (!target) { setError(bulk ? 'Choose a person' : 'Choose a person or a team'); return }
     setBusy(true); setError(null)
     if (bulk) {
-      const result = await bulkAssignTasks(taskIds, target, reason || null)
+      const result = await bulkAssignTasks(taskIds, target.id, reason || null)
       setBusy(false)
       if (!result.ok) { setError(result.error); return }
       const { assigned, failed } = result.data
@@ -111,11 +107,11 @@ export function AssignTaskDialog({ taskIds, open, onOpenChange, title, descripti
       if (failed.length && !assigned.length) { setError(failed[0].error); return }
       onDone?.(`${assigned.length} task${assigned.length === 1 ? '' : 's'} reassigned to ${targetName ?? 'them'}${failed.length ? ` — ${failed.length} could not be (${failed[0].error})` : ''}.`)
     } else {
-      const result = await assignTaskTo(taskIds[0], kind === 'person' ? { targetUserId: target, reason } : { targetTeamId: target, reason })
+      const result = await assignTaskTo(taskIds[0], target.kind === 'person' ? { targetUserId: target.id, reason } : { targetTeamId: target.id, reason })
       setBusy(false)
       if (!result.ok) { setError(result.error); return }
       refresh()
-      onDone?.(`Task assigned to ${targetName ?? (kind === 'person' ? 'them' : 'the team')}.`)
+      onDone?.(`Task assigned to ${targetName ?? (target.kind === 'person' ? 'them' : 'the team')}.`)
     }
     reset()
     onOpenChange(false)
@@ -126,29 +122,26 @@ export function AssignTaskDialog({ taskIds, open, onOpenChange, title, descripti
       <DialogContent
         size="md"
         title={title ?? (bulk ? `Reassign ${taskIds.length} tasks` : 'Assign task')}
-        description={description ?? (bulk ? 'Every selected task goes to one person. Each change is checked, audited and recorded in the task\'s history, and the person is notified.' : 'The new assignee is notified; the change is audited and shown in the task history and the process view.')}
+        description={description ?? (bulk ? 'Every selected task goes to one person. Each change is checked, audited and recorded in the task\'s history, and the person is notified.' : 'The new assignee is notified; the change is audited and shown in the task history and the process view. A team gets a team task: one of its members claims it.')}
         data-assign-task-dialog=""
       >
         <DialogBody className="space-y-3">
           {currentAssignee && !bulk && <p className="text-ui text-fg-muted">Currently: <span className="font-medium text-fg">{currentAssignee}</span></p>}
-          {!bulk && (
-            <SegmentedControl
-              aria-label="Assign to"
-              size="sm"
-              value={kind}
-              onValueChange={(v) => { setKind(v); setTarget('') }}
-              options={[{ value: 'person', text: 'A person' }, { value: 'team', text: 'A team' }]}
-            />
-          )}
-          <Field label={kind === 'person' ? 'Person' : 'Team'}>
-            <AutocompleteSelect
-              value={target}
-              placeholder={kind === 'person' ? 'Select a person' : 'Select a team'}
-              size="md"
-              options={options}
-              onChange={setTarget}
+          <Field label={bulk ? 'Person' : 'Person or team'}>
+            <AssigneeSearch
+              kinds={bulk ? ['person'] : ['person', 'team']}
+              onPick={(pick) => { setTarget((prev) => (prev && prev.kind === pick.kind && prev.id === pick.id ? null : pick)); setError(null) }}
+              selectedKeys={target ? [assigneeKey(target.kind, target.id)] : []}
+              label={bulk ? 'Search people' : 'Search people and teams'}
+              listClassName="max-h-56"
             />
           </Field>
+          {target && (
+            <p className="flex flex-wrap items-center gap-1.5 text-ui text-fg-muted" data-assign-target={assigneeKey(target.kind, target.id)}>
+              Assign to <span className="font-medium text-fg">{target.name}</span>
+              {target.kind === 'team' && <><TeamOriginBadge origin={target.origin} /><span className="num text-xs">{plural(target.member_count, 'member')}</span></>}
+            </p>
+          )}
           <Field label="Reason" optional>
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={2000} placeholder="Why are you reassigning this?" data-assign-reason="" />
           </Field>

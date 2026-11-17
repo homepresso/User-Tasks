@@ -56,7 +56,7 @@ export function TasksPage() {
           title={<>Approvals that <span className="mkt-gradient-text">chase themselves.</span></>}
           intro={<>Everything someone needs to do lands in <strong className="text-white">one task list</strong>: approvals, reviews, data to fill in. Open it, see where the request has been, decide with a comment, and the process moves on. Reminders and escalation do the chasing.</>}
           primary={{ href: "/docs/tasks", label: "Read the tasks guide" }}
-          secondary={{ href: "/start", label: "Start free" }}
+          secondary={{ href: "/start", label: "Start free (cloud beta)" }}
           scenes={["inbox", "task", "process", "timeline", "approve"]}
           demoLabel="Get work done: a purchase request from the task list to approved"
           bullets={["Approve, reject or request changes", "Team queues, SLAs and escalation", "A process view and timeline on every request"]}

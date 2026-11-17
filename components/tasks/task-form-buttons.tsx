@@ -103,7 +103,7 @@ export function TaskFormButtons({ taskId, rawButtons, fields, values, savedValue
           <Button size="sm" variant="destructive" onClick={() => void press(buttons.find((b) => b.kind === 'cancel')!)}>Discard</Button>
         </div>
       )}
-      {!closed && onBehalf.canAct && <FormButtonBar buttons={buttons} placement={placement} busy={busy} onClick={(b) => void press(b)} />}
+      {!closed && onBehalf.canAct && <FormButtonBar buttons={buttons} placement={placement} values={values} busy={busy} onClick={(b) => void press(b)} />}
     </div>
   )
 }

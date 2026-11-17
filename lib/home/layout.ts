@@ -64,6 +64,12 @@ export interface HomeWidgetDef {
    * to the measured height of its content (never below `h`).
    */
   compact?: boolean
+  /**
+   * Fit-to-content widget: outside edit mode its height follows its measured
+   * content (never below `minH`, never above MAX_ROWS), so a short list leaves
+   * no empty space and a long one grows instead of scrolling inside a fixed box.
+   */
+  fit?: boolean
   /** Default-layout row: widgets with the same row share the 12 columns evenly among the ones the person may see. */
   row?: 'cards' | 'charts'
 }
@@ -86,7 +92,7 @@ export const HOME_WIDGETS: readonly HomeWidgetDef[] = [
   metric('chart.decisions', 'My decisions', ['tasks.view_own']),
   metric('metric.submissions', 'My submissions', ['forms.submit']),
   metric('metric.following', 'Following'),
-  { id: 'tasks', title: 'Task list', group: 'list', w: 12, h: 13, minW: 4, maxW: 12, minH: 6, maxH: MAX_ROWS, tabletMinW: 6 },
+  { id: 'tasks', title: 'Task list', group: 'list', w: 12, h: 13, minW: 4, maxW: 12, minH: 6, maxH: MAX_ROWS, tabletMinW: 6, fit: true },
   chart('chart.completed', 'Tasks completed', 6, 8, ['tasks.view_own'], 'charts'),
   chart('chart.duration', 'Time to complete', 6, 8, ['tasks.view_own'], 'charts'),
   chart('chart.top_processes', 'Processes I work in most', 12, 5, ['tasks.view_own']),
@@ -148,7 +154,14 @@ export function displayItems(
   heights: Readonly<Record<string, number>>,
 ): HomeLayoutItem[] {
   return items.map((item) => {
-    if (!DEFS.get(item.id)?.compact || !expanded.has(item.id)) return item
+    const def = DEFS.get(item.id)
+    if (def?.fit) {
+      const px = heights[item.id]
+      if (!px) return item
+      const h = clamp(rowsForHeight(px), def.minH, MAX_ROWS)
+      return h === item.h ? item : { ...item, h }
+    }
+    if (!def?.compact || !expanded.has(item.id)) return item
     const px = heights[item.id]
     if (!px) return item
     const h = Math.min(MAX_ROWS, Math.max(item.h, rowsForHeight(px)))

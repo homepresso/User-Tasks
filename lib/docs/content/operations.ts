@@ -418,8 +418,10 @@ export const SELF_HOSTING_PAGES: DocPageDef[] = [
   {
     slug: 'self-hosting',
     title: 'Self-hosting',
-    description: 'Run UserTasks on your own infrastructure: the step-by-step guide, deployment modes, Supabase, environment, pg_cron and Vault, the first admin account, Node or Docker, optional drivers and a security checklist.',
+    description: 'Run production-ready UserTasks on your own infrastructure: the step-by-step guide, deployment modes, Supabase, environment, pg_cron and Vault, the first admin account, Node or Docker, optional drivers and a security checklist.',
     body: `
+**Self-hosted UserTasks is production-ready**: install it on your own servers with the one-line installer, Docker Compose, Kubernetes or air-gapped today, with every feature included. (UserTasks Cloud, the hosted edition, is in beta.)
+
 > [!TIP]
 > **New to self-hosting?** Follow the guide in order: [Choose how to run it](/docs/self-hosting/choose), [Requirements](/docs/self-hosting/requirements), [Install step by step](/docs/self-hosting/install), [Create your admin account](/docs/self-hosting/admin-account), [Sign in and invite people](/docs/self-hosting/invite-people), [Use the CLI with your server](/docs/self-hosting/cli), [Upgrade to a new release](/docs/self-hosting/upgrade), [Updates and backups](/docs/self-hosting/updates-and-backups) and [Troubleshooting](/docs/self-hosting/troubleshooting). This page is the reference behind it.
 

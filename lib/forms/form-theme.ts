@@ -90,6 +90,7 @@ export const FormThemeOverridesSchema = z.object({
   density: z.enum(['compact', 'comfortable']).optional().meta({ description: 'Spacing between fields.', when_unset: 'comfortable' }),
   label_position: z.enum(['top', 'left']).optional().meta({ description: 'Labels above or left of the inputs.', when_unset: 'top' }),
   button_placement: z.enum(['left', 'right', 'full']).optional().meta({ description: 'Where the form\'s buttons sit.', when_unset: 'right' }),
+  button_sticky: z.boolean().optional().meta({ description: 'Keep the button bar in view at the bottom while a long form scrolls.', when_unset: 'false (the bar sits under the last field)' }),
   form_width: z.enum(['narrow', 'normal', 'wide', 'full', 'custom']).optional().meta({ description: 'How wide the form card may grow (custom: form_width_pct).', when_unset: 'normal' }),
   form_width_pct: z.number().finite().transform(clampFormWidthPct).optional().meta({ description: 'With form_width custom: the share of the available width, 40–100 % (clamped; never under ~320px, 100 % on phones).', when_unset: 'none' }),
   header: z.object({

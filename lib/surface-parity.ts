@@ -179,6 +179,7 @@ export const SURFACE_PARITY: SurfaceResource[] = [
       op('lookup', 'POST /forms/{id}/lookup', 'forms_lookup', 'forms lookup'),
       op('data table rows', 'POST /forms/{id}/data-table', 'forms_data_table', 'forms data-table'),
       op('check accessibility', 'POST /forms/{id}/accessibility', 'forms_check_accessibility', 'forms check-accessibility'),
+      op('describe data source', 'POST /forms/{id}/data-source', 'forms_data_source', 'forms data-source', 'data binding: the source\'s fields and the mapping; bind with update (layout.data_binding)'),
       op('import InfoPath', 'POST /forms/import/infopath', 'forms_import_infopath', 'forms import-infopath', 'an .xsn → one form per view (or views as steps); dry_run returns the analysis report'),
       op('governance', 'GET /forms/{id}/governance', 'forms_governance_get', 'forms governance', 'retention policy, legal hold and submission count'),
       op('legal hold', 'POST /forms/{id}/legal-hold', 'forms_legal_hold', 'forms legal-hold', 'team.change_roles; while held nothing of the form is purged or deleted'),
@@ -324,6 +325,9 @@ export const SURFACE_PARITY: SurfaceResource[] = [
       op('create', 'POST /data-tables', 'data_tables_create', 'tables create'),
       op('update', 'PATCH /data-tables/{id}', 'data_tables_update_schema', 'tables update'),
       op('delete', 'DELETE /data-tables/{id}', 'data_tables_delete', 'tables delete'),
+      op('get views', 'GET /data-tables/{id}/views', 'data_views_get', 'tables views', 'grid views: per column control, binding, editable, width'),
+      op('update views', 'PUT /data-tables/{id}/views', 'data_views_update', 'tables set-views'),
+      op('column options', 'POST /data-tables/{id}/views/{viewId}/options', 'data_views_options', 'tables options', 'a bound column\'s options from its saved binding'),
       configExport('data table (include_rows for its rows)'),
       configImport('data table (include_rows for its rows)'),
     ],
@@ -338,6 +342,8 @@ export const SURFACE_PARITY: SurfaceResource[] = [
       op('delete', 'DELETE /data-tables/{id}/rows/{rowId}', 'data_rows_delete', 'rows delete'),
       op('bulk delete', 'POST /data-tables/{id}/rows/bulk-delete', 'data_rows_bulk_delete', 'rows bulk-delete'),
       op('import', 'POST /data-tables/{id}/rows/import', 'data_rows_import', 'rows import', 'CSV / TSV / .xlsx: insert, upsert or replace; dry_run validates; MCP also takes csv_text'),
+      op('write cells', 'PATCH /data-tables/{id}/rows/{rowId}/cells', 'data_rows_write_cells', 'rows cells', 'inline edit through a grid view: read-only columns refused, 409 on a stale row'),
+      op('write cells (batch)', 'PATCH /data-tables/{id}/rows/cells', 'data_rows_write_cells_batch', 'rows cells-batch', 'edit all rows: an outcome per row (conflict / invalid / saved), nothing rolled back, one workflow event per changed row'),
     ],
   },
   {
@@ -433,7 +439,7 @@ export const SURFACE_PARITY: SurfaceResource[] = [
   {
     resource: 'teams',
     ops: [
-      op('list', 'GET /teams', 'teams_list', 'teams list'),
+      op('list', 'GET /teams', 'teams_list', 'teams list', 'search= (name contains) and origin= (internal, active_directory, entra, sharepoint …); every team carries origin / origin_label'),
       op('get', 'GET /teams/{id}', 'teams_get', 'teams get'),
       op('create', 'POST /teams', 'teams_create', 'teams create'),
       op('update', 'PATCH /teams/{id}', 'teams_update', 'teams update'),

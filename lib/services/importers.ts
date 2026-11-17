@@ -67,12 +67,18 @@ export interface ImportOutcome extends ImportAnalysis {
   warnings: string[]
 }
 
+/** The core Nintex importer makes workflows (and forms when the files carry Nintex Forms: createForm checks forms.edit itself). */
+function workflowFirst(c: Pick<ImporterContribution, 'key'>, id?: string): boolean {
+  return id === 'nintex' || c.key === 'nintex'
+}
+
 function viewPermissions(c: Pick<ImporterContribution, 'produces'>): string[] {
   return [...(c.produces.includes('workflow') ? ['workflows.view'] : []), ...(c.produces.includes('form') ? ['forms.view'] : [])]
 }
 
-function importPermissions(c: Pick<ImporterContribution, 'produces' | 'permission'>): string[][] {
+function importPermissions(c: Pick<ImporterContribution, 'produces' | 'permission'> & { key?: string }): string[][] {
   if (c.permission) return [[c.permission]]
+  if (c.key && workflowFirst({ key: c.key })) return [['workflows.create', 'workflows.edit']]
   // Each kind made needs its own create permission (workflows: create or edit).
   return [...(c.produces.includes('workflow') ? [['workflows.create', 'workflows.edit']] : []), ...(c.produces.includes('form') ? [['forms.edit']] : [])]
 }
@@ -180,6 +186,7 @@ async function resolve(ctx: ServiceContext, id: string, files: ImportFile[]): Pr
   }
   const importer = await getImporter(id)
   if (!importer) throw ServiceError.notFound(`Unknown importer "${id}"`)
+  if (importer.core) return importer
   if (!importer.handler) throw ServiceError.validation(`The ${importer.contribution.label} importer has its own endpoint: ${importer.endpoint}`)
   const a = await access(ctx, importer)
   if (a.error) throw a.error
@@ -210,10 +217,11 @@ function rethrow(error: unknown, label: string): never {
 export async function detectImporter(ctx: ServiceContext, files: ImportFile[]): Promise<{ id: string; score: number } | null> {
   let best: { id: string; score: number } | null = null
   for (const importer of await listImporters()) {
-    if (!importer.handler?.detect || !files.every((f) => acceptsFile(importer.contribution, f.name))) continue
+    const detect = importer.core?.detect ? (input: { files: ImportFile[] }) => importer.core!.detect!(input.files) : importer.handler?.detect?.bind(importer.handler)
+    if (!detect || !files.every((f) => acceptsFile(importer.contribution, f.name))) continue
     if (!(await access(ctx, importer)).usable) continue
     let score = 0
-    try { score = Number(importer.handler.detect({ files })) || 0 } catch { score = 0 }
+    try { score = Number(detect({ files })) || 0 } catch { score = 0 }
     if (score > 0 && (!best || score > best.score)) best = { id: importer.id, score: Math.min(1, score) }
   }
   return best
@@ -228,7 +236,7 @@ export async function analyzeImport(ctx: ServiceContext, id: string, rawFiles: I
   const options = cleanOptions(c, rawOptions)
   let raw: ImportReport
   try {
-    raw = await importer.handler!.analyze({ ctx: await handlerContext(ctx, importer), files, options })
+    raw = importer.core ? await importer.core.analyze(ctx, files, options) : await importer.handler!.analyze({ ctx: await handlerContext(ctx, importer), files, options })
   } catch (error) {
     rethrow(error, c.label)
   }
@@ -239,13 +247,13 @@ export async function analyzeImport(ctx: ServiceContext, id: string, rawFiles: I
 export async function runImport(ctx: ServiceContext, id: string, rawFiles: ImportFile[], rawOptions?: unknown): Promise<ImportOutcome> {
   const importer = await resolve(ctx, id, rawFiles)
   const c = importer.contribution
-  for (const any of importPermissions(c)) requireAny(ctx, any)
+  if (!(await nintexIntoDesignable(ctx, importer, rawOptions))) for (const any of importPermissions(c)) requireAny(ctx, any)
   const files = checkFiles(c, rawFiles)
   if (c.accepts.length && !c.filesOptional && !files.length) throw ServiceError.validation('No file was sent')
   const options = cleanOptions(c, rawOptions)
   let result: ImportResult
   try {
-    result = await importer.handler!.import({ ctx: await handlerContext(ctx, importer), files, options })
+    result = importer.core ? await importer.core.import(ctx, files, options) : await importer.handler!.import({ ctx: await handlerContext(ctx, importer), files, options })
   } catch (error) {
     rethrow(error, c.label)
   }
@@ -265,6 +273,26 @@ export async function runImport(ctx: ServiceContext, id: string, rawFiles: Impor
     metadata: { importer: importer.id, files: files.map((f) => f.name), created: created.map((x) => ({ kind: x.kind, id: x.id })), coverage: report.coverage.percent, complexity: report.complexity.score },
   }).catch(() => undefined)
   return { importer: importer.id, report, markdown: importReportMarkdown(report), created, warnings }
+}
+
+/**
+ * A Nintex import into ONE existing workflow the person may design (workflows.edit, or an Edit
+ * grant — e.g. a SharePoint list manager in the embedded designer) without forms: allowed without
+ * workflows.create. updateWorkflow checks the design access again.
+ */
+async function nintexIntoDesignable(ctx: ServiceContext, importer: RegisteredImporter, rawOptions: unknown): Promise<boolean> {
+  if (importer.id !== 'nintex' || !rawOptions || typeof rawOptions !== 'object') return false
+  const o = rawOptions as Record<string, unknown>
+  const workflowId = typeof o.workflow_id === 'string' ? o.workflow_id : ''
+  if (!/^[0-9a-f-]{36}$/i.test(workflowId) || o.forms !== 'skip') return false
+  if (o.target !== 'replace' && !(typeof o.target === 'string' && o.target.startsWith('ext.'))) return false
+  try {
+    const { requireDesignAccess } = await import('./design-access')
+    await requireDesignAccess(ctx, 'workflow', workflowId)
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** base64 files of a JSON body (REST / MCP) → ImportFile[]. */

@@ -157,6 +157,8 @@ export async function runButtonActions(
     submission?: SubmissionMeta
     /** The data target's "back" page for {{target.return_url}} redirects (provider-vetted). */
     targetReturnUrl?: string | null
+    /** The record's values ({{target.<name>}}) for workflow inputs and texts. */
+    targetContext?: Record<string, unknown>
   },
 ): Promise<{ runs: StartedRun[]; effects: ButtonEffects; table_changes: TableChangesSummary[] }> {
   // Form rules on "After submit" (this button or any) add their actions after the button's own (lib/forms/form-rules.ts).
@@ -201,7 +203,7 @@ export async function runButtonActions(
       button_id: input.button.id, outcome: input.button.kind === 'outcome' ? (input.button.outcome ?? input.button.label) : null, task_id: input.taskId ?? null,
     })
     for (const action of starts) {
-      const scope = { values: input.values, extras: { submission_id: input.submissionId, task_id: input.taskId ?? null, table_changes: tableChanges, table_changes_summary: tableSummary } }
+      const scope = { values: input.values, extras: { submission_id: input.submissionId, task_id: input.taskId ?? null, table_changes: tableChanges, table_changes_summary: tableSummary, target: input.targetContext ?? {} } }
       const variables: Record<string, unknown> = {}
       for (const [name, template] of Object.entries(action.inputs ?? {})) variables[name] = resolveInputTemplate(template, scope)
       try {
@@ -230,7 +232,7 @@ export async function runButtonActions(
   const queued = runs.filter((r) => r.job_id).map((r) => r.job_id!.slice(0, 8))
   const shownScope = {
     values: { ...input.values, ...(input.context ?? {}) },
-    extras: { run_reference: queued.join(', '), submission_id: input.submissionId ? input.submissionId.slice(0, 8) : '', table_changes_summary: tableSummary },
+    extras: { run_reference: queued.join(', '), submission_id: input.submissionId ? input.submissionId.slice(0, 8) : '', table_changes_summary: tableSummary, target: input.targetContext ?? {} },
     targetReturnUrl: input.targetReturnUrl ?? null,
   }
   // The form's Submitted page when no redirect / close / button screen decides (never for task forms).
@@ -342,6 +344,23 @@ function presentSubmission(row: Record<string, any>): SubmitFormResult['submissi
 }
 
 /** The form, its definition and the pressed (submitting) button: forms.submit. */
+/**
+ * A "Save to …" action's expression mappings (source field → template) resolved on
+ * the server: {{field}} / {{form.x}} values, {{user.id|email|name}} (the submitter),
+ * {{today}}, or a fixed text. One whole placeholder keeps its raw value.
+ */
+async function saveTargetValues(ctx: ServiceContext, db: AnySupabaseClient, templates: Record<string, string>, values: Record<string, unknown>, target: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  let user: { id: string; email: string | null; name: string | null } | null = null
+  if (ctx.actorId) {
+    const { data } = await (db as any).from('users').select('id, email, display_name').eq('id', ctx.actorId).maybeSingle()
+    if (data) user = { id: String(data.id), email: data.email ?? null, name: data.display_name ?? data.email ?? null }
+  }
+  const scope = { values, extras: { user, target, today: new Date().toISOString().slice(0, 10), now: new Date().toISOString() } }
+  const out: Record<string, unknown> = {}
+  for (const [source, template] of Object.entries(templates)) out[source] = resolveInputTemplate(template, scope)
+  return out
+}
+
 async function loadSubmission(ctx: ServiceContext, formId: string, input: { button_id?: string | null }) {
   requirePerm(ctx, 'forms.submit')
   const db = await serviceRoleClient(ctx)
@@ -433,13 +452,31 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
   const targets = targetLayout ? await import('./form-targets') : null
   const targetForm = { id: formId, name: String(row.name), version: Number(row.version ?? 0) || null, fields: def.fields, layout: def.layout }
   const targetParams = isPlainObject(input.params) ? input.params : isPlainObject(input.values) ? (input.values as Record<string, unknown>)[FORM_PARAMS_KEY] : null
-  if (targets) targetForm.fields = (await targets.prepareFormTarget(ctx, targetForm, targetParams, 'submit')).fields
+  // The provider's current field properties, and the record's own values ({{target.<name>}}, read on the server).
+  let targetContext: Record<string, unknown> = {}
+  if (targets) { const prepared = await targets.prepareFormTarget(ctx, targetForm, targetParams, 'submit'); targetForm.fields = prepared.fields; targetContext = prepared.context ?? {} }
   const values = await checkSubmissionValues(ctx, db, formId, targetForm.fields, input.values, def.layout, input, button.id)
   // Wizard forms: the response window and "one response per person" (lib/services/form-wizard-policy).
   const { assertWizardResponsePolicy } = await import('./form-wizard-policy')
   await assertWizardResponsePolicy(db, ctx.tenantId, formId, anonymous ? null : ctx.actorId)
   // The record is written first: when the provider refuses (validation, a conflict) nothing is stored.
-  const written = targets ? await targets.submitFormTarget(ctx, targetForm, values, { params: targetParams, version: input.target_version ?? null }) : null
+  // Bindings with `writes: 'rules'` write only through the button's visible "Save to …" action, exactly as it says (older bindings: every submit writes).
+  const saveAction = button.actions?.find((a) => a.type === 'save_target') ?? null
+  const writes = Boolean(targetLayout) && (targetLayout?.writes === 'rules' ? Boolean(saveAction) : true)
+  let written: Awaited<ReturnType<NonNullable<typeof targets>['submitFormTarget']>> = null
+  let notWrittenReturnUrl: string | null = null
+  if (targets && writes) {
+    const extra = saveAction?.values ? await saveTargetValues(ctx, db, saveAction.values, values, targetContext) : undefined
+    written = await targets.submitFormTarget(ctx, targetForm, values, {
+      params: targetParams,
+      // "Overwrite" ignores the version read when the form opened (no conflict check).
+      version: saveAction?.conflict === 'overwrite' ? null : input.target_version ?? null,
+      ...(saveAction ? { action: { operation: saveAction.operation ?? null, conflict: saveAction.conflict ?? 'refuse', extra, options: saveAction.options } } : {}),
+    })
+  } else if (targets) {
+    // Nothing is written: "back to the record" still works (the provider names it when the record opens).
+    notWrittenReturnUrl = (await targets.prepareFormTarget(ctx, targetForm, targetParams, 'render').catch(() => null))?.state?.return_url ?? null
+  }
 
   const { data: inserted, error } = await (db as any).from('form_submissions').insert({
     tenant_id: ctx.tenantId,
@@ -478,7 +515,7 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     url_params: requestUrlParams(def.layout, input),
     layout: def.layout,
   })
-  const { runs, effects, table_changes } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id, fields: def.fields, layout: def.layout, context: shownContext(def.layout, input), submission: payload.submission as SubmissionMeta, targetReturnUrl: written?.returnUrl ?? null })
+  const { runs, effects, table_changes } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id, fields: def.fields, layout: def.layout, context: shownContext(def.layout, input), submission: payload.submission as SubmissionMeta, targetReturnUrl: written?.returnUrl ?? notWrittenReturnUrl, targetContext })
   if (written) {
     payload.data_target = { label: written.label, record: written.record }
     if (written.message) effects.messages = [{ text: written.message, tone: 'success' }, ...effects.messages]

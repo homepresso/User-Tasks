@@ -72,6 +72,9 @@ export const SCREENSHOT_NAMES = [
   'forms-data-table',
   'forms-data-table-designer',
   'forms-data-table-collections',
+  'forms-data-table-get-rows-from',
+  'forms-data-table-api',
+  'data-grid-api-choices',
   'forms-dynamic-properties',
   'forms-table-changes',
   'forms-table-changes-rule',
@@ -111,6 +114,16 @@ export const SCREENSHOT_NAMES = [
   'home-layout',
   'home-submissions',
   'home-view-flow',
+  'sharepoint-dashboard-overview',
+  'sharepoint-dashboard-runs',
+  'sharepoint-dashboard-metrics',
+  'sharepoint-dashboard-permissions',
+  'sharepoint-start-menu',
+  'sharepoint-start-page',
+  'sharepoint-my-tasks',
+  'sharepoint-form-embedded',
+  'sharepoint-designer',
+  'sharepoint-setup',
 ] as const
 
 export type ScreenshotName = (typeof SCREENSHOT_NAMES)[number]

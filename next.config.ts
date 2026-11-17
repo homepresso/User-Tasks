@@ -68,6 +68,10 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image (see Dockerfile). Opt-in
   // so `next start` and Vercel builds keep the default output.
   output: STANDALONE ? "standalone" : undefined,
+  // The registry front (app/v2) must see Docker's `/v2/` with its trailing
+  // slash: Next's own slash redirect is off and proxy.ts redirects every
+  // other `…/` path to its slash-less form, as Next would.
+  skipTrailingSlashRedirect: true,
   // Vercel's build machine (2 cores, 8 GB) runs out of memory when `next build`
   // also type-checks this codebase. CI and the release gates run
   // `tsc --noEmit` before every deploy, so the hosted build skips the

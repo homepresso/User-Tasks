@@ -1,5 +1,6 @@
 'use client'
 
+import { TeamOriginBadge } from '@/components/teams/team-origin-badge'
 import { useEffect, useState } from 'react'
 import { ChevronRight, ChevronDown, Users, Trash2, Pencil, Lock } from 'lucide-react'
 import { TeamMembers } from './team-members'
@@ -27,6 +28,8 @@ interface Team {
   /** Kept by a directory source of an extension (read-only name, description and members). */
   source?: string | null
   source_label?: string | null
+  /** Where the team comes from (lib/teams/origin.ts). */
+  origin?: string | null
 }
 
 interface TeamListProps {
@@ -95,6 +98,7 @@ export function TeamList({ teams, canManage }: TeamListProps) {
               : <Users className="size-3.5 shrink-0 text-fg-muted" aria-hidden />}
             <span className="truncate font-medium text-fg" title={team.name}>{team.name}</span>
             {team.kind && team.kind !== 'team' && <span className="shrink-0 rounded bg-muted px-1.5 text-2xs capitalize text-fg-muted">{team.kind}</span>}
+            <TeamOriginBadge origin={team.origin} />
             {team.source && (
               <span className="inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1.5 text-2xs text-fg-muted" title="Kept by a directory source: read-only here">
                 <Lock className="size-2.5" aria-hidden />{team.source_label ?? 'Directory'}

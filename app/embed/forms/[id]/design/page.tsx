@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { FormDesignerPage } from '@/components/forms/designer/form-designer-page'
+import { stepFromQuery } from '@/lib/forms/designer-step'
 import { EmbeddedDesignerShell } from '@/components/embed/designer-shell'
 import { embedDesignerGate, type Query } from '@/lib/embed/designer-route'
 
@@ -16,11 +17,13 @@ export const metadata: Metadata = { title: 'Form designer', robots: { index: fal
 
 export default async function EmbeddedFormDesigner({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
   const { id } = await params
-  const gate = await embedDesignerGate({ kind: 'form', id, embedPath: `/embed/forms/${id}/design`, appPath: `/automations/forms/${id}`, query: await searchParams, allOf: ['forms.view'] })
+  const query = await searchParams
+  const gate = await embedDesignerGate({ kind: 'form', id, embedPath: `/embed/forms/${id}/design`, appPath: `/automations/forms/${id}`, query, allOf: ['forms.view'] })
   if (gate.kind === 'node') return gate.node
   return (
     <EmbeddedDesignerShell {...gate.shell}>
-      <FormDesignerPage formId={gate.shell.id} />
+      {/* Launched from a User Task of an embedded workflow (?workflow=&step=): that step's workflow data. */}
+      <FormDesignerPage formId={gate.shell.id} step={stepFromQuery(query as Record<string, string | string[] | undefined>)} />
     </EmbeddedDesignerShell>
   )
 }

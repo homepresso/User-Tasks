@@ -86,11 +86,18 @@ export async function buildManifestExport(
     payload.workflow_activities = ((data ?? []) as any[]).map((row) => ({ ...row, sha256: createHash('sha256').update(String(row.source_code ?? '').trim()).digest('hex') }))
   }
   if (idsByType.data_table?.length) {
-    const { data } = await (supabase as any).from('custom_tables')
-      .select('id, name, description, columns')
+    // Grid views ride along (migration 20270116110000); a database without the column exports the tables without them.
+    let { data, error } = await (supabase as any).from('custom_tables')
+      .select('id, name, description, columns, views')
       .in('id', idsByType.data_table)
       .eq('tenant_id', tenantId)
-    payload.data_tables = data ?? []
+    if (error?.code === '42703') {
+      ;({ data } = await (supabase as any).from('custom_tables')
+        .select('id, name, description, columns')
+        .in('id', idsByType.data_table)
+        .eq('tenant_id', tenantId))
+    }
+    payload.data_tables = ((data ?? []) as any[]).map((t) => (Array.isArray(t.views) && !t.views.length ? (({ views: _views, ...rest }) => rest)(t) : t))
   }
   if (idsByType.retention_policy?.length) {
     const { data } = await (supabase as any).from('retention_policies')

@@ -15,7 +15,7 @@ import { GUIDES, SOLUTIONS_BY_USE_CASE } from '@/lib/marketing-nav'
 import { jsonLdHtml, pageMetadata, PRODUCT_DEFINITION, siteGraph } from '@/lib/seo/site'
 
 const BASE = 'https://usertasks.com'
-const NEW_GUIDES = ['sharepoint-workflow-migration', 'infopath-migration-guide', 'open-source-workflow-engine']
+const NEW_GUIDES = ['sharepoint-workflow-migration', 'infopath-migration-guide', 'open-source-workflow-engine', 'nintex-alternative']
 const words = (text: string) => text.trim().split(/\s+/).length
 
 type Rule = { userAgent?: string | string[]; allow?: string | string[]; disallow?: string | string[] }

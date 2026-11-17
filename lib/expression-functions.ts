@@ -45,6 +45,12 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'PROPER', category: 'text', description: 'Convert to title case', args: [{ name: 'text', type: 'string' }], example: 'PROPER("hello world") → "Hello World"', returnType: 'string' },
   { name: 'URL_ENCODE', category: 'text', description: 'URL-encode a string', args: [{ name: 'text', type: 'string' }], example: 'URL_ENCODE("a b") → "a%20b"', returnType: 'string' },
   { name: 'URL_DECODE', category: 'text', description: 'URL-decode a string', args: [{ name: 'text', type: 'string' }], example: 'URL_DECODE("a%20b") → "a b"', returnType: 'string' },
+  { name: 'SUBSTRING', category: 'text', description: 'Characters from a 0-based start position (the rest when length is omitted)', args: [{ name: 'text', type: 'string' }, { name: 'start', type: 'number' }, { name: 'length', type: 'number', optional: true }], example: 'SUBSTRING("Example", 2, 3) → "amp"', returnType: 'string' },
+  { name: 'INSERT', category: 'text', description: 'Insert text at a 0-based position', args: [{ name: 'text', type: 'string' }, { name: 'position', type: 'number' }, { name: 'value', type: 'string' }], example: 'INSERT("ABCD", 2, "-") → "AB-CD"', returnType: 'string' },
+  { name: 'REMOVE', category: 'text', description: 'Remove characters from a 0-based position (to the end when count is omitted)', args: [{ name: 'text', type: 'string' }, { name: 'start', type: 'number' }, { name: 'count', type: 'number', optional: true }], example: 'REMOVE("ABCDEF", 1, 2) → "ADEF"', returnType: 'string' },
+  { name: 'XML_ENCODE', category: 'text', description: 'Escape & < > " \' for XML / HTML', args: [{ name: 'text', type: 'string' }], example: 'XML_ENCODE("a<b") → "a&lt;b"', returnType: 'string' },
+  { name: 'XML_DECODE', category: 'text', description: 'Turn XML / HTML entities back into characters', args: [{ name: 'text', type: 'string' }], example: 'XML_DECODE("a&amp;b") → "a&b"', returnType: 'string' },
+  { name: 'HTML_TO_TEXT', category: 'text', description: 'Strip HTML tags (line breaks for <br> and block ends) and decode entities', args: [{ name: 'html', type: 'string' }], example: 'HTML_TO_TEXT("<p>Hi&nbsp;there</p>") → "Hi there"', returnType: 'string' },
 
   // ─── Date & Time ───
   { name: 'NOW', category: 'date', description: 'Current date and time', args: [], example: 'NOW() → "2024-03-15T14:30:00"', returnType: 'string' },
@@ -54,11 +60,14 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'ADD_MINUTES', category: 'date', description: 'Add minutes to a date/time', args: [{ name: 'date', type: 'string' }, { name: 'minutes', type: 'number' }], example: 'ADD_MINUTES(NOW(), 30)', returnType: 'string' },
   { name: 'SUBTRACT_DAYS', category: 'date', description: 'Subtract days from a date', args: [{ name: 'date', type: 'string' }, { name: 'days', type: 'number' }], example: 'SUBTRACT_DAYS("2024-01-08", 7) → "2024-01-01"', returnType: 'string' },
   { name: 'DAY_DIFF', category: 'date', description: 'Days between two dates', args: [{ name: 'date1', type: 'string' }, { name: 'date2', type: 'string' }], example: 'DAY_DIFF("2024-01-01", "2024-01-08") → 7', returnType: 'number' },
+  { name: 'DATE_DIFF', category: 'date', description: 'Whole units between two dates: minutes, hours, days (default), weeks, months or years (negative when the end is earlier)', args: [{ name: 'start', type: 'string' }, { name: 'end', type: 'string' }, { name: 'unit', type: 'string', optional: true }], example: 'DATE_DIFF("2024-01-01", "2024-03-15", "months") → 2', returnType: 'number' },
+  { name: 'ADD_MONTHS', category: 'date', description: 'Add months to a date (clamped to the month\'s last day)', args: [{ name: 'date', type: 'string' }, { name: 'months', type: 'number' }], example: 'ADD_MONTHS("2024-01-31", 1) → "2024-02-29"', returnType: 'string' },
+  { name: 'ADD_YEARS', category: 'date', description: 'Add years to a date', args: [{ name: 'date', type: 'string' }, { name: 'years', type: 'number' }], example: 'ADD_YEARS("2024-02-29", 1) → "2025-02-28"', returnType: 'string' },
   { name: 'DAY', category: 'date', description: 'Get day of month', args: [{ name: 'date', type: 'string' }], example: 'DAY("2024-03-15") → 15', returnType: 'number' },
   { name: 'MONTH', category: 'date', description: 'Get month number', args: [{ name: 'date', type: 'string' }], example: 'MONTH("2024-03-15") → 3', returnType: 'number' },
   { name: 'YEAR', category: 'date', description: 'Get year', args: [{ name: 'date', type: 'string' }], example: 'YEAR("2024-03-15") → 2024', returnType: 'number' },
   { name: 'WEEKDAY', category: 'date', description: 'Get day of week name', args: [{ name: 'date', type: 'string' }], example: 'WEEKDAY("2024-03-15") → "Friday"', returnType: 'string' },
-  { name: 'FORMAT_DATE', category: 'date', description: 'Format a date string', args: [{ name: 'date', type: 'string' }, { name: 'format', type: 'string' }], example: 'FORMAT_DATE(NOW(), "YYYY-MM-DD")', returnType: 'string' },
+  { name: 'FORMAT_DATE', category: 'date', description: 'Format a date string (tokens YYYY MM DD HH mm ss, month and weekday names MMMM MMM dddd ddd)', args: [{ name: 'date', type: 'string' }, { name: 'format', type: 'string' }], example: 'FORMAT_DATE(NOW(), "YYYY-MM-DD")', returnType: 'string' },
   { name: 'START_OF_MONTH', category: 'date', description: 'First day of the month', args: [{ name: 'date', type: 'string' }], example: 'START_OF_MONTH("2024-03-15") → "2024-03-01"', returnType: 'string' },
   { name: 'END_OF_MONTH', category: 'date', description: 'Last day of the month', args: [{ name: 'date', type: 'string' }], example: 'END_OF_MONTH("2024-03-15") → "2024-03-31"', returnType: 'string' },
   { name: 'TOMORROW', category: 'date', description: 'Tomorrow\'s date', args: [], example: 'TOMORROW() → "2024-03-16"', returnType: 'string' },
@@ -81,6 +90,9 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'MOD', category: 'math', description: 'Modulo (remainder)', args: [{ name: 'number', type: 'number' }, { name: 'divisor', type: 'number' }], example: 'MOD(10, 3) → 1', returnType: 'number' },
   { name: 'RANDOM', category: 'math', description: 'Random number 0 to max', args: [{ name: 'max', type: 'number' }], example: 'RANDOM(100) → 42', returnType: 'number' },
   { name: 'FORMAT_NUMBER', category: 'math', description: 'Format number with decimals', args: [{ name: 'number', type: 'number' }, { name: 'decimals', type: 'number' }], example: 'FORMAT_NUMBER(1234.5, 2) → "1234.50"', returnType: 'string' },
+  { name: 'FORMAT_CURRENCY', category: 'math', description: 'Format a number as money (ISO currency code, default USD; optional locale, default en-US)', args: [{ name: 'value', type: 'number' }, { name: 'currency', type: 'string', optional: true }, { name: 'locale', type: 'string', optional: true }], example: 'FORMAT_CURRENCY(1234.5) → "$1,234.50"', returnType: 'string' },
+  { name: 'CEILING', category: 'math', description: 'Round up to a number of decimals (default 0)', args: [{ name: 'value', type: 'number' }, { name: 'decimals', type: 'number', optional: true }], example: 'CEILING(2.341, 2) → 2.35', returnType: 'number' },
+  { name: 'FLOOR', category: 'math', description: 'Round down to a number of decimals (default 0)', args: [{ name: 'value', type: 'number' }, { name: 'decimals', type: 'number', optional: true }], example: 'FLOOR(2.349, 2) → 2.34', returnType: 'number' },
 
   // ─── Logical ───
   { name: 'IF', category: 'logical', description: 'If condition then A else B. The condition can be a comparison (status == "open"); "false", "0", "" and missing values are false', args: [{ name: 'condition', type: 'any' }, { name: 'then', type: 'any' }, { name: 'else', type: 'any' }], example: 'IF(amount > 1000, "CFO", "Manager") → "CFO"', returnType: 'any' },
@@ -109,6 +121,17 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'FIND_WHERE', category: 'list', description: 'First item whose field equals a value — optionally return one field of it', args: [{ name: 'list', type: 'array' }, { name: 'field', type: 'string' }, { name: 'value', type: 'any' }, { name: 'return_field', type: 'string', optional: true }], example: 'FIND_WHERE(customers, "id", 42, "email") → "ada@example.com"', returnType: 'any' },
   { name: 'FILTER_WHERE', category: 'list', description: 'All items whose field equals a value', args: [{ name: 'list', type: 'array' }, { name: 'field', type: 'string' }, { name: 'value', type: 'any' }], example: 'COUNT(FILTER_WHERE(orders, "status", "open"))', returnType: 'array' },
   { name: 'MAP', category: 'list', description: 'Work out an expression for every row (its columns by name; the row itself as row) — a list of the results, e.g. to SUM', args: [{ name: 'rows', type: 'array' }, { name: 'expression', type: 'string' }], example: 'SUM(MAP(control.lines.rows, "qty * price * (1 - discount)"))', returnType: 'array' },
+  { name: 'LIST_ADD', category: 'list', description: 'The list with a value added at the end', args: [{ name: 'list', type: 'array' }, { name: 'value', type: 'any' }], example: 'LIST_ADD(["a"], "b") → ["a","b"]', returnType: 'array' },
+  { name: 'LIST_INSERT', category: 'list', description: 'The list with a value inserted at a 1-based position', args: [{ name: 'list', type: 'array' }, { name: 'position', type: 'number' }, { name: 'value', type: 'any' }], example: 'LIST_INSERT(["a","c"], 2, "b") → ["a","b","c"]', returnType: 'array' },
+  { name: 'LIST_REMOVE_AT', category: 'list', description: 'The list without the item at a 1-based position', args: [{ name: 'list', type: 'array' }, { name: 'position', type: 'number' }], example: 'LIST_REMOVE_AT(["a","b","c"], 2) → ["a","c"]', returnType: 'array' },
+  { name: 'LIST_REMOVE', category: 'list', description: 'The list without every item equal to a value', args: [{ name: 'list', type: 'array' }, { name: 'value', type: 'any' }], example: 'LIST_REMOVE(["a","b","a"], "a") → ["b"]', returnType: 'array' },
+  { name: 'LIST_CONTAINS', category: 'list', description: 'Whether the list has an item equal to a value', args: [{ name: 'list', type: 'array' }, { name: 'value', type: 'any' }], example: 'LIST_CONTAINS(["a","b"], "b") → true', returnType: 'boolean' },
+  { name: 'LIST_INDEX_OF', category: 'list', description: '1-based position of the first item equal to a value (0 when absent)', args: [{ name: 'list', type: 'array' }, { name: 'value', type: 'any' }], example: 'LIST_INDEX_OF(["a","b"], "b") → 2', returnType: 'number' },
+  { name: 'LIST_JOIN', category: 'list', description: 'Join the items of a list with a separator', args: [{ name: 'list', type: 'array' }, { name: 'separator', type: 'string', optional: true }], example: 'LIST_JOIN(["a","b"], "; ") → "a; b"', returnType: 'string' },
+  { name: 'LIST_SORT', category: 'list', description: 'The list sorted (asc or desc; numbers numerically, text alphabetically)', args: [{ name: 'list', type: 'array' }, { name: 'direction', type: 'string', optional: true }], example: 'LIST_SORT([3,1,2], "desc") → [3,2,1]', returnType: 'array' },
+  { name: 'UNION', category: 'list', description: 'The items of both lists, without duplicates', args: [{ name: 'list1', type: 'array' }, { name: 'list2', type: 'array' }], example: 'UNION(["a","b"], ["b","c"]) → ["a","b","c"]', returnType: 'array' },
+  { name: 'INTERSECT', category: 'list', description: 'The items in both lists, without duplicates', args: [{ name: 'list1', type: 'array' }, { name: 'list2', type: 'array' }], example: 'INTERSECT(["a","b"], ["b","c"]) → ["b"]', returnType: 'array' },
+  { name: 'EXCEPT', category: 'list', description: 'The items of the first list that are not in the second', args: [{ name: 'list1', type: 'array' }, { name: 'list2', type: 'array' }], example: 'EXCEPT(["a","b"], ["b"]) → ["a"]', returnType: 'array' },
 
   // ─── Regex ───
   { name: 'REGEX_MATCH', category: 'regex', description: 'Test if text matches a pattern', args: [{ name: 'text', type: 'string' }, { name: 'pattern', type: 'string' }], example: 'REGEX_MATCH("abc123", "\\\\d+") → true', returnType: 'boolean' },
@@ -544,6 +567,44 @@ function toNums(args: any[]): number[] {
  * Evaluate a function expression (after variables have been resolved).
  * Supports nesting: LEFT(UPPER({{name}}), 1)
  */
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const NAMED_ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0' }
+
+function decodeEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
+    if (e[0] === '#') {
+      const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)
+      return Number.isFinite(code) && code > 0 && code < 0x110000 ? String.fromCodePoint(code) : m
+    }
+    return NAMED_ENTITIES[e.toLowerCase()] ?? m
+  })
+}
+
+/** A list argument: an array, a JSON array string, a ;-separated string, or one value. */
+function asList(v: unknown): unknown[] {
+  if (Array.isArray(v)) return v
+  if (v === null || v === undefined || v === '') return []
+  if (typeof v === 'string') {
+    const t = v.trim()
+    if (t.startsWith('[')) { try { const j = JSON.parse(t); if (Array.isArray(j)) return j } catch { /* not JSON */ } }
+    return t.includes(';') ? t.split(';').map((x) => x.trim()) : [v]
+  }
+  return [v]
+}
+
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true
+  if (a !== null && b !== null && typeof a === 'object' && typeof b === 'object') return JSON.stringify(a) === JSON.stringify(b)
+  return String(a ?? '') === String(b ?? '')
+}
+
+function dedupe(list: unknown[]): unknown[] {
+  const out: unknown[] = []
+  for (const x of list) if (!out.some((y) => sameValue(x, y))) out.push(x)
+  return out
+}
+
 export function evaluateFunction(expr: string, scope?: Record<string, any>): any {
   // Tolerate surrounding whitespace — "{{= ADD(x, 1) }}" arrives as " ADD(x, 1) ",
   // and an untrimmed expr fails the FUNC(...) match, leaking the literal text
@@ -583,6 +644,12 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
         const to = Array.from(String(args[2] ?? ''))
         return Array.from(String(args[0] ?? '')).map((ch) => { const i = from.indexOf(ch); return i < 0 ? ch : (to[i] ?? '') }).join('')
       }
+      case 'SUBSTRING': { const t = String(args[0] ?? ''); const st = Math.max(0, Number(args[1]) || 0); return args[2] === undefined || args[2] === '' ? t.slice(st) : t.slice(st, st + Math.max(0, Number(args[2]) || 0)) }
+      case 'INSERT': { const t = String(args[0] ?? ''); const at = Math.min(Math.max(0, Number(args[1]) || 0), t.length); return t.slice(0, at) + String(args[2] ?? '') + t.slice(at) }
+      case 'REMOVE': { const t = String(args[0] ?? ''); const st = Math.max(0, Number(args[1]) || 0); return args[2] === undefined || args[2] === '' ? t.slice(0, st) : t.slice(0, st) + t.slice(st + Math.max(0, Number(args[2]) || 0)) }
+      case 'XML_ENCODE': return String(args[0] ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c] as string)
+      case 'XML_DECODE': return decodeEntities(String(args[0] ?? ''))
+      case 'HTML_TO_TEXT': return decodeEntities(String(args[0] ?? '').replace(/<br\s*\/?>(?!\n)/gi, '\n').replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n').replace(/<[^>]*>/g, '')).replace(/\u00a0/g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
       case 'NORMALIZE_SPACE': return String(args[0] ?? '').replace(/\s+/g, ' ').trim()
       case 'STARTS_WITH': return String(args[0] ?? '').startsWith(String(args[1] ?? ''))
       case 'ENDS_WITH': return String(args[0] ?? '').endsWith(String(args[1] ?? ''))
@@ -619,6 +686,10 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
         // Use placeholder-based replacement to avoid token conflicts (e.g. MM vs mm)
         // Use UTC methods for consistency with date-only strings
         const tokens: [string, string][] = [
+          ['MMMM', MONTH_NAMES[d.getUTCMonth()]],
+          ['MMM', MONTH_NAMES[d.getUTCMonth()].slice(0, 3)],
+          ['dddd', WEEKDAY_NAMES[d.getUTCDay()]],
+          ['ddd', WEEKDAY_NAMES[d.getUTCDay()].slice(0, 3)],
           ['YYYY', String(d.getUTCFullYear())],
           ['MM', String(d.getUTCMonth() + 1).padStart(2, '0')],
           ['DD', String(d.getUTCDate()).padStart(2, '0')],
@@ -636,6 +707,28 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
         })
         placeholders.forEach(([ph, val]) => { fmt = fmt.replaceAll(ph, val) })
         return fmt
+      }
+      case 'DATE_DIFF': {
+        const a = toDate(args[0]), b = toDate(args[1])
+        if (!a || !b) return null
+        const unit = String(args[2] ?? 'days').toLowerCase()
+        const ms = b.getTime() - a.getTime()
+        if (/^month/.test(unit) || /^year/.test(unit)) {
+          let months = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + (b.getUTCMonth() - a.getUTCMonth())
+          const partial = ms >= 0 ? (b.getUTCDate() < a.getUTCDate() ? 1 : 0) : (b.getUTCDate() > a.getUTCDate() ? -1 : 0)
+          months -= partial
+          return /^year/.test(unit) ? Math.trunc(months / 12) : months
+        }
+        const per = /^min/.test(unit) ? 60_000 : /^hour/.test(unit) ? 3_600_000 : /^week/.test(unit) ? 604_800_000 : 86_400_000
+        return Math.trunc(ms / per)
+      }
+      case 'ADD_MONTHS': case 'ADD_YEARS': {
+        const d = toDate(args[0]); if (!d) return null
+        const add = (Number(args[1]) || 0) * (name === 'ADD_YEARS' ? 12 : 1)
+        const y = d.getUTCFullYear(), m = d.getUTCMonth() + add
+        const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
+        const out = new Date(Date.UTC(y, m, Math.min(d.getUTCDate(), last), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()))
+        return /T/.test(String(args[0])) ? out.toISOString() : out.toISOString().split('T')[0]
       }
       case 'START_OF_MONTH': { const d = toDate(args[0]); if (!d) return null; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1)).toISOString().split('T')[0] }
       case 'END_OF_MONTH': { const d = toDate(args[0]); if (!d) return null; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).toISOString().split('T')[0] }
@@ -684,6 +777,12 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
       case 'SQRT': return Math.sqrt(Number(args[0]) || 0)
       case 'MOD': return (Number(args[0]) || 0) % (Number(args[1]) || 1)
       case 'RANDOM': return Math.floor(Math.random() * (Number(args[0]) || 100))
+      case 'FORMAT_CURRENCY': {
+        const currency = String(args[1] || 'USD').toUpperCase()
+        try { return new Intl.NumberFormat(String(args[2] || 'en-US'), { style: 'currency', currency }).format(Number(args[0]) || 0) } catch { return `${currency} ${(Number(args[0]) || 0).toFixed(2)}` }
+      }
+      case 'CEILING': { const f = 10 ** (Number(args[1]) || 0); return Math.ceil((Number(args[0]) || 0) * f - 1e-9) / f }
+      case 'FLOOR': { const f = 10 ** (Number(args[1]) || 0); return Math.floor((Number(args[0]) || 0) * f + 1e-9) / f }
       case 'FORMAT_NUMBER': return (Number(args[0]) || 0).toFixed(Number(args[1]) ?? 2)
 
       // ─── Logical ───
@@ -718,6 +817,22 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
       case 'INDEX': return Array.isArray(args[0]) ? args[0][(Number(args[1]) || 1) - 1] : null
       case 'REVERSE': return Array.isArray(args[0]) ? [...args[0]].reverse() : []
       case 'UNIQUE': return Array.isArray(args[0]) ? [...new Set(args[0])] : []
+      case 'LIST_ADD': return [...asList(args[0]), args[1]]
+      case 'LIST_INSERT': { const l = [...asList(args[0])]; const at = Math.min(Math.max(1, Number(args[1]) || 1), l.length + 1); l.splice(at - 1, 0, args[2]); return l }
+      case 'LIST_REMOVE_AT': { const l = [...asList(args[0])]; const at = Number(args[1]) || 0; if (at >= 1 && at <= l.length) l.splice(at - 1, 1); return l }
+      case 'LIST_REMOVE': return asList(args[0]).filter((x) => !sameValue(x, args[1]))
+      case 'LIST_CONTAINS': return asList(args[0]).some((x) => sameValue(x, args[1]))
+      case 'LIST_INDEX_OF': return asList(args[0]).findIndex((x) => sameValue(x, args[1])) + 1
+      case 'LIST_JOIN': return asList(args[0]).map((x) => (x !== null && typeof x === 'object' ? JSON.stringify(x) : String(x ?? ''))).join(args[1] === undefined ? ', ' : String(args[1]))
+      case 'LIST_SORT': {
+        const l = [...asList(args[0])]
+        const numeric = l.every((x) => x !== '' && x !== null && Number.isFinite(Number(x)))
+        l.sort((a, b) => (numeric ? Number(a) - Number(b) : String(a ?? '').localeCompare(String(b ?? ''))))
+        return /^desc/i.test(String(args[1] ?? '')) ? l.reverse() : l
+      }
+      case 'UNION': return dedupe([...asList(args[0]), ...asList(args[1])])
+      case 'INTERSECT': { const b = asList(args[1]); return dedupe(asList(args[0]).filter((x) => b.some((y) => sameValue(x, y)))) }
+      case 'EXCEPT': { const b = asList(args[1]); return asList(args[0]).filter((x) => !b.some((y) => sameValue(x, y))) }
       case 'FLATTEN': return Array.isArray(args[0]) ? args[0].flat(Infinity) : []
       // PLUCK(list, "key") — extract one column from a list of row objects into an array.
       case 'PLUCK': return Array.isArray(args[0]) ? args[0].map((row: any) => readField(row, String(args[1] ?? ''))) : []

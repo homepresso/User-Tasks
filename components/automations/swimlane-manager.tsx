@@ -24,14 +24,16 @@ const PRESET_COLORS = [
 interface SwimlaneManagerProps {
   swimlanes: Swimlane[]
   onChange: (swimlanes: Swimlane[]) => void
+  /** New lanes start at or below this y (below the trigger lane). */
+  minY?: number
 }
 
-export function SwimlaneManager({ swimlanes, onChange }: SwimlaneManagerProps) {
+export function SwimlaneManager({ swimlanes, onChange, minY = 120 }: SwimlaneManagerProps) {
   const [expanded, setExpanded] = useState(true)
 
   function addSwimlane() {
-    // Calculate default y position below existing swimlanes and trigger zone
-    const maxBottom = swimlanes.reduce((max, l) => Math.max(max, l.y + l.height), 120)
+    // Calculate default y position below existing swimlanes and the trigger lane
+    const maxBottom = swimlanes.reduce((max, l) => Math.max(max, l.y + l.height), minY)
     const colorIdx = swimlanes.length % PRESET_COLORS.length
     const newLane: Swimlane = {
       id: crypto.randomUUID(),

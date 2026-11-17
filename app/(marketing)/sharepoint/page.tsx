@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { pageMetadata } from '@/lib/seo/site'
 import { SharePointPage } from '@/components/marketing/sharepoint-page'
 import { SHAREPOINT_PAGE } from '@/lib/marketing-pages'
+import { trialSigner } from '@/lib/licensing/trial-issuer'
 
 export const metadata: Metadata = pageMetadata({
   path: '/sharepoint',
@@ -12,5 +13,6 @@ export const metadata: Metadata = pageMetadata({
 })
 
 export default function Page() {
-  return <SharePointPage />
+  // The trial calls to action appear once the trial key is configured (else "Contact us").
+  return <SharePointPage trialsAvailable={trialSigner().available} />
 }

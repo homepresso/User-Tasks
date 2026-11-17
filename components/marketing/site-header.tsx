@@ -143,7 +143,7 @@ export function SiteHeader({ repoUrl, tone = "paper", announce = true }: { repoU
               <Play size={13} aria-hidden="true" className="fill-current" /> See a demo
             </Link>
             <Link href={START_HREF} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold ${night ? "mkt-btn-ember" : "mkt-btn-primary"}`}>
-              Start free <ArrowRight size={14} aria-hidden="true" />
+              Start free <span data-edition="cloud-beta" className="rounded-full bg-black/15 px-1.5 text-[10px] font-semibold uppercase tracking-wider">Beta</span> <ArrowRight size={14} aria-hidden="true" />
             </Link>
             <button
               type="button"

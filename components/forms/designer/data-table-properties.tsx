@@ -2,10 +2,15 @@
 
 import { LIST_PENDING_MODES, LIST_PENDING_MODE_LABELS } from '@/lib/forms/list-field'
 import { RowCommitKitPanel } from './list-properties'
-import { isWriteReference, referencePickerHint } from '@/lib/custom-references/types'
-import { useMemo, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Eye, EyeOff, Loader2, Play, Plus, X } from 'lucide-react'
+import { ResponseDragProvider } from '@/components/data-sources/data-chip'
+import { GetRowsFrom } from '@/components/data-sources/get-rows-from'
+import { ApiSourcePicker, type ApiTestResult } from '@/components/data-sources/api-source-picker'
+import { ColumnChecklist, RefreshOptions, useGeneratedColumns } from '@/components/data-sources/api-source-steps'
+import { ColumnBindingEditor } from '@/components/data-sources/column-binding-editor'
+import { addFieldColumn, applyRowsPath, setShownColumns } from '@/lib/data-sources/api-rows'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
 import { VariableInput } from '@/components/automations/variable-input'
 import { serverRead } from '@/lib/server-read'
@@ -18,9 +23,8 @@ import {
 import {
   BADGE_COLORS, CELL_FORMAT_KINDS, CELL_FORMAT_LABELS, defaultFormatKind, normalizeCellFormat, type BadgeColor, type CellFormat, type CellFormatKind,
 } from '@/lib/formatting/cell-format'
-import { referenceResponseSchema, type ResponseSchema } from '@/lib/response-schema'
+import { referenceResponseSchema } from '@/lib/response-schema'
 import { collectionItemFields, pagingHints, runtimeView, validateCollectionPath, type CollectionField } from '@/lib/response-collections'
-import { ResponseCollectionPicker } from '@/components/integrations/response-collection-picker'
 import type { DesignerField, DesignerState } from '@/lib/forms/designer-state'
 import { DISPLAY_FIELD_TYPES } from '@/lib/task-field-schema'
 import { FormattedCellView } from '../data-table-cell'
@@ -30,6 +34,20 @@ import { controlVariables, ruleVariableOptions } from '@/lib/forms/rule-variable
 import { DesignerVariableScope } from './designer-variable-scope'
 import { cn } from '@/lib/utils'
 import { designerInputClass as inputClass } from './designer-controls'
+import { ColumnControlFields } from '@/components/grid/column-editor'
+import { BOUND_CONTROLS, GRID_CONTROL_LABELS, gridColumnFromForm, hasCustomControl, type GridColumnDef } from '@/lib/grid/column-model'
+
+/** A grid-engine change (components/grid/column-editor.tsx) onto a form Data table column. */
+export function formColumnPatch(p: Partial<GridColumnDef>): Partial<DataTableColumn> {
+  const out: Partial<DataTableColumn> = {}
+  if ('control' in p && p.control) { out.control = p.control; out.control_options = undefined; if (!BOUND_CONTROLS.has(p.control)) out.binding = undefined }
+  if ('control_options' in p) out.control_options = p.control_options
+  if ('binding' in p) out.binding = p.binding
+  if ('width' in p) out.width = p.width
+  if ('required' in p) out.required = p.required
+  if ('editable' in p) out.read_only = p.editable === false ? true : undefined
+  return out
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- tables / references are read as the browser sees them */
 
@@ -224,7 +242,9 @@ export function GroupEditor({ group, depth, columns, placeholders, onChange, onR
 
 /* ── The panel ───────────────────────────────────────────────────────── */
 
-export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
+export function DataTableProperties({ state, field, onPatch, onAddCommitKit, onConvertToList }: {
+  /** "Type them in": make this control a List people type rows into. */
+  onConvertToList?: () => void
   /** "New row → fill → Save row" (lib/forms/designer-state.ts addRowCommitKit). */
   onAddCommitKit?: (options: { apply: 'change' | 'button'; save: 'stage' | 'save_now' }) => void
   state: DesignerState
@@ -235,6 +255,15 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
   const set = (patch: Partial<DataTableFieldConfig>, tag?: string) => onPatch({ ...config, ...patch }, tag)
   const [open, setOpen] = useState<string | null>(null)
   const previewValues = useDesignerPreviewValues()
+  const latest = useRef(config)
+  // A layout effect: fresh before any child's effect (the picker's auto-pick) reads it.
+  useLayoutEffect(() => { latest.current = config })
+  const bound = Boolean(config.table_id || config.reference_id || config.columns.length)
+  // Unbound: "Get rows from…" until a choice is made.
+  const [chosen, setChosen] = useState<'table' | 'reference' | null>(bound ? config.source : null)
+  const [test, setTest] = useState<ApiTestResult | null>(null)
+  const apiResultsPath = config.source === 'reference' && config.columns.length ? config.results_path ?? '' : config.results_path
+  const { rows: sampleRowList, generated } = useGeneratedColumns(test, apiResultsPath)
   const [preview, setPreview] = useState<{ status: 'idle' | 'loading' | 'done' | 'error'; rows?: DataTableRow[]; total?: number | null; error?: string; local?: string[] }>({ status: 'idle' })
 
   const { data: tables = [] } = useQuery({ queryKey: ['forms-table-columns'], enabled: config.source === 'table', staleTime: 60_000, queryFn: async () => (await serverRead('forms.tableColumns')).data ?? [] })
@@ -243,7 +272,6 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
     queryFn: async () => { const { data, error } = await serverRead('integrations.references'); if (error) throw new Error(error.message); return (data ?? []) as any[] },
   })
   const table = (tables as any[]).find((t) => t.id === config.table_id) as { id: string; name: string; columns: Array<{ key: string; label: string; type: string; options?: string[] }> } | undefined
-  const queryClient = useQueryClient()
   const reference = (references as any[]).find((r) => r.id === config.reference_id)
   const model = reference ? referenceResponseSchema(reference) : null
   const runtimeRoot = runtimeView(model).root
@@ -251,9 +279,6 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
   const apiFields = useMemo(() => collectionItemFields(rowsCheck.ok ? rowsCheck.itemSchema ?? null : null).filter((f) => !f.container), [rowsCheck])
   const totalHints = pagingHints(runtimeRoot).filter((h) => h.kind === 'total').map((h) => h.path)
   const refInputs: Array<{ name: string; required?: boolean; location?: string; default_value?: unknown }> = Array.isArray(reference?.inputs) ? reference.inputs : []
-  /** A loaded sample's model replaces the reference's in the designer's cache (it is saved on the server when allowed). */
-  const onSchemaLoaded = (loaded: ResponseSchema) => queryClient.setQueryData(['forms-lookup-references'], (rows: any[] | undefined) =>
-    (rows ?? []).map((r) => (r.id === config.reference_id ? { ...r, request_config: { ...(r.request_config ?? {}), response_schema: loaded } } : r)))
 
   // What can be added as a column: the table's columns, or the API item's fields.
   const available = useMemo(() => {
@@ -321,75 +346,81 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
 
   return (
     <DesignerVariableScope state={state} context={{ kind: 'table_query', exclude: field.key }}>
+    <ResponseDragProvider>
     <div className="space-y-3" data-testid="data-table-properties">
       <Section title="Rows from">
-        <Radio label="Source" value={config.source} options={[['table', 'Data table'], ['reference', 'API reference']]}
-          onChange={(src) => src !== config.source && onPatch({ source: src, mode: config.mode, columns: [], multiple: config.multiple, allow_add: config.allow_add, allow_delete: config.allow_delete, page_size: config.page_size })} />
-        {config.source === 'table' ? (
-          <div>
-            <Label>Data table</Label>
-            <AutocompleteSelect value={config.table_id ?? ''} placeholder="Choose a table…" options={(tables as any[]).map((t) => ({ value: t.id, label: t.name }))}
-              onChange={(v) => onPatch({ ...config, table_id: v || undefined, columns: [], base_filter: undefined, sort: undefined, key_column: undefined })} />
-          </div>
+        {!chosen ? (
+          <GetRowsFrom kind="rows" choices={onConvertToList ? ['table', 'reference', 'typed'] : ['table', 'reference']} onPick={(c) => {
+            if (c === 'typed') { onConvertToList?.(); return }
+            setChosen(c === 'reference' ? 'reference' : 'table')
+            onPatch({ source: c === 'reference' ? 'reference' : 'table', mode: config.mode, columns: [], multiple: config.multiple, allow_add: config.allow_add, allow_delete: config.allow_delete, page_size: config.page_size })
+          }} />
         ) : (
           <>
-            <div>
-              <Label>API reference / connector operation</Label>
-              <AutocompleteSelect value={config.reference_id ?? ''} placeholder="Choose a reference…"
-                options={(references as any[]).filter((r) => !isWriteReference(r) || r.id === config.reference_id).map((r) => ({ value: String(r.id), label: String(r.name), hint: referencePickerHint(r) }))}
-                onChange={(v) => { const ref = (references as any[]).find((r) => r.id === v); onPatch({ ...config, reference_id: v || undefined, integration_id: ref?.integration?.id ? String(ref.integration.id) : undefined, input_mappings: undefined, results_path: undefined, columns: [] }) }} />
-              {isWriteReference(reference) && (
-                <p className="mt-1 text-2xs text-danger" role="alert" data-testid="dt-write-reference">
-                  This reference writes data — a Data table only reads, so it is refused here. Use it in a &ldquo;For each changed row&rdquo; rule or a rule action instead.
-                </p>
-              )}
+            <div className="flex items-center gap-2 text-2xs" data-testid="dt-rows-from">
+              <span className="min-w-0 flex-1 truncate text-fg-muted">{config.source === 'table' ? 'A data table in UserTasks' : 'An API'}</span>
+              <button type="button" className="text-2xs font-medium text-primary-text" data-testid="dt-change-source"
+                onClick={() => { setChosen(null); setTest(null); onPatch({ source: 'table', mode: config.mode, columns: [] }) }}>Change</button>
             </div>
-            {reference && (
+            {config.source === 'table' ? (
               <>
                 <div>
-                  <Label>Request parameters</Label>
-                  {refInputs.length === 0 && <Hint>This reference takes no inputs.</Hint>}
-                  {refInputs.map((input) => (
-                    <div key={input.name}>
-                      <p className="font-mono text-2xs">{input.name}{input.required ? ' *' : ''}{input.location ? <span className="text-fg-muted"> · {input.location}</span> : null}</p>
-                      <VariableInput value={config.input_mappings?.[input.name] ?? ''} extraVariables={tablePlaceholders} placeholder="{{search}}, {{page}}, {{sort}}, {{filter.<col>}}, {{form.<field>}}…"
-                        onChange={(v) => { const m = { ...(config.input_mappings ?? {}) }; if (v) m[input.name] = v; else delete m[input.name]; set({ input_mappings: Object.keys(m).length ? m : undefined }, `dt-in-${input.name}`) }} />
-                    </div>
-                  ))}
-                  <Hint>
-                    Passed to the API: {[remote.search && 'search', remote.sort && 'sort', remote.page && 'paging', remote.filters.length && `filters on ${remote.filters.join(', ')}`].filter(Boolean).join(', ') || 'nothing'}.
-                    {' '}Everything else (and the base filter) is applied by the server to the rows the API returns — at most {DATA_TABLE_LIMITS.referenceRows}{remote.page ? ' per page' : ''}.
-                  </Hint>
+                  <Label>Data table</Label>
+                  <AutocompleteSelect value={config.table_id ?? ''} placeholder="Choose a table…" options={(tables as any[]).map((t) => ({ value: t.id, label: t.name }))}
+                    onChange={(v) => {
+                      const next = (tables as any[]).find((t) => t.id === v) as typeof table
+                      // Its first columns (up to 6) start shown; change them under Column settings.
+                      const cols = (next?.columns ?? []).filter((c) => c.key !== 'id' && c.key !== 'date_created').slice(0, 6).map((c) => ({ key: c.key, label: c.label || c.key, type: FROM_TABLE_TYPE[c.type] ?? 'text' as DataTableColumnType, sortable: true, ...(c.type !== 'boolean' ? { filterable: true } : {}), ...(c.type === 'select' && c.options?.length ? { options: c.options } : {}) }))
+                      onPatch({ ...config, table_id: v || undefined, columns: cols, base_filter: undefined, sort: undefined, key_column: undefined })
+                    }} />
                 </div>
-                <ResponseCollectionPicker
-                  key={config.reference_id}
-                  schema={model}
-                  value={config.results_path}
-                  // A designer's pick starts the columns afresh; the automatic one keeps any added by hand.
-                  onChange={(path, { auto }) => set({ results_path: path || undefined, ...(auto ? {} : { columns: [] }) })}
-                  referenceId={config.reference_id}
-                  inputs={refInputs}
-                  mappings={config.input_mappings}
-                  onSchemaLoaded={onSchemaLoaded}
-                  fields={{ selected: config.columns.map((c) => c.key), onAdd: (fs) => addColumns(fs.map((f) => f.path)) }}
-                  label="Rows list"
-                  testId="dt-rows-list"
-                />
-                {remote.page && (
-                  <div>
-                    <Label>Total count path (optional)</Label>
-                    <input className={`${inputClass} font-mono`} value={config.total_path ?? ''} placeholder={totalHints[0] ? `e.g. ${totalHints[0]}` : 'e.g. meta.total'} list={totalHints.length ? `dt-total-${field._id}` : undefined}
-                      onChange={(e) => set({ total_path: e.target.value || undefined }, 'dt-total')} />
-                    {totalHints.length > 0 && <datalist id={`dt-total-${field._id}`}>{totalHints.map((h) => <option key={h} value={h} />)}</datalist>}
-                  </div>
-                )}
+                {config.table_id && <RefreshOptions config={config} onChange={(patch) => set(patch)} n={2} />}
               </>
+            ) : (
+              <ApiSourcePicker
+                mode="rows"
+                referenceId={config.reference_id}
+                resultsPath={apiResultsPath}
+                mappings={config.input_mappings}
+                placeholders={tablePlaceholders}
+                suggestFrom={{ fields: otherFields.map((f) => ({ key: f.key, label: f.label })), prefix: 'form' }}
+                onTested={setTest}
+                onReference={(ref) => onPatch({ ...latest.current, source: 'reference', reference_id: ref?.id, integration_id: ref?.integration_id, input_mappings: ref?.mappings, results_path: undefined, total_path: undefined, columns: [], key_column: undefined, base_filter: undefined, sort: undefined })}
+                onMappings={(m, tag) => onPatch({ ...latest.current, input_mappings: m }, tag)}
+                onBadgeAction={(action, badge, t) => {
+                  const cur = latest.current
+                  if (action === 'use_rows') onPatch(applyRowsPath(cur, badge.path, t.root, t.sample))
+                  else if (action === 'add_column' && badge.rowPath) onPatch(addFieldColumn(cur, badge.rowPath, t.sample))
+                  else if (action === 'add_columns' && badge.rowPath) {
+                    const prefix = `${badge.rowPath}.`
+                    let next = cur
+                    for (const g of generated.filter((x) => x.key.startsWith(prefix))) next = addFieldColumn(next, g.key, t.sample)
+                    onPatch(next)
+                  } else if (action === 'use_total') onPatch({ ...cur, total_path: badge.path })
+                }}>
+                {() => config.reference_id && config.columns.length > 0 ? (
+                  <>
+                    <ColumnChecklist config={config} generated={generated} rows={sampleRowList}
+                      onToggle={(key, show) => onPatch(setShownColumns(latest.current, generated, show ? [...latest.current.columns.filter((c) => !c.hidden).map((c) => c.key), key] : latest.current.columns.filter((c) => !c.hidden && c.key !== key).map((c) => c.key)))}
+                      onDropField={(rowPath) => onPatch(addFieldColumn(latest.current, rowPath, test?.sample))} />
+                    <RefreshOptions config={config} inputs={refInputs} onChange={(patch) => onPatch({ ...latest.current, ...patch })} />
+                    {remote.page && (
+                      <div className="pl-5">
+                        <Label>Total row count (optional)</Label>
+                        <input className={`${inputClass} font-mono`} value={config.total_path ?? ''} placeholder={totalHints[0] ? `e.g. ${totalHints[0]}` : 'Drag a number badge here, e.g. meta.total'} list={totalHints.length ? `dt-total-${field._id}` : undefined}
+                          onChange={(e) => set({ total_path: e.target.value || undefined }, 'dt-total')} />
+                        {totalHints.length > 0 && <datalist id={`dt-total-${field._id}`}>{totalHints.map((h) => <option key={h} value={h} />)}</datalist>}
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </ApiSourcePicker>
             )}
           </>
         )}
       </Section>
 
-      <Section title="Columns">
+      <Section title="Column settings">
         <div className="space-y-1" data-testid="dt-columns">
           {config.columns.map((col, i) => {
             const isOpen = open === col.key
@@ -397,7 +428,7 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
               <div key={col.key} className="rounded border border-border" data-dt-column={col.key}>
                 <div className="flex items-center gap-1 px-1.5 py-1 text-2xs">
                   <button type="button" className="rounded p-0.5" aria-expanded={isOpen} aria-label={`${isOpen ? 'Collapse' : 'Edit'} ${col.label}`} onClick={() => setOpen(isOpen ? null : col.key)}>{isOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}</button>
-                  <span className={`flex-1 truncate ${col.hidden ? 'opacity-50' : ''}`}>{col.label}<span className="font-mono text-fg-muted"> · {col.key}</span></span>
+                  <span className={`flex-1 truncate ${col.hidden ? 'opacity-50' : ''}`}>{col.label}<span className="font-mono text-fg-muted"> · {col.key}</span>{col.control && <span className="text-fg-muted"> · {GRID_CONTROL_LABELS[col.control]}</span>}{col.read_only && config.mode === 'edit' && <span className="text-fg-muted"> · read-only</span>}</span>
                   <button type="button" className="rounded p-0.5" aria-pressed={!col.hidden} aria-label={col.hidden ? `Show ${col.label}` : `Hide ${col.label}`} onClick={() => patchColumn(i, { hidden: col.hidden ? undefined : true })}>{col.hidden ? <EyeOff size={11} /> : <Eye size={11} />}</button>
                   <button type="button" className="rounded p-0.5 disabled:opacity-30" disabled={i === 0} aria-label={`Move ${col.label} up`} onClick={() => move(i, -1)}><ArrowUp size={11} /></button>
                   <button type="button" className="rounded p-0.5 disabled:opacity-30" disabled={i === config.columns.length - 1} aria-label={`Move ${col.label} down`} onClick={() => move(i, 1)}><ArrowDown size={11} /></button>
@@ -428,6 +459,16 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
                         <div><Label>Maximum</Label><input type="number" className={inputClass} value={col.max ?? ''} onChange={(e) => patchColumn(i, { max: e.target.value === '' ? undefined : Number(e.target.value) }, `dt-col-max-${i}`)} /></div>
                       </div>
                     )}
+                    <div className="rounded border border-dashed border-border p-1.5" data-testid="dt-col-control">
+                      <p className="mb-1 text-2xs font-semibold text-fg">Cell control</p>
+                      <ColumnControlFields idBase={`dt-${field._id}-${i}`} col={{ ...gridColumnFromForm(col), control: col.control ?? gridColumnFromForm(col).control }} typeHint={col.type}
+                        hideEditable hideNativeOptions={!hasCustomControl(col)}
+                        onChange={(p, tag) => patchColumn(i, formColumnPatch(p), tag)}
+                        renderBinding={(binding, onBinding) => (
+                          <ColumnBindingEditor binding={binding} onBinding={onBinding} state={state} rowColumns={config.columns.filter((c) => c.key !== col.key).map((c) => ({ key: c.key, label: c.label }))}
+                            fieldId={`${field._id}-${col.key}`} fieldKey={`${field.key}.${col.key}`} label={col.label} />
+                        )} />
+                    </div>
                     <FormatEditor col={col} onChange={(format, tag) => patchColumn(i, { format }, tag ? `${tag}-${i}` : undefined)} />
                   </div>
                 )}
@@ -438,7 +479,7 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
             <AutocompleteSelect value="" placeholder="+ Add a column (search)…" options={notAdded.map((a) => ({ value: a.key, label: a.label, hint: a.type }))} onChange={(v) => v && addColumn(v)} />
           )}
           {config.source !== 'table' && config.reference_id && config.columns.length < DATA_TABLE_LIMITS.columns && <ManualColumn onAdd={addColumn} />}
-          {!available.length && <Hint>{config.source === 'table' ? 'Choose a data table first.' : 'Choose a reference and its rows list, or type a field path (e.g. name, address.city) to add a column by hand.'}</Hint>}
+          {!available.length && <Hint>{config.source === 'table' ? 'Choose a data table first.' : 'Test the API above and tick the columns to show; a field the test did not return can be added by its name below.'}</Hint>}
           <Hint>Only these columns are fetched and sent to the browser. Hidden columns are fetched (for the value and rules) but not shown.</Hint>
         </div>
         <div>
@@ -450,6 +491,13 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
 
       <Section title="What people can do">
         <Radio label="Mode" value={config.mode} options={DATA_TABLE_MODES.map((m) => [m, DATA_TABLE_MODE_LABELS[m]] as [typeof m, string])} onChange={(m) => onPatch({ ...config, mode: m, multiple: undefined, allow_add: undefined, allow_delete: undefined, max_rows: undefined })} />
+        <Toggle checked={config.mode === 'edit'} testId="dt-inline-edit"
+          onChange={(v) => onPatch({ ...config, mode: v ? 'edit' : 'display', multiple: undefined, allow_add: undefined, allow_delete: undefined, max_rows: undefined })}>
+          Allow inline editing (all rows)
+        </Toggle>
+        {config.mode === 'edit' && (
+          <Hint>Every row edits in place (Enter / F2 or a double click; Tab and Enter move on, Escape cancels). Columns marked read-only, hidden or calculated can&apos;t be changed — the server keeps their stored values.</Hint>
+        )}
         {config.mode === 'select' && <Toggle checked={config.multiple === true} onChange={(v) => set({ multiple: v || undefined })}>Several rows</Toggle>}
         {config.mode === 'edit' && (
           <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -457,6 +505,12 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
             <Toggle checked={config.allow_delete === true} onChange={(v) => set({ allow_delete: v || undefined })}>Delete rows</Toggle>
             <Toggle checked={config.row_commit_controls === true} onChange={(v) => set({ row_commit_controls: v || undefined })}>✓ / ✕ on pending rows</Toggle>
           </div>
+        )}
+        {config.mode === 'edit' && (
+          <>
+            <Toggle checked={config.open_in_edit_mode === true} testId="dt-open-in-edit-mode" onChange={(v) => set({ open_in_edit_mode: v || undefined })}>Always open in edit mode (all rows editable)</Toggle>
+            <Hint>People can also press <strong>Edit all</strong> (or Shift+E) to make every row editable at once: type, paste a block from a spreadsheet, fill down, undo. The changes stay part of the form&apos;s value until it is submitted.</Hint>
+          </>
         )}
         {config.mode === 'edit' && config.allow_add && onAddCommitKit && <RowCommitKitPanel table onAdd={onAddCommitKit} />}
         {config.mode === 'edit' && (
@@ -520,7 +574,7 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
 
       <Section title="Live preview">
         <button type="button" onClick={runPreview} disabled={preview.status === 'loading' || !config.columns.length} className="flex items-center gap-1 text-2xs font-medium disabled:opacity-50 text-primary-text" data-testid="dt-run-preview">
-          {preview.status === 'loading' ? <Loader2 size={11} className="animate-spin" aria-hidden /> : <Play size={11} aria-hidden />} Run the query
+          {preview.status === 'loading' ? <Loader2 size={11} className="animate-spin" aria-hidden /> : <Play size={11} aria-hidden />} Show the rows as people will see them
         </button>
         <div aria-live="polite" data-testid="dt-preview-result">
           {preview.status === 'error' && <p role="alert" className="text-2xs text-danger">{preview.error}</p>}
@@ -545,6 +599,7 @@ export function DataTableProperties({ state, field, onPatch, onAddCommitKit }: {
         <Hint>Runs the real query on the server with your access, using the live preview&apos;s form values for {'{{form.…}}'}.</Hint>
       </Section>
     </div>
+    </ResponseDragProvider>
     </DesignerVariableScope>
   )
 }

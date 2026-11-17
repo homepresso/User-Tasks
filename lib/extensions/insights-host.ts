@@ -179,7 +179,30 @@ async function ownRun(host: InsightsHost, runId: string, types: string[]): Promi
   return { id: String(run.id), workflow_id: String(run.workflow_id), status: String(run.status) }
 }
 
-const NONE = (visibility: ExtensionRunHistory['visibility']): ExtensionRunHistory => ({ runs: [], total: 0, queued: 0, hasMore: false, visibility, assignees: false })
+const NONE = (visibility: ExtensionRunHistory['visibility']): ExtensionRunHistory => ({ runs: [], total: 0, totalCapped: false, nextCursor: null, queued: 0, hasMore: false, visibility, assignees: false })
+
+const STATS_TTL_MS = 30_000
+const statsCache = new Map<string, { at: number; value: ExtensionRunStats }>()
+/** Tests: forget cached statistics. */
+export function clearStatsCache(): void { statsCache.clear() }
+
+/** Totals above this show as "10,000+" (a head-only count; no rows read). */
+export const COUNT_CAP = 10_000
+const RUN_COLUMNS = 'id, workflow_id, status, started_at, completed_at, paused_node_id, version_id, title, started_by, error'
+
+/** Keyset cursor (started_at, id) as an opaque URL-safe string. */
+export function encodeCursor(startedAt: string, id: string): string {
+  return Buffer.from(JSON.stringify({ t: startedAt, id }), 'utf8').toString('base64url')
+}
+export function decodeCursor(raw: unknown): { t: string; id: string } | null {
+  if (typeof raw !== 'string' || !raw || raw.length > 200) return null
+  try {
+    const v = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'))
+    return typeof v?.t === 'string' && !Number.isNaN(Date.parse(v.t)) && UUID_RE.test(String(v.id)) ? { t: v.t, id: String(v.id) } : null
+  } catch {
+    return null
+  }
+}
 
 function nodeLabel(nodes: unknown, id: string | null): string | null {
   if (!id || !Array.isArray(nodes)) return null
@@ -253,7 +276,7 @@ export function hostInsightsWorkflows(host: InsightsHost) {
       if (search) {
         const like = `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`
         const [byTitle, people] = await Promise.all([
-          host.serviceDb.from('workflow_queue').select('result').eq('tenant_id', tenantId).in('workflow_id', wfIds).ilike('trigger_data->>title', like).order('created_at', { ascending: false }).limit(2000),
+          host.serviceDb.from('workflow_queue').select('result').eq('tenant_id', tenantId).in('workflow_id', wfIds).like('trigger_type', 'ext.%').ilike('trigger_data->>title', like).order('created_at', { ascending: false }).limit(2000),
           host.serviceDb.from('users').select('id, display_name, email').or(`display_name.ilike.${like.replace(/[,()]/g, ' ')},email.ilike.${like.replace(/[,()]/g, ' ')}`).limit(200),
         ])
         const ids = new Set<string>(((byTitle.data ?? []) as any[]).map((j) => j.result?.run_id).filter((x: unknown): x is string => typeof x === 'string' && UUID_RE.test(x)))
@@ -270,7 +293,7 @@ export function hostInsightsWorkflows(host: InsightsHost) {
       // A trigger-data match: the runs of matching jobs (bounded).
       let matchRunIds: string[] | null = null
       if (match.length) {
-        let q = host.serviceDb.from('workflow_queue').select('id, result').eq('tenant_id', tenantId).in('workflow_id', wfIds)
+        let q = host.serviceDb.from('workflow_queue').select('id, result').eq('tenant_id', tenantId).in('workflow_id', wfIds).like('trigger_type', 'ext.%')
         for (const [k, v] of match) q = q.filter(`trigger_data->>${k}`, 'eq', String(v))
         const { data, error } = await q.order('created_at', { ascending: false }).limit(2000)
         if (error) throw new Error(`workflows.history failed: ${error.message}`)
@@ -280,54 +303,77 @@ export function hostInsightsWorkflows(host: InsightsHost) {
       let runs: any[] = []
       let total = 0
       const idFilter = matchRunIds && searchIds ? matchRunIds.filter((id) => searchIds!.includes(id)) : matchRunIds ?? searchIds
+      let nextCursor: string | null = null
+      let totalCapped = false
+      const cursor = sort === 'started' ? decodeCursor(options.cursor) : null
       if (!onlyQueued && (!idFilter || idFilter.length)) {
-        let q = host.serviceDb.from('workflow_runs')
-          .select('id, workflow_id, status, started_at, completed_at, paused_node_id, version_id, title, started_by, error', { count: 'exact' })
-          .eq('tenant_id', tenantId)
-        if (visibility === 'all' || full.length === wfIds.length) q = q.in('workflow_id', wfIds)
-        else {
-          q = q.in('workflow_id', wfIds)
-          const parts = [...(full.length ? [`workflow_id.in.(${full.join(',')})`] : []), ...(partialRuns.length ? [`id.in.(${partialRuns.join(',')})`] : [])]
-          q = q.or(parts.join(','))
+        // The same filters for the page and for the (capped) count.
+        const build = (cols: string, head = false) => {
+          let q = host.serviceDb.from('workflow_runs').select(cols, head ? { count: 'exact', head: true } : undefined).eq('tenant_id', tenantId).in('workflow_id', wfIds)
+          if (!(visibility === 'all' || full.length === wfIds.length)) {
+            const parts = [...(full.length ? [`workflow_id.in.(${full.join(',')})`] : []), ...(partialRuns.length ? [`id.in.(${partialRuns.join(',')})`] : [])]
+            q = q.or(parts.join(','))
+          }
+          if (statuses.length) {
+            const wantsCancelled = statuses.includes('cancelled')
+            const wantsFailed = statuses.includes('failed')
+            const plain = statuses.filter((x) => x !== 'failed')
+            if (wantsFailed && wantsCancelled) q = q.in('status', [...plain, 'failed'])
+            else if (wantsFailed) q = q.or(`status.in.(${plain.join(',') || 'none'}),and(status.eq.failed,error.neq."${MANUAL_CANCEL_ERROR}"),and(status.eq.failed,error.is.null)`)
+            else if (wantsCancelled) q = q.or(`status.in.(${plain.join(',')}),and(status.eq.failed,error.eq."${MANUAL_CANCEL_ERROR}")`)
+            else q = q.in('status', statuses)
+          }
+          if (idFilter) q = q.in('id', idFilter.slice(0, 2000))
+          if (startedBy) q = q.eq('started_by', startedBy)
+          if (since) q = q.gte('started_at', since)
+          if (until) q = q.lt('started_at', until)
+          return q
         }
-        if (statuses.length) {
-          const wantsCancelled = statuses.includes('cancelled')
-          const wantsFailed = statuses.includes('failed')
-          const plain = statuses.filter((x) => x !== 'failed')
-          if (wantsFailed && wantsCancelled) q = q.in('status', [...plain, 'failed'])
-          else if (wantsFailed) q = q.or(`status.in.(${plain.join(',') || 'none'}),and(status.eq.failed,error.neq."${MANUAL_CANCEL_ERROR}"),and(status.eq.failed,error.is.null)`)
-          else if (wantsCancelled) q = q.or(`status.in.(${plain.join(',')}),and(status.eq.failed,error.eq."${MANUAL_CANCEL_ERROR}")`)
-          else q = q.in('status', statuses)
+        // Manual cancels as cancelled, the status filter and the scope again in memory (also where the client ignores `or`).
+        const keep = (rows: any[]) => {
+          for (const r of rows) if (isManualCancel(r)) r.status = 'cancelled'
+          let out = statuses.length ? rows.filter((r) => statuses.includes(String(r.status))) : rows
+          if (visibility === 'involved') out = out.filter((r) => full.includes(String(r.workflow_id)) || partialRuns.includes(String(r.id)))
+          return out
         }
-        if (idFilter) q = q.in('id', idFilter.slice(0, 2000))
-        if (startedBy) q = q.eq('started_by', startedBy)
-        if (since) q = q.gte('started_at', since)
-        if (until) q = q.lt('started_at', until)
         let res: any
         if (sort === 'duration') {
           // No duration column: the newest 1 000 matching runs, sorted here, then paged.
-          res = await q.order('started_at', { ascending: false }).limit(1000)
+          res = await build(RUN_COLUMNS).order('started_at', { ascending: false }).limit(1000)
           const now = Date.now()
           const ms = (r: any) => (r.started_at ? (['running', 'waiting'].includes(runGroup(String(r.status))) || !r.completed_at ? now : Date.parse(r.completed_at)) - Date.parse(r.started_at) : -1)
           if (!res.error) res = { ...res, data: [...(res.data ?? [])].sort((a: any, b: any) => ms(b) - ms(a)).slice(offset, offset + limit) }
+        } else if (cursor) {
+          // Keyset: the runs after the cursor (started_at, id), newest first — no OFFSET on deep pages.
+          res = await build(RUN_COLUMNS).lte('started_at', cursor.t).or(`started_at.lt.${cursor.t},and(started_at.eq.${cursor.t},id.lt.${cursor.id})`)
+            .order('started_at', { ascending: false }).order('id', { ascending: false }).limit(limit)
+          if (!res.error) {
+            const raw = (res.data ?? []) as any[]
+            const after = raw.filter((r: any) => Date.parse(r.started_at) < Date.parse(cursor.t) || (Date.parse(r.started_at) === Date.parse(cursor.t) && String(r.id) < cursor.id))
+            // A full raw page means there may be more (the cursor moves to the last run shown, or past the raw page).
+            res = { ...res, data: after, full: raw.length === limit, lastRaw: raw[raw.length - 1] }
+          }
         } else {
+          let q = build(RUN_COLUMNS)
           if (sort === 'status') q = q.order('status', { ascending: true })
-          res = await q.order('started_at', { ascending: false }).range(offset, offset + limit - 1)
+          res = await q.order('started_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + limit - 1)
         }
-        const { data, error, count } = res
-        if (error) throw new Error(`workflows.history failed: ${error.message}`)
-        runs = (data ?? []) as any[]
-        // Manual cancels as cancelled, and the status filter again in memory (also where the client ignores `or`).
-        for (const r of runs) if (isManualCancel(r)) r.status = 'cancelled'
-        if (statuses.length) runs = runs.filter((r) => statuses.includes(String(r.status)))
-        // Belt and braces: the scope again in memory (also where the client ignores `or`).
-        if (visibility === 'involved') runs = runs.filter((r) => full.includes(String(r.workflow_id)) || partialRuns.includes(String(r.id)))
-        total = Number(count ?? runs.length)
+        if (res.error) throw new Error(`workflows.history failed: ${res.error.message}`)
+        const page = (res.data ?? []) as any[]
+        runs = keep(page)
+        const fullPage = cursor ? Boolean(res.full) : page.length === limit
+        const lastRow = page[page.length - 1] ?? res.lastRaw
+        if (sort === 'started' && fullPage && lastRow) nextCursor = encodeCursor(lastRow.started_at, String(lastRow.id))
+        // Count: head only (no rows; the data API returns at most 1 000 rows, so reading ids can't count), shown capped ("10,000+").
+        const counted = await build('id', true)
+        const exact = Number(counted?.count ?? runs.length)
+        totalCapped = exact > COUNT_CAP
+        total = Math.min(exact, COUNT_CAP)
       }
 
       // Queued jobs (no run yet) on the first page.
       let queued: any[] = []
-      if (offset === 0 && wantQueued && !startedBy && !search) {
+      if (offset === 0 && !cursor && wantQueued && !startedBy && !search) {
         const { data } = await host.serviceDb.from('workflow_queue').select('id, workflow_id, status, trigger_type, trigger_data, result, created_at, error')
           .eq('tenant_id', tenantId).in('workflow_id', wfIds).in('status', ['pending', 'processing']).order('created_at', { ascending: false }).limit(50)
         queued = ((data ?? []) as any[]).filter((j) => !RESUME_TRIGGERS.has(String(j.trigger_type)) && !j.result?.run_id)
@@ -405,7 +451,7 @@ export function hostInsightsWorkflows(host: InsightsHost) {
           data: picked(job), tasks, error: r.error ? String(r.error).slice(0, 300) : null,
         })
       }
-      return { runs: items, total, queued: queued.length, hasMore: offset + runs.length < total, visibility, assignees }
+      return { runs: items, total, totalCapped, nextCursor, queued: queued.length, hasMore: cursor ? nextCursor !== null : offset + runs.length < total || (totalCapped && nextCursor !== null), visibility, assignees }
     },
 
     async waiting(options: { trigger?: string; workflowIds?: string[] } = {}): Promise<ExtensionWaiting> {
@@ -500,6 +546,18 @@ export function hostInsightsWorkflows(host: InsightsHost) {
     },
 
     async stats(options: { trigger?: string; workflowIds?: string[]; days?: number } = {}): Promise<ExtensionRunStats> {
+      if (!host.tenantId) throw new Error('workflows.stats needs a workspace')
+      // Pages that open often (e.g. from another system's button) share a 30-second cache per workspace, workflows and period.
+      const cacheKey = `${host.extensionId}|${host.tenantId}|${has(host, 'workflows.view')}|${options.trigger ?? ''}|${[...(options.workflowIds ?? ['*'])].sort().join(',')}|${period(options.days).days}`
+      const hit = statsCache.get(cacheKey)
+      if (hit && hit.at > Date.now() - STATS_TTL_MS) return hit.value
+      const value = await this.statsUncached(options)
+      statsCache.set(cacheKey, { at: Date.now(), value })
+      if (statsCache.size > 500) statsCache.delete(statsCache.keys().next().value as string)
+      return value
+    },
+
+    async statsUncached(options: { trigger?: string; workflowIds?: string[]; days?: number } = {}): Promise<ExtensionRunStats> {
       if (!host.tenantId) throw new Error('workflows.stats needs a workspace')
       const p = period(options.days)
       const base = { since: p.since.toISOString(), until: p.until.toISOString(), days: p.days }

@@ -28,11 +28,11 @@
  */
 
 import {
-  DATA_TABLE_LIMITS, DATA_TABLE_ROW_ID, DataTableQueryError, applyLocally, baseFilterTerm, projectRow, referencedColumns,
+  DATA_TABLE_LIMITS, DATA_TABLE_ROW_ID, DataTableQueryError, applyLocally, baseFilterTerm, groupConditions, projectRow, referencedColumns, resolveDataTableTemplate,
   type DataTableFieldConfig, type DataTableScope,
 } from '@/lib/forms/data-table'
 import {
-  VALIDATING_PROPS, applyDynamicValues, bindingQueryConfig, bindingRowLimit, coerceDynamicValue, expectedType, isSourceBinding, resolveExpression,
+  VALIDATING_PROPS, applyDynamicValues, bindingColumns, bindingQueryConfig, bindingRowLimit, coerceDynamicValue, expectedType, isSourceBinding, resolveExpression,
   restrictsToList, shapeRows, type DynamicBinding, type DynamicValueType, type SourceBinding,
 } from '@/lib/forms/dynamic-values'
 import { normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
@@ -160,6 +160,11 @@ function itemScopeFromRequest(fields: TaskFieldDef[], sections: string[], submit
   return { ...item, item, row: item, ...(Object.keys(parent).length ? { parent } : {}) }
 }
 
+/** Filter operators a connected list understands (others are not sent). */
+const EXTENSION_OPS: Partial<Record<string, 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'is_set' | 'is_not_set'>> = {
+  eq: 'eq', neq: 'neq', gt: 'gt', gte: 'gte', lt: 'lt', lte: 'lte', contains: 'contains', starts_with: 'contains', is_set: 'is_set', is_not_set: 'is_not_set',
+}
+
 /** A source binding's rows: projected to its declared columns, within its base filter, capped. */
 export async function runSourceBinding(
   db: AnySupabaseClient, sys: AnySupabaseClient, tenantId: string, binding: SourceBinding, expects: DynamicValueType, scope: DataTableScope, callerId: string | null,
@@ -183,6 +188,30 @@ export async function runSourceBinding(
     const rows = records.slice(0, limit).map((r) => projectRow(config, { ...(isPlainObject(r.data) ? r.data : {}), [DATA_TABLE_ROW_ID]: r.id })?.values ?? {})
     return { rows, truncated: records.length > limit }
   }
+  if (binding.kind === 'extension') {
+    // A connected list: its provider reads the rows (every filter condition, values resolved — cascading reads the form).
+    const { queryExtensionList } = await import('./form-lookup')
+    const columns = bindingColumns(binding)
+    type Filter = { column: string; operator: NonNullable<(typeof EXTENSION_OPS)[string]>; value?: string }
+    const filters: Filter[] = []
+    let blocked = false
+    for (const c of groupConditions(binding.base_filter)) {
+      const op = EXTENSION_OPS[c.operator]
+      if (!op) continue
+      if (op === 'is_set' || op === 'is_not_set') { filters.push({ column: c.column, operator: op }); continue }
+      const v = resolveDataTableTemplate(c.value ?? '', scope)
+      const text = v === null || v === undefined ? '' : Array.isArray(v) ? v.map(String).join(',') : typeof v === 'object' ? JSON.stringify(v) : String(v)
+      // A cascade whose parent is still empty: no rows rather than every row.
+      if (!text && /\{\{/.test(c.value ?? '')) blocked = true
+      filters.push({ column: c.column, operator: op, value: text })
+    }
+    if (blocked && binding.when_inputs_blank !== 'keep') return { rows: [], truncated: false }
+    const { rows, more } = await queryExtensionList(tenantId, binding, {
+      listId: binding.source_id, search: '', match: 'contains', searchColumns: [], filters,
+      sort: binding.sort?.[0] ?? null, limit: limit + 1, offset: 0, valueColumn: binding.value ?? columns[0] ?? 'id', columns,
+    })
+    return { rows: rows.slice(0, limit), truncated: rows.length > limit || Boolean(more) }
+  }
   const config: DataTableFieldConfig = bindingQueryConfig(binding)
   const data = await callReference(sys, tenantId, config, scope, callerId)
   const records = responseRows(config, data)
@@ -194,6 +223,10 @@ export async function runSourceBinding(
 
 /** Who reads a table binding: the Data table field's rules (open access, anonymous read, data.view + RLS). */
 async function bindingClient(ctx: ServiceContext, binding: SourceBinding, preview: boolean): Promise<AnySupabaseClient> {
+  if (binding.kind === 'extension') {
+    if (isAnonymous(ctx) && binding.anonymous_read !== true) throw ServiceError.forbidden('This source is not available on a public form')
+    return serviceRoleClient(ctx)
+  }
   if (binding.kind === 'reference') {
     if (isAnonymous(ctx) && binding.anonymous_read !== true) throw ServiceError.forbidden('This source is not available on a public form')
     if (preview && !hasPerm(ctx, 'integrations.view')) throw ServiceError.forbidden("Forbidden: previewing an API source needs the 'integrations.view' permission")
@@ -287,7 +320,7 @@ export async function resolveDynamicFields(
         }
         // Anonymous visitors: a source without its own "Allow anonymous read" offers nothing.
         if (ctx && isAnonymous(ctx) && binding.anonymous_read !== true) { resolved[prop] = prop === 'options' ? [] : undefined; continue }
-        const db = !ctx || (binding.kind === 'table' && binding.open_access) || binding.kind === 'reference' ? sys : await bindingClient(ctx, binding, false)
+        const db = !ctx || (binding.kind === 'table' && binding.open_access) || binding.kind === 'reference' || binding.kind === 'extension' ? sys : await bindingClient(ctx, binding, false)
         const { rows } = await runSourceBinding(db, sys, tenantId, binding, expects, scope, options.task ? String(options.task.id) : 'form')
         const shaped = shapeRows(binding, rows, expects)
         resolved[prop] = shaped.ok ? shaped.value : prop === 'options' ? [] : undefined

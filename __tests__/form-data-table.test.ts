@@ -47,7 +47,7 @@ describe('Data table config', () => {
   })
 
   it('flags missing sources / columns / keys', () => {
-    expect(dataTableConfigProblem(normalizeDataTableConfig({ source: 'table' }))).toBe('Choose a data table')
+    expect(dataTableConfigProblem(normalizeDataTableConfig({ source: 'table' }))).toBe('Get rows from: choose a data table or an API')
     expect(dataTableConfigProblem(normalizeDataTableConfig({ source: 'reference' }))).toBe('Choose an API reference')
     expect(dataTableConfigProblem(normalizeDataTableConfig({ source: 'table', table_id: TABLE }))).toBe('Choose at least one column')
     expect(dataTableConfigProblem(normalizeDataTableConfig({ source: 'reference', reference_id: 'r', mode: 'select', columns: [{ key: 'id', label: 'Id' }], key_column: 'missing' }))).toMatch(/key column/)
@@ -70,7 +70,7 @@ describe('Data table config', () => {
     const [field] = normalizeTaskFields([{ key: 'lines', label: 'Lines', type: 'data_table', data_table: vendors() }])
     expect(field.data_table).toEqual(vendors())
     expect(fieldDefinitionProblems([field])).toEqual({})
-    expect(fieldDefinitionProblems(normalizeTaskFields([{ key: 'x', label: 'X', type: 'data_table', data_table: { source: 'table' } }]))).toEqual({ x: 'Choose a data table' })
+    expect(fieldDefinitionProblems(normalizeTaskFields([{ key: 'x', label: 'X', type: 'data_table', data_table: { source: 'table' } }]))).toEqual({ x: 'Get rows from: choose a data table or an API' })
   })
 })
 

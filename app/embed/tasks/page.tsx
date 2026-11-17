@@ -51,7 +51,7 @@ export default async function EmbeddedTasksPage({ searchParams }: { searchParams
 
   const options = parseTaskListOptions(query)
   const [{ fromSession }, svc] = await Promise.all([import('@/lib/services/context'), import('@/lib/services/embed-tasks')])
-  const initial = await fromSession().then((ctx) => svc.listEmbedTasks(ctx, options)).catch(() => null)
+  const initial = await fromSession().then((ctx) => svc.listEmbedTab(ctx, options)).catch(() => null)
   return (
     <EmbedFrame embed>
       <div className="p-1">

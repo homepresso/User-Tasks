@@ -4,7 +4,9 @@ import { useLayoutEffect, useRef } from 'react'
 import { CheckCircle2, Info, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useWorkspaceBrand } from '@/components/providers/theme-provider'
-import type { ButtonEffects, ButtonPlacement, FormButton } from '@/lib/forms/buttons'
+import { barButtonShown, type ButtonEffects, type ButtonPlacement, type FormButton } from '@/lib/forms/buttons'
+import type { FieldButtonIcon } from '@/lib/forms/field-buttons'
+import { FieldButtonIconView } from './field-button'
 import { headerImageSrc, resolveHeaderText, withThemeHeaderText, type FormHeader } from '@/lib/forms/header'
 import { formHeaderColors, type FormThemeOverrides } from '@/lib/forms/form-theme'
 import { resolveStorageUrl } from '@/lib/storage/refs'
@@ -71,11 +73,64 @@ export function FormHeaderBlock({ header: own, values, task, overrides, actions 
   )
 }
 
-const VARIANT: Record<FormButton['style'], 'primary' | 'secondary' | 'danger'> = { primary: 'primary', secondary: 'secondary', danger: 'danger' }
+const VARIANT: Record<FormButton['style'], 'primary' | 'secondary' | 'danger'> = { primary: 'primary', secondary: 'secondary', outline: 'secondary', danger: 'danger' }
+/** Extra classes per style: outline is a transparent button with a border (secondary keeps its filled look). */
+const STYLE_CLASS: Partial<Record<FormButton['style'], string>> = { outline: 'bg-transparent hover:bg-transparent' }
 
-export function FormButtonBar({ buttons, placement = 'right', busy, disabled, onClick }: {
+/** A readable text colour on a fill (#rrggbb). */
+function textOn(hex: string): string {
+  const n = parseInt(hex.slice(1), 16)
+  const lin = (c: number) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
+  const l = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255)
+  return l > 0.4 ? '#111111' : '#ffffff'
+}
+
+/** A bar button's own colour as inline style: the fill (primary / danger), or the border and text (secondary / outline). */
+export function barButtonStyle(button: Pick<FormButton, 'color' | 'style'>): React.CSSProperties | undefined {
+  if (!button.color) return undefined
+  return button.style === 'secondary' || button.style === 'outline'
+    ? { borderColor: button.color, color: button.color }
+    : { backgroundColor: button.color, borderColor: button.color, color: textOn(button.color) }
+}
+
+/** One bar button as it is drawn everywhere (form pages, task screens, the designer canvas): style, size, colour, icon. */
+export function BarButton({ button, placement, busy, disabled, onClick, className, ...rest }: {
+  button: FormButton
+  placement?: ButtonPlacement
+  busy?: boolean
+  disabled?: boolean
+  onClick?: () => void
+  className?: string
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'disabled' | 'className' | 'children'>) {
+  const icon = button.icon ? <FieldButtonIconView icon={button.icon as FieldButtonIcon} /> : undefined
+  return (
+    <Button
+      type="button"
+      variant={VARIANT[button.style]}
+      size={button.size ?? 'md'}
+      disabled={disabled}
+      aria-busy={busy || undefined}
+      loading={busy}
+      onClick={onClick}
+      leadingIcon={icon && !button.icon_after ? icon : undefined}
+      trailingIcon={icon && button.icon_after ? icon : undefined}
+      className={cn(STYLE_CLASS[button.style], placement === 'full' && 'w-full sm:flex-1', className)}
+      style={barButtonStyle(button)}
+      data-form-button={button.id}
+      {...rest}
+    >
+      {button.label}
+    </Button>
+  )
+}
+
+export function FormButtonBar({ buttons, placement = 'right', sticky = false, values, busy, disabled, onClick }: {
   buttons: FormButton[]
   placement?: ButtonPlacement
+  /** Keep the bar in view at the bottom while the form scrolls (theme button_sticky). */
+  sticky?: boolean
+  /** The form's values: buttons with a "shown when" rule follow them. */
+  values?: Record<string, unknown> | null
   /** Id of the button whose action is running. */
   busy?: string | null
   disabled?: boolean
@@ -101,28 +156,17 @@ export function FormButtonBar({ buttons, placement = 'right', busy, disabled, on
   useRegisterBar({ buttons, onClick: press, disabled: disabled || Boolean(busy) })
   // Application mode: the bar is not shown on any page.
   if (runtime && isApplicationMode(runtime.layout)) return null
-  const shown = buttons.filter((b) => !b.hidden && (phase === 'final' || b.kind === 'draft'))
+  const shown = buttons.filter((b) => barButtonShown(b, values) && (phase === 'final' || b.kind === 'draft'))
   if (!shown.length) return null
   return (
     <div
-      className={cn('mt-5 flex flex-wrap gap-2', placement === 'left' && 'justify-start', placement === 'right' && 'justify-end', placement === 'full' && 'flex-col sm:flex-row')}
+      className={cn('mt-5 flex flex-wrap gap-2', placement === 'left' && 'justify-start', placement === 'right' && 'justify-end', placement === 'full' && 'flex-col sm:flex-row', sticky && 'sticky bottom-0 z-10 -mx-1 border-t border-border bg-card px-1 py-3')}
       data-form-buttons={placement}
+      data-form-buttons-sticky={sticky || undefined}
       {...motionAttrs(motion.level)}
     >
       {shown.map((button) => (
-        <Button
-          key={button.id}
-          type="button"
-          variant={VARIANT[button.style]}
-          disabled={disabled || Boolean(busy)}
-          aria-busy={busy === button.id || undefined}
-          loading={busy === button.id}
-          onClick={() => press(button)}
-          className={cn(placement === 'full' && 'w-full sm:flex-1')}
-          data-form-button={button.id}
-        >
-          {button.label}
-        </Button>
+        <BarButton key={button.id} button={button} placement={placement} disabled={disabled || Boolean(busy)} busy={busy === button.id} onClick={() => press(button)} />
       ))}
     </div>
   )

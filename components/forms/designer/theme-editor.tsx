@@ -332,6 +332,11 @@ export function ThemeEditor({ value, onChange, savedThemes, canSaveTheme, onSave
             <div>
               <Label>Buttons</Label>
               <AutocompleteSelect value={overrides.button_placement ?? 'right'} options={[{ value: 'right', label: 'Right' }, { value: 'left', label: 'Left' }, { value: 'full', label: 'Full width' }]} onChange={(v) => setOverrides({ ...overrides, button_placement: (v || 'right') as 'right' })} />
+              <label className="mt-1 flex items-center gap-1.5 text-2xs">
+                <input type="checkbox" className="accent-primary" checked={overrides.button_sticky === true} data-theme-button-sticky
+                  onChange={(e) => { const next = { ...overrides }; if (e.target.checked) next.button_sticky = true; else delete next.button_sticky; setOverrides(next) }} />
+                Keep the buttons in view (sticky bar)
+              </label>
             </div>
             <div>
               <Label>Labels</Label>

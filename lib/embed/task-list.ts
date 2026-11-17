@@ -23,13 +23,31 @@
  *   scope_label  a name for the scope, shown in the empty state ("No open tasks for Expense claims")
  *   title      a heading above the list (empty: none)
  *   open       dialog (default) | tab — how a task's form opens
+ *   tab        mine (default) | following | tracker — the tab shown first (the app's My tasks /
+ *              Following / Task tracker)
+ *   tabs       comma-separated tabs to offer (default: all three; one → no tab bar)
+ *   scope      Task tracker scope: all (everything I may see: tasks.view_all) | assigned_by_me |
+ *              team (my teams' members) | reports (my reporting line: managers). Default: the first
+ *              one this person has
+ *   priority   comma-separated priorities (Task tracker / Following)
+ *   assignee   a user id (Task tracker)
+ *   wf         a workflow id filter chosen in the Task tracker (not the host's `workflow` scope)
+ *   sort       due (default) | priority | newest | title
  *
  * Pure and client-safe.
  */
 
 export type TaskListView = 'mine' | 'groups' | 'all'
-export type TaskListStatus = 'open' | 'completed'
-export type TaskListDue = 'any' | 'soon' | 'overdue'
+export type TaskListStatus = 'open' | 'completed' | 'any'
+export type TaskListDue = 'any' | 'soon' | 'overdue' | 'today' | 'week' | 'custom'
+export type TaskListTab = 'mine' | 'following' | 'tracker'
+export type TrackerScope = 'all' | 'assigned_by_me' | 'team' | 'reports'
+export type TaskListSort = 'due' | 'priority' | 'created' | 'updated' | 'completed' | 'title'
+export type TaskListDone = 'any' | '7' | '30' | '90' | 'custom'
+
+export const TASK_LIST_TABS: readonly TaskListTab[] = ['mine', 'following', 'tracker']
+export const TRACKER_SCOPES: readonly TrackerScope[] = ['all', 'assigned_by_me', 'team', 'reports']
+const PRIORITIES = ['critical', 'high', 'medium', 'low']
 
 export interface TaskListOptions {
   view: TaskListView
@@ -48,11 +66,33 @@ export interface TaskListOptions {
   scopeLabel: string | null
   title: string | null
   open: 'dialog' | 'tab'
+  tab: TaskListTab
+  tabs: TaskListTab[]
+  /** null: the first scope this person has (the server decides). */
+  scope: TrackerScope | null
+  priority: string[]
+  assignee: string | null
+  wf: string | null
+  sort: TaskListSort
+  dir: 'asc' | 'desc'
+  /** due=today|week|custom: the window, computed by the browser in its own time zone (ISO). */
+  dueFrom: string | null
+  dueTo: string | null
+  unread: boolean
+  team: string | null
+  /** Completed within the last 7 / 30 / 90 days, or a custom window (doneFrom / doneTo, ISO). */
+  done: TaskListDone
+  doneFrom: string | null
+  doneTo: string | null
+  /** Keyset position of the page (the server's nextCursor); null = the first page. */
+  cursor: string | null
 }
 
 export const TASK_LIST_DEFAULTS: TaskListOptions = {
   view: 'mine', status: 'open', due: 'any', soonDays: 3, q: '', page: 1, size: 10,
   allowCompleted: true, filters: true, compact: false, workflowIds: null, tag: null, scopeLabel: null, title: null, open: 'dialog',
+  tab: 'mine', tabs: [...TASK_LIST_TABS], scope: null, priority: [], assignee: null, wf: null, sort: 'due', dir: 'asc',
+  dueFrom: null, dueTo: null, unread: false, team: null, done: 'any', doneFrom: null, doneTo: null, cursor: null,
 }
 
 export const TASK_LIST_LIMITS = { size: 50, soonDays: 60, q: 120, workflows: 50, tag: 60, label: 80, title: 120 } as const
@@ -102,8 +142,8 @@ export function parseTaskListOptions(query: Query): TaskListOptions {
   const tag = text(first(query, 'tag'), TASK_LIST_LIMITS.tag)?.toLowerCase() ?? null
   return {
     view: view === 'groups' || view === 'all' ? view : 'mine',
-    status: status === 'completed' && allowCompleted ? 'completed' : 'open',
-    due: due === 'soon' || due === 'overdue' ? due : 'any',
+    status: (status === 'completed' || status === 'any') && allowCompleted ? status : 'open',
+    due: (['soon', 'overdue', 'today', 'week', 'custom'] as const).find((v) => v === due) ?? 'any',
     soonDays: int(first(query, 'soon_days'), d.soonDays, 1, TASK_LIST_LIMITS.soonDays),
     q: text(first(query, 'q'), TASK_LIST_LIMITS.q) ?? '',
     page: int(first(query, 'page'), 1, 1, 10_000),
@@ -116,7 +156,36 @@ export function parseTaskListOptions(query: Query): TaskListOptions {
     scopeLabel: text(first(query, 'scope_label'), TASK_LIST_LIMITS.label),
     title: text(first(query, 'title'), TASK_LIST_LIMITS.title),
     open: first(query, 'open') === 'tab' ? 'tab' : 'dialog',
+    ...tabOptions(query),
+    priority: [...new Set(String(first(query, 'priority') ?? '').split(',').map((s) => s.trim().toLowerCase()).filter((s) => PRIORITIES.includes(s)))],
+    assignee: UUID_RE.test(String(first(query, 'assignee') ?? '')) ? String(first(query, 'assignee')).toLowerCase() : null,
+    wf: UUID_RE.test(String(first(query, 'wf') ?? '')) ? String(first(query, 'wf')).toLowerCase() : null,
+    sort: (['priority', 'created', 'updated', 'completed', 'title'] as const).find((v) => v === first(query, 'sort')) ?? (first(query, 'sort') === 'newest' ? 'created' : 'due'),
+    dir: first(query, 'dir') === 'desc' || (first(query, 'dir') === undefined && first(query, 'sort') === 'newest') ? 'desc' : 'asc',
+    dueFrom: isoTime(first(query, 'due_from')),
+    dueTo: isoTime(first(query, 'due_to')),
+    unread: flag(first(query, 'unread'), false),
+    team: UUID_RE.test(String(first(query, 'team') ?? '')) ? String(first(query, 'team')).toLowerCase() : null,
+    done: (['7', '30', '90', 'custom'] as const).find((v) => v === first(query, 'done')) ?? 'any',
+    doneFrom: isoTime(first(query, 'done_from')),
+    doneTo: isoTime(first(query, 'done_to')),
+    cursor: /^[A-Za-z0-9_-]{1,600}$/.test(String(first(query, 'cursor') ?? '')) ? String(first(query, 'cursor')) : null,
   }
+}
+
+function isoTime(value: string | undefined): string | null {
+  if (!value || value.length > 40) return null
+  const t = Date.parse(value)
+  return Number.isFinite(t) ? new Date(t).toISOString() : null
+}
+
+function tabOptions(query: Query): { tab: TaskListTab; tabs: TaskListTab[]; scope: TrackerScope | null } {
+  const raw = first(query, 'tabs')
+  const listed = raw === undefined || raw.trim() === '' ? [...TASK_LIST_TABS] : TASK_LIST_TABS.filter((t) => raw.split(/[\s,;]+/).map((s) => s.toLowerCase()).includes(t))
+  const tabs = listed.length ? listed : ['mine' as const]
+  const wanted = first(query, 'tab') as TaskListTab | undefined
+  const scope = first(query, 'scope') as TrackerScope | undefined
+  return { tabs, tab: wanted && tabs.includes(wanted) ? wanted : tabs[0], scope: scope && TRACKER_SCOPES.includes(scope) ? scope : null }
 }
 
 /** The query for these options (defaults left out), keeping the host's own parameters in `keep`. */
@@ -139,6 +208,22 @@ export function taskListQuery(o: TaskListOptions, keep: Record<string, string> =
   set('scope_label', o.scopeLabel)
   set('title', o.title)
   set('open', o.open, d.open)
+  set('tabs', o.tabs.length === TASK_LIST_TABS.length ? null : o.tabs.join(','))
+  set('tab', o.tab, o.tabs[0])
+  set('scope', o.scope)
+  set('priority', o.priority.length ? o.priority.join(',') : null)
+  set('assignee', o.assignee)
+  set('wf', o.wf)
+  set('sort', o.sort, d.sort)
+  set('dir', o.dir, d.dir)
+  set('due_from', o.due === 'any' || o.due === 'overdue' || o.due === 'soon' ? null : o.dueFrom)
+  set('due_to', o.due === 'any' || o.due === 'overdue' || o.due === 'soon' ? null : o.dueTo)
+  set('unread', o.unread ? '1' : null)
+  set('team', o.team)
+  set('done', o.done, 'any')
+  set('done_from', o.done === 'custom' ? o.doneFrom : null)
+  set('done_to', o.done === 'custom' ? o.doneTo : null)
+  set('cursor', o.cursor)
   return q.toString()
 }
 
@@ -147,6 +232,38 @@ export function dueBefore(o: Pick<TaskListOptions, 'due' | 'soonDays'>, now = ne
   if (o.due === 'overdue') return now.toISOString()
   if (o.due === 'soon') return new Date(now.getTime() + o.soonDays * 86_400_000).toISOString()
   return null
+}
+
+/** The due window [from, to) for a filter (from: null = open start). */
+export function dueWindow(o: Pick<TaskListOptions, 'due' | 'soonDays' | 'dueFrom' | 'dueTo'>, now = new Date()): { from: string | null; to: string | null } | null {
+  if (o.due === 'overdue' || o.due === 'soon') return { from: null, to: dueBefore(o, now) }
+  if (o.due === 'today' || o.due === 'week' || o.due === 'custom') return o.dueFrom || o.dueTo ? { from: o.dueFrom, to: o.dueTo } : null
+  return null
+}
+
+/** Browser-side: today / this week in the person's own time zone (Monday start). */
+export function localDueRange(due: 'today' | 'week', now = new Date()): { dueFrom: string; dueTo: string } {
+  const start = new Date(now); start.setHours(0, 0, 0, 0)
+  if (due === 'week') start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
+  const end = new Date(start); end.setDate(end.getDate() + (due === 'week' ? 7 : 1))
+  return { dueFrom: start.toISOString(), dueTo: end.toISOString() }
+}
+
+/** The completed window [from, to) for a filter. */
+export function doneWindow(o: Pick<TaskListOptions, 'done' | 'doneFrom' | 'doneTo'>, now = new Date()): { from: string | null; to: string | null } | null {
+  if (o.done === '7' || o.done === '30' || o.done === '90') return { from: new Date(now.getTime() - Number(o.done) * 86_400_000).toISOString(), to: null }
+  if (o.done === 'custom' && (o.doneFrom || o.doneTo)) return { from: o.doneFrom, to: o.doneTo }
+  return null
+}
+
+/** Page sizes the list offers. */
+export const PAGE_SIZES = [10, 25, 50] as const
+
+/** Counts above this show as "1,000+" (an exact count over thousands of rows isn't worth its cost). */
+export const COUNT_CAP = 1000
+
+export function countLabel(total: number, capped: boolean): string {
+  return capped ? `${COUNT_CAP.toLocaleString('en-US')}+` : total.toLocaleString('en-US')
 }
 
 /* ── per-row actions ─────────────────────────────────────────────────── */
@@ -169,6 +286,8 @@ export interface TaskRowFacts {
 }
 
 const OPEN = new Set(['todo', 'in_progress', 'blocked'])
+/** Outcomes are listed in the row's Actions menu (all of a task's outcomes; bounded only against bad data). */
+const MAX_MENU_OUTCOMES = 50
 
 /**
  * What the list offers on a row. Only offers — every action runs through the
@@ -187,7 +306,7 @@ export function taskRowActions(t: TaskRowFacts, me: string): { actions: TaskRowA
   if (mine && t.assigned_team_id && t.assignment_type !== 'aad_group') actions.push('unclaim')
   const workflow = t.is_workflow_task && Boolean(t.event_id)
   const outcomes = workflow && mine && t.acceptance_status !== 'pending' && !t.needsForm
-    ? (Array.isArray(t.available_outcomes) && t.available_outcomes.length ? t.available_outcomes : ['completed']).slice(0, 4)
+    ? (Array.isArray(t.available_outcomes) && t.available_outcomes.length ? t.available_outcomes : ['completed']).slice(0, MAX_MENU_OUTCOMES)
     : []
   if (outcomes.length) actions.push('outcome')
   actions.push('open')

@@ -24,7 +24,13 @@
 import { isPlainObject } from '@/lib/utils/guards'
 import { collectionAt, isCollectionPath, normalizeCollectionPath } from '@/lib/response-collections'
 
-export type LookupSource = 'table' | 'reference'
+/**
+ * table: a data table; reference: an API reference; extension: a list an
+ * extension provides (ServerExtension.lookupSources — e.g. a SharePoint
+ * list), queried by the provider with the same columns, filters (cascading
+ * through {{task_data.<key>}} / {{form.<key>}}), sort and search as a table.
+ */
+export type LookupSource = 'table' | 'reference' | 'extension'
 
 export type LookupFilterOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'is_set' | 'is_not_set'
 export const LOOKUP_FILTER_OPERATORS: LookupFilterOperator[] = ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'is_set', 'is_not_set']
@@ -61,6 +67,15 @@ export interface LookupConfig {
   value_column?: string
   filters?: LookupFilter[]
   sort?: { column: string; direction: 'asc' | 'desc' }
+  // ── Extension list (table-like: search_columns, display_columns, value_column, filters, sort) ──
+  /** Extension id (manifest id). */
+  extension?: string
+  /** The extension's lookup source provider key (ServerExtension.lookupSources). */
+  provider?: string
+  /** The provider's list id (e.g. a connected SharePoint list). */
+  source_id?: string
+  /** What the designer calls the list ("SharePoint: Departments"). */
+  source_label?: string
   // ── API reference ──
   integration_id?: string
   reference_id?: string
@@ -180,7 +195,7 @@ function displayTemplate(raw: unknown, source: LookupSource): string {
   if (!text.includes('{{')) return ''
   const refs = displayTemplateFields(text)
   if (!refs.length || refs.length > LOOKUP_LIMITS.maxColumns) return ''
-  const valid = source === 'table' ? isLookupColumn : isLookupPath
+  const valid = source === 'reference' ? isLookupPath : isLookupColumn
   return refs.every((r) => valid(r)) ? text : ''
 }
 
@@ -200,16 +215,22 @@ export function renderDisplayTemplate(text: string, record: unknown): string {
 /** Clean a stored / submitted lookup config (unknown props dropped, columns validated, bounds clamped). */
 export function normalizeLookupConfig(raw: unknown): LookupConfig {
   const src = isPlainObject(raw) ? raw : {}
-  const source: LookupSource = src.source === 'reference' ? 'reference' : 'table'
+  const source: LookupSource = src.source === 'reference' ? 'reference' : src.source === 'extension' ? 'extension' : 'table'
   const out: LookupConfig = { source }
-  if (source === 'table') {
-    if (typeof src.table_id === 'string' && src.table_id.trim()) out.table_id = src.table_id.trim().slice(0, 64)
+  if (source === 'table' || source === 'extension') {
+    if (source === 'table' && typeof src.table_id === 'string' && src.table_id.trim()) out.table_id = src.table_id.trim().slice(0, 64)
+    if (source === 'extension') {
+      if (typeof src.extension === 'string' && /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(src.extension)) out.extension = src.extension
+      if (typeof src.provider === 'string' && /^[a-z][a-z0-9_]{0,40}$/.test(src.provider)) out.provider = src.provider
+      if (typeof src.source_id === 'string' && src.source_id.trim()) out.source_id = src.source_id.trim().slice(0, 200)
+      if (typeof src.source_label === 'string' && src.source_label.trim()) out.source_label = src.source_label.replace(/[<>]/g, '').trim().slice(0, 200)
+    }
     const search = columnList(src.search_columns, isLookupColumn)
     const display = columnList(src.display_columns, isLookupColumn)
     if (search.length) out.search_columns = search
     if (display.length) out.display_columns = display
     if (src.match === 'prefix') out.match = 'prefix'
-    if (isLookupColumn(src.value_column) && src.value_column !== LOOKUP_ROW_ID) out.value_column = src.value_column
+    if (isLookupColumn(src.value_column) && (source === 'extension' || src.value_column !== LOOKUP_ROW_ID)) out.value_column = src.value_column
     if (Array.isArray(src.filters)) {
       const filters: LookupFilter[] = []
       for (const f of src.filters) {
@@ -264,7 +285,7 @@ export function normalizeLookupConfig(raw: unknown): LookupConfig {
       if (!isPlainObject(f)) continue
       const from = typeof f.from === 'string' ? f.from.trim() : ''
       const to = typeof f.to === 'string' ? f.to.trim() : ''
-      const fromOk = source === 'table' ? isLookupColumn(from) : isLookupPath(from)
+      const fromOk = source === 'reference' ? isLookupPath(from) : isLookupColumn(from)
       if (fromOk && FIELD_KEY_RE.test(to) && !fill.some((x) => x.to === to) && fill.length < LOOKUP_LIMITS.maxFill) fill.push({ from, to })
     }
     if (fill.length) out.fill = fill
@@ -286,11 +307,12 @@ export function lookupDebounceMs(config: LookupConfig): number {
 
 /** Display fields (columns or paths) of the config, in order. */
 export function lookupDisplayFields(config: LookupConfig): string[] {
-  return (config.source === 'table' ? config.display_columns : config.display_fields) ?? []
+  return (config.source === 'reference' ? config.display_fields : config.display_columns) ?? []
 }
 
 /** The field stored as the value (`row_id` = the data table row's id). */
 export function lookupValueField(config: LookupConfig): string {
+  if (config.source === 'extension') return config.value_column ?? 'id'
   return config.source === 'table' ? (config.value_column ?? LOOKUP_ROW_ID) : (config.value_field ?? '')
 }
 
@@ -319,8 +341,9 @@ export function lookupTableColumns(config: LookupConfig): string[] {
  */
 export function lookupConfigProblem(config: LookupConfig | undefined, ownKey: string, otherKeys: string[]): string | null {
   if (!config) return 'Choose where the suggestions come from'
-  if (config.source === 'table') {
-    if (!config.table_id) return 'Choose a data table'
+  if (config.source === 'table' || config.source === 'extension') {
+    if (config.source === 'table' && !config.table_id) return 'Choose a data table'
+    if (config.source === 'extension' && (!config.extension || !config.provider || !config.source_id)) return 'Choose the list the suggestions come from'
     if (!config.search_columns?.length) return 'Choose at least one column to search'
     if (!config.display_columns?.length && !config.label_template) return 'Choose at least one column to show'
   } else {

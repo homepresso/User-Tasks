@@ -51,7 +51,7 @@ export function PeopleField({ value, onChange, id, labelledBy, describedBy, inva
   const taken = new Set(refs.map(personRefKey))
   const options = [
     ...people.map((p) => ({ value: `user:${p.id}`, label: p.display_name || p.email || p.id, hint: p.display_name && p.email ? p.email : undefined })),
-    ...(config?.allow_teams ? teams.map((t) => ({ value: `team:${t.id}`, label: t.name, hint: 'Team' })) : []),
+    ...(config?.allow_teams ? teams.map((t) => ({ value: `team:${t.id}`, label: t.name, hint: t.origin_label ? `Team · ${t.origin_label}` : 'Team' })) : []),
   ].filter((o) => !taken.has(o.value))
   const add = (key: string) => {
     const [kind, refId] = key.split(':') as ['user' | 'team', string]

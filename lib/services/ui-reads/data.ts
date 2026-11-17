@@ -43,6 +43,28 @@ function matchesLookupFilter(rowData: Record<string, any>, filter: Omit<LookupFi
   }
 }
 
+/** Rows a searched / cell-sorted grid page scans (newest first). */
+const GRID_SCAN = 2000
+
+/** Rows with their retention policy and creator / updater (follow-up queries: one broken join can't blank the grid). */
+async function hydrateRows(db: any, rows: any[]): Promise<any[]> {
+  if (!rows.length) return rows
+  const policyIds = [...new Set(rows.map((row) => row.retention_policy_id).filter((value): value is string => !!value))]
+  const userIds = [...new Set(rows.flatMap((row) => [row.created_by, row.updated_by]).filter((value): value is string => !!value))]
+  const [policies, users] = await Promise.all([
+    policyIds.length ? db.from('retention_policies').select(RETENTION_POLICY_COLUMNS).in('id', policyIds) : Promise.resolve({ data: [], error: null }),
+    userIds.length ? db.from('users').select('id, display_name, email, avatar_url').in('id', userIds) : Promise.resolve({ data: [], error: null }),
+  ])
+  const policyMap = new Map(((policies.error ? [] : policies.data) ?? []).map((p: any) => [p.id, p]))
+  const userMap = new Map(((users.error ? [] : users.data) ?? []).map((u: any) => [u.id, u]))
+  return rows.map((row) => ({
+    ...row,
+    retention_policy: row.retention_policy_id ? policyMap.get(row.retention_policy_id) ?? null : null,
+    creator: row.created_by ? userMap.get(row.created_by) ?? null : null,
+    updater: row.updated_by ? userMap.get(row.updated_by) ?? null : null,
+  }))
+}
+
 export const reads = {
   /** Tables with row counts and creator (data store list). */
   'data.tables': defineRead({
@@ -119,6 +141,52 @@ export const reads = {
         creator: row.created_by ? userMap.get(row.created_by) ?? null : null,
         updater: row.updated_by ? userMap.get(row.updated_by) ?? null : null,
       }))
+    },
+  }),
+
+  /**
+   * One page of a table's rows for the grid (server-side paging): a plain
+   * page straight from the database with an exact total; search or a sort
+   * by a cell scans the newest GRID_SCAN rows (`truncated` when the table
+   * holds more). Hydrated like data.rows.
+   */
+  'data.rowPage': defineRead({
+    args: z.object({
+      tableId: id,
+      limit: z.number().int().min(1).max(500).default(100),
+      offset: z.number().int().min(0).max(1_000_000).default(0),
+      search: z.string().max(200).optional(),
+      sort: z.string().max(200).optional(),
+      dir: z.enum(['asc', 'desc']).optional(),
+    }),
+    perm: 'data.view',
+    run: async (ctx, { tableId, limit, offset, search, sort, dir }) => {
+      const db = getDb(ctx) as any
+      const direction = dir ?? 'desc'
+      const systemSort = !sort || sort === '_updated_at' || sort === '_created_at'
+      const term = search?.trim().toLowerCase() ?? ''
+      if (!term && systemSort) {
+        const { data, count, error } = await db.from('custom_table_rows').select('*', { count: 'exact' })
+          .eq('table_id', tableId)
+          .order(sort === '_created_at' ? 'created_at' : 'updated_at', { ascending: direction === 'asc', nullsFirst: false })
+          .range(offset, offset + limit - 1)
+        if (error) throw new Error(error.message)
+        return { rows: await hydrateRows(db, (data ?? []) as any[]), total: count ?? (data ?? []).length, truncated: false }
+      }
+      const { data, error } = await db.from('custom_table_rows').select('*').eq('table_id', tableId).order('updated_at', { ascending: false, nullsFirst: false }).limit(GRID_SCAN)
+      if (error) throw new Error(error.message)
+      let rows = (data ?? []) as any[]
+      const truncated = rows.length >= GRID_SCAN
+      if (term) rows = rows.filter((row) => String(row.id).toLowerCase().includes(term) || JSON.stringify(row.data ?? {}).toLowerCase().includes(term))
+      if (!systemSort) {
+        rows = [...rows].sort((a, b) => {
+          const av = sort === '_row_id' ? a.id : getCellByIdentifier(a.data ?? {}, sort!)
+          const bv = sort === '_row_id' ? b.id : getCellByIdentifier(b.data ?? {}, sort!)
+          const cmp = typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av ?? '').localeCompare(String(bv ?? ''), undefined, { numeric: true, sensitivity: 'base' })
+          return direction === 'desc' ? -cmp : cmp
+        })
+      }
+      return { rows: await hydrateRows(db, rows.slice(offset, offset + limit)), total: rows.length, truncated }
     },
   }),
 

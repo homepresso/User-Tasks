@@ -29,12 +29,14 @@
  * licensed, the target's licence feature). Server-only.
  */
 
-import { applyFieldPatches, isEmailPerson, layoutDataTarget, normalizeFieldPatches, normalizeTargetLinks, sameDataTarget, type FormDataTargetRef, type FormDataTargetState } from '@/lib/forms/data-target'
-import { isDisplayField, type TaskFieldDef } from '@/lib/task-field-schema'
-import { cleanReturnUrl, cleanTargetUrl } from '@/lib/forms/buttons'
+import { applyFieldPatches, isEmailPerson, layoutDataTarget, normalizeDataTarget, normalizeFieldPatches, normalizeTargetLinks, sameDataTarget, type FormDataTargetRef, type FormDataTargetState } from '@/lib/forms/data-target'
+import { isDisplayField, normalizeTaskFields, TASK_FIELD_TYPES, type TaskFieldDef, type TaskFieldType } from '@/lib/task-field-schema'
+import { cleanReturnUrl, cleanTargetUrl, normalizeFormButtons } from '@/lib/forms/buttons'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
-import { isExtensionError, type FormTarget, type FormTargetForm, type FormTargetPerson, type FormTargetProblem } from '@/lib/extensions/sdk'
+import { isExtensionError, type FormTarget, type FormTargetDescription, type FormTargetSaveAction, type FormTargetForm, type FormTargetPerson, type FormTargetProblem, type FormTargetSourceField } from '@/lib/extensions/sdk'
+
+const TASK_FIELD_TYPE_SET = new Set<string>(TASK_FIELD_TYPES)
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- users / memberships are read loosely */
 
@@ -69,11 +71,17 @@ async function resolve(ctx: ServiceContext, ref: FormDataTargetRef): Promise<For
 }
 
 function hookForm(form: TargetForm, ref: FormDataTargetRef): FormTargetForm {
-  return { id: form.id, name: form.name, version: form.version, config: ref.config, fields: form.fields }
+  return { id: form.id, name: form.name, version: form.version, config: ref.config, fields: form.fields, writes: ref.writes ?? null }
 }
 
 /** A provider's ExtensionError → the ServiceError the caller sees (messages are the provider's, prefixed with the target). */
-export function targetError(error: unknown, label: string): unknown {
+/**
+ * A provider error → a service error. `formUser`: the form page (prepare /
+ * submit / delete) — an upstream failure (5xx) is said in plain words and its
+ * raw text (status lines, API paths) goes to the server log only; designers
+ * (check / describe / bind / actions) keep the provider's message.
+ */
+export function targetError(error: unknown, label: string, options: { formUser?: boolean } = {}): unknown {
   if (!isExtensionError(error)) return error
   const details: Record<string, unknown> = { ...(error.details ?? {}), code: error.code }
   const fields = isPlainObject(details.fields) ? Object.fromEntries(Object.entries(details.fields).filter(([, v]) => typeof v === 'string').map(([k, v]) => [k, String(v).slice(0, 500)])) : null
@@ -81,7 +89,11 @@ export function targetError(error: unknown, label: string): unknown {
   if (error.status === 404) return new ServiceError('not_found', error.message, { details })
   if (error.status === 401 || error.status === 403) return new ServiceError('forbidden', `${label}: ${error.message}`, { details })
   if (error.status === 402) return new ServiceError('payment_required', error.message, { details })
-  if (error.status >= 500) return new ServiceError('validation_error', `${label} failed: ${error.message}`, { status: 502, details })
+  if (error.status >= 500) {
+    if (!options.formUser) return new ServiceError('validation_error', `${label} failed: ${error.message}`, { status: 502, details })
+    console.error(`[form target] ${label}: ${error.code}: ${error.message}`)
+    return new ServiceError('validation_error', `${label} couldn't be reached to save this. Try again in a moment; if it keeps happening, tell your administrator.`, { status: 502, details: { code: error.code } })
+  }
   return new ServiceError('validation_error', error.message, { details: fields ? { ...details, fields } : details })
 }
 
@@ -152,6 +164,20 @@ async function peopleOf(db: AnySupabaseClient, tenantId: string, fields: TaskFie
 export interface PreparedTarget {
   fields: TaskFieldDef[]
   state: FormDataTargetState | null
+  /** The record's values for {{target.<name>}} (the provider's prepare `context`; submit only). */
+  context?: Record<string, string | number | boolean | null>
+}
+
+/** A provider's record values → bounded scalars by token name. */
+function normalizeTargetContext(raw: unknown): Record<string, string | number | boolean | null> {
+  const out: Record<string, string | number | boolean | null> = {}
+  if (!isPlainObject(raw)) return out
+  for (const [k, v] of Object.entries(raw).slice(0, 60)) {
+    if (!/^[a-z][a-z0-9_]{0,40}$/.test(k)) continue
+    if (v === null || typeof v === 'boolean' || (typeof v === 'number' && Number.isFinite(v))) out[k] = v as never
+    else if (typeof v === 'string') out[k] = v.slice(0, 2000)
+  }
+  return out
 }
 
 /**
@@ -172,14 +198,14 @@ export async function prepareFormTarget(ctx: ServiceContext, form: TargetForm, r
   try {
     prepared = await target.prepare({ ctx: await formTargetDeps.context(ctx, ref, db), form: hookForm(form, ref), params, purpose })
   } catch (error) {
-    throw targetError(error, label)
+    throw targetError(error, label, { formUser: true })
   }
   const display = prepared?.mode === 'display'
   if (display && purpose === 'submit') throw new ServiceError('validation_error', `This form shows a record of ${label}; it can't be submitted`, { details: { code: 'display_form' } })
   const patched = applyFieldPatches(form.fields, normalizeFieldPatches(prepared?.fields, form.fields))
   // Display forms: everything read-only (static content stays as it is).
   const fields = display ? patched.map((f) => (isDisplayField(f) ? f : { ...f, read_only: true, required: false })) : patched
-  if (purpose === 'submit') return { fields, state: null }
+  if (purpose === 'submit') return { fields, state: null, context: normalizeTargetContext(prepared?.context) }
   const known = new Set(fields.map((f) => f.key))
   const raw = isPlainObject(prepared?.values) ? Object.fromEntries(Object.entries(prepared!.values!).filter(([k]) => known.has(k))) : {}
   const mapped = await mapPeopleValues(db, ctx.tenantId, fields, raw)
@@ -215,7 +241,7 @@ export interface SubmittedTarget {
 }
 
 /** Write the record through the provider (after core validated `values`). */
-export async function submitFormTarget(ctx: ServiceContext, form: TargetForm, values: Record<string, unknown>, input: { params?: unknown; version?: string | null }): Promise<SubmittedTarget | null> {
+export async function submitFormTarget(ctx: ServiceContext, form: TargetForm, values: Record<string, unknown>, input: { params?: unknown; version?: string | null; action?: FormTargetSaveAction }): Promise<SubmittedTarget | null> {
   const ref = layoutDataTarget(form.layout)
   if (!ref) return null
   const target = await resolve(ctx, ref)
@@ -244,9 +270,10 @@ export async function submitFormTarget(ctx: ServiceContext, form: TargetForm, va
       version: typeof input.version === 'string' && input.version ? input.version.slice(0, 200) : null,
       people,
       readFile,
+      ...(input.action ? { action: input.action } : {}),
     })
   } catch (error) {
-    throw targetError(error, label)
+    throw targetError(error, label, { formUser: true })
   }
   if (!result?.record || typeof result.record.id !== 'string' || !result.record.id) throw new ServiceError('validation_error', `${label} did not report the record it wrote`, { status: 502 })
   return {
@@ -272,7 +299,7 @@ export async function deleteFormTargetRecord(ctx: ServiceContext, form: TargetFo
   try {
     result = await target.remove({ ctx: await formTargetDeps.context(ctx, ref, db), form: hookForm(form, ref), params, version: typeof input.version === 'string' && input.version ? input.version.slice(0, 200) : null })
   } catch (error) {
-    throw targetError(error, label)
+    throw targetError(error, label, { formUser: true })
   }
   const record = result?.record && typeof result.record.id === 'string' && result.record.id ? { id: result.record.id.slice(0, 200), label: result.record.label ? String(result.record.label).slice(0, 300) : null } : null
   return { label, record, message: result?.message ? String(result.message).slice(0, 1000) : null, returnUrl: cleanReturnUrl(result?.returnUrl) }
@@ -388,5 +415,140 @@ export async function checkFormTarget(ctx: ServiceContext, form: TargetForm): Pr
   } catch (error) {
     const mapped = targetError(error, label)
     return { label, problems: [{ severity: 'error', message: mapped instanceof Error ? mapped.message : String(mapped) }] }
+  }
+}
+
+/* ── the designer: describe, bind, actions ───────────────────────────── */
+
+const SOURCE_LIMITS = { fields: 500, facts: 20, notes: 50, options: 20, actions: 10, text: 500 } as const
+const txt = (v: unknown, max: number = SOURCE_LIMITS.text) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').slice(0, max) : '')
+
+/** A provider's description → bounded, typed, plain (no unknown field types, http(s) links only). */
+export function normalizeTargetDescription(raw: unknown): FormTargetDescription | null {
+  if (!isPlainObject(raw) || typeof raw.title !== 'string') return null
+  const isTaskFieldType = (t: string) => TASK_FIELD_TYPE_SET.has(t)
+  const fields = (Array.isArray(raw.sourceFields) ? raw.sourceFields : []).filter(isPlainObject).slice(0, SOURCE_LIMITS.fields).flatMap((f): FormTargetSourceField[] => {
+    if (typeof f.key !== 'string' || !f.key) return []
+    return [{
+      key: txt(f.key, 200), label: txt(f.label) || txt(f.key, 200), typeLabel: txt(f.typeLabel, 80),
+      fieldTypes: (Array.isArray(f.fieldTypes) ? f.fieldTypes : []).filter((t): t is TaskFieldType => typeof t === 'string' && isTaskFieldType(t)),
+      ...(f.required === true ? { required: true } : {}), ...(f.readOnly === true ? { readOnly: true } : {}), ...(f.multi === true ? { multi: true } : {}),
+      ...(Array.isArray(f.choices) ? { choices: f.choices.filter((c): c is string => typeof c === 'string').slice(0, 200).map((c) => txt(c, 200)) } : {}),
+      ...(typeof f.lookup === 'string' ? { lookup: txt(f.lookup, 200) } : {}),
+      ...(typeof f.help === 'string' ? { help: txt(f.help) } : {}),
+      ...(typeof f.group === 'string' && f.group ? { group: txt(f.group, 40) } : {}),
+      ...(f.isNew === true ? { isNew: true } : {}),
+    }]
+  })
+  const linkUrl = isPlainObject(raw.link) ? cleanReturnUrl(raw.link.url) : null
+  return {
+    title: txt(raw.title, 200),
+    link: linkUrl && isPlainObject(raw.link) ? { label: txt(raw.link.label, 120) || 'Open', url: linkUrl } : null,
+    facts: (Array.isArray(raw.facts) ? raw.facts : []).filter(isPlainObject).slice(0, SOURCE_LIMITS.facts).map((f) => ({ label: txt(f.label, 120), value: txt(f.value), ...(typeof f.help === 'string' ? { help: txt(f.help) } : {}) })).filter((f) => f.label),
+    sourceFields: fields,
+    mappings: (Array.isArray(raw.mappings) ? raw.mappings : []).filter(isPlainObject).slice(0, SOURCE_LIMITS.fields).flatMap((m) => (typeof m.field === 'string' ? [{ field: m.field, source: typeof m.source === 'string' ? m.source : null, ...(m.locked === true ? { locked: true } : {}), ...(typeof m.note === 'string' ? { note: txt(m.note) } : {}) }] : [])),
+    notes: (Array.isArray(raw.notes) ? raw.notes : []).filter(isPlainObject).slice(0, SOURCE_LIMITS.notes).map((n) => ({ severity: (n.severity === 'error' || n.severity === 'info' ? n.severity : 'warning') as 'error' | 'warning' | 'info', message: txt(n.message) })).filter((n) => n.message),
+    options: (Array.isArray(raw.options) ? raw.options : []).filter(isPlainObject).slice(0, SOURCE_LIMITS.options).flatMap((o) => (typeof o.key === 'string' && (o.type === 'boolean' || o.type === 'select') ? [{
+      key: txt(o.key, 64), label: txt(o.label, 120), ...(typeof o.help === 'string' ? { help: txt(o.help) } : {}), type: o.type as 'boolean' | 'select',
+      value: typeof o.value === 'boolean' ? o.value : txt(o.value, 200),
+      ...(Array.isArray(o.choices) ? { choices: o.choices.filter(isPlainObject).slice(0, 50).map((c) => ({ value: txt(c.value, 200), label: txt(c.label, 200) })) } : {}),
+    }] : [])),
+    actions: (Array.isArray(raw.actions) ? raw.actions : []).filter(isPlainObject).slice(0, SOURCE_LIMITS.actions).flatMap((a) => (typeof a.id === 'string' && typeof a.label === 'string' ? [{ id: txt(a.id, 64), label: txt(a.label, 120), ...(typeof a.help === 'string' ? { help: txt(a.help) } : {}), ...(typeof a.confirm === 'string' ? { confirm: txt(a.confirm) } : {}), tone: (a.tone === 'danger' ? 'danger' : 'default') as 'danger' | 'default' }] : [])),
+    ...defaultButtonsOf(raw),
+    ...saveInfoOf(raw),
+    tokens: isPlainObject(raw.tokens) ? Object.fromEntries(Object.entries(raw.tokens).filter(([k, v]) => /^(return_url|url\.[a-z][a-z0-9_]{0,40})$/.test(k) && typeof v === 'string').map(([k, v]) => [k, txt(v, 120)])) : {},
+  }
+}
+
+
+/** The provider's "Save to …" description, bounded. */
+function saveInfoOf(raw: Record<string, unknown>): Pick<FormTargetDescription, 'save'> {
+  if (!isPlainObject(raw.save) || typeof raw.save.label !== 'string') return {}
+  const s = raw.save
+  const txt = (v: unknown, max = 300) => String(v ?? '').slice(0, max)
+  const operations = (Array.isArray(s.operations) ? s.operations : []).filter(isPlainObject).filter((o) => o.value === '' || o.value === 'create' || o.value === 'update').slice(0, 3)
+    .map((o) => ({ value: o.value as '' | 'create' | 'update', label: txt(o.label, 120), ...(typeof o.help === 'string' ? { help: txt(o.help) } : {}) }))
+  const options = (Array.isArray(s.options) ? s.options : []).filter(isPlainObject).filter((o) => typeof o.key === 'string' && /^[a-z][a-z0-9_]{0,40}$/.test(o.key) && typeof o.label === 'string').slice(0, 10)
+    .map((o) => ({ key: String(o.key), label: txt(o.label, 120), ...(typeof o.help === 'string' ? { help: txt(o.help) } : {}), type: 'boolean' as const, value: o.value === true }))
+  return { save: { label: txt(s.label, 160), operations, conflict: s.conflict === true, options } }
+}
+
+/** The provider's default buttons (normalized like stored buttons; only the ids it gave) and what they are called. */
+function defaultButtonsOf(raw: Record<string, unknown>): Pick<FormTargetDescription, 'defaultButtons' | 'defaultsLabel'> {
+  if (!Array.isArray(raw.defaultButtons) || !raw.defaultButtons.length) return {}
+  const ids = new Set(raw.defaultButtons.filter(isPlainObject).map((b) => String(b.id ?? '')))
+  const buttons = normalizeFormButtons(raw.defaultButtons.slice(0, 12)).filter((b) => ids.has(b.id))
+  if (!buttons.length) return {}
+  return { defaultButtons: buttons as unknown as Array<Record<string, unknown>>, defaultsLabel: typeof raw.defaultsLabel === 'string' && raw.defaultsLabel.trim() ? raw.defaultsLabel.trim().slice(0, 60) : 'default' }
+}
+
+/**
+ * The designer's "Connected to …" panel / Data panel: the provider's
+ * description of the binding for the form as it is in the designer (unsaved
+ * fields and layout). Null for unbound forms or providers without `describe`.
+ */
+export async function describeFormTarget(ctx: ServiceContext, form: TargetForm): Promise<{ label: string; description: FormTargetDescription | null; actions: boolean; bind: boolean }> {
+  const ref = layoutDataTarget(form.layout)
+  if (!ref) return { label: '', description: null, actions: false, bind: false }
+  const target = await resolve(ctx, ref)
+  const label = ref.label ?? target.label
+  if (!target.describe) return { label, description: null, actions: false, bind: Boolean(target.bind) }
+  const db = await formTargetDeps.serviceDb(ctx)
+  let raw
+  try {
+    raw = await target.describe({ ctx: await formTargetDeps.context(ctx, ref, db), form: hookForm(form, ref) })
+  } catch (error) {
+    throw targetError(error, label)
+  }
+  return { label, description: normalizeTargetDescription(raw), actions: Boolean(target.runAction), bind: Boolean(target.bind) }
+}
+
+/**
+ * The designer changed the mapping / options or adds source fields: the
+ * provider returns the binding's new config (and new fields). Nothing is
+ * saved here — the designer puts the result in its state and the normal
+ * form save stores it. The binding must keep its identity (an update, never
+ * an unbind).
+ */
+export async function bindFormTarget(ctx: ServiceContext, form: TargetForm, input: { mappings?: Array<{ field: string; source: string | null }>; add?: string[]; options?: Record<string, string | boolean> }): Promise<{ layout: Record<string, unknown>; fields: TaskFieldDef[] }> {
+  const ref = layoutDataTarget(form.layout)
+  if (!ref) throw new ServiceError('validation_error', 'This form is not bound to an external record')
+  const target = await resolve(ctx, ref)
+  const label = ref.label ?? target.label
+  if (!target.bind) throw new ServiceError('validation_error', `${label}: the binding can't be changed here`)
+  if (target.bindPermission && !hasPerm(ctx, target.bindPermission)) throw ServiceError.forbidden(`Forbidden: changing the binding to ${label} needs the '${target.bindPermission}' permission`)
+  const db = await formTargetDeps.serviceDb(ctx)
+  let result
+  try {
+    result = await target.bind({
+      ctx: await formTargetDeps.context(ctx, ref, db), form: hookForm(form, ref),
+      mappings: (input.mappings ?? []).slice(0, SOURCE_LIMITS.fields).map((m) => ({ field: String(m.field), source: m.source === null ? null : String(m.source) })),
+      add: (input.add ?? []).slice(0, 50).map(String),
+      options: input.options ?? {},
+    })
+  } catch (error) {
+    throw targetError(error, label)
+  }
+  const next = normalizeDataTarget({ ...ref, config: result?.config ?? {} })
+  if (!next || !sameIdentity(target, ref, next)) throw new ServiceError('validation_error', `${label}: that change would connect the form to something else`)
+  const known = new Set(form.fields.map((f) => f.key))
+  const added = normalizeTaskFields(result?.fields ?? []).filter((f) => !known.has(f.key))
+  const layout = { ...(isPlainObject(form.layout) ? form.layout : {}), data_target: next }
+  return { layout, fields: added }
+}
+
+/** A description action (acts at once, as the person) on a saved form. */
+export async function runFormTargetAction(ctx: ServiceContext, form: TargetForm & { id: string }, action: string): Promise<{ message: string | null }> {
+  const ref = layoutDataTarget(form.layout)
+  if (!ref) throw new ServiceError('validation_error', 'This form is not bound to an external record')
+  const target = await resolve(ctx, ref)
+  const label = ref.label ?? target.label
+  if (!target.runAction) throw new ServiceError('validation_error', `${label} has no actions`)
+  const db = await formTargetDeps.serviceDb(ctx)
+  try {
+    const out = await target.runAction({ ctx: await formTargetDeps.context(ctx, ref, db), form: { ...hookForm(form, ref), id: form.id }, action: String(action).slice(0, 64) })
+    return { message: out?.message ? String(out.message).slice(0, 1000) : null }
+  } catch (error) {
+    throw targetError(error, label)
   }
 }

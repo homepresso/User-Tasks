@@ -23,7 +23,7 @@ export function StartPage({ email, next = null, redirect = null }: { email: stri
         <div aria-hidden="true" className="pointer-events-none absolute -right-40 bottom-0 size-[36rem] rounded-full bg-[radial-gradient(closest-side,rgba(139,124,246,0.18),transparent)]" />
         <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_1.1fr] lg:py-20">
           <section>
-            <p className="inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-white)/70 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)"><Sparkles size={13} aria-hidden="true" /> Free during the beta</p>
+            <p className="inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-white)/70 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)"><Sparkles size={13} aria-hidden="true" /> UserTasks Cloud beta · Free during the beta</p>
             <h1 className="mt-6 font-display text-display font-bold">Your workspace, <span className="mkt-gradient-text-ink">ready in a minute.</span></h1>
             <p className="mt-5 max-w-lg mkt-body text-(color:--mkt-text)">One form and you have your own isolated UserTasks workspace. Describe a process to the Agent, or start from a ready-made package.</p>
             <ul className="mt-8 space-y-3">

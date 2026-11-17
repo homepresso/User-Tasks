@@ -309,8 +309,19 @@ describe('compact widgets: collapsed / expanded', () => {
     const tall = base.map((i) => (i.id === 'chart.decisions' ? { ...i, h: 10 } : i))
     expect(displayItems(tall, new Set(['chart.decisions']), { 'chart.decisions': 200 })).toEqual(tall)
     expect(item({ items: displayItems(base, new Set(['chart.decisions']), { 'chart.decisions': 99_999 }), hidden: [] }, 'chart.decisions').h).toBe(MAX_ROWS)
-    // Only compact widgets expand.
-    expect(displayItems(base, new Set(['tasks']), { tasks: 2000 })).toEqual(base)
+    // Only compact widgets expand; the task list fits its content on its own (below).
+    const noTasks = (items: typeof base) => items.filter((i) => i.id !== 'tasks')
+    expect(noTasks(displayItems(base, new Set(['tasks']), { tasks: 2000 }))).toEqual(noTasks(base))
+  })
+
+  it('the task list fits its content: shrinks to its rows (never below minH) and grows with them (at most MAX_ROWS)', () => {
+    const def = HOME_WIDGETS.find((d) => d.id === 'tasks')!
+    const h = (px: number) => item({ items: displayItems(base, new Set(), { tasks: px }), hidden: [] }, 'tasks').h
+    expect(h(120)).toBe(def.minH) // one task: no empty space below, but not smaller than its minimum
+    expect(h(900)).toBe(rowsForHeight(900)) // more tasks: grows instead of scrolling
+    expect(h(99_999)).toBe(MAX_ROWS)
+    // Not measured yet: the saved size.
+    expect(item({ items: displayItems(base, new Set(), {}), hidden: [] }, 'tasks').h).toBe(item({ items: base, hidden: [] }, 'tasks').h)
   })
 
   it('remembers the expanded ones as a JSON list of compact widget ids', () => {

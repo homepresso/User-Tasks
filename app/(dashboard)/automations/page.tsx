@@ -38,7 +38,8 @@ export default function AutomationsPage() {
           <>
             {can('workflows.create') && <ImportConfigButton variant="outline" onImported={() => void queryClient.invalidateQueries({ queryKey: ["workflows"] })} />}
             {/* Importers contributed by extensions (e.g. SharePoint Designer 2010 workflows); nothing without any. */}
-            <ExtensionImportButton produces="workflow" onImported={() => void queryClient.invalidateQueries({ queryKey: ["workflows"] })} />
+            {/* + the core Nintex importer; ?import=nintex opens it (SharePoint dashboard links). */}
+            <Suspense fallback={null}><ExtensionImportButton produces="workflow" onImported={() => void queryClient.invalidateQueries({ queryKey: ["workflows"] })} /></Suspense>
             <Suspense fallback={null}><CreateWorkflowDialog /></Suspense>
           </>
         )}

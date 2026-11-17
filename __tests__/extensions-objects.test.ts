@@ -17,7 +17,7 @@ vi.mock('@/lib/providers/db', async (importOriginal) => ({
 import { defineExtension, defineServerExtension } from '@user-tasks/extension-sdk'
 import { registerExtensionsForTest, resetExtensionsForTest } from '@/lib/extensions/testing'
 import { createExtensionContext } from '@/lib/extensions/host'
-import { mergeManagedTags } from '@/lib/extensions/objects-host'
+import { mergeManagedTags, summaryTriggerConfig } from '@/lib/extensions/objects-host'
 import { returnToFrom } from '@/lib/navigation/return-to'
 import { createMemorySupabase } from './fixtures/supabase-memory'
 
@@ -75,6 +75,32 @@ describe('extension object management', () => {
     expect(await createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: [] }).workflows.list()).toEqual([])
   })
 
+  it('lists every workflow on its triggers: older rows with the settings only in trigger_config, drafts, duplicates', async () => {
+    const mem = seed()
+    const W4 = '0e000000-0000-4000-8000-0000000b0204'
+    const W5 = '0e000000-0000-4000-8000-0000000b0205'
+    mem.tables.workflows.push(
+      // Older storage: the trigger node has no config, the workflow row carries it.
+      { id: W4, tenant_id: TENANT, name: 'Mine', trigger_type: 'ext.acme.changed', trigger_config: { list: 'L1' }, nodes: [{ id: 'trigger', type: 'ext.acme.changed' }], is_active: false, published_version_id: null, tags: [], updated_at: '2026-11-13T09:00:00Z' },
+      // Same name (a duplicate), the node config wins over a stale row-level setting.
+      { id: W5, tenant_id: TENANT, name: 'Mine', trigger_type: 'ext.acme.changed', trigger_config: { list: 'OLD' }, nodes: [{ id: 'trigger', type: 'ext.acme.changed', config: { list: 'L1' } }], is_active: true, published_version_id: 'v5', tags: [], updated_at: '2026-11-12T09:00:00Z' },
+    )
+    const list = await createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: ['workflows.view'] }).workflows.list()
+    expect(list.map((w) => [w.id, w.config.list, w.status])).toEqual([[W1, 'L1', 'active'], [W4, 'L1', 'draft'], [W5, 'L1', 'active']])
+  })
+
+  it('pages past the data API row cap (1 000 a request)', async () => {
+    const mem = seed()
+    for (let i = 0; i < 1200; i++) mem.tables.workflows.push({ id: `0e000000-0000-4000-8000-${String(i).padStart(12, '0')}`, tenant_id: TENANT, name: `W${i}`, trigger_type: 'ext.acme.changed', nodes: [{ id: 'trigger', type: 'ext.acme.changed', config: { list: 'L2' } }], is_active: true, published_version_id: 'v', tags: [], updated_at: '2026-11-01T09:00:00Z' })
+    const list = await createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: ['workflows.view'] }).workflows.list()
+    expect(list).toHaveLength(1201)
+  })
+
+  it('summaryTriggerConfig: node config over the row-level trigger_config', () => {
+    expect(summaryTriggerConfig({ trigger_type: 't', trigger_config: { list: 'a', interval: 5 }, nodes: [{ type: 't', config: { list: 'b' } }] })).toEqual({ list: 'b', interval: 5 })
+    expect(summaryTriggerConfig({ trigger_type: 't', trigger_config: null, nodes: null })).toEqual({})
+  })
+
   it('lists the runs of its own triggers for one record (newest first), with the run link', async () => {
     seed()
     const ctx = createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: ['workflows.view'] })
@@ -83,6 +109,21 @@ describe('extension object management', () => {
     expect(runs[1]).toMatchObject({ workflowName: 'Mine', completedAt: '2026-11-14T10:00:05Z' })
     expect(await createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: [] }).workflows.runs({ match: { item_id: 7 } })).toEqual([])
     expect(await ctx.workflows.runs({ match: {} })).toEqual([])
+  })
+
+  it('definition / setTriggerConfig: only its own workflows; the trigger settings change in the draft as the person', async () => {
+    const mem = seed()
+    const viewer = createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: ['workflows.view'] })
+    const def = await viewer.workflows.definition(W1)
+    expect(def).toMatchObject({ id: W1, triggerNodeId: 'trigger', triggerConfig: { list: 'L1' }, published: true, active: true })
+    await expect(viewer.workflows.definition(W2)).rejects.toMatchObject({ status: 404 })
+    await expect(createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: [] }).workflows.definition(W1)).rejects.toMatchObject({ status: 403 })
+    await expect(viewer.workflows.setTriggerConfig(W1, { list: 'L1', events: ['created'] })).rejects.toMatchObject({ status: 403 })
+    await expect(viewer.workflows.setTriggerConfig(W2, {})).rejects.toMatchObject({ status: 404 })
+    const editor = createExtensionContext({ extensionId: 'acme', tenantId: TENANT, actorId: USER, permissions: ['workflows.view', 'workflows.edit'] })
+    await editor.workflows.setTriggerConfig(W1, { list: 'L1', events: ['created'] })
+    const row = mem.tables.workflows.find((w: any) => w.id === W1)
+    expect(row.nodes[0].config).toEqual({ list: 'L1', events: ['created'] })
   })
 
   it('refuses to manage other workflows and forms (404), and keeps people\'s own tags', async () => {

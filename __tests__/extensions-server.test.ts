@@ -199,6 +199,59 @@ describe('generic trigger API with dedupe', () => {
     vi.unstubAllEnvs()
   })
 
+  it('hand-start inputs: listed from the published version, validated server-side, passed as start variables', async () => {
+    const W = '0e000000-0000-4000-8000-0000000e0901'
+    const V = '0e000000-0000-4000-8000-0000000e0902'
+    const USER = '0e000000-0000-4000-8000-0000000e0903'
+    const vars = [
+      { id: 'a', name: 'amount', type: 'number', label: 'Amount', required: true, defaultValue: '' },
+      { id: 'b', name: 'urgent', type: 'boolean', defaultValue: 'false', description: 'Ask for a reply today' },
+      { id: 'c', name: 'due', type: 'string', format: 'date', defaultValue: '' },
+      { id: 'd', name: 'region', type: 'string', format: 'select', options: ['North', 'South'], defaultValue: 'North' },
+      { id: 'e', name: 'proof', type: 'array', format: 'attachments', defaultValue: '' },
+    ]
+    const mem = seed({
+      workflows: [{ ...workflow(W), user_variables: [{ id: 'x', name: 'draft_only', type: 'string', defaultValue: '' }], published_version_id: V }],
+      workflow_versions: [{ id: V, workflow_id: W, user_variables: vars, nodes: workflow(W).nodes }],
+      extension_trigger_dedupe: [],
+    })
+    const ctx = createExtensionContext({ extensionId: 'example-hello', tenantId: TENANT, actorId: USER, permissions: ['workflows.start'] } as any)
+    const inputs = await ctx.workflows.inputs(W)
+    expect(inputs.map((i) => [i.key, i.type, i.required, i.supported])).toEqual([['amount', 'number', true, true], ['urgent', 'boolean', false, true], ['due', 'date', false, true], ['region', 'select', false, true], ['proof', 'attachments', false, false]])
+    expect(inputs[1]).toMatchObject({ label: 'Urgent', default: false, help: 'Ask for a reply today' })
+    expect(inputs[3].options).toEqual([{ value: 'North', label: 'North' }, { value: 'South', label: 'South' }])
+    expect(await createExtensionContext({ extensionId: 'example-hello', tenantId: TENANT, actorId: USER, permissions: [] } as any).workflows.inputs(W)).toEqual([])
+
+    // Required, types and choices are checked; nothing starts on an error.
+    await expect(ctx.workflows.trigger('greeting_received', { greeting_name: 'Ada' }, { workflowId: W, byPerson: true })).rejects.toMatchObject({ status: 400, code: 'invalid_inputs', details: { fields: { amount: 'Amount is required' } } })
+    await expect(ctx.workflows.trigger('greeting_received', {}, { workflowId: W, byPerson: true, inputs: { amount: 'lots', region: 'East', due: '2026-02-30' } })).rejects.toMatchObject({ details: { fields: { amount: 'Amount must be a number', region: expect.stringMatching(/one of: North, South/), due: expect.stringMatching(/date/) } } })
+    await expect(ctx.workflows.trigger('greeting_received', {}, { workflowId: W, byPerson: true, inputs: { amount: 5, proof: ['f1'] } })).rejects.toMatchObject({ details: { fields: { proof: expect.stringMatching(/can't be given here/) } } })
+    expect(mem.rpcCalls).toHaveLength(0)
+
+    // Valid: coerced, only declared keys, a declared input wins over a payload field of the same name.
+    const r = await ctx.workflows.trigger('greeting_received', { greeting_name: 'Ada', amount: 'from-item' }, { workflowId: W, byPerson: true, inputs: { amount: '12.5', urgent: 'true', due: '2026-12-01', region: 'South', _version_id: 'forged', other: 'x' } })
+    expect(r.started).toBe(1)
+    const data = mem.rpcCalls[0].args.p_trigger_data
+    expect(data).toMatchObject({ greeting_name: 'Ada', amount: 12.5, urgent: true, due: '2026-12-01', region: 'South' })
+    expect(data).not.toHaveProperty('other')
+    expect(data._version_id).not.toBe('forged')
+    // Not one of its own workflows: 404; inputs without a workflow: 400.
+    await expect(ctx.workflows.inputs('0e000000-0000-4000-8000-0000000e0999')).rejects.toMatchObject({ status: 404 })
+    await expect(ctx.workflows.trigger('greeting_received', {}, { inputs: { amount: 1 } })).rejects.toMatchObject({ status: 400 })
+  })
+
+  it('the engine receives the start inputs as run variables (queued job → executeWorkflow)', async () => {
+    const { runJob } = await import('@/lib/workflow-queue-processor')
+    const engine = await import('@/lib/workflow-engine')
+    const spy = vi.spyOn(engine, 'executeWorkflow').mockResolvedValue({ status: 'completed', run_id: 'r1', node_results: {} } as any)
+    const job: any = { id: 'j1', workflow_id: 'w1', tenant_id: TENANT, task_id: null, trigger_type: 'ext.example-hello.greeting_received', trigger_data: { greeting_name: 'Ada', amount: 12.5, urgent: true, _version_id: 'v1' }, attempts: 0, max_attempts: 3 }
+    await runJob(db.current ?? seed(), job).catch(() => undefined)
+    expect(spy).toHaveBeenCalled()
+    expect(spy.mock.calls[0][3]).toMatchObject({ greeting_name: 'Ada', amount: 12.5, urgent: true })
+    expect(spy.mock.calls[0][3]).not.toHaveProperty('_version_id')
+    spy.mockRestore()
+  })
+
   it('rejects unknown triggers', async () => {
     seed()
     await expect(startExtensionTrigger({ tenantId: TENANT, extensionId: 'example-hello', key: 'nope', payload: {} })).rejects.toThrow(/no trigger/)
@@ -339,6 +392,19 @@ describe('jobs and event subscriptions', () => {
     const result = await digest.run({ supabase: mem, minute: new Date(), deadline: Date.now() + 5000, probe: async () => ({}) }) as any
     expect(result[TENANT]).toEqual({ count: 1 })
     expect(mem.tables.event_stream.at(-1)).toMatchObject({ type: 'ext.example_hello.digest.ready' })
+  })
+
+  it('skips unlicensed workspaces, except jobs marked runWhenUnlicensed (licence-lapse housekeeping)', async () => {
+    const mem = seed()
+    const ran: string[] = []
+    registerExtensionsForTest({ definitions: [exampleDefinition], servers: [{ ...exampleServer, jobs: [
+      { name: 'normal', cadence: { every: 5 }, run: async ({ ctx }) => { ran.push(`normal:${ctx.tenantId}`) } },
+      { name: 'lapse', cadence: { every: 5 }, runWhenUnlicensed: true, run: async ({ ctx }) => { ran.push(`lapse:${ctx.tenantId}`) } },
+    ] }] })
+    setEntitlementPort({ check: async () => ({ allowed: false, state: 'expired', reason: 'Trial ended' }) })
+    const jobs = extensionJobDefinitions()
+    for (const job of jobs.filter((j) => j.name.startsWith('ext.'))) await job.run({ supabase: mem, minute: new Date(), deadline: Date.now() + 5000, probe: async () => ({}) })
+    expect(ran).toEqual([`lapse:${TENANT}`])
   })
 
   it('delivers outbox events after the cursor to subscribers of enabled workspaces', async () => {

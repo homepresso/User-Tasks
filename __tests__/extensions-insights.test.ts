@@ -19,7 +19,7 @@ vi.mock('@/lib/providers/db', async (importOriginal) => ({
 import { defineExtension, defineServerExtension } from '@user-tasks/extension-sdk'
 import { registerExtensionsForTest, resetExtensionsForTest } from '@/lib/extensions/testing'
 import { createExtensionContext } from '@/lib/extensions/host'
-import { aggregateRuns, percentileCont, period, runGroup } from '@/lib/extensions/insights-host'
+import { aggregateRuns, clearStatsCache, percentileCont, period, runGroup } from '@/lib/extensions/insights-host'
 import { createMemorySupabase } from './fixtures/supabase-memory'
 
 const TENANT = '0e000000-0000-4000-8000-0000000c0001'
@@ -110,6 +110,7 @@ const ctxFor = (permissions: string[] | null, actorId: string | null = ANA) => c
 
 describe('ctx.workflows.history', () => {
   beforeEach(() => {
+    clearStatsCache()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(NOW)
     registerExtensionsForTest({ definitions: [defineExtension({ manifest })], servers: [defineServerExtension({ id: 'acme', triggers: { changed: { matches: () => true } } })] })
@@ -178,6 +179,26 @@ describe('ctx.workflows.history', () => {
     expect(await ctxFor([]).workflows.waiting()).toMatchObject({ total: 0, steps: [] })
   })
 
+  it('keyset paging (cursor) walks every run once, newest first; counts are capped; a bad cursor is ignored', async () => {
+    seed()
+    const ctx = ctxFor(['workflows.view', 'workflows.view_runs'])
+    const seenIds: string[] = []
+    let r = await ctx.workflows.history({ status: ['completed', 'failed', 'running', 'waiting'], limit: 3 })
+    seenIds.push(...r.runs.filter((x) => x.runId).map((x) => x.runId!))
+    while (r.nextCursor) {
+      r = await ctx.workflows.history({ status: ['completed', 'failed', 'running', 'waiting'], limit: 3, cursor: r.nextCursor })
+      seenIds.push(...r.runs.map((x) => x.runId!))
+    }
+    expect(seenIds).toEqual([run(9), run(3), run(1), run(2), run(4), run(5), run(6), run(10)])
+    expect(new Set(seenIds).size).toBe(seenIds.length)
+    expect(r).toMatchObject({ totalCapped: false, nextCursor: null })
+    expect((await ctx.workflows.history({ cursor: 'not-a-cursor', limit: 2 })).runs[0].runId).toBeNull() // first page (queued first)
+    const { encodeCursor, decodeCursor, COUNT_CAP } = await import('@/lib/extensions/insights-host')
+    expect(decodeCursor(encodeCursor('2026-11-14T10:00:00Z', run(1)))).toEqual({ t: '2026-11-14T10:00:00Z', id: run(1) })
+    expect(decodeCursor(Buffer.from(JSON.stringify({ t: 'x', id: run(1) })).toString('base64url'))).toBeNull()
+    expect(COUNT_CAP).toBe(10_000)
+  })
+
   it('cancelRun / retryRun act only on its own runs, with the right permissions', async () => {
     const mem = seed()
     mem.rpc = vi.fn(async () => ({ data: null, error: null }))
@@ -217,6 +238,7 @@ describe('ctx.workflows.history', () => {
 
 describe('ctx.workflows.stats and ctx.forms.submissionStats', () => {
   beforeEach(() => {
+    clearStatsCache()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(NOW)
     registerExtensionsForTest({ definitions: [defineExtension({ manifest })], servers: [defineServerExtension({ id: 'acme', triggers: { changed: { matches: () => true } } })] })
@@ -250,10 +272,26 @@ describe('ctx.workflows.stats and ctx.forms.submissionStats', () => {
     expect(s.workflows).toHaveLength(1)
     expect(s.workflows[0]).toMatchObject({ started: 5, successRate: 0.8, avgMs: 1234, waiting: 2 })
     expect(s.workflows[0].perDay.at(-1)?.started).toBe(5)
+    clearStatsCache()
     mem.rpc = vi.fn(async () => ({ data: null, error: { code: 'PGRST202', message: 'Could not find the function public.workflow_run_stats' } }))
     expect((await ctxFor(['workflows.view']).workflows.stats({ days: 7 })).totals.started).toBe(6)
+    clearStatsCache()
     mem.rpc = vi.fn(async () => ({ data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } }))
     await expect(ctxFor(['workflows.view']).workflows.stats({ days: 7 })).rejects.toThrow(/statement timeout/)
+  })
+
+  it('statistics are cached for 30 seconds per workspace, workflows and period', async () => {
+    const mem = seed()
+    mem.rpc = vi.fn(async () => ({ data: { workflows: [], total: { started: 1, per_day: [] } }, error: null }))
+    const ctx = ctxFor(['workflows.view'])
+    await ctx.workflows.stats({ days: 7 })
+    await ctx.workflows.stats({ days: 7 })
+    expect(mem.rpc).toHaveBeenCalledTimes(1)
+    await ctx.workflows.stats({ days: 30 })
+    expect(mem.rpc).toHaveBeenCalledTimes(2)
+    vi.setSystemTime(new Date(NOW.getTime() + 31_000))
+    await ctx.workflows.stats({ days: 7 })
+    expect(mem.rpc).toHaveBeenCalledTimes(3)
   })
 
   it('counts submissions of its own bound forms per day (never values), last submission any time; forms.view needed', async () => {

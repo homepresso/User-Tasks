@@ -3,6 +3,8 @@
 import { formAnimation } from '@/lib/forms/motion'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { serverRead } from '@/lib/server-read'
 import * as Dialog from '@radix-ui/react-dialog'
 import { AlertTriangle, ArrowLeft, CheckCircle, ChevronRight, ExternalLink, Eye, Info, LayoutList, Library, Maximize2, Minimize2, Monitor, Moon, MoreHorizontal, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pencil, Redo2, RotateCcw, Save, SlidersHorizontal, Smartphone, Sun, Undo2, X } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -21,7 +23,7 @@ import { FormLookupProvider } from '@/components/forms/lookup-field'
 import { useWorkspaceTheme } from '@/components/providers/theme-provider'
 import { formDefinitionKey, type FormDefinition } from '@/lib/forms/definition'
 import {
-  addField, addSection, convertHeadingToSection, designerFieldPath, scopedView, withScopedView, definitionFrom, deletePage, designerProblems, designerRuleProblems, designerSectionProblems, designerStateFrom, duplicateField, duplicatePage, keyRenames, onPage, removeField, updateField,
+  addBoundFields, withSourceBinding, addField, addSection, convertHeadingToSection, designerFieldPath, scopedView, withScopedView, definitionFrom, deletePage, designerProblems, designerRuleProblems, designerSectionProblems, designerStateFrom, duplicateField, duplicatePage, keyRenames, onPage, removeField, updateField,
   type DesignerState,
 } from '@/lib/forms/designer-state'
 import { allRows, isPaged, pageGrid } from '@/lib/forms/layout'
@@ -44,12 +46,13 @@ import { CustomControlsPalette } from './custom-controls-palette'
 import { FieldProperties } from './field-properties'
 import { FormSettings } from './form-settings'
 import { DesignerPreviewValuesProvider } from './designer-preview-context'
-import { DesignerVariableScope } from './designer-variable-scope'
+import { DesignerVariableScope, DesignerWorkflowDataProvider } from './designer-variable-scope'
 import { PreviewTestInputsPanel } from './preview-test-inputs'
 import { EMPTY_PREVIEW_INPUTS, normalizePreviewInputs, previewInputsStorageKey, previewSeed, previewShownValues, type PreviewTestInputs } from '@/lib/forms/preview-inputs'
 import { FORM_VARS_KEY, formUrlWithParams, layoutFormParams, setVariables, withFormContext } from '@/lib/forms/form-params'
 import { publicFormPageUrl } from '@/lib/forms/form-page-url'
 import { FormButtonBar, FormHeaderBlock, FormMessages, FormSuccessScreen } from '@/components/forms/form-shell'
+import { CanvasButtonBar } from './canvas-button-bar'
 import { buttonProblems, planButtonEffects, type ButtonEffects } from '@/lib/forms/buttons'
 import { applySubmittedPage, freshSubmissionValues } from '@/lib/forms/submitted-page'
 import { submitPathProblem } from '@/lib/forms/form-state'
@@ -67,6 +70,11 @@ import { useLeaveGuard } from '@/hooks/use-leave-guard'
 import { useEmbedNavigation } from '@/lib/embed/navigation'
 import { plural } from '@/lib/format/plural'
 import { AccessibilityPanel, AccessibilitySaveCheck, useFormAccessibility } from './accessibility-panel'
+import { BoundToProperty, DataBindingSettings, DataSourcePanel, sourceMapping, useFormSource } from './data-binding-panel'
+import { bindFormSource } from '@/app/actions/forms'
+import { renameBindingKey } from '@/lib/forms/data-binding'
+import { fieldFromEntry, previewSamples, tokenLabels, withSaveTargetValue, type WorkflowDataEntry, type WorkflowDataMode } from '@/lib/forms/workflow-data'
+import { WORKFLOW_DATA_DRAG_PREFIX, WorkflowDataPanel, WorkflowDataProperty, type WorkflowDataContext } from './workflow-data-panel'
 
 /**
  * The form designer: palette (left) → grid (centre) → properties of the
@@ -180,6 +188,12 @@ export interface FormDesignerDialogProps {
    * form page link.
    */
   formId?: string
+  /**
+   * The workflow step this form is designed for (a User Task's "Design form",
+   * or the form page opened with ?workflow=&step=): the data in scope there
+   * as "Workflow data" in the Data panel (lib/forms/workflow-data.ts).
+   */
+  workflowData?: WorkflowDataContext
 }
 
 export interface FormDesignerProps extends Omit<FormDesignerDialogProps, 'open'> {
@@ -216,7 +230,7 @@ const subscribeNever = () => () => {}
  * checks and saving — in a dialog or page frame (see the file comment).
  * Mount it per form (a `key`): the history starts from `initial`.
  */
-export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle, badge, initial, actions, allowedTypes = TASK_FIELD_TYPES, savedThemes, canSaveTheme, onSaveTheme, findReferences, saveAsReusable, hideTheme, formSettings = {}, pageOptions = {}, formId }: FormDesignerProps) {
+export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle, badge, initial, actions, allowedTypes = TASK_FIELD_TYPES, savedThemes, canSaveTheme, onSaveTheme, findReferences, saveAsReusable, hideTheme, formSettings = {}, pageOptions = {}, formId, workflowData }: FormDesignerProps) {
   const isPage = chrome === 'page'
   const readOnly = Boolean(isPage && page?.readOnly)
   const start = useMemo(() => designerStateFrom(initial), [initial])
@@ -229,6 +243,8 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
   const history = useHistory<DesignerState>(start)
   const state = history.state
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // The bar button picked on the canvas (its editor in the Header tab is highlighted).
+  const [selectedButton, setSelectedButton] = useState<string | null>(null)
   // 'field' | 'section' | 'page' | 'form' | 'rules' | 'data' | 'theme' | 'a11y', or one of the page's extra tabs.
   const [tab, setTab] = useState<string>('field')
   const [selectedSection, setSelectedSection] = useState<string | null>(null)
@@ -260,8 +276,12 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
   // The Agent: the dialog hosts its panel (DialogAgentDock; a modal makes the shell's inert), the page has the
   // shell's docked panel beside it; for a saved form, either is the open item.
   const agentSummary = useMemo(() => {
-    const lines = state.fields.slice(0, 80).map((f) => `${f.key} (${f.type}${f.required ? ', required' : ''}): ${String(f.label ?? '').slice(0, 60)}`)
-    return `${state.fields.length} field${state.fields.length === 1 ? '' : 's'}${isPaged(state.layout) ? ` on ${state.layout.pages.length} pages` : ''}:\n${lines.join('\n')}`.slice(0, 4_000)
+    const layout = state.layout as { data_target?: { label?: string; extension?: string }; data_binding?: { kind: string; label?: string; fields: Record<string, string> } }
+    const bound = layout.data_binding?.fields ?? {}
+    const lines = state.fields.slice(0, 80).map((f) => `${f.key} (${f.type}${f.required ? ', required' : ''}${bound[f.key] ? `, bound to ${bound[f.key]}` : ''}): ${String(f.label ?? '').slice(0, 60)}`)
+    const sourceLine = layout.data_target ? `Data binding: bound to ${layout.data_target.label ?? layout.data_target.extension} (extension target; fields map inside its config)\n`
+      : layout.data_binding ? `Data binding: ${layout.data_binding.kind} "${layout.data_binding.label ?? ''}" (layout.data_binding.fields maps field keys to source fields)\n` : ''
+    return `${sourceLine}${state.fields.length} field${state.fields.length === 1 ? '' : 's'}${isPaged(state.layout) ? ` on ${state.layout.pages.length} pages` : ''}:\n${lines.join('\n')}`.slice(0, 4_000)
   }, [state.fields, state.layout])
   useDesignerContext(formId ? { area: 'form', item_id: formId, item_name: title, dirty, summary: agentSummary } : null)
   const problems = useMemo(() => designerProblems(state), [state])
@@ -277,7 +297,9 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
     : themeRef.source === 'saved' ? (savedThemes.find((t) => t.id === themeRef.theme_id)?.overrides ?? null) : null
   const previewCanvas = useFormPageCanvas(themeOverrides, previewMode)
   const themeBlocking = state.theme.source === 'custom' ? blockingFormThemeIssues(state.theme.overrides) : []
-  const buttonIssues = useMemo(() => (formSettings === false ? {} : buttonProblems(state.buttons, { outcomes: formSettings.outcomes, policy: { appOrigin: typeof window !== 'undefined' ? window.location.origin : null }, editableTables: new Set(state.fields.filter((f) => f.type === 'data_table' && f.data_table?.mode === 'edit').map((f) => f.key)) })), [state.buttons, state.fields, formSettings])
+  // Addresses outside the app that redirects may go to (FORM_REDIRECT_ALLOWLIST): judged like the server does.
+  const { data: redirectHosts } = useQuery({ queryKey: ['form-redirect-hosts'], staleTime: 300_000, enabled: formSettings !== false, queryFn: async () => (await serverRead('forms.redirectHosts')).data?.allowedHosts ?? [] })
+  const buttonIssues = useMemo(() => (formSettings === false ? {} : buttonProblems(state.buttons, { outcomes: formSettings.outcomes, policy: { appOrigin: typeof window !== 'undefined' ? window.location.origin : null, allowedHosts: redirectHosts ?? [] }, editableTables: new Set(state.fields.filter((f) => f.type === 'data_table' && f.data_table?.mode === 'edit').map((f) => f.key)) })), [state.buttons, state.fields, formSettings, redirectHosts])
   const ruleIssues = useMemo(() => designerRuleProblems(state), [state])
   const sectionIssues = useMemo(() => designerSectionProblems(state), [state])
   const sectionDef = (state.layout.sections ?? []).find((s) => s.key === selectedSection) ?? null
@@ -292,6 +314,13 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
   const a11y = useFormAccessibility(definition, themeOverrides, formSettings !== false && formSettings.showDraft ? 'task' : undefined)
   // A task form in Application mode with no in-form Submit (completed from the task header only).
   const noSubmit = formSettings !== false && formSettings.showDraft ? submitPathProblem(definition.fields, definition.layout, 'task') : null
+  // Data binding: the bound source's fields (the Data panel), the mapping, and bind (drag / add / Bound to).
+  const sourceQuery = useFormSource({ formId, name: title, definition })
+  const source = sourceQuery.data
+  const sourceMap = useMemo(() => sourceMapping(state, source), [state, source])
+  const [bindBusy, setBindBusy] = useState(false)
+  const [sidePanel, setSidePanel] = useState<'outline' | 'data'>('outline')
+  const sourceBound = Boolean((state.layout as { data_target?: unknown; data_binding?: unknown }).data_target || (state.layout as { data_binding?: unknown }).data_binding)
 
   // Preview test inputs: parameter values (as if the form were opened with them) and variable overrides.
   const inputsKey = previewInputsStorageKey(formId ?? `title:${title}`)
@@ -305,7 +334,11 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
       else window.localStorage.removeItem(inputsKey)
     } catch { /* storage unavailable */ }
   }, [inputsKey, testInputs])
-  const seed = useMemo(() => previewSeed(definition.fields, definition.layout, testInputs), [definition.fields, definition.layout, testInputs])
+  // Workflow data: tokens read as labels on the canvas, and show sample values in Preview (WYSIWYG).
+  const wfEntries = workflowData?.scope?.entries
+  const wfLabels = useMemo(() => tokenLabels(wfEntries ?? []), [wfEntries])
+  const wfSamples = useMemo(() => previewSamples(wfEntries ?? []), [wfEntries])
+  const seed = useMemo(() => previewSeed(definition.fields, definition.layout, testInputs, wfSamples), [definition.fields, definition.layout, testInputs, wfSamples])
   const [previewValues, setPreviewValues] = useState<Record<string, unknown>>(() => seed.initialValues)
   const [previewErrors, setPreviewErrors] = useState<Record<string, string>>({})
   const shownValues = useMemo(() => previewShownValues(seed, previewValues), [seed, previewValues])
@@ -424,6 +457,74 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
     requestAnimationFrame(() => document.getElementById(`form-cell-${field._id}`)?.focus())
   }
 
+  /**
+   * Data binding: add source fields (dropped on the grid / a section / a
+   * page chip, clicked in the Data panel) or change a field's binding — the
+   * server binds (the provider's hook, or core's for tables / references)
+   * and the result goes into the designer's state (saved with the form).
+   */
+  async function bindSource(input: { add?: string[]; mappings?: Array<{ field: string; source: string | null }> }, place: { at?: { row: number; index: number } | null; pageId?: string | null; section?: string } = {}, base: DesignerState = state) {
+    if (bindBusy || readOnly) return
+    setBindBusy(true)
+    const baseDef = base === state ? definition : definitionFrom(base)
+    const result = await bindFormSource(formId ?? null, { name: title, fields: baseDef.fields, layout: (baseDef.layout ?? {}) as Record<string, unknown>, ...input })
+    setBindBusy(false)
+    if (!result.ok) { setError(result.error); setAnnouncement(result.error); return }
+    let next = withSourceBinding(base, result.data.layout)
+    const label = source?.label || 'the data source'
+    if (!result.data.fields.length) {
+      change(next, 'data-binding')
+      setAnnouncement(input.add?.length ? 'Already on the form' : input.mappings?.[0]?.source ? `Bound to ${source?.description?.sourceFields.find((f) => f.key === input.mappings?.[0]?.source)?.label ?? input.mappings[0].source}` : 'Binding cleared')
+      return
+    }
+    const added = addBoundFields(next, result.data.fields, { at: place.at ?? undefined, pageId: place.pageId ?? activeId, section: place.section })
+    next = added.state
+    const nextBinding = (next.layout as { data_binding?: Parameters<typeof renameBindingKey>[0] }).data_binding
+    if (nextBinding && Object.keys(added.renamed).length) {
+      let b = nextBinding
+      for (const [from, to] of Object.entries(added.renamed)) b = renameBindingKey(b, from, to)
+      next = { ...next, layout: { ...next.layout, data_binding: b } }
+    }
+    change(next, 'data-binding')
+    const first = added.fields[0]
+    setSelectedId(first._id); setSelectedSection(null); setTab('field')
+    setAnnouncement(added.fields.length === 1 ? `${first.label || first.key} added, bound to ${label}` : `${added.fields.length} fields added, bound to ${label}`)
+    requestAnimationFrame(() => document.getElementById(`form-cell-${first._id}`)?.focus())
+  }
+
+  /**
+   * Workflow data dropped on the grid / a section / a page chip, or clicked
+   * in the panel: a field of the entry's type and label, bound by its mode
+   * (lib/forms/workflow-data.ts). A list column prefilled on a form whose
+   * Save rule writes the record maps back to the same column.
+   */
+  function addWorkflowData(entry: WorkflowDataEntry, mode: WorkflowDataMode, place: { at?: { row: number; index: number } | null; pageId?: string | null; section?: string } = {}) {
+    if (readOnly) return
+    const added = addBoundFields(state, [fieldFromEntry(entry, mode)], { at: place.at ?? undefined, pageId: place.pageId ?? activeId, section: place.section })
+    let next = added.state
+    const field = added.fields[0]
+    if (mode === 'prefill' && entry.column) {
+      const mapped = withSaveTargetValue(next.buttons, entry.column, field.key)
+      if (mapped.changed) next = { ...next, buttons: mapped.buttons }
+    }
+    change(next, 'workflow-data')
+    setSelectedId(field._id); setSelectedSection(null); setTab('field')
+    setAnnouncement(`${field.label || field.key} added${mode === 'empty' ? '' : mode === 'read_only' ? ', read only' : ', prefilled'} from ${entry.group === 'list' ? 'the list item' : entry.source}`)
+    requestAnimationFrame(() => document.getElementById(`form-cell-${field._id}`)?.focus())
+  }
+
+  /** A drop from the Data panel: workflow data (`wfd:<path>::<mode>`) or a bound source's field. */
+  function dropData(key: string, place: { at?: { row: number; index: number } | null; pageId?: string | null; section?: string }) {
+    if (key.startsWith(WORKFLOW_DATA_DRAG_PREFIX)) {
+      const [path, mode] = key.slice(WORKFLOW_DATA_DRAG_PREFIX.length).split('::')
+      const entry = wfEntries?.find((e) => e.id === path)
+      if (entry) addWorkflowData(entry, (['prefill', 'read_only', 'empty'].includes(mode) ? mode : 'prefill') as WorkflowDataMode, place)
+      return
+    }
+    if (source?.bind) void bindSource({ add: [key] }, place)
+  }
+  const acceptsDrops = Boolean((source?.bind || wfEntries?.length) && !readOnly)
+
   async function runAction(action: DesignerAction, updateReferences: boolean) {
     await actionGuard.run(async () => {
       setBusy(action.id)
@@ -459,6 +560,45 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
 
   const pageApi: DesignerPageApi = { dirty, setTab, setView }
   const extraTab = isPage ? page?.extraTabs?.find((t) => t.value === tab) ?? null : null
+
+  const workflowPanel = workflowData ? (
+    <WorkflowDataPanel data={workflowData} state={state} selectedId={selectedId} readOnly={readOnly} busy={bindBusy}
+      onAdd={(entry, mode) => addWorkflowData(entry, mode)}
+      onSelectField={(id) => {
+        const pageId = pages.find((p) => pageFieldKeys(p).includes(state.fields.find((f) => f._id === id)?.key ?? ''))?.id
+        if (pageId) setActivePage(pageId)
+        setSelectedId(id); setSelectedSection(null); setTab('field')
+        requestAnimationFrame(() => document.getElementById(`form-cell-${id}`)?.focus())
+      }}
+      onBulk={(plan) => {
+        let next = state
+        for (const { fieldKey, entry } of plan) {
+          const f = next.fields.find((x) => x.key === fieldKey)
+          if (f) next = updateField(next, f._id, { default: entry.token })
+        }
+        change(next, 'workflow-data-bulk')
+        setAnnouncement(`${plan.length} field${plan.length === 1 ? '' : 's'} prefilled from the list item`)
+      }} />
+  ) : null
+  const sourcePanel = (
+    <DataSourcePanel state={state} source={source} loading={sourceQuery.isLoading} error={sourceQuery.error ? (sourceQuery.error as Error).message : null}
+      mapping={sourceMap} selectedId={selectedId} busy={bindBusy} readOnly={readOnly}
+      onSelectField={(id) => {
+        const pageId = pages.find((p) => pageFieldKeys(p).includes(state.fields.find((f) => f._id === id)?.key ?? ''))?.id
+        if (pageId) setActivePage(pageId)
+        setSelectedId(id); setSelectedSection(null); setTab('field')
+        requestAnimationFrame(() => document.getElementById(`form-cell-${id}`)?.focus())
+      }}
+      onAdd={(keys) => void bindSource({ add: keys })}
+      onChooseSource={() => { setTab('data'); if (frame.propertiesCollapsed) frame.toggleProperties() }} />
+  )
+  // The Data panel: the step's workflow data first (when designing a task's form), then the bound source.
+  const dataPanel = workflowPanel ? (
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin" data-data-panels="">
+      {workflowPanel}
+      {sourceBound && <div className="border-t border-border-subtle pt-1">{sourcePanel}</div>}
+    </div>
+  ) : sourcePanel
 
   const paletteList = (<>
                 <div className="space-y-1.5 p-3 pb-2">
@@ -526,6 +666,7 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                   onChange={change}
                   onFieldAdded={(id) => { setSelectedId(id); setTab('field') }}
                   announce={setAnnouncement}
+                  onDropSource={acceptsDrops ? (key, pageId) => dropData(key, { pageId }) : undefined}
                 />
                 {activePageDef && (
                   <div className="mb-2 flex items-baseline gap-2 text-xs" data-active-page={activePageDef.id}>
@@ -544,7 +685,24 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                   sectionProblems={sectionIssues}
                   onChange={(next, tag) => change(onPage(state, activeId, () => next), tag)}
                   announce={setAnnouncement}
+                  onDropSource={acceptsDrops ? (key, at, section) => dropData(key, { at, pageId: activeId, section }) : undefined}
+                  tokenLabels={wfLabels}
                 />
+                {formSettings !== false && (
+                  <CanvasButtonBar
+                    buttons={state.buttons.filter((b) => formSettings.showDraft || b.kind !== 'draft')}
+                    placement={themeOverrides?.button_placement}
+                    sticky={themeOverrides?.button_sticky === true}
+                    selectedId={tab === 'form' ? selectedButton : null}
+                    onSelect={(id) => { setSelectedButton(id); setSelectedId(null); setSelectedSection(null); setTab('form') }}
+                    onReorder={(shown) => {
+                      // Draft buttons hidden from this form type keep their place at the end.
+                      const rest = state.buttons.filter((b) => !shown.some((x) => x.id === b.id))
+                      change({ ...state, buttons: [...shown, ...rest] }, undefined)
+                    }}
+                    announce={setAnnouncement}
+                  />
+                )}
               </>) : (
                 <div className="flex min-h-full flex-col">
                   <div className="mb-0 flex flex-wrap items-center gap-2 pb-3">
@@ -625,6 +783,8 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                           <FormButtonBar
                             buttons={state.buttons.filter((b) => formSettings.showDraft || b.kind !== 'draft')}
                             placement={themeOverrides?.button_placement}
+                            sticky={themeOverrides?.button_sticky === true}
+                            values={shownValues}
                             onClick={(button) => {
                               if (button.kind === 'cancel') { setPreviewValues(seed.initialValues); setPreviewErrors({}); setPreviewEffects(planButtonEffects(button, { values: shownValues }, { appOrigin: window.location.origin })); return }
                               if (button.kind !== 'draft') {
@@ -661,13 +821,15 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                   ...(activePageDef ? [{ value: 'page' as const, label: pageNoun }] : []),
                   ...(formSettings === false ? [] : [{ value: 'form' as const, label: 'Header' }]),
                   { value: 'rules', label: 'Rules', count: ruleCount, problem: Object.keys(ruleIssues).length > 0, srLabel: `Rules, ${ruleCount} rule${ruleCount === 1 ? '' : 's'}${Object.keys(ruleIssues).length ? ', with problems' : ''}` },
-                  { value: 'data', label: 'Data', count: contextCount },
+                  { value: 'data', label: 'Data', count: contextCount + (sourceBound ? 1 : 0) },
                   ...(hideTheme ? [] : [{ value: 'theme' as const, label: 'Theme' }]),
                   { value: 'a11y', label: 'Checks', score: a11y.result.score, srLabel: `Accessibility, score ${a11y.result.score} of 100` },
                   ...(isPage ? (page?.extraTabs ?? []).map((t) => ({ value: t.value, label: t.label })) : []),
                 ]}
               />
               {/* Every variable input in the panel gets the form's variables (rules, buttons, tables… set narrower scopes). */}
+              {/* Designed from a workflow step: every picker also offers the step's workflow data (lib/forms/workflow-data.ts). */}
+              <DesignerWorkflowDataProvider value={wfEntries ?? null}>
               <DesignerPreviewValuesProvider value={shownValues}>
               <DesignerVariableScope state={state} context={{ kind: 'header' }}>
               <div className="min-h-0 flex-1 overflow-y-auto p-3 scrollbar-thin" id={`designer-panel-${tab}`}>
@@ -718,12 +880,15 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                     <RulesPanel state={state} onChange={(next, tag) => change(next, tag)} />
                   </DesignerPreviewValuesProvider>
                 ) : tab === 'data' ? (
-                  <FormContextPanel state={state} onChange={(next, tag) => change(next, tag)} />
+                  <div className="space-y-3">
+                    <DataBindingSettings state={state} source={source} readOnly={readOnly} onChange={(next, tag) => { change(next, tag); setSidePanel('data') }} />
+                    <FormContextPanel state={state} onChange={(next, tag) => change(next, tag)} />
+                  </div>
                 ) : tab === 'theme' && !hideTheme ? (
                   <ThemeEditor value={state.theme} onChange={(theme) => change({ ...state, theme }, 'theme')} savedThemes={savedThemes} canSaveTheme={canSaveTheme} onSaveTheme={onSaveTheme} formHeaderOn={formSettings !== false && state.header.enabled} />
                 ) : tab === 'form' && formSettings !== false ? (
                   <DesignerPreviewValuesProvider value={shownValues}>
-                    <FormSettings state={state} onChange={(next, tag) => change(next, tag)} outcomes={formSettings.outcomes} showDraft={formSettings.showDraft} problems={buttonIssues} />
+                    <FormSettings state={state} onChange={(next, tag) => change(next, tag)} outcomes={formSettings.outcomes} showDraft={formSettings.showDraft} problems={buttonIssues} formId={formId} selectedButton={selectedButton} />
                   </DesignerPreviewValuesProvider>
                 ) : selected ? (
                   <DesignerPreviewValuesProvider value={shownValues}>
@@ -736,6 +901,18 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                     onChangeState={(next) => change(selectedPath?.length ? withScopedView(state, selectedPath, next) : next)}
                     onRemove={() => { change(inScope((view) => removeField(view, selected._id))); setSelectedId(null) }}
                     onDuplicate={() => { const view = selectedView ?? state; const r = duplicateField(view, selected._id); if (r) { change(selectedPath?.length ? withScopedView(state, selectedPath, r.state) : r.state); setSelectedId(r.field._id) } }}
+                    binding={(source || wfEntries?.length) && !selectedPath?.length && !['heading', 'divider', 'button', 'display_image'].includes(selected.type) ? (<>
+                      {workflowData && wfEntries?.length ? <WorkflowDataProperty field={selected} data={workflowData} readOnly={readOnly} onPatch={(patch, tag) => change(updateField(state, selected._id, patch), tag)} /> : null}
+                      {source && <BoundToProperty field={selected} source={source} mapping={sourceMap} busy={bindBusy} readOnly={readOnly}
+                        onBind={(key) => {
+                          // An Autocomplete bound to a lookup column: it searches the column's list (the provider's lookup source).
+                          const ls = key ? source.description?.sourceFields.find((f) => f.key === key)?.lookupSource : null
+                          const base = ls && selected.type === 'lookup' && !(selected.lookup?.source === 'extension' && selected.lookup.source_id)
+                            ? updateField(state, selected._id, { lookup: { ...(selected.lookup ?? {}), source: 'extension', extension: ls.extension, provider: ls.provider, source_id: ls.source, source_label: source.description?.sourceFields.find((f) => f.key === key)?.label, value_column: ls.value_field ?? 'id', ...(ls.label_field ? { display_columns: [ls.label_field], search_columns: [ls.label_field] } : {}) } })
+                            : state
+                          void bindSource({ mappings: [{ field: selected.key, source: key }] }, {}, base)
+                        }} />}
+                    </>) : undefined}
                     onConvertToSection={selected.type === 'heading' && !selectedPath?.length ? () => {
                       const r = convertHeadingToSection(state, selected._id)
                       if (!r) return
@@ -756,6 +933,7 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
               </div>
               </DesignerVariableScope>
               </DesignerPreviewValuesProvider>
+              </DesignerWorkflowDataProvider>
   </>)
 
   const overlayContent = (<>
@@ -954,6 +1132,7 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
             <aside className="flex w-60 shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-panel" aria-label="Field palette">
               <div className="flex min-h-0 flex-1 flex-col">{paletteList}</div>
               <DesignerOutline state={state} pages={pages} pageNoun={pageNoun} activePage={activeId} selectedId={selectedId} selectedSection={selectedSection}
+                panel={sidePanel} onPanel={setSidePanel} dataCount={source?.description?.sourceFields.length != null || wfEntries ? (source?.description?.sourceFields.length ?? 0) + (wfEntries?.length ?? 0) : null} dataContent={dataPanel}
                 onSelectField={(id, pageId) => {
                   if (pageId) setActivePage(pageId)
                   setSelectedId(id); setSelectedSection(null); setTab('field')
@@ -1070,7 +1249,13 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
             {/* Palette */}
             {view === 'design' && !frame.paletteCollapsed && (
               <aside className="flex w-52 shrink-0 flex-col border-r border-border-subtle bg-panel" aria-label="Field palette">
-                {paletteList}
+                <div className={cn('flex min-h-0 flex-col', sourceBound || workflowData ? 'flex-[1_1_55%]' : 'flex-1')}>{paletteList}</div>
+                {(sourceBound || workflowData) && (
+                  <section className="flex min-h-0 flex-[1_1_45%] flex-col border-t border-border-subtle" aria-label={workflowData ? 'Workflow data and data source fields' : 'Data source fields'}>
+                    <p className="px-3 pt-2 text-2xs font-semibold uppercase tracking-wide text-fg-muted">Data</p>
+                    {dataPanel}
+                  </section>
+                )}
               </aside>
             )}
 
@@ -1172,8 +1357,13 @@ function DesignerName({ name, onRename }: { name: string; onRename?: (name: stri
  * and fields in layout order; selecting one selects it on the canvas (and
  * opens its step).
  */
-function DesignerOutline({ state, pages, pageNoun, activePage, selectedId, selectedSection, onSelectField, onSelectSection, onSelectPage }: {
+function DesignerOutline({ state, pages, pageNoun, activePage, selectedId, selectedSection, onSelectField, onSelectSection, onSelectPage, panel = 'outline', onPanel, dataCount, dataContent }: {
   state: DesignerState
+  /** Outline or the Data panel (data binding: the bound source's fields). */
+  panel?: 'outline' | 'data'
+  onPanel?: (panel: 'outline' | 'data') => void
+  dataCount?: number | null
+  dataContent?: React.ReactNode
   pages: FormPage[]
   pageNoun: string
   activePage: string | null
@@ -1194,13 +1384,28 @@ function DesignerOutline({ state, pages, pageNoun, activePage, selectedId, selec
   const sections = state.layout.sections ?? []
   const item = 'flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-left text-xs hover:bg-subtle'
   return (
-    <div className={cn('flex min-h-0 flex-col border-t border-border-subtle', open && 'max-h-[45%]')} data-designer-outline="">
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="designer-outline"
-        className="flex shrink-0 items-center gap-1 px-3 py-2 text-left text-2xs font-semibold uppercase tracking-wide text-fg-muted hover:text-fg">
-        <ChevronRight size={12} className={cn('transition-transform', open && 'rotate-90')} aria-hidden />
-        Outline <span className="font-normal normal-case">· {plural(state.fields.length, 'field')}</span>
-      </button>
-      {open && <div id="designer-outline" className="min-h-0 overflow-y-auto px-2 pb-2 scrollbar-thin">
+    <div className={cn('flex min-h-0 flex-col border-t border-border-subtle', open && (panel === 'data' ? 'max-h-[60%] min-h-[40%]' : 'max-h-[45%]'))} data-designer-outline="">
+      <div className="flex shrink-0 items-center gap-1 px-2 py-1.5">
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls={panel === 'data' ? 'designer-data-panel' : 'designer-outline'}
+          aria-label={open ? 'Collapse the outline and data panel' : 'Expand the outline and data panel'} className="rounded p-0.5 text-fg-muted hover:text-fg">
+          <ChevronRight size={12} className={cn('transition-transform', open && 'rotate-90')} aria-hidden />
+        </button>
+        <div role="tablist" aria-label="Outline and data" className="flex min-w-0 items-center gap-0.5"
+          onKeyDown={(e) => { if (onPanel && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); const next = panel === 'outline' ? 'data' : 'outline'; onPanel(next); setOpen(true); requestAnimationFrame(() => document.getElementById(`designer-side-tab-${next}`)?.focus()) } }}>
+          {(['outline', 'data'] as const).map((p) => (
+            <button key={p} type="button" role="tab" id={`designer-side-tab-${p}`} aria-selected={panel === p} tabIndex={panel === p ? 0 : -1}
+              aria-controls={p === 'data' ? 'designer-data-panel' : 'designer-outline'}
+              onClick={() => { onPanel?.(p); setOpen(true) }} disabled={!onPanel && p === 'data'}
+              className={cn('rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wide', panel === p ? 'bg-subtle text-fg' : 'text-fg-muted hover:text-fg', !onPanel && p === 'data' && 'hidden')}
+              data-side-tab={p}>
+              {p === 'outline' ? 'Outline' : 'Data'}
+              <span className="ml-1 font-normal normal-case">{p === 'outline' ? `· ${plural(state.fields.length, 'field')}` : dataCount != null ? `· ${dataCount}` : ''}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      {open && panel === 'data' && <div id="designer-data-panel" role="tabpanel" aria-labelledby="designer-side-tab-data" className="flex min-h-0 flex-1 flex-col">{dataContent}</div>}
+      {open && panel === 'outline' && <div id="designer-outline" role="tabpanel" aria-labelledby="designer-side-tab-outline" className="min-h-0 overflow-y-auto px-2 pb-2 scrollbar-thin">
         {groups.map(({ page: pg, keys }) => (
           <div key={pg?.id ?? 'grid'} role="group" aria-label={pg ? `${pageNoun} ${pg.title || 'Untitled'}` : 'Fields'}>
             {pg && (

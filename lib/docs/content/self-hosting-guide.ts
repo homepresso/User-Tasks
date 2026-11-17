@@ -331,8 +331,12 @@ It's safe to run again: an existing install keeps its \`.env\`, secrets and data
 | \`--build\` | | builds the image locally if it can't be pulled |
 | \`--install-docker\` | | Linux: installs Docker Engine without asking |
 | \`--no-browser\` | \`USERTASKS_NO_BROWSER=1\` | opens the browser when it can |
+| \`--edition sharepoint\` | \`USERTASKS_EDITION\` | the public image; \`sharepoint\` installs the [SharePoint edition](/docs/self-hosting#editions) |
+| \`--licence usertasks.licence\` | \`USERTASKS_LICENCE_FILE\` | needed with \`--edition\`: your trial or purchased licence, checked with usertasks.com and installed for you |
+| \`--bundle <file>\` | | installs from an offline bundle ([air-gapped](/docs/self-hosting/air-gapped#sharepoint-edition)) |
+| \`--bundle-download\` | | makes an offline bundle here instead of installing (with \`--edition\`, \`--licence\`, optional \`--platform\`, \`--out\`) |
 
-Pass options after \`sh -s --\`. In PowerShell they're parameters (\`-Version\`, \`-Dir\`, \`-Port\`, \`-Url\`, \`-Preset\`, \`-Project\`, \`-NonInteractive\`, \`-Build\`, \`-NoBrowser\`):
+Pass options after \`sh -s --\`. In PowerShell they're parameters (\`-Version\`, \`-Dir\`, \`-Port\`, \`-Url\`, \`-Preset\`, \`-Project\`, \`-NonInteractive\`, \`-Build\`, \`-NoBrowser\`, \`-Edition\`, \`-Licence\`, \`-Bundle\`, \`-BundleDownload\`, \`-Platform\`, \`-Out\`):
 
 \`\`\`bash
 curl -fsSL https://usertasks.com/install.sh | sh -s -- --port 8080 --url https://tasks.example.com --non-interactive
@@ -910,10 +914,12 @@ Instance-wide sign-in options (for example \`AUTH_SSO_PROVIDERS\` for Keycloak o
 
 ## Instance administrators
 
-Workspace roles don't include the server's own settings. To let someone open **Settings → Infrastructure** (provider status, health checks and provider switches) and **Settings → Workspace DNS**, add them as an instance admin:
+Workspace roles don't include the server's own settings. To let someone open **Settings → Infrastructure** (provider status, health checks and provider switches), **Settings → Workspace DNS**, **Settings → Licence**, **Settings → Gallery review** and **Settings → Requests**, add them as an instance admin:
 
 - with \`INSTANCE_ADMIN_EMAILS=ops@example.com\` in the environment, or
 - with \`usertasks-admin instance-admins add ops@example.com\`.
+
+**Settings → Requests** lists what people send the team: contact messages, in-app feedback, docs feedback, beta signups and trial signups, with filters for kind and status (Open = new and in progress), search by name, email, company or title, and a detail panel to change the status, keep a note and reply by email. Every status change is recorded. A self-hosted server keeps these requests only with \`TEAM_REQUESTS_ENABLED=true\`.
 
 ## Next
 
@@ -1693,6 +1699,8 @@ usertasks upgrade
 6. **Rolls the code back** by itself if the new version doesn't become healthy: the previous version starts again on the newer (additive) schema, and it prints the backup to restore if you need the database exactly as before.
 
 It refuses to go to an older version unless you add \`--allow-downgrade\`. On Windows, the same in PowerShell: \`usertasks upgrade -To 0.2.0\`.
+
+**Editions** (the [SharePoint edition](/docs/self-hosting#editions)): before step 1 the licence is checked with usertasks.com (the licence installed in UserTasks, or \`--licence <file>\`); a lapsed licence stops the upgrade with the reason and changes nothing. \`--edition sharepoint\` switches a plain install to the SharePoint edition and \`--edition core\` back, keeping all data; \`--bundle <file>\` upgrades from an offline bundle.
 
 ### Laptop trial and Docker Compose (standalone)
 

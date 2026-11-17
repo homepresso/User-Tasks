@@ -50,7 +50,7 @@ export function boundForm(extensionId: string, row: Record<string, any>): BoundF
   const ref = layoutDataTarget(row.layout)
   if (!ref || ref.extension !== extensionId) return null
   return {
-    id: String(row.id), name: String(row.name), version: Number(row.version ?? 1), key: ref.key, config: ref.config, label: ref.label ?? null,
+    id: String(row.id), name: String(row.name), version: Number(row.version ?? 1), key: ref.key, config: ref.config, label: ref.label ?? null, writes: ref.writes ?? null,
     updatedAt: row.updated_at ? String(row.updated_at) : null, designerUrl: designerUrl(String(row.id)), pageUrl: formPageUrl(String(row.id)),
   }
 }
@@ -60,7 +60,7 @@ export function hostForms(host: HostForms): Pick<ExtensionContext['forms'], 'cre
     async create(input: FormCreateInput) {
       const { getServerExtension } = await import('./server-registry')
       if (!getServerExtension(host.extensionId)?.formTargets?.[input.target?.key ?? '']) throw new Error(`Form target "${input.target?.key}" is not declared by this extension (formTargets)`)
-      const layout = { ...(isPlainObject(input.layout) ? input.layout : {}), data_target: { extension: host.extensionId, key: input.target.key, config: input.target.config ?? {}, ...(input.target.label ? { label: input.target.label } : {}) } }
+      const layout = { ...(isPlainObject(input.layout) ? input.layout : {}), data_target: { extension: host.extensionId, key: input.target.key, config: input.target.config ?? {}, ...(input.target.label ? { label: input.target.label } : {}), ...(input.target.writes === 'rules' ? { writes: 'rules' } : {}) } }
       if (!Array.isArray((layout as Record<string, unknown>).rows) && !Array.isArray((layout as Record<string, unknown>).pages)) (layout as Record<string, unknown>).rows = []
       const { createForm } = await import('@/lib/services/forms')
       const row = await createForm(serviceContext(host), { name: input.name, description: input.description ?? null, fields: input.fields, layout, buttons: input.buttons ?? null } as any)
@@ -88,7 +88,7 @@ export function hostForms(host: HostForms): Pick<ExtensionContext['forms'], 'cre
       const current = data ? boundForm(host.extensionId, data) : null
       // Only forms bound to this extension (anything else reads as absent).
       if (!current) throw new Error('Form not found')
-      const binding = { extension: host.extensionId, key: current.key, config: input.target ? input.target.config : current.config, ...((input.target?.label ?? current.label) ? { label: input.target?.label ?? current.label } : {}) }
+      const binding = { extension: host.extensionId, key: current.key, config: input.target ? input.target.config : current.config, ...((input.target?.label ?? current.label) ? { label: input.target?.label ?? current.label } : {}), ...((input.target?.writes ?? current.writes) === 'rules' ? { writes: 'rules' as const } : {}) }
       const changesLayout = input.layout !== undefined || input.target !== undefined
       const baseLayout = input.layout !== undefined ? input.layout : (data as Record<string, any>).layout
       const layout = changesLayout ? { ...(isPlainObject(baseLayout) ? baseLayout : {}), data_target: binding } : undefined

@@ -53,3 +53,27 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'The import failed — try again' }, { status: 500, headers: NO_STORE })
   }
 }
+
+/**
+ * GET: the core Nintex importer's targets for "Where should this go?" (new,
+ * replace, and the targets of usable extensions with their fields); with
+ * ?workflow_id= also `bound`: the target that workflow is bound to.
+ */
+export async function GET(request: NextRequest, { params }: { params: Promise<{ importer: string }> }) {
+  try {
+    const { importer } = await params
+    if (decodeURIComponent(importer) !== 'nintex') throw ServiceError.notFound('This importer has no targets')
+    const ctx = await fromSession()
+    const { requireAny } = await import('@/lib/services/context')
+    requireAny(ctx, ['workflows.view', 'forms.view'])
+    const { boundNintexTarget, listNintexTargets } = await import('@/lib/importers/nintex/importer')
+    // ?workflow_id=…: the target that workflow is bound to (the designer's "Connect to this list").
+    const workflowId = request.nextUrl.searchParams.get('workflow_id')
+    const [targets, bound] = await Promise.all([listNintexTargets(ctx), workflowId ? boundNintexTarget(ctx, workflowId) : Promise.resolve(null)])
+    return NextResponse.json({ targets, bound }, { headers: NO_STORE })
+  } catch (error) {
+    if (isServiceError(error)) return NextResponse.json({ error: error.message, code: error.code }, { status: error.status, headers: NO_STORE })
+    console.error('[importers] targets', error instanceof Error ? error.message : error)
+    return NextResponse.json({ error: 'Could not list the targets' }, { status: 500, headers: NO_STORE })
+  }
+}

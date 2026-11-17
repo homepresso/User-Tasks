@@ -25,6 +25,14 @@ import { cn } from '@/lib/utils'
 /* eslint-disable @typescript-eslint/no-explicit-any -- reference rows are read as the browser sees them */
 
 
+interface LookupListProvider {
+  extension: string
+  provider: string
+  label: string
+  lists: Array<{ id: string; label: string; columns: Array<{ key: string; label: string; type?: string }>; valueColumn?: string; labelColumn?: string }>
+  error?: string
+}
+
 function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return <label htmlFor={htmlFor} className="mb-0.5 block text-2xs font-medium text-fg-muted">{children}</label>
 }
@@ -88,17 +96,21 @@ function itemFieldOptions(schema: SchemaNode | null | undefined): Array<{ value:
     .map((f) => ({ value: f.path, label: f.path, hint: f.example !== undefined && f.example !== null ? String(f.example) : f.type }))
 }
 
-export function LookupProperties({ state, field, onPatch }: {
-  state: DesignerState
+export function LookupProperties({ state, field, onPatch, rowColumns }: {
+  state: Pick<DesignerState, 'fields' | 'layout'>
   field: DesignerField
   onPatch: (lookup: LookupConfig, tag?: string) => void
+  /** A grid column's binding (Data table columns, Data grid views): the row's other columns as {{row.<column>}} — cascading choices. */
+  rowColumns?: Array<{ key: string; label: string }>
 }) {
   const config: LookupConfig = field.lookup ?? { source: 'table' }
   const set = (patch: Partial<LookupConfig>, tag?: string) => onPatch({ ...config, ...patch }, tag)
   const id = (name: string) => `lk-${field._id}-${name}`
   const otherFields = state.fields.filter((f) => f._id !== field._id && !DISPLAY_FIELD_TYPES.has(f.type))
+  const rowPlaceholders = (rowColumns ?? []).map((c) => ({ name: `row.${c.key}`, group: 'This row', label: c.label || c.key }))
   const placeholders = [
     { name: 'search', group: 'Lookup', label: 'The typed text' },
+    ...rowPlaceholders,
     ...otherFields.map((f) => ({ name: `task_data.${f.key}`, group: 'This form', label: f.label || f.key })),
     ...contextVariableOptions(state.layout),
     // {{control.<key>.*}}: other controls' state (a query sends it; the server keeps declared columns only).
@@ -122,9 +134,20 @@ export function LookupProperties({ state, field, onPatch }: {
     },
   })
 
-  const table = tables.find((t: { id: string }) => t.id === config.table_id) as { id: string; name: string; columns: Array<{ key: string; label: string }> } | undefined
+  // Lists extensions offer (e.g. connected SharePoint lists): the "Connected list" source.
+  const { data: providers = [], isLoading: listsLoading } = useQuery({
+    queryKey: ['forms-lookup-lists'],
+    staleTime: 60_000,
+    queryFn: async () => ((await serverRead('forms.lookupLists')).data ?? []) as LookupListProvider[],
+  })
+  const extLists = providers.flatMap((p) => p.lists.map((l) => ({ ...l, extension: p.extension, provider: p.provider, providerLabel: p.label })))
+  const extList = config.source === 'extension' ? extLists.find((l) => l.extension === config.extension && l.provider === config.provider && l.id === config.source_id) : undefined
+  const table = config.source === 'table'
+    ? tables.find((t: { id: string }) => t.id === config.table_id) as { id: string; name: string; columns: Array<{ key: string; label: string }> } | undefined
+    : extList ? { id: extList.id, name: extList.label, columns: extList.columns } : undefined
   const columnOptions = (table?.columns ?? []).map((c) => ({ value: c.key, label: c.label || c.key, hint: c.key }))
-  const valueOptions = [{ value: LOOKUP_ROW_ID, label: 'Row id (default)' }, ...columnOptions]
+  const valueOptions = config.source === 'extension' ? columnOptions : [{ value: LOOKUP_ROW_ID, label: 'Row id (default)' }, ...columnOptions]
+  const sources = (['table', ...(extLists.length || config.source === 'extension' ? ['extension' as const] : []), 'reference'] as const) as ReadonlyArray<'table' | 'extension' | 'reference'>
 
   const integrations = useMemo(() => {
     const map = new Map<string, string>()
@@ -147,26 +170,45 @@ export function LookupProperties({ state, field, onPatch }: {
     (rows ?? []).map((r) => (r.id === config.reference_id ? { ...r, request_config: { ...(r.request_config ?? {}), response_schema: loaded } } : r)))
 
   const fill = config.fill ?? []
-  const fillSources = config.source === 'table' ? [{ value: LOOKUP_ROW_ID, label: 'Row id' }, ...columnOptions] : itemOptions
+  const fillSources = config.source === 'table' ? [{ value: LOOKUP_ROW_ID, label: 'Row id' }, ...columnOptions] : config.source === 'extension' ? columnOptions : itemOptions
 
   return (
-    <DesignerVariableScope state={state} context={{ kind: 'lookup_query', exclude: field.key }}>
+    <DesignerVariableScope state={state} context={{ kind: 'lookup_query', exclude: field.key }} extras={rowPlaceholders.length ? rowPlaceholders : undefined}>
     <div className="space-y-3" data-testid="lookup-properties">
       <Section title="Suggestions from">
         <div className="flex gap-1" role="radiogroup" aria-label="Lookup source">
-          {(['table', 'reference'] as const).map((src) => (
+          {sources.map((src) => (
             <button key={src} type="button" role="radio" aria-checked={config.source === src}
               onClick={() => src !== config.source && onPatch({ source: src, multiple: config.multiple, allow_free_text: config.allow_free_text, max_results: config.max_results, min_chars: config.min_chars })}
               className={cn('h-7 flex-1 rounded border text-2xs font-medium', config.source === src ? 'border-primary' : 'border-border', config.source === src ? 'bg-primary-wash' : '', config.source === src ? 'text-primary-text' : 'text-fg')}
               data-lookup-source={src}
             >
-              {src === 'table' ? 'Data table' : 'API reference'}
+              {src === 'table' ? 'Data table' : src === 'extension' ? 'Connected list' : 'API reference'}
             </button>
           ))}
         </div>
 
-        {config.source === 'table' ? (
+        {config.source !== 'reference' ? (
           <>
+            {config.source === 'extension' ? (
+              <div>
+                <Label>List</Label>
+                <AutocompleteSelect
+                  value={config.extension && config.provider && config.source_id ? `${config.extension}|${config.provider}|${config.source_id}` : ''}
+                  placeholder={listsLoading ? 'Loading…' : 'Choose a list…'}
+                  options={extLists.map((l) => ({ value: `${l.extension}|${l.provider}|${l.id}`, label: l.label, hint: l.providerLabel }))}
+                  onChange={(value) => {
+                    const next = extLists.find((l) => `${l.extension}|${l.provider}|${l.id}` === value)
+                    if (!next) { onPatch({ source: 'extension', multiple: config.multiple, allow_free_text: config.allow_free_text }); return }
+                    const shown = next.labelColumn ?? next.columns[0]?.key
+                    onPatch({ source: 'extension', extension: next.extension, provider: next.provider, source_id: next.id, source_label: `${next.providerLabel}: ${next.label}`, value_column: next.valueColumn ?? 'id', ...(shown ? { search_columns: [shown], display_columns: [shown] } : {}), multiple: config.multiple, allow_free_text: config.allow_free_text })
+                  }}
+                />
+                {providers.filter((p) => p.error).map((p) => <Hint key={`${p.extension}:${p.provider}`}>{p.label}: {p.error}</Hint>)}
+                {config.source_id && !extList && !listsLoading && <Hint>{config.source_label ?? 'The list'} is not available to you right now; its settings are kept.</Hint>}
+                <Hint>Searched on the server, one page at a time: large lists are fine. Filters can use other fields of this form (cascading).</Hint>
+              </div>
+            ) : (
             <div>
               <Label>Data table</Label>
               <AutocompleteSelect
@@ -180,6 +222,7 @@ export function LookupProperties({ state, field, onPatch }: {
                 }}
               />
             </div>
+            )}
             {table && (
               <>
                 <OrderedPicker testId="lookup-search-columns" label="Search in columns" value={config.search_columns ?? []} options={columnOptions} onChange={(v) => set({ search_columns: v.length ? v : undefined })} />
@@ -190,7 +233,7 @@ export function LookupProperties({ state, field, onPatch }: {
                 <OrderedPicker testId="lookup-display-columns" label="Show columns (first = main text, others = second line)" value={config.display_columns ?? []} options={columnOptions} onChange={(v) => set({ display_columns: v.length ? v : undefined })} />
                 <div>
                   <Label>Store as the value</Label>
-                  <AutocompleteSelect value={config.value_column ?? LOOKUP_ROW_ID} options={valueOptions} onChange={(v) => set({ value_column: v && v !== LOOKUP_ROW_ID ? v : undefined })} />
+                  <AutocompleteSelect value={config.value_column ?? (config.source === 'extension' ? 'id' : LOOKUP_ROW_ID)} options={valueOptions} onChange={(v) => set({ value_column: v && (config.source === 'extension' || v !== LOOKUP_ROW_ID) ? v : undefined })} />
                 </div>
                 <div>
                   <Label>Only rows where</Label>
@@ -321,7 +364,7 @@ export function LookupProperties({ state, field, onPatch }: {
           <Label htmlFor={id('label-template')}>Display template (optional)</Label>
           <input id={id('label-template')} className={inputClass} value={config.label_template ?? ''} placeholder={config.source === 'table' ? '{{name}} ({{code}})' : '{{name}} ({{id}})'}
             onChange={(e) => set({ label_template: e.target.value || undefined }, `lklt-${field._id}`)} data-testid="lookup-label-template" />
-          <Hint>What people see in the input, in read-only views and submissions. Empty: the first shown {config.source === 'table' ? 'column' : 'field'}. The stored value stays the &quot;Store as the value&quot; {config.source === 'table' ? 'column' : 'field'}.</Hint>
+          <Hint>What people see in the input, in read-only views and submissions. Empty: the first shown {config.source === 'reference' ? 'field' : 'column'}. The stored value stays the &quot;Store as the value&quot; {config.source === 'reference' ? 'field' : 'column'}.</Hint>
         </div>
         <div>
           <Label htmlFor={id('desc-template')}>Secondary text in the list (optional)</Label>

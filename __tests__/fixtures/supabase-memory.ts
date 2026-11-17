@@ -1,7 +1,7 @@
 /**
  * Minimal in-memory Supabase/PostgREST stand-in for service tests.
  * Supports the builder calls the integration services use: select (with
- * count), eq / neq / gt / gte / lt / lte / is / not / in (also `col->>key`) / contains / overlaps (arrays) / like / filter('a->>b','eq',v) / ilike / or (ignored),
+ * count), eq (also `col->>key`) / neq / gt / gte / lt / lte / is / not / in (also `col->>key`) / contains / overlaps (arrays) / like / filter('a->>b','eq',v) / ilike / or (ignored),
  * order (stable, nulls last), limit, range, single, maybeSingle, insert / update / delete with
  * a trailing select. Embedded selects (`x:table(...)`) are not joined.
  * Every mutation is recorded in `calls` for assertions.
@@ -93,7 +93,12 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
         calls.push({ table, op: 'upsert', payload: clone(payload) }); return api
       },
       delete() { state.op = 'delete'; calls.push({ table, op: 'delete' }); return api },
-      eq(field: string, value: unknown) { state.filters.push((row) => row[field] === value); return api },
+      eq(field: string, value: unknown) {
+        // A JSON path (`col->>key`) compares the key's text, as PostgREST does.
+        const [col, key] = field.split('->>')
+        state.filters.push((row) => (key === undefined ? row[field] === value : row[col]?.[key] != null && String(row[col][key]) === String(value)))
+        return api
+      },
       is(field: string, value: unknown) { state.filters.push((row) => (row[field] ?? null) === value); return api },
       neq(field: string, value: unknown) { state.filters.push((row) => row[field] !== value); return api },
       gte(field: string, value: any) { state.filters.push((row) => row[field] != null && row[field] >= value); return api },

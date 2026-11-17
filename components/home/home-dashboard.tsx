@@ -1,7 +1,7 @@
 "use client"
 
 import { ExtensionWidgets } from '@/components/extensions/extension-widgets'
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, LayoutGrid, Plus, RotateCcw, Sparkles, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -247,8 +247,21 @@ function TaskListWidget() {
   const { tab, setTab } = useHome()
   const counts = useTabCounts()
   const tabs = HOME_TABS.filter((t) => !t.perm || can(t.perm as never))
+  // Fit to content (lib/home/layout.ts `fit`): report the list's natural height so the widget grows or shrinks with it.
+  const { reportHeight } = useHome()
+  const sectionRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el || typeof ResizeObserver === "undefined") return
+    // + the card's padding and border (home-grid: p-3, 1px border).
+    const report = () => reportHeight("tasks", el.offsetHeight + 26)
+    report()
+    const ro = new ResizeObserver(report)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [reportHeight])
   return (
-    <section className="scroll-mt-4 space-y-3" aria-label="Lists">
+    <section ref={sectionRef} className="scroll-mt-4 space-y-3" aria-label="Lists">
       <HomeTabBar tabs={tabs} value={tab} onChange={setTab} counts={counts} />
       <div id={`home-panel-${tab}`} role="tabpanel" aria-labelledby={`home-tab-${tab}`}>
         {tab === "tasks" && <MyTasksTab />}

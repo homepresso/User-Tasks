@@ -7,6 +7,7 @@ import { InfoPathPreview } from "@/components/marketing/infopath-preview"
 import { INFOPATH_PAGE } from "@/lib/marketing-pages"
 import { publicBaseUrl } from "@/lib/deployment"
 import { breadcrumbNode, displayDate, faqNode, howToNode, jsonLdHtml, webPageNode } from "@/lib/seo/site"
+import { MS } from "@/lib/seo/sharepoint-facts"
 
 /**
  * /infopath — "Migrate from InfoPath": drop an .xsn into the hero for an
@@ -59,20 +60,24 @@ const STEPS = [
 ]
 
 /** Dated facts, from Microsoft's own pages (checked on INFOPATH_FACTS_CHECKED). */
-const INFOPATH_FACTS_CHECKED = "2026-11-11"
+const INFOPATH_FACTS_CHECKED = INFOPATH_PAGE.updated
 const EOL_FACTS = [
   { date: "May 18, 2026", text: "Publishing new InfoPath forms, or updates to existing ones, blocked in SharePoint Online." },
   { date: "July 14, 2026", text: "InfoPath 2013 reached the end of extended support, and InfoPath Forms Services was removed from SharePoint Online with no option to extend." },
   { date: "July 14, 2026", text: "Extended support for InfoPath Forms Services in SharePoint Server 2016, 2019 and Subscription Edition ended." },
+  { date: "July 13, 2027", text: "The public update removes InfoPath Forms Services from SharePoint Server Subscription Edition (turned off by default since the September 2026 update)." },
 ]
 const EOL_SOURCES = [
   { label: "Microsoft Tech Community: Support update for InfoPath Forms Services in Microsoft 365", href: "https://techcommunity.microsoft.com/blog/spblog/support-update-for-infopath-forms-services-in-microsoft-365/3858190" },
   { label: "Microsoft Lifecycle: InfoPath 2013", href: "https://learn.microsoft.com/en-us/lifecycle/products/infopath-2013" },
+  MS.kb5002945,
 ]
 
 const FAQS = [
   { question: "What is the UserTasks InfoPath importer?", answer: "It is a converter built into UserTasks, an open-source forms and workflow platform. It reads a Microsoft InfoPath form template (.xsn) and rebuilds each view as a UserTasks form, converting fields, repeating tables and sections, pictures, signatures, conditional formatting, rules, validation and formulas where they translate, and listing everything else in a report." },
   { question: "When did InfoPath support end?", answer: "InfoPath 2013 reached the end of extended support on July 14, 2026. On the same date Microsoft removed InfoPath Forms Services from SharePoint Online, and extended support for InfoPath Forms Services in SharePoint Server 2016, 2019 and Subscription Edition ended. Publishing new forms to SharePoint Online was blocked from May 18, 2026." },
+  { question: "What is the best InfoPath replacement?", answer: "It depends on what the forms do. Microsoft recommends Power Apps, Power Automate or Microsoft Forms. UserTasks suits business forms with repeating tables, rules and an approval behind them: it reads the .xsn directly, keeps workflows and tasks in the same product, is open source and can run on your own servers. On SharePoint Server, its paid SharePoint extension makes the imported forms the list's own forms." },
+  { question: "Does InfoPath Forms Services still work on SharePoint Server Subscription Edition?", answer: "Only until the July 13, 2027 public update, which removes it (and SharePoint 2010 workflows) from Subscription Edition, according to Microsoft's KB5002945. It has been out of support since July 14, 2026 and turned off by default since the September 2026 update. Microsoft advises migrating now." },
   { question: "Is my file stored?", answer: "No. The preview on this page reads the file in memory, sends back a summary and forgets it. Nothing is written to disk or a database, and our logs record only counts (how many views, fields and rules), never names or content. When you choose “Create these forms”, the file waits in your own browser until the importer opens it." },
   { question: "Which InfoPath versions work?", answer: "Form templates from InfoPath 2007, 2010 and 2013, including browser-enabled forms for SharePoint and InfoPath Forms Services. Templates are CAB archives with MSZIP compression, which is what InfoPath saves. A template re-packed with LZX compression is refused with a message: save it again from InfoPath Designer, or upload a .zip of its source files." },
   { question: "What happens to rules that don't convert?", answer: "Each one becomes a turned-off rule on the form, named after the InfoPath rule, with the original XPath in its notes, and is listed in the import report. You finish it in the Rules tab. Nothing is dropped silently." },
@@ -107,6 +112,17 @@ export function InfoPathPage() {
           bullets={["Free preview, no account", "Nothing stored", "One form per view, or views as steps"]}
           visual={<div id="try" className="scroll-mt-24"><InfoPathPreview /></div>}
         />
+
+        <section id="summary" aria-labelledby="summary-title" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
+          <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze)">In short</p>
+            <h2 id="summary-title" className="mt-3 font-display text-2xl font-bold tracking-tight sm:text-3xl">An InfoPath replacement that starts from your .xsn.</h2>
+            <p className="mt-4 mkt-body text-(color:--mkt-text)">
+              UserTasks is an open-source (Apache-2.0) forms and workflow platform with a built-in InfoPath importer. Upload an InfoPath form template (.xsn, from InfoPath 2007, 2010 or 2013) and it rebuilds each view as a web form, with repeating tables, rules, validation and formulas converted where they translate and a report of anything that needs a person. The preview on this page is free, needs no account and stores nothing; on SharePoint Server, the <Link href="/sharepoint" className="font-semibold text-(color:--mkt-bronze) hover:underline">SharePoint extension</Link> makes the imported forms the list&apos;s own forms.
+            </p>
+            <p className="mt-3 text-xs text-(color:--mkt-muted)">Last updated <time dateTime={INFOPATH_FACTS_CHECKED}>{displayDate(INFOPATH_FACTS_CHECKED)}</time></p>
+          </div>
+        </section>
 
         <section id="end-of-support" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1fr_1.1fr]">
@@ -210,7 +226,10 @@ export function InfoPathPage() {
               <Link href="/docs/tutorials/migrate-infopath" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Tutorial: migrate an expense report <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/infopath-migration-guide" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">InfoPath migration guide <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/sharepoint-workflow-migration" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Replace SharePoint workflows <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href="/sharepoint" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">InfoPath list forms on SharePoint Server <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href="/docs/sharepoint/forms" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">SharePoint list forms (docs) <ArrowRight size={14} aria-hidden="true" /></Link>
             </p>
+            <p className="mt-8 text-xs leading-5 text-(color:--mkt-muted)">UserTasks is an independent open-source project and is not affiliated with or endorsed by Microsoft. InfoPath and SharePoint are trademarks of the Microsoft group of companies.</p>
           </div>
         </section>
       </main>

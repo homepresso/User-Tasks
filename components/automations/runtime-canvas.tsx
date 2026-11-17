@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { Crosshair, Maximize2, Minimize2, X } from "lucide-react"
-import { fullNodeCatalog, type WorkflowEdge, type WorkflowNode } from "@/lib/workflow-schema"
+import type { WorkflowEdge, WorkflowNode } from "@/lib/workflow-schema"
+import { fitTriggerLane } from "@/lib/workflow-trigger-lane"
 import { getSectionNodes, resolveVisibleGraph } from "@/lib/workflow-sections"
 import { nodeBox } from "@/lib/workflow-edge-routing"
 import { unionBounds } from "@/lib/canvas-zoom"
@@ -10,7 +11,7 @@ import { FOCUS_STEP_LABEL, formatRunDuration, joinWaitingLabel, pickFocusStep, R
 import { heatColor, heatSummary, type HeatOverlay } from "@/lib/workflow-heat-overlay"
 import { EdgeRenderer } from "./edge-renderer"
 import { WorkflowNodeCard } from "./workflow-node-card"
-import { CanvasBands, SectionFrame } from "./canvas-sections"
+import { CanvasBandsLayer, SectionFrame } from "./canvas-sections"
 import { CanvasZoomControls } from "./canvas-zoom-controls"
 import { CanvasMinimap, type MinimapItem } from "./canvas-minimap"
 import { useCanvasZoom } from "./use-canvas-zoom"
@@ -24,6 +25,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 const GRID = 16
 const NO_RUN: RunOverlay = { nodes: {}, edges: {}, traversed: new Set() }
 const NO_RESULTS: Record<string, RunNodeResult | undefined> = {}
+const NO_LANES: Lane[] = []
 const subscribeNever = () => () => {}
 
 interface Lane { id: string; label: string; color: string; y: number; height: number }
@@ -84,7 +86,7 @@ export const RUNTIME_CANVAS_SCREEN_HEIGHT = "max(520px, calc(100dvh - 140px))"
  * zoom-to-step and a full-screen toggle.
  */
 export function RuntimeCanvas({
-  nodes, edges, swimlanes = [], overlay = NO_RUN, nodeResults = NO_RESULTS, heat, workflowActive = false, workflowId, storageScope, rootRef, scrollRef: externalScrollRef,
+  nodes: savedNodes, edges, swimlanes: savedSwimlanes = NO_LANES, overlay = NO_RUN, nodeResults = NO_RESULTS, heat, workflowActive = false, workflowId, storageScope, rootRef, scrollRef: externalScrollRef,
   nodeRef, outlines, nodeAdornments, selectedNodeId: controlledSelected, onSelectNode, renderDetails, fill = false, height = RUNTIME_CANVAS_SCREEN_HEIGHT, minHeight = 360,
   focusRequest, expandable = true, markerPrefix = "rt-arrow", label = "Workflow run canvas", stepDetails = true, lookups,
 }: RuntimeCanvasProps) {
@@ -99,13 +101,19 @@ export function RuntimeCanvas({
   const select = (id: string | null) => { if (onSelectNode) onSelectNode(id); else setInternalSelected(id) }
   const isMac = useSyncExternalStore(subscribeNever, () => /Mac|iPhone|iPad/.test(navigator.platform), () => false)
 
+  const sizes = useNodeSizes(contentRef, `${savedNodes.map((n) => `${n.id}${n.collapsed ? "c" : ""}`).join("|")}|${JSON.stringify(localSections)}`)
+  // The trigger lane as the designer draws it: triggers inside the band, the
+  // steps below it (a workflow saved before the lane existed is fitted here too).
+  const { nodes, swimlanes, lane } = useMemo(
+    () => fitTriggerLane(savedNodes, { sizes, swimlanes: savedSwimlanes, shiftContent: true }),
+    [savedNodes, savedSwimlanes, sizes],
+  )
   // Viewer-local section collapse state over the saved one.
   const effectiveNodes = useMemo(
     () => nodes.map((n) => (n.type === "section_group" && localSections[n.id] !== undefined ? { ...n, collapsed: localSections[n.id] } : n)),
     [nodes, localSections],
   )
   const { hiddenNodeIds, resolvedEdges } = useMemo(() => resolveVisibleGraph(effectiveNodes, edges), [effectiveNodes, edges])
-  const sizes = useNodeSizes(contentRef, `${effectiveNodes.map((n) => `${n.id}${n.collapsed ? "c" : ""}`).join("|")}`)
 
   // Tones for the routed edges (collapsed sections re-route edges to their header).
   const tones = useMemo(() => {
@@ -172,7 +180,6 @@ export function RuntimeCanvas({
 
   const maxX = Math.max(600, ...effectiveNodes.map((n) => nodeBox(n, sizes)).map((b) => b.x + b.width))
   const maxY = Math.max(400, ...effectiveNodes.map((n) => nodeBox(n, sizes)).map((b) => b.y + b.height), ...swimlanes.map((l) => l.y + l.height))
-  const triggerTypes: string[] = fullNodeCatalog().filter((c) => c.category === "trigger").map((c) => c.type)
   const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null
 
   const minimapItems: MinimapItem[] = visibleBoxes().map(({ node: n, ...box }) => {
@@ -216,6 +223,7 @@ export function RuntimeCanvas({
           if (!t.closest("[data-node-card]") && !t.closest("[data-step-details]")) select(null)
         }}
       >
+        <CanvasBandsLayer getView={view.getView} lane={lane} swimlanes={swimlanes} />
         <div
           ref={contentRef}
           data-canvas-bg="true"
@@ -230,8 +238,6 @@ export function RuntimeCanvas({
             backgroundSize: `${GRID}px ${GRID}px`,
           }}
         >
-          <CanvasBands showTriggerZone={nodes.some((n) => triggerTypes.includes(n.type))} swimlanes={swimlanes} />
-
           <EdgeRenderer nodes={effectiveNodes} edges={edges} sizes={sizes} connecting={null} readOnly tones={heat ? undefined : tones} heat={heat?.edges} zoom={view.zoom} markerPrefix={markerPrefix} />
 
           {getSectionNodes(effectiveNodes).map((section) => {

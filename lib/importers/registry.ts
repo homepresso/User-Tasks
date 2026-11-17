@@ -1,6 +1,7 @@
 /**
  * Importers in this build: the core InfoPath importer (forms, its own
- * endpoint POST /forms/import/infopath) and every importer an extension
+ * endpoint POST /forms/import/infopath), the core Nintex importer (workflows
+ * and forms, on the generic endpoints) and every importer an extension
  * contributes (manifest contributes.importers + ServerExtension.importers),
  * addressed as `ext.<extension id>.<key>`.
  *
@@ -8,9 +9,17 @@
  */
 
 import type { ImporterContribution } from '@/lib/extensions/manifest'
-import type { ImporterHandler } from '@/lib/extensions/sdk'
+import type { ImportFile, ImporterHandler, ImportReport, ImportResult } from '@/lib/extensions/sdk'
+import type { ServiceContext } from '@/lib/services/context'
 
-export const IMPORTER_ID_RE = /^(infopath|ext\.[a-z][a-z0-9-]*\.[a-z][a-z0-9_]*)$/
+export const IMPORTER_ID_RE = /^(infopath|nintex|ext\.[a-z][a-z0-9-]*\.[a-z][a-z0-9_]*)$/
+
+/** A core importer served by the generic /importers endpoints (runs as the caller, no extension context). */
+export interface CoreImporterRunner {
+  analyze(ctx: ServiceContext, files: ImportFile[], options: Record<string, unknown>): Promise<ImportReport>
+  import(ctx: ServiceContext, files: ImportFile[], options: Record<string, unknown>): Promise<ImportResult>
+  detect?(files: ImportFile[]): number
+}
 
 export interface RegisteredImporter {
   /** `infopath` or `ext.<extension>.<key>`. */
@@ -22,6 +31,14 @@ export interface RegisteredImporter {
   handler: ImporterHandler | null
   /** Where the importer is served when not by the generic /importers endpoints. */
   endpoint: string | null
+  /** A core importer on the generic endpoints (Nintex). */
+  core?: CoreImporterRunner
+}
+
+const NINTEX_RUNNER: CoreImporterRunner = {
+  analyze: async (ctx, files, options) => (await import('./nintex/importer')).analyzeNintex(ctx, files, options),
+  import: async (ctx, files, options) => (await import('./nintex/importer')).importNintex(ctx, files, options) as Promise<ImportResult>,
+  detect: (files) => (files.some((f) => /\.(nwf|nwp)$/i.test(f.name)) ? 0.9 : 0),
 }
 
 /** The core InfoPath importer as a contribution (listed beside the extensions' importers). */
@@ -38,7 +55,11 @@ export const CORE_INFOPATH_IMPORTER: ImporterContribution = {
 }
 
 export async function listImporters(): Promise<RegisteredImporter[]> {
-  const out: RegisteredImporter[] = [{ id: 'infopath', extensionId: null, extensionName: null, contribution: CORE_INFOPATH_IMPORTER, handler: null, endpoint: '/forms/import/infopath' }]
+  const { CORE_NINTEX_IMPORTER } = await import('./nintex/importer')
+  const out: RegisteredImporter[] = [
+    { id: 'infopath', extensionId: null, extensionName: null, contribution: CORE_INFOPATH_IMPORTER, handler: null, endpoint: '/forms/import/infopath' },
+    { id: 'nintex', extensionId: null, extensionName: null, contribution: CORE_NINTEX_IMPORTER, handler: null, endpoint: null, core: NINTEX_RUNNER },
+  ]
   const { hasExtensions, getExtensionManifest } = await import('@/lib/extensions/registry')
   if (!hasExtensions()) return out
   const { getServerExtensions } = await import('@/lib/extensions/server-registry')

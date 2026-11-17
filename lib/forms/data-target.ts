@@ -52,6 +52,12 @@ export interface FormDataTargetRef {
   config: Record<string, string | number | boolean | string[]>
   /** What the designer and the form page call it ("CRM accounts"). */
   label?: string
+  /**
+   * `rules`: the record is written only by a button whose rule has the
+   * "Save to …" action (type save_target), as that action says — nothing
+   * else writes. Unset (older bindings): every submitting button writes.
+   */
+  writes?: 'rules'
 }
 
 /** Field properties a provider may refresh when the form opens (and before a submission is checked). */
@@ -85,6 +91,7 @@ export function normalizeDataTarget(raw: unknown): FormDataTargetRef | undefined
   const out: FormDataTargetRef = { extension, key, config }
   const label = typeof raw.label === 'string' ? clean(raw.label.trim(), DATA_TARGET_LIMITS.label) : ''
   if (label) out.label = label
+  if (raw.writes === 'rules') out.writes = 'rules'
   return out
 }
 

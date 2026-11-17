@@ -44,6 +44,7 @@ import { includedContextSchema } from './forms/form-params'
 import { SUBMISSION_META_FIELDS, SUBMISSION_META_KEY } from './forms/submission-meta'
 import { fieldValueSchemaType, normalizeTaskFields, TASK_FIELD_TYPE_LABELS, valueFields, type TaskFieldDef } from './task-field-schema'
 import { setVariableAssignments } from './workflow-set-variable'
+import { isSecretField, saveToVariableMap } from './forms/task-outputs'
 
 export interface PickerNodeLike {
   id: string
@@ -269,6 +270,14 @@ const PERSON_REF_SCHEMA: SchemaNode = {
   ],
 }
 
+/** Every response to a User Task (lib/task-completion.ts ResumePayload.responses). */
+const TASK_RESPONSES_LIST: SchemaNode = { type: 'array', description: 'Responses, in order', items: { type: 'object', fields: [
+  { name: 'user_id', type: 'string', description: 'Who responded (user id)' },
+  { name: 'outcome', type: 'string', description: 'Their outcome' },
+  { name: 'outcome_notes', type: 'string', description: 'Their comment' },
+  { name: 'responded_at', type: 'string', description: 'When (ISO 8601)' },
+] } }
+
 const TASK_ATTACHMENTS_LIST: SchemaNode = { type: 'array', items: TASK_ATTACHMENT_SCHEMA, description: 'Files on the task\'s Attachments tab (loop over them, or pass one to a file step)' }
 
 /** The value model of a form field (numbers, booleans, ISO date strings, multi-select arrays, file lists). */
@@ -280,7 +289,7 @@ export function fieldSchema(field: TaskFieldDef): SchemaNode {
   if (field.type === 'text_list') return { type: 'array', items: { type: 'string' }, description: 'Text items, in order (loop over them, or join them)' }
   if (isPeopleList(field)) return { type: 'array', items: PERSON_REF_SCHEMA, description: field.user_config?.allow_teams ? 'People and teams (loop over them; kind says which)' : 'People (loop over them)' }
   if (field.type === 'lookup') {
-    const what = field.lookup?.source === 'reference' ? 'API reference' : 'data table'
+    const what = field.lookup?.source === 'reference' ? 'API reference' : field.lookup?.source === 'extension' ? 'connected list' : 'data table'
     return field.lookup?.multiple
       ? { type: 'array', items: { type: 'string' }, description: `Selected values (from a ${what})` }
       : { type: 'string', description: `Selected value (from a ${what})` }
@@ -740,7 +749,13 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = [], linke
       return [{ path: ov, label: ov, schema: { type: 'string' } }]
     }
     case 'user_task': {
-      const taskEntries = withContextEntries(formFieldEntries(nodeFormFields(node, linkedForms)), node, linkedForms)
+      const taskFields = nodeFormFields(node, linkedForms).filter((f) => !isSecretField(f))
+      const taskEntries = withContextEntries(formFieldEntries(taskFields), node, linkedForms)
+      // "Save to workflow variable" (lib/forms/task-outputs.ts): the mapped variables, typed by their field.
+      const saved = Object.entries(saveToVariableMap(c.save_to_variables, taskFields)).flatMap(([key, name]) => {
+        const field = taskFields.find((f) => f.key === key)
+        return field ? [{ path: name, label: name, schema: fieldSchema(field), description: `Saved from "${field.label || key}" when the task completes` } as DataRoot] : []
+      })
       const taskDataSchema: SchemaNode | null = taskEntries.length
         ? { type: 'object', fields: taskEntries.map((entry) => ({ ...entry.schema, name: entry.key, description: `${entry.label} (${entry.typeLabel})` })) }
         : null
@@ -757,6 +772,8 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = [], linke
         { path: 'completed_by', label: 'completed_by', schema: { type: 'string' }, description: 'Who completed the task (user id)' },
         { path: 'completed_at', label: 'completed_at', schema: { type: 'string' }, description: 'When the task was completed (ISO 8601)' },
         { path: 'attachments', label: 'attachments', schema: TASK_ATTACHMENTS_LIST, description: 'Files attached on the task before it completed' },
+        { path: `${prefix}_responses`, label: 'responses', schema: TASK_RESPONSES_LIST, description: 'Every response (multi-assignee tasks): who, outcome, comment, when — loop over them' },
+        ...saved,
       ]
     }
     case 'add_task_attachment':
@@ -931,8 +948,8 @@ export function buildDataTree(input: BuildDataTreeInput): DataGroup[] {
     }
     if (node.type === 'user_task') {
       // The task's form (its own fields, or the linked reusable form):
-      // {{task_data.<key>}} once the task completes.
-      const entries = withContextEntries(formFieldEntries(nodeFormFields(node, linkedForms)), node, linkedForms)
+      // {{task_data.<key>}} once the task completes (secret fields stay out: lib/forms/task-outputs.ts).
+      const entries = withContextEntries(formFieldEntries(nodeFormFields(node, linkedForms).filter((f) => !isSecretField(f))), node, linkedForms)
       if (entries.length) {
         const roots = entries.map((entry) => fieldRoot('task_data', entry, node.label))
         known.push(...roots)

@@ -4,7 +4,7 @@ import Link from "next/link"
 import {
   ArrowRight, Bell, Bot, Check, Cloud, Container, FileSpreadsheet, GitFork, Mail, MessageCircle, Play, Plug, Server, ShieldCheck, Sparkles, StickyNote, Terminal, WifiOff,
 } from "lucide-react"
-import { FaqList, MarketingFooter, MarketingHeader, SectionHeading, Snippet } from "@/components/marketing/marketing-ui"
+import { FaqList, MarketingFooter, MarketingHeader, SectionHeading, Snippet, BetaBadge, ProductionReadyBadge } from "@/components/marketing/marketing-ui"
 import { NavArt } from "@/components/marketing/nav-art"
 import { ProductDemo } from "@/components/marketing/demo/product-demo"
 import { LazyAgentChat } from "@/components/marketing/demo/lazy-demo"
@@ -44,7 +44,8 @@ export const HOME_FAQS = [
   { question: "Do I have to use AI?", answer: "No. The Agent and AI workflow steps are optional and off until an administrator turns them on with your own provider key: OpenAI, Claude, Gemini, Grok, Azure OpenAI, Mistral, Groq, Ollama or any OpenAI-compatible model. The Agent proposes; people apply and confirm." },
   { question: "Where does our data live?", answer: "In the cloud edition, in an isolated workspace. Self-hosted, wherever you put it: start on Supabase, or run the database, storage, auth, email and secrets on AWS, Azure, Google Cloud, Kubernetes or your own servers, including air-gapped networks." },
   { question: "Can developers drive it from code?", answer: "Every screen is backed by the REST API, described by OpenAPI 3.1. There is an MCP server for AI clients, a TypeScript SDK and the usertasks CLI, with config as code to review and promote changes like any other code." },
-  { question: "What does it cost?", answer: "The cloud edition is free during the beta, with no credit card. Self-hosting is free under the Apache-2.0 licence. Talk to us about support and private deployments." },
+  { question: "Is UserTasks ready for production?", answer: "Self-hosted UserTasks is production-ready: install it on your own servers with the one-line installer, Docker, Kubernetes or air-gapped today. UserTasks Cloud, the hosted edition at usertasks.com, is in beta." },
+  { question: "What does it cost?", answer: "UserTasks Cloud is in beta and free during the beta, with no credit card. Self-hosting is production-ready and free under the Apache-2.0 licence. Talk to us about support and private deployments." },
 ]
 
 /** Email + "Start free": a plain GET to /start, so it works before (and without) JavaScript. */
@@ -228,7 +229,8 @@ export function LandingPage() {
             <div className="mt-8 flex flex-col items-center gap-4">
               <StartForm id="hero-email" />
               <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[13px] text-[#A89E8C]">
-                <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#7FA98A]" aria-hidden="true" />Free during the beta</span>
+                <span className="inline-flex items-center gap-1.5">UserTasks Cloud <BetaBadge tone="dark" /> free during the beta</span>
+                <Link href="/install" className="inline-flex items-center gap-1.5 hover:text-white">Self-hosted <ProductionReadyBadge tone="dark" /></Link>
                 <span className="inline-flex items-center gap-1.5"><Check size={13} className="text-[#7FA98A]" aria-hidden="true" />No credit card</span>
                 <a href="#demo" className="inline-flex items-center gap-1.5 font-semibold text-[#F0C27B] hover:text-white"><Play size={12} className="fill-current" aria-hidden="true" />Try the demo below</a>
               </p>

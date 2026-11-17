@@ -8,8 +8,9 @@
  * Rules
  * - Rows: longest-path layering on the forward graph (back-edges removed by a
  *   DFS from the triggers), so every forward edge points strictly downwards
- *   and a join sits below all of its branches. Triggers always form row 0
- *   (the trigger zone); rows share one vertical rhythm.
+ *   and a join sits below all of its branches. Triggers always form row 0,
+ *   vertically centred in the trigger lane (lib/workflow-trigger-lane); the
+ *   first step row starts below the lane; rows share one vertical rhythm.
  * - Columns: a structured block layout. A chain of single-output steps stays
  *   on one vertical spine. A branching node (condition, switch, parallel,
  *   user task outcomes, any multi-output step) lays each branch out as its own
@@ -39,6 +40,7 @@ import { fullNodeCatalog } from './workflow-schema'
 import { branchIndexOf, getBranchLabels, orderOutgoingEdges } from './workflow-branches'
 import { CHIP_AREA, DEFAULT_NODE_WIDTH, nodeBox, type SizeMap } from './workflow-edge-routing'
 import { SECTION_HEADER_HEIGHT } from './workflow-sections'
+import { centredTriggerY, minContentY, TRIGGER_LANE, triggerLaneOf } from './workflow-trigger-lane'
 
 export interface LayoutSwimlane {
   id: string
@@ -74,8 +76,9 @@ export const LAYOUT = {
   GAP_Y: 60,
   COMPONENT_GAP: 160,
   LEFT: 40,
-  TRIGGER_Y: 20,
-  /** First non-trigger row starts at or below this y (trigger zone is 0–100). */
+  /** Top of the trigger row: the trigger lane's padding (a lone trigger sits exactly here). */
+  TRIGGER_Y: TRIGGER_LANE.PAD,
+  /** First non-trigger row starts at or below this y (and always below the trigger lane). */
   FIRST_ROW_Y: 160,
   SECTION_PAD: 20,
   LANE_HEADER: 40,
@@ -154,6 +157,8 @@ export function layoutWorkflow(input: LayoutInput): LayoutResult {
   }
   const TRIGGER_TYPES = triggerTypes()
   const isTrigger = L.map((n) => TRIGGER_TYPES.has(n.type))
+  const lane = triggerLaneOf(L, sizes, TRIGGER_TYPES)
+  const contentTop = Math.max(LAYOUT.FIRST_ROW_Y, minContentY(lane))
 
   // Resolve edges onto layout nodes.
   const outEdges: WorkflowEdge[][] = L.map(() => [])
@@ -460,7 +465,7 @@ export function layoutWorkflow(input: LayoutInput): LayoutResult {
   rowTop[0] = LAYOUT.TRIGGER_Y
   for (let r = 1; r <= maxRank; r++) {
     let y = rowTop[r - 1] + rowH[r - 1] + after[r - 1] + (rowH[r - 1] > 0 || r === 1 ? LAYOUT.GAP_Y : 0) + before[r]
-    if (r === 1) y = Math.max(y, LAYOUT.FIRST_ROW_Y + before[r])
+    if (r === 1) y = Math.max(y, contentTop + before[r])
     rowTop[r] = snapUp(y)
   }
 
@@ -473,7 +478,8 @@ export function layoutWorkflow(input: LayoutInput): LayoutResult {
   for (const i of placedIdx) {
     const base = cx[i] + offset
     const x = snap(base - DEFAULT_NODE_WIDTH / 2) + (DEFAULT_NODE_WIDTH - W[i]) / 2
-    const y = rowTop[rank[i]]
+    // Triggers: centred in the lane (cards of different heights share its middle).
+    const y = isTrigger[i] && lane ? centredTriggerY(lane, nodeBox(L[i], sizes).height) : rowTop[rank[i]]
     positions[L[i].id] = { x, y }
     boxes.push({ x, y, w: W[i], h: H[i] })
   }
@@ -482,7 +488,7 @@ export function layoutWorkflow(input: LayoutInput): LayoutResult {
   if (lone.length) {
     const right = boxes.length ? Math.max(...boxes.map((b) => b.x + b.w)) : LAYOUT.LEFT - LAYOUT.COMPONENT_GAP
     const x0 = snapUp(right + LAYOUT.COMPONENT_GAP)
-    let y = rowTop.length > 1 ? rowTop[1] : LAYOUT.FIRST_ROW_Y
+    let y = rowTop.length > 1 ? rowTop[1] : contentTop
     for (const i of lone) {
       positions[L[i].id] = { x: x0 + (DEFAULT_NODE_WIDTH - W[i]) / 2, y }
       boxes.push({ x: x0, y, w: W[i], h: H[i] })
@@ -517,7 +523,7 @@ export function layoutWorkflow(input: LayoutInput): LayoutResult {
 
   // ─── Swimlanes re-fitted to their rows ───
   const laneOut: LayoutResult['swimlanes'] = []
-  let prevBottom = rowTop.length > 1 ? rowTop[1] - LAYOUT.LANE_HEADER : LAYOUT.FIRST_ROW_Y - LAYOUT.LANE_HEADER
+  let prevBottom = rowTop.length > 1 ? rowTop[1] - LAYOUT.LANE_HEADER : contentTop - LAYOUT.LANE_HEADER
   lanes.forEach((lane, k) => {
     const rows = segRows.get(k)
     if (rows && rows[0] <= maxRank) {

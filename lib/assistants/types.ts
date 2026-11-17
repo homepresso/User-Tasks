@@ -492,7 +492,7 @@ export const DESIGNER_WRITE_TOOLS = [
 /** Designer tools that only read. */
 export const DESIGNER_READ_TOOLS = [
   'workflows_catalog', 'workflows_list', 'workflows_get', 'workflows_get_definition', 'workflows_preflight', 'workflows_validate',
-  'forms_list', 'forms_get', 'forms_check_accessibility', 'forms_draft_compare',
+  'forms_list', 'forms_get', 'forms_check_accessibility', 'forms_draft_compare', 'forms_data_source',
   'data_tables_list', 'data_tables_get', 'data_rows_query', 'data_rows_get',
   'reports_list', 'reports_get', 'reports_preview', 'reports_sources_list', 'reports_source_get',
   'agents_list', 'agents_get',

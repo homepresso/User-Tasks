@@ -1,4 +1,5 @@
 import { breadcrumbNode, faqNode, howToNode, webPageNode } from '@/lib/seo/site'
+import { ALTERNATIVES_COMPARISON, MS, SHAREPOINT_KEY_FACTS } from '@/lib/seo/sharepoint-facts'
 
 /**
  * Solution and guide pages of the public site (/<slug>), rendered by
@@ -34,6 +35,10 @@ export type SeoPage = {
   sections: Array<{ title: string; body: string; points: string[] }>
   /** Optional table (a mapping or a factual comparison). */
   comparison?: { title: string; body: string; columns: [string, string] | [string, string, string]; rows: string[][]; note?: string }
+  /** Short, quotable facts shown under the definition ("Key facts"): one sentence each, with a source where it is a date. */
+  facts?: Array<{ label: string; value: string; source?: SeoSource }>
+  /** A factual comparison of the options people weigh (five columns), with its sources. */
+  alternatives?: { title: string; body: string; columns: string[]; rows: string[][]; note?: string; sources: SeoSource[] }
   /** Dated facts with their sources. */
   timeline?: { title: string; body: string; events: Array<{ date: string; text: string }>; sources: SeoSource[] }
   steps: Array<{ title: string; body: string }>
@@ -49,11 +54,11 @@ export type SeoPage = {
   disclaimer?: string
 }
 
-const TRADEMARKS = 'UserTasks is an independent open-source project and is not affiliated with or endorsed by Microsoft. SharePoint, InfoPath and Power Automate are trademarks of the Microsoft group of companies; other product names are trademarks of their respective owners.'
+const TRADEMARKS = 'UserTasks is an independent open-source project and is not affiliated with or endorsed by Microsoft or Nintex. SharePoint, SharePoint Designer, InfoPath and Power Automate are trademarks of the Microsoft group of companies; Nintex and other product names are trademarks of their respective owners.'
 
 const MS_SHAREPOINT_2010 = { label: 'Microsoft Support: SharePoint 2010 workflow retirement', href: 'https://support.microsoft.com/en-us/office/sharepoint-2010-workflow-retirement-1ca3fff8-9985-410a-85aa-8120f626965f' }
 const MS_SHAREPOINT_2013 = { label: 'Microsoft Support: SharePoint 2013 workflow retirement', href: 'https://support.microsoft.com/en-us/office/sharepoint-2013-workflow-retirement-4613d9cf-69aa-40f7-b6bf-6e7831c9691e' }
-const MS_KB5002945 = { label: 'Microsoft Support: Security update for SharePoint Server Subscription Edition, November 10, 2026 (KB5002945)', href: 'https://support.microsoft.com/en-us/servicing/office/hotfix/sharepoint/5002945' }
+const MS_KB5002945 = MS.kb5002945
 const MS_EOS_2026 = { label: 'Microsoft Lifecycle: Ending support in 2026', href: 'https://learn.microsoft.com/en-us/lifecycle/end-of-support/end-of-support-2026' }
 const MS_INFOPATH_LIFECYCLE = { label: 'Microsoft Lifecycle: InfoPath 2013', href: 'https://learn.microsoft.com/en-us/lifecycle/products/infopath-2013' }
 const MS_INFOPATH_BLOG = { label: 'Microsoft Tech Community: Support update for InfoPath Forms Services in Microsoft 365', href: 'https://techcommunity.microsoft.com/blog/spblog/support-update-for-infopath-forms-services-in-microsoft-365/3858190' }
@@ -141,7 +146,7 @@ export const SEO_PAGES: SeoPage[] = [
     updated: '2026-11-12',
     definition: 'On-premises workflow automation means the workflow engine, its database, file storage, identity and logs all run on infrastructure your organization controls, rather than in a vendor’s cloud. UserTasks is open source (Apache-2.0) and its self-hosted edition is the same product as the cloud: forms, tasks, workflows, integrations and the optional AI Agent.',
     intro: 'Organizations with private networks, data-residency requirements, regulated workloads, or infrastructure ownership policies still need modern workflow automation. UserTasks runs in full inside your network — not as a connector gateway to someone else’s cloud — on Docker, on Kubernetes or with no internet access at all.',
-    outcomes: ['Docker Compose or Kubernetes (Helm), same image', 'Air-gapped install from a signed offline bundle', 'PostgreSQL, MinIO, Keycloak or AD FS, LDAP, SMTP', 'Local AI models through Ollama or vLLM, or no AI'],
+    outcomes: ['Production-ready: Docker Compose or Kubernetes (Helm), same image', 'Air-gapped install from a signed offline bundle', 'PostgreSQL, MinIO, Keycloak or AD FS, LDAP, SMTP', 'Local AI models through Ollama or vLLM, or no AI'],
     sections: [
       { title: 'What runs inside your network', body: 'A self-hosted UserTasks installation is the application container, a worker, PostgreSQL 15 or later, S3-compatible storage and an SMTP relay. Everything else is optional and swappable: the same image runs on a laptop, a VM with Docker Compose, or a Kubernetes cluster.', points: ['PostgreSQL behind PgBouncer; Patroni, CloudNativePG and other operators work', 'Built-in sign-in, plus Keycloak, AD FS, Authentik and other OIDC or SAML providers, and LDAP / Active Directory directory sync', 'MinIO or another S3-compatible store, or local disk and NFS', 'Secrets in mounted files, HashiCorp Vault or OpenBao, with Vault Transit envelope encryption'] },
       { title: 'Air-gapped installs', body: 'For networks with no route to the internet, the air-gapped bundle carries everything needed offline: OCI images, the Helm chart, Docker Compose files, the CLI and SDK, the documentation and SPDX SBOMs. Every file is checksummed and the checksums are signed with ed25519.', points: ['Verify the bundle against the published key fingerprint before loading anything', 'Load images into Docker, or push them to an internal registry for Kubernetes', 'The on-premises reference profile runs on a network with no route out, and its smoke test checks the app cannot reach the internet', 'Optional AI on Ollama, vLLM or any OpenAI-compatible endpoint inside the network'] },
@@ -157,6 +162,7 @@ export const SEO_PAGES: SeoPage[] = [
         ['Internet access', 'Required', 'Optional: air-gapped installs need none'],
         ['How it runs', 'Managed service', 'Docker Compose or Kubernetes (Helm chart), same image'],
         ['AI Agent', 'Optional, on your provider key', 'Optional, on a local model (Ollama, vLLM) or your provider key'],
+        ['Status', 'Beta', 'Production-ready'],
         ['Licence and price', 'Free during the beta', 'Apache-2.0, free to run'],
       ],
       note: 'Config as code moves workflows, forms and settings between the cloud and your own servers in either direction.',
@@ -189,13 +195,20 @@ export const SEO_PAGES: SeoPage[] = [
     slug: 'sharepoint-workflow-migration',
     eyebrow: 'SharePoint workflow migration',
     title: 'SharePoint workflow migration: replace 2010, 2013 and SharePoint Designer workflows',
-    metaTitle: 'SharePoint Workflow Migration: Replace 2010, 2013 and Designer Workflows | UserTasks',
-    description: 'Microsoft has retired SharePoint 2010 and 2013 workflows in SharePoint Online, and SharePoint Designer 2013 reached end of support on July 14, 2026. How to move approvals, list workflows, InfoPath forms and task lists to UserTasks, in the cloud or on premises.',
-    keywords: ['SharePoint workflow migration', 'SharePoint 2013 workflow replacement', 'SharePoint 2010 workflow retirement', 'SharePoint Designer workflow alternative', 'Power Automate alternative', 'SharePoint approval workflow', 'SharePoint workflow on premises'],
-    updated: '2026-11-14',
+    metaTitle: 'SharePoint Workflow Migration Guide: 2010, 2013 and Designer | UserTasks',
+    description: 'SharePoint 2010 and 2013 workflows are retired in SharePoint Online, and the July 13, 2027 update removes 2010 workflows from SharePoint Server Subscription Edition. How to replace SharePoint Designer workflows, InfoPath forms and task lists, on premises or in the cloud.',
+    keywords: ['SharePoint workflow migration', 'SharePoint 2010 workflow replacement', 'SharePoint 2013 workflow replacement', 'SharePoint Designer workflow alternative', 'SharePoint Server Subscription Edition workflow', 'SharePoint 2010 workflow retirement', 'Power Automate alternative', 'SharePoint workflow on premises'],
+    updated: '2026-11-15',
     definition: 'SharePoint workflow migration is the move of approvals, feedback rounds and list-driven processes built on the SharePoint 2010 and 2013 workflow engines, usually with SharePoint Designer, to a supported workflow platform. UserTasks is an open-source platform for that move: sites, lists and libraries stay in SharePoint, while workflows, forms and approval tasks move to UserTasks, in the cloud or on premises.',
     intro: 'The workflow engines behind many SharePoint sites are gone, and the tools used to build them are out of support. Rebuild the processes once, on a platform that also replaces the InfoPath forms and task lists that went with them — and keep SharePoint for content.',
-    outcomes: ['Approvals with outcomes, SLAs and escalation', 'InfoPath forms imported from the .xsn', 'Lists and files read and written through Microsoft Graph', 'Self-hosted next to your farm, or in the cloud'],
+    outcomes: ['Approvals with outcomes, SLAs and escalation', 'InfoPath forms imported from the .xsn', 'SharePoint Server: list-event workflows and embedded forms', 'Self-hosted next to your farm, or in the cloud'],
+    facts: [
+      { label: 'SharePoint Online', value: 'SharePoint 2010 workflows were removed in November 2020 and SharePoint 2013 workflows on April 2, 2026.', source: MS_SHAREPOINT_2013 },
+      { label: 'SharePoint Server', value: 'The July 13, 2027 public update removes SharePoint 2010 workflows and InfoPath Forms Services from Subscription Edition; they have been off by default since September 2026.', source: MS_KB5002945 },
+      { label: 'SharePoint Designer', value: 'SharePoint Designer 2013 reached the end of extended support on July 14, 2026.', source: MS.spd2013 },
+      SHAREPOINT_KEY_FACTS.find((fact) => fact.label === 'Price')!,
+    ],
+    alternatives: ALTERNATIVES_COMPARISON,
     timeline: {
       title: 'What Microsoft has announced',
       body: 'Microsoft’s published dates for SharePoint Online (Microsoft 365) workflows and the related on-premises products. Microsoft recommends migrating to Power Automate or another supported workflow orchestration solution.',
@@ -207,12 +220,12 @@ export const SEO_PAGES: SeoPage[] = [
         { date: 'July 14, 2026', text: 'SharePoint Designer 2013, SharePoint Server 2016, SharePoint Server 2019 and InfoPath 2013 reached end of support.' },
         { date: 'July 13, 2027', text: 'The SharePoint Server Subscription Edition public update removes SharePoint 2010 workflows and InfoPath Forms Services, which have been turned off by default since the September 2026 update.' },
       ],
-      sources: [MS_SHAREPOINT_2010, MS_SHAREPOINT_2013, MS_EOS_2026, MS_KB5002945],
+      sources: [MS_SHAREPOINT_2010, MS_SHAREPOINT_2013, MS_EOS_2026, MS.spd2013, MS_KB5002945],
     },
     sections: [
       { title: 'What a SharePoint migration has to cover', body: 'A SharePoint “workflow” is rarely only a workflow. It is usually an InfoPath or list form that collects the request, a SharePoint Designer workflow that routes it, a task list where approvers respond, a history list, and the list or library the data lives in. Plan for all five, not just the routing.', points: ['Workflows: approvals, collect feedback, notifications and list-item updates', 'Forms: InfoPath templates and customized list forms', 'Tasks: workflow task lists and the emails that pointed to them', 'Data: lists and document libraries, which can stay where they are'] },
       { title: 'Power Automate or an alternative?', body: 'Power Automate is Microsoft’s recommended path and a natural fit if every process stays inside Microsoft 365. Teams look at alternatives when they need something else as well: an engine they can self-host or run air-gapped, forms and approvals in the same product, or workflow definitions they can review as code.', points: ['UserTasks is open source (Apache-2.0) and can run entirely on your own servers', 'Forms, workflows, a task list, data tables and reports in one product', 'An importer that rebuilds InfoPath .xsn templates as forms', 'Workflows as JSON, with a REST API, MCP server and CLI for every operation'] },
-      { title: 'SharePoint Server farms on premises', body: 'SharePoint Server 2016 and 2019 reached end of support on July 14, 2026, together with SharePoint Designer 2013 and InfoPath 2013, and Microsoft removes SharePoint 2010 workflows and InfoPath Forms Services from Subscription Edition in the July 13, 2027 public update. The UserTasks SharePoint extension brings forms and workflows back into the farm’s own lists.', points: ['A SharePoint add-in for SharePoint Server 2016, 2019 and Subscription Edition, installed from the farm’s App Catalog', 'Generated list forms embedded in SharePoint, and workflows triggered by list and library events', 'The full SharePoint REST API as workflow steps, plus InfoPath and SharePoint Designer 2010 importers', 'Self-hosted next to the farm, or UserTasks Cloud through an outbound-only gateway'] },
+      { title: 'SharePoint Server farms on premises', body: 'SharePoint Server 2016 and 2019 reached end of support on July 14, 2026, together with SharePoint Designer 2013 and InfoPath 2013, and Microsoft removes SharePoint 2010 workflows and InfoPath Forms Services from Subscription Edition in the July 13, 2027 public update. The UserTasks SharePoint extension brings forms and workflows back into the farm’s own lists.', points: ['A SharePoint add-in for SharePoint Server 2016, 2019 and Subscription Edition, installed from the farm’s App Catalog', 'Generated list forms embedded in SharePoint, and workflows triggered by list and library events', 'A dashboard per list: runs queue, metrics (cycle time, where runs wait, submissions, CSV) and permissions', 'The full SharePoint REST API as workflow steps, plus InfoPath and SharePoint Designer 2010 importers', 'Self-hosted next to the farm, air-gapped, or UserTasks Cloud through an outbound-only gateway'] },
     ],
     comparison: {
       title: 'How SharePoint pieces map to UserTasks',
@@ -221,7 +234,8 @@ export const SEO_PAGES: SeoPage[] = [
       rows: [
         ['Approval workflow (approve / reject)', 'A User Task with Approve and Reject outcomes, assigned to people or a team queue, with a due date, reminders and escalation'],
         ['Collect Feedback workflow', 'A User Task with comment fields assigned to several people; the run continues when they respond'],
-        ['Workflow started when an item is created or changed', 'A schedule trigger with the SharePoint connector’s Get List Items, an inbound webhook, or a form submission'],
+        ['Workflow started when an item is created or changed', 'SharePoint Server: the extension’s list-event trigger (created, modified, deleted, renamed, approval, version and more). SharePoint Online: a schedule with the connector’s Get List Items, or an inbound webhook'],
+        ['Workflow started manually on an item', 'SharePoint Server: “Start a UserTasks workflow” on the item menu. Anywhere: a form, the task list or the API'],
         ['SharePoint Designer conditions and lookups', 'Condition and Switch nodes, and decision tables for rules the business maintains'],
         ['Create / update list item', 'SharePoint connector: Create List Item and Update List Item, through Microsoft Graph'],
         ['Pause for duration / until date', 'Delay and Pause Until nodes, resumed from the durable queue'],
@@ -245,6 +259,8 @@ export const SEO_PAGES: SeoPage[] = [
       { question: 'Is UserTasks an alternative to Power Automate?', answer: 'For SharePoint approvals, list workflows and forms, yes. Power Automate is Microsoft’s recommended path and fits processes that stay inside Microsoft 365. UserTasks suits teams that also want to self-host or run air-gapped, keep forms, approvals and workflows in one product, or manage workflows as code through an API and CLI.' },
       { question: 'Can UserTasks import SharePoint Designer workflows?', answer: 'SharePoint Designer 2010 workflows on SharePoint Server, yes: the paid SharePoint extension scans your sites and imports them as UserTasks workflows. Other SharePoint Designer workflows are rebuilt, usually by pattern, since most are approvals, feedback rounds, notifications or list updates. InfoPath forms are imported from the .xsn template, each view becoming a UserTasks form.' },
       { question: 'Do my lists and documents have to leave SharePoint?', answer: 'No. Content can stay in SharePoint Online. UserTasks reads and writes list items, files and folders through the SharePoint connector, which uses a Microsoft Entra app registration with Microsoft Graph permissions; Sites.Selected limits it to the sites you grant. You can also move list data into UserTasks data tables.' },
+      { question: 'How long will SharePoint 2010 workflows keep working on SharePoint Server?', answer: 'On Subscription Edition, until the July 13, 2027 public update, which removes SharePoint 2010 workflows and InfoPath Forms Services; Microsoft says workflows that depend on them then stop working. Both have been out of support since July 14, 2026 and turned off by default since the September 2026 update. Microsoft advises migrating to a supported alternative now.' },
+      { question: 'Is there a SharePoint Designer workflow alternative that runs on premises?', answer: 'Yes. UserTasks is open source and self-hosts next to the farm, and its SharePoint extension starts workflows from the same list events SharePoint Designer workflows used, keeps approvals in a My tasks web part and the UserTasks task list, and opens the workflow designer inside a SharePoint page. It costs $7,500 USD per farm per year.' },
       { question: 'Can UserTasks run on premises next to SharePoint Server?', answer: 'Yes. UserTasks is open source and self-hosts on Docker or Kubernetes, so it can run in the same network as a SharePoint Server farm. The paid SharePoint extension adds an add-in for SharePoint Server 2016, 2019 and Subscription Edition, with embedded list forms, list-event triggers and the full SharePoint REST API as workflow steps.' },
     ],
     related: { href: '/infopath', label: 'Try the InfoPath importer', body: 'Drop an .xsn on the page for a free, analyze-only preview: every view, field and rule, and what it becomes. Nothing is stored.' },
@@ -253,7 +269,9 @@ export const SEO_PAGES: SeoPage[] = [
       { href: '/use-cases/sharepoint-workflow-replacement', label: 'SharePoint workflow replacement architecture' },
       { href: '/infopath-migration-guide', label: 'InfoPath migration guide' },
       { href: '/on-premises-workflow-automation', label: 'On-premises workflow automation' },
-      { href: '/use-cases/nintex-migration', label: 'Moving from Nintex' },
+      { href: '/nintex-alternative', label: 'Nintex alternative for SharePoint on premises' },
+      { href: '/docs/sharepoint', label: 'SharePoint extension (docs)' },
+      { href: '/docs/sharepoint/triggers', label: 'SharePoint trigger events (docs)' },
       { href: '/docs/integrations/connectors', label: 'Connectors, including SharePoint (docs)' },
     ],
     disclaimer: TRADEMARKS,
@@ -262,13 +280,19 @@ export const SEO_PAGES: SeoPage[] = [
     slug: 'infopath-migration-guide',
     eyebrow: 'InfoPath migration guide',
     title: 'InfoPath migration guide: move InfoPath forms to a supported platform',
-    metaTitle: 'InfoPath Migration Guide: InfoPath Replacement After End of Support | UserTasks',
-    description: 'InfoPath 2013 and InfoPath Forms Services reached end of support on July 14, 2026. A step-by-step guide to replacing InfoPath forms: import the .xsn, finish rules and data connections, keep submissions, and run it in the cloud or on premises.',
-    keywords: ['InfoPath migration', 'InfoPath replacement', 'InfoPath alternative', 'InfoPath end of support', 'InfoPath 2013 end of life', 'InfoPath Forms Services retirement', 'convert InfoPath forms', 'xsn to web form'],
-    updated: '2026-11-11',
+    metaTitle: 'Migrate InfoPath Forms: Forms Services End of Support Guide | UserTasks',
+    description: 'InfoPath 2013 and InfoPath Forms Services reached end of support on July 14, 2026, and the July 13, 2027 update removes Forms Services from SharePoint Server Subscription Edition. How to migrate InfoPath forms: import the .xsn, finish rules and data connections, keep submissions.',
+    keywords: ['migrate InfoPath forms', 'InfoPath migration', 'InfoPath Forms Services end of support', 'InfoPath replacement', 'InfoPath alternative', 'InfoPath end of support', 'InfoPath 2013 end of life', 'InfoPath Forms Services retirement', 'convert InfoPath forms', 'xsn to web form'],
+    updated: '2026-11-15',
     definition: 'InfoPath migration is the work of moving forms built with Microsoft InfoPath — .xsn form templates with their views, rules, validation and data connections — to a supported form platform. UserTasks is an open-source forms and workflow platform with a built-in InfoPath importer that rebuilds each view of an .xsn as a form and lists anything that needs a person.',
     intro: 'Microsoft has ended support for InfoPath 2013 and removed InfoPath Forms Services from SharePoint Online. Forms that still do real work need a new home. This guide covers the decisions and the steps, from inventory to retiring the old form library.',
     outcomes: ['Free .xsn preview, no account, nothing stored', 'One form per view, or views as steps', 'Rules, validation and formulas converted where they translate', 'Submissions in a data table, with a workflow'],
+    facts: [
+      { label: 'InfoPath 2013', value: 'InfoPath 2013 reached the end of extended support on July 14, 2026.', source: MS_INFOPATH_LIFECYCLE },
+      { label: 'SharePoint Online', value: 'InfoPath Forms Services was removed from SharePoint Online on July 14, 2026, with no option to extend.', source: MS_INFOPATH_BLOG },
+      { label: 'SharePoint Server', value: 'The July 13, 2027 public update removes InfoPath Forms Services from SharePoint Server Subscription Edition; it has been off by default since September 2026.', source: MS_KB5002945 },
+      { label: 'The importer', value: 'Free and open source (Apache-2.0): reads .xsn templates from InfoPath 2007, 2010 and 2013 and rebuilds each view as a web form.' },
+    ],
     timeline: {
       title: 'The InfoPath end-of-support dates',
       body: 'From Microsoft’s announcements. Microsoft recommends Power Apps, Power Automate or Microsoft Forms as replacements and points to the Microsoft 365 Assessment tool for finding InfoPath usage.',
@@ -277,8 +301,10 @@ export const SEO_PAGES: SeoPage[] = [
         { date: 'May 18, 2026', text: 'Publishing new InfoPath forms, or updates to existing forms, blocked in SharePoint Online.' },
         { date: 'July 14, 2026', text: 'InfoPath 2013 reached the end of extended support. InfoPath Forms Services removed from SharePoint Online, with no option to extend.' },
         { date: 'July 14, 2026', text: 'Extended support for InfoPath Forms Services in SharePoint Server 2016, 2019 and Subscription Edition ended.' },
+        { date: 'September 2026', text: 'InfoPath Forms Services turned off by default in SharePoint Server Subscription Edition, from that month’s public update.' },
+        { date: 'July 13, 2027', text: 'The public update removes InfoPath Forms Services (and SharePoint 2010 workflows) from SharePoint Server Subscription Edition; forms that depend on it stop working.' },
       ],
-      sources: [MS_INFOPATH_BLOG, MS_INFOPATH_LIFECYCLE, MS_EOS_2026],
+      sources: [MS_INFOPATH_BLOG, MS_INFOPATH_LIFECYCLE, MS_EOS_2026, MS_KB5002945],
     },
     sections: [
       { title: 'Choosing an InfoPath replacement', body: 'The right replacement depends on what the forms do. Simple surveys can move to almost any form tool. Business forms with repeating tables, calculations, conditional sections, validation and an approval process behind them need a platform that has all of those, and ideally one that can read the original template.', points: ['Repeating tables become Lists (editable tables with calculated columns), repeating sections become Repeating sections', 'Rules on load, change, button click and submit become form rules', 'The approval behind the form becomes a workflow with tasks', 'Submissions land in a data table you can report on'] },
@@ -319,6 +345,8 @@ export const SEO_PAGES: SeoPage[] = [
       { question: 'Can I convert an InfoPath .xsn automatically?', answer: 'Yes, largely. The UserTasks importer reads an .xsn from InfoPath 2007, 2010 or 2013 and rebuilds each view as a form, converting fields, repeating tables and sections (nested too), pictures, signatures, validation, defaults, formulas, conditional formatting and most rules. What it can’t convert is listed in a report and kept as a turned-off rule, never silently dropped.' },
       { question: 'What happens to forms that read a SharePoint list?', answer: 'Data connections don’t move by themselves. Create a data table, or an integration for the web service, with the same name as the connection, then import the file again: the query rules use it. Until then the import report says what each connection was for, and drop-downs it filled become text fields.' },
       { question: 'What happens to existing InfoPath submissions?', answer: 'The importer converts the form template, not past submissions. Keep the old form library as a read-only archive, or move the records you still need into the data table the importer creates, for example with a workflow that reads a CSV or Excel export. New submissions then land in that table.' },
+      { question: 'Does InfoPath Forms Services still work on SharePoint Server Subscription Edition?', answer: 'Only until the July 13, 2027 public update, which removes it from Subscription Edition. Microsoft turned it off by default from the September 2026 update; it can be switched back on until then, but it has been out of support since July 14, 2026 and gets no security updates. Microsoft advises migrating now.' },
+      { question: 'Can InfoPath list forms be replaced inside SharePoint lists?', answer: 'Yes, on SharePoint Server with the paid UserTasks SharePoint extension. Importing an InfoPath list form makes it the list’s New, Edit and Display form: the UserTasks form opens inside the SharePoint page, Save and Cancel return to the list, and InfoPath’s original form addresses are kept so you can switch back explicitly.' },
       { question: 'Is the InfoPath importer free?', answer: 'Yes. The preview at usertasks.com/infopath is free, needs no account and stores nothing. The importer is part of UserTasks, which is open source under Apache-2.0: run it on your own servers at no cost, or use the cloud edition, which is free during the beta.' },
     ],
     related: { href: '/infopath', label: 'Try the InfoPath importer now', body: 'Drop an .xsn on the page and see every view, field and rule and what it becomes. Free, no account, nothing stored.' },
@@ -327,6 +355,8 @@ export const SEO_PAGES: SeoPage[] = [
       { href: '/docs/tasks/import-infopath', label: 'Import InfoPath forms (docs)' },
       { href: '/docs/tutorials/migrate-infopath', label: 'Tutorial: migrate an expense report' },
       { href: '/sharepoint-workflow-migration', label: 'SharePoint workflow migration' },
+      { href: '/sharepoint', label: 'InfoPath list forms on SharePoint Server' },
+      { href: '/docs/sharepoint/forms', label: 'SharePoint list forms (docs)' },
       { href: '/forms', label: 'The UserTasks form designer' },
     ],
     disclaimer: TRADEMARKS,
@@ -353,6 +383,7 @@ export const SEO_PAGES: SeoPage[] = [
       columns: ['', 'Self-hosted (open source)', 'UserTasks Cloud'],
       rows: [
         ['Licence', 'Apache-2.0', 'Same code, operated by the UserTasks team'],
+        ['Status', 'Production-ready', 'Beta'],
         ['Price', 'Free to run', 'Free during the beta'],
         ['Features', 'Everything: workflows, forms, tasks, data, reports, integrations, Agent', 'Everything'],
         ['Runs on', 'Docker Compose, Kubernetes (Helm), AWS, Azure, Google Cloud, your servers, air-gapped', 'Managed service'],
@@ -384,6 +415,69 @@ export const SEO_PAGES: SeoPage[] = [
       { href: '/docs/self-hosting/choose', label: 'Self-hosting guide' },
       { href: '/docs/quickstart/self-host', label: 'Self-host quickstart' },
     ],
+  },
+  {
+    slug: 'nintex-alternative',
+    eyebrow: 'Nintex alternative',
+    title: 'A Nintex alternative for SharePoint on premises: workflows, forms and approvals',
+    metaTitle: 'Nintex Alternative On-Premises for SharePoint Server | UserTasks',
+    description: 'UserTasks is an open-source alternative to Nintex for SharePoint Server: list-event workflows, forms embedded in lists, approvals and per-list metrics, self-hosted or air-gapped. A free Nintex workflow importer in UserTasks core reads .nwf and .nwp exports.',
+    keywords: ['Nintex alternative', 'Nintex alternative on premises', 'Nintex for SharePoint alternative', 'Nintex replacement', 'import Nintex workflows', 'Nintex migration', 'Nintex Forms alternative', 'SharePoint workflow on premises'],
+    updated: '2026-11-16',
+    definition: 'A Nintex alternative is another platform for the workflows, forms and approvals teams built with Nintex for SharePoint. UserTasks is an open-source (Apache-2.0) workflow, forms and tasks platform whose paid SharePoint extension runs those processes on SharePoint Server 2016, 2019 and Subscription Edition lists, from your own servers or air-gapped.',
+    intro: 'Teams look at Nintex alternatives when they plan a SharePoint upgrade, review licences, or want workflows they can self-host and manage as code. This page lays out, factually, what moving Nintex for SharePoint processes to UserTasks involves, and how the Nintex importer helps.',
+    outcomes: ['Workflows that start from SharePoint list events', 'Forms embedded in SharePoint lists and libraries', 'Approvals in a My tasks web part and one task list', 'A free Nintex workflow importer in core, with SharePoint targets'],
+    facts: [
+      { label: 'What UserTasks is', value: 'An open-source (Apache-2.0) workflow, forms and tasks platform; the SharePoint Server extension is the paid part.' },
+      { label: 'SharePoint versions', value: 'SharePoint Server 2016, 2019 and Subscription Edition, through a provider-hosted add-in from the farm’s App Catalog.' },
+      { label: 'Nintex import', value: 'A free Nintex workflow importer in UserTasks core reads .nwf (Nintex for SharePoint 2013 / 2016) and .nwp (Office 365) exports, previews them with a mapping report and imports them as draft workflows.' },
+      SHAREPOINT_KEY_FACTS.find((fact) => fact.label === 'Price')!,
+    ],
+    sections: [
+      { title: 'What a Nintex for SharePoint estate usually contains', body: 'Most Nintex for SharePoint estates are list and library workflows with approval tasks, Nintex Forms on those lists, scheduled workflows and a set of reusable workflow snippets. Inventory each one with its list, owner, trigger and run volume before choosing what to move, retire or merge.', points: ['List workflows started when items are created or changed, or by hand', 'Approval and review tasks, often with escalation and delegation', 'Nintex Forms used as the list’s New and Edit forms', 'Workflows that query and update other lists, send email and set permissions'] },
+      { title: 'How UserTasks covers the same ground on SharePoint Server', body: 'With the SharePoint extension, UserTasks attaches to the same lists. A UserTasks button on each list creates its forms and workflows, and each list gets a dashboard with its runs, metrics and permissions.', points: ['List-event triggers: created, modified, deleted, renamed, attachments, approval status, new version, check-in and more', 'Generated New, Edit and Display forms that replace the list’s forms inside the SharePoint page', 'Approvals with outcomes, SLAs, reminders and escalation, actioned in a My tasks web part', 'Every SharePoint REST operation as a workflow step: items, files, versions, approval and permissions'] },
+      { title: 'Importing Nintex workflows', body: 'The Nintex importer is free in UserTasks core (open source). It reads .nwf exports (Nintex for SharePoint 2013 and 2016) and .nwp exports (Office 365), or a .zip of them, shows a preview with a mapping report, and imports each workflow as a draft. With the SharePoint extension, Import from Nintex also runs inside the designer embedded in SharePoint, for the list you are on.', points: ['Import as a standalone workflow, into a SharePoint list and event, or over an existing workflow as a new draft version', 'In SharePoint: a check of the list’s columns, with the missing ones added for you, and the option to create the list from the import', 'Set item permissions and other SharePoint actions become SharePoint steps', 'Nintex Forms come in from .nwp packages and list templates (a .nwf file holds only the workflow); actions without an equivalent come in as placeholders to rebuild'] },
+    ],
+    comparison: {
+      title: 'Nintex for SharePoint concepts in UserTasks',
+      body: 'A starting point for an inventory. Names alone rarely tell the whole story: check what each workflow actually does.',
+      columns: ['In Nintex for SharePoint', 'In UserTasks'],
+      rows: [
+        ['Workflow started when an item is created or modified', 'The SharePoint extension’s list-event trigger, with “only when these fields change” conditions'],
+        ['Workflow started manually on an item', '“Start a UserTasks workflow” on the item menu, with an optional note for the run'],
+        ['Request approval / Assign a task', 'A User Task with Approve and Reject (or your own) outcomes, assigned to people, groups or a team queue, with due dates, reminders and escalation'],
+        ['Nintex Forms on a list', 'Generated New, Edit and Display forms embedded in the SharePoint page, designed in the UserTasks form designer'],
+        ['Query list, create, update or delete item', 'SharePoint steps for items, files and folders on any connected list'],
+        ['Set item permissions', 'SharePoint permission steps: grant, remove, or restore inheritance'],
+        ['Conditions, switches and loops', 'Condition and Switch nodes, loops, sub-workflows and decision tables'],
+        ['Pause for a duration or until a date', 'Delay and Pause Until nodes, resumed from the durable queue'],
+        ['Workflow history and status', 'Run history, the list dashboard’s runs queue and metrics, audit trail and log export'],
+      ],
+    },
+    alternatives: ALTERNATIVES_COMPARISON,
+    steps: [
+      { title: 'Inventory', body: 'List every Nintex workflow and form with its site, list, trigger, owner and how often it runs. Retire what nobody uses.' },
+      { title: 'Group by pattern', body: 'Sort the rest into approvals, notifications, list updates and scheduled jobs; most fall into a handful of shapes.' },
+      { title: 'Set up one list', body: 'Install the add-in, click UserTasks on a list and create its forms and workflows. Rebuild one workflow per pattern.' },
+      { title: 'Run side by side, then switch', body: 'Compare results on real items, then turn the Nintex workflow off and make the UserTasks forms the list’s forms. Repeat list by list.' },
+    ],
+    stepsTitle: 'Moving Nintex for SharePoint workflows, list by list',
+    faqs: [
+      { question: 'Is UserTasks a Nintex alternative on premises?', answer: 'For workflows, forms and approvals on SharePoint Server lists, yes. UserTasks runs on your own servers or air-gapped, starts workflows from SharePoint list events, replaces list forms inside the SharePoint page and puts approvals in a My tasks web part. It does not include RPA. UserTasks is open source; the SharePoint extension costs $7,500 USD per farm per year.' },
+      { question: 'Can UserTasks import Nintex workflows?', answer: 'Yes. The free Nintex importer in UserTasks core reads .nwf (Nintex for SharePoint 2013 and 2016) and .nwp (Office 365) exports, previews each with a mapping report and imports it as a draft: standalone, on a SharePoint list and event (with the SharePoint extension), or as a new version of an existing workflow. Actions without an equivalent come in as placeholders to rebuild.' },
+      { question: 'What replaces Nintex Forms on a SharePoint list?', answer: 'UserTasks generates New, Edit and Display forms from the list’s columns and makes them the list’s forms: they open inside the SharePoint page, with the site’s header and navigation, and Save, Cancel and Delete item return to the list. You design them further in the UserTasks form designer, and can switch back to SharePoint’s forms at any time.' },
+      { question: 'Does UserTasks work with SharePoint Server Subscription Edition?', answer: 'Yes. The UserTasks SharePoint extension supports SharePoint Server 2016, 2019 and Subscription Edition and is developed and tested on Subscription Edition. It installs as a high-trust, provider-hosted add-in from the farm’s own App Catalog, and people sign in silently through AD FS or Windows sign-in.' },
+      { question: 'Can Nintex and UserTasks run side by side?', answer: 'Yes. Both attach to the same SharePoint lists, so you can move one list or one workflow at a time. Run them in parallel on real items, compare results, then turn the Nintex workflow off. Take care that two workflows don’t act on the same event during the overlap, or that their actions don’t conflict.' },
+    ],
+    related: { href: '/sharepoint', label: 'See the SharePoint Server extension', body: 'List-event workflows, embedded forms, a dashboard per list with runs, metrics and permissions, web parts and pricing.' },
+    links: [
+      { href: '/sharepoint', label: 'SharePoint Server extension' },
+      { href: '/use-cases/nintex-migration', label: 'Nintex migration guide (all Nintex products)' },
+      { href: '/sharepoint-workflow-migration', label: 'SharePoint workflow migration' },
+      { href: '/docs/sharepoint/migration', label: 'Migration importers (docs)' },
+      { href: '/on-premises-workflow-automation', label: 'On-premises workflow automation' },
+    ],
+    disclaimer: TRADEMARKS,
   },
 ]
 

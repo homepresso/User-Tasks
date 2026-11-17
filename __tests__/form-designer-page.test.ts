@@ -115,7 +115,9 @@ describe('one designer, two frames', () => {
     expect(html).toMatch(/>Field<[\s\S]*>Rules<[\s\S]*>Theme<[\s\S]*>Checks<[\s\S]*>Form<[\s\S]*>Access</)
     // No dialog chrome: no Close, no Cancel, no resize handles, no Agent column of its own (the shell docks it).
     expect(html).not.toContain('aria-label="Close"')
-    expect(html).not.toContain('>Cancel<')
+    // (The form's own button bar is drawn on the canvas, WYSIWYG — its Cancel is the form's, not dialog chrome.)
+    const chrome = html.replace(/<div[^>]*data-canvas-buttons=[\s\S]*?<\/div>\s*<\/div>/g, '')
+    expect(chrome).not.toContain('>Cancel<')
     expect(html).not.toContain('data-testid="dialog-agent-button"')
   })
 

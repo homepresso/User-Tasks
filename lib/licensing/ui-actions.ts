@@ -23,6 +23,11 @@ export interface LicenceUiDeps {
 
 const DENIED = 'Only instance admins can manage the licence'
 
+/** Run fn as an instance admin (the trial actions); same checks and errors as the licence actions. */
+export function asInstanceAdmin<T>(user: InfrastructureViewer | null | undefined, canView: LicenceUiDeps['canView'], fn: (who: { actorId: string | null; actor: string }) => Promise<T>): Promise<ActionResult<T>> {
+  return guard(user, { canView } as LicenceUiDeps, fn)
+}
+
 async function guard<T>(user: InfrastructureViewer | null | undefined, deps: LicenceUiDeps, fn: (who: { actorId: string | null; actor: string }) => Promise<T>): Promise<ActionResult<T>> {
   if (!(await deps.canView(user).catch(() => false)) || !user) return { ok: false, error: DENIED }
   try {

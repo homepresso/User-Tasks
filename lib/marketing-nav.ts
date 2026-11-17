@@ -71,6 +71,7 @@ export const GUIDES: Array<{ href: string; label: string }> = [
   { href: '/sharepoint-workflow-migration', label: 'SharePoint workflow migration' },
   { href: '/infopath-migration-guide', label: 'InfoPath migration guide' },
   { href: '/sharepoint', label: 'SharePoint Server add-in' },
+  { href: '/nintex-alternative', label: 'Nintex alternative (SharePoint on premises)' },
   { href: '/use-cases/nintex-migration', label: 'Moving from Nintex' },
   { href: '/use-cases/k2-migration', label: 'Moving from K2' },
   { href: '/on-premises-workflow-automation', label: 'On-premises & air-gapped' },

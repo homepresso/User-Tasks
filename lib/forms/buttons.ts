@@ -33,14 +33,22 @@
  */
 
 import { readDeepPath } from './data-actions'
+// Cycle (both import this module): used only at call time.
+import { FIELD_BUTTON_ICONS } from './field-buttons'
+import { isRuleMet, normalizeVisibleWhen, type VisibleWhen } from '@/lib/task-field-schema'
 import { isPlainObject } from '@/lib/utils/guards'
 import { pathValue } from './lookup'
 import { formContextPath } from './form-params'
 import { normalizeTableChanges, tableChangesProblem, type TableChangesConfig } from './table-changes'
 
 export type FormButtonKind = 'submit' | 'cancel' | 'draft' | 'outcome' | 'delete' | 'link'
-export type FormButtonStyle = 'primary' | 'secondary' | 'danger'
-export type FormActionType = 'message' | 'success_screen' | 'start_workflow' | 'redirect' | 'close' | 'apply_table_changes'
+export type FormButtonStyle = 'primary' | 'secondary' | 'outline' | 'danger'
+export type FormButtonSize = 'sm' | 'md' | 'lg'
+export const FORM_BUTTON_STYLES: FormButtonStyle[] = ['primary', 'secondary', 'outline', 'danger']
+export const FORM_BUTTON_SIZES: FormButtonSize[] = ['sm', 'md', 'lg']
+export type FormActionType = 'message' | 'success_screen' | 'start_workflow' | 'redirect' | 'close' | 'apply_table_changes' | 'save_target'
+/** save_target: what it does with the record (provider-defined; unset = the provider's default for the form, e.g. create on New, update on Edit). */
+export type SaveTargetOperation = 'create' | 'update'
 export type ButtonPlacement = 'left' | 'right' | 'full'
 
 export interface FormAction {
@@ -71,6 +79,14 @@ export interface FormAction {
   table_changes?: TableChangesConfig
   /** start_workflow / apply_table_changes: also run for anonymous submissions of a public form link. Off by default. */
   allow_anonymous?: boolean
+  /** save_target: create a new record or update the one the form opened (unset: the provider's default). */
+  operation?: SaveTargetOperation
+  /** save_target: when the record changed since the form opened — refuse (default) or overwrite. */
+  conflict?: 'refuse' | 'overwrite'
+  /** save_target: source fields set from an expression (source field key → template: {{user.email}}, a fixed value, {{form.x}} …), besides the binding's field mapping. */
+  values?: Record<string, string>
+  /** save_target: provider options (e.g. upload: false — a library form keeps the file and updates the columns only). */
+  options?: Record<string, string | boolean>
 }
 
 export interface FormButton {
@@ -80,8 +96,18 @@ export interface FormButton {
   style: FormButtonStyle
   /** outcome buttons: the task outcome they complete with. */
   outcome?: string
+  /** Not shown in the bar (any button; a Button on the form may still press it). */
   hidden?: boolean
   actions?: FormAction[]
+  /** An icon (FIELD_BUTTON_ICONS, lib/forms/field-buttons.ts), before the label unless icon_after. */
+  icon?: string
+  icon_after?: boolean
+  /** Button size (default md: the theme's). */
+  size?: FormButtonSize
+  /** Its own colour (#rrggbb): the fill (outline / secondary: the border and text); the text colour is picked for it. */
+  color?: string
+  /** Shown only while this holds (a field rule, like a field's "Visible when"). Like hidden, it only hides the button: a Button on the form may still press it. */
+  visible_when?: VisibleWhen
 }
 
 export const FORM_BUTTON_KINDS: FormButtonKind[] = ['submit', 'cancel', 'draft', 'outcome', 'delete', 'link']
@@ -102,7 +128,7 @@ export const TARGET_URL_RE = /^\{\{target\.url\.([a-z][a-z0-9_]{0,40})\}\}$/
 export function isTargetUrlToken(url: string | undefined | null): boolean {
   return url === TARGET_RETURN_URL || TARGET_URL_RE.test(String(url ?? ''))
 }
-export const FORM_ACTION_TYPES: FormActionType[] = ['message', 'success_screen', 'start_workflow', 'redirect', 'close', 'apply_table_changes']
+export const FORM_ACTION_TYPES: FormActionType[] = ['save_target', 'message', 'success_screen', 'start_workflow', 'redirect', 'close', 'apply_table_changes']
 export const FORM_ACTION_LABELS: Record<FormActionType, string> = {
   message: 'Show message',
   success_screen: 'Show success screen',
@@ -110,6 +136,7 @@ export const FORM_ACTION_LABELS: Record<FormActionType, string> = {
   redirect: 'Redirect',
   close: 'Close form',
   apply_table_changes: 'For each changed row',
+  save_target: 'Save to the connected record',
 }
 
 export const DEFAULT_FORM_BUTTONS: FormButton[] = [
@@ -210,6 +237,21 @@ function normalizeAction(raw: unknown, kind: FormButtonKind): FormAction | null 
     case 'apply_table_changes':
       out.table_changes = normalizeTableChanges(raw.table_changes)
       break
+    case 'save_target': {
+      if (raw.operation === 'create' || raw.operation === 'update') out.operation = raw.operation
+      if (raw.conflict === 'overwrite') out.conflict = 'overwrite'
+      if (isPlainObject(raw.values)) {
+        const values: Record<string, string> = {}
+        for (const [k, v] of Object.entries(raw.values).slice(0, 40)) if (/^[A-Za-z0-9_.:-]{1,200}$/.test(k) && typeof v === 'string' && v.trim()) values[k] = v.slice(0, 2000)
+        if (Object.keys(values).length) out.values = values
+      }
+      if (isPlainObject(raw.options)) {
+        const options: Record<string, string | boolean> = {}
+        for (const [k, v] of Object.entries(raw.options).slice(0, 10)) if (/^[a-z][a-z0-9_]{0,40}$/.test(k) && (typeof v === 'boolean' || typeof v === 'string')) options[k] = typeof v === 'string' ? v.slice(0, 200) : v
+        if (Object.keys(options).length) out.options = options
+      }
+      break
+    }
   }
   if (raw.allow_anonymous === true && (type === 'start_workflow' || type === 'apply_table_changes')) out.allow_anonymous = true
   return out
@@ -231,21 +273,39 @@ export function normalizeFormButtons(raw: unknown): FormButton[] {
     let id = typeof entry.id === 'string' && ID_RE.test(entry.id) ? entry.id : kind
     for (let i = 2; ids.has(id); i++) id = `${kind}_${i}`
     ids.add(id)
-    const style: FormButtonStyle = entry.style === 'secondary' || entry.style === 'danger' ? entry.style : entry.style === 'primary' ? 'primary' : kind === 'cancel' || kind === 'draft' ? 'secondary' : kind === 'delete' ? 'danger' : 'primary'
+    const style: FormButtonStyle = entry.style === 'secondary' || entry.style === 'danger' || entry.style === 'outline' ? entry.style : entry.style === 'primary' ? 'primary' : kind === 'cancel' || kind === 'draft' ? 'secondary' : kind === 'delete' ? 'danger' : 'primary'
     const button: FormButton = { id, label: str(entry.label, BUTTON_LIMITS.label) ?? defaultLabel(kind), kind, style }
     if (kind === 'outcome') {
       const outcome = str(entry.outcome, 200)
       button.outcome = outcome ?? button.label
     }
-    if (entry.hidden === true && kind === 'cancel') button.hidden = true
+    if (entry.hidden === true) button.hidden = true
+    if (typeof entry.icon === 'string' && (FIELD_BUTTON_ICONS as readonly string[]).includes(entry.icon)) {
+      button.icon = entry.icon
+      if (entry.icon_after === true) button.icon_after = true
+    }
+    if (entry.size === 'sm' || entry.size === 'lg') button.size = entry.size
+    if (typeof entry.color === 'string' && /^#[0-9a-f]{6}$/i.test(entry.color)) button.color = entry.color.toLowerCase()
+    const shownWhen = entry.visible_when ? normalizeVisibleWhen(entry.visible_when) : undefined
+    if (shownWhen) button.visible_when = shownWhen
     if (Array.isArray(entry.actions)) {
       const actions = entry.actions.map((a) => normalizeAction(a, kind)).filter((a): a is FormAction => Boolean(a)).slice(0, BUTTON_LIMITS.actions)
-      if (actions.length) button.actions = actions
+      // "Save to …" runs first (the record is written before anything else happens): one, at the front.
+      const save = actions.find((a) => a.type === 'save_target')
+      const ordered = save ? [save, ...actions.filter((a) => a.type !== 'save_target')] : actions
+      if (ordered.length) button.actions = ordered
     }
     out.push(button)
   }
   if (!out.some(isSubmittingButton)) out.unshift({ ...DEFAULT_FORM_BUTTONS[0], id: ids.has('submit') ? 'submit_main' : 'submit' })
   return out
+}
+
+/** Is a bar button shown for these values (not hidden, its "shown when" rule holds)? */
+export function barButtonShown(button: Pick<FormButton, 'hidden' | 'visible_when'>, values: Record<string, unknown> | null | undefined): boolean {
+  if (button.hidden) return false
+  if (!button.visible_when) return true
+  return isRuleMet(button.visible_when, values ?? {})
 }
 
 function defaultLabel(kind: FormButtonKind): string {

@@ -5,11 +5,13 @@ import { useDesignerContext } from "@/lib/assistants/client-registry"
 import { usePermissions } from "@/lib/permissions-context"
 import { AGENT_RERUN_TEST_EVENT } from "@/components/assistants/agent-store"
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable, useSensor, useSensors, PointerSensor } from "@dnd-kit/core"
+import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, useDroppable, useDraggable, useSensor, useSensors, PointerSensor, type Modifier } from "@dnd-kit/core"
 import type { WorkflowNode, WorkflowEdge, NodeType } from "@/lib/workflow-schema"
 import { createDefaultNode, fullNodeCatalog, nodeCatalogEntry, nodeColorCategory, nodeColorTextVar, nodeColorVar } from "@/lib/workflow-schema"
 import { actionManifestOf, withActionOutputs } from "@/lib/custom-actions/manifest"
 import { NodePalette } from "./node-palette"
+import { TriggerConflictDialog } from "./trigger-conflict-dialog"
+import type { TriggerConflict, TriggerConflictChoice } from "@/lib/extensions/sdk"
 import { CanvasNode } from "./canvas-node"
 import { EdgeRenderer } from "./edge-renderer"
 import { useNodeSizes } from "./use-node-sizes"
@@ -38,6 +40,7 @@ import { StatusPill, Tag } from "@/components/ui/badge"
 import { Tooltip, TooltipProvider } from "@/components/ui/tooltip"
 import { Tabs, TabPanel } from "@/components/ui/tabs"
 import { InlineNotice } from "@/components/ui/inline-notice"
+import { saveErrorText } from "@/lib/automations/designer-query"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogBody, DialogContent, DialogFooter } from "@/components/ui/dialog"
 import { Field } from "@/components/ui/field"
@@ -57,7 +60,8 @@ import { CanvasMinimap, type MinimapItem } from "./canvas-minimap"
 import { CanvasZoomContext, scaledDragTransform, useCanvasZoom } from "./use-canvas-zoom"
 import { pasteOffset, screenDeltaToCanvas, unionBounds, visibleCanvasRect, type Bounds } from "@/lib/canvas-zoom"
 import { nodeBox } from "@/lib/workflow-edge-routing"
-import { CanvasBands, SectionFrame, sectionRgb, TRIGGER_ZONE_HEIGHT } from "./canvas-sections"
+import { CanvasBandsLayer, SectionFrame, sectionRgb } from "./canvas-sections"
+import { clampDragDelta, clampTriggerPosition, fitTriggerLane, minContentY, TRIGGER_LANE, triggerLaneOf } from "@/lib/workflow-trigger-lane"
 import { normalizeDataTableNodes } from "@/lib/workflow-table-refs"
 import { loadFlag, PALETTE_RAIL_STORAGE_KEY, safeLocalStorage, saveFlag } from "@/lib/palette-collapse"
 import { WorkflowLookupsProvider } from "./workflow-lookups"
@@ -191,10 +195,13 @@ export function WorkflowBuilder({
   workflowName, backHref, backLabel, menuItems, notice,
 }: WorkflowBuilderProps) {
   // Legacy table keys (tableId, data_table_id, …) are migrated to table_id on open.
-  const [nodes, setNodes] = useState<WorkflowNode[]>(() => normalizeDataTableNodes(initialNodes))
+  // Triggers saved outside the trigger lane are clamped into it (and steps
+  // overlapping it moved below it): positions only, part of opening.
+  const [openFit] = useState(() => fitTriggerLane(normalizeDataTableNodes(initialNodes), { swimlanes: initialSwimlanes ?? [], shiftContent: true }))
+  const [nodes, setNodes] = useState<WorkflowNode[]>(openFit.nodes)
   const [edges, setEdges] = useState<WorkflowEdge[]>(initialEdges)
   const [userVariables, setUserVariables] = useState<UserVariable[]>(initialUserVariables ?? [])
-  const [swimlanes, setSwimlanes] = useState<Swimlane[]>(initialSwimlanes ?? [])
+  const [swimlanes, setSwimlanes] = useState<Swimlane[]>(openFit.swimlanes)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   /** Selected connection: highlighted with its two steps; deleted only via its button or Delete. */
@@ -216,6 +223,8 @@ export function WorkflowBuilder({
   const suppressHistoryRef = useRef(false)
   /** Label for the next recorded change (e.g. "tidy layout") instead of the diff-derived one. */
   const pendingChangeLabelRef = useRef<string | null>(null)
+  /** The next change is the trigger-lane fit: folded into the current entry, never one of its own. */
+  const laneFitRef = useRef(false)
   const isMac = useSyncExternalStore(subscribeNever, () => /Mac|iPhone|iPad/.test(navigator.platform), () => false)
   const hints = { ...shortcutHints(isMac), save: isMac ? "⌘S" : "Ctrl+S", test: isMac ? "⌘↵" : "Ctrl+Enter" }
   /** Inspector tab: the selected step's (or the workflow's) settings, its data, or the variables reference. */
@@ -226,6 +235,15 @@ export function WorkflowBuilder({
     const h = historyRef.current ?? createHistory(initialSnapshot)
     const snap: Snapshot = { nodes, edges, userVariables, swimlanes }
     if (sameSnapshot(snap, h.present)) { historyRef.current = h; return }
+    if (laneFitRef.current) {
+      // The lane fit belongs to the change that caused it (or to opening the
+      // workflow, when the cards are first measured): no undo entry, and a
+      // clean workflow stays clean.
+      laneFitRef.current = false
+      historyRef.current = { ...h, present: snap }
+      setSavedSnapshot((saved) => (sameSnapshot(saved, h.present) ? snap : saved))
+      return
+    }
     const label = pendingChangeLabelRef.current
     pendingChangeLabelRef.current = null
     const next = commit(h, snap, label ? { label } : describeChange(h.present, snap), Date.now())
@@ -299,6 +317,7 @@ export function WorkflowBuilder({
   const publishGuard = useSubmitGuard()
   // Installed from a package whose setup is incomplete: activation is blocked.
   const [packageBlock, setPackageBlock] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   useEffect(() => {
     let cancelled = false
     void getWorkflowPackageBlock(workflowId).then((message) => { if (!cancelled) setPackageBlock(message) }).catch(() => {})
@@ -310,6 +329,8 @@ export function WorkflowBuilder({
   const canvasContentRef = useRef<HTMLDivElement>(null)
   // Measured card sizes: connector anchors (and Tidy) use the real heights.
   const nodeSizes = useNodeSizes(canvasContentRef, nodes.map((n) => `${n.id}${n.collapsed ? "c" : ""}`).join("|"))
+  /** The trigger band (its height follows the tallest trigger card). */
+  const lane = useMemo(() => triggerLaneOf(nodes, nodeSizes), [nodes, nodeSizes])
   const designerRef = useRef<HTMLDivElement>(null)
   // Node sidebar collapsed to a rail (per browser, localStorage).
   const [paletteRail, setPaletteRail] = useState(false)
@@ -517,7 +538,7 @@ export function WorkflowBuilder({
     if (isTrigger) {
       const triggerNodes = nodes.filter((n) => TRIGGER_TYPES.includes(n.type))
       const x = triggerNodes.length * 220 + 20
-      const node = createDefaultNode(type, x, 20)
+      const node = createDefaultNode(type, x, TRIGGER_LANE.PAD)
       if (type === 'middleware_received') {
         const { endNode, edge } = buildMiddlewareReturnNodes(node)
         setNodes((prev) => [...prev, node, endNode])
@@ -530,7 +551,7 @@ export function WorkflowBuilder({
       const nonTriggerNodes = nodes.filter((n) => !TRIGGER_TYPES.includes(n.type))
       const maxY = nonTriggerNodes.length > 0
         ? Math.max(...nonTriggerNodes.map((n) => n.position.y)) + 140
-        : TRIGGER_ZONE_HEIGHT + 60
+        : Math.max(160, minContentY(lane) + 40)
       const node = createDefaultNode(type, 200, maxY)
       setNodes((prev) => [...prev, node])
       setSelectedNodeId(node.id)
@@ -546,7 +567,7 @@ export function WorkflowBuilder({
     const nonTriggerNodes = nodes.filter((n) => !TRIGGER_TYPES.includes(n.type))
     const nextY = y ?? (nonTriggerNodes.length > 0
       ? Math.max(...nonTriggerNodes.map((n) => n.position.y)) + 140
-      : TRIGGER_ZONE_HEIGHT + 60)
+      : Math.max(160, minContentY(lane) + 40))
     const node = createDefaultNode('custom_activity', x ?? 200, nextY)
     node.label = activity.name
     const actionManifest = actionManifestOf(activity)
@@ -677,7 +698,7 @@ export function WorkflowBuilder({
         const drop = dropPoint()
         if (drop) {
           const x = drop.x
-          const y = Math.max(TRIGGER_ZONE_HEIGHT + 20, drop.y)
+          const y = Math.max(minContentY(lane), drop.y)
           addCustomActivity(customActivityId, x, y)
         } else {
           addCustomActivity(customActivityId)
@@ -699,9 +720,10 @@ export function WorkflowBuilder({
         const x = drop.x
         let y = drop.y
         if (isTrigger) {
-          y = 20
+          y = TRIGGER_LANE.PAD
         } else {
-          y = Math.max(TRIGGER_ZONE_HEIGHT + 20, y)
+          // Steps can't be dropped into the trigger lane: pushed below it.
+          y = Math.max(minContentY(lane), y)
         }
         const node = createDefaultNode(nodeType, x, y)
         if (nodeType === 'middleware_received') {
@@ -732,18 +754,33 @@ export function WorkflowBuilder({
       }
     }
 
-    setNodes((prev) =>
-      prev.map((n) => {
+    setNodes((prev) => {
+      // Trigger lane: triggers stay inside the band, steps and sections below it.
+      const dragLane = triggerLaneOf(prev, nodeSizes)
+      // A moved section's members move by exactly the section's (clamped) delta.
+      const sectionDy = new Map<string, number>()
+      for (const n of prev) {
+        if (n.type === 'section_group' && movingIds.has(n.id)) {
+          const y = Math.max(minContentY(dragLane), snapToGrid(n.position.y + delta.y))
+          sectionDy.set(n.id, y - n.position.y)
+        }
+      }
+      return prev.map((n) => {
         const isDirectlyMoved = movingIds.has(n.id)
         const isChildOfMovedSection = sectionChildIds.has(n.id)
         if (isDirectlyMoved || isChildOfMovedSection) {
           const isTrigger = TRIGGER_TYPES.includes(n.type)
-          let newX = snapToGrid(Math.max(0, n.position.x + delta.x))
+          const newX = snapToGrid(Math.max(0, n.position.x + delta.x))
           let newY = snapToGrid(n.position.y + delta.y)
-          if (isTrigger) {
-            newY = Math.max(0, Math.min(newY, TRIGGER_ZONE_HEIGHT - 60))
-          } else if (n.type !== 'section_group') {
-            newY = Math.max(TRIGGER_ZONE_HEIGHT + 20, newY)
+          const parentDy = !isDirectlyMoved && n.sectionId ? sectionDy.get(n.sectionId) : undefined
+          if (n.type === 'section_group') {
+            newY = n.position.y + (sectionDy.get(n.id) ?? 0)
+          } else if (parentDy !== undefined) {
+            newY = n.position.y + parentDy
+          } else if (isTrigger && dragLane) {
+            newY = clampTriggerPosition({ x: newX, y: newY }, nodeBox(n, nodeSizes).height, dragLane).y
+          } else if (!isTrigger) {
+            newY = Math.max(minContentY(dragLane), newY)
           }
           // Auto-assign section for non-section nodes that were directly moved (not children)
           if (isDirectlyMoved && n.type !== 'section_group' && !isTrigger) {
@@ -754,20 +791,39 @@ export function WorkflowBuilder({
         }
         return n
       })
-    )
+    })
     setDraggingId(null)
     setDraggingFromPalette(null)
   }
 
-  async function handleSave() {
+  /** The designer's copy of this workflow is now stale: the next open must read it again (never a cached snapshot). */
+  function forgetCachedWorkflow() {
+    queryClient.removeQueries({ queryKey: ['workflow', workflowId], type: 'inactive' })
+    void queryClient.invalidateQueries({ queryKey: ['workflow', workflowId], refetchType: 'none' })
+  }
+
+  /** Save the draft; a failed save is shown (never swallowed), and returns false. */
+  async function handleSave(): Promise<boolean> {
     const savedState: Snapshot = { nodes, edges, userVariables, swimlanes }
     setSaving(true)
-    await saveWorkflow(workflowId, { nodes, edges, user_variables: userVariables, swimlanes, trigger_type: effectiveTriggerType })
+    setSaveError(null)
+    try {
+      await saveWorkflow(workflowId, { nodes, edges, user_variables: userVariables, swimlanes, trigger_type: effectiveTriggerType })
+    } catch (err) {
+      setSaveError(saveErrorText(err))
+      return false
+    } finally {
+      setSaving(false)
+    }
+    forgetCachedWorkflow()
     setLastSaved(new Date())
     setHasUnpublished(true)
     setSavedSnapshot(savedState)
-    setSaving(false)
+    return true
   }
+
+  const publishConflictChoice = useRef<TriggerConflictChoice | null>(null)
+  const [publishConflict, setPublishConflict] = useState<TriggerConflict | null>(null)
 
   async function handlePublish() {
     await publishGuard.run(async () => {
@@ -776,9 +832,25 @@ export function WorkflowBuilder({
         return
       }
       setPublishing(true)
-      // Save draft first
-      await saveWorkflow(workflowId, { nodes, edges, user_variables: userVariables, swimlanes, trigger_type: effectiveTriggerType })
-      const result = await publishWorkflow(workflowId, publishNotes || undefined)
+      setSaveError(null)
+      // Save draft first (a failed save stops the publish and says so).
+      try {
+        await saveWorkflow(workflowId, { nodes, edges, user_variables: userVariables, swimlanes, trigger_type: effectiveTriggerType })
+      } catch (err) {
+        setPublishing(false)
+        setShowPublishDialog(false)
+        setSaveError(saveErrorText(err))
+        return
+      }
+      forgetCachedWorkflow()
+      const result = await publishWorkflow(workflowId, publishNotes || undefined, publishConflictChoice.current ?? undefined)
+      publishConflictChoice.current = null
+      if ('error' in result && result.conflicts?.length) {
+        // The trigger overlaps with other workflows and the draft has no answer: ask, then publish again.
+        setPublishing(false)
+        setPublishConflict(result.conflicts[0])
+        return
+      }
       if ('error' in result) {
         setPublishing(false)
         setShowPublishDialog(false)
@@ -786,6 +858,7 @@ export function WorkflowBuilder({
         return
       }
       setCurrentVersion(result.version_number)
+      forgetCachedWorkflow()
       // Run Agent steps are now pinned to their agents' current versions.
       void queryClient.invalidateQueries({ queryKey: ['workflow-agent-pins', workflowId] })
       setHasUnpublished(false)
@@ -810,15 +883,39 @@ export function WorkflowBuilder({
   }
 
   async function handleTest() {
-    try {
-      await handleSave()
-    } catch (err) {
-      console.error('[handleTest] Save failed:', err)
-    }
+    if (!(await handleSave())) return
     setShowTestRunner(true)
   }
 
   const [tidying, setTidying] = useState(false)
+
+  // ─── Trigger lane ───
+  // Keep the workflow in line with the band: when the cards are measured, a
+  // trigger's description grows it, a trigger is added / removed, or steps are
+  // pasted / imported. A taller band moves all steps down together; otherwise
+  // only steps overlapping it are pushed below. Not during Tidy's animation.
+  const laneBottomRef = useRef<number | null>(openFit.lane?.bottom ?? null)
+  useEffect(() => {
+    if (tidying || suppressHistoryRef.current) return
+    const prevBottom = laneBottomRef.current
+    const current = triggerLaneOf(nodes, nodeSizes)
+    const grew = current != null && prevBottom != null && current.bottom > prevBottom
+    const fit = fitTriggerLane(nodes, { sizes: nodeSizes, swimlanes, shiftContent: grew })
+    laneBottomRef.current = fit.lane?.bottom ?? null
+    if (!fit.changed) return
+    laneFitRef.current = true
+    setNodes(fit.nodes)
+    if (fit.swimlanes !== swimlanes) setSwimlanes(fit.swimlanes)
+  }, [nodes, swimlanes, nodeSizes, tidying])
+
+  /** Live drag: a trigger moves only inside the band, a step or section only below it. */
+  const laneDragModifier: Modifier = ({ transform, active }) => {
+    if (!active || active.data.current?.fromPalette || !lane) return transform
+    const node = nodes.find((n) => n.id === active.id)
+    if (!node) return transform
+    const z = canvasView.zoomRef.current || 1
+    return { ...transform, y: clampDragDelta(node, transform.y / z, lane, nodeSizes) * z }
+  }
 
   /** Animate node positions (and section sizes) from the current state towards `target`; the caller sets the final state. */
   function animateNodesTo(target: WorkflowNode[], durationMs = 420): Promise<void> {
@@ -1011,9 +1108,18 @@ export function WorkflowBuilder({
     <DndContext
       id={dndId}
       sensors={sensors}
+      modifiers={[laneDragModifier]}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
+      <TriggerConflictDialog conflict={publishConflict} onCancel={() => setPublishConflict(null)}
+        onChoose={(choice) => { publishConflictChoice.current = choice; setPublishConflict(null); void handlePublish() }} />
+      {saveError && (
+        <div className="mb-2" data-testid="workflow-save-error" role="alert">
+          <InlineNotice tone="danger" title="Not saved" message={saveError}
+            actions={<Button variant="secondary" size="sm" onClick={() => { void handleSave() }}>Try again</Button>} />
+        </div>
+      )}
       {packageBlock && (
         <div className="mb-2" data-testid="package-setup-banner">
           <InlineNotice
@@ -1169,6 +1275,9 @@ export function WorkflowBuilder({
             </div>
           )}
 
+          {/* Trigger band + swimlanes, edge to edge behind the steps (shared with the run viewers) */}
+          <CanvasBandsLayer getView={canvasView.getView} lane={lane} swimlanes={swimlanes} />
+
           <div
             ref={canvasContentRef}
             data-canvas-bg="true"
@@ -1196,8 +1305,6 @@ export function WorkflowBuilder({
               connecting={connecting}
               isActive={isActive}
             />
-            {/* Trigger band + swimlanes (shared with the run viewers) */}
-            <CanvasBands showTriggerZone={nodes.some((n) => TRIGGER_TYPES.includes(n.type))} swimlanes={swimlanes} />
 
             {/* Section group nodes — container rectangles behind regular nodes */}
             {getSectionNodes(nodes).map((section) => {
@@ -1456,7 +1563,7 @@ export function WorkflowBuilder({
                 )
               })()}
               <div className="border-t border-border-subtle" />
-              <SwimlaneManager swimlanes={swimlanes} onChange={setSwimlanes} />
+              <SwimlaneManager swimlanes={swimlanes} onChange={setSwimlanes} minY={Math.max(120, minContentY(lane) - 20)} />
               <div className="border-t border-border-subtle" />
             </>
           )}

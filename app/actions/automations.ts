@@ -171,7 +171,22 @@ export async function getWorkflowPackageBlock(workflowId: string): Promise<strin
   return packageBlockMessage(workflowId)
 }
 
-export async function publishWorkflow(workflowId: string, notes?: string): Promise<{ version_number: number; version_id: string } | { error: string }> {
+/**
+ * The trigger panel: other workflows these trigger settings would overlap with (TriggerHandler.conflicts),
+ * and the answers already stored in them. `nodes` is the designer's current graph (unsaved changes count).
+ */
+export async function checkTriggerConflicts(workflowId: string, nodes: unknown): Promise<{ conflicts: import('@/lib/extensions/sdk').TriggerConflict[]; unanswered: string[] }> {
+  const ctx = await fromSession()
+  const { triggerConflicts } = await import('@/lib/extensions/trigger-conflicts')
+  try {
+    const r = await triggerConflicts({ tenantId: ctx.tenantId, actorId: ctx.actorId, permissions: ctx.permissions }, String(workflowId ?? '') || null, nodes)
+    return { conflicts: r.conflicts, unanswered: r.unanswered.map((c) => c.key) }
+  } catch {
+    return { conflicts: [], unanswered: [] }
+  }
+}
+
+export async function publishWorkflow(workflowId: string, notes?: string, onConflict?: 'keep_both' | 'take_over'): Promise<{ version_number: number; version_id: string } | { error: string; conflicts?: import('@/lib/extensions/sdk').TriggerConflict[] }> {
   await requirePermission('workflows.activate')
   // Returned, not thrown: thrown Server Function errors are redacted in production.
   const blocked = await packageBlockMessage(workflowId)
@@ -194,6 +209,15 @@ export async function publishWorkflow(workflowId: string, notes?: string): Promi
     const { workflowExtensionPublishBlock } = await import('@/lib/extensions/workflow-gate')
     const extensionBlock = await workflowExtensionPublishBlock(workflowTenantId, workflowNodes)
     if (extensionBlock) return { error: extensionBlock }
+    // Trigger overlaps with other workflows: answered in the draft (the trigger panel) or here, else no publish.
+    const { resolveConflictsForPublish, TriggerConflictError } = await import('@/lib/extensions/trigger-conflicts')
+    try {
+      const session = await fromSession()
+      await resolveConflictsForPublish({ tenantId: workflowTenantId, actorId: user.id, permissions: session.permissions }, workflowId, workflowNodes, onConflict ?? null)
+    } catch (e) {
+      if (e instanceof TriggerConflictError) return { error: e.message, conflicts: e.conflicts }
+      return { error: e instanceof Error ? e.message : String(e) }
+    }
   }
 
   // Get next version number (use maybeSingle to handle first publish)

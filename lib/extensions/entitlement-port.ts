@@ -20,6 +20,16 @@ export type EntitlementDecision = {
   state: 'licensed' | 'unlicensed' | 'expired' | 'not_required'
   reason?: string
   limits?: Record<string, number>
+  /** The deciding grant is a trial. */
+  trial?: boolean
+  /** Expiry of the deciding grant (null: none). */
+  expiresAt?: string | null
+  /** expiresAt + 24 h: when the extension stops. */
+  cutoffAt?: string | null
+  /** Whole days until expiry. */
+  daysLeft?: number | null
+  /** Farms the usable grants are bound to (unset: any farm). */
+  farmIds?: string[]
 }
 
 export interface EntitlementPort {

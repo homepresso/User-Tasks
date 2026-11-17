@@ -107,15 +107,17 @@ export function guardsReferencing(manifest: ExtensionManifest, ref: Reference): 
     for (const tab of ui.detailTabs) if (tab.source === ref.name) guards.push(tab.when)
     // Design-time sources of node inputs / trigger settings (choices, filter fields, preview): whoever edits workflows.
     const nodeSources = [...manifest.contributes.nodes, ...manifest.contributes.triggers].flatMap(designSources)
-    if (nodeSources.includes(ref.name)) guards.push({ anyPermission: ['workflows.edit', 'workflows.create'], ...(featureOfSource(manifest, ref.name) ? { feature: featureOfSource(manifest, ref.name) } : {}) })
+    // A trigger record's fields (the form designer's "Workflow data" for a task of that workflow): form editors too.
+    const recordSources = manifest.contributes.triggers.flatMap((t) => (t.record ? [t.record.fieldsFrom] : []))
+    if (nodeSources.includes(ref.name)) guards.push({ anyPermission: ['workflows.edit', 'workflows.create', ...(recordSources.includes(ref.name) ? ['forms.edit'] : [])], ...(featureOfSource(manifest, ref.name) ? { feature: featureOfSource(manifest, ref.name) } : {}) })
   }
   return guards
 }
 
-/** The data sources the designer asks for a node / trigger (optionsFrom, filter fields, preview). */
+/** The data sources the designer asks for a node / trigger (optionsFrom, filter fields, preview, the record's fields). */
 function designSources(n: ExtensionManifest['contributes']['nodes'][number] | ExtensionManifest['contributes']['triggers'][number]): string[] {
-  const t = n as { filters?: { fieldsFrom: string }; previewFrom?: string }
-  return [...Object.values(n.optionsFrom ?? {}), ...(t.filters ? [t.filters.fieldsFrom] : []), ...(t.previewFrom ? [t.previewFrom] : [])]
+  const t = n as { filters?: { fieldsFrom: string }; previewFrom?: string; record?: { fieldsFrom: string } }
+  return [...Object.values(n.optionsFrom ?? {}), ...(t.filters ? [t.filters.fieldsFrom] : []), ...(t.previewFrom ? [t.previewFrom] : []), ...(t.record ? [t.record.fieldsFrom] : [])]
 }
 
 /** The licence feature of the nodes / triggers whose design-time sources name this source (when all of them share one). */

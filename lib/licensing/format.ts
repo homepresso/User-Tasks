@@ -64,7 +64,9 @@ export const LicenceDocumentSchema = z.looseObject({
   binding: z.looseObject({
     instance_ids: z.array(idText).max(100).optional(),
     hostnames: z.array(z.string().trim().min(1).max(253)).max(100).optional(),
+    farm_ids: z.array(idText).max(100).optional(),
   }).optional(),
+  sku: z.string().trim().min(1).max(100).optional(),
   deployment: z.array(z.enum(['self_hosted', 'cloud'])).optional(),
   extensions: z.array(z.looseObject({
     id: z.string().regex(/^[a-z][a-z0-9-]{0,62}$/, 'extension ids are lowercase a-z, 0-9 and hyphens'),

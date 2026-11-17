@@ -12,7 +12,7 @@ import { referenceResponseSchema, type ResponseSchema } from '@/lib/response-sch
 import { collectionItemFields, runtimeView, validateCollectionPath } from '@/lib/response-collections'
 import {
   DYNAMIC_BINDING_KIND_LABELS, DYNAMIC_LIMITS, DYNAMIC_VALUE_TYPE_LABELS, coerceDynamicValue, describeBinding, isSourceBinding, normalizeDynamicBinding,
-  resolveExpression, type DynamicBinding, type DynamicBindingKind, type DynamicColumn, type DynamicValueType, type ReferenceBinding, type TableBinding,
+  resolveExpression, type DynamicBinding, type DynamicBindingKind, type DynamicColumn, type DynamicValueType, type ExtensionBinding, type ReferenceBinding, type TableBinding,
 } from '@/lib/forms/dynamic-values'
 import type { DesignerField, DesignerState } from '@/lib/forms/designer-state'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
@@ -120,13 +120,17 @@ export function BindingEditor({ state, field, prop, expects, binding, onChange }
     if (kind === binding.kind) return
     if (kind === 'expr') onChange(withExpects({ kind: 'expr', expr: '' }))
     else if (kind === 'table') onChange(withExpects({ kind: 'table', table_id: '' } as TableBinding))
+    else if (kind === 'extension') onChange(withExpects({ kind: 'extension', extension: '', provider: '', source_id: '' } as ExtensionBinding))
     else onChange(withExpects({ kind: 'reference', reference_id: '' } as ReferenceBinding))
   }
+  // Connected lists (extensions' lookup sources, e.g. SharePoint lists): offered when there are any.
+  const { data: providers = [] } = useQuery({ queryKey: ['forms-lookup-lists'], staleTime: 60_000, queryFn: async () => ((await serverRead('forms.lookupLists')).data ?? []) as ConnectedListProvider[] })
+  const kinds: DynamicBindingKind[] = ['expr', 'table', 'reference', ...(providers.some((p) => p.lists.length) || binding.kind === 'extension' ? ['extension' as const] : [])]
   return (
     <DesignerVariableScope state={state} context={{ kind: 'dynamic_value', exclude: field.key }}>
       <div className="space-y-2 rounded-md border p-2 border-border" data-testid="dynamic-binding-editor">
         <div className="flex gap-1" role="tablist" aria-label="Where the value comes from">
-          {(['expr', 'table', 'reference'] as const).map((k) => (
+          {kinds.map((k) => (
             <button key={k} type="button" role="tab" aria-selected={binding.kind === k} onClick={() => switchKind(k)} className={cn('h-7 flex-1 rounded border text-2xs font-medium', binding.kind === k ? 'bg-primary' : '', binding.kind === k ? 'border-primary' : 'border-border', binding.kind === k ? 'text-primary-fg' : 'text-fg')} data-dyn-tab={k}>
               {DYNAMIC_BINDING_KIND_LABELS[k]}
             </button>
@@ -143,6 +147,7 @@ export function BindingEditor({ state, field, prop, expects, binding, onChange }
         )}
         {binding.kind === 'table' && <TableTab binding={binding} expects={expects} onChange={(b, tag) => onChange(withExpects(b), tag)} />}
         {binding.kind === 'reference' && <ReferenceTab binding={binding} expects={expects} onChange={(b, tag) => onChange(withExpects(b), tag)} />}
+        {binding.kind === 'extension' && <ExtensionTab binding={binding} expects={expects} providers={providers} onChange={(b, tag) => onChange(withExpects(b), tag)} />}
         {isSourceBinding(binding) && (
           <div className="space-y-1 border-t pt-2 border-border">
             {prop === 'options' && <Toggle checked={binding.restrict !== false} onChange={(v) => onChange({ ...binding, restrict: v ? undefined : false })}>Restrict to the list (the server checks each submitted value)</Toggle>}
@@ -212,7 +217,7 @@ function placeholdersFor(): Array<{ name: string; group: string; label?: string 
   return [{ name: 'today', group: 'Dates', label: 'Today' }, { name: 'user.email', group: 'Current user', label: 'Email' }]
 }
 
-function FilterAndSort({ binding, columns, onChange }: { binding: TableBinding | ReferenceBinding; columns: Array<{ value: string; label: string }>; onChange: (patch: Partial<Pick<TableBinding, 'base_filter' | 'sort' | 'limit'>>, tag?: string) => void }) {
+function FilterAndSort({ binding, columns, onChange }: { binding: TableBinding | ReferenceBinding | ExtensionBinding; columns: Array<{ value: string; label: string }>; onChange: (patch: Partial<Pick<TableBinding, 'base_filter' | 'sort' | 'limit'>>, tag?: string) => void }) {
   const sort = binding.sort?.[0]
   return (
     <>
@@ -229,6 +234,46 @@ function FilterAndSort({ binding, columns, onChange }: { binding: TableBinding |
         <div><Label>Limit</Label><input type="number" min={1} max={DYNAMIC_LIMITS.rows} className={inputClass} value={binding.limit ?? ''} placeholder="auto" onChange={(e) => onChange({ limit: e.target.value ? Math.max(1, Math.min(DYNAMIC_LIMITS.rows, Number(e.target.value))) : undefined }, 'dyn-limit')} /></div>
       </div>
     </>
+  )
+}
+
+interface ConnectedListProvider {
+  extension: string
+  provider: string
+  label: string
+  lists: Array<{ id: string; label: string; columns: Array<{ key: string; label: string }>; valueColumn?: string; labelColumn?: string }>
+  error?: string
+}
+
+/** A connected list (an extension's lookup source): the list, value / label columns, filter (cascading with {{form.x}}) and sort. */
+function ExtensionTab({ binding, expects, providers, onChange }: { binding: ExtensionBinding; expects: DynamicValueType; providers: ConnectedListProvider[]; onChange: (next: ExtensionBinding, tag?: string) => void }) {
+  const lists = providers.flatMap((p) => p.lists.map((l) => ({ ...l, extension: p.extension, provider: p.provider, providerLabel: p.label })))
+  const keyOf = (l: { extension: string; provider: string; id: string }) => `${l.extension}|${l.provider}|${l.id}`
+  const list = lists.find((l) => l.extension === binding.extension && l.provider === binding.provider && l.id === binding.source_id)
+  const available = (list?.columns ?? []).map((c) => ({ value: c.key, label: c.label || c.key }))
+  const set = (patch: Partial<ExtensionBinding>, tag?: string) => onChange({ ...binding, ...patch }, tag)
+  return (
+    <div className="space-y-2" data-testid="dyn-extension-tab">
+      <div>
+        <Label>List</Label>
+        <AutocompleteSelect value={binding.source_id ? keyOf({ extension: binding.extension, provider: binding.provider, id: binding.source_id }) : ''} placeholder="Choose a list…"
+          options={lists.map((l) => ({ value: keyOf(l), label: l.label, hint: l.providerLabel }))}
+          onChange={(v) => {
+            const next = lists.find((l) => keyOf(l) === v)
+            if (!next) return
+            onChange({ kind: 'extension', extension: next.extension, provider: next.provider, source_id: next.id, source_label: `${next.providerLabel}: ${next.label}`, ...(expects === 'options' ? { value: next.valueColumn ?? 'id', label: next.labelColumn ?? next.columns[0]?.key } : {}), ...(binding.expects ? { expects: binding.expects } : {}) })
+          }} />
+        {binding.source_id && !list && <p className="mt-0.5 text-2xs text-fg-muted">{binding.source_label ?? 'The list'} is not available to you right now; its settings are kept.</p>}
+        {providers.filter((p) => p.error).map((p) => <p key={`${p.extension}:${p.provider}`} className="mt-0.5 text-2xs text-warning">{p.label}: {p.error}</p>)}
+      </div>
+      {binding.source_id && (
+        <>
+          <ShapeEditor expects={expects} value={binding.value} label={binding.label} columns={binding.columns} available={available} onChange={(p) => set(p)} />
+          <FilterAndSort binding={binding} columns={available} onChange={(p, tag) => set(p, tag)} />
+          <p className="text-2xs text-fg-muted">Every filter condition must hold. For long lists, use an Autocomplete instead: it searches the list on the server as people type.</p>
+        </>
+      )}
+    </div>
   )
 }
 

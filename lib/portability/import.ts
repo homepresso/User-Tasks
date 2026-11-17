@@ -323,6 +323,8 @@ export async function importManifest(params: ImportManifestParams) {
             ...(existing ? {} : { slug }),
             description: table.description ?? null,
             columns,
+            // Grid views (lib/grid/column-model.ts; migration 20270116110000): only when the export has some.
+            ...(Array.isArray(table.views) && table.views.length ? { views: remapKnownIds(cloneJson(table.views), idMaps) } : {}),
             created_by: actingUserId ?? null,
           },
         })

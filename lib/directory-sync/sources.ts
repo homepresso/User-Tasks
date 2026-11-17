@@ -8,6 +8,7 @@ import { isDirectoryProvider, type DirectoryLinkProvider } from '@/lib/directory
 import type { DirectoryGroupRef, DirectorySourceHandler, DirectorySourceSnapshot, DirectorySourceStatus, DirectoryUserRef } from '@/lib/extensions/sdk'
 import type { DirectorySourceContribution } from '@/lib/extensions/manifest'
 import { getExtensionManifest, getExtensionManifests } from '@/lib/extensions/registry'
+import { DIRECTORY_SOURCE_KINDS, originForExtensionSource, type DirectorySourceKind, type TeamOrigin } from '@/lib/teams/origin'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- service-role rows are untyped */
 
@@ -147,6 +148,7 @@ const snapshotSchema = z.object({
     displayName: str(200),
     description: z.string().max(1000).nullable().optional(),
     label: z.string().max(200).nullable().optional(),
+    kind: z.enum(DIRECTORY_SOURCE_KINDS).nullable().optional(),
     members: z.array(z.string().max(500)).max(MAX_SOURCE_USERS),
     nested: z.array(z.object({
       directory: z.enum(['ldap', 'entra', 'okta', 'google', 'scim']),
@@ -175,6 +177,8 @@ interface SourceGroup {
   displayName: string
   description: string | null
   label: string | null
+  /** The group's origin when it differs from the source's (snapshot group `kind`). */
+  kind: DirectorySourceKind | null
   members: string[]
   nested: Array<{ directory: DirectoryLinkProvider; name: string | null; externalId: string | null; members: string[] }>
 }
@@ -222,6 +226,7 @@ export function normaliseSnapshot(raw: DirectorySourceSnapshot): NormalisedSnaps
       displayName: g.displayName,
       description: g.description?.trim() || null,
       label: g.label?.trim() || null,
+      kind: g.kind ?? null,
       members: [...new Set(g.members)],
       nested: (g.nested ?? []).map((n) => ({ directory: n.directory, name: n.name?.trim() || null, externalId: n.externalId?.trim() || null, members: [...new Set(n.members ?? [])] })),
     })
@@ -381,7 +386,7 @@ export async function runExtensionDirectorySync(
 export async function applySnapshot(
   db: SupabaseClient,
   tenantId: string,
-  source: Pick<RegisteredDirectorySource, 'id' | 'label'>,
+  source: Pick<RegisteredDirectorySource, 'id' | 'label'> & { kind?: DirectorySourceKind | null },
   snapshot: NormalisedSnapshot,
   report: (progress: DirectorySyncProgress) => Promise<void> = async () => undefined,
 ): Promise<SourceSyncStats> {
@@ -530,6 +535,8 @@ export async function applySnapshot(
   }
 
   let groupsDone = 0
+  // Where each team comes from (the badge, teams.origin): the group's kind, else the source's.
+  const teamOrigins = new Map<string, { origin: TeamOrigin; externalId: string }>()
   for (const group of snapshot.groups) {
     const label = group.label ?? source.label
     let link = groupLinks.get(group.externalId)
@@ -555,6 +562,7 @@ export async function applySnapshot(
       link = await recordLink('group', group.externalId, teamId, group.displayName)
       stats.groups_created++
     }
+    teamOrigins.set(teamId, { origin: originForExtensionSource({ sourceId, groupKind: group.kind, sourceKind: source.kind, label: source.label }), externalId: group.externalId })
 
     const desired = new Set<string>()
     for (const member of group.members) {
@@ -576,6 +584,8 @@ export async function applySnapshot(
     if (groupsDone % 10 === 0) await report({ phase: 'groups', message: `Synced ${groupsDone} of ${snapshot.groups.length} groups…`, groups_done: groupsDone, groups_total: snapshot.groups.length })
   }
 
+  await tagSourceTeams(db, tenantId, teamOrigins)
+
   // Groups the source no longer has: the team stays (tasks may point at it) but loses its members.
   if (snapshot.complete) {
     const listedGroups = new Set(snapshot.groups.map((g) => g.externalId))
@@ -586,6 +596,34 @@ export async function applySnapshot(
     }
   }
   return stats
+}
+
+/**
+ * teams.origin / external_id of a source's teams (migration 20270116050000):
+ * one update per origin for the teams not tagged so yet, then the external
+ * ids still missing. Best effort — before the migration the sync goes on.
+ */
+async function tagSourceTeams(db: SupabaseClient, tenantId: string, teams: Map<string, { origin: TeamOrigin; externalId: string }>): Promise<void> {
+  const byOrigin = new Map<TeamOrigin, string[]>()
+  for (const [teamId, { origin }] of teams) byOrigin.set(origin, [...(byOrigin.get(origin) ?? []), teamId])
+  try {
+    for (const [origin, ids] of byOrigin) {
+      for (const part of chunk(ids)) {
+        const { error } = await (db as any).from('teams').update({ origin }).eq('tenant_id', tenantId).neq('origin', origin).in('id', part)
+        if (error) return
+      }
+    }
+    for (const part of chunk([...teams.keys()])) {
+      const { data, error } = await (db as any).from('teams').select('id').eq('tenant_id', tenantId).is('external_id', null).in('id', part)
+      if (error) return
+      for (const row of (data ?? []) as any[]) {
+        const externalId = teams.get(String(row.id))?.externalId
+        if (externalId) await (db as any).from('teams').update({ external_id: externalId }).eq('tenant_id', tenantId).eq('id', row.id)
+      }
+    }
+  } catch {
+    // Untagged teams read as their source's kind (lib/teams/origin.ts deriveTeamOrigin).
+  }
 }
 
 /** Make a source team's members exactly `desired` (source teams are read-only, so every member is the source's). */

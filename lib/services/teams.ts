@@ -13,26 +13,53 @@
  * come from the source (lib/directory-sync/sources.ts); renaming, deleting
  * and member changes answer 409 `source_managed`. Lead, colour, kind, org
  * unit and parent stay editable (UserTasks-only attributes).
+ *
+ * Every team says where it comes from (`origin`, `origin_label`,
+ * `external_id`; lib/teams/origin.ts): Internal, or the directory that keeps
+ * it (Active Directory, Entra ID, Okta, Google, SCIM, SharePoint …). The list
+ * filters on it (`origin`) and on the name (`search`).
  */
 
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { audit, dbError } from './_shared'
+import { escapeLikePattern } from '@/lib/utils'
+import { deriveTeamOrigin, isTeamOrigin, TEAM_ORIGIN_LABELS, TEAM_ORIGINS, type TeamOrigin } from '@/lib/teams/origin'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- teams/user_teams rows */
 
 const TEAM_COLUMNS = 'id, name, description, parent_id, lead_user_id, org_unit_id, colour, kind, created_at, updated_at'
-/** Directory-source columns (migration 20270113100000); read only when present. */
+/** Directory-source columns (migration 20270113100000) and the team's origin (20270116050000); read only when present. */
 const SOURCE_COLUMNS = ', source, source_label'
+const ORIGIN_COLUMNS = ', origin, external_id'
 
-function missingSourceColumns(error: { code?: string; message?: string } | null | undefined): boolean {
-  return Boolean(error && (error.code === '42703' || error.code === 'PGRST204' || /source(_label)?.*(does not exist|could not find)|column .*source/i.test(error.message ?? '')))
+function missingColumns(error: { code?: string; message?: string } | null | undefined): boolean {
+  return Boolean(error && (error.code === '42703' || error.code === 'PGRST204' || /(source(_label)?|origin|external_id).*(does not exist|could not find)|column .*(source|origin|external_id)/i.test(error.message ?? '')))
 }
 
-/** Run a teams select with the source columns, or without them before the migration. */
-async function selectTeams(run: (columns: string) => PromiseLike<{ data: any; error: any }>, columns: string): Promise<{ data: any; error: any }> {
-  const first = await run(`${columns}${SOURCE_COLUMNS}`)
-  if (!missingSourceColumns(first.error)) return first
-  return run(columns)
+/**
+ * Run a teams select with the source and origin columns, or without the ones
+ * the database does not have yet (before 20270116050000, then before
+ * 20270113100000). `withOrigin` says whether teams.origin was read (filters
+ * on it are only possible then).
+ */
+async function selectTeams(run: (columns: string, withOrigin: boolean) => PromiseLike<{ data: any; error: any }>, columns: string): Promise<{ data: any; error: any; withOrigin: boolean }> {
+  const full = await run(`${columns}${SOURCE_COLUMNS}${ORIGIN_COLUMNS}`, true)
+  if (!missingColumns(full.error)) return { ...full, withOrigin: true }
+  const sourced = await run(`${columns}${SOURCE_COLUMNS}`, false)
+  if (!missingColumns(sourced.error)) return { ...sourced, withOrigin: false }
+  return { ...(await run(columns, false)), withOrigin: false }
+}
+
+/** origin + origin_label on a team row (derived from teams.source before 20270116050000). */
+export function withOrigin<T extends Record<string, any>>(team: T): T & { origin: TeamOrigin; origin_label: string; external_id: string | null } {
+  const origin = deriveTeamOrigin(team)
+  return { ...team, origin, origin_label: TEAM_ORIGIN_LABELS[origin], external_id: team.external_id ?? null }
+}
+
+/** Escape LIKE wildcards; `%…%` contains-pattern of a search term (null when empty). */
+export function containsPattern(search: string | null | undefined): string | null {
+  const term = String(search ?? '').trim().slice(0, 200)
+  return term ? `%${escapeLikePattern(term)}%` : null
 }
 
 function assertNotSourceManaged(team: Record<string, any>, what: string) {
@@ -116,12 +143,37 @@ async function checkParent(ctx: ServiceContext, parentId: string | null | undefi
   return parentId
 }
 
-export async function listTeams(ctx: ServiceContext) {
+export interface ListTeamsOptions {
+  /** Name contains (case-insensitive). */
+  search?: string | null
+  /** Only teams from this origin (internal, active_directory, entra, sharepoint …). */
+  origin?: string | null
+  /** At most this many teams (default: all). */
+  limit?: number | null
+}
+
+export function checkOrigin(origin: string | null | undefined): TeamOrigin | null {
+  if (origin === undefined || origin === null || origin === '') return null
+  if (!isTeamOrigin(origin)) throw ServiceError.validation(`Unknown team origin "${origin}" (one of ${TEAM_ORIGINS.join(', ')})`)
+  return origin
+}
+
+export async function listTeams(ctx: ServiceContext, options: ListTeamsOptions = {}) {
   requirePerm(ctx, 'team.view_members')
-  const { data, error } = await selectTeams((columns) => (ctx.supabase as any).from('teams')
-    .select(columns).eq('tenant_id', ctx.tenantId).order('name'), TEAM_COLUMNS)
+  const origin = checkOrigin(options.origin)
+  const pattern = containsPattern(options.search)
+  const limit = options.limit ? Math.max(1, Math.min(5000, Math.floor(options.limit))) : null
+  const { data, error, withOrigin: originRead } = await selectTeams((columns, filterOrigin) => {
+    let query = (ctx.supabase as any).from('teams').select(columns).eq('tenant_id', ctx.tenantId)
+    if (pattern) query = query.ilike('name', pattern)
+    if (origin && filterOrigin) query = query.eq('origin', origin)
+    query = query.order('name')
+    return limit && (filterOrigin || !origin) ? query.limit(limit) : query
+  }, TEAM_COLUMNS)
   if (error) throw dbError(error)
-  const teams = (data ?? []) as Array<Record<string, any>>
+  let teams = ((data ?? []) as Array<Record<string, any>>).map(withOrigin)
+  // Before 20270116050000 the origin is derived, so the filter runs here.
+  if (origin && !originRead) teams = teams.filter((t) => t.origin === origin).slice(0, limit ?? undefined)
   const counts = new Map<string, number>()
   if (teams.length) {
     const { data: memberships, error: memberError } = await (ctx.supabase as any).from('user_teams')
@@ -150,7 +202,7 @@ export async function getTeam(ctx: ServiceContext, teamId: string) {
   const members = (memberships ?? [])
     .filter((m: any) => users.has(m.user_id))
     .map((m: any) => ({ ...users.get(m.user_id), member_role: m.role ?? 'member', added_at: m.created_at ?? null }))
-  return { ...team, members, member_count: members.length }
+  return { ...withOrigin(team), members, member_count: members.length }
 }
 
 export async function createTeam(ctx: ServiceContext, input: TeamInput) {
@@ -169,7 +221,7 @@ export async function createTeam(ctx: ServiceContext, input: TeamInput) {
   }).select(TEAM_COLUMNS).single()
   if (error || !data) throw teamDbError(error, 'Failed to create team')
   await audit(ctx, { objectType: 'team', objectId: data.id, action: 'create', summary: `Created team "${name}"` })
-  return data as Record<string, any>
+  return withOrigin(data as Record<string, any>)
 }
 
 export async function updateTeam(ctx: ServiceContext, teamId: string, input: TeamUpdateInput) {
@@ -199,7 +251,7 @@ export async function updateTeam(ctx: ServiceContext, teamId: string, input: Tea
     objectType: 'team', objectId: teamId, action: 'update', summary: `Updated team "${data.name}"`,
     metadata: { fields: Object.keys(updates).filter((key) => key !== 'updated_at') },
   })
-  return data as Record<string, any>
+  return withOrigin(data as Record<string, any>)
 }
 
 export async function deleteTeam(ctx: ServiceContext, teamId: string) {

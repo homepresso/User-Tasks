@@ -58,7 +58,10 @@ function taskAttachmentsLoader(db: unknown) {
     return listTaskAttachmentsForWorkflow(db as never, tenantId, taskId);
   };
 }
-import { defaultTaskFieldValues, stepFieldValues } from "./task-field-schema";
+import { defaultTaskFieldValues, normalizeTaskFields, stepFieldValues } from "./task-field-schema";
+import { prefilledPeople, planTaskLivePrefill } from "./tasks/live-prefill-engine";
+import { resolveTaskForm } from "./forms/workflow-tokens";
+import { applyTaskCompletionOutputs } from "./forms/task-outputs";
 import { compactLayoutForSave } from "./forms/layout";
 import { resolveOptionSources, resolveRuntimeForm } from "./services/forms";
 import { preResolveLookupConfig, preResolveLookupTemplate } from "./forms/lookup";
@@ -2307,6 +2310,8 @@ async function followPausedNode(
       // too ({{<prefix>_task_data.<key>}}, {{<prefix>_outcome}}…) — the
       // generic task_data / outcome are replaced by the next User Task.
       if (pausedNodeType === "user_task") {
+        // Secret fields stay out of the workflow; "Save to workflow variable" overwrites the mapped variables (lib/forms/task-outputs.ts).
+        applyTaskCompletionOutputs(ctx.variables, pausedNode, normalizeTaskFields);
         const prefix = nodeVariablePrefix(pausedNode);
         for (const key of USER_TASK_PER_STEP_VARIABLES) {
           if (ctx.variables[key] !== undefined) ctx.variables[`${prefix}_${key}`] = ctx.variables[key];
@@ -2327,8 +2332,37 @@ async function followPausedNode(
         };
       }
 
+      // An extension step's event wait (ctx.runs.waitFor): resumed by its event, or timed out.
+      const extWait = (ctx.nodeResults[pausedNodeId]?.output ?? {}) as Record<string, unknown>;
+      let extWaitTimedOut: boolean | null = null;
+      if (pausedNodeType.startsWith("ext.") && extWait._ext_wait) {
+        const { EXT_WAIT_OUTPUT_VAR, clearWait } = await import("./extensions/event-waits");
+        const eventData = ctx.variables[EXT_WAIT_OUTPUT_VAR];
+        delete ctx.variables[EXT_WAIT_OUTPUT_VAR];
+        extWaitTimedOut = !(eventData && typeof eventData === "object");
+        if (ctx.runId) await clearWait(ctx.supabase, ctx.runId, pausedNodeId).catch(() => undefined);
+        const pausedAtMs = run.paused_at ? new Date(run.paused_at).getTime() : NaN;
+        const waited = Number.isFinite(pausedAtMs) ? Math.max(0, Date.now() - pausedAtMs) : 0;
+        const prefix = nodeVariablePrefix(pausedNode);
+        const { _ext_wait: _flag, ...waitInfo } = extWait;
+        if (extWaitTimedOut && extWait.on_timeout === "fail") {
+          ctx.nodeResults[pausedNodeId] = { status: "error", error: `Timed out waiting for ${String(extWait.waiting_for ?? "the event")}`, duration_ms: waited };
+          throw new Error(`${pausedNode.label}: timed out waiting for ${String(extWait.waiting_for ?? "the event")}`);
+        }
+        const output = { ...waitInfo, timed_out: extWaitTimedOut, event: extWaitTimedOut ? null : eventData };
+        ctx.variables[`${prefix}_timed_out`] = extWaitTimedOut;
+        ctx.variables[`${prefix}_event`] = output.event;
+        ctx.variables[`${prefix}_outputs`] = { timed_out: extWaitTimedOut, event: output.event };
+        ctx.nodeResults[pausedNodeId] = { status: "success", output, duration_ms: waited };
+      }
+      const timedOutEdge = (label: string | undefined) => /^\s*(timed\s*out|time\s*out|timeout)\s*$/i.test(label ?? "");
+
       let edgesToFollow =
-        pausedNodeType === "user_task" && outcome
+        extWaitTimedOut !== null && extWait.on_timeout === "branch"
+          ? outEdges.filter((edge) => (extWaitTimedOut ? timedOutEdge(edge.label) : !timedOutEdge(edge.label)))
+          : extWaitTimedOut !== null
+            ? outEdges.filter((edge) => !timedOutEdge(edge.label))
+            : pausedNodeType === "user_task" && outcome
           ? outEdges.filter(
               (edge) =>
                 !edge.label || userTaskOutcomeMatches(edge.label, outcome),
@@ -4937,6 +4971,15 @@ async function runNodeAction(
         ...defaultTaskFieldValues(taskFields, resolveTaskValue),
         ...stepFieldValues(taskFields, config.field_values, resolveTaskValue),
       };
+      // People prefilled from a record (a list item's { email } person): workspace members.
+      Object.assign(taskFieldValues, await prefilledPeople(supabase, tenantId, taskFields, config.field_values, resolveTaskValue));
+      // Fields prefilled from the trigger's record follow it until edited (lib/forms/live-prefill.ts).
+      // Run variables used inside the form (labels, rules, buttons, filters…): resolved on the server now and when the task opens (lib/forms/workflow-tokens.ts).
+      const taskForm = resolveTaskForm({ fields: taskFields, form_layout: taskFormLayout, form_buttons: runtimeForm.buttons ?? null }, ctx.variables);
+      const formFields = taskForm.resolved.fields as typeof taskFields;
+      const formLayout = (taskForm.resolved.form_layout ?? null) as typeof taskFormLayout;
+      const formButtons = (taskForm.resolved.form_buttons ?? null) as typeof runtimeForm.buttons;
+      const livePrefill = ctx.isTest ? null : planTaskLivePrefill(ctx.nodeMap ? [...ctx.nodeMap.values()] : [], ctx.variables, taskFields, config.field_values, taskFieldValues);
 
       // In test mode: don't create a real task, emit event for inline action in test runner
       if (ctx.isTest) {
@@ -4953,12 +4996,12 @@ async function runNodeAction(
           task_description: taskDescription,
           outcomes: outcomes.length > 0 ? outcomes : ["completed"],
           priority,
-          fields: taskFields,
+          fields: formFields,
           values: taskFieldValues,
-          form_layout: taskFormLayout,
+          form_layout: formLayout,
           form_params: taskFormParams,
           form_theme: runtimeForm.theme_overrides,
-          form_buttons: runtimeForm.buttons ?? null,
+          form_buttons: formButtons ?? null,
           form_header: runtimeForm.header?.enabled ? runtimeForm.header : null,
         };
         ctx.onEvent?.({
@@ -4976,6 +5019,13 @@ async function runNodeAction(
       if (config.assignee_variable) {
         const resolved = resolveExpression(config.assignee_variable, ctx);
         if (resolved) assigneeId = resolved;
+      }
+      // Manager of the person who started the run (reporting lines: user_memberships.manager_user_id).
+      if (config.assignee_relation === "initiator_manager") {
+        const { managerOfInitiator } = await import("./reporting-lines");
+        const manager = await managerOfInitiator(supabase as any, tenantId, ctx.variables.workflow_started_by);
+        if (manager) assigneeId = manager;
+        else ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: "warn", message: "The person who started the workflow has no manager in the reporting lines: the task falls back to the step's assignee" });
       }
       let teamId = config.team_id || null;
 
@@ -5097,10 +5147,12 @@ async function runNodeAction(
             min_responses: config.min_responses,
             custom_rule_expression: config.custom_rule_expression,
             custom_rule_outcome: config.custom_rule_outcome,
-            fields: taskFields,
+            fields: formFields,
             template_values: taskFieldValues,
+            ...(taskForm.templates ? { workflow_templates: taskForm.templates } : {}),
+            ...(livePrefill ? { live_prefill: livePrefill } : {}),
             // Grid layout and resolved mini theme (absent → classic form).
-            ...(taskFormLayout ? { form_layout: taskFormLayout } : {}),
+            ...(formLayout ? { form_layout: formLayout } : {}),
             ...(Object.keys(taskFormParams).length ? { form_params: taskFormParams } : {}),
             ...(runtimeForm.theme_overrides
               ? { form_theme: runtimeForm.theme_overrides }
@@ -5108,7 +5160,7 @@ async function runNodeAction(
             // Button bar (only when configured — a task keeps its classic
             // outcome buttons otherwise) and header; header texts keep
             // {{task_data.*}} for the form, workflow variables resolve now.
-            ...(runtimeForm.buttons ? { form_buttons: runtimeForm.buttons } : {}),
+            ...(formButtons ? { form_buttons: formButtons } : {}),
             ...(runtimeForm.header?.enabled
               ? {
                   form_header: {
@@ -7817,7 +7869,7 @@ async function runNodeAction(
       // (lib/extensions/node-runtime.ts). Built-in nodes never reach it.
       if (node.type.startsWith("ext.")) {
         const { runExtensionNode } = await import("./extensions/node-runtime");
-        return runExtensionNode({
+        const extResult: any = await runExtensionNode({
           node,
           tenantId,
           supabase,
@@ -7831,6 +7883,20 @@ async function runNodeAction(
           prefix: _prefix,
           log: (level, message, metadata) => ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level, message, metadata }),
         });
+        // ctx.runs.waitFor: record the wait (indexed match key) and pause; a timeout resumes through the timed-pause machinery.
+        if (extResult?.ext_wait) {
+          const wait = extResult.ext_wait;
+          const { EXT_WAIT_EVENT_PREFIX, recordWait } = await import("./extensions/event-waits");
+          const eventId = `${EXT_WAIT_EVENT_PREFIX}${crypto.randomUUID()}`;
+          const resumeAt = wait.timeoutMinutes ? new Date(Date.now() + Number(wait.timeoutMinutes) * 60_000) : undefined;
+          await recordWait(supabase as any, { tenantId, runId: ctx.runId ?? null, workflowId: ctx.workflowId ?? null, nodeId: node.id, eventId, extensionId: extResult.extension, wait, expiresAt: resumeAt ?? null });
+          const pause = new PauseError(eventId, node.id);
+          pause.waitOutput = { _ext_wait: true, waiting_for: wait.description, wait_key: wait.key, match: wait.match, on_timeout: wait.onTimeout ?? "continue", ...(resumeAt ? { timeout_at: resumeAt.toISOString() } : {}) };
+          if (resumeAt) pause.resumeAt = resumeAt;
+          ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message: `${node.label}: waiting for ${wait.description}` } });
+          throw pause;
+        }
+        return extResult;
       }
       return { skipped: true, reason: `Unknown node type: ${node.type}` };
   }

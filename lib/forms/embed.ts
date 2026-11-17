@@ -92,10 +92,28 @@ export interface FormEventMessage {
   type: typeof FORM_EVENT_MESSAGE_TYPE
   /** submitted (saved), cancelled, deleted (the record), closed (a display form's Close). */
   event: 'submitted' | 'cancelled' | 'deleted' | 'closed'
+  /**
+   * Where the button's own rule goes in the top window (an http(s) address:
+   * e.g. back to the list, a custom page). Absent: the rule stays (a message,
+   * a thank-you screen, another form inside the frame) — the host stays too.
+   */
+  url?: string
 }
 
-export function formEventMessage(event: FormEventMessage['event']): FormEventMessage {
-  return { type: FORM_EVENT_MESSAGE_TYPE, event }
+export function formEventMessage(event: FormEventMessage['event'], url?: string | null): FormEventMessage {
+  return { type: FORM_EVENT_MESSAGE_TYPE, event, ...(url ? { url } : {}) }
+}
+
+/**
+ * The top-window address of a button's redirect inside a trusted-embedding
+ * frame: http(s) as is; another form (/f/…) stays in the frame (null); any
+ * other app page opens UserTasks in the top window.
+ */
+export function hostRedirectUrl(redirect: string | null | undefined, appOrigin: string): string | null {
+  if (!redirect) return null
+  if (/^https?:\/\//i.test(redirect)) return redirect
+  if (/^\/f\//.test(redirect)) return null
+  return redirect.startsWith('/') && !redirect.startsWith('//') ? `${appOrigin}${redirect}` : null
 }
 
 /** `url` with `?embed=1` added (kept once). */

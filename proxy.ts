@@ -8,6 +8,7 @@ import { embedFrameAncestors, framedSessionsEnabled, getEmbedPolicy, isEmbedPath
 import { EMBED_TOKEN_PARAM, verifyEmbedToken } from "@/lib/embedding-token"
 import { authCookieSecure } from "@/lib/providers/auth/cookies"
 import { embedFrameSrc, readSsoFrameSources } from "@/lib/providers/auth/sso/frame-sources"
+import { isDesignerEmbedPath } from "@/lib/embed/designers"
 import {
   HOST_WORKSPACE_HEADER, INVALID_HOST_MARK, REQUEST_PATH_HEADER, WORKSPACE_HOP_PREFIX,
   baseDomainFromEnv, classifyHost, parseWorkspaceHop, workspaceOrigin,
@@ -20,7 +21,22 @@ const FRIENDLY_FORM_PREFIX = "/form/"
 /** Any session cookie (Supabase or built-in, host-only or shared). */
 const SESSION_COOKIE_RE = /^(sb-|__Secure-sb-|__Secure-ut_session|__Host-ut_session|ut_session)/
 
+/** The registry front (app/v2: `docker pull usertasks.com/editions/…`). */
+const REGISTRY_PREFIX = "/v2"
+
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  // Registry API: no session, no CSP, and `/v2/` keeps its trailing slash
+  // (Docker's version check). next.config sets skipTrailingSlashRedirect,
+  // so every other path gets Next's usual redirect to the slash-less form here.
+  if (pathname === REGISTRY_PREFIX || pathname.startsWith(`${REGISTRY_PREFIX}/`)) return NextResponse.next()
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    // Same origin as the request (Next's proxy runtime needs an absolute Location). Leading
+    // slashes collapse to one, so `//evil.example/` can never resolve to another host.
+    const target = `${pathname.replace(/\/+$/, "").replace(/^\/{2,}/, "/") || "/"}${request.nextUrl.search}`
+    return NextResponse.redirect(new URL(target, new URL(request.url).origin), 308)
+  }
+
   // Workspace addresses (lib/workspace-address.ts): tell the server which
   // workspace the Host names. Client-sent copies of these headers are
   // always dropped, so only the proxy sets them.
@@ -92,6 +108,8 @@ export async function proxy(request: NextRequest) {
   }))
   if (frameable || embeddable) response.headers.delete("X-Frame-Options")
   else response.headers.set("X-Frame-Options", "DENY")
+  // Embedded designers always show the latest saved draft: never from an HTTP / back-forward cache.
+  if (isDesignerEmbedPath(request.nextUrl.pathname)) response.headers.set("Cache-Control", "private, no-store, max-age=0")
   if (publicForm || request.nextUrl.pathname.startsWith("/api/public/forms/")) {
     response.headers.set("Referrer-Policy", "no-referrer")
     response.headers.set("Cache-Control", "no-store")
@@ -104,3 +122,4 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }
+

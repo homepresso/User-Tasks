@@ -50,6 +50,7 @@ export type AuditObjectType =
   | 'org'
   | 'extension'
   | 'licence'
+  | 'team_request'
 
 export type AuditAction =
   | 'create'

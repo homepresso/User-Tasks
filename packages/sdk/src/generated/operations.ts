@@ -724,6 +724,36 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "async": true
   },
   {
+    "operationId": "getDataTableViews",
+    "method": "GET",
+    "path": "/data-tables/{id}/views",
+    "envelope": true
+  },
+  {
+    "operationId": "updateDataTableViews",
+    "method": "PUT",
+    "path": "/data-tables/{id}/views",
+    "envelope": true
+  },
+  {
+    "operationId": "writeDataRowCells",
+    "method": "PATCH",
+    "path": "/data-tables/{id}/rows/{rowId}/cells",
+    "envelope": true
+  },
+  {
+    "operationId": "writeDataRowsCells",
+    "method": "PATCH",
+    "path": "/data-tables/{id}/rows/cells",
+    "envelope": true
+  },
+  {
+    "operationId": "getDataGridColumnOptions",
+    "method": "POST",
+    "path": "/data-tables/{id}/views/{viewId}/options",
+    "envelope": true
+  },
+  {
     "operationId": "listIntegrations",
     "method": "GET",
     "path": "/integrations",
@@ -1129,6 +1159,12 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "checkFormAccessibility",
     "method": "POST",
     "path": "/forms/{id}/accessibility",
+    "envelope": true
+  },
+  {
+    "operationId": "describeFormDataSource",
+    "method": "POST",
+    "path": "/forms/{id}/data-source",
     "envelope": true
   },
   {

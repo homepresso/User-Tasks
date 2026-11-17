@@ -113,3 +113,11 @@ export async function loadReportingLines(db: any, tenantId: string): Promise<Rep
 export async function loadReportingIndex(db: any, tenantId: string): Promise<ReportingIndex> {
   return buildReportingIndex(await loadReportingLines(db, tenantId))
 }
+
+/** The workspace manager of the user who started a run (null without one, or for a non-uuid). */
+export async function managerOfInitiator(db: any, tenantId: string, userId: unknown): Promise<string | null> {
+  const id = typeof userId === 'string' ? userId : ''
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null
+  const { data } = await db.from('user_memberships').select('manager_user_id').eq('tenant_id', tenantId).eq('user_id', id).maybeSingle()
+  return typeof data?.manager_user_id === 'string' ? data.manager_user_id : null
+}
