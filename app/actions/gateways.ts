@@ -2,7 +2,7 @@
 
 import { fromSession, isServiceError } from '@/lib/services/context'
 import * as gateways from '@/lib/services/gateways'
-import { getWorkspaceEmbedding, setWorkspaceEmbedding } from '@/lib/services/tenant-settings'
+import { getAppEmbedOrigins, getWorkspaceEmbedding, setAppEmbedOrigins, setWorkspaceEmbedding } from '@/lib/services/tenant-settings'
 
 /*
  * Settings → On-premises gateways and Settings → Trusted embedding: thin
@@ -57,4 +57,13 @@ export async function getEmbeddingAction() {
 
 export async function setEmbeddingAction(origins: string[]) {
   return run(async () => setWorkspaceEmbedding(await fromSession(), { origins }))
+}
+
+/** Sites app pages' Embed widgets may frame (Settings → Embedding). */
+export async function loadAppEmbedOriginsAction() {
+  return run(async () => getAppEmbedOrigins(await fromSession()))
+}
+
+export async function saveAppEmbedOrigins(origins: string[]) {
+  return run(async () => setAppEmbedOrigins(await fromSession(), { origins }))
 }

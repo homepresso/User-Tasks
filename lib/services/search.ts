@@ -33,7 +33,7 @@ const TASK_STATUSES: Record<string, string> = {
 const TASK_PRIORITIES: Record<string, string> = {
   critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', none: 'None',
 }
-const TASK_COLUMNS = 'id, title, status, priority, due_date, assignee:users!tasks_assignee_id_fkey(display_name)'
+const TASK_COLUMNS = 'id, title, status, priority, due_date, tags, assignee:users!tasks_assignee_id_fkey(display_name)'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** Display order of the sections (Forms first). */
@@ -75,6 +75,13 @@ export interface SearchHit {
   href: string
   /** Forms: the friendly link (/form/<system name>), used instead of href on a workspace address. */
   friendly_href?: string
+  /** The object's tags (tasks, forms, workflows), shown as coloured chips. */
+  tags?: string[]
+}
+
+/** `{ tags }` when the row has any (kept off hits without tags). */
+function tagsOf(row: { tags?: unknown }): { tags?: string[] } {
+  return Array.isArray(row.tags) && row.tags.length ? { tags: row.tags.map(String).slice(0, 10) } : {}
 }
 
 export interface SearchSection {
@@ -189,6 +196,7 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
             subtitle: page ? join('Form page', page.workflow_name && `starts ${page.workflow_name}`) : join(`Form v${f.version ?? 1}`, f.description),
             // Search opens the form to fill in (runtime); only people who can't submit land in the library.
             href: can('forms.submit') ? `/fill/${f.id}` : formDesignerHref(f.id),
+            ...tagsOf(f),
             ...(can('forms.submit') && f.system_name ? { friendly_href: `/form/${enc(f.system_name)}` } : {}),
           }
         },
@@ -208,6 +216,7 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
       subtitle: join(TASK_STATUSES[t.status] ?? t.status, TASK_PRIORITIES[t.priority] ?? t.priority, t.assignee?.display_name),
       meta: shortDate(t.due_date),
       href: `/tasks/${t.id}`,
+      ...tagsOf(t),
     })
     plans.push({
       key: 'tasks',
@@ -225,7 +234,7 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
     plans.push({
       key: 'workflows',
       loaders: [{
-        load: (n) => db.from('workflows').select('id, name, is_active, trigger_type, has_unpublished_changes')
+        load: (n) => db.from('workflows').select('id, name, is_active, trigger_type, has_unpublished_changes, tags')
           .eq('tenant_id', tenantId).ilike('name', pattern).order('updated_at', { ascending: false }).limit(n),
         toHit: (w) => ({
           kind: w.trigger_type === 'schedule' ? 'schedule' : 'workflow',
@@ -233,6 +242,7 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
           title: w.name,
           subtitle: join(w.is_active ? 'Active' : 'Draft', w.trigger_type === 'schedule' ? 'Scheduled' : String(w.trigger_type ?? '').replace(/_/g, ' ')),
           href: `/automations/${w.id}`,
+          ...tagsOf(w),
         }),
       }],
     })

@@ -10,7 +10,7 @@
 import type { AssistantToolDef } from '../engine'
 import type { DesignerContext } from '../types'
 
-export type OpenItemKind = 'workflow' | 'form' | 'data_table' | 'decision_table' | 'report' | 'agent'
+export type OpenItemKind = 'workflow' | 'form' | 'data_table' | 'decision_table' | 'report' | 'agent' | 'app'
 
 export interface OpenItem { kind: OpenItemKind; noun: string; id: string; name: string | null }
 
@@ -21,6 +21,7 @@ const AREA_KIND: Partial<Record<DesignerContext['area'], { kind: OpenItemKind; n
   decision_table: { kind: 'decision_table', noun: 'decision table' },
   report: { kind: 'report', noun: 'report' },
   agent: { kind: 'agent', noun: 'agent' },
+  app: { kind: 'app', noun: 'app' },
 }
 
 /** The item open in a builder (kind, id, name), or null on a list / other screen. */

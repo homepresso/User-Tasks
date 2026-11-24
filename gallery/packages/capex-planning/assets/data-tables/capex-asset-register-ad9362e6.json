@@ -1,0 +1,136 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+  "asset": {
+    "id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+    "name": "CapEx asset register",
+    "description": "Fixed assets created from capital projects: tag, location, cost, useful life and straight-line depreciation with net book value (USD).",
+    "columns": [
+      {
+        "id": "e22b9cab-9e79-5113-9733-c6042c7a80b1",
+        "required": true,
+        "key": "asset_tag",
+        "name": "Asset tag",
+        "type": "text"
+      },
+      {
+        "id": "0443e360-7e58-5492-8aab-f88627ffa493",
+        "required": false,
+        "key": "description",
+        "name": "Description",
+        "type": "text"
+      },
+      {
+        "id": "b6629483-6584-5a49-b974-86dbc94f681f",
+        "required": false,
+        "key": "project_ref",
+        "name": "Project",
+        "type": "text"
+      },
+      {
+        "id": "9f140dcc-5190-513a-a189-23a04927f0da",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Equipment",
+          "IT",
+          "Facilities",
+          "Vehicles",
+          "R&D"
+        ]
+      },
+      {
+        "id": "d1b83fb8-c93e-569f-95ee-e225168c3e03",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Production",
+          "Logistics",
+          "Engineering & R&D",
+          "IT",
+          "Facilities & EHS",
+          "Commercial"
+        ]
+      },
+      {
+        "id": "c6b5528c-6726-5a10-a8ad-d8c43f9114ec",
+        "required": false,
+        "key": "location",
+        "name": "Location",
+        "type": "text"
+      },
+      {
+        "id": "46e0b2a6-b61b-52a4-971b-1c7248a77ba9",
+        "required": false,
+        "key": "in_service_date",
+        "name": "In service",
+        "type": "date"
+      },
+      {
+        "id": "79e27127-895b-585e-94c4-5504829c5cee",
+        "required": false,
+        "key": "cost",
+        "name": "Cost (USD)",
+        "type": "number"
+      },
+      {
+        "id": "7b494415-476f-5f77-835d-8e9149f4c575",
+        "required": false,
+        "key": "useful_life_years",
+        "name": "Useful life (years)",
+        "type": "number"
+      },
+      {
+        "id": "15a5e4aa-48ad-5e34-a786-9b56544225bc",
+        "required": false,
+        "key": "salvage_value",
+        "name": "Salvage value (USD)",
+        "type": "number"
+      },
+      {
+        "id": "f0138d5d-b01a-520a-8e6e-1a489a424353",
+        "required": false,
+        "key": "method",
+        "name": "Method",
+        "type": "text"
+      },
+      {
+        "id": "ab221d75-c8a4-5ab1-afa1-468bcc5dff22",
+        "required": false,
+        "key": "annual_depreciation",
+        "name": "Annual depreciation (USD)",
+        "type": "number"
+      },
+      {
+        "id": "e2d5e18e-6a0a-5654-a22b-8f2405e216ca",
+        "required": false,
+        "key": "accumulated_depreciation",
+        "name": "Accumulated depreciation (USD)",
+        "type": "number"
+      },
+      {
+        "id": "13c54030-c524-5188-a1d9-f0c17d68edda",
+        "required": false,
+        "key": "net_book_value",
+        "name": "Net book value (USD)",
+        "type": "number"
+      },
+      {
+        "id": "3b43c967-803f-52f2-ab1a-62751266dc0b",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "In service",
+          "Disposed"
+        ]
+      }
+    ]
+  }
+}

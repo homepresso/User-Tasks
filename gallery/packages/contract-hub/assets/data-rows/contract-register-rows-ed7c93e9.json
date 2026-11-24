@@ -1,0 +1,203 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+  "asset": {
+    "id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+    "name": "Contract register rows",
+    "rows": [
+      {
+        "id": "dd933b4a-9ec7-5853-91c2-fe3f29f5cd38",
+        "data": {
+          "contract_ref": "CT-2401",
+          "title": "Cloud hosting services",
+          "counterparty": "Nimbus Hosting Co.",
+          "type": "Master services agreement",
+          "value_usd": 186000,
+          "owner": "Daniel Okafor",
+          "start_date": "2025-01-01",
+          "end_date": "2026-12-31",
+          "renewal_date": "2026-12-01",
+          "auto_renew": true,
+          "stage": "Signed"
+        }
+      },
+      {
+        "id": "dd0cad15-bebb-512b-9b3c-9f7d5dc84f81",
+        "data": {
+          "contract_ref": "CT-2402",
+          "title": "Office lease, Denver HQ",
+          "counterparty": "Larimer Properties LLC",
+          "type": "Lease",
+          "value_usd": 420000,
+          "owner": "Liam Chen",
+          "start_date": "2024-03-01",
+          "end_date": "2027-02-28",
+          "renewal_date": "2026-12-15",
+          "auto_renew": false,
+          "stage": "Signed"
+        }
+      },
+      {
+        "id": "cf7da29e-379b-5aaa-8deb-c65ffc5fd30e",
+        "data": {
+          "contract_ref": "CT-2403",
+          "title": "Mutual NDA",
+          "counterparty": "Brightwater Labs",
+          "type": "NDA",
+          "value_usd": 0,
+          "owner": "Maya Patel",
+          "start_date": "2026-11-01",
+          "end_date": "2028-10-31",
+          "renewal_date": "2028-10-01",
+          "auto_renew": false,
+          "stage": "Signed"
+        }
+      },
+      {
+        "id": "5549db6c-be0f-5b27-a321-02e6bf3c3f9e",
+        "data": {
+          "contract_ref": "CT-2404",
+          "title": "CRM subscription",
+          "counterparty": "Pipeline Software Inc.",
+          "type": "Software licence",
+          "value_usd": 54000,
+          "owner": "Maya Patel",
+          "start_date": "2026-01-15",
+          "end_date": "2027-01-14",
+          "renewal_date": "2026-12-10",
+          "auto_renew": true,
+          "stage": "Signed"
+        }
+      },
+      {
+        "id": "1f0e970b-3782-5fbb-967f-03d584c447bb",
+        "data": {
+          "contract_ref": "CT-2405",
+          "title": "Brand refresh phase 2",
+          "counterparty": "Studio Meridian",
+          "type": "Statement of work",
+          "value_usd": 38500,
+          "owner": "Sofia Lindqvist",
+          "start_date": "2026-12-01",
+          "end_date": "2027-03-31",
+          "renewal_date": "2027-03-01",
+          "auto_renew": false,
+          "stage": "Legal review"
+        }
+      },
+      {
+        "id": "05559bbe-d93a-5c54-bcfe-c4e56d9f568d",
+        "data": {
+          "contract_ref": "CT-2406",
+          "title": "Packaging supply",
+          "counterparty": "Cedar Box Supply",
+          "type": "Supplier agreement",
+          "value_usd": 97000,
+          "owner": "Liam Chen",
+          "start_date": "2027-01-01",
+          "end_date": "2027-12-31",
+          "renewal_date": "2027-11-01",
+          "auto_renew": true,
+          "stage": "Finance review"
+        }
+      },
+      {
+        "id": "e761a06a-c834-5d7c-801d-71022e36037e",
+        "data": {
+          "contract_ref": "CT-2407",
+          "title": "Payroll platform",
+          "counterparty": "Ledgerly",
+          "type": "Software licence",
+          "value_usd": 72000,
+          "owner": "Noah Fischer",
+          "start_date": "2027-01-01",
+          "end_date": "2029-12-31",
+          "renewal_date": "2029-10-01",
+          "auto_renew": true,
+          "stage": "Signature"
+        }
+      },
+      {
+        "id": "ef397fe5-6ee0-5963-a2ed-8515410ba0f7",
+        "data": {
+          "contract_ref": "CT-2408",
+          "title": "Data warehouse consulting",
+          "counterparty": "Quarry Analytics",
+          "type": "Statement of work",
+          "value_usd": 64000,
+          "owner": "Daniel Okafor",
+          "start_date": "2026-12-15",
+          "end_date": "2027-06-30",
+          "renewal_date": "2027-05-31",
+          "auto_renew": false,
+          "stage": "Submitted"
+        }
+      },
+      {
+        "id": "60fe6f7c-b935-5564-a594-67fe2f6a67be",
+        "data": {
+          "contract_ref": "CT-2409",
+          "title": "Event venue",
+          "counterparty": "Harborview Events",
+          "type": "Supplier agreement",
+          "value_usd": 18000,
+          "owner": "Grace Kim",
+          "start_date": "2027-04-10",
+          "end_date": "2027-04-12",
+          "renewal_date": "2027-03-01",
+          "auto_renew": false,
+          "stage": "Submitted"
+        }
+      },
+      {
+        "id": "085a1b75-8700-5bb6-8250-ab72666f3faa",
+        "data": {
+          "contract_ref": "CT-2410",
+          "title": "Security monitoring",
+          "counterparty": "Watchtower Security",
+          "type": "Master services agreement",
+          "value_usd": 132000,
+          "owner": "Daniel Okafor",
+          "start_date": "2025-06-01",
+          "end_date": "2026-12-31",
+          "renewal_date": "2026-12-05",
+          "auto_renew": true,
+          "stage": "Signed"
+        }
+      },
+      {
+        "id": "172fbcb6-e1c0-51b1-92ab-891e4209a9a7",
+        "data": {
+          "contract_ref": "CT-2411",
+          "title": "Recruiting services",
+          "counterparty": "TalentBridge Partners",
+          "type": "Supplier agreement",
+          "value_usd": 45000,
+          "owner": "Amara Nwosu",
+          "start_date": "2026-12-01",
+          "end_date": "2027-11-30",
+          "renewal_date": "2027-10-31",
+          "auto_renew": false,
+          "stage": "Rejected"
+        }
+      },
+      {
+        "id": "785887b9-2f38-56a1-a0b8-c3c2fbd8fd67",
+        "data": {
+          "contract_ref": "CT-2412",
+          "title": "Design tool licences",
+          "counterparty": "Pixelpress",
+          "type": "Software licence",
+          "value_usd": 21600,
+          "owner": "Sofia Lindqvist",
+          "start_date": "2026-02-01",
+          "end_date": "2027-01-31",
+          "renewal_date": "2026-12-20",
+          "auto_renew": true,
+          "stage": "Signed"
+        }
+      }
+    ]
+  }
+}

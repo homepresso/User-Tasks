@@ -1,0 +1,321 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "6337a740-a278-5424-89d6-2004887e3bd1",
+  "asset": {
+    "id": "6337a740-a278-5424-89d6-2004887e3bd1",
+    "name": "CapEx change request",
+    "description": "Ask for more money on an approved project. Within 10% of the approved amount it is approved at once; more than 10% goes back to the finance controller, the CFO and, over $250,000, the CEO.",
+    "tags": [
+      "capex",
+      "finance",
+      "change"
+    ],
+    "fields": [
+      {
+        "key": "project_ref",
+        "label": "Project",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "search_columns": [
+            "project_ref",
+            "title"
+          ],
+          "display_columns": [
+            "project_ref",
+            "title"
+          ],
+          "value_column": "project_ref",
+          "fill": [
+            {
+              "from": "title",
+              "to": "project_title"
+            },
+            {
+              "from": "business_unit",
+              "to": "business_unit"
+            },
+            {
+              "from": "approved_amount",
+              "to": "approved_amount"
+            },
+            {
+              "from": "spent",
+              "to": "spent_so_far"
+            },
+            {
+              "from": "fiscal_year",
+              "to": "fiscal_year"
+            },
+            {
+              "from": "budget_key",
+              "to": "budget_key"
+            },
+            {
+              "from": "bu_code",
+              "to": "bu_code"
+            }
+          ],
+          "sort": {
+            "column": "project_ref",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "project_title",
+        "label": "Project title",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "business_unit",
+        "label": "Business unit",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "fiscal_year",
+        "label": "Fiscal year",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "budget_key",
+        "label": "Budget line",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "bu_code",
+        "label": "BU code",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "approved_amount",
+        "label": "Approved (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "read_only": true
+      },
+      {
+        "key": "spent_so_far",
+        "label": "Spent so far (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "read_only": true
+      },
+      {
+        "key": "additional_amount",
+        "label": "Additional amount (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 1,
+        "required": true
+      },
+      {
+        "key": "revised_amount",
+        "label": "Revised total",
+        "type": "label",
+        "label_config": {
+          "expression": "COALESCE(approved_amount, 0) + COALESCE(additional_amount, 0)",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "key": "overrun_pct",
+        "label": "Over the approved amount",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(approved_amount > 0, ROUND(COALESCE(additional_amount, 0) / approved_amount * 100, 1), \"\")",
+          "include": true,
+          "format": {
+            "kind": "number",
+            "decimals": 1
+          },
+          "suffix": "%",
+          "emphasis": "strong"
+        }
+      },
+      {
+        "key": "reason",
+        "label": "Reason",
+        "type": "choice",
+        "options": [
+          "Price increase",
+          "Scope change",
+          "Unforeseen site conditions",
+          "Delay costs",
+          "Currency and freight"
+        ],
+        "required": true
+      },
+      {
+        "key": "justification",
+        "label": "Justification",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "What changed, and why the project should still go ahead"
+      },
+      {
+        "key": "evidence",
+        "label": "Revised quotes",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 5,
+          "max_file_mb": 10,
+          "types": [
+            "documents",
+            "images",
+            "pdf"
+          ]
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "project_ref",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "project_title",
+              "span": 1
+            },
+            {
+              "field_key": "business_unit",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "approved_amount",
+              "span": 1
+            },
+            {
+              "field_key": "spent_so_far",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "additional_amount",
+              "span": 1
+            },
+            {
+              "field_key": "revised_amount",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "overrun_pct",
+              "span": 1
+            },
+            {
+              "field_key": "reason",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "justification",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "evidence",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "fiscal_year",
+              "span": 1
+            },
+            {
+              "field_key": "budget_key",
+              "span": 1
+            },
+            {
+              "field_key": "bu_code",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit change request",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Change request submitted",
+            "text": "{{overrun_pct}}% over the approved amount. You will get an email when it is decided.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Change request",
+      "subtitle": "More than 10% over the approved amount needs re-approval.",
+      "align": "left"
+    }
+  }
+}

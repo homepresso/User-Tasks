@@ -33,7 +33,7 @@ const NAV = [
 
 const STEPS = [
   { title: "Deploy on Supabase", body: "One project gives you the database, auth, storage, realtime and scheduling. No provider settings — every area starts on its default." },
-  { title: "Move areas when you're ready", body: "If you'd like to use other services, move files to your bucket, email to your domain, secrets to your vault or sign-in to your IdP. One switch per area; the app keeps running." },
+  { title: "Move areas when you're ready", body: "If you'd like to use other services, move files to your bucket, email to your domain, secrets to your vault or sign-in to your IdP. One switch per area with the Infrastructure add-on; the app keeps running." },
   { title: "Settle where it suits you", body: "Stay on Supabase, stop at hybrid, or carry on to a single cloud, several clouds, or a network with no internet at all. The database moves last." },
 ]
 
@@ -51,7 +51,7 @@ usertasks-admin switch email --to ses --yes
 usertasks-admin history`
 
 const FAQS = [
-  { question: "Should I stay on Supabase?", answer: "Supabase is an excellent platform and our recommended way to run UserTasks. Supabase only is a complete topology, and hybrid (Supabase for the database with some areas in your own cloud account) is the most common setup. If you'd like to use other services, you can move each area whenever you're ready." },
+  { question: "Should I stay on Supabase?", answer: "Supabase is an excellent platform and our recommended way to run UserTasks. Supabase only is a complete topology, and hybrid (Supabase for the database with some areas in your own cloud account) is the most common setup. If you'd like to use other services, the Infrastructure add-on ($9,000 USD per deployment per year) moves each area whenever you're ready." },
   { question: "Can I switch back?", answer: "Yes. Every switch takes a backup and records its steps; usertasks-admin rollback restores the settings and undoes its data changes where possible. Moving the database never writes to the source, so pointing the app back is always possible." },
   { question: "Which clouds are supported?", answer: "AWS, Microsoft Azure and Google Cloud, through their own services and identities where it matters (managed identity, IAM roles, service accounts), plus any PostgreSQL, S3-compatible store, SMTP relay, OIDC or SAML identity provider and Redis-compatible cache." },
   { question: "Does it run without internet access?", answer: "Yes. The on-premises reference profile runs on a network with no route out, and its smoke test fails if the app can reach the internet: PostgreSQL, built-in auth or Keycloak, MinIO, SSE realtime, the worker and an SMTP relay." },
@@ -158,7 +158,7 @@ export function DeployAnywherePage() {
           eyebrow="Deploy anywhere"
           icon={CloudCog}
           title={<>Start on Supabase. <span className="mkt-gradient-text">Move each piece when you’re ready.</span></>}
-          intro={<>UserTasks splits its infrastructure into eleven areas — database, auth, storage, realtime, scheduler, email, secrets, KMS, cache, log export and directory sync — and each one has its own provider. Supabase is an excellent platform and our recommended way to run UserTasks: deploy on it with nothing else to configure. If you&rsquo;d like to use other services, move areas to <strong className="text-white">AWS</strong>, <strong className="text-white">Azure</strong>, <strong className="text-white">Google Cloud</strong> or <strong className="text-white">your own servers</strong> whenever you&rsquo;re ready, one checked, reversible switch at a time.</>}
+          intro={<>UserTasks splits its infrastructure into eleven areas — database, auth, storage, realtime, scheduler, email, secrets, KMS, cache, log export and directory sync — and each one has its own provider. Supabase is an excellent platform and our recommended way to run UserTasks: deploy on it with nothing else to configure. If you&rsquo;d like to use other services, move areas to <strong className="text-white">AWS</strong>, <strong className="text-white">Azure</strong>, <strong className="text-white">Google Cloud</strong> or <strong className="text-white">your own servers</strong> whenever you&rsquo;re ready, one checked, reversible switch at a time with the Infrastructure add-on.</>}
           bullets={["Production-ready for self-hosting today", "Supabase, AWS, Azure, Google Cloud or your own servers", "Air-gapped from a signed bundle"]}
           primary={{ href: "/docs/topologies", label: "Choose your topology" }}
           secondary={{ href: "/docs/self-hosting/choose", label: "Self-hosting guide" }}
@@ -292,7 +292,7 @@ export function DeployAnywherePage() {
         {/* Safety */}
         <section className="border-t border-(color:--mkt-ink)/[0.07]">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <SectionHeading eyebrow="usertasks-admin switch" title="Every switch is checked, backed up and reversible." />
+            <SectionHeading eyebrow="Infrastructure add-on · usertasks-admin switch" title="Every switch is checked, backed up and reversible." />
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {SAFETY.map(({ icon: Icon, title, body }) => (
                 <article key={title} className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/60 p-5">

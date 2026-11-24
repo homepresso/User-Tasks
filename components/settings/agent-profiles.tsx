@@ -273,7 +273,7 @@ function ProfileSheet({ initial, isNew, onClose, onApply, roleOptions, teamOptio
   return (
     <Sheet open onOpenChange={(o) => { if (!o) onClose() }}>
       <SheetContent size="lg" side={isMobile ? 'bottom' : 'right'} title={isNew ? 'Add profile' : `Edit “${initial.name || 'profile'}”`}
-        description="Saved with the page's Save button." data-testid="assistants-profile-sheet" data-agent-no-host="" className={isMobile ? 'max-h-[92dvh]' : undefined}>
+        description="Saved with the page's Save button." data-testid="assistants-profile-sheet" className={isMobile ? 'max-h-[92dvh]' : undefined}>
         <DialogBody className="space-y-6">
           {/* Basics */}
           <section className="space-y-3" aria-labelledby={`${id}-basics`}>

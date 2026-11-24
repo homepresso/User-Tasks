@@ -48,7 +48,7 @@ describe('settings back-compat (first-release capabilities rows)', () => {
   it('any enabled capability turns the Agent on; nothing enabled → off with all help groups ready', () => {
     expect(legacyToAgentSettings({ task: { enabled: true } }).enabled).toBe(true)
     const off = normalizeAgentSettings({ form: { enabled: false }, task: { enabled: false }, designer: { enabled: false } })
-    expect(off).toEqual({ enabled: false, roles: [], teams: [], tools: { form: true, task: true, designer: true, admin: true }, all_forms: true, task_actions: true, profiles: [], thinking_level: 'default', thinking_levels: {}, dictation: { enabled: true, engine: 'browser', language: '', integration_id: null, auto_send: false } })
+    expect(off).toEqual({ enabled: false, roles: [], teams: [], tools: { form: true, task: true, designer: true, admin: true }, all_forms: true, task_actions: true, import_ai: false, profiles: [], thinking_level: 'default', thinking_levels: {}, dictation: { enabled: true, engine: 'browser', language: '', integration_id: null, auto_send: false } })
   })
 
   it('access: the most permissive enabled capability — one open to everyone makes the Agent open to everyone', () => {

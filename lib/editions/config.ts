@@ -3,7 +3,9 @@
  * here names the private upstream: it comes from the environment.
  *
  *   EDITION_PULL_TOKEN_SECRET        ≥ 32 random characters; signs the 30-minute pull tokens
- *   EDITION_UPSTREAM_<EDITION>       the private image repository, e.g. EDITION_UPSTREAM_SHAREPOINT=<registry>/<owner>/<name>
+ *   EDITION_UPSTREAM_<EDITION>       the private image repository, e.g. EDITION_UPSTREAM_ENTERPRISE=<registry>/<owner>/<name>
+ *                                    (the Enterprise image; it also serves the SharePoint alias. The legacy
+ *                                    EDITION_UPSTREAM_SHAREPOINT is a fallback for builds made before it)
  *   EDITION_UPSTREAM_USERNAME        read-only credential for the upstream registry
  *   EDITION_UPSTREAM_TOKEN           (GHCR: a token with only read:packages)
  *   EDITION_UPSTREAM_USERNAME_<EDITION> / EDITION_UPSTREAM_TOKEN_<EDITION>   per-edition overrides

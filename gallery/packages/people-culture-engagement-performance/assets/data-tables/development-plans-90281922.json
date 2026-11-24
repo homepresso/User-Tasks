@@ -1,0 +1,126 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "90281922-a4f8-50c7-be76-3644ec3c0685",
+  "asset": {
+    "id": "90281922-a4f8-50c7-be76-3644ec3c0685",
+    "name": "Development plans",
+    "description": "Each person's development plan: career goal, focus skill, progress and next review. Actions are child records.",
+    "columns": [
+      {
+        "id": "411855bd-8576-5eac-beb3-3c8ba90753b8",
+        "required": true,
+        "key": "plan_ref",
+        "name": "Plan",
+        "type": "text"
+      },
+      {
+        "id": "c76dba72-4bbf-51fa-8a86-17ba523cf557",
+        "required": false,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "3e21feeb-dafc-56d1-bd7a-88b5fdd18637",
+        "required": false,
+        "key": "employee_email",
+        "name": "Employee email",
+        "type": "email"
+      },
+      {
+        "id": "5de8b3a4-8793-5b12-8a40-5af11be5429d",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "ff6d5deb-3896-5e99-b19f-d69ec25d3e6c",
+        "required": false,
+        "key": "manager_name",
+        "name": "Manager",
+        "type": "text"
+      },
+      {
+        "id": "b37fc1d0-7753-5c47-9914-ea797ce4e767",
+        "required": false,
+        "key": "manager_email",
+        "name": "Manager email",
+        "type": "email"
+      },
+      {
+        "id": "9c38532e-9884-5013-8ba8-400bbf1f6a52",
+        "required": false,
+        "key": "career_goal",
+        "name": "Career goal",
+        "type": "text"
+      },
+      {
+        "id": "015d4f61-0340-5c25-b0d9-48b2be50195b",
+        "required": false,
+        "key": "focus_skill",
+        "name": "Focus skill",
+        "type": "text"
+      },
+      {
+        "id": "7823969c-1487-58c4-8d02-5e2ec695b719",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Agreed",
+          "In progress",
+          "Complete"
+        ]
+      },
+      {
+        "id": "3c6a07eb-e06d-5e1b-a69e-24d08470dc04",
+        "required": false,
+        "key": "progress",
+        "name": "Progress %",
+        "type": "number"
+      },
+      {
+        "id": "2dcc1508-5146-5354-86b1-82700ce8c29f",
+        "required": false,
+        "key": "progress_bar",
+        "name": "Progress",
+        "type": "text"
+      },
+      {
+        "id": "05ad1cc0-7654-560e-b332-6cb6302467fc",
+        "required": false,
+        "key": "actions",
+        "name": "Actions",
+        "type": "number"
+      },
+      {
+        "id": "530556e1-bbf6-5e4d-a305-481ab7a32ab2",
+        "required": false,
+        "key": "next_review",
+        "name": "Next review",
+        "type": "date"
+      }
+    ],
+    "child_relations": [
+      {
+        "id": "rel_plan_actions",
+        "table_id": "0c9a2634-1aec-5cf8-b7e9-fe25adfb1419",
+        "lookup_column": "plan",
+        "label": "Actions"
+      }
+    ]
+  }
+}

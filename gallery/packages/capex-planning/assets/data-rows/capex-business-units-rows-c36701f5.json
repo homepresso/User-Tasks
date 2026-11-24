@@ -1,0 +1,215 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+  "asset": {
+    "id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+    "name": "CapEx business units rows",
+    "rows": [
+      {
+        "id": "ad82fd74-51a6-5686-970f-5e6514f1d693",
+        "data": {
+          "bu_key": "PRD-2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "head": "Marcus Hale",
+          "cost_centres": "CC-1100, CC-1110, CC-1120",
+          "budget": 4180000,
+          "committed": 3528500,
+          "spent": 1063680,
+          "available": 651500,
+          "committed_pct": 84.4,
+          "spent_pct": 25.4
+        }
+      },
+      {
+        "id": "c70ea571-b960-51dd-8fac-7cbdfeace611",
+        "data": {
+          "bu_key": "LOG-2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "head": "Priya Raman",
+          "cost_centres": "CC-2100, CC-2110, CC-2120",
+          "budget": 1790000,
+          "committed": 1638000,
+          "spent": 617340,
+          "available": 152000,
+          "committed_pct": 91.5,
+          "spent_pct": 34.5
+        }
+      },
+      {
+        "id": "2cc08fb1-9b3c-54ba-b4af-3dac06e47dd4",
+        "data": {
+          "bu_key": "ENG-2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "head": "Daniel Okafor",
+          "cost_centres": "CC-3100, CC-3110, CC-3120",
+          "budget": 1510000,
+          "committed": 1155500,
+          "spent": 321420,
+          "available": 354500,
+          "committed_pct": 76.5,
+          "spent_pct": 21.3
+        }
+      },
+      {
+        "id": "45836c1b-b13f-5db2-b0be-18218af6964a",
+        "data": {
+          "bu_key": "ITS-2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "head": "Grace Kim",
+          "cost_centres": "CC-4100, CC-4110, CC-4120",
+          "budget": 1610000,
+          "committed": 1407500,
+          "spent": 641160,
+          "available": 202500,
+          "committed_pct": 87.4,
+          "spent_pct": 39.8
+        }
+      },
+      {
+        "id": "1c3b2875-ed95-512e-8fb9-86e637263a00",
+        "data": {
+          "bu_key": "FAC-2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "head": "Sam Torres",
+          "cost_centres": "CC-5100, CC-5110, CC-5120",
+          "budget": 1910000,
+          "committed": 1976500,
+          "spent": 1314370,
+          "available": -66500,
+          "committed_pct": 103.5,
+          "spent_pct": 68.8
+        }
+      },
+      {
+        "id": "507d185f-7045-575f-9d8f-490b4bbe70ed",
+        "data": {
+          "bu_key": "COM-2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "head": "Maya Patel",
+          "cost_centres": "CC-6100, CC-6110, CC-6120",
+          "budget": 590000,
+          "committed": 431500,
+          "spent": 104550,
+          "available": 158500,
+          "committed_pct": 73.1,
+          "spent_pct": 17.7
+        }
+      },
+      {
+        "id": "23828dd6-53a3-5823-a713-2d736a4ec0aa",
+        "data": {
+          "bu_key": "PRD-2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "head": "Marcus Hale",
+          "cost_centres": "CC-1100, CC-1110, CC-1120",
+          "budget": 4450000,
+          "committed": 33500,
+          "spent": 0,
+          "available": 4416500,
+          "committed_pct": 0.8,
+          "spent_pct": 0
+        }
+      },
+      {
+        "id": "3f26c971-77a6-57ae-8461-5a3f6d55cf9c",
+        "data": {
+          "bu_key": "LOG-2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "head": "Priya Raman",
+          "cost_centres": "CC-2100, CC-2110, CC-2120",
+          "budget": 1910000,
+          "committed": 97500,
+          "spent": 0,
+          "available": 1812500,
+          "committed_pct": 5.1,
+          "spent_pct": 0
+        }
+      },
+      {
+        "id": "8f64ebaa-bf73-5090-bc41-78c074e51ace",
+        "data": {
+          "bu_key": "ENG-2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "head": "Daniel Okafor",
+          "cost_centres": "CC-3100, CC-3110, CC-3120",
+          "budget": 1600000,
+          "committed": 73500,
+          "spent": 0,
+          "available": 1526500,
+          "committed_pct": 4.6,
+          "spent_pct": 0
+        }
+      },
+      {
+        "id": "f0ce3ed0-17f7-5e61-8090-d27a52b05d43",
+        "data": {
+          "bu_key": "ITS-2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "head": "Grace Kim",
+          "cost_centres": "CC-4100, CC-4110, CC-4120",
+          "budget": 1690000,
+          "committed": 21000,
+          "spent": 0,
+          "available": 1669000,
+          "committed_pct": 1.2,
+          "spent_pct": 0
+        }
+      },
+      {
+        "id": "332ac0ca-4682-5859-b7d0-50cef017bac0",
+        "data": {
+          "bu_key": "FAC-2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "head": "Sam Torres",
+          "cost_centres": "CC-5100, CC-5110, CC-5120",
+          "budget": 2010000,
+          "committed": 330500,
+          "spent": 0,
+          "available": 1679500,
+          "committed_pct": 16.4,
+          "spent_pct": 0
+        }
+      },
+      {
+        "id": "b5a62c14-1173-54fa-a6ff-3509c2ebb840",
+        "data": {
+          "bu_key": "COM-2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "head": "Maya Patel",
+          "cost_centres": "CC-6100, CC-6110, CC-6120",
+          "budget": 660000,
+          "committed": 252000,
+          "spent": 0,
+          "available": 408000,
+          "committed_pct": 38.2,
+          "spent_pct": 0
+        }
+      }
+    ]
+  }
+}

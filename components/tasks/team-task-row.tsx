@@ -15,6 +15,7 @@ import { ProgressBar } from "@/components/ui/progress-bar"
 import { RelativeTime } from "@/components/activity/relative-time"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
+import { TaskTags } from "@/components/tasks/task-tags"
 import { cn } from "@/lib/utils"
 import { formatAbsolute, formatRelative } from "@/lib/format/date"
 import { rowProgress } from "@/lib/tasks/list-sort"
@@ -87,7 +88,7 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
     // Phones: one card per task (read-only there: no Act on behalf / Reassign); tapping opens the task.
     return (
       <>
-        <MobileTaskCard as="tr" colSpan={TEAM_TASK_COLUMNS} href={`/tasks/${task.id}`} title={task.title} done={closed}
+        <MobileTaskCard as="tr" colSpan={TEAM_TASK_COLUMNS} href={`/tasks/${task.id}`} title={task.title} done={closed} tags={task.tags}
           meta={[teamPersonName(task.assignee), ...secondary].join(" · ")}
           actions={(
             <>
@@ -129,7 +130,12 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
             <span className={cn("truncate font-medium text-fg", closed && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
             {task.sla_breached && <Badge tone="danger"><AlertTriangle className="size-3" aria-hidden /> SLA</Badge>}
           </button>
-          {secondary.length > 0 && <p className="mt-0.5 truncate pl-[22px] text-xs text-fg-muted" title={secondary.join(" · ")}>{secondary.join(" · ")}</p>}
+          {(secondary.length > 0 || (task.tags?.length ?? 0) > 0) && (
+            <div className="mt-0.5 flex min-w-0 items-center gap-1.5 pl-[22px] text-xs text-fg-muted">
+              <TaskTags tags={task.tags} max={3} />
+              {secondary.length > 0 && <span className="truncate" title={secondary.join(" · ")}>{secondary.join(" · ")}</span>}
+            </div>
+          )}
         </TD>
         <TD className="max-w-0 text-fg-muted"><Truncate text={teamPersonName(task.assignee)} /></TD>
         <TD className="whitespace-nowrap"><StatusPill status={task.status} /></TD>

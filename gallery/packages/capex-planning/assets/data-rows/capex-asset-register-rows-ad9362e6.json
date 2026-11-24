@@ -1,0 +1,1171 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+  "asset": {
+    "id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+    "name": "CapEx asset register rows",
+    "rows": [
+      {
+        "id": "25ea2359-05e9-5e6a-949b-9e3d46125b94",
+        "data": {
+          "asset_tag": "BW-FA-0001",
+          "description": "LED lighting retrofit (1 of 2)",
+          "project_ref": "CPX-26-001",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "location": "Central warehouse",
+          "in_service_date": "2026-04-02",
+          "cost": 54890,
+          "useful_life_years": 20,
+          "salvage_value": 2740,
+          "method": "Straight-line",
+          "annual_depreciation": 2607.5,
+          "accumulated_depreciation": 2608,
+          "net_book_value": 52282,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "5ea6fb6f-6160-5c0e-bbd9-52dad43f1040",
+        "data": {
+          "asset_tag": "BW-FA-0002",
+          "description": "LED lighting retrofit (2 of 2)",
+          "project_ref": "CPX-26-001",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "location": "Riverside plant",
+          "in_service_date": "2026-05-03",
+          "cost": 54890,
+          "useful_life_years": 20,
+          "salvage_value": 2740,
+          "method": "Straight-line",
+          "annual_depreciation": 2607.5,
+          "accumulated_depreciation": 2608,
+          "net_book_value": 52282,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "d3ddbce3-c4a8-54c0-a2e4-2f358d85d3ee",
+        "data": {
+          "asset_tag": "BW-VH-0003",
+          "description": "Box truck 26 ft (1 of 4)",
+          "project_ref": "CPX-26-002",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Riverside plant",
+          "in_service_date": "2026-06-04",
+          "cost": 29350,
+          "useful_life_years": 6,
+          "salvage_value": 4400,
+          "method": "Straight-line",
+          "annual_depreciation": 4158.33,
+          "accumulated_depreciation": 4158,
+          "net_book_value": 25192,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "570eae86-2446-5d33-b357-f59e2cf1fe1a",
+        "data": {
+          "asset_tag": "BW-VH-0004",
+          "description": "Box truck 26 ft (2 of 4)",
+          "project_ref": "CPX-26-002",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Riverside plant",
+          "in_service_date": "2026-07-05",
+          "cost": 29350,
+          "useful_life_years": 6,
+          "salvage_value": 4400,
+          "method": "Straight-line",
+          "annual_depreciation": 4158.33,
+          "accumulated_depreciation": 0,
+          "net_book_value": 29350,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "5c2d477b-8eb8-5cd5-a9a1-97decd978dee",
+        "data": {
+          "asset_tag": "BW-VH-0005",
+          "description": "Box truck 26 ft (3 of 4)",
+          "project_ref": "CPX-26-002",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Central warehouse",
+          "in_service_date": "2026-08-06",
+          "cost": 29350,
+          "useful_life_years": 6,
+          "salvage_value": 4400,
+          "method": "Straight-line",
+          "annual_depreciation": 4158.33,
+          "accumulated_depreciation": 0,
+          "net_book_value": 29350,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "ee1df138-bd80-5897-850a-de7dd913b4d0",
+        "data": {
+          "asset_tag": "BW-VH-0006",
+          "description": "Box truck 26 ft (4 of 4)",
+          "project_ref": "CPX-26-002",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "HQ offices",
+          "in_service_date": "2026-09-07",
+          "cost": 29350,
+          "useful_life_years": 6,
+          "salvage_value": 4400,
+          "method": "Straight-line",
+          "annual_depreciation": 4158.33,
+          "accumulated_depreciation": 0,
+          "net_book_value": 29350,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "2d08ac31-2e8a-5c05-958c-f0e20ee85bbb",
+        "data": {
+          "asset_tag": "BW-RD-0007",
+          "description": "Rapid prototyping printer (1 of 2)",
+          "project_ref": "CPX-26-003",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "location": "Test centre",
+          "in_service_date": "2026-10-08",
+          "cost": 14950,
+          "useful_life_years": 5,
+          "salvage_value": 750,
+          "method": "Straight-line",
+          "annual_depreciation": 2840,
+          "accumulated_depreciation": 0,
+          "net_book_value": 14950,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "736a39b7-78bb-5e1e-8414-2a889ab37c8e",
+        "data": {
+          "asset_tag": "BW-RD-0008",
+          "description": "Rapid prototyping printer (2 of 2)",
+          "project_ref": "CPX-26-003",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "location": "Test centre",
+          "in_service_date": "2026-03-09",
+          "cost": 14950,
+          "useful_life_years": 5,
+          "salvage_value": 750,
+          "method": "Straight-line",
+          "annual_depreciation": 2840,
+          "accumulated_depreciation": 2840,
+          "net_book_value": 12110,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "7b22adc2-1e1b-5268-bbfd-cb8729aa3df0",
+        "data": {
+          "asset_tag": "BW-IT-0009",
+          "description": "ERP finance module upgrade (1 of 4)",
+          "project_ref": "CPX-26-004",
+          "category": "IT",
+          "business_unit": "IT",
+          "location": "HQ offices",
+          "in_service_date": "2026-04-10",
+          "cost": 22590,
+          "useful_life_years": 4,
+          "salvage_value": 1130,
+          "method": "Straight-line",
+          "annual_depreciation": 5365,
+          "accumulated_depreciation": 5365,
+          "net_book_value": 17225,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "b13fdbb3-1871-5de8-bdad-eaf98c7ac63d",
+        "data": {
+          "asset_tag": "BW-IT-0010",
+          "description": "ERP finance module upgrade (2 of 4)",
+          "project_ref": "CPX-26-004",
+          "category": "IT",
+          "business_unit": "IT",
+          "location": "Central warehouse",
+          "in_service_date": "2026-05-11",
+          "cost": 22590,
+          "useful_life_years": 4,
+          "salvage_value": 1130,
+          "method": "Straight-line",
+          "annual_depreciation": 5365,
+          "accumulated_depreciation": 5365,
+          "net_book_value": 17225,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "83e76107-4348-539a-a18a-4c9ce062f338",
+        "data": {
+          "asset_tag": "BW-IT-0011",
+          "description": "ERP finance module upgrade (3 of 4)",
+          "project_ref": "CPX-26-004",
+          "category": "IT",
+          "business_unit": "IT",
+          "location": "Riverside plant",
+          "in_service_date": "2026-06-12",
+          "cost": 22590,
+          "useful_life_years": 4,
+          "salvage_value": 1130,
+          "method": "Straight-line",
+          "annual_depreciation": 5365,
+          "accumulated_depreciation": 5365,
+          "net_book_value": 17225,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "15c36969-a1b1-50a5-a9d1-33bb7426617c",
+        "data": {
+          "asset_tag": "BW-IT-0012",
+          "description": "ERP finance module upgrade (4 of 4)",
+          "project_ref": "CPX-26-004",
+          "category": "IT",
+          "business_unit": "IT",
+          "location": "HQ offices",
+          "in_service_date": "2026-07-13",
+          "cost": 22590,
+          "useful_life_years": 4,
+          "salvage_value": 1130,
+          "method": "Straight-line",
+          "annual_depreciation": 5365,
+          "accumulated_depreciation": 0,
+          "net_book_value": 22590,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "38e307ae-c0d0-5d68-97e0-940e790b3a9a",
+        "data": {
+          "asset_tag": "BW-FA-0013",
+          "description": "Loading dock levellers (1 of 2)",
+          "project_ref": "CPX-26-005",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "location": "HQ offices",
+          "in_service_date": "2026-08-14",
+          "cost": 294930,
+          "useful_life_years": 20,
+          "salvage_value": 14750,
+          "method": "Straight-line",
+          "annual_depreciation": 14009,
+          "accumulated_depreciation": 0,
+          "net_book_value": 294930,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "a7a83f31-f0c7-5c4c-aa20-7fe2adbec471",
+        "data": {
+          "asset_tag": "BW-FA-0014",
+          "description": "Loading dock levellers (2 of 2)",
+          "project_ref": "CPX-26-005",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "location": "HQ offices",
+          "in_service_date": "2026-09-15",
+          "cost": 294930,
+          "useful_life_years": 20,
+          "salvage_value": 14750,
+          "method": "Straight-line",
+          "annual_depreciation": 14009,
+          "accumulated_depreciation": 0,
+          "net_book_value": 294930,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "f2dfdb7a-e44c-59c7-bd91-daaae880f447",
+        "data": {
+          "asset_tag": "BW-IT-0015",
+          "description": "Data platform build (1 of 4)",
+          "project_ref": "CPX-26-006",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "location": "Central warehouse",
+          "in_service_date": "2026-10-16",
+          "cost": 3040,
+          "useful_life_years": 4,
+          "salvage_value": 150,
+          "method": "Straight-line",
+          "annual_depreciation": 722.5,
+          "accumulated_depreciation": 0,
+          "net_book_value": 3040,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "33ca24bd-591c-5e60-bb42-4dd9de14d6a2",
+        "data": {
+          "asset_tag": "BW-IT-0016",
+          "description": "Data platform build (2 of 4)",
+          "project_ref": "CPX-26-006",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "location": "Central warehouse",
+          "in_service_date": "2026-03-17",
+          "cost": 3040,
+          "useful_life_years": 4,
+          "salvage_value": 150,
+          "method": "Straight-line",
+          "annual_depreciation": 722.5,
+          "accumulated_depreciation": 723,
+          "net_book_value": 2317,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "712e31da-858c-5500-b2fc-ab0adbaae0e5",
+        "data": {
+          "asset_tag": "BW-IT-0017",
+          "description": "Data platform build (3 of 4)",
+          "project_ref": "CPX-26-006",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "location": "Riverside plant",
+          "in_service_date": "2026-04-18",
+          "cost": 3040,
+          "useful_life_years": 4,
+          "salvage_value": 150,
+          "method": "Straight-line",
+          "annual_depreciation": 722.5,
+          "accumulated_depreciation": 723,
+          "net_book_value": 2317,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "8cfaf575-e9b4-52b5-a5ee-d0510b4525d6",
+        "data": {
+          "asset_tag": "BW-IT-0018",
+          "description": "Data platform build (4 of 4)",
+          "project_ref": "CPX-26-006",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "location": "Riverside plant",
+          "in_service_date": "2026-05-19",
+          "cost": 3040,
+          "useful_life_years": 4,
+          "salvage_value": 150,
+          "method": "Straight-line",
+          "annual_depreciation": 722.5,
+          "accumulated_depreciation": 723,
+          "net_book_value": 2317,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "56d3846d-3c19-53ba-bb00-e5d35a6b4524",
+        "data": {
+          "asset_tag": "BW-EQ-0019",
+          "description": "Shrink-wrap line (1 of 2)",
+          "project_ref": "CPX-26-007",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "location": "Riverside plant",
+          "in_service_date": "2026-06-20",
+          "cost": 53400,
+          "useful_life_years": 10,
+          "salvage_value": 2670,
+          "method": "Straight-line",
+          "annual_depreciation": 5073,
+          "accumulated_depreciation": 5073,
+          "net_book_value": 48327,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "b18d404d-6eb3-58bd-b6e3-55556d88c334",
+        "data": {
+          "asset_tag": "BW-EQ-0020",
+          "description": "Shrink-wrap line (2 of 2)",
+          "project_ref": "CPX-26-007",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "location": "Riverside plant",
+          "in_service_date": "2026-07-21",
+          "cost": 53400,
+          "useful_life_years": 10,
+          "salvage_value": 2670,
+          "method": "Straight-line",
+          "annual_depreciation": 5073,
+          "accumulated_depreciation": 0,
+          "net_book_value": 53400,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "a234cd2d-c4fe-5745-80ab-0820443a1c84",
+        "data": {
+          "asset_tag": "BW-VH-0021",
+          "description": "Delivery van replacement (4) (1 of 4)",
+          "project_ref": "CPX-26-008",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Riverside plant",
+          "in_service_date": "2026-08-22",
+          "cost": 37820,
+          "useful_life_years": 6,
+          "salvage_value": 5670,
+          "method": "Straight-line",
+          "annual_depreciation": 5358.33,
+          "accumulated_depreciation": 0,
+          "net_book_value": 37820,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "6bdfc967-3156-54fb-9d0f-dbd5eee19457",
+        "data": {
+          "asset_tag": "BW-VH-0022",
+          "description": "Delivery van replacement (4) (2 of 4)",
+          "project_ref": "CPX-26-008",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "HQ offices",
+          "in_service_date": "2026-09-23",
+          "cost": 37820,
+          "useful_life_years": 6,
+          "salvage_value": 5670,
+          "method": "Straight-line",
+          "annual_depreciation": 5358.33,
+          "accumulated_depreciation": 0,
+          "net_book_value": 37820,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "44382738-b625-544b-80cc-ed3114e5c7f8",
+        "data": {
+          "asset_tag": "BW-VH-0023",
+          "description": "Delivery van replacement (4) (3 of 4)",
+          "project_ref": "CPX-26-008",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Riverside plant",
+          "in_service_date": "2026-10-24",
+          "cost": 37820,
+          "useful_life_years": 6,
+          "salvage_value": 5670,
+          "method": "Straight-line",
+          "annual_depreciation": 5358.33,
+          "accumulated_depreciation": 0,
+          "net_book_value": 37820,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "59172b4b-f5f3-5e19-af24-fd4c0080bab5",
+        "data": {
+          "asset_tag": "BW-VH-0024",
+          "description": "Delivery van replacement (4) (4 of 4)",
+          "project_ref": "CPX-26-008",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Riverside plant",
+          "in_service_date": "2026-03-25",
+          "cost": 37820,
+          "useful_life_years": 6,
+          "salvage_value": 5670,
+          "method": "Straight-line",
+          "annual_depreciation": 5358.33,
+          "accumulated_depreciation": 5358,
+          "net_book_value": 32462,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "b9a24972-191e-5b7e-869a-1c1b0a25c809",
+        "data": {
+          "asset_tag": "BW-EQ-0025",
+          "description": "Forklift charging stations (1 of 2)",
+          "project_ref": "CPX-26-009",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "location": "Central warehouse",
+          "in_service_date": "2026-04-26",
+          "cost": 25640,
+          "useful_life_years": 10,
+          "salvage_value": 1280,
+          "method": "Straight-line",
+          "annual_depreciation": 2436,
+          "accumulated_depreciation": 2436,
+          "net_book_value": 23204,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "e0d544cb-965a-5e1d-b03f-af0cb06adf51",
+        "data": {
+          "asset_tag": "BW-EQ-0026",
+          "description": "Forklift charging stations (2 of 2)",
+          "project_ref": "CPX-26-009",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "location": "HQ offices",
+          "in_service_date": "2026-05-27",
+          "cost": 25640,
+          "useful_life_years": 10,
+          "salvage_value": 1280,
+          "method": "Straight-line",
+          "annual_depreciation": 2436,
+          "accumulated_depreciation": 2436,
+          "net_book_value": 23204,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "f0f1b6de-731c-5d9f-ad01-cea6d3e08d5c",
+        "data": {
+          "asset_tag": "BW-IT-0027",
+          "description": "Security operations tooling",
+          "project_ref": "CPX-26-010",
+          "category": "IT",
+          "business_unit": "IT",
+          "location": "HQ offices",
+          "in_service_date": "2026-06-01",
+          "cost": 309550,
+          "useful_life_years": 4,
+          "salvage_value": 15480,
+          "method": "Straight-line",
+          "annual_depreciation": 73517.5,
+          "accumulated_depreciation": 73518,
+          "net_book_value": 236032,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "f6c3713a-b808-5226-99bc-51e7b34b5b2f",
+        "data": {
+          "asset_tag": "BW-FA-0028",
+          "description": "Solar array phase 1",
+          "project_ref": "CPX-26-011",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "location": "HQ offices",
+          "in_service_date": "2026-07-02",
+          "cost": 28780,
+          "useful_life_years": 20,
+          "salvage_value": 1440,
+          "method": "Straight-line",
+          "annual_depreciation": 1367,
+          "accumulated_depreciation": 0,
+          "net_book_value": 28780,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "53195f7e-3db5-5755-b3bd-6c69ed21bb50",
+        "data": {
+          "asset_tag": "BW-VH-0029",
+          "description": "Yard tractor",
+          "project_ref": "CPX-26-012",
+          "category": "Vehicles",
+          "business_unit": "Commercial",
+          "location": "Riverside plant",
+          "in_service_date": "2026-08-03",
+          "cost": 47340,
+          "useful_life_years": 6,
+          "salvage_value": 7100,
+          "method": "Straight-line",
+          "annual_depreciation": 6706.67,
+          "accumulated_depreciation": 0,
+          "net_book_value": 47340,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "8589a1e1-a488-50a6-8ba0-41f2c901d008",
+        "data": {
+          "asset_tag": "BW-VH-0030",
+          "description": "Sales fleet EV transition",
+          "project_ref": "CPX-26-013",
+          "category": "Vehicles",
+          "business_unit": "Production",
+          "location": "Test centre",
+          "in_service_date": "2026-09-04",
+          "cost": 405250,
+          "useful_life_years": 6,
+          "salvage_value": 60790,
+          "method": "Straight-line",
+          "annual_depreciation": 57410,
+          "accumulated_depreciation": 0,
+          "net_book_value": 405250,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "abd4c79b-14e1-5e01-9d1b-66ddb485f5da",
+        "data": {
+          "asset_tag": "BW-VH-0031",
+          "description": "Site utility vehicles",
+          "project_ref": "CPX-26-014",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Test centre",
+          "in_service_date": "2026-10-05",
+          "cost": 249910,
+          "useful_life_years": 6,
+          "salvage_value": 37490,
+          "method": "Straight-line",
+          "annual_depreciation": 35403.33,
+          "accumulated_depreciation": 0,
+          "net_book_value": 249910,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "a319142a-13c9-5bc3-9479-fdaa9967afbc",
+        "data": {
+          "asset_tag": "BW-RD-0032",
+          "description": "Spectrometer",
+          "project_ref": "CPX-26-015",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "location": "Riverside plant",
+          "in_service_date": "2026-03-06",
+          "cost": 222140,
+          "useful_life_years": 5,
+          "salvage_value": 11110,
+          "method": "Straight-line",
+          "annual_depreciation": 42206,
+          "accumulated_depreciation": 42206,
+          "net_book_value": 179934,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "3d2a0132-078a-5ccc-95c5-cc51ef40600f",
+        "data": {
+          "asset_tag": "BW-IT-0033",
+          "description": "Wi-Fi 7 rollout",
+          "project_ref": "CPX-26-016",
+          "category": "IT",
+          "business_unit": "IT",
+          "location": "Riverside plant",
+          "in_service_date": "2026-04-07",
+          "cost": 191910,
+          "useful_life_years": 4,
+          "salvage_value": 9600,
+          "method": "Straight-line",
+          "annual_depreciation": 45577.5,
+          "accumulated_depreciation": 45578,
+          "net_book_value": 146332,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "a171a86c-2c1a-5ab9-9617-3b5b5361f650",
+        "data": {
+          "asset_tag": "BW-EQ-0034",
+          "description": "Vision inspection system",
+          "project_ref": "CPX-26-017",
+          "category": "Equipment",
+          "business_unit": "Facilities & EHS",
+          "location": "Central warehouse",
+          "in_service_date": "2026-05-08",
+          "cost": 37330,
+          "useful_life_years": 10,
+          "salvage_value": 1870,
+          "method": "Straight-line",
+          "annual_depreciation": 3546,
+          "accumulated_depreciation": 3546,
+          "net_book_value": 33784,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "bf4ac605-b6c7-5d3b-925a-fa81371fa39d",
+        "data": {
+          "asset_tag": "BW-IT-0035",
+          "description": "Core network switches",
+          "project_ref": "CPX-26-018",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "location": "Riverside plant",
+          "in_service_date": "2026-06-09",
+          "cost": 24840,
+          "useful_life_years": 4,
+          "salvage_value": 1240,
+          "method": "Straight-line",
+          "annual_depreciation": 5900,
+          "accumulated_depreciation": 5900,
+          "net_book_value": 18940,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "1a1d33df-5ecd-552f-8898-0a8be6de7179",
+        "data": {
+          "asset_tag": "BW-EQ-0036",
+          "description": "Automated palletiser",
+          "project_ref": "CPX-26-019",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "location": "HQ offices",
+          "in_service_date": "2026-07-10",
+          "cost": 233650,
+          "useful_life_years": 10,
+          "salvage_value": 11680,
+          "method": "Straight-line",
+          "annual_depreciation": 22197,
+          "accumulated_depreciation": 0,
+          "net_book_value": 233650,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "88c69f23-d7be-5ee4-b043-bbae8c2ec6b6",
+        "data": {
+          "asset_tag": "BW-VH-0037",
+          "description": "Electric forklift fleet (6)",
+          "project_ref": "CPX-26-020",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Riverside plant",
+          "in_service_date": "2026-08-11",
+          "cost": 91040,
+          "useful_life_years": 6,
+          "salvage_value": 13660,
+          "method": "Straight-line",
+          "annual_depreciation": 12896.67,
+          "accumulated_depreciation": 0,
+          "net_book_value": 91040,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "cf864ece-744d-5602-a7c9-ea976c4d2323",
+        "data": {
+          "asset_tag": "BW-IT-0038",
+          "description": "CRM replacement",
+          "project_ref": "CPX-26-021",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "location": "Riverside plant",
+          "in_service_date": "2026-09-12",
+          "cost": 11960,
+          "useful_life_years": 4,
+          "salvage_value": 600,
+          "method": "Straight-line",
+          "annual_depreciation": 2840,
+          "accumulated_depreciation": 0,
+          "net_book_value": 11960,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "99b1bf76-6f7f-5bba-8d53-e1ea785c8f24",
+        "data": {
+          "asset_tag": "BW-IT-0039",
+          "description": "Plant floor tablets",
+          "project_ref": "CPX-26-022",
+          "category": "IT",
+          "business_unit": "IT",
+          "location": "Riverside plant",
+          "in_service_date": "2026-10-13",
+          "cost": 37440,
+          "useful_life_years": 4,
+          "salvage_value": 1870,
+          "method": "Straight-line",
+          "annual_depreciation": 8892.5,
+          "accumulated_depreciation": 0,
+          "net_book_value": 37440,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "fc366d8f-435f-54d7-9928-be0b61919b26",
+        "data": {
+          "asset_tag": "BW-FA-0040",
+          "description": "Wastewater treatment upgrade",
+          "project_ref": "CPX-26-023",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "location": "Central warehouse",
+          "in_service_date": "2026-03-14",
+          "cost": 627340,
+          "useful_life_years": 20,
+          "salvage_value": 31370,
+          "method": "Straight-line",
+          "annual_depreciation": 29798.5,
+          "accumulated_depreciation": 29799,
+          "net_book_value": 597541,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "cb4af024-4dbc-53ce-9c56-e5497b1cce32",
+        "data": {
+          "asset_tag": "BW-EQ-0041",
+          "description": "Press line 2 hydraulics",
+          "project_ref": "CPX-23-100",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "location": "HQ offices",
+          "in_service_date": "2023-01-15",
+          "cost": 101600,
+          "useful_life_years": 10,
+          "salvage_value": 5080,
+          "method": "Straight-line",
+          "annual_depreciation": 9652,
+          "accumulated_depreciation": 38608,
+          "net_book_value": 62992,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "b01539ba-2b58-5794-ac3a-8b8ce623e524",
+        "data": {
+          "asset_tag": "BW-EQ-0042",
+          "description": "Warehouse racking",
+          "project_ref": "CPX-24-101",
+          "category": "Equipment",
+          "business_unit": "Logistics",
+          "location": "HQ offices",
+          "in_service_date": "2024-02-15",
+          "cost": 395700,
+          "useful_life_years": 10,
+          "salvage_value": 19790,
+          "method": "Straight-line",
+          "annual_depreciation": 37591,
+          "accumulated_depreciation": 112773,
+          "net_book_value": 282927,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "42c1940d-b5c9-50e2-8110-e1648eca1028",
+        "data": {
+          "asset_tag": "BW-IT-0043",
+          "description": "Server room UPS",
+          "project_ref": "CPX-25-102",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "location": "Test centre",
+          "in_service_date": "2025-03-15",
+          "cost": 218500,
+          "useful_life_years": 4,
+          "salvage_value": 10930,
+          "method": "Straight-line",
+          "annual_depreciation": 51892.5,
+          "accumulated_depreciation": 103785,
+          "net_book_value": 114715,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "483e5137-e59b-53ff-9a54-957391a0d374",
+        "data": {
+          "asset_tag": "BW-FA-0044",
+          "description": "Office fit-out level 2",
+          "project_ref": "CPX-23-103",
+          "category": "Facilities",
+          "business_unit": "IT",
+          "location": "Riverside plant",
+          "in_service_date": "2023-04-15",
+          "cost": 62600,
+          "useful_life_years": 20,
+          "salvage_value": 3130,
+          "method": "Straight-line",
+          "annual_depreciation": 2973.5,
+          "accumulated_depreciation": 11894,
+          "net_book_value": 50706,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "9633868f-67c4-5702-aba7-62a3073b4aa2",
+        "data": {
+          "asset_tag": "BW-VH-0045",
+          "description": "Pallet truck fleet",
+          "project_ref": "CPX-24-104",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "location": "HQ offices",
+          "in_service_date": "2024-05-15",
+          "cost": 296000,
+          "useful_life_years": 6,
+          "salvage_value": 14800,
+          "method": "Straight-line",
+          "annual_depreciation": 46866.67,
+          "accumulated_depreciation": 140600,
+          "net_book_value": 155400,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "194357f0-8ce8-52d5-92d1-16170887061e",
+        "data": {
+          "asset_tag": "BW-RD-0046",
+          "description": "Quality lab microscope",
+          "project_ref": "CPX-25-105",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "location": "Riverside plant",
+          "in_service_date": "2025-06-15",
+          "cost": 372900,
+          "useful_life_years": 5,
+          "salvage_value": 18650,
+          "method": "Straight-line",
+          "annual_depreciation": 70850,
+          "accumulated_depreciation": 141700,
+          "net_book_value": 231200,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "c8352ed9-f2c7-5e7d-82bb-b0bf520de076",
+        "data": {
+          "asset_tag": "BW-FA-0047",
+          "description": "Boiler replacement",
+          "project_ref": "CPX-23-106",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "location": "Test centre",
+          "in_service_date": "2023-07-15",
+          "cost": 202800,
+          "useful_life_years": 20,
+          "salvage_value": 10140,
+          "method": "Straight-line",
+          "annual_depreciation": 9633,
+          "accumulated_depreciation": 28899,
+          "net_book_value": 173901,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "b3d7799e-6c0e-55f8-9151-05d98ed97ed1",
+        "data": {
+          "asset_tag": "BW-VH-0048",
+          "description": "Delivery trucks (2)",
+          "project_ref": "CPX-24-107",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "location": "Central warehouse",
+          "in_service_date": "2024-08-15",
+          "cost": 101500,
+          "useful_life_years": 6,
+          "salvage_value": 5080,
+          "method": "Straight-line",
+          "annual_depreciation": 16070,
+          "accumulated_depreciation": 32140,
+          "net_book_value": 69360,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "5ac4cc76-a209-5852-a9f8-75bebf92d504",
+        "data": {
+          "asset_tag": "BW-EQ-0049",
+          "description": "Spray booth",
+          "project_ref": "CPX-25-108",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "location": "Riverside plant",
+          "in_service_date": "2025-09-15",
+          "cost": 54200,
+          "useful_life_years": 10,
+          "salvage_value": 2710,
+          "method": "Straight-line",
+          "annual_depreciation": 5149,
+          "accumulated_depreciation": 5149,
+          "net_book_value": 49051,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "f722b90c-ccc8-55a5-883b-eeab263e5f52",
+        "data": {
+          "asset_tag": "BW-IT-0050",
+          "description": "Wireless access points",
+          "project_ref": "CPX-23-109",
+          "category": "IT",
+          "business_unit": "IT",
+          "location": "Test centre",
+          "in_service_date": "2023-10-15",
+          "cost": 251700,
+          "useful_life_years": 4,
+          "salvage_value": 12590,
+          "method": "Straight-line",
+          "annual_depreciation": 59777.5,
+          "accumulated_depreciation": 179333,
+          "net_book_value": 72367,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "71c4794e-b305-5e3d-8dd6-562af1d0b169",
+        "data": {
+          "asset_tag": "BW-RD-0051",
+          "description": "Test bench",
+          "project_ref": "CPX-24-110",
+          "category": "R&D",
+          "business_unit": "Facilities & EHS",
+          "location": "Central warehouse",
+          "in_service_date": "2024-11-15",
+          "cost": 130900,
+          "useful_life_years": 5,
+          "salvage_value": 6550,
+          "method": "Straight-line",
+          "annual_depreciation": 24870,
+          "accumulated_depreciation": 49740,
+          "net_book_value": 81160,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "91b68130-971a-5705-b5b1-bd5375d8b241",
+        "data": {
+          "asset_tag": "BW-FA-0052",
+          "description": "Dust extraction",
+          "project_ref": "CPX-25-111",
+          "category": "Facilities",
+          "business_unit": "Commercial",
+          "location": "HQ offices",
+          "in_service_date": "2025-12-15",
+          "cost": 160900,
+          "useful_life_years": 20,
+          "salvage_value": 8050,
+          "method": "Straight-line",
+          "annual_depreciation": 7642.5,
+          "accumulated_depreciation": 7643,
+          "net_book_value": 153257,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "ac17e200-03cc-59fa-aef6-bd997bbfbe31",
+        "data": {
+          "asset_tag": "BW-FA-0053",
+          "description": "Fuel station tank",
+          "project_ref": "CPX-23-112",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "location": "Test centre",
+          "in_service_date": "2023-01-15",
+          "cost": 156200,
+          "useful_life_years": 20,
+          "salvage_value": 7810,
+          "method": "Straight-line",
+          "annual_depreciation": 7419.5,
+          "accumulated_depreciation": 29678,
+          "net_book_value": 126522,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "c9f63b2b-c37b-59bb-bf07-34c80570e63e",
+        "data": {
+          "asset_tag": "BW-IT-0054",
+          "description": "Security cameras",
+          "project_ref": "CPX-24-113",
+          "category": "IT",
+          "business_unit": "Logistics",
+          "location": "Central warehouse",
+          "in_service_date": "2024-02-15",
+          "cost": 416900,
+          "useful_life_years": 4,
+          "salvage_value": 20850,
+          "method": "Straight-line",
+          "annual_depreciation": 99012.5,
+          "accumulated_depreciation": 297038,
+          "net_book_value": 119862,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "6834083e-177c-5fae-ac2b-46d73ebf72ff",
+        "data": {
+          "asset_tag": "BW-EQ-0055",
+          "description": "Mould tool set",
+          "project_ref": "CPX-25-114",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "location": "HQ offices",
+          "in_service_date": "2025-03-15",
+          "cost": 152200,
+          "useful_life_years": 10,
+          "salvage_value": 7610,
+          "method": "Straight-line",
+          "annual_depreciation": 14459,
+          "accumulated_depreciation": 28918,
+          "net_book_value": 123282,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "af7677e6-ad23-5da8-8c8c-881df0b799f5",
+        "data": {
+          "asset_tag": "BW-EQ-0056",
+          "description": "Packing robot",
+          "project_ref": "CPX-23-115",
+          "category": "Equipment",
+          "business_unit": "IT",
+          "location": "Central warehouse",
+          "in_service_date": "2023-04-15",
+          "cost": 418100,
+          "useful_life_years": 10,
+          "salvage_value": 20910,
+          "method": "Straight-line",
+          "annual_depreciation": 39719,
+          "accumulated_depreciation": 158876,
+          "net_book_value": 259224,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "dae4336a-c066-5921-a587-162b05213234",
+        "data": {
+          "asset_tag": "BW-VH-0057",
+          "description": "Forklift (diesel)",
+          "project_ref": "CPX-24-116",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "location": "Test centre",
+          "in_service_date": "2024-05-15",
+          "cost": 73400,
+          "useful_life_years": 6,
+          "salvage_value": 3670,
+          "method": "Straight-line",
+          "annual_depreciation": 11621.67,
+          "accumulated_depreciation": 34865,
+          "net_book_value": 38535,
+          "status": "In service"
+        }
+      },
+      {
+        "id": "cb4a649d-d314-57ad-9d62-75ca69a17fb6",
+        "data": {
+          "asset_tag": "BW-RD-0058",
+          "description": "Lab fume hoods",
+          "project_ref": "CPX-25-117",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "location": "Riverside plant",
+          "in_service_date": "2025-06-15",
+          "cost": 365800,
+          "useful_life_years": 5,
+          "salvage_value": 18290,
+          "method": "Straight-line",
+          "annual_depreciation": 69502,
+          "accumulated_depreciation": 139004,
+          "net_book_value": 226796,
+          "status": "In service"
+        }
+      }
+    ]
+  }
+}

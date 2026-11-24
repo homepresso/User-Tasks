@@ -1,4 +1,4 @@
-import { CalendarClock, Clapperboard, ClipboardCheck, ClipboardList, Code2, FormInput, Handshake, Package, Puzzle, Radio, Receipt, ShieldCheck, Users, Webhook, Workflow, Building2, type LucideIcon } from "lucide-react"
+import { CalendarClock, Clapperboard, ClipboardCheck, ClipboardList, Code2, FormInput, Handshake, LayoutGrid, Package, Puzzle, Radio, Receipt, ShieldCheck, Users, Webhook, Workflow, Building2, type LucideIcon } from "lucide-react"
 import type { GalleryCategoryId, GalleryTrigger } from "@/lib/gallery/types"
 
 /**
@@ -23,4 +23,4 @@ export function categoryIcon(category: string): LucideIcon {
   return CATEGORY_ICONS[category as GalleryCategoryId] ?? Package
 }
 
-export const TRIGGER_ICONS: Record<GalleryTrigger, LucideIcon> = { form: FormInput, api: Webhook, schedule: CalendarClock, event: Radio }
+export const TRIGGER_ICONS: Record<GalleryTrigger, LucideIcon> = { form: FormInput, api: Webhook, schedule: CalendarClock, event: Radio, app: LayoutGrid }

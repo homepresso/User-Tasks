@@ -246,7 +246,8 @@ export function buildActionHost({ live, fields, layout, idPrefix, source, messag
           {
             let json: Record<string, unknown>
             try {
-              json = await withOptionsLoading(action, () => ruleAction(index, values, branch))
+              // A per-item step (each_item) carries the item's position as its event.
+              json = await withOptionsLoading(action, () => ruleAction(index, values, branch, event))
             } catch (error) {
               // "If the call fails": leave the fields as they are and go on with the rule, or show the author's message.
               if (action.type !== 'call_reference') throw error

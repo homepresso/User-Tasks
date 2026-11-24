@@ -1,0 +1,207 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+  "asset": {
+    "id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+    "name": "Work items rows",
+    "rows": [
+      {
+        "id": "db12a245-bee2-5ba5-b2c0-0c6088119a1c",
+        "data": {
+          "item_ref": "OPS-501",
+          "title": "Rotate API keys for the billing service",
+          "team": "Platform",
+          "type": "Change",
+          "priority": "High",
+          "status": "Done",
+          "opened_on": "2026-10-20",
+          "closed_on": "2026-10-22",
+          "cycle_days": 2
+        }
+      },
+      {
+        "id": "dbbfda5b-2cee-54ab-8932-302beadd390b",
+        "data": {
+          "item_ref": "OPS-502",
+          "title": "Quarterly churn report",
+          "team": "Customer success",
+          "type": "Report",
+          "priority": "Normal",
+          "status": "Done",
+          "opened_on": "2026-10-21",
+          "closed_on": "2026-10-27",
+          "cycle_days": 6
+        }
+      },
+      {
+        "id": "8e22eb18-3a0a-59d1-b6cf-f15bd6052c2d",
+        "data": {
+          "item_ref": "OPS-503",
+          "title": "Vendor payment run fix",
+          "team": "Finance ops",
+          "type": "Fix",
+          "priority": "High",
+          "status": "Done",
+          "opened_on": "2026-10-23",
+          "closed_on": "2026-10-24",
+          "cycle_days": 1
+        }
+      },
+      {
+        "id": "ba795c1a-8c87-56b1-a415-2d17cd688d1a",
+        "data": {
+          "item_ref": "OPS-504",
+          "title": "Campaign UTM clean-up",
+          "team": "Marketing ops",
+          "type": "Request",
+          "priority": "Low",
+          "status": "Done",
+          "opened_on": "2026-10-26",
+          "closed_on": "2026-11-04",
+          "cycle_days": 9
+        }
+      },
+      {
+        "id": "b3658187-7bc7-59c9-a8cb-a8274a6c0cb9",
+        "data": {
+          "item_ref": "OPS-505",
+          "title": "Upgrade the build agents",
+          "team": "Platform",
+          "type": "Project task",
+          "priority": "Normal",
+          "status": "Done",
+          "opened_on": "2026-10-28",
+          "closed_on": "2026-11-06",
+          "cycle_days": 9
+        }
+      },
+      {
+        "id": "e344a41c-2b7f-5d2d-89c7-8f3a37d64a40",
+        "data": {
+          "item_ref": "OPS-506",
+          "title": "Renewal health scores",
+          "team": "Customer success",
+          "type": "Project task",
+          "priority": "Normal",
+          "status": "In progress",
+          "opened_on": "2026-11-02",
+          "closed_on": "",
+          "cycle_days": 0
+        }
+      },
+      {
+        "id": "01715989-3619-5f38-9d66-cce86fc329db",
+        "data": {
+          "item_ref": "OPS-507",
+          "title": "Expense policy update",
+          "team": "Finance ops",
+          "type": "Change",
+          "priority": "Normal",
+          "status": "Done",
+          "opened_on": "2026-11-03",
+          "closed_on": "2026-11-07",
+          "cycle_days": 4
+        }
+      },
+      {
+        "id": "2078660f-dc73-5fba-ba83-efaf08e33557",
+        "data": {
+          "item_ref": "OPS-508",
+          "title": "Webinar landing pages",
+          "team": "Marketing ops",
+          "type": "Request",
+          "priority": "High",
+          "status": "Done",
+          "opened_on": "2026-11-05",
+          "closed_on": "2026-11-08",
+          "cycle_days": 3
+        }
+      },
+      {
+        "id": "45b88f1b-17e2-5bae-8ab0-34638b97b976",
+        "data": {
+          "item_ref": "OPS-509",
+          "title": "Database failover test",
+          "team": "Platform",
+          "type": "Change",
+          "priority": "High",
+          "status": "In progress",
+          "opened_on": "2026-11-10",
+          "closed_on": "",
+          "cycle_days": 0
+        }
+      },
+      {
+        "id": "097cb7b3-0e6e-551c-bbcf-e63008551fd2",
+        "data": {
+          "item_ref": "OPS-510",
+          "title": "Onboarding call scripts",
+          "team": "Customer success",
+          "type": "Request",
+          "priority": "Low",
+          "status": "Open",
+          "opened_on": "2026-11-12",
+          "closed_on": "",
+          "cycle_days": 0
+        }
+      },
+      {
+        "id": "6b962e7a-5ec3-5fcf-8ffe-d59cee577fef",
+        "data": {
+          "item_ref": "OPS-511",
+          "title": "Month-end accruals check",
+          "team": "Finance ops",
+          "type": "Report",
+          "priority": "Normal",
+          "status": "Done",
+          "opened_on": "2026-11-13",
+          "closed_on": "2026-11-17",
+          "cycle_days": 4
+        }
+      },
+      {
+        "id": "fda711bc-7439-5f26-a5b4-5a4c1766bd77",
+        "data": {
+          "item_ref": "OPS-512",
+          "title": "Lead scoring tweaks",
+          "team": "Marketing ops",
+          "type": "Change",
+          "priority": "Normal",
+          "status": "In progress",
+          "opened_on": "2026-11-14",
+          "closed_on": "",
+          "cycle_days": 0
+        }
+      },
+      {
+        "id": "45d4ce57-f3fd-5c69-902e-23a0fe0f1b26",
+        "data": {
+          "item_ref": "OPS-513",
+          "title": "Fix flaky deploy pipeline",
+          "team": "Platform",
+          "type": "Fix",
+          "priority": "High",
+          "status": "Done",
+          "opened_on": "2026-11-16",
+          "closed_on": "2026-11-17",
+          "cycle_days": 1
+        }
+      },
+      {
+        "id": "0102805a-2764-584c-97cb-e2dba85213d3",
+        "data": {
+          "item_ref": "OPS-514",
+          "title": "Support macro review",
+          "team": "Customer success",
+          "type": "Fix",
+          "priority": "Normal",
+          "status": "Open",
+          "opened_on": "2026-11-18",
+          "closed_on": "",
+          "cycle_days": 0
+        }
+      }
+    ]
+  }
+}

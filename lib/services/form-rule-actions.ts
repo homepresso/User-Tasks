@@ -49,7 +49,7 @@ import {
   type ActionScope,
 } from '@/lib/forms/data-actions'
 import { mapActionOutputs } from '@/lib/forms/action-outputs'
-import { LIST_SELECT_KEY, listSelectionEntries } from '@/lib/forms/list-field'
+import { LIST_SELECT_KEY, listSelectionEntries, rawListRows } from '@/lib/forms/list-field'
 import { ROW_CURRENT_KEY, rowCurrentEntries } from '@/lib/forms/row-rules'
 import { DataTableQueryError, conditionTerm, isConditionGroup, type DataTableColumnType, type DataTableConditionGroup } from '@/lib/forms/data-table'
 import { unwrapExecutorResult } from '@/lib/response-collections'
@@ -184,6 +184,16 @@ export async function runRuleAction(ctx: ServiceContext, target: { task_id: stri
   }
   // The same event names the browser's rules read (row_id, previous_value, item.<field>, from / to).
   const event = enrichEventContext(rule.event, isPlainObject(input.event) ? input.event : {})
+  // Once per item of a repeating section / List (each_item): the item comes from the submitted values by
+  // its position — never from the event the browser sent.
+  if (action.each_item && !action.each_selected) {
+    const items = rawListRows(typed[action.each_item] ?? submitted[action.each_item])
+    const at = Number(event.index)
+    if (!Number.isInteger(at) || at < 0 || at >= items.length) throw ServiceError.validation('That item is not in the form')
+    event.row = items[at]
+    event.row_number = at + 1
+    event.index = at
+  }
   // A forged event cannot reach the action: a condition the server can judge must hold. A condition on the
   // user (user.roles / user.teams…) is judged with the server's own view of the person (anonymous: no roles).
   const readsUser = conditionPaths(rule.if).some((p) => p === 'user' || p.startsWith('user.'))

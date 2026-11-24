@@ -19,7 +19,7 @@ import { getDb, type ServiceContext } from './context'
 import { dbError } from './_shared'
 import { applyScope, queueScopeFilter, resolveRunScope, runScopeFilter, type RunScope } from './run-visibility'
 import {
-  effectiveQueueStatus, matchesQueueFilters, sortQueueItems, toRpcFilters, viewCountsOf,
+  effectiveQueueStatus, matchesQueueFilters, queueLeaseExpired, sortQueueItems, toRpcFilters, viewCountsOf,
   type QueueFacets, type QueueItem, type QueuePerson, type QueueReadFilters, type QueueSortDir, type QueueSortField, type QueueViewCounts,
 } from '@/lib/automations/queue-filters'
 
@@ -80,7 +80,7 @@ export async function listQueuePage(ctx: ServiceContext, args: QueueListArgs): P
   const data = await callList(ctx, scope, toRpcFilters(args), { sort, dir, limit: pageSize, offset: (page - 1) * pageSize })
   if (data) {
     return {
-      rows: (data.rows ?? []) as QueueItem[],
+      rows: await withLeases(ctx, (data.rows ?? []) as QueueItem[]),
       total: Number(data.total ?? 0),
       page,
       pageSize,
@@ -95,7 +95,7 @@ export async function listQueuePage(ctx: ServiceContext, args: QueueListArgs): P
   const statusCounts: Record<string, number> = {}
   for (const item of items) statusCounts[item.effective_status] = (statusCounts[item.effective_status] ?? 0) + 1
   return {
-    rows: matching.slice((page - 1) * pageSize, page * pageSize),
+    rows: await withLeases(ctx, matching.slice((page - 1) * pageSize, page * pageSize)),
     total: matching.length,
     page,
     pageSize,
@@ -103,6 +103,38 @@ export async function listQueuePage(ctx: ServiceContext, args: QueueListArgs): P
     statusCounts,
     partial: items.length >= LEGACY_LIMIT,
   }
+}
+
+/**
+ * Adds the worker lease to the page's `processing` jobs (one small read), so
+ * the queue can offer Retry / Cancel for jobs whose worker was lost. Rows
+ * stay as they are before migration 20270124090000 (no lease columns).
+ */
+async function withLeases(ctx: ServiceContext, rows: QueueItem[]): Promise<QueueItem[]> {
+  const ids = rows.filter((r) => r.job_id && !r.synthetic_run && r.status === 'processing').map((r) => r.job_id as string)
+  if (!ids.length) return rows
+  const { data, error } = await (getDb(ctx) as any)
+    .from('workflow_queue')
+    .select('id, locked_by, locked_at, lease_expires_at, lease_lost_count')
+    .in('id', ids)
+    .eq('tenant_id', ctx.tenantId)
+  if (error || !data) return rows
+  const byId = new Map<string, any>((data as any[]).map((row) => [row.id, row]))
+  const now = Date.now()
+  return rows.map((row) => {
+    const lease = row.job_id ? byId.get(row.job_id) : null
+    if (!lease) return row
+    return {
+      ...row,
+      lease: {
+        locked_by: lease.locked_by ?? null,
+        locked_at: lease.locked_at ?? null,
+        expires_at: lease.lease_expires_at ?? null,
+        stuck: queueLeaseExpired(lease.lease_expires_at, lease.locked_at, now),
+        lost_count: Number(lease.lease_lost_count) || 0,
+      },
+    }
+  })
 }
 
 export async function queueFacets(ctx: ServiceContext): Promise<QueueFacets> {

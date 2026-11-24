@@ -7,6 +7,7 @@ import { getMySession } from '@/app/actions/session'
 import { signOutAction } from '@/app/actions/sign-out'
 import { clearAllAgentHistory } from '@/lib/assistants/history'
 import { AUTH_CHANNEL, DASHBOARD_AUTH_CACHE_KEY, SIGNED_OUT_PATH } from '@/lib/auth-client'
+import { cachedAuthMatchesWorkspace } from '@/lib/dashboard-auth-cache'
 
 /*
  * Session state comes from the server: the session cookies are httpOnly
@@ -65,7 +66,7 @@ async function fetchSessionUserId(): Promise<string | null | undefined> {
 // wouldn't dedupe two independent provider mounts within the same tab.
 let authBootInProgress = false
 
-function readCache() {
+function readCache(serverTenantId?: string | null) {
   if (typeof window === 'undefined') return null
   try {
     const raw = sessionStorage.getItem(CACHE_KEY)
@@ -87,6 +88,8 @@ function readCache() {
     if (parsed.cachedAt && Date.now() - parsed.cachedAt > CACHE_TTL_MS) {
       return null
     }
+    // Role and permissions are per workspace: another workspace's are no use.
+    if (!cachedAuthMatchesWorkspace(parsed, serverTenantId)) return null
     return parsed
   } catch {
     return null
@@ -106,7 +109,15 @@ function clearCache() {
 // Safe useLayoutEffect that falls back to useEffect on server
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
-export function DashboardAuthProvider({ children }: { children: React.ReactNode }) {
+export function DashboardAuthProvider({ children, currentTenantId }: {
+  children: React.ReactNode
+  /**
+   * users.current_tenant_id as the server rendered it (null = "All
+   * organizations"); undefined = unknown. A cached role and permission set
+   * for another workspace is dropped and fetched again.
+   */
+  currentTenantId?: string | null
+}) {
   const router = useRouter()
   // Start with loading=true to match SSR output
   const [loading, setLoading] = useState(true)
@@ -123,7 +134,7 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
   // Synchronously hydrate from sessionStorage BEFORE browser paints
   // This runs after hydration but before the browser shows anything new
   useIsomorphicLayoutEffect(() => {
-    const cached = readCache()
+    const cached = readCache(currentTenantId)
     if (cached) {
       setUserId(cached.userId)
       setProfile(cached.profile)
@@ -131,7 +142,7 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
       setPermissions(cached.permissions)
       setLoading(false)
     }
-  }, [])
+  }, [currentTenantId])
 
   const fetchProfile = useCallback(async (uid: string) => {
     // Profile, role and permissions come from one server action (the same
@@ -158,6 +169,17 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
     if (userId) await fetchProfile(userId)
   }, [userId, fetchProfile])
 
+  // The server now renders another workspace than the profile's (a workspace
+  // address switched it, then router.refresh()): fetch this workspace's role
+  // and permissions. Once per workspace, so a disagreement can't loop.
+  const refetchedFor = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (currentTenantId === undefined || !userId || !profile) return
+    if ((profile.current_tenant_id ?? null) === currentTenantId || refetchedFor.current === currentTenantId) return
+    refetchedFor.current = currentTenantId
+    void fetchProfile(userId)
+  }, [currentTenantId, userId, profile, fetchProfile])
+
   // Auth verification — runs exactly ONCE per tab session.
   //
   //   1. If we have a non-expired cache, trust it — DO NOT make a network
@@ -170,7 +192,7 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
     if (bootedRef.current) return
     bootedRef.current = true
 
-    const cached = readCache()
+    const cached = readCache(currentTenantId)
 
     if (cached) {
       setLoading(false)

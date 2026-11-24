@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CountBadge, Tag } from '@/components/ui/badge'
+import { TagList } from '@/components/ui/tag-chip'
 import {
   DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem,
   DropdownMenuSeparator, DropdownMenuItem, DropdownMenuTrigger,
@@ -145,7 +146,7 @@ export function FormDetailsSheet({ form, onClose }: { form: FormListItem | null;
                   </dd>
                 </>
               )}
-              {form.tags.length > 0 && (<><dt className="text-fg-muted">Tags</dt><dd className="flex flex-wrap gap-1">{form.tags.map((t) => <Tag key={t}>{t}</Tag>)}</dd></>)}
+              {form.tags.length > 0 && (<><dt className="text-fg-muted">Tags</dt><dd className="flex flex-wrap gap-1"><TagList tags={form.tags} max={0} size="sm" /></dd></>)}
             </dl>
 
             {starts.length > 0 && (

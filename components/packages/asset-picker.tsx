@@ -16,7 +16,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
-  Archive, BarChart3, Bot, Cable, Check, FileText, Grid3x3, Mail, Palette, Plug, Puzzle, ScrollText, Search, Server, Shield, Table2, Workflow, type LucideIcon,
+  Archive, BarChart3, Bot, Cable, Check, FileText, Grid3x3, LayoutGrid, Mail, Palette, Plug, Puzzle, ScrollText, Search, Server, Shield, Table2, Workflow, type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDate as formatDay } from '@/lib/format/date'
@@ -37,7 +37,7 @@ import type { AssetHit, AssetSearchInput } from '@/lib/services/package-assets'
 export const TYPE_ICON: Record<string, LucideIcon> = {
   workflow: Workflow, workflow_activity: Puzzle, data_table: Table2, integration: Plug, connector: Cable, decision_table: Grid3x3,
   email_template: Mail, agent: Bot, report: BarChart3, role: Shield, mcp_server: Server, retention_policy: Archive, log_destination: ScrollText,
-  form: FileText, form_theme: Palette, form_control: Puzzle,
+  form: FileText, form_theme: Palette, form_control: Puzzle, app: LayoutGrid,
 }
 
 const ROW_HEIGHT = 56

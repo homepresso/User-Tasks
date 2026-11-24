@@ -10,6 +10,10 @@ import { recordAgentRun, type AgentCallerType } from '@/lib/agent-run-service'
 import { pauseForApproval, type AgentPausedContext, type AgentWorkflowLink } from './approval'
 import { buildAgentRun, checkDailyBudget, loadAgentForRun, type LoadedAgent } from './prepare'
 import { dbBlackboard, type RunBlackboard } from './blackboard'
+import type { WorkflowDataSummary } from './workflow-data'
+import { reportAgentError } from './error-trigger-dispatch'
+import { agentFailureReason } from './error-trigger'
+import { technicalSummary } from './errors'
 import { mergeAgentContexts, normalizeAgentContext, type AgentContext, type FactWriter, type SharedMessage } from './shared-context'
 
 /** The live blackboard of a Run Agent step's run (Share context on, saved run), else none. */
@@ -55,6 +59,12 @@ export interface RunAgentParams {
    * Share context in a saved run, the run's blackboard in the database.
    */
   blackboard?: RunBlackboard | null
+  /**
+   * Run Agent's "Use this workflow's data as context": the block the agent
+   * gets before the prompt and its summary (stored on the run as
+   * `context.workflow_data`; the block itself is not stored).
+   */
+  workflowData?: { text: string; summary: WorkflowDataSummary } | null
 }
 
 export interface RunAgentOutcome {
@@ -90,6 +100,7 @@ export async function runAgent(params: RunAgentParams): Promise<RunAgentOutcome>
     sharedContext: params.sharedContext,
     history: params.history,
     attachments: params.attachments,
+    ...(params.workflowData?.text && !params.resume ? { workflowContext: params.workflowData.text } : {}),
     signal: params.signal,
     stream: Boolean(params.stream && params.onEvent),
     mode: params.mode ?? 'live',
@@ -116,6 +127,7 @@ export async function runAgent(params: RunAgentParams): Promise<RunAgentOutcome>
   if (params.record === false) return { result, runId: params.resume?.runId ?? null, outputConfig: prepared.outputConfig, model: prepared.config.model, provider }
 
   const workflow = params.workflow ?? params.resume?.paused.workflow ?? null
+  const runContext = params.workflowData?.summary ? { workflow_data: params.workflowData.summary } : null
   const actingUserId = params.resume?.paused.acting_user_id ?? params.actingUserId
   const callerType = params.resume?.paused.caller_type ?? params.callerType
   const traceId = params.resume?.paused.trace_id ?? params.traceId ?? null
@@ -126,7 +138,7 @@ export async function runAgent(params: RunAgentParams): Promise<RunAgentOutcome>
       actingUserId, callerType, callerId: params.callerId ?? workflow?.run_id ?? null, traceId, workflow,
       runId: params.resume?.runId ?? null, queueJobId: params.queueJobId ?? null,
       maxDurationMs: prepared.options.maxDurationMs, maxIterations: prepared.config.maxIterations,
-      provider, agentVersion, initiatedBy: params.initiatedBy ?? null,
+      provider, agentVersion, initiatedBy: params.initiatedBy ?? null, context: runContext,
     })
     return { result, runId: paused.runId, outputConfig: prepared.outputConfig, model: prepared.config.model, provider, approval: { taskId: paused.taskId, eventId: paused.eventId } }
   }
@@ -135,14 +147,64 @@ export async function runAgent(params: RunAgentParams): Promise<RunAgentOutcome>
     supabase: db, tenantId, agentId, result, model: prepared.config.model, inputMessage: params.message,
     actorId: actingUserId, callerType, callerId: params.callerId ?? workflow?.run_id ?? null, traceId,
     workflowRunId: workflow?.run_id ?? null, queueJobId: params.queueJobId ?? null, runId: params.resume?.runId ?? null,
-    provider, agentVersion, initiatedBy: params.initiatedBy ?? null,
+    provider, agentVersion, initiatedBy: params.initiatedBy ?? null, context: runContext,
   })
+  // A final failure (retries exhausted, or none could help) starts the workspace's Agent error workflows; never a stop, an eval or a test run.
+  if (result.status === 'failed' && result.error_kind !== 'cancelled' && params.mode !== 'eval' && callerType !== 'eval') {
+    await reportAgentError(db, agentErrorEventFor({
+      tenantId, result, agentId, agentName: String(loaded.agent.name ?? ''), provider, model: prepared.config.model,
+      workflow, agentRunId: runId, userId: params.initiatedBy ?? actingUserId ?? null,
+    }))
+  }
   return { result, runId, outputConfig: prepared.outputConfig, model: prepared.config.model, provider }
+}
+
+/** The Agent error trigger's event for a failed agent run (sanitised: the friendly message and technical summary only). */
+export function agentErrorEventFor(input: {
+  tenantId: string; result: Pick<AgentResult, 'failure' | 'error_kind'>; agentId: string; agentName: string | null
+  provider: string | null; model: string | null; workflow: AgentWorkflowLink | null | undefined; agentRunId: string | null; userId: string | null
+}): Parameters<typeof reportAgentError>[1] {
+  const view = input.result.failure
+  const reason = view ? null : agentFailureReason(input.result.error_kind)
+  const w = input.workflow
+  return {
+    tenantId: input.tenantId,
+    source: w ? 'workflow' : 'agent_run',
+    code: view?.code ?? reason!.code,
+    message: view?.message ?? reason!.message,
+    summary: view ? technicalSummary(view) : reason!.summary,
+    provider: view?.details.provider ?? input.provider, model: input.model,
+    agentId: input.agentId, agentName: input.agentName,
+    workflowId: w?.workflow_id ?? null, runId: w?.run_id || null, stepLabel: w?.node_label ?? null, stepId: w?.node_id ?? null,
+    agentRunId: input.agentRunId, userId: input.userId,
+    attempts: view?.details.attempts ?? null, requestId: view?.details.request_id ?? null,
+    depth: w?.agent_error_depth ?? 0, test: Boolean(w?.test),
+  }
+}
+
+/** An agent that can't start for want of a provider connection / key (AgentRunError no_integration / no_key): reported as not_configured. */
+export async function reportAgentNotConfigured(db: SupabaseClient, input: { tenantId: string; agentId: string; agentName?: string | null; workflow?: AgentWorkflowLink | null; userId?: string | null }, error: unknown): Promise<void> {
+  const code = (error as { code?: string } | null)?.code
+  if ((error as Error)?.name !== 'AgentRunError' || (code !== 'no_integration' && code !== 'no_key')) return
+  const reason = agentFailureReason('not_configured')
+  const w = input.workflow ?? null
+  await reportAgentError(db, {
+    tenantId: input.tenantId, source: w ? 'workflow' : 'agent_run', code: reason.code, message: reason.message, summary: code,
+    agentId: input.agentId, agentName: input.agentName ?? null,
+    workflowId: w?.workflow_id ?? null, runId: w?.run_id || null, stepLabel: w?.node_label ?? null, stepId: w?.node_id ?? null,
+    userId: input.userId ?? null, depth: w?.agent_error_depth ?? 0, test: Boolean(w?.test),
+  })
 }
 
 /** Load + run in one step (REST / console callers). */
 export async function loadAndRunAgent(params: Omit<RunAgentParams, 'loaded'> & { agentId: string }): Promise<RunAgentOutcome> {
-  const loaded = await loadAgentForRun(params.db, params.tenantId, params.agentId)
+  let loaded: LoadedAgent
+  try {
+    loaded = await loadAgentForRun(params.db, params.tenantId, params.agentId)
+  } catch (error) {
+    if (params.mode !== 'eval' && params.callerType !== 'eval') await reportAgentNotConfigured(params.db, { tenantId: params.tenantId, agentId: params.agentId, workflow: params.workflow, userId: params.initiatedBy ?? params.actingUserId }, error)
+    throw error
+  }
   return runAgent({ ...params, loaded })
 }
 
@@ -191,7 +253,7 @@ export function agentWorkflowVariables(result: AgentResult, link: Pick<AgentWork
 }
 
 /** Compact node output for the run trace. */
-export function agentNodeOutput(result: AgentResult, runId: string | null, link?: Pick<AgentWorkflowLink, 'branch'> | null): Record<string, unknown> {
+export function agentNodeOutput(result: AgentResult, runId: string | null, link?: (Pick<AgentWorkflowLink, 'branch'> & Partial<Pick<AgentWorkflowLink, 'workflow_data'>>) | null): Record<string, unknown> {
   const finished = Date.now()
   return {
     // When the agent ran (agents in parallel branches overlap) and on which branch.
@@ -207,6 +269,8 @@ export function agentNodeOutput(result: AgentResult, runId: string | null, link?
     ...(result.outputs ? { outputs: result.outputs } : {}),
     ...(result.parse_warning ? { parse_warning: result.parse_warning } : {}),
     ...(result.files?.length ? { generated_files: result.files.map((f) => f.name) } : {}),
+    // "Use this workflow's data as context": its size and what it held (no values).
+    ...(link?.workflow_data ? { workflow_data: link.workflow_data } : {}),
   }
 }
 

@@ -219,6 +219,8 @@ endpoint `/api/webhooks/inbound` works as before.
 | API keys | `GET,POST /api-keys`; `POST /api-keys/{id}/revoke`; `DELETE /api-keys/{id}` |
 | Webhooks | `GET,POST /workflows/{id}/webhooks`; `GET,PATCH,DELETE /webhooks/{id}`; `POST /webhooks/{id}/rotate` (the secret is shown once) |
 | Config as code | `GET /config/export`; `POST /config/apply` (`dry_run`, `adopt_by_name`, `source_label`) |
+| Apps (Nov 2026) | `GET,POST /apps`; `GET /apps/widget-types`; `GET,PATCH,DELETE /apps/{id}`; `GET,POST /apps/{id}/pages`; `POST /apps/{id}/pages/reorder`; `GET,PATCH,DELETE /apps/{id}/pages/{pageId}`; `GET /apps/{id}/access`; `POST /apps/{id}/access/grant`. New permissions `apps.view` and `apps.manage`, OAuth scopes `apps:read` / `apps:write`. MCP read tools `apps_list`, `apps_get`, `apps_widget_types`, `apps_pages_list`, `apps_page_get`, `apps_access_check` need `apps.view`; `apps_create` / `apps_delete` need `apps.manage`; `apps_access_grant` needs `team.change_roles`; the other writes need `apps.view` and edit access to the app (checked in the service) |
+| App specs (Nov 2026) | `GET /apps/spec/search`; `GET /apps/spec/object`; `GET /apps/spec/reference`; `POST /apps/spec/plan`; `POST /apps/spec/apply`. MCP read tools `apps_plan`, `apps_search`, `apps_object_details`, `apps_spec_reference` need `apps.view` (`apps_search` without an app also needs `apps.manage`); `apps_apply_spec` needs `apps.view` and checks Build apps (new app) or edit access (existing app) in the service |
 
 Error responses keep the `{ success: false, error }` shape. They can now
 also include a machine-readable `code` (`validation_error`, `forbidden`,

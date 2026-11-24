@@ -1,7 +1,7 @@
 // Asset id maps and deep id-remapping used when importing manifests into a
 // tenant.
 
-export type AssetIdMaps = Record<'workflow' | 'workflow_activity' | 'data_table' | 'retention_policy' | 'integration' | 'agent' | 'decision_table' | 'reference' | 'report' | 'role' | 'mcp_server' | 'email_template' | 'connector' | 'log_destination' | 'form' | 'form_theme' | 'form_control', Record<string, string>>
+export type AssetIdMaps = Record<'workflow' | 'workflow_activity' | 'data_table' | 'retention_policy' | 'integration' | 'agent' | 'decision_table' | 'reference' | 'report' | 'role' | 'mcp_server' | 'email_template' | 'connector' | 'log_destination' | 'form' | 'form_theme' | 'form_control' | 'app', Record<string, string>>
 
 export function createEmptyAssetIdMaps(): AssetIdMaps {
   return {
@@ -22,6 +22,8 @@ export function createEmptyAssetIdMaps(): AssetIdMaps {
     form: {},
     form_theme: {},
     form_control: {},
+    // Apps (lib/portability/apps.ts): referenced by slug, remapped by the app walker.
+    app: {},
   }
 }
 

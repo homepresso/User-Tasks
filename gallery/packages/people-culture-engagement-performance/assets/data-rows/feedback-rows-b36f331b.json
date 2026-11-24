@@ -1,0 +1,2171 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "b36f331b-dcc0-5eec-b95e-8b1e855ef17e",
+  "asset": {
+    "id": "b36f331b-dcc0-5eec-b95e-8b1e855ef17e",
+    "name": "Feedback rows",
+    "rows": [
+      {
+        "id": "b84615a2-96da-579e-b29f-8286eeac5cb8",
+        "data": {
+          "feedback_ref": "FB-0001",
+          "type": "Peer review",
+          "about_name": "Andre Laurent",
+          "about_email": "andre.laurent@fernhill.example",
+          "from_name": "Malik Kim",
+          "from_email": "malik.kim@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Andre brings calm to busy launches.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "PR-H2-025",
+          "given_on": "2026-11-19",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "8127d87d-43d7-5c67-bec8-6d5aed06764c",
+        "data": {
+          "feedback_ref": "FB-0002",
+          "type": "Peer review",
+          "about_name": "Jonas Raman",
+          "about_email": "jonas.raman@fernhill.example",
+          "from_name": "Chloe Weber",
+          "from_email": "chloe.weber@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Jonas follows through on every commitment.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 5,
+          "review_ref": "PR-H2-093",
+          "given_on": "2026-10-03",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "e97af0a2-b9a0-50c7-9160-160a121e27c7",
+        "data": {
+          "feedback_ref": "FB-0003",
+          "type": "Peer review",
+          "about_name": "Rosa Chen",
+          "about_email": "rosa.chen@fernhill.example",
+          "from_name": "Marcus Brooks",
+          "from_email": "marcus.brooks@fernhill.example",
+          "department": "Product",
+          "strengths": "Rosa unblocks the team without being asked.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 4,
+          "review_ref": "PR-H2-034",
+          "given_on": "2026-10-07",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "c464d58c-db46-5cdd-a8ce-af8a886da18f",
+        "data": {
+          "feedback_ref": "FB-0004",
+          "type": "Peer review",
+          "about_name": "Alex Schmidt",
+          "about_email": "alex.schmidt@fernhill.example",
+          "from_name": "Clara Haddad",
+          "from_email": "clara.haddad@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Alex mentors new starters generously.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "PR-H2-029",
+          "given_on": "2026-11-02",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "6fdd5ad9-158d-5110-988c-65614c440b21",
+        "data": {
+          "feedback_ref": "FB-0005",
+          "type": "Peer review",
+          "about_name": "Rahul Tanaka",
+          "about_email": "rahul.tanaka@fernhill.example",
+          "from_name": "Oscar Fernández",
+          "from_email": "oscar.fernandez@fernhill.example",
+          "department": "Sales",
+          "strengths": "Rahul brings calm to busy launches.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "PR-H2-059",
+          "given_on": "2026-09-30",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "0633e374-19dd-5791-a68e-6395f305905f",
+        "data": {
+          "feedback_ref": "FB-0006",
+          "type": "Peer review",
+          "about_name": "Felix Iyer",
+          "about_email": "felix.iyer@fernhill.example",
+          "from_name": "Andre Kim",
+          "from_email": "andre.kim@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Felix mentors new starters generously.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 3,
+          "review_ref": "PR-H2-014",
+          "given_on": "2026-10-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "8b277caf-5b27-509d-811c-86e934950f03",
+        "data": {
+          "feedback_ref": "FB-0007",
+          "type": "Peer review",
+          "about_name": "Oscar Patel",
+          "about_email": "oscar.patel@fernhill.example",
+          "from_name": "Kenji Dubois",
+          "from_email": "kenji.dubois@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Oscar explains complex ideas simply.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "PR-H2-133",
+          "given_on": "2026-11-03",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "7b68d2c6-7888-53ed-a640-726e4e35ed56",
+        "data": {
+          "feedback_ref": "FB-0008",
+          "type": "Peer review",
+          "about_name": "Priya Raman",
+          "about_email": "priya.raman@fernhill.example",
+          "from_name": "Grace Larsen",
+          "from_email": "grace.larsen@fernhill.example",
+          "department": "Product",
+          "strengths": "Priya asks the questions nobody else asks.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 4,
+          "review_ref": "PR-H2-033",
+          "given_on": "2026-09-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "bb6cc9a2-2625-5745-bd2d-2965a67c1a25",
+        "data": {
+          "feedback_ref": "FB-0009",
+          "type": "Peer review",
+          "about_name": "Daniel Okafor",
+          "about_email": "daniel.okafor@fernhill.example",
+          "from_name": "Malik Kim",
+          "from_email": "malik.kim@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Daniel always prepared for customer calls.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 5,
+          "review_ref": "PR-H2-001",
+          "given_on": "2026-10-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "592a9c2c-d928-55af-b51b-6974859f9559",
+        "data": {
+          "feedback_ref": "FB-0010",
+          "type": "Peer review",
+          "about_name": "Lucas Raman",
+          "about_email": "lucas.raman@fernhill.example",
+          "from_name": "Ava Okafor",
+          "from_email": "ava.okafor@fernhill.example",
+          "department": "Sales",
+          "strengths": "Lucas writes clear, thoughtful documents.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 4,
+          "review_ref": "PR-H2-057",
+          "given_on": "2026-10-20",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "8deb001f-a761-5c9f-8c10-f6e3d679a6da",
+        "data": {
+          "feedback_ref": "FB-0011",
+          "type": "Peer review",
+          "about_name": "Alex Schmidt",
+          "about_email": "alex.schmidt@fernhill.example",
+          "from_name": "Zoe Price",
+          "from_email": "zoe.price@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Alex brings calm to busy launches.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 3,
+          "review_ref": "PR-H2-029",
+          "given_on": "2026-10-25",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "d8c80c24-bbf0-5d2f-bfa4-6610c9bd6f3e",
+        "data": {
+          "feedback_ref": "FB-0012",
+          "type": "Peer review",
+          "about_name": "Mei Owens",
+          "about_email": "mei.owens@fernhill.example",
+          "from_name": "Rosa Quinn",
+          "from_email": "rosa.quinn@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Mei brings calm to busy launches.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "PR-H2-113",
+          "given_on": "2026-11-21",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "e4f9f30d-4506-5aac-939b-44bd08a869f0",
+        "data": {
+          "feedback_ref": "FB-0013",
+          "type": "Peer review",
+          "about_name": "Aiko Tanaka",
+          "about_email": "aiko.tanaka@fernhill.example",
+          "from_name": "Mateo Rossi",
+          "from_email": "mateo.rossi@fernhill.example",
+          "department": "Design",
+          "strengths": "Aiko writes clear, thoughtful documents.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "PR-H2-045",
+          "given_on": "2026-10-03",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "561a8256-4e11-5951-a1e5-4af5ae942004",
+        "data": {
+          "feedback_ref": "FB-0014",
+          "type": "Peer review",
+          "about_name": "Alex Ward",
+          "about_email": "alex.ward@fernhill.example",
+          "from_name": "Daniel Okafor",
+          "from_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Alex mentors new starters generously.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 5,
+          "review_ref": "PR-H2-003",
+          "given_on": "2026-10-10",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "13b33d48-dcae-5a4b-a2fc-57e1dfa49036",
+        "data": {
+          "feedback_ref": "FB-0015",
+          "type": "Peer review",
+          "about_name": "Lena Quinn",
+          "about_email": "lena.quinn@fernhill.example",
+          "from_name": "Yuki Sato",
+          "from_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Lena unblocks the team without being asked.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 4,
+          "review_ref": "PR-H2-089",
+          "given_on": "2026-11-01",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "4836770d-d4bc-58c4-b860-7a1143aec6f8",
+        "data": {
+          "feedback_ref": "FB-0016",
+          "type": "Peer review",
+          "about_name": "Priya Price",
+          "about_email": "priya.price@fernhill.example",
+          "from_name": "Yuki Mehta",
+          "from_email": "yuki.mehta@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Priya mentors new starters generously.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "PR-H2-086",
+          "given_on": "2026-11-16",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "bb3c4e82-5228-5f10-8b6d-0ada839f55c3",
+        "data": {
+          "feedback_ref": "FB-0017",
+          "type": "Peer review",
+          "about_name": "Caleb Ward",
+          "about_email": "caleb.ward@fernhill.example",
+          "from_name": "Caleb Iyer",
+          "from_email": "caleb.iyer@fernhill.example",
+          "department": "Design",
+          "strengths": "Caleb follows through on every commitment.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 4,
+          "review_ref": "PR-H2-048",
+          "given_on": "2026-10-17",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "ceb28a35-6a75-5bd2-9c85-25cd5ea786fa",
+        "data": {
+          "feedback_ref": "FB-0018",
+          "type": "Peer review",
+          "about_name": "Zoe Levi",
+          "about_email": "zoe.levi@fernhill.example",
+          "from_name": "Yuki Berg",
+          "from_email": "yuki.berg@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Zoe always prepared for customer calls.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "PR-H2-020",
+          "given_on": "2026-10-07",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "bb17343c-c7a6-5df3-8013-e3b86ea89d93",
+        "data": {
+          "feedback_ref": "FB-0019",
+          "type": "Peer review",
+          "about_name": "Chloe Weber",
+          "about_email": "chloe.weber@fernhill.example",
+          "from_name": "Arjun Wagner",
+          "from_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Chloe asks the questions nobody else asks.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 5,
+          "review_ref": "PR-H2-102",
+          "given_on": "2026-10-08",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "cffeafe8-3695-5145-a157-abc86c10918c",
+        "data": {
+          "feedback_ref": "FB-0020",
+          "type": "Peer review",
+          "about_name": "Ben Berg",
+          "about_email": "ben.berg@fernhill.example",
+          "from_name": "Lena Quinn",
+          "from_email": "lena.quinn@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Ben unblocks the team without being asked.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 3,
+          "review_ref": "PR-H2-098",
+          "given_on": "2026-10-28",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "4c32c5a2-a56c-53e3-ab62-cc9931b9be58",
+        "data": {
+          "feedback_ref": "FB-0021",
+          "type": "Peer review",
+          "about_name": "Hugo Sato",
+          "about_email": "hugo.sato@fernhill.example",
+          "from_name": "Nadia Ward",
+          "from_email": "nadia.ward@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Hugo explains complex ideas simply.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 4,
+          "review_ref": "PR-H2-136",
+          "given_on": "2026-10-30",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "172848cc-e3a4-54ce-b5ed-aacecc59f3a5",
+        "data": {
+          "feedback_ref": "FB-0022",
+          "type": "Peer review",
+          "about_name": "Malik Kim",
+          "about_email": "malik.kim@fernhill.example",
+          "from_name": "Clara Quinn",
+          "from_email": "clara.quinn@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Malik always prepared for customer calls.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 5,
+          "review_ref": "PR-H2-030",
+          "given_on": "2026-11-17",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "aafefdc6-8864-5c90-aec6-fd897c5faf61",
+        "data": {
+          "feedback_ref": "FB-0023",
+          "type": "Peer review",
+          "about_name": "Priya Price",
+          "about_email": "priya.price@fernhill.example",
+          "from_name": "Elena Larsen",
+          "from_email": "elena.larsen@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Priya always prepared for customer calls.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 4,
+          "review_ref": "PR-H2-086",
+          "given_on": "2026-10-16",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "3650d3e7-77f8-5dd9-93b8-fab7c2392473",
+        "data": {
+          "feedback_ref": "FB-0024",
+          "type": "Peer review",
+          "about_name": "Ava Ward",
+          "about_email": "ava.ward@fernhill.example",
+          "from_name": "Elena Tanaka",
+          "from_email": "elena.tanaka@fernhill.example",
+          "department": "Sales",
+          "strengths": "Ava unblocks the team without being asked.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 3,
+          "review_ref": "PR-H2-061",
+          "given_on": "2026-11-02",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "efa5829f-e7c8-5b0b-a388-941c1a08c23b",
+        "data": {
+          "feedback_ref": "FB-0025",
+          "type": "Peer review",
+          "about_name": "Lucas Raman",
+          "about_email": "lucas.raman@fernhill.example",
+          "from_name": "Maya Haddad",
+          "from_email": "maya.haddad@fernhill.example",
+          "department": "Sales",
+          "strengths": "Lucas always prepared for customer calls.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 3,
+          "review_ref": "PR-H2-057",
+          "given_on": "2026-10-21",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "57572136-7e18-553a-afae-48a952d56d92",
+        "data": {
+          "feedback_ref": "FB-0026",
+          "type": "Peer review",
+          "about_name": "June Bennett",
+          "about_email": "june.bennett@fernhill.example",
+          "from_name": "Oscar Levi",
+          "from_email": "oscar.levi@fernhill.example",
+          "department": "Sales",
+          "strengths": "June brings calm to busy launches.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 4,
+          "review_ref": "PR-H2-060",
+          "given_on": "2026-11-11",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "22e30a72-4bc5-58bd-bfb9-0b2cd75b9aa3",
+        "data": {
+          "feedback_ref": "FB-0027",
+          "type": "Peer review",
+          "about_name": "Chloe Sato",
+          "about_email": "chloe.sato@fernhill.example",
+          "from_name": "Andre Laurent",
+          "from_email": "andre.laurent@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Chloe writes clear, thoughtful documents.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 5,
+          "review_ref": "PR-H2-013",
+          "given_on": "2026-10-20",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "bfe77598-7b19-53e1-8096-cf67399db356",
+        "data": {
+          "feedback_ref": "FB-0028",
+          "type": "Peer review",
+          "about_name": "June Bennett",
+          "about_email": "june.bennett@fernhill.example",
+          "from_name": "Nora Torres",
+          "from_email": "nora.torres@fernhill.example",
+          "department": "Sales",
+          "strengths": "June always prepared for customer calls.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "PR-H2-060",
+          "given_on": "2026-10-13",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "0c19b238-db5b-56c4-b452-bbf3ff3b97fa",
+        "data": {
+          "feedback_ref": "FB-0029",
+          "type": "Peer review",
+          "about_name": "Arjun Gallagher",
+          "about_email": "arjun.gallagher@fernhill.example",
+          "from_name": "Nadia Weber",
+          "from_email": "nadia.weber@fernhill.example",
+          "department": "Finance",
+          "strengths": "Arjun asks the questions nobody else asks.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 4,
+          "review_ref": "PR-H2-119",
+          "given_on": "2026-11-04",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "58761b22-f642-502f-af95-961c965b132b",
+        "data": {
+          "feedback_ref": "FB-0030",
+          "type": "Peer review",
+          "about_name": "Malik Kim",
+          "about_email": "malik.kim@fernhill.example",
+          "from_name": "Lucía Laurent",
+          "from_email": "lucia.laurent@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Malik brings calm to busy launches.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 5,
+          "review_ref": "PR-H2-030",
+          "given_on": "2026-09-29",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "67dcb78a-6da5-5d6d-9329-10e7f12c549c",
+        "data": {
+          "feedback_ref": "FB-0031",
+          "type": "Peer review",
+          "about_name": "Diego Weber",
+          "about_email": "diego.weber@fernhill.example",
+          "from_name": "Daniel Okafor",
+          "from_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Diego follows through on every commitment.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 5,
+          "review_ref": "PR-H2-009",
+          "given_on": "2026-10-11",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "024eb077-feb6-5721-b71a-e8565fc20ae4",
+        "data": {
+          "feedback_ref": "FB-0032",
+          "type": "Peer review",
+          "about_name": "Chloe Weber",
+          "about_email": "chloe.weber@fernhill.example",
+          "from_name": "Priya Price",
+          "from_email": "priya.price@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Chloe explains complex ideas simply.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "PR-H2-102",
+          "given_on": "2026-10-22",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "4076f3c9-1a73-5773-9ae9-375b20629314",
+        "data": {
+          "feedback_ref": "FB-0033",
+          "type": "Peer review",
+          "about_name": "Kenji Dubois",
+          "about_email": "kenji.dubois@fernhill.example",
+          "from_name": "Lena Fernández",
+          "from_email": "lena.fernandez@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Kenji always prepared for customer calls.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 3,
+          "review_ref": "PR-H2-132",
+          "given_on": "2026-11-21",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "8654bc5e-759b-5130-8ff8-3c1c18bdee0c",
+        "data": {
+          "feedback_ref": "FB-0034",
+          "type": "Peer review",
+          "about_name": "Mei Owens",
+          "about_email": "mei.owens@fernhill.example",
+          "from_name": "Ravi Okafor",
+          "from_email": "ravi.okafor@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Mei explains complex ideas simply.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "PR-H2-113",
+          "given_on": "2026-10-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "9efd75ec-17d3-51da-a19e-991c5932ec99",
+        "data": {
+          "feedback_ref": "FB-0035",
+          "type": "Peer review",
+          "about_name": "Caleb Berg",
+          "about_email": "caleb.berg@fernhill.example",
+          "from_name": "Sam Torres",
+          "from_email": "sam.torres@fernhill.example",
+          "department": "Sales",
+          "strengths": "Caleb always prepared for customer calls.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 4,
+          "review_ref": "PR-H2-064",
+          "given_on": "2026-11-07",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "e775abbd-c648-57fe-89c0-ba9bc6357c3f",
+        "data": {
+          "feedback_ref": "FB-0036",
+          "type": "Peer review",
+          "about_name": "Sam Torres",
+          "about_email": "sam.torres@fernhill.example",
+          "from_name": "Elena Tanaka",
+          "from_email": "elena.tanaka@fernhill.example",
+          "department": "Sales",
+          "strengths": "Sam explains complex ideas simply.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 3,
+          "review_ref": "PR-H2-055",
+          "given_on": "2026-11-13",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "a8045c9b-bc04-5d2d-b282-6f4f524a23fc",
+        "data": {
+          "feedback_ref": "FB-0037",
+          "type": "Peer review",
+          "about_name": "Marcus Quinn",
+          "about_email": "marcus.quinn@fernhill.example",
+          "from_name": "Alex Ali",
+          "from_email": "alex.ali@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Marcus mentors new starters generously.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "PR-H2-105",
+          "given_on": "2026-09-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "77839e72-9836-5cf1-90ae-c73f5b7dc005",
+        "data": {
+          "feedback_ref": "FB-0038",
+          "type": "Peer review",
+          "about_name": "Caleb Ward",
+          "about_email": "caleb.ward@fernhill.example",
+          "from_name": "Marcus Patel",
+          "from_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "strengths": "Caleb follows through on every commitment.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "PR-H2-048",
+          "given_on": "2026-10-18",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "ddafe460-e777-5f81-9bf9-1376f94f827d",
+        "data": {
+          "feedback_ref": "FB-0039",
+          "type": "Peer review",
+          "about_name": "Victor Berg",
+          "about_email": "victor.berg@fernhill.example",
+          "from_name": "Zoe Mori",
+          "from_email": "zoe.mori@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Victor brings calm to busy launches.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 5,
+          "review_ref": "PR-H2-144",
+          "given_on": "2026-10-17",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "33c06dbb-97ce-576c-a482-e394c27bf5a5",
+        "data": {
+          "feedback_ref": "FB-0040",
+          "type": "Peer review",
+          "about_name": "Rosa Quinn",
+          "about_email": "rosa.quinn@fernhill.example",
+          "from_name": "Ravi Okafor",
+          "from_email": "ravi.okafor@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Rosa always prepared for customer calls.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 5,
+          "review_ref": "PR-H2-114",
+          "given_on": "2026-10-10",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "09df896d-c072-58b2-b92d-9973e9117a9a",
+        "data": {
+          "feedback_ref": "FB-0041",
+          "type": "Peer review",
+          "about_name": "Lucía Jordan",
+          "about_email": "lucia.jordan@fernhill.example",
+          "from_name": "Lucía Fernández",
+          "from_email": "lucia.fernandez@fernhill.example",
+          "department": "Finance",
+          "strengths": "Lucía mentors new starters generously.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 5,
+          "review_ref": "PR-H2-128",
+          "given_on": "2026-10-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "26925948-061c-54bd-bbaf-1cf98db0fb45",
+        "data": {
+          "feedback_ref": "FB-0042",
+          "type": "Peer review",
+          "about_name": "Maya Bennett",
+          "about_email": "maya.bennett@fernhill.example",
+          "from_name": "Leah Mehta",
+          "from_email": "leah.mehta@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Maya asks the questions nobody else asks.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "PR-H2-087",
+          "given_on": "2026-09-24",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "edab1141-8894-53d8-b9ff-565704adf88c",
+        "data": {
+          "feedback_ref": "FB-0043",
+          "type": "Peer review",
+          "about_name": "Ben Murphy",
+          "about_email": "ben.murphy@fernhill.example",
+          "from_name": "Zoe Levi",
+          "from_email": "zoe.levi@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Ben always prepared for customer calls.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "PR-H2-024",
+          "given_on": "2026-10-20",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "b89f1c0b-3026-5c35-990e-97af8344fda6",
+        "data": {
+          "feedback_ref": "FB-0044",
+          "type": "Peer review",
+          "about_name": "Rosa Tanaka",
+          "about_email": "rosa.tanaka@fernhill.example",
+          "from_name": "Victor Berg",
+          "from_email": "victor.berg@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Rosa asks the questions nobody else asks.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "PR-H2-147",
+          "given_on": "2026-10-22",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "c3f91a35-2342-56c0-9816-a12c50831711",
+        "data": {
+          "feedback_ref": "FB-0045",
+          "type": "Peer review",
+          "about_name": "Caleb Berg",
+          "about_email": "caleb.berg@fernhill.example",
+          "from_name": "Isla Raman",
+          "from_email": "isla.raman@fernhill.example",
+          "department": "Sales",
+          "strengths": "Caleb mentors new starters generously.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "PR-H2-064",
+          "given_on": "2026-09-27",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "c063886d-4d43-552e-b16e-c75854ae55f8",
+        "data": {
+          "feedback_ref": "FB-0046",
+          "type": "Peer review",
+          "about_name": "Priya Price",
+          "about_email": "priya.price@fernhill.example",
+          "from_name": "Rosa Mehta",
+          "from_email": "rosa.mehta@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Priya asks the questions nobody else asks.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "PR-H2-086",
+          "given_on": "2026-11-17",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "8ea86fbf-46bc-57f7-9877-945dea246138",
+        "data": {
+          "feedback_ref": "FB-0047",
+          "type": "Peer review",
+          "about_name": "Clara Farouk",
+          "about_email": "clara.farouk@fernhill.example",
+          "from_name": "Liam Mensah",
+          "from_email": "liam.mensah@fernhill.example",
+          "department": "Product",
+          "strengths": "Clara always prepared for customer calls.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 3,
+          "review_ref": "PR-H2-042",
+          "given_on": "2026-09-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "cfb464b7-1a5b-5171-af9e-a904bd7641eb",
+        "data": {
+          "feedback_ref": "FB-0048",
+          "type": "Peer review",
+          "about_name": "Elena Larsen",
+          "about_email": "elena.larsen@fernhill.example",
+          "from_name": "June Laurent",
+          "from_email": "june.laurent@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Elena mentors new starters generously.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "PR-H2-101",
+          "given_on": "2026-10-29",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "99a25bb1-c7fd-5797-8574-33f5d63b390b",
+        "data": {
+          "feedback_ref": "FB-0049",
+          "type": "Peer review",
+          "about_name": "Owen Rahman",
+          "about_email": "owen.rahman@fernhill.example",
+          "from_name": "Jonas Park",
+          "from_email": "jonas.park@fernhill.example",
+          "department": "Sales",
+          "strengths": "Owen unblocks the team without being asked.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 3,
+          "review_ref": "PR-H2-080",
+          "given_on": "2026-10-15",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "a5a8ac01-e348-5e7b-9118-7de9fc1e641d",
+        "data": {
+          "feedback_ref": "FB-0050",
+          "type": "Peer review",
+          "about_name": "Oscar Patel",
+          "about_email": "oscar.patel@fernhill.example",
+          "from_name": "Hugo Sato",
+          "from_email": "hugo.sato@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Oscar writes clear, thoughtful documents.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "PR-H2-133",
+          "given_on": "2026-11-06",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "27989aa6-8fc2-58f0-bc82-d082d2cb9503",
+        "data": {
+          "feedback_ref": "FB-0051",
+          "type": "Peer review",
+          "about_name": "Clara Quinn",
+          "about_email": "clara.quinn@fernhill.example",
+          "from_name": "Zoe Levi",
+          "from_email": "zoe.levi@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Clara writes clear, thoughtful documents.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 4,
+          "review_ref": "PR-H2-022",
+          "given_on": "2026-09-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "d7a93fc2-add5-5498-93c9-b2a664568388",
+        "data": {
+          "feedback_ref": "FB-0052",
+          "type": "Peer review",
+          "about_name": "June Laurent",
+          "about_email": "june.laurent@fernhill.example",
+          "from_name": "Ethan Larsen",
+          "from_email": "ethan.larsen@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "June writes clear, thoughtful documents.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 4,
+          "review_ref": "PR-H2-084",
+          "given_on": "2026-11-12",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "feac1f28-2a9e-5588-9db6-6afdc6b16feb",
+        "data": {
+          "feedback_ref": "FB-0053",
+          "type": "Peer review",
+          "about_name": "June Bennett",
+          "about_email": "june.bennett@fernhill.example",
+          "from_name": "Omar Murphy",
+          "from_email": "omar.murphy@fernhill.example",
+          "department": "Sales",
+          "strengths": "June follows through on every commitment.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "PR-H2-060",
+          "given_on": "2026-10-31",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "0e2a4e73-6887-5b98-8047-ea4bb7275256",
+        "data": {
+          "feedback_ref": "FB-0054",
+          "type": "Peer review",
+          "about_name": "Kwame Okafor",
+          "about_email": "kwame.okafor@fernhill.example",
+          "from_name": "Owen Rahman",
+          "from_email": "owen.rahman@fernhill.example",
+          "department": "Sales",
+          "strengths": "Kwame brings calm to busy launches.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 3,
+          "review_ref": "PR-H2-058",
+          "given_on": "2026-10-08",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "757812f6-ff52-5e06-b9f1-68baed24548b",
+        "data": {
+          "feedback_ref": "FB-0055",
+          "type": "Peer review",
+          "about_name": "Yuki Mehta",
+          "about_email": "yuki.mehta@fernhill.example",
+          "from_name": "Leah Mehta",
+          "from_email": "leah.mehta@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Yuki follows through on every commitment.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "PR-H2-096",
+          "given_on": "2026-10-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "f4bd4a98-a219-5468-b2e7-ab845e72de8a",
+        "data": {
+          "feedback_ref": "FB-0056",
+          "type": "Peer review",
+          "about_name": "Ava Okafor",
+          "about_email": "ava.okafor@fernhill.example",
+          "from_name": "Maya Haddad",
+          "from_email": "maya.haddad@fernhill.example",
+          "department": "Sales",
+          "strengths": "Ava always prepared for customer calls.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 5,
+          "review_ref": "PR-H2-065",
+          "given_on": "2026-09-25",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "504e9fda-3096-5031-8aed-39cef44c2359",
+        "data": {
+          "feedback_ref": "FB-0057",
+          "type": "Peer review",
+          "about_name": "Ben Murphy",
+          "about_email": "ben.murphy@fernhill.example",
+          "from_name": "Daniel Okafor",
+          "from_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Ben always prepared for customer calls.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 4,
+          "review_ref": "PR-H2-024",
+          "given_on": "2026-10-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "117be832-fc68-5c4e-9478-9a814f0fb1a5",
+        "data": {
+          "feedback_ref": "FB-0058",
+          "type": "Peer review",
+          "about_name": "Alex Ward",
+          "about_email": "alex.ward@fernhill.example",
+          "from_name": "Alex Schmidt",
+          "from_email": "alex.schmidt@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Alex explains complex ideas simply.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 4,
+          "review_ref": "PR-H2-003",
+          "given_on": "2026-10-30",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "a5f9f8ba-ebed-5648-8a8e-fa1375f86995",
+        "data": {
+          "feedback_ref": "FB-0059",
+          "type": "Peer review",
+          "about_name": "Owen Ward",
+          "about_email": "owen.ward@fernhill.example",
+          "from_name": "Kwame Murphy",
+          "from_email": "kwame.murphy@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Owen unblocks the team without being asked.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 4,
+          "review_ref": "PR-H2-108",
+          "given_on": "2026-09-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "7b2c8726-6bfe-5d5a-8a71-2ef688e49cce",
+        "data": {
+          "feedback_ref": "FB-0060",
+          "type": "Peer review",
+          "about_name": "Andre Laurent",
+          "about_email": "andre.laurent@fernhill.example",
+          "from_name": "Esme Silva",
+          "from_email": "esme.silva@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Andre always prepared for customer calls.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "PR-H2-025",
+          "given_on": "2026-10-08",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "2b2f45d9-92fa-5649-bfdf-c63a1a95660a",
+        "data": {
+          "feedback_ref": "FB-0061",
+          "type": "Peer review",
+          "about_name": "Oscar Patel",
+          "about_email": "oscar.patel@fernhill.example",
+          "from_name": "Kenji Dubois",
+          "from_email": "kenji.dubois@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Oscar writes clear, thoughtful documents.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 3,
+          "review_ref": "PR-H2-133",
+          "given_on": "2026-10-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "d2d7120f-4da5-5b2c-abc2-9ce0fe96251f",
+        "data": {
+          "feedback_ref": "FB-0062",
+          "type": "Peer review",
+          "about_name": "Samir Grant",
+          "about_email": "samir.grant@fernhill.example",
+          "from_name": "Isla Carter",
+          "from_email": "isla.carter@fernhill.example",
+          "department": "Design",
+          "strengths": "Samir mentors new starters generously.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "PR-H2-054",
+          "given_on": "2026-11-12",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "42884b4e-5b3a-51f0-b67c-df22afcbd228",
+        "data": {
+          "feedback_ref": "FB-0063",
+          "type": "Peer review",
+          "about_name": "Aiko Wagner",
+          "about_email": "aiko.wagner@fernhill.example",
+          "from_name": "Noah Novak",
+          "from_email": "noah.novak@fernhill.example",
+          "department": "Finance",
+          "strengths": "Aiko asks the questions nobody else asks.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 3,
+          "review_ref": "PR-H2-120",
+          "given_on": "2026-11-08",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "82e92099-6ad0-56e8-a485-7813e64e9669",
+        "data": {
+          "feedback_ref": "FB-0064",
+          "type": "Peer review",
+          "about_name": "Caleb Berg",
+          "about_email": "caleb.berg@fernhill.example",
+          "from_name": "June Bennett",
+          "from_email": "june.bennett@fernhill.example",
+          "department": "Sales",
+          "strengths": "Caleb writes clear, thoughtful documents.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 5,
+          "review_ref": "PR-H2-064",
+          "given_on": "2026-09-25",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "aa2e79bc-09dc-5263-8ebd-36a380f481fa",
+        "data": {
+          "feedback_ref": "FB-0065",
+          "type": "Peer review",
+          "about_name": "Nadia Hughes",
+          "about_email": "nadia.hughes@fernhill.example",
+          "from_name": "Ava Novak",
+          "from_email": "ava.novak@fernhill.example",
+          "department": "Product",
+          "strengths": "Nadia brings calm to busy launches.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 4,
+          "review_ref": "PR-H2-040",
+          "given_on": "2026-11-17",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "3a6b9bf0-ae57-51e5-8fb5-3052c6b5e92f",
+        "data": {
+          "feedback_ref": "FB-0066",
+          "type": "Peer review",
+          "about_name": "Kwame Murphy",
+          "about_email": "kwame.murphy@fernhill.example",
+          "from_name": "Sofia Torres",
+          "from_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Kwame writes clear, thoughtful documents.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 5,
+          "review_ref": "PR-H2-110",
+          "given_on": "2026-10-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "78eba726-6043-5f22-8c59-bf63a7ab3437",
+        "data": {
+          "feedback_ref": "FB-0067",
+          "type": "Peer review",
+          "about_name": "Marcus Quinn",
+          "about_email": "marcus.quinn@fernhill.example",
+          "from_name": "Alex Ali",
+          "from_email": "alex.ali@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Marcus mentors new starters generously.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 4,
+          "review_ref": "PR-H2-105",
+          "given_on": "2026-11-15",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "a1fd863e-acdd-523a-beb9-c2fe3f25dbd3",
+        "data": {
+          "feedback_ref": "FB-0068",
+          "type": "Peer review",
+          "about_name": "Chloe Grant",
+          "about_email": "chloe.grant@fernhill.example",
+          "from_name": "Oscar Levi",
+          "from_email": "oscar.levi@fernhill.example",
+          "department": "Sales",
+          "strengths": "Chloe writes clear, thoughtful documents.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 4,
+          "review_ref": "PR-H2-062",
+          "given_on": "2026-11-18",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "5140d154-be65-5a68-89ee-73e425358e20",
+        "data": {
+          "feedback_ref": "FB-0069",
+          "type": "Peer review",
+          "about_name": "Victor Park",
+          "about_email": "victor.park@fernhill.example",
+          "from_name": "Jonas Ortiz",
+          "from_email": "jonas.ortiz@fernhill.example",
+          "department": "Finance",
+          "strengths": "Victor explains complex ideas simply.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 4,
+          "review_ref": "PR-H2-122",
+          "given_on": "2026-10-24",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "b5e535ba-891a-599c-b4df-2285574877cc",
+        "data": {
+          "feedback_ref": "FB-0070",
+          "type": "Peer review",
+          "about_name": "Nadia Weber",
+          "about_email": "nadia.weber@fernhill.example",
+          "from_name": "Aiko Wagner",
+          "from_email": "aiko.wagner@fernhill.example",
+          "department": "Finance",
+          "strengths": "Nadia follows through on every commitment.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 3,
+          "review_ref": "PR-H2-123",
+          "given_on": "2026-11-11",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "d1903344-2c08-5eab-b1c7-3cc59e333b10",
+        "data": {
+          "feedback_ref": "FB-0071",
+          "type": "Continuous",
+          "about_name": "Clara Tanaka",
+          "about_email": "clara.tanaka@fernhill.example",
+          "from_name": "Ben Berg",
+          "from_email": "ben.berg@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Clara always prepared for customer calls.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-10-13",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "7a982c0a-9d5a-5c2a-bfdd-974e7ebb4d13",
+        "data": {
+          "feedback_ref": "FB-0072",
+          "type": "Continuous",
+          "about_name": "Mateo Rossi",
+          "about_email": "mateo.rossi@fernhill.example",
+          "from_name": "Samir Grant",
+          "from_email": "samir.grant@fernhill.example",
+          "department": "Design",
+          "strengths": "Mateo mentors new starters generously.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-11-06",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "3a6910a6-bbfe-5898-9123-511d8d9381f9",
+        "data": {
+          "feedback_ref": "FB-0073",
+          "type": "Continuous",
+          "about_name": "Jonas Farouk",
+          "about_email": "jonas.farouk@fernhill.example",
+          "from_name": "Marcus Patel",
+          "from_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "strengths": "Jonas writes clear, thoughtful documents.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-11-12",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "7fe39015-46a0-57fd-89c3-86df1890aafe",
+        "data": {
+          "feedback_ref": "FB-0074",
+          "type": "Continuous",
+          "about_name": "Grace Kim",
+          "about_email": "grace.kim@fernhill.example",
+          "from_name": "Chloe Weber",
+          "from_email": "chloe.weber@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Grace explains complex ideas simply.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-11-04",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "f513cade-f819-5018-9d08-97749aa8b308",
+        "data": {
+          "feedback_ref": "FB-0075",
+          "type": "Continuous",
+          "about_name": "Ravi Okafor",
+          "about_email": "ravi.okafor@fernhill.example",
+          "from_name": "Mateo Dubois",
+          "from_email": "mateo.dubois@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Ravi writes clear, thoughtful documents.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-25",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "f0811a66-46bc-57fa-946f-0edceb4aea86",
+        "data": {
+          "feedback_ref": "FB-0076",
+          "type": "Continuous",
+          "about_name": "Victor Grant",
+          "about_email": "victor.grant@fernhill.example",
+          "from_name": "Nadia Hughes",
+          "from_email": "nadia.hughes@fernhill.example",
+          "department": "Product",
+          "strengths": "Victor unblocks the team without being asked.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-18",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "0f1f9745-c155-513e-b531-7e7b96b38b05",
+        "data": {
+          "feedback_ref": "FB-0077",
+          "type": "Continuous",
+          "about_name": "Ava Okafor",
+          "about_email": "ava.okafor@fernhill.example",
+          "from_name": "Malik Quinn",
+          "from_email": "malik.quinn@fernhill.example",
+          "department": "Sales",
+          "strengths": "Ava brings calm to busy launches.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-11-03",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "ff7d6f84-957b-56d0-8caf-7f5207d35dc6",
+        "data": {
+          "feedback_ref": "FB-0078",
+          "type": "Continuous",
+          "about_name": "Mateo Rossi",
+          "about_email": "mateo.rossi@fernhill.example",
+          "from_name": "Samir Grant",
+          "from_email": "samir.grant@fernhill.example",
+          "department": "Design",
+          "strengths": "Mateo mentors new starters generously.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-09-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "5b6b4b30-ee6a-5938-81ea-87268565566d",
+        "data": {
+          "feedback_ref": "FB-0079",
+          "type": "Continuous",
+          "about_name": "Rosa Morgan",
+          "about_email": "rosa.morgan@fernhill.example",
+          "from_name": "Hugo Rossi",
+          "from_email": "hugo.rossi@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Rosa asks the questions nobody else asks.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-10-19",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "a47d465f-9438-53e4-a3a6-f7d0729bbd0b",
+        "data": {
+          "feedback_ref": "FB-0080",
+          "type": "Continuous",
+          "about_name": "Alex Novak",
+          "about_email": "alex.novak@fernhill.example",
+          "from_name": "Victor Berg",
+          "from_email": "victor.berg@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Alex brings calm to busy launches.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-09-28",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "020fa279-e07e-56ff-bd4b-c8365fe5a540",
+        "data": {
+          "feedback_ref": "FB-0081",
+          "type": "Continuous",
+          "about_name": "Malik Kim",
+          "about_email": "malik.kim@fernhill.example",
+          "from_name": "Yuki Berg",
+          "from_email": "yuki.berg@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Malik brings calm to busy launches.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-10-27",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "6ccf9a42-645c-5ac4-bf66-b572a44f5472",
+        "data": {
+          "feedback_ref": "FB-0082",
+          "type": "Continuous",
+          "about_name": "Jonas Park",
+          "about_email": "jonas.park@fernhill.example",
+          "from_name": "Owen Rahman",
+          "from_email": "owen.rahman@fernhill.example",
+          "department": "Sales",
+          "strengths": "Jonas always prepared for customer calls.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-10-03",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "b5cb62ca-9223-5cbf-a660-c8beab5be25f",
+        "data": {
+          "feedback_ref": "FB-0083",
+          "type": "Continuous",
+          "about_name": "Talia Costa",
+          "about_email": "talia.costa@fernhill.example",
+          "from_name": "Talia Jordan",
+          "from_email": "talia.jordan@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Talia always prepared for customer calls.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-11-21",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "8faeace2-139a-5c2a-b507-e3a53b8046d7",
+        "data": {
+          "feedback_ref": "FB-0084",
+          "type": "Continuous",
+          "about_name": "Iris Kapoor",
+          "about_email": "iris.kapoor@fernhill.example",
+          "from_name": "Jonas Patel",
+          "from_email": "jonas.patel@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Iris mentors new starters generously.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-11-16",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "2716624a-23dd-5665-998e-cb09fee2605b",
+        "data": {
+          "feedback_ref": "FB-0085",
+          "type": "Continuous",
+          "about_name": "Alex Ward",
+          "about_email": "alex.ward@fernhill.example",
+          "from_name": "Alex Schmidt",
+          "from_email": "alex.schmidt@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Alex brings calm to busy launches.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-10-14",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "039eccad-8ec7-5b29-9367-0a4d7da3c523",
+        "data": {
+          "feedback_ref": "FB-0086",
+          "type": "Continuous",
+          "about_name": "Isla Raman",
+          "about_email": "isla.raman@fernhill.example",
+          "from_name": "Lucas Raman",
+          "from_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "strengths": "Isla follows through on every commitment.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-11-11",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "2bab79d0-e41e-5a88-8cc9-9721c1549090",
+        "data": {
+          "feedback_ref": "FB-0087",
+          "type": "Continuous",
+          "about_name": "Marcus Brooks",
+          "about_email": "marcus.brooks@fernhill.example",
+          "from_name": "Nadia Hughes",
+          "from_email": "nadia.hughes@fernhill.example",
+          "department": "Product",
+          "strengths": "Marcus follows through on every commitment.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-24",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "af2d79d1-d3ff-5234-a1ea-14c87ef484bc",
+        "data": {
+          "feedback_ref": "FB-0088",
+          "type": "Continuous",
+          "about_name": "Maya Patel",
+          "about_email": "maya.patel@fernhill.example",
+          "from_name": "Kenji Dubois",
+          "from_email": "kenji.dubois@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Maya follows through on every commitment.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-11-03",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "8a493f16-2400-5e41-ab9d-7e3239f86530",
+        "data": {
+          "feedback_ref": "FB-0089",
+          "type": "Continuous",
+          "about_name": "Jonas Raman",
+          "about_email": "jonas.raman@fernhill.example",
+          "from_name": "Ruby Farouk",
+          "from_email": "ruby.farouk@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Jonas always prepared for customer calls.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-12",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "084a8aa0-32ca-5e17-8914-09919113cfb9",
+        "data": {
+          "feedback_ref": "FB-0090",
+          "type": "Continuous",
+          "about_name": "Nora Larsen",
+          "about_email": "nora.larsen@fernhill.example",
+          "from_name": "Rosa Ortiz",
+          "from_email": "rosa.ortiz@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Nora always prepared for customer calls.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-11-04",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "d94a9bdc-76d8-5343-8b2d-28919d642648",
+        "data": {
+          "feedback_ref": "FB-0091",
+          "type": "Continuous",
+          "about_name": "Talia Tanaka",
+          "about_email": "talia.tanaka@fernhill.example",
+          "from_name": "Daniel Okafor",
+          "from_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Talia always prepared for customer calls.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-09-26",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "ce8f99f6-3115-5a7e-8634-5fd71cb9697e",
+        "data": {
+          "feedback_ref": "FB-0092",
+          "type": "Continuous",
+          "about_name": "Nora Laurent",
+          "about_email": "nora.laurent@fernhill.example",
+          "from_name": "June Bennett",
+          "from_email": "june.bennett@fernhill.example",
+          "department": "Sales",
+          "strengths": "Nora explains complex ideas simply.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-09-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "f47e4ffa-e757-501d-88b2-774bd7883a90",
+        "data": {
+          "feedback_ref": "FB-0093",
+          "type": "Continuous",
+          "about_name": "Ethan Fraser",
+          "about_email": "ethan.fraser@fernhill.example",
+          "from_name": "Ravi Haddad",
+          "from_email": "ravi.haddad@fernhill.example",
+          "department": "Product",
+          "strengths": "Ethan always prepared for customer calls.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-11-16",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "23a80165-64bb-5479-bc91-0c755fa7aef6",
+        "data": {
+          "feedback_ref": "FB-0094",
+          "type": "Continuous",
+          "about_name": "Priya Raman",
+          "about_email": "priya.raman@fernhill.example",
+          "from_name": "Ravi Haddad",
+          "from_email": "ravi.haddad@fernhill.example",
+          "department": "Product",
+          "strengths": "Priya explains complex ideas simply.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "7482551d-e3fa-5a19-8bdb-24ee671fbe0f",
+        "data": {
+          "feedback_ref": "FB-0095",
+          "type": "Continuous",
+          "about_name": "Clara Tanaka",
+          "about_email": "clara.tanaka@fernhill.example",
+          "from_name": "Kenji Park",
+          "from_email": "kenji.park@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Clara mentors new starters generously.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-10-06",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "60f948ff-92e9-5fad-869a-d6b4a7e92957",
+        "data": {
+          "feedback_ref": "FB-0096",
+          "type": "Continuous",
+          "about_name": "Nora Rahman",
+          "about_email": "nora.rahman@fernhill.example",
+          "from_name": "Kenji Park",
+          "from_email": "kenji.park@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Nora always prepared for customer calls.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-08",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "1de3ae4b-60db-5f53-9809-111792466428",
+        "data": {
+          "feedback_ref": "FB-0097",
+          "type": "Continuous",
+          "about_name": "Yuki Sato",
+          "about_email": "yuki.sato@fernhill.example",
+          "from_name": "Kenji Park",
+          "from_email": "kenji.park@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Yuki follows through on every commitment.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-11-09",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "ff7de4f7-3915-5d37-8422-52041f490cb1",
+        "data": {
+          "feedback_ref": "FB-0098",
+          "type": "Continuous",
+          "about_name": "Mateo Dubois",
+          "about_email": "mateo.dubois@fernhill.example",
+          "from_name": "Owen Ward",
+          "from_email": "owen.ward@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Mateo explains complex ideas simply.",
+          "improve": "It would help if they delegate more of the routine tasks.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-09-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "e8100988-81b8-52f5-b106-fa4cb7f16d59",
+        "data": {
+          "feedback_ref": "FB-0099",
+          "type": "Continuous",
+          "about_name": "Sofia Torres",
+          "about_email": "sofia.torres@fernhill.example",
+          "from_name": "Alex Ali",
+          "from_email": "alex.ali@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Sofia follows through on every commitment.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-10-12",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "6c550dfe-79d6-5a5c-8621-b0763f41b385",
+        "data": {
+          "feedback_ref": "FB-0100",
+          "type": "Continuous",
+          "about_name": "Zoe Price",
+          "about_email": "zoe.price@fernhill.example",
+          "from_name": "Alex Schmidt",
+          "from_email": "alex.schmidt@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Zoe brings calm to busy launches.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-11-03",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "832085e7-3c35-5c82-b6ae-90142897a070",
+        "data": {
+          "feedback_ref": "FB-0101",
+          "type": "Continuous",
+          "about_name": "Felix Wagner",
+          "about_email": "felix.wagner@fernhill.example",
+          "from_name": "Noah Novak",
+          "from_email": "noah.novak@fernhill.example",
+          "department": "Finance",
+          "strengths": "Felix asks the questions nobody else asks.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-10-25",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "71ba2cda-22cb-5c24-b38e-45942a758d8b",
+        "data": {
+          "feedback_ref": "FB-0102",
+          "type": "Continuous",
+          "about_name": "Jonas Patel",
+          "about_email": "jonas.patel@fernhill.example",
+          "from_name": "Malik Kim",
+          "from_email": "malik.kim@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Jonas brings calm to busy launches.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-09-23",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "ddd54701-cb55-5af4-9dc7-a35072869065",
+        "data": {
+          "feedback_ref": "FB-0103",
+          "type": "Continuous",
+          "about_name": "Oscar Levi",
+          "about_email": "oscar.levi@fernhill.example",
+          "from_name": "Rahul Tanaka",
+          "from_email": "rahul.tanaka@fernhill.example",
+          "department": "Sales",
+          "strengths": "Oscar brings calm to busy launches.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-11-02",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "60d4f02a-5e26-53f9-b490-8695e1d9b744",
+        "data": {
+          "feedback_ref": "FB-0104",
+          "type": "Continuous",
+          "about_name": "Ava Okafor",
+          "about_email": "ava.okafor@fernhill.example",
+          "from_name": "Ingrid Alvarez",
+          "from_email": "ingrid.alvarez@fernhill.example",
+          "department": "Sales",
+          "strengths": "Ava unblocks the team without being asked.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-11-14",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "3ee3fd17-3441-52e8-8fe8-88ac20c3fed6",
+        "data": {
+          "feedback_ref": "FB-0105",
+          "type": "Continuous",
+          "about_name": "Elena Tanaka",
+          "about_email": "elena.tanaka@fernhill.example",
+          "from_name": "Nora Laurent",
+          "from_email": "nora.laurent@fernhill.example",
+          "department": "Sales",
+          "strengths": "Elena explains complex ideas simply.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-11-07",
+          "visibility": "Employee and manager"
+        }
+      },
+      {
+        "id": "bcd98ed6-9525-570f-ac69-6c55f67eb6ec",
+        "data": {
+          "feedback_ref": "FB-0106",
+          "type": "Upward",
+          "about_name": "Arjun Gallagher",
+          "about_email": "arjun.gallagher@fernhill.example",
+          "from_name": "Lucía Fernández",
+          "from_email": "lucia.fernandez@fernhill.example",
+          "department": "Finance",
+          "strengths": "Arjun writes clear, thoughtful documents.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-11-18",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "a2681f36-1c04-5932-8ee5-dcd8c810447f",
+        "data": {
+          "feedback_ref": "FB-0107",
+          "type": "Upward",
+          "about_name": "Jamal Alvarez",
+          "about_email": "jamal.alvarez@fernhill.example",
+          "from_name": "Clara Quinn",
+          "from_email": "clara.quinn@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Jamal follows through on every commitment.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-09-27",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "a3e0a283-b9e6-58d4-83a4-e782ed4c9223",
+        "data": {
+          "feedback_ref": "FB-0108",
+          "type": "Upward",
+          "about_name": "Yuki Ward",
+          "about_email": "yuki.ward@fernhill.example",
+          "from_name": "Lucía Jordan",
+          "from_email": "lucia.jordan@fernhill.example",
+          "department": "Finance",
+          "strengths": "Yuki follows through on every commitment.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-12",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "e05b0dc1-2df6-57d4-abd1-2cbb077788c9",
+        "data": {
+          "feedback_ref": "FB-0109",
+          "type": "Upward",
+          "about_name": "Sofia Torres",
+          "about_email": "sofia.torres@fernhill.example",
+          "from_name": "Alex Ali",
+          "from_email": "alex.ali@fernhill.example",
+          "department": "Marketing",
+          "strengths": "Sofia writes clear, thoughtful documents.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-10-01",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "8ee05961-5fb2-50c8-9ff7-c45c2f50ea8d",
+        "data": {
+          "feedback_ref": "FB-0110",
+          "type": "Upward",
+          "about_name": "Zoe Sato",
+          "about_email": "zoe.sato@fernhill.example",
+          "from_name": "Tomás Park",
+          "from_email": "tomas.park@fernhill.example",
+          "department": "Sales",
+          "strengths": "Zoe writes clear, thoughtful documents.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-10-09",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "3d3d5709-0d72-58b6-9e3f-393bb5eb33ad",
+        "data": {
+          "feedback_ref": "FB-0111",
+          "type": "Upward",
+          "about_name": "Ethan Fraser",
+          "about_email": "ethan.fraser@fernhill.example",
+          "from_name": "Priya Raman",
+          "from_email": "priya.raman@fernhill.example",
+          "department": "Product",
+          "strengths": "Ethan always prepared for customer calls.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-10-21",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "34169e55-f2e9-5684-94f4-3ce8e786d7ed",
+        "data": {
+          "feedback_ref": "FB-0112",
+          "type": "Upward",
+          "about_name": "Zoe Mori",
+          "about_email": "zoe.mori@fernhill.example",
+          "from_name": "Nora Larsen",
+          "from_email": "nora.larsen@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Zoe asks the questions nobody else asks.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 4,
+          "review_ref": "",
+          "given_on": "2026-09-30",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "eba9ebb0-a852-5c10-a3ef-96d78aa73676",
+        "data": {
+          "feedback_ref": "FB-0113",
+          "type": "Upward",
+          "about_name": "Ruby Farouk",
+          "about_email": "ruby.farouk@fernhill.example",
+          "from_name": "Yuki Sato",
+          "from_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Ruby writes clear, thoughtful documents.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-11-03",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "96a2a5e3-9acc-5556-aed3-e42a5fd7049b",
+        "data": {
+          "feedback_ref": "FB-0114",
+          "type": "Upward",
+          "about_name": "Ben Jordan",
+          "about_email": "ben.jordan@fernhill.example",
+          "from_name": "Nadia Ward",
+          "from_email": "nadia.ward@fernhill.example",
+          "department": "People & Operations",
+          "strengths": "Ben asks the questions nobody else asks.",
+          "improve": "It would help if they push back on scope creep sooner.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-09-29",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "bba27c2a-d2e4-574f-8e9f-151267d492f8",
+        "data": {
+          "feedback_ref": "FB-0115",
+          "type": "Upward",
+          "about_name": "Owen Gallagher",
+          "about_email": "owen.gallagher@fernhill.example",
+          "from_name": "Felix Iyer",
+          "from_email": "felix.iyer@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Owen writes clear, thoughtful documents.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-11-09",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "08daa092-b4d4-5cb7-ba3b-659bfdee792f",
+        "data": {
+          "feedback_ref": "FB-0116",
+          "type": "Upward",
+          "about_name": "Jonas Raman",
+          "about_email": "jonas.raman@fernhill.example",
+          "from_name": "Rosa Mehta",
+          "from_email": "rosa.mehta@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Jonas unblocks the team without being asked.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-10-22",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "6981d4bd-6dee-5e47-873f-7a16ad4a09ad",
+        "data": {
+          "feedback_ref": "FB-0117",
+          "type": "Upward",
+          "about_name": "Lucía Fernández",
+          "about_email": "lucia.fernandez@fernhill.example",
+          "from_name": "Lucía Jordan",
+          "from_email": "lucia.jordan@fernhill.example",
+          "department": "Finance",
+          "strengths": "Lucía mentors new starters generously.",
+          "improve": "It would help if they speak up in larger meetings.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-14",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "34911d85-6d1c-5c20-8ec3-e0f2a574af0d",
+        "data": {
+          "feedback_ref": "FB-0118",
+          "type": "Upward",
+          "about_name": "Clara Tanaka",
+          "about_email": "clara.tanaka@fernhill.example",
+          "from_name": "Chloe Weber",
+          "from_email": "chloe.weber@fernhill.example",
+          "department": "Customer Success",
+          "strengths": "Clara mentors new starters generously.",
+          "improve": "It would help if they make decisions visible to the wider team.",
+          "rating": 3,
+          "review_ref": "",
+          "given_on": "2026-10-03",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "dd6dadd6-f79b-5927-b52b-7163b78d2fd4",
+        "data": {
+          "feedback_ref": "FB-0119",
+          "type": "Upward",
+          "about_name": "Sofia Price",
+          "about_email": "sofia.price@fernhill.example",
+          "from_name": "Chloe Sato",
+          "from_email": "chloe.sato@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Sofia mentors new starters generously.",
+          "improve": "It would help if they take more time to plan before starting.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-10-04",
+          "visibility": "Manager and HR"
+        }
+      },
+      {
+        "id": "e491c57f-d7d4-585a-a89a-9ef34b26b084",
+        "data": {
+          "feedback_ref": "FB-0120",
+          "type": "Upward",
+          "about_name": "Jamal Alvarez",
+          "about_email": "jamal.alvarez@fernhill.example",
+          "from_name": "Hugo Rossi",
+          "from_email": "hugo.rossi@fernhill.example",
+          "department": "Engineering",
+          "strengths": "Jamal follows through on every commitment.",
+          "improve": "It would help if they share work earlier, before it is polished.",
+          "rating": 5,
+          "review_ref": "",
+          "given_on": "2026-11-03",
+          "visibility": "Manager and HR"
+        }
+      }
+    ]
+  }
+}

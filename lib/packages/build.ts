@@ -47,7 +47,7 @@ export interface PackageContents {
 export const PACKAGE_SECTIONS = [
   'email_templates', 'connectors', 'data_tables', 'integrations', 'references', 'objects', 'decision_tables',
   'retention_policies', 'roles', 'mcp_servers', 'workflow_activities', 'reports', 'agents', 'form_controls', 'form_themes', 'forms', 'workflows',
-  'log_destinations',
+  'apps', 'log_destinations',
 ] as const
 
 export function countAssets(assets: Record<string, any>): number {

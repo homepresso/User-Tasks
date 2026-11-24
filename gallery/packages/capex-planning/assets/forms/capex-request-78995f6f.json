@@ -1,0 +1,940 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "78995f6f-dfb2-55d7-9298-eade394cd04e",
+  "asset": {
+    "id": "78995f6f-dfb2-55d7-9298-eade394cd04e",
+    "name": "CapEx request",
+    "description": "Ask for capital: the summary, the business case, the cost breakdown, a five-year cash-flow projection (NPV, IRR, payback and ROI are worked out as you type) and the quotes. Submitting starts the CapEx request approval workflow.",
+    "tags": [
+      "capex",
+      "finance",
+      "approvals"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "Project title",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. CNC machining centre for Line 3",
+        "max_length": 120
+      },
+      {
+        "key": "cost_centre",
+        "label": "Cost centre",
+        "type": "lookup",
+        "required": true,
+        "help_text": "The business unit fills in for you.",
+        "lookup": {
+          "source": "table",
+          "table_id": "1382c5aa-50a0-53c9-948f-0e1fbe441a4f",
+          "search_columns": [
+            "cost_centre",
+            "business_unit"
+          ],
+          "display_columns": [
+            "cost_centre",
+            "business_unit"
+          ],
+          "value_column": "cost_centre",
+          "fill": [
+            {
+              "from": "bu_code",
+              "to": "bu_code"
+            },
+            {
+              "from": "business_unit",
+              "to": "business_unit"
+            }
+          ],
+          "sort": {
+            "column": "cost_centre",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "business_unit",
+        "label": "Business unit",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "bu_code",
+        "label": "BU code",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Sets the default useful life and GL account.",
+        "lookup": {
+          "source": "table",
+          "table_id": "1d2335d9-e227-56be-82a9-65a6ecbc343c",
+          "search_columns": [
+            "category"
+          ],
+          "display_columns": [
+            "category",
+            "review_rule"
+          ],
+          "value_column": "category",
+          "fill": [
+            {
+              "from": "default_life",
+              "to": "useful_life"
+            },
+            {
+              "from": "gl_account",
+              "to": "gl_account"
+            }
+          ],
+          "sort": {
+            "column": "category",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "gl_account",
+        "label": "GL account",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "fiscal_year",
+        "label": "Fiscal year",
+        "type": "choice",
+        "options": [
+          "2026",
+          "2027",
+          "2028"
+        ],
+        "required": true,
+        "default": "{{param.fiscal_year}}"
+      },
+      {
+        "key": "spend_quarter",
+        "label": "Quarter of spend",
+        "type": "choice",
+        "options": [
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4"
+        ],
+        "required": true,
+        "display": "radio"
+      },
+      {
+        "key": "department_head",
+        "label": "Department head",
+        "type": "user",
+        "required": true,
+        "help_text": "Approves first; finance and the executives follow by amount."
+      },
+      {
+        "key": "business_case",
+        "label": "Business case",
+        "type": "rich_text",
+        "required": true,
+        "rich_text": {
+          "toolbar": "basic",
+          "max_length": 8000
+        },
+        "help_text": "The problem, the proposal, the alternatives you considered and how you will measure the benefit."
+      },
+      {
+        "key": "strategic_alignment",
+        "label": "Strategic alignment",
+        "type": "choice",
+        "options": [
+          "Growth",
+          "Efficiency",
+          "Safety and compliance",
+          "Sustainability",
+          "Customer experience",
+          "Replace end-of-life asset"
+        ],
+        "required": true
+      },
+      {
+        "key": "risk_rating",
+        "label": "Delivery risk",
+        "type": "choice",
+        "options": [
+          "Low",
+          "Medium",
+          "High"
+        ],
+        "required": true,
+        "display": "radio"
+      },
+      {
+        "key": "risk_notes",
+        "label": "Risks and mitigations",
+        "type": "textarea",
+        "placeholder": "What could go wrong and what you will do about it"
+      },
+      {
+        "key": "cost_lines",
+        "label": "Cost breakdown",
+        "type": "repeating_section",
+        "required": true,
+        "repeating_section": {
+          "fields": [
+            {
+              "key": "line_item",
+              "label": "Item",
+              "type": "text",
+              "required": true,
+              "placeholder": "Equipment, installation, software…"
+            },
+            {
+              "key": "cost_type",
+              "label": "Cost type",
+              "type": "choice",
+              "options": [
+                "Equipment",
+                "Installation",
+                "Software and licences",
+                "Construction",
+                "Professional services",
+                "Contingency"
+              ],
+              "required": true
+            },
+            {
+              "key": "quote_vendor",
+              "label": "Supplier",
+              "type": "text",
+              "placeholder": "Who quoted"
+            },
+            {
+              "key": "amount",
+              "label": "Amount (USD)",
+              "type": "currency",
+              "currency": "USD",
+              "min": 0,
+              "required": true
+            }
+          ],
+          "layout": {
+            "rows": [
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "line_item",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "cost_type",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 2,
+                "cells": [
+                  {
+                    "field_key": "quote_vendor",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "amount",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "add_label": "Add a cost line",
+          "item_title": "Line {{index}}: {{item.line_item}}",
+          "min_items": 1,
+          "max_items": 20,
+          "start_items": 1,
+          "totals": [
+            {
+              "field": "amount",
+              "fn": "sum",
+              "label": "Total capital cost"
+            }
+          ]
+        }
+      },
+      {
+        "key": "investment",
+        "label": "Total capital cost",
+        "type": "label",
+        "label_config": {
+          "expression": "SUM(form.cost_lines, \"amount\")",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          },
+          "size": "lg",
+          "emphasis": "strong"
+        }
+      },
+      {
+        "key": "useful_life",
+        "label": "Useful life (years)",
+        "type": "number",
+        "min": 1,
+        "max": 40,
+        "help_text": "From the category; change it if this asset differs."
+      },
+      {
+        "key": "discount_rate",
+        "label": "Discount rate (%)",
+        "type": "number",
+        "required": true,
+        "default": "8",
+        "min": 0,
+        "max": 30,
+        "help_text": "Brightwater’s hurdle rate (WACC) is 8%."
+      },
+      {
+        "key": "cash_flows",
+        "label": "Cash-flow projection",
+        "type": "list",
+        "required": true,
+        "help_text": "One row per year after the spend: the benefit (savings or new margin) and the running costs it adds.",
+        "list": {
+          "entry_mode": "inline",
+          "min_rows": 1,
+          "max_rows": 15,
+          "display": "table",
+          "columns": [
+            {
+              "key": "year",
+              "label": "Year",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "max": 15
+            },
+            {
+              "key": "benefits",
+              "label": "Benefits (USD)",
+              "type": "currency",
+              "currency": "USD",
+              "required": true,
+              "min": 0
+            },
+            {
+              "key": "operating_costs",
+              "label": "Operating costs (USD)",
+              "type": "currency",
+              "currency": "USD",
+              "min": 0
+            },
+            {
+              "key": "net",
+              "label": "Net cash flow (USD)",
+              "type": "calculated",
+              "formula": "benefits - operating_costs",
+              "currency": "USD"
+            }
+          ],
+          "totals": [
+            {
+              "column": "benefits",
+              "fn": "sum"
+            },
+            {
+              "column": "operating_costs",
+              "fn": "sum"
+            },
+            {
+              "column": "net",
+              "fn": "sum"
+            }
+          ]
+        }
+      },
+      {
+        "key": "total_benefit",
+        "label": "Total net benefit",
+        "type": "label",
+        "label_config": {
+          "expression": "SUM(form.cash_flows, \"net\")",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "key": "npv",
+        "label": "NPV at the discount rate",
+        "type": "label",
+        "label_config": {
+          "expression": "ROUND(SUM(MAP(form.cash_flows, \"net / POWER(1 + form.discount_rate / 100, year)\")) - investment, 0)",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          },
+          "size": "lg",
+          "emphasis": "strong"
+        }
+      },
+      {
+        "key": "irr_pct",
+        "label": "IRR",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(IS_EMPTY(irr_step), \"\", ROUND(100 * (IF(IS_EMPTY(irr_step), \"\", irr_step - (SUM(MAP(form.cash_flows, \"net / POWER(1 + irr_step, year)\")) - investment) / SUM(MAP(form.cash_flows, \"-1 * year * net / POWER(1 + irr_step, year + 1)\")))), 1))",
+          "include": true,
+          "format": {
+            "kind": "number",
+            "decimals": 1
+          },
+          "suffix": "%",
+          "size": "lg",
+          "emphasis": "strong",
+          "empty_text": "No positive IRR"
+        }
+      },
+      {
+        "key": "payback_years",
+        "label": "Payback",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(total_benefit < investment, \"\", ROUND(SUM(MAP(form.cash_flows, \"IF(net <= 0, IF(SUM(MAP(PLUCK(form.cash_flows, 'year'), 'IF(row < year, FIND_WHERE(form.cash_flows, \\\"year\\\", row, \\\"net\\\"), 0)')) < form.investment, 1, 0), MIN(1, MAX(0, (form.investment - SUM(MAP(PLUCK(form.cash_flows, 'year'), 'IF(row < year, FIND_WHERE(form.cash_flows, \\\"year\\\", row, \\\"net\\\"), 0)'))) / net)))\")), 1))",
+          "include": true,
+          "format": {
+            "kind": "number",
+            "decimals": 1
+          },
+          "suffix": " years",
+          "size": "lg",
+          "emphasis": "strong",
+          "empty_text": "Not within the projection"
+        }
+      },
+      {
+        "key": "roi_pct",
+        "label": "ROI over the projection",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(investment > 0, ROUND((total_benefit - investment) / investment * 100, 1), \"\")",
+          "include": true,
+          "format": {
+            "kind": "number",
+            "decimals": 1
+          },
+          "suffix": "%",
+          "size": "lg",
+          "emphasis": "strong"
+        }
+      },
+      {
+        "key": "npv_0",
+        "label": "NPV at 0%",
+        "type": "label",
+        "label_config": {
+          "expression": "ROUND(SUM(form.cash_flows, \"net\") - investment, 0)",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "key": "npv_10",
+        "label": "NPV at 10%",
+        "type": "label",
+        "label_config": {
+          "expression": "ROUND(SUM(MAP(form.cash_flows, \"net / POWER(1.1, year)\")) - investment, 0)",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "key": "npv_20",
+        "label": "NPV at 20%",
+        "type": "label",
+        "label_config": {
+          "expression": "ROUND(SUM(MAP(form.cash_flows, \"net / POWER(1.2, year)\")) - investment, 0)",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "key": "npv_30",
+        "label": "NPV at 30%",
+        "type": "label",
+        "label_config": {
+          "expression": "ROUND(SUM(MAP(form.cash_flows, \"net / POWER(1.3, year)\")) - investment, 0)",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "key": "npv_50",
+        "label": "NPV at 50%",
+        "type": "label",
+        "label_config": {
+          "expression": "ROUND(SUM(MAP(form.cash_flows, \"net / POWER(1.5, year)\")) - investment, 0)",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "key": "npv_100",
+        "label": "NPV at 100%",
+        "type": "label",
+        "label_config": {
+          "expression": "ROUND(SUM(MAP(form.cash_flows, \"net / POWER(2, year)\")) - investment, 0)",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      },
+      {
+        "key": "irr_guess",
+        "label": "IRR first estimate (interpolated)",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(npv_0 <= 0, \"\", IF(npv_10 <= 0, 0.1 * npv_0 / (npv_0 - npv_10), IF(npv_20 <= 0, 0.1 + 0.1 * npv_10 / (npv_10 - npv_20), IF(npv_30 <= 0, 0.2 + 0.1 * npv_20 / (npv_20 - npv_30), IF(npv_50 <= 0, 0.3 + 0.2 * npv_30 / (npv_30 - npv_50), IF(npv_100 <= 0, 0.5 + 0.5 * npv_50 / (npv_50 - npv_100), 1))))))",
+          "include": true,
+          "format": {
+            "kind": "number",
+            "decimals": 4
+          }
+        }
+      },
+      {
+        "key": "irr_step",
+        "label": "IRR after one refinement",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(IS_EMPTY(irr_guess), \"\", irr_guess - (SUM(MAP(form.cash_flows, \"net / POWER(1 + irr_guess, year)\")) - investment) / SUM(MAP(form.cash_flows, \"-1 * year * net / POWER(1 + irr_guess, year + 1)\")))",
+          "include": true,
+          "format": {
+            "kind": "number",
+            "decimals": 4
+          }
+        }
+      },
+      {
+        "key": "quotes",
+        "label": "Supplier quotes",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 5,
+          "max_file_mb": 10,
+          "types": [
+            "documents",
+            "images",
+            "pdf"
+          ]
+        },
+        "help_text": "At least one quote; two for anything over $25,000."
+      },
+      {
+        "key": "specs",
+        "label": "Specifications and drawings",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 5,
+          "max_file_mb": 10,
+          "types": [
+            "documents",
+            "images",
+            "pdf"
+          ]
+        }
+      },
+      {
+        "key": "confirm",
+        "label": "I confirm the figures are my best estimate and the quotes are current",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [],
+      "mode": "steps",
+      "pages": [
+        {
+          "id": "summary",
+          "title": "Summary",
+          "icon": "file-text",
+          "description": "What you want to buy, where and when.",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "title",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "cost_centre",
+                  "span": 1
+                },
+                {
+                  "field_key": "business_unit",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "category",
+                  "span": 1
+                },
+                {
+                  "field_key": "gl_account",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "fiscal_year",
+                  "span": 1
+                },
+                {
+                  "field_key": "spend_quarter",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "department_head",
+                  "span": 1
+                },
+                {
+                  "field_key": "bu_code",
+                  "span": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "case",
+          "title": "Business case",
+          "icon": "briefcase",
+          "description": "Why it is worth it and what could go wrong.",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "business_case",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "strategic_alignment",
+                  "span": 1
+                },
+                {
+                  "field_key": "risk_rating",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "risk_notes",
+                  "span": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "costs",
+          "title": "Costs",
+          "icon": "dollar-sign",
+          "description": "Every cost line; the total is the amount you ask for.",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "cost_lines",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "investment",
+                  "span": 1
+                },
+                {
+                  "field_key": "useful_life",
+                  "span": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "financials",
+          "title": "Financials",
+          "icon": "list",
+          "description": "Cash flows by year; NPV, IRR, payback and ROI update as you type.",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "discount_rate",
+                  "span": 1
+                },
+                {
+                  "field_key": "total_benefit",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "cash_flows",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "npv",
+                  "span": 1
+                },
+                {
+                  "field_key": "irr_pct",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "payback_years",
+                  "span": 1
+                },
+                {
+                  "field_key": "roi_pct",
+                  "span": 1
+                }
+              ]
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "npv_0",
+                  "span": 1
+                },
+                {
+                  "field_key": "npv_10",
+                  "span": 1
+                },
+                {
+                  "field_key": "npv_20",
+                  "span": 1
+                }
+              ],
+              "section": "workings"
+            },
+            {
+              "columns": 3,
+              "cells": [
+                {
+                  "field_key": "npv_30",
+                  "span": 1
+                },
+                {
+                  "field_key": "npv_50",
+                  "span": 1
+                },
+                {
+                  "field_key": "npv_100",
+                  "span": 1
+                }
+              ],
+              "section": "workings"
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "irr_guess",
+                  "span": 1
+                },
+                {
+                  "field_key": "irr_step",
+                  "span": 1
+                }
+              ],
+              "section": "workings"
+            }
+          ]
+        },
+        {
+          "id": "attachments",
+          "title": "Quotes & submit",
+          "icon": "paperclip",
+          "description": "Quotes, specifications and your confirmation.",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "quotes",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "specs",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "confirm",
+                  "span": 2
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "page_settings": {
+        "indicator": "numbered",
+        "next_label": "Next",
+        "back_label": "Back",
+        "review": true,
+        "review_title": "Check your request"
+      },
+      "sections": [
+        {
+          "key": "workings",
+          "title": "How the figures are worked out",
+          "description": "NPV at other discount rates (sensitivity). The IRR is interpolated between the rates where NPV changes sign, then refined twice with Newton’s method.",
+          "collapsible": true,
+          "collapsed": true,
+          "style": "bordered"
+        }
+      ],
+      "params": [
+        {
+          "name": "fiscal_year",
+          "label": "Fiscal year",
+          "type": "text",
+          "source": "context",
+          "default": "2027",
+          "allowed": [
+            "2026",
+            "2027",
+            "2028"
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit request",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Request submitted",
+            "text": "Thanks {{user.name}}. {{title}} is with your department head. Follow it on the Requests page.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another request"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "New capital request",
+      "subtitle": "All amounts in USD. Requests over $25,000 need two quotes.",
+      "align": "left"
+    }
+  }
+}

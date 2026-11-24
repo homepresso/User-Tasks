@@ -9,8 +9,13 @@
  * credential's workflow allowlist) and be in the caller's run scope
  * (lib/services/run-visibility: all with view_runs, involved / granted with
  * view_queue); every change is audited.
- *  - A job a worker holds (`processing`) is never cancelled or deleted: the
- *    worker would carry on and write its result over the change.
+ *  - A job a worker holds (`processing`) is never deleted. It can be retried
+ *    or cancelled once its lease expired (the worker crashed, was OOM-killed
+ *    or timed out — recover_queue_job, migration 20270124090000), and
+ *    force-cancelled (`force: true`, the UI asks for confirmation) while its
+ *    worker is still alive: the worker's result is then discarded by the
+ *    lease fence (complete_leased_job). Retrying a live job is refused (it
+ *    would run twice).
  *  - delete: pending / failed / dead / completed jobs only. The status is
  *    re-checked in the DELETE itself, so a job claimed in the meantime is
  *    refused (409) rather than pulled from under the worker.
@@ -22,7 +27,7 @@
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { queueJobInScope, resolveRunScope } from './run-visibility'
 import { audit, dbError } from './_shared'
-import { appUrlOrLocalhost } from '@/lib/config/bootstrap'
+import { kickQueueProcessor } from '@/lib/process-queue'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow_queue rows are untyped here */
 
@@ -42,8 +47,13 @@ export interface QueueJob {
 }
 
 export type QueueJobActionResult =
-  | { action: 'cancelled'; previous_status: string }
-  | { action: 'retried' }
+  | { action: 'cancelled'; previous_status: string; forced?: boolean; lease_expired?: boolean }
+  | { action: 'retried'; previous_status?: string; lease_expired?: boolean }
+
+export interface QueueJobActionOptions {
+  /** Cancel a `processing` job whose worker is still alive (its lease has not expired). */
+  force?: boolean
+}
 
 export interface QueueJobDeleteResult {
   deleted: true
@@ -117,10 +127,68 @@ export async function deleteQueueJob(ctx: ServiceContext, jobId: string): Promis
   return { deleted: true, id: job.id, previous_status: job.status }
 }
 
-export async function actOnQueueJob(ctx: ServiceContext, jobId: string, action: QueueJobAction): Promise<QueueJobActionResult> {
+/**
+ * Retry / cancel of a `processing` job (recover_queue_job): allowed once its
+ * lease expired; cancel also with force. Audited.
+ */
+async function recoverProcessingJob(ctx: ServiceContext, job: QueueJob, action: QueueJobAction, force: boolean): Promise<QueueJobActionResult> {
+  const { data, error } = await (ctx.supabase as any).rpc('recover_queue_job', {
+    p_job_id: job.id,
+    p_tenant_id: ctx.tenantId,
+    p_action: action,
+    p_force: force,
+  })
+  if (error) {
+    // Before migration 20270124090000 there are no leases to judge by.
+    if (['PGRST202', '42883'].includes(String(error.code))) throw busyError('processing', action)
+    throw dbError(error)
+  }
+  const out = (data ?? {}) as { ok?: boolean; reason?: string; status?: string; lease_expired?: boolean; locked_by?: string; run_id?: string }
+  if (!out.ok) {
+    if (out.reason === 'not_found') throw ServiceError.notFound('Queue job not found')
+    if (out.reason === 'not_processing') throw ServiceError.conflict(`The job is no longer being processed (status '${out.status}'). Refresh and try again.`)
+    if (action === 'retry') {
+      throw ServiceError.conflict('A worker is still processing this job (its lease has not expired), so retrying it would run it twice. Wait for it to finish or for the lease to expire.')
+    }
+    throw ServiceError.conflict('A worker is still processing this job (its lease has not expired). Force-cancel it to stop tracking it; the worker\'s result will then be discarded.')
+  }
+  const forced = action === 'cancel' && !out.lease_expired
+  await audit(ctx, {
+    objectType: 'workflow',
+    objectId: job.workflow_id ?? job.id,
+    action: action === 'retry' ? 'retry_queue_job' : forced ? 'force_cancel_queue_job' : 'cancel_queue_job',
+    summary: action === 'retry'
+      ? `Retried stuck queue job ${job.id} (worker lost)`
+      : forced
+        ? `Force-cancelled processing queue job ${job.id}`
+        : `Cancelled stuck queue job ${job.id} (worker lost)`,
+    metadata: {
+      job_id: job.id,
+      status: 'processing',
+      lease_expired: out.lease_expired ?? null,
+      worker: out.locked_by ?? null,
+      run_id: out.run_id ?? null,
+      forced,
+    },
+  })
+  if (action === 'retry') {
+    kickQueueProcessor()
+    return { action: 'retried', previous_status: 'processing', lease_expired: out.lease_expired }
+  }
+  return { action: 'cancelled', previous_status: 'processing', forced, lease_expired: out.lease_expired }
+}
+
+export async function actOnQueueJob(
+  ctx: ServiceContext,
+  jobId: string,
+  action: QueueJobAction,
+  options: QueueJobActionOptions = {},
+): Promise<QueueJobActionResult> {
   requirePerm(ctx, 'workflows.activate')
   const job = await loadQueueJob(ctx, jobId)
   const db = ctx.supabase as any
+
+  if (job.status === 'processing') return recoverProcessingJob(ctx, job, action, options.force === true)
 
   if (action === 'cancel') {
     if (!(CANCELLABLE_QUEUE_STATUSES as readonly string[]).includes(job.status)) throw busyError(job.status, 'cancel')
@@ -165,13 +233,9 @@ export async function actOnQueueJob(ctx: ServiceContext, jobId: string, action: 
     metadata: { job_id: job.id, status: job.status },
   })
 
-  // Kick the queue processor (best effort).
-  const baseUrl = appUrlOrLocalhost()
-  fetch(`${baseUrl}/api/workflows/process`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ batch_size: 5 }),
-  }).catch(() => {})
+  // Kick the queue processor (best effort; it used to call the endpoint
+  // without the processor secret, which refused it).
+  kickQueueProcessor()
 
   return { action: 'retried' }
 }

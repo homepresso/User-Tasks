@@ -1,0 +1,460 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "c0a71275-de15-5019-9868-10251006a01c",
+  "asset": {
+    "id": "c0a71275-de15-5019-9868-10251006a01c",
+    "name": "Action plan follow-up",
+    "description": "From the Create action plan form: logs the plan, then asks the owner for an update after 30 days; a plan that needs help goes to the People partner.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Plan created",
+        "config": {
+          "form_id": "fc106168-4888-59da-86c0-34e7660955d4",
+          "form_name": "Create action plan"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Plan reference",
+        "config": {
+          "name": "plan_ref",
+          "expression": "AP-{{=FORMAT_DATE(NOW(), \"YYMM\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{form.department}} · {{form.driver}}: {{form.focus}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "owner_id",
+        "type": "set_variable",
+        "label": "Owner (user)",
+        "config": {
+          "name": "owner_id",
+          "expression": "{{form.owner.0.id}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "owner_name",
+        "type": "set_variable",
+        "label": "Owner name",
+        "config": {
+          "name": "owner_name",
+          "expression": "{{form.owner.0.name}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "owner_dir",
+        "type": "update_data_table",
+        "label": "Owner in the directory",
+        "config": {
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "table_name": "People directory",
+          "operation": "get",
+          "match_column": "name",
+          "match_value": "{{owner_name}}",
+          "output_row_var": "owner_dir"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Log the plan",
+        "config": {
+          "table_id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+          "table_name": "Survey action plans",
+          "operation": "insert",
+          "column_values": {
+            "plan_ref": "{{plan_ref}}",
+            "cycle_code": "{{form.cycle}}",
+            "department": "{{form.department}}",
+            "driver": "{{form.driver}}",
+            "focus": "{{form.focus}}",
+            "actions": "{{form.actions}}",
+            "owner_name": "{{owner_name}}",
+            "owner_email": "{{owner_dir.email}}",
+            "status": "Planned",
+            "progress": "0",
+            "due_date": "{{form.due_date}}",
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "wait",
+        "type": "delay",
+        "label": "Thirty days",
+        "config": {
+          "duration": 30,
+          "unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "checkin",
+        "type": "user_task",
+        "label": "30-day check-in",
+        "config": {
+          "task_title": "How is \"{{form.focus}}\" going?",
+          "task_description": "<p>Your {{form.department}} action plan on <strong>{{form.driver}}</strong>:</p><p>{{form.actions}}</p><p>Give a short update.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "On track",
+            "Needs help",
+            "Done"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{owner_id}}",
+          "fields": [
+            {
+              "key": "progress",
+              "label": "Progress",
+              "type": "slider",
+              "required": true,
+              "min": 0,
+              "max": 100,
+              "survey": {
+                "step": 10,
+                "unit": "%"
+              }
+            },
+            {
+              "key": "update",
+              "label": "Update",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "progress",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "update",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "on_track",
+              "label": "On track",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "On track"
+            },
+            {
+              "id": "needs_help",
+              "label": "Needs help",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Needs help"
+            },
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Done"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Action plan check-in",
+            "align": "left",
+            "subtitle": "{{form.department}} · {{form.driver}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "on_track",
+        "type": "update_data_table",
+        "label": "Mark in progress",
+        "config": {
+          "table_id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+          "table_name": "Survey action plans",
+          "operation": "update",
+          "match_column": "plan_ref",
+          "match_value": "{{plan_ref}}",
+          "column_values": {
+            "status": "In progress",
+            "progress": "{{task_data.progress}}",
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "help",
+        "type": "update_data_table",
+        "label": "Mark needs help",
+        "config": {
+          "table_id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+          "table_name": "Survey action plans",
+          "operation": "update",
+          "match_column": "plan_ref",
+          "match_value": "{{plan_ref}}",
+          "column_values": {
+            "status": "Needs help",
+            "progress": "{{task_data.progress}}",
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1460
+        }
+      },
+      {
+        "id": "support",
+        "type": "user_task",
+        "label": "People partner support",
+        "config": {
+          "task_title": "Support the {{form.department}} action plan",
+          "task_description": "<p>The owner asked for help with <strong>{{form.focus}}</strong> ({{form.driver}}):</p><p>{{task_data.update}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Supported"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "d3261bad-1d02-58db-9008-dcd03d78b7ce",
+          "fields": [
+            {
+              "key": "support_note",
+              "label": "What you agreed",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "support_note",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "supported",
+              "label": "Supported",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Supported"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Action plan support",
+            "align": "left",
+            "subtitle": "{{form.department}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 720,
+          "y": 1600
+        }
+      },
+      {
+        "id": "done",
+        "type": "update_data_table",
+        "label": "Mark done",
+        "config": {
+          "table_id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+          "table_name": "Survey action plans",
+          "operation": "update",
+          "match_column": "plan_ref",
+          "match_value": "{{plan_ref}}",
+          "column_values": {
+            "status": "Done",
+            "progress": "100",
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 1740
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Plan followed up",
+        "config": {
+          "reason": "{{plan_ref}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-owner_id",
+        "source": "title",
+        "target": "owner_id"
+      },
+      {
+        "id": "e-owner_id-owner_name",
+        "source": "owner_id",
+        "target": "owner_name"
+      },
+      {
+        "id": "e-owner_name-owner_dir",
+        "source": "owner_name",
+        "target": "owner_dir"
+      },
+      {
+        "id": "e-owner_dir-row",
+        "source": "owner_dir",
+        "target": "row"
+      },
+      {
+        "id": "e-row-wait",
+        "source": "row",
+        "target": "wait"
+      },
+      {
+        "id": "e-wait-checkin",
+        "source": "wait",
+        "target": "checkin"
+      },
+      {
+        "id": "e-checkin-on_track-on_track",
+        "source": "checkin",
+        "target": "on_track",
+        "label": "On track"
+      },
+      {
+        "id": "e-checkin-help-needs_help",
+        "source": "checkin",
+        "target": "help",
+        "label": "Needs help"
+      },
+      {
+        "id": "e-checkin-done-done",
+        "source": "checkin",
+        "target": "done",
+        "label": "Done"
+      },
+      {
+        "id": "e-help-support",
+        "source": "help",
+        "target": "support"
+      },
+      {
+        "id": "e-support-end-supported",
+        "source": "support",
+        "target": "end",
+        "label": "Supported"
+      },
+      {
+        "id": "e-on_track-end",
+        "source": "on_track",
+        "target": "end"
+      },
+      {
+        "id": "e-done-end",
+        "source": "done",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

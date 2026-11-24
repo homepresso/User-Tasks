@@ -1,0 +1,1031 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+  "asset": {
+    "id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+    "name": "CRM quotes rows",
+    "rows": [
+      {
+        "id": "aaac56d7-93e4-5f6b-8b2c-3b0dd8080efd",
+        "data": {
+          "quote_id": "Q-7001",
+          "deal_id": "DL-3032",
+          "deal": "Tidewater site expansion",
+          "account": "Tidewater Utilities",
+          "list_total": 37200,
+          "discount_pct": 0,
+          "amount": 37200,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-12-06",
+          "created_on": "2026-11-06"
+        }
+      },
+      {
+        "id": "63502379-565c-5cc0-a598-694eac633c31",
+        "data": {
+          "quote_id": "Q-7002",
+          "deal_id": "DL-3033",
+          "deal": "Granite renewal",
+          "account": "Granite Peak Capital",
+          "list_total": 103200,
+          "discount_pct": 5,
+          "amount": 98040,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-12-02",
+          "created_on": "2026-11-02"
+        }
+      },
+      {
+        "id": "95d1d019-3235-5825-8aa6-f383749464e6",
+        "data": {
+          "quote_id": "Q-7003",
+          "deal_id": "DL-3034",
+          "deal": "Brightline site expansion",
+          "account": "Brightline Telecom",
+          "list_total": 49200,
+          "discount_pct": 0,
+          "amount": 49200,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Priya Raman",
+          "valid_until": "2026-12-11",
+          "created_on": "2026-11-11"
+        }
+      },
+      {
+        "id": "81e23785-eab7-5eca-8af0-79fe458be2f1",
+        "data": {
+          "quote_id": "Q-7004",
+          "deal_id": "DL-3035",
+          "deal": "Cedar site expansion",
+          "account": "Cedar & Stone Retail",
+          "list_total": 149400,
+          "discount_pct": 0,
+          "amount": 149400,
+          "status": "Pending approval",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-12-04",
+          "created_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "6439c509-8053-5f4b-a645-788e9c51c988",
+        "data": {
+          "quote_id": "Q-7005",
+          "deal_id": "DL-3036",
+          "deal": "Sagebrush site expansion",
+          "account": "Sagebrush Outdoor",
+          "list_total": 26400,
+          "discount_pct": 10,
+          "amount": 23760,
+          "status": "Pending approval",
+          "approval_path": "Auto-approved",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-12-02",
+          "created_on": "2026-11-02"
+        }
+      },
+      {
+        "id": "4c70dfe9-d23d-5478-93cf-5a3262e22b1b",
+        "data": {
+          "quote_id": "Q-7006",
+          "deal_id": "DL-3037",
+          "deal": "Lumen renewal",
+          "account": "Lumen Credit Union",
+          "list_total": 39600,
+          "discount_pct": 0,
+          "amount": 39600,
+          "status": "Pending approval",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-12-06",
+          "created_on": "2026-11-06"
+        }
+      },
+      {
+        "id": "e723648c-11d7-50ad-ab7b-71b012f37a56",
+        "data": {
+          "quote_id": "Q-7007",
+          "deal_id": "DL-3038",
+          "deal": "Aurora site expansion",
+          "account": "Aurora Biotech",
+          "list_total": 32400,
+          "discount_pct": 5,
+          "amount": 30780,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Priya Raman",
+          "valid_until": "2026-11-30",
+          "created_on": "2026-10-31"
+        }
+      },
+      {
+        "id": "cf113596-9ea4-5616-923f-3c6d73f67bdf",
+        "data": {
+          "quote_id": "Q-7008",
+          "deal_id": "DL-3039",
+          "deal": "Juniper Professional rollout",
+          "account": "Juniper Data Systems",
+          "list_total": 69000,
+          "discount_pct": 5,
+          "amount": 65550,
+          "status": "Pending approval",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-12-13",
+          "created_on": "2026-11-13"
+        }
+      },
+      {
+        "id": "50790e15-668b-5ed5-af58-3bb87248f45f",
+        "data": {
+          "quote_id": "Q-7009",
+          "deal_id": "DL-3040",
+          "deal": "Ironbridge site expansion",
+          "account": "Ironbridge Manufacturing",
+          "list_total": 63600,
+          "discount_pct": 0,
+          "amount": 63600,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-12-05",
+          "created_on": "2026-11-05"
+        }
+      },
+      {
+        "id": "93db6ea1-f549-5085-b53e-5866ed08ca43",
+        "data": {
+          "quote_id": "Q-7010",
+          "deal_id": "DL-3041",
+          "deal": "Sagebrush site expansion",
+          "account": "Sagebrush Outdoor",
+          "list_total": 34800,
+          "discount_pct": 0,
+          "amount": 34800,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-12-16",
+          "created_on": "2026-11-16"
+        }
+      },
+      {
+        "id": "12726978-6344-5af7-8cba-05b4df0bc326",
+        "data": {
+          "quote_id": "Q-7011",
+          "deal_id": "DL-3042",
+          "deal": "Riverside Enterprise rollout",
+          "account": "Riverside Polytechnic",
+          "list_total": 106800,
+          "discount_pct": 0,
+          "amount": 106800,
+          "status": "Pending approval",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-12-21",
+          "created_on": "2026-11-21"
+        }
+      },
+      {
+        "id": "e8ff8e86-df02-55ce-bcc3-e1aa8ee62600",
+        "data": {
+          "quote_id": "Q-7012",
+          "deal_id": "DL-3043",
+          "deal": "Evergreen renewal",
+          "account": "Evergreen Grocers",
+          "list_total": 56400,
+          "discount_pct": 0,
+          "amount": 56400,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-12-13",
+          "created_on": "2026-11-13"
+        }
+      },
+      {
+        "id": "f72b72ed-d9a0-5efb-a60c-8605e38b90f3",
+        "data": {
+          "quote_id": "Q-7013",
+          "deal_id": "DL-3044",
+          "deal": "Falcon Professional rollout",
+          "account": "Falcon Ridge Security",
+          "list_total": 54600,
+          "discount_pct": 0,
+          "amount": 54600,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-12-21",
+          "created_on": "2026-11-21"
+        }
+      },
+      {
+        "id": "7661aba6-861f-5ee8-8e34-ddb601853ab7",
+        "data": {
+          "quote_id": "Q-7014",
+          "deal_id": "DL-3045",
+          "deal": "Orchard Professional rollout",
+          "account": "Orchard Valley Farms",
+          "list_total": 36600,
+          "discount_pct": 5,
+          "amount": 34770,
+          "status": "Pending approval",
+          "approval_path": "Auto-approved",
+          "requested_by": "Priya Raman",
+          "valid_until": "2026-12-20",
+          "created_on": "2026-11-20"
+        }
+      },
+      {
+        "id": "e434bb4c-ef5b-59ee-85e7-ff57b44bc5c7",
+        "data": {
+          "quote_id": "Q-7015",
+          "deal_id": "DL-3046",
+          "deal": "Meridian site expansion",
+          "account": "Meridian Hospitality",
+          "list_total": 24000,
+          "discount_pct": 0,
+          "amount": 24000,
+          "status": "Draft",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-12-21",
+          "created_on": "2026-11-21"
+        }
+      },
+      {
+        "id": "db06afd5-762f-5f4e-bcda-23c18786bf66",
+        "data": {
+          "quote_id": "Q-7016",
+          "deal_id": "DL-3047",
+          "deal": "Falcon Standard rollout",
+          "account": "Falcon Ridge Security",
+          "list_total": 27000,
+          "discount_pct": 10,
+          "amount": 24300,
+          "status": "Approved",
+          "approval_path": "Auto-approved",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-12-08",
+          "created_on": "2026-11-08"
+        }
+      },
+      {
+        "id": "6503a9f2-0d49-5ee7-9a09-d29087054584",
+        "data": {
+          "quote_id": "Q-7017",
+          "deal_id": "DL-3048",
+          "deal": "Riverside Professional rollout",
+          "account": "Riverside Polytechnic",
+          "list_total": 43800,
+          "discount_pct": 10,
+          "amount": 39420,
+          "status": "Approved",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-11-26",
+          "created_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "63e9788e-16f9-56fc-b5ca-931de8f8cf9f",
+        "data": {
+          "quote_id": "Q-7018",
+          "deal_id": "DL-3049",
+          "deal": "Silverline site expansion",
+          "account": "Silverline Insurance",
+          "list_total": 86400,
+          "discount_pct": 10,
+          "amount": 77760,
+          "status": "Pending approval",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-11-29",
+          "created_on": "2026-10-30"
+        }
+      },
+      {
+        "id": "427da83b-2c3f-5051-a84b-c645bb534876",
+        "data": {
+          "quote_id": "Q-7019",
+          "deal_id": "DL-3050",
+          "deal": "Sagebrush site expansion",
+          "account": "Sagebrush Outdoor",
+          "list_total": 57600,
+          "discount_pct": 22,
+          "amount": 45168,
+          "status": "Pending approval",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-12-01",
+          "created_on": "2026-11-01"
+        }
+      },
+      {
+        "id": "7dd943e3-7dd7-57ef-9fca-272fb95ed968",
+        "data": {
+          "quote_id": "Q-7020",
+          "deal_id": "DL-3051",
+          "deal": "Vantage Enterprise rollout",
+          "account": "Vantage Point Media",
+          "list_total": 88800,
+          "discount_pct": 0,
+          "amount": 88800,
+          "status": "Approved",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-12-05",
+          "created_on": "2026-11-05"
+        }
+      },
+      {
+        "id": "1faedac4-6f0e-515b-be2f-05865d2230a6",
+        "data": {
+          "quote_id": "Q-7021",
+          "deal_id": "DL-3052",
+          "deal": "Atlas renewal",
+          "account": "Atlas Fabrication",
+          "list_total": 131400,
+          "discount_pct": 5,
+          "amount": 124830,
+          "status": "Sent",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-12-06",
+          "created_on": "2026-11-06"
+        }
+      },
+      {
+        "id": "859471d4-f555-534b-8bf7-d0aee195d1c6",
+        "data": {
+          "quote_id": "Q-7022",
+          "deal_id": "DL-3053",
+          "deal": "Willow renewal",
+          "account": "Willow Creek Clinics",
+          "list_total": 33600,
+          "discount_pct": 0,
+          "amount": 33600,
+          "status": "Approved",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-12-11",
+          "created_on": "2026-11-11"
+        }
+      },
+      {
+        "id": "c5ce02b1-c1c9-5d3a-980d-e5da41922593",
+        "data": {
+          "quote_id": "Q-7023",
+          "deal_id": "DL-3054",
+          "deal": "Evergreen Professional rollout",
+          "account": "Evergreen Grocers",
+          "list_total": 87000,
+          "discount_pct": 10,
+          "amount": 78300,
+          "status": "Sent",
+          "approval_path": "Auto-approved",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-11-23",
+          "created_on": "2026-10-24"
+        }
+      },
+      {
+        "id": "9e1b5c75-61ab-5981-af38-637e7eaefe57",
+        "data": {
+          "quote_id": "Q-7024",
+          "deal_id": "DL-3055",
+          "deal": "Ironbridge site expansion",
+          "account": "Ironbridge Manufacturing",
+          "list_total": 51600,
+          "discount_pct": 10,
+          "amount": 46440,
+          "status": "Sent",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-11-25",
+          "created_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "cfb13b55-a60d-5ce8-aec4-906846939496",
+        "data": {
+          "quote_id": "Q-7025",
+          "deal_id": "DL-3056",
+          "deal": "Copperfield site expansion",
+          "account": "Copperfield Foods",
+          "list_total": 186000,
+          "discount_pct": 10,
+          "amount": 167400,
+          "status": "Approved",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-12-12",
+          "created_on": "2026-11-12"
+        }
+      },
+      {
+        "id": "b5b40e4f-2dea-596f-92db-f80cb7dca54b",
+        "data": {
+          "quote_id": "Q-7026",
+          "deal_id": "DL-3057",
+          "deal": "Tidewater site expansion",
+          "account": "Tidewater Utilities",
+          "list_total": 32400,
+          "discount_pct": 10,
+          "amount": 29160,
+          "status": "Pending approval",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-12-14",
+          "created_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "d8391ab9-b441-52ce-ba6d-2b68e757c090",
+        "data": {
+          "quote_id": "Q-7027",
+          "deal_id": "DL-3058",
+          "deal": "Tidewater site expansion",
+          "account": "Tidewater Utilities",
+          "list_total": 25200,
+          "discount_pct": 0,
+          "amount": 25200,
+          "status": "Approved",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-12-04",
+          "created_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "8210aa4a-1a30-533e-9ae8-e625bd4b4a87",
+        "data": {
+          "quote_id": "Q-7028",
+          "deal_id": "DL-3059",
+          "deal": "Copperfield site expansion",
+          "account": "Copperfield Foods",
+          "list_total": 64800,
+          "discount_pct": 0,
+          "amount": 64800,
+          "status": "Sent",
+          "approval_path": "Auto-approved",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-12-07",
+          "created_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "1b6e9998-10c0-5264-bc2f-2baeb2971519",
+        "data": {
+          "quote_id": "Q-7029",
+          "deal_id": "DL-3060",
+          "deal": "Polaris site expansion",
+          "account": "Polaris Aerospace",
+          "list_total": 168000,
+          "discount_pct": 10,
+          "amount": 151200,
+          "status": "Pending approval",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-12-07",
+          "created_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "56ea47b1-2747-5023-8841-5ff3b76f4698",
+        "data": {
+          "quote_id": "Q-7030",
+          "deal_id": "DL-3082",
+          "deal": "Tidewater renewal",
+          "account": "Tidewater Utilities",
+          "list_total": 18000,
+          "discount_pct": 5,
+          "amount": 17100,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-09-19",
+          "created_on": "2026-08-20"
+        }
+      },
+      {
+        "id": "bacbd023-99f9-5a19-afa7-19a810a79307",
+        "data": {
+          "quote_id": "Q-7031",
+          "deal_id": "DL-3083",
+          "deal": "Highland Professional rollout",
+          "account": "Highland Dairy Co-op",
+          "list_total": 88200,
+          "discount_pct": 15,
+          "amount": 75720,
+          "status": "Accepted",
+          "approval_path": "Sales manager",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-09-28",
+          "created_on": "2026-08-29"
+        }
+      },
+      {
+        "id": "bd545017-eff8-5ed8-87cc-0e2bbe20159b",
+        "data": {
+          "quote_id": "Q-7032",
+          "deal_id": "DL-3084",
+          "deal": "Willow site expansion",
+          "account": "Willow Creek Clinics",
+          "list_total": 105600,
+          "discount_pct": 0,
+          "amount": 105600,
+          "status": "Rejected",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-09-12",
+          "created_on": "2026-08-13"
+        }
+      },
+      {
+        "id": "610911c3-3c80-5ae3-973d-18d8106824df",
+        "data": {
+          "quote_id": "Q-7033",
+          "deal_id": "DL-3085",
+          "deal": "Harborview renewal",
+          "account": "Harborview Logistics",
+          "list_total": 21600,
+          "discount_pct": 5,
+          "amount": 20520,
+          "status": "Sent",
+          "approval_path": "Auto-approved",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-09-13",
+          "created_on": "2026-08-14"
+        }
+      },
+      {
+        "id": "97b4bf7d-0d47-5204-b24f-71973e9886b8",
+        "data": {
+          "quote_id": "Q-7034",
+          "deal_id": "DL-3086",
+          "deal": "Orchard Standard rollout",
+          "account": "Orchard Valley Farms",
+          "list_total": 75000,
+          "discount_pct": 0,
+          "amount": 75000,
+          "status": "Sent",
+          "approval_path": "Auto-approved",
+          "requested_by": "Priya Raman",
+          "valid_until": "2026-09-21",
+          "created_on": "2026-08-22"
+        }
+      },
+      {
+        "id": "deb17581-c97c-58de-977d-dc025c934613",
+        "data": {
+          "quote_id": "Q-7035",
+          "deal_id": "DL-3087",
+          "deal": "Meridian renewal",
+          "account": "Meridian Hospitality",
+          "list_total": 48000,
+          "discount_pct": 5,
+          "amount": 45600,
+          "status": "Sent",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-10-15",
+          "created_on": "2026-09-15"
+        }
+      },
+      {
+        "id": "a9e56b9e-f0df-57f1-8774-0a42c0345846",
+        "data": {
+          "quote_id": "Q-7036",
+          "deal_id": "DL-3088",
+          "deal": "Polaris site expansion",
+          "account": "Polaris Aerospace",
+          "list_total": 32400,
+          "discount_pct": 5,
+          "amount": 30780,
+          "status": "Rejected",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-09-27",
+          "created_on": "2026-08-28"
+        }
+      },
+      {
+        "id": "63404dce-f0c0-5c14-be65-1a37b96edecc",
+        "data": {
+          "quote_id": "Q-7037",
+          "deal_id": "DL-3089",
+          "deal": "Stonegate site expansion",
+          "account": "Stonegate Properties",
+          "list_total": 51600,
+          "discount_pct": 10,
+          "amount": 46440,
+          "status": "Rejected",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-09-30",
+          "created_on": "2026-08-31"
+        }
+      },
+      {
+        "id": "3d8747fb-6fc0-5010-ab8b-6083a5b00d76",
+        "data": {
+          "quote_id": "Q-7038",
+          "deal_id": "DL-3090",
+          "deal": "Foxglove site expansion",
+          "account": "Foxglove Pharma",
+          "list_total": 267600,
+          "discount_pct": 0,
+          "amount": 267600,
+          "status": "Sent",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-09-26",
+          "created_on": "2026-08-27"
+        }
+      },
+      {
+        "id": "f57881cf-172b-567a-9bb5-70c7d666aadd",
+        "data": {
+          "quote_id": "Q-7039",
+          "deal_id": "DL-3091",
+          "deal": "Brightline Enterprise rollout",
+          "account": "Brightline Telecom",
+          "list_total": 184200,
+          "discount_pct": 10,
+          "amount": 165780,
+          "status": "Sent",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Priya Raman",
+          "valid_until": "2026-10-31",
+          "created_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "7d75f3b0-08f0-5b23-b185-997b158dc447",
+        "data": {
+          "quote_id": "Q-7040",
+          "deal_id": "DL-3092",
+          "deal": "Ironbridge Professional rollout",
+          "account": "Ironbridge Manufacturing",
+          "list_total": 64200,
+          "discount_pct": 5,
+          "amount": 60990,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-11-09",
+          "created_on": "2026-10-10"
+        }
+      },
+      {
+        "id": "434b6cd3-1271-5208-a459-62e28c159000",
+        "data": {
+          "quote_id": "Q-7041",
+          "deal_id": "DL-3093",
+          "deal": "Copperfield renewal",
+          "account": "Copperfield Foods",
+          "list_total": 70800,
+          "discount_pct": 5,
+          "amount": 67260,
+          "status": "Rejected",
+          "approval_path": "Auto-approved",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-10-24",
+          "created_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "0febf78c-4634-5d27-8f39-ffcb0c2e4c81",
+        "data": {
+          "quote_id": "Q-7042",
+          "deal_id": "DL-3094",
+          "deal": "Cedar site expansion",
+          "account": "Cedar & Stone Retail",
+          "list_total": 85200,
+          "discount_pct": 0,
+          "amount": 85200,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-10-09",
+          "created_on": "2026-09-09"
+        }
+      },
+      {
+        "id": "70a7f0a8-8f96-5d96-8bac-de09e504c8c6",
+        "data": {
+          "quote_id": "Q-7043",
+          "deal_id": "DL-3095",
+          "deal": "Foxglove renewal",
+          "account": "Foxglove Pharma",
+          "list_total": 100800,
+          "discount_pct": 0,
+          "amount": 100800,
+          "status": "Rejected",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-10-29",
+          "created_on": "2026-09-29"
+        }
+      },
+      {
+        "id": "21258cd4-be80-57fb-90a2-c83ba647c7a5",
+        "data": {
+          "quote_id": "Q-7044",
+          "deal_id": "DL-3096",
+          "deal": "Highland Standard rollout",
+          "account": "Highland Dairy Co-op",
+          "list_total": 53400,
+          "discount_pct": 0,
+          "amount": 53400,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-10-27",
+          "created_on": "2026-09-27"
+        }
+      },
+      {
+        "id": "d8028269-8a36-597d-9d99-e3e8d28bc764",
+        "data": {
+          "quote_id": "Q-7045",
+          "deal_id": "DL-3097",
+          "deal": "Bluefin Standard rollout",
+          "account": "Bluefin Analytics",
+          "list_total": 31800,
+          "discount_pct": 0,
+          "amount": 31800,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-10-31",
+          "created_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "87705ac5-c904-5e50-bf8a-0e5065c13a74",
+        "data": {
+          "quote_id": "Q-7046",
+          "deal_id": "DL-3098",
+          "deal": "Willow site expansion",
+          "account": "Willow Creek Clinics",
+          "list_total": 45600,
+          "discount_pct": 5,
+          "amount": 43320,
+          "status": "Rejected",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-10-31",
+          "created_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "21eab39e-6987-5d8f-878f-a56b9bc0a635",
+        "data": {
+          "quote_id": "Q-7047",
+          "deal_id": "DL-3099",
+          "deal": "Summit site expansion",
+          "account": "Summit Ridge Energy",
+          "list_total": 119400,
+          "discount_pct": 0,
+          "amount": 119400,
+          "status": "Sent",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Priya Raman",
+          "valid_until": "2026-11-05",
+          "created_on": "2026-10-06"
+        }
+      },
+      {
+        "id": "043d2139-aaff-58dc-82bf-40f7c457a91f",
+        "data": {
+          "quote_id": "Q-7048",
+          "deal_id": "DL-3100",
+          "deal": "Sunpath Professional rollout",
+          "account": "Sunpath Solar",
+          "list_total": 29400,
+          "discount_pct": 5,
+          "amount": 27930,
+          "status": "Rejected",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-10-18",
+          "created_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "7c3b642c-bb14-5bce-92c1-83e7567d813a",
+        "data": {
+          "quote_id": "Q-7049",
+          "deal_id": "DL-3101",
+          "deal": "Harborview renewal",
+          "account": "Harborview Logistics",
+          "list_total": 48000,
+          "discount_pct": 22,
+          "amount": 37680,
+          "status": "Sent",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-11-19",
+          "created_on": "2026-10-20"
+        }
+      },
+      {
+        "id": "e162f0bd-8868-5852-b84a-e0ec1dcf5b1d",
+        "data": {
+          "quote_id": "Q-7050",
+          "deal_id": "DL-3102",
+          "deal": "Cedar Enterprise rollout",
+          "account": "Cedar & Stone Retail",
+          "list_total": 96000,
+          "discount_pct": 10,
+          "amount": 86400,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-12-01",
+          "created_on": "2026-11-01"
+        }
+      },
+      {
+        "id": "769bdce4-a953-5046-b7eb-954806d5d385",
+        "data": {
+          "quote_id": "Q-7051",
+          "deal_id": "DL-3103",
+          "deal": "Crescent Professional rollout",
+          "account": "Crescent Bay Resorts",
+          "list_total": 72600,
+          "discount_pct": 0,
+          "amount": 72600,
+          "status": "Sent",
+          "approval_path": "Auto-approved",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-11-21",
+          "created_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "843034c5-9943-5e99-8031-afbd44bd472b",
+        "data": {
+          "quote_id": "Q-7052",
+          "deal_id": "DL-3104",
+          "deal": "Falcon Professional rollout",
+          "account": "Falcon Ridge Security",
+          "list_total": 58200,
+          "discount_pct": 0,
+          "amount": 58200,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Maya Patel",
+          "valid_until": "2026-11-16",
+          "created_on": "2026-10-17"
+        }
+      },
+      {
+        "id": "a1bee8bc-8934-5f90-8f92-d4d372e0f9be",
+        "data": {
+          "quote_id": "Q-7053",
+          "deal_id": "DL-3105",
+          "deal": "Vantage Professional rollout",
+          "account": "Vantage Point Media",
+          "list_total": 79800,
+          "discount_pct": 5,
+          "amount": 75810,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-11-19",
+          "created_on": "2026-10-20"
+        }
+      },
+      {
+        "id": "078bb550-26a2-5ae9-9967-d796458dfff7",
+        "data": {
+          "quote_id": "Q-7054",
+          "deal_id": "DL-3106",
+          "deal": "Silverline site expansion",
+          "account": "Silverline Insurance",
+          "list_total": 26400,
+          "discount_pct": 15,
+          "amount": 23040,
+          "status": "Sent",
+          "approval_path": "Sales manager",
+          "requested_by": "Grace Kim",
+          "valid_until": "2026-11-15",
+          "created_on": "2026-10-16"
+        }
+      },
+      {
+        "id": "ddd956d7-65f3-5e87-b232-93b592518463",
+        "data": {
+          "quote_id": "Q-7055",
+          "deal_id": "DL-3107",
+          "deal": "Granite renewal",
+          "account": "Granite Peak Capital",
+          "list_total": 102000,
+          "discount_pct": 10,
+          "amount": 91800,
+          "status": "Accepted",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-11-18",
+          "created_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "58154fdd-9571-5aee-baf7-cb8ae349f1b9",
+        "data": {
+          "quote_id": "Q-7056",
+          "deal_id": "DL-3108",
+          "deal": "Granite renewal",
+          "account": "Granite Peak Capital",
+          "list_total": 150000,
+          "discount_pct": 10,
+          "amount": 135000,
+          "status": "Rejected",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-11-10",
+          "created_on": "2026-10-11"
+        }
+      },
+      {
+        "id": "d0a6850b-885c-510d-a40e-b957abab5343",
+        "data": {
+          "quote_id": "Q-7057",
+          "deal_id": "DL-3142",
+          "deal": "Stonegate site expansion",
+          "account": "Stonegate Properties",
+          "list_total": 86400,
+          "discount_pct": 5,
+          "amount": 82080,
+          "status": "Pending approval",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-12-04",
+          "created_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "90aef8e8-6b59-5440-8be6-4cd1ae68bffe",
+        "data": {
+          "quote_id": "Q-7058",
+          "deal_id": "DL-3145",
+          "deal": "Evergreen site expansion",
+          "account": "Evergreen Grocers",
+          "list_total": 67800,
+          "discount_pct": 10,
+          "amount": 61020,
+          "status": "Rejected",
+          "approval_path": "Auto-approved",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-10-28",
+          "created_on": "2026-09-28"
+        }
+      },
+      {
+        "id": "9266af82-28e3-5037-a79d-d7857d723631",
+        "data": {
+          "quote_id": "Q-7059",
+          "deal_id": "DL-3154",
+          "deal": "Crescent Standard rollout",
+          "account": "Crescent Bay Resorts",
+          "list_total": 124200,
+          "discount_pct": 0,
+          "amount": 124200,
+          "status": "Draft",
+          "approval_path": "Sales manager → VP sales",
+          "requested_by": "Jonas Berg",
+          "valid_until": "2026-12-21",
+          "created_on": "2026-11-21"
+        }
+      },
+      {
+        "id": "4e1bd3e3-93c4-5836-8066-ceca705eb596",
+        "data": {
+          "quote_id": "Q-7060",
+          "deal_id": "DL-3157",
+          "deal": "Sunpath Standard rollout",
+          "account": "Sunpath Solar",
+          "list_total": 34200,
+          "discount_pct": 0,
+          "amount": 34200,
+          "status": "Approved",
+          "approval_path": "Auto-approved",
+          "requested_by": "Alex Morgan",
+          "valid_until": "2026-12-15",
+          "created_on": "2026-11-15"
+        }
+      }
+    ]
+  }
+}

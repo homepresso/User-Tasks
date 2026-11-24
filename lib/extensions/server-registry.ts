@@ -119,6 +119,17 @@ function structuralProblems(manifest: ExtensionManifest, server: ServerExtension
     if (target?.feature && !features.has(target.feature)) problems.push(`form target ${key}: feature "${target.feature}" is not declared in licence.features`)
     checkPermission(target?.bindPermission, `form target ${key}`)
   }
+  if (server.processing) {
+    if (typeof server.processing.handoff !== 'function') problems.push('processing.handoff must be a function')
+    if (server.processing.feature && !features.has(server.processing.feature)) problems.push(`processing provider: feature "${server.processing.feature}" is not declared in licence.features`)
+  }
+  if (server.infrastructure) {
+    if (!server.infrastructure.actions || typeof server.infrastructure.actions !== 'object') problems.push('infrastructure.actions must be an object of functions')
+    for (const [name, fn] of Object.entries(server.infrastructure.actions ?? {})) if (typeof fn !== 'function' || !/^[a-z][a-zA-Z0-9_]{0,60}$/.test(name)) problems.push(`infrastructure action "${name}" must be a function with a camelCase name`)
+    if (typeof server.infrastructure.href !== 'string' || !server.infrastructure.href.startsWith('/x/')) problems.push('infrastructure.href must be the add-on page (/x/…)')
+    if (!server.infrastructure.feature) problems.push('infrastructure provider: a licence feature is required (changing infrastructure is licensed)')
+    else if (!features.has(server.infrastructure.feature)) problems.push(`infrastructure provider: feature "${server.infrastructure.feature}" is not declared in licence.features`)
+  }
   if (server.infopath?.feature && !features.has(server.infopath.feature)) problems.push(`infopath hook: feature "${server.infopath.feature}" is not declared in licence.features`)
   for (const key of Object.keys(server.usageCounters ?? {})) {
     if (!new RegExp(`^${manifest.id.replace(/-/g, '\\-')}\\.[a-z][a-z0-9_]{0,40}$`).test(key)) problems.push(`usage counter "${key}" must be named "${manifest.id}.<name>"`)

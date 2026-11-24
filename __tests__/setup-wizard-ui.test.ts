@@ -41,7 +41,7 @@ function data(step: WizardPageData['step'], extra: Partial<WizardPageData> = {})
       gate: { enabled: true, reason: null },
       access: 'direct',
       backgroundAvailable: true,
-      moves: [{ area: 'storage', label: 'Files', how: 'page', target: 'a local folder or S3-compatible storage', detail: 'Copies every file.', commands: [] }],
+      addon: { state: 'ready', href: '/x/infrastructure', reason: null },
     },
     signIn: { provider: 'builtin', source: 'settings', idps: [summariseIdp({ id: 'kc', type: 'oidc', preset: 'keycloak', name: 'Keycloak', baseUrl: 'http://localhost:55493', realm: 'usertasks', clientId: 'usertasks', clientSecret: 'super-secret-value' })], refusal: null },
     email: { provider: 'console', source: 'settings', from: 'UserTasks <noreply@usertasks.local>', values: { from: 'UserTasks <noreply@usertasks.local>' }, secretsSet: [], pinned: [] },
@@ -71,7 +71,7 @@ describe('setup wizard steps (rendered)', () => {
     expect(html).not.toContain('>Back<')
   })
 
-  it('services: green / amber / red per area, change in place, moving off Supabase', () => {
+  it('services: green / amber / red per area, change with the add-on, moving off Supabase', () => {
     const html = render(data('services'))
     expect(html).toContain('1 service is not working.')
     expect(html).toContain('data-health="ok"')
@@ -79,17 +79,22 @@ describe('setup wizard steps (rendered)', () => {
     expect(html).toContain('data-health="fail"')
     expect(html).toContain('EMAIL_FROM is required')
     expect(html).toContain('Change Database provider')
+    expect(html).toContain('href="/x/infrastructure?area=db"')
     expect(html).toContain('Moving off Supabase (optional)')
-    expect(html).toContain('Files → a local folder or S3-compatible storage')
+    expect(html).toContain('href="/x/infrastructure?section=move-off-supabase"')
     expect(html).toContain('Set in the server environment.')
   })
 
-  it('services: commands instead of buttons where the page cannot run the move', () => {
+  it('services without the Infrastructure add-on: the add-on card instead of the move, Change… leads to it', () => {
     const d = data('services')
-    d.services!.moves = [{ area: 'db', label: 'Database', how: 'cli', target: 'your own PostgreSQL 15+', detail: 'Do this last.', commands: ['usertasks-admin switch database --to postgres --target-url x --dry-run'] }]
+    d.services!.addon = { state: 'missing', href: null, reason: 'needs the add-on' }
     const html = render(d)
-    expect(html).toContain('usertasks-admin switch database --to postgres --target-url x --dry-run')
-    expect(html).toContain('Run these on the server')
+    expect(html).toContain('Moving off Supabase (optional)')
+    expect(html).toContain('data-addon-upsell="infrastructure"')
+    expect(html).toContain('href="/settings/extensions"')
+    expect(html).toContain('href="#move-off-supabase"')
+    expect(html).not.toContain('/x/infrastructure')
+    expect(html).not.toContain('usertasks-admin switch')
   })
 
   it('sign-in: providers listed without secrets, test sign-in link, redirect URIs', () => {
@@ -111,6 +116,7 @@ describe('setup wizard steps (rendered)', () => {
     const html = render(data('email'))
     expect(html).toContain('nobody receives invitations or password resets')
     expect(html).toContain('Microsoft 365 / Exchange Online')
+    expect(html).toContain('Amazon SES (Infrastructure add-on)')
     expect(html).toContain('Send test email')
     expect(html).toContain('value="owner@example.com"')
     const smtp = render(data('email', { email: { provider: 'smtp', source: 'settings', from: 'a@b.co', values: { from: 'a@b.co', smtp_host: 'mail.example.com' }, secretsSet: ['smtp_password'], pinned: [] } }))

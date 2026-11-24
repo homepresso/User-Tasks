@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { unwrapAction } from '@/lib/action-result'
 import { listAuditActivity } from '@/app/actions/activity'
 import { usePermissions } from '@/lib/permissions-context'
-import { AUDIT_ACTION_LABELS, AUDIT_OBJECT_TYPE_LABELS, auditActionLabel, auditObjectTypeLabel } from '@/lib/audit-labels'
+import { AUDIT_ACTION_LABELS, AUDIT_OBJECT_TYPE_LABELS, auditActionLabel, auditActorLabel, auditObjectTypeLabel } from '@/lib/audit-labels'
 import { hrefForObject } from '@/components/activity/activity-feed'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -83,7 +83,7 @@ export function ObjectAuditLog({ initialType = '' }: { initialType?: string }) {
                     <td className="px-4 py-2.5 text-xs text-fg-muted">
                       {href ? <Link href={href} className="hover:underline">{row.summary ?? row.object_id}</Link> : (row.summary ?? row.object_id)}
                     </td>
-                    <td className="px-4 py-2.5 text-xs whitespace-nowrap text-fg">{row.actor?.display_name ?? (row.actor_id ? '—' : 'System')}</td>
+                    <td className="px-4 py-2.5 text-xs whitespace-nowrap text-fg">{auditActorLabel(row)}</td>
                     <td className="px-4 py-2.5 text-xs text-right whitespace-nowrap text-fg-muted">
                       {new Date(row.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>

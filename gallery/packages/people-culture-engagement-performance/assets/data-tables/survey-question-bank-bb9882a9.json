@@ -1,0 +1,83 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "bb9882a9-5419-58c4-b3e0-b7f821d0912b",
+  "asset": {
+    "id": "bb9882a9-5419-58c4-b3e0-b7f821d0912b",
+    "name": "Survey question bank",
+    "description": "The engagement questions by driver (Engagement outcome, Leadership, Growth, Wellbeing, Belonging, Recognition), the eNPS question and the open comment. The survey forms ask the active ones.",
+    "columns": [
+      {
+        "id": "0cd514c5-6027-50d3-a256-dab721f25e59",
+        "required": true,
+        "key": "q_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "a15e6d52-0a97-5167-aabb-714d5e0e151b",
+        "required": true,
+        "key": "question",
+        "name": "Question",
+        "type": "text"
+      },
+      {
+        "id": "c0f3b1f5-5e7f-5a45-9282-aa58fb44a8e2",
+        "required": false,
+        "key": "short",
+        "name": "Short label",
+        "type": "text"
+      },
+      {
+        "id": "97209cec-acca-5010-8bc4-7725030075bd",
+        "required": false,
+        "key": "driver",
+        "name": "Driver",
+        "type": "select",
+        "options": [
+          "Engagement",
+          "Leadership",
+          "Growth",
+          "Wellbeing",
+          "Belonging",
+          "Recognition",
+          "eNPS",
+          "Comment"
+        ]
+      },
+      {
+        "id": "fa48397a-b93f-5f5d-89e8-c008d35e78bb",
+        "required": false,
+        "key": "kind",
+        "name": "Kind",
+        "type": "select",
+        "options": [
+          "Agreement (1-5)",
+          "eNPS (0-10)",
+          "Open text"
+        ]
+      },
+      {
+        "id": "172c6eca-b0cb-5aa3-8e5b-cb04c50d15e7",
+        "required": false,
+        "key": "in_pulse",
+        "name": "In the pulse",
+        "type": "boolean"
+      },
+      {
+        "id": "10645075-2648-5b1f-9cd4-b8b73b401379",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      },
+      {
+        "id": "22ea75c1-a496-5627-9029-bb2c349219a5",
+        "required": false,
+        "key": "sort",
+        "name": "Order",
+        "type": "number"
+      }
+    ]
+  }
+}

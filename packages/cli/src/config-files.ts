@@ -35,6 +35,7 @@ export const CONFIG_SECTIONS: ReadonlyArray<{ section: string; dir: string; alia
   { section: 'log_destinations', dir: 'log-destinations', aliases: ['log-destination', 'log_destination', 'destination'] },
   { section: 'form_themes', dir: 'form-themes', aliases: ['form-theme', 'form_theme'] },
   { section: 'forms', dir: 'forms', aliases: ['form'] },
+  { section: 'apps', dir: 'apps', aliases: ['app'] },
   // Data-table rows (`config export --include-rows`); one file per table.
   { section: 'table_rows', dir: 'data-rows', aliases: ['table-rows', 'table_rows', 'rows'] },
 ]
@@ -323,6 +324,12 @@ function scaffoldAsset(section: string, name: string, idFactory: () => string): 
           { key: 'comments', label: 'Comments', type: 'textarea' },
         ],
         layout: null, theme: { source: 'workspace' },
+      }
+    case 'apps':
+      // Pages by slug; widgets link forms / workflows / tables by id. Audience and editors are set in the workspace.
+      return {
+        name, slug: assetSlug(name), subtitle: null, description: null, icon: 'LayoutGrid', color: null, menu: [], settings: { nav: { style: 'tabs' } },
+        pages: [{ id: randomUUID(), slug: 'home', title: 'Home', icon: null, position: 0, layout: { widgets: [{ id: 'welcome', type: 'heading', w: 12, h: 2, config: { text: `Welcome to ${name}`, level: 1 } }] }, filters: [] }],
       }
     default:
       return { name }

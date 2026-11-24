@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { defineEndpoint } from './registry'
 import { booleanFlag, csvFilter, looseObject } from './common'
 
-const SECTIONS = 'workflows, decision_tables, workflow_activities, data_tables, integrations (with their references and objects), agents, reports, retention_policies, roles, mcp_servers, email_templates, connectors (non-secret config only), log_destinations (no credentials or shipper state), form_themes, forms (fields, layout and theme; versions stay per workspace), workspace_theme (one workspace-theme.json; uploaded fonts by file name, logos by URL — images from another workspace are dropped on apply)'
+const SECTIONS = 'workflows, decision_tables, workflow_activities, data_tables, integrations (with their references and objects), agents, reports, retention_policies, roles, mcp_servers, email_templates, connectors (non-secret config only), log_destinations (no credentials or shipper state), form_themes, forms (fields, layout and theme; versions stay per workspace), apps (pages, menu, settings and the uploaded icons they use; audience and editors stay per workspace), workspace_theme (one workspace-theme.json; uploaded fonts by file name, logos by URL — images from another workspace are dropped on apply)'
 
 const repoFile = z.object({
   path: z.string().min(1).max(512).describe('Path relative to the config folder, e.g. workflows/invoice-approval-3fa8c21b.json'),

@@ -99,9 +99,10 @@ export const START_HERE: HomeLink[] = [
 export const POPULAR_PAGES: Array<{ title: string; href: string }> = [
   { title: 'Step-by-step tutorials', href: '/docs/tutorials' },
   { title: 'Build a form with the wizard', href: '/docs/tasks/form-wizard' },
+  { title: 'Build apps (pages of widgets for a team)', href: '/docs/tasks/apps' },
   { title: 'Set up the Agent (AI assistant)', href: '/docs/ai-assistants' },
   { title: 'Share and embed a form', href: '/docs/tasks/forms#sharing-and-embedding-forms' },
-  { title: 'Form sign-in page', href: '/docs/tasks/forms#form-sign-in-page' },
+  { title: 'Sign-in page for forms and apps', href: '/docs/tasks/forms#sign-in-page-for-forms-and-apps' },
   { title: 'Workspace address and friendly links', href: '/docs/governance/workspace-address' },
   { title: 'Form rules and read-only parts', href: '/docs/tasks/forms#rules' },
   { title: 'Parameters and test inputs', href: '/docs/tasks/forms#parameters-and-variables' },

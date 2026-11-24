@@ -22,8 +22,10 @@ import { DictationButton, DictationStatus, isDictationShortcut, useDictation } f
 import { composeDictation } from '@/lib/assistants/dictation'
 import {
   applyProposedValues, attachFiles, clearAgentConversation, decideAgentChange, dismissProposal, registerAgentDock,
-  removePendingAttachment, requestRerunTest, sendAgentMessage, setAgentOpen, stopAgent, useAgentState,
+  removePendingAttachment, requestRerunTest, retryAgent, sendAgentMessage, setAgentOpen, stopAgent, useAgentState,
 } from './agent-store'
+import { FailureNotice, RetryNote, WorkingBubble } from './agent-status'
+import { describeFailure, failureFromMessage } from '@/lib/agents/errors'
 
 /**
  * The Agent panel. One conversation (agent-store), shown as:
@@ -32,13 +34,16 @@ import {
  *  - floating  desktop standalone form page: a fixed side panel (non-modal);
  *  - inline    inside the form designer dialog: a column of the dialog body
  *              (inside the modal's focus trap, so it is fully interactive);
+ *  - dialog    inside any other modal pop-up: fills the dock AssistantHost
+ *              positions at the dialog's right edge (beside the form, or over
+ *              it when the dialog is too narrow to split);
  *  - sheet     phones: a full-height bottom sheet (modal: focus is trapped,
  *              Escape closes).
  * Streaming text is announced politely (aria-live), tool activity shows as
  * chips, and proposals / drafts / questions / confirmations are cards.
  */
 
-type Variant = 'docked' | 'floating' | 'inline' | 'sheet'
+type Variant = 'docked' | 'floating' | 'inline' | 'dialog' | 'sheet'
 
 export function AgentPanel({ variant, open, onClose, returnFocus }: {
   variant: Variant
@@ -50,9 +55,9 @@ export function AgentPanel({ variant, open, onClose, returnFocus }: {
     return (
       <RadixDialog.Root open={open} onOpenChange={(o) => { if (!o) onClose() }}>
         <RadixDialog.Portal>
-          <RadixDialog.Overlay className="fixed inset-0 z-[60] bg-black/40" />
+          <RadixDialog.Overlay className="fixed inset-0 z-[1100] bg-black/40" />
           <RadixDialog.Content
-            className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1.5rem)] bottom-[calc(var(--ds-tabbar-h,0px)+env(safe-area-inset-bottom))] z-[60] flex flex-col rounded-t-xl border-t border-border bg-elevated text-fg shadow-elev-3 outline-none"
+            className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1.5rem)] bottom-[calc(var(--ds-tabbar-h,0px)+env(safe-area-inset-bottom))] z-[1100] flex flex-col rounded-t-xl border-t border-border bg-elevated text-fg shadow-elev-3 outline-none"
             aria-describedby={undefined}
             onCloseAutoFocus={(e) => { e.preventDefault(); returnFocus?.() }}
             data-assistant-panel="sheet"
@@ -84,7 +89,8 @@ function SidePanel({ variant, onClose, returnFocus, children }: { variant: Exclu
       className={cn(
         'flex flex-col overflow-hidden bg-elevated text-fg',
         variant === 'docked' && 'h-dvh w-[400px] max-w-[45vw] shrink-0 border-l border-border',
-        variant === 'inline' && 'w-[380px] max-w-[45%] shrink-0 border-l border-border-subtle',
+        variant === 'inline' && 'w-[380px] min-w-[320px] max-w-[45%] shrink-0 border-l border-border-subtle',
+        variant === 'dialog' && 'h-full w-full min-w-0 border-l border-border-subtle',
         variant === 'floating' && 'fixed bottom-4 right-4 top-4 z-50 w-[400px] max-w-[calc(100vw-2rem)] rounded-xl border border-border shadow-elev-3',
       )}
       data-assistant-panel={variant === 'docked' ? 'side' : variant}
@@ -132,6 +138,10 @@ function ChatBody({ onClose }: { onClose: () => void }) {
   const [dragging, setDragging] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  // The "working on it" bubble: from the moment a message is sent until text streams in (and between tools).
+  const working = agent.busy && agent.job?.live !== false && Boolean(agent.activity) && agent.activity?.phase !== 'writing'
+  // Retry is offered on the latest error only (screen dividers don't count).
+  const lastRealIndex = agent.items.findLastIndex((it) => it.kind !== 'screen')
   const fileRef = useRef<HTMLInputElement>(null)
   const attachRef = useRef<HTMLButtonElement>(null)
   const { view } = agent
@@ -156,7 +166,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const el = listRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [agent.items])
+  }, [agent.items, working, agent.activity?.phase])
 
   const submit = () => {
     if ((!draft.trim() && !agent.pending.length) || agent.busy || agent.uploading) return
@@ -217,8 +227,8 @@ function ChatBody({ onClose }: { onClose: () => void }) {
             </p>
           )}
         </div>
-        <IconButton label="New conversation" icon={<MessageSquarePlus />} size="sm" onClick={() => { clearAgentConversation(); inputRef.current?.focus() }} disabled={!agent.items.length} data-testid="assistant-clear" />
-        <IconButton label={`Close the ${AGENT_NAME}`} icon={<X />} size="sm" onClick={onClose} data-testid="assistant-close" />
+        <IconButton label="New conversation" icon={<MessageSquarePlus />} size="sm" className="shrink-0" onClick={() => { clearAgentConversation(); inputRef.current?.focus() }} disabled={!agent.items.length} data-testid="assistant-clear" />
+        <IconButton label={`Close the ${AGENT_NAME}`} icon={<X />} size="sm" className="shrink-0" onClick={onClose} data-testid="assistant-close" />
       </div>
 
       <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3 text-ui" data-testid="assistant-messages">
@@ -238,7 +248,8 @@ function ChatBody({ onClose }: { onClose: () => void }) {
         )}
         {agent.items.map((item, i) => (item.kind === 'choice'
           ? <ChoiceCard key={item.id} item={item} status={choiceStatus(agent.items, i)} busy={agent.busy || agent.uploading} />
-          : <Item key={item.id} item={item} busy={agent.busy} dirty={view.dirty} />))}
+          : <Item key={item.id} item={item} busy={agent.busy || agent.uploading} dirty={view.dirty} latest={i === lastRealIndex} />))}
+        {working && agent.activity && <WorkingBubble activity={agent.activity} stopping={agent.status === 'Stopping…'} onStop={stopAgent} />}
         {agent.job && !agent.job.live && (
           <div className="flex items-start gap-2 rounded-lg border border-border bg-panel px-3 py-2 text-xs" data-testid="agent-background-banner">
             <Loader2 className="mt-0.5 size-3.5 shrink-0 animate-spin text-fg-muted" aria-hidden="true" />
@@ -251,7 +262,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Streaming / activity, announced politely to screen readers. */}
-      <div className="sr-only" aria-live="polite" role="status">{agent.status}</div>
+      <div className="sr-only" aria-live="polite" role="status" data-testid="agent-live-status">{agent.status}</div>
 
       {dragging && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-primary bg-elevated/90 text-sm font-medium" aria-hidden="true">
@@ -285,7 +296,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
           </div>
         )}
         <DictationStatus control={dictation} />
-        <div className="flex items-end gap-2">
+        <div className="flex min-w-0 items-end gap-2 [&>button]:shrink-0" data-agent-composer="">
           <input ref={fileRef} type="file" multiple accept={ATTACHMENT_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true"
             onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ''; if (files.length) void attachFiles(files) }} data-testid="agent-file-input" />
           <IconButton ref={attachRef} type="button" label="Attach files" icon={<Paperclip />} variant="ghost" onClick={() => fileRef.current?.click()} disabled={agent.uploading || agent.busy} data-testid="agent-attach" />
@@ -304,7 +315,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
             rows={2}
             maxLength={4000}
             placeholder={dictation.phase === 'listening' ? 'Listening…' : `Ask the ${AGENT_NAME}…`}
-            className="max-h-40 min-h-[2.5rem] flex-1 resize-none rounded-md border border-border bg-panel px-2.5 py-2 text-ui text-fg placeholder:text-fg-subtle focus:border-primary focus:outline-none"
+            className="max-h-40 min-h-[2.5rem] min-w-0 flex-1 resize-none rounded-md border border-border bg-panel px-2.5 py-2 text-ui text-fg placeholder:text-fg-subtle focus:border-primary focus:outline-none"
             data-testid="assistant-input"
           />
           {agent.busy
@@ -316,7 +327,7 @@ function ChatBody({ onClose }: { onClose: () => void }) {
   )
 }
 
-function Item({ item, busy, dirty }: { item: ChatItem; busy: boolean; dirty: boolean }) {
+function Item({ item, busy, dirty, latest = false }: { item: ChatItem; busy: boolean; dirty: boolean; latest?: boolean }) {
   switch (item.kind) {
     case 'user':
       return (
@@ -334,7 +345,7 @@ function Item({ item, busy, dirty }: { item: ChatItem; busy: boolean; dirty: boo
         </div>
       )
     case 'assistant':
-      return item.text.trim() ? <div className="mr-4 text-fg" data-assistant-item="assistant"><ChatMarkdown text={item.text} /></div> : null
+      return item.text.trim() ? <div className="mr-4 text-fg" data-assistant-item="assistant"><ChatMarkdown text={item.text} />{item.retries && <RetryNote retries={item.retries} />}</div> : null
     case 'screen':
       return (
         <div className="flex items-center gap-2 text-2xs text-fg-muted" data-assistant-item="screen" role="separator" aria-label={`Now on ${item.label}`}>
@@ -373,8 +384,14 @@ function Item({ item, busy, dirty }: { item: ChatItem; busy: boolean; dirty: boo
           {item.href && <Link href={item.href} className="inline-flex shrink-0 items-center gap-1 font-medium text-primary-text underline-offset-2 hover:underline" data-testid="assistant-changed-link">Open <ExternalLink className="size-3" aria-hidden="true" /></Link>}
         </div>
       )
-    case 'error':
-      return <div className="flex items-start gap-2 rounded-lg border border-danger px-3 py-2 text-xs text-danger" role="alert" data-assistant-item="error"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />{item.text}</div>
+    case 'error': {
+      // An older conversation may hold a raw provider error: shown friendly too (its Details sanitised).
+      const legacy = !item.failure ? failureFromMessage(item.text) : null
+      const failure = item.failure ?? (legacy ? describeFailure(legacy) : undefined)
+      const message = legacy && failure ? failure.message : item.text
+      const canRetry = Boolean(item.retry ?? (legacy && failure?.retryable ? 'resume' : undefined)) && !item.retried && latest
+      return <FailureNotice message={message} failure={failure} tone={item.stopped ? 'neutral' : 'danger'} onRetry={canRetry ? () => retryAgent(item.id) : null} retryDisabled={busy} />
+    }
   }
 }
 

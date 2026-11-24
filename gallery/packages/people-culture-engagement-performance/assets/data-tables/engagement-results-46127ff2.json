@@ -1,0 +1,154 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+  "asset": {
+    "id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+    "name": "Engagement results",
+    "description": "Published survey results: one row per cycle, segment (company, department, location, tenure) and metric. Scores are % favourable (eNPS from -100 to 100). A segment with fewer responses than the cycle's minimum group size has no scores.",
+    "columns": [
+      {
+        "id": "232eb530-8c71-5e8e-aca6-0ebe65b93035",
+        "required": false,
+        "key": "cycle_code",
+        "name": "Cycle code",
+        "type": "text"
+      },
+      {
+        "id": "18ce1bf2-e3b8-599e-9496-8a2cd5cc140d",
+        "required": false,
+        "key": "cycle_label",
+        "name": "Cycle",
+        "type": "text"
+      },
+      {
+        "id": "aeade37e-d19e-5b82-98a3-6d050d73d5a8",
+        "required": false,
+        "key": "cycle_order",
+        "name": "Order",
+        "type": "number"
+      },
+      {
+        "id": "e7443768-04ed-55bf-9521-236fd2c061dc",
+        "required": false,
+        "key": "dimension",
+        "name": "Dimension",
+        "type": "select",
+        "options": [
+          "Company",
+          "Department",
+          "Location",
+          "Tenure"
+        ]
+      },
+      {
+        "id": "16597658-41f0-5a1f-b850-2b800fe6e529",
+        "required": false,
+        "key": "group",
+        "name": "Group",
+        "type": "text"
+      },
+      {
+        "id": "c03310a3-21ec-55d7-91f9-d72303441167",
+        "required": false,
+        "key": "segment",
+        "name": "Segment",
+        "type": "text"
+      },
+      {
+        "id": "17a025fd-616c-5025-91e3-fe19fd9babc8",
+        "required": false,
+        "key": "metric",
+        "name": "Metric",
+        "type": "select",
+        "options": [
+          "Engagement",
+          "Leadership",
+          "Growth",
+          "Wellbeing",
+          "Belonging",
+          "Recognition",
+          "eNPS",
+          "Participation"
+        ]
+      },
+      {
+        "id": "a3441bef-3905-5789-9e8e-295d1dee5eda",
+        "required": false,
+        "key": "kind",
+        "name": "Kind",
+        "type": "select",
+        "options": [
+          "Outcome",
+          "Driver",
+          "eNPS",
+          "Participation"
+        ]
+      },
+      {
+        "id": "322dc749-9301-51d6-9797-651e7d98ccfc",
+        "required": false,
+        "key": "in_heatmap",
+        "name": "In heat map",
+        "type": "select",
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "2b0b256e-c8ec-5d99-977d-a65587735001",
+        "required": false,
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      },
+      {
+        "id": "2879d310-4a67-55c9-af60-191c07142652",
+        "required": false,
+        "key": "favourable_pct",
+        "name": "% favourable",
+        "type": "number"
+      },
+      {
+        "id": "01bb1a71-bd1c-58ff-a7bb-2d53ae2de92b",
+        "required": false,
+        "key": "benchmark",
+        "name": "Benchmark",
+        "type": "number"
+      },
+      {
+        "id": "b228f09e-f3c2-5c84-80c9-99f2f0bea1fd",
+        "required": false,
+        "key": "responses",
+        "name": "Responses",
+        "type": "number"
+      },
+      {
+        "id": "cb118e21-65f3-528f-a12e-57ae7b6b03c1",
+        "required": false,
+        "key": "invited",
+        "name": "Invited",
+        "type": "number"
+      },
+      {
+        "id": "d934f3e5-cb20-5ccb-b85a-ca5e5a0658f1",
+        "required": false,
+        "key": "reportable",
+        "name": "Reportable",
+        "type": "select",
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "d25f8424-2741-5041-973c-4b4ba4525d73",
+        "required": false,
+        "key": "note",
+        "name": "Note",
+        "type": "text"
+      }
+    ]
+  }
+}

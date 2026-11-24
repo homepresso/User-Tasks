@@ -160,6 +160,10 @@ The harness (\`harness/index.html\` in each kit) behaves like the runtime inside
 
 The harness isn't the sandbox: it doesn't apply the frame's CSP. A build that passes the kit's checks (one module, no imports, no \`import.meta.url\`) runs under it.
 
+### Try it in the library
+
+After uploading, **Try it** on the control's card in **Extensibility → Form controls** opens the real control (sandboxed frame, or inline when trusted) beside a form generated from its \`props\`: a text box, a multi-line box for \`text\`, a number box with the declared \`min\` / \`max\`, a switch for \`boolean\`, a dropdown for \`select\`, a colour picker for \`color\`, one item per line for \`string[]\`, and a JSON box only for \`json\`. Defaults are filled in, required properties are marked, and a value the runtime would refuse is flagged (on a real form it falls back to the default, as in the preview). Changes apply to the preview at once; **Edit as JSON** shows the same values as JSON, kept in sync. **Required** and **Read-only** switch those states, **Restart** reloads the control, and the panel shows the value the form would receive. The preview gives the control no lookups, uploads or reports, and nothing is saved; the last values are remembered in your browser.
+
 ## Contract reference
 
 The source of truth is \`lib/forms/custom-controls/contract.ts\` (also exported by the \`@user-tasks/form-control\` package once it is published).

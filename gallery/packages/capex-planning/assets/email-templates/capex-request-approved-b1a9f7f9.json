@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "b1a9f7f9-4d5c-5302-bae8-77f5b88287ae",
+  "asset": {
+    "id": "b1a9f7f9-4d5c-5302-bae8-77f5b88287ae",
+    "name": "CapEx request approved",
+    "description": "Sent to the requester when a capital request is fully approved.",
+    "subject": "Approved: {{project_ref}} {{form.title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your capital request is approved</h2>\n  <p>Hi {{submitted_by_name}},</p>\n  <p><strong>{{project_ref}} {{form.title}}</strong> is approved for <strong>${{form.investment}}</strong> ({{approval_tier}}: {{route_label}}).</p>\n  <p>Budget line {{budget_key}}: {{budget_status}}. Procurement will raise the purchase order next.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the CapEx planner</p>\n</div>",
+    "text_body": "Your capital request is approved\nHi {{submitted_by_name}},\n  {{project_ref}} {{form.title}} is approved for ${{form.investment}} ({{approval_tier}}: {{route_label}}).\n  Budget line {{budget_key}}: {{budget_status}}. Procurement will raise the purchase order next.\nSent by the CapEx planner",
+    "is_default": false
+  }
+}

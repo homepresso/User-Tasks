@@ -1,0 +1,192 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "a9d39850-d7b7-5eb8-8bf1-e5d831f7a8c7",
+  "asset": {
+    "id": "a9d39850-d7b7-5eb8-8bf1-e5d831f7a8c7",
+    "name": "CRM stage rules",
+    "description": "What happens when a deal enters a stage: its probability, forecast category and the task its owner gets.",
+    "inputs": [
+      {
+        "id": "fa9249a8-5d44-58ea-a50c-518f0c590056",
+        "key": "stage",
+        "label": "Stage",
+        "type": "text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "f4697416-ce1d-599a-bdf0-a8d72bad3a6a",
+        "key": "probability",
+        "label": "Probability %",
+        "type": "number"
+      },
+      {
+        "id": "8ff543f8-a3c5-5f2f-82b6-fef82cdbc996",
+        "key": "forecast",
+        "label": "Forecast",
+        "type": "text"
+      },
+      {
+        "id": "ce85aca5-157f-5fcc-9c42-f2a07d9e9146",
+        "key": "needs_task",
+        "label": "Create a task",
+        "type": "boolean"
+      },
+      {
+        "id": "98cca3d8-380d-5122-ad56-c3e8230948eb",
+        "key": "task",
+        "label": "Task",
+        "type": "text"
+      },
+      {
+        "id": "68a2ae19-41c5-5ef1-b0c5-a4f2d3321231",
+        "key": "hint",
+        "label": "Checklist",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "d8b20857-7eb0-5839-9d09-cb3b9b8ba39b",
+        "label": "Prospecting",
+        "enabled": true,
+        "outputs": {
+          "probability": 10,
+          "forecast": "Pipeline",
+          "needs_task": true,
+          "task": "Book a discovery call",
+          "hint": "Find the pain, the timeline and who else is involved."
+        },
+        "conditions": [
+          {
+            "id": "9bc66b39-b197-5097-8b54-3d6cbe80d3e0",
+            "inputKey": "stage",
+            "operator": "equals",
+            "value": "Prospecting"
+          }
+        ]
+      },
+      {
+        "id": "b9901464-000b-58a4-953d-7a94881becfe",
+        "label": "Qualification",
+        "enabled": true,
+        "outputs": {
+          "probability": 25,
+          "forecast": "Pipeline",
+          "needs_task": true,
+          "task": "Qualify the deal",
+          "hint": "Confirm budget, authority, need and timeline; map the buying committee."
+        },
+        "conditions": [
+          {
+            "id": "e6413b77-cbd0-5c6a-bdf3-3f3fc973fa10",
+            "inputKey": "stage",
+            "operator": "equals",
+            "value": "Qualification"
+          }
+        ]
+      },
+      {
+        "id": "39341b24-c5b8-521e-b71d-384c44b96f7d",
+        "label": "Proposal",
+        "enabled": true,
+        "outputs": {
+          "probability": 50,
+          "forecast": "Best case",
+          "needs_task": true,
+          "task": "Send the proposal",
+          "hint": "Build the quote (discounts over 10% go for approval) and present the ROI model."
+        },
+        "conditions": [
+          {
+            "id": "cee55f46-b834-5cb2-b29b-9d059bdace1d",
+            "inputKey": "stage",
+            "operator": "equals",
+            "value": "Proposal"
+          }
+        ]
+      },
+      {
+        "id": "99a122ee-cdc5-5c5d-8b0f-37dab0ee3db1",
+        "label": "Negotiation",
+        "enabled": true,
+        "outputs": {
+          "probability": 75,
+          "forecast": "Commit",
+          "needs_task": true,
+          "task": "Agree terms",
+          "hint": "Redline the MSA, agree payment terms and the signature date."
+        },
+        "conditions": [
+          {
+            "id": "0bf4b3fb-734d-50ff-9ad3-3f3d816c970a",
+            "inputKey": "stage",
+            "operator": "equals",
+            "value": "Negotiation"
+          }
+        ]
+      },
+      {
+        "id": "b544311e-4de4-51d0-8c58-73520fc1151f",
+        "label": "Closed won",
+        "enabled": true,
+        "outputs": {
+          "probability": 100,
+          "forecast": "Closed",
+          "needs_task": false,
+          "task": "",
+          "hint": ""
+        },
+        "conditions": [
+          {
+            "id": "96c0d269-fd33-55c1-b768-778a719d5228",
+            "inputKey": "stage",
+            "operator": "equals",
+            "value": "Closed won"
+          }
+        ]
+      },
+      {
+        "id": "9316f5e4-8e97-5404-a120-ccd5a200baa6",
+        "label": "Closed lost",
+        "enabled": true,
+        "outputs": {
+          "probability": 0,
+          "forecast": "Omitted",
+          "needs_task": false,
+          "task": "",
+          "hint": ""
+        },
+        "conditions": [
+          {
+            "id": "d6121f62-f3ab-5345-895d-e7d6599f529c",
+            "inputKey": "stage",
+            "operator": "equals",
+            "value": "Closed lost"
+          }
+        ]
+      },
+      {
+        "id": "dc90469d-f768-5029-9425-c7db5991e0d2",
+        "label": "Unknown stage",
+        "enabled": true,
+        "outputs": {
+          "probability": 10,
+          "forecast": "Pipeline",
+          "needs_task": false,
+          "task": "",
+          "hint": ""
+        },
+        "conditions": [
+          {
+            "id": "e3af1c70-b4d4-5815-b675-f62794fb3dca",
+            "inputKey": "stage",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

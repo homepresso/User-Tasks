@@ -5,7 +5,7 @@ import {
   Trophy, User, Users, Utensils, Video, Wrench, X, Zap,
   type LucideIcon,
 } from 'lucide-react'
-import type { SurveyOptionIcon } from '@/lib/forms/survey/controls'
+import { DEFAULT_OPTION_ICON, optionIconName, type SurveyOptionIcon } from '@/lib/forms/survey/controls'
 
 /** The icons a Picture choice option can show (lib/forms/survey/controls.ts SURVEY_OPTION_ICONS). */
 export const SURVEY_ICON_COMPONENTS: Record<SurveyOptionIcon, LucideIcon> = {
@@ -22,8 +22,9 @@ export const SURVEY_ICON_COMPONENTS: Record<SurveyOptionIcon, LucideIcon> = {
 export function OptionPicture({ image, size = 40, className }: { image?: string; size?: number; className?: string }) {
   if (!image) return null
   if (image.startsWith('icon:')) {
-    const Icon = SURVEY_ICON_COMPONENTS[image.slice(5) as SurveyOptionIcon]
-    return Icon ? <Icon size={size} strokeWidth={1.6} aria-hidden className={className} /> : null
+    // An unknown name shows the default icon rather than a blank card.
+    const Icon = SURVEY_ICON_COMPONENTS[optionIconName(image.slice(5)) ?? DEFAULT_OPTION_ICON]
+    return <Icon size={size} strokeWidth={1.6} aria-hidden className={className} data-option-icon={optionIconName(image.slice(5)) ?? DEFAULT_OPTION_ICON} />
   }
   // The option's text names it, so the picture is decorative (alt="").
   // eslint-disable-next-line @next/next/no-img-element -- author-supplied URLs of any host; next/image needs configured hosts

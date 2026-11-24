@@ -17,6 +17,7 @@ import { listReports, loadReportingIndex, managerChain, wouldCreateCycle, isInMa
 import { writeLifecycleEvent } from '@/lib/lifecycle-events'
 import { acceptanceForAssignee } from '@/lib/tasks/queue-rules-server'
 import { QUEUE_TASK_COLUMNS, queueFactsFromTask } from '@/lib/tasks/queue-rules'
+import { invalidTaskStatusMessage } from '@/lib/tasks/status-filter'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { audit, dbError, serviceRoleClient } from './_shared'
 
@@ -205,6 +206,7 @@ export interface ReportTaskRow {
   completed_child_count: number
   updated_at: string | null
   workflow_run_id: string | null
+  tags: string[]
 }
 
 export interface ReportWorkload {
@@ -225,6 +227,8 @@ export interface ReportWorkload {
 export async function listReportTasks(ctx: ServiceContext, filters: ReportTaskFilters = {}) {
   if (!ctx.actorId) throw ServiceError.forbidden('Forbidden: the manager view needs a user (a user-bound credential)')
   if (!hasPerm(ctx, 'tasks.view_own') && !hasPerm(ctx, 'tasks.view_all')) requirePerm(ctx, 'tasks.view_own')
+  const badStatus = invalidTaskStatusMessage(filters.status)
+  if (badStatus) throw ServiceError.validation(badStatus)
   const db = await serviceRoleClient(ctx)
   const index = await loadReportingIndex(db, ctx.tenantId)
   const root = filters.root_user_id && filters.root_user_id !== ctx.actorId ? String(filters.root_user_id) : ctx.actorId
@@ -247,7 +251,7 @@ export async function listReportTasks(ctx: ServiceContext, filters: ReportTaskFi
   const includeClosed = filters.include_closed === true
   const statuses = (filters.status?.length ? filters.status : includeClosed ? [] : [...OPEN_TASK_STATUSES]).filter((s) => includeClosed || !closed.has(s))
   let query = (db as any).from('tasks')
-    .select('id, title, status, priority, due_date, created_at, updated_at, assignee_id, is_workflow_task, workflow_id, workflow_run_id, event_id, available_outcomes, acceptance_status, allow_reassign, progress_pct, child_count, completed_child_count')
+    .select('id, title, status, priority, due_date, created_at, updated_at, assignee_id, is_workflow_task, workflow_id, workflow_run_id, event_id, available_outcomes, acceptance_status, allow_reassign, progress_pct, child_count, completed_child_count, tags')
     .eq('tenant_id', ctx.tenantId)
     .is('deleted_at', null)
     .in('assignee_id', ids)
@@ -303,6 +307,7 @@ export async function listReportTasks(ctx: ServiceContext, filters: ReportTaskFi
       depth: depthOf.get(String(t.assignee_id))?.depth ?? 1,
       progress_pct: t.progress_pct == null ? null : Number(t.progress_pct),
       child_count: Number(t.child_count ?? 0),
+      tags: Array.isArray(t.tags) ? t.tags.map(String) : [],
       completed_child_count: Number(t.completed_child_count ?? 0),
       updated_at: t.updated_at ?? null,
       workflow_run_id: t.workflow_run_id ?? null,

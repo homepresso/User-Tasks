@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { defineEndpoint } from './registry'
-import { deletedResponse, idParams, itemResponse, listResponse, paginationQuery } from './common'
+import { deletedResponse, idParams, itemResponse, listResponse, paginationQuery, tagQueryField, tagsBodyField } from './common'
 
 // Ids are optional (generated when missing) and condition values are
 // stored as strings, so hand-written and fetched tables are both accepted.
@@ -32,6 +32,7 @@ export const decisionTableCreateBody = z.object({
   inputs: z.array(decisionTableFieldSchema).default([]),
   outputs: z.array(decisionTableFieldSchema).default([]),
   rules: z.array(decisionTableRuleSchema).default([]).describe('Ordered; the first enabled matching rule wins'),
+  tags: tagsBodyField,
 })
 
 export const decisionTableUpdateBody = z.object({
@@ -40,6 +41,7 @@ export const decisionTableUpdateBody = z.object({
   inputs: z.array(decisionTableFieldSchema).optional().describe('Replaces all inputs'),
   outputs: z.array(decisionTableFieldSchema).optional().describe('Replaces all outputs'),
   rules: z.array(decisionTableRuleSchema).optional().describe('Replaces all rules'),
+  tags: tagsBodyField,
 })
 
 export const decisionTableTestBody = z.object({
@@ -86,7 +88,7 @@ export const importDecisionTableEndpoint = defineEndpoint({
 export const listDecisionTablesEndpoint = defineEndpoint({
   method: 'GET', path: '/decision-tables', operationId: 'listDecisionTables', tags,
   summary: 'List decision tables', permission: 'workflows.view',
-  query: paginationQuery.extend({ search: z.string().optional().describe('Name or description contains') }),
+  query: paginationQuery.extend({ search: z.string().optional().describe('Name or description contains'), tag: tagQueryField }),
   response: listResponse('decision_tables'), listKey: 'decision_tables',
   cli: { resource: 'decision-tables', verb: 'list' },
 })

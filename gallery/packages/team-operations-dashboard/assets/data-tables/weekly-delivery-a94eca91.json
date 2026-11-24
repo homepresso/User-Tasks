@@ -1,0 +1,46 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a94eca91-9810-58a8-adf1-09576ed3334a",
+  "asset": {
+    "id": "a94eca91-9810-58a8-adf1-09576ed3334a",
+    "name": "Weekly delivery",
+    "description": "Planned and delivered items per team per week, entered by the team leads in the weekly review.",
+    "columns": [
+      {
+        "id": "49715e8e-1580-54ef-b196-79188c1f0b99",
+        "required": true,
+        "key": "week",
+        "name": "Week of",
+        "type": "date"
+      },
+      {
+        "id": "b56564c5-5a84-58e6-be2f-1feec3705909",
+        "required": false,
+        "key": "team",
+        "name": "Team",
+        "type": "select",
+        "options": [
+          "Platform",
+          "Customer success",
+          "Finance ops",
+          "Marketing ops"
+        ]
+      },
+      {
+        "id": "27bd33f9-e731-5614-8408-d7ee15966d50",
+        "required": false,
+        "key": "planned",
+        "name": "Planned",
+        "type": "number"
+      },
+      {
+        "id": "1ef169ea-2bbc-5ebd-8f52-2c6a981916f0",
+        "required": false,
+        "key": "delivered",
+        "name": "Delivered",
+        "type": "number"
+      }
+    ]
+  }
+}

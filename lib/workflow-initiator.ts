@@ -231,7 +231,7 @@ export function viaForTriggerType(triggerType: string | null | undefined): Start
   if (type === "schedule") return "schedule"
   if (type === "webhook_received" || type === "middleware_received") return "webhook"
   if (type === "data_table_event") return "data_table"
-  if (type === "esign_event") return "event"
+  if (type === "esign_event" || type === "agent_error") return "event"
   if (type === "form_submitted") return "form"
   if (type === "api" || type === "manual") return "api"
   if (type === "workflow_error" || type === "workflow_sla" || type.startsWith("retention_policy")) return "event"

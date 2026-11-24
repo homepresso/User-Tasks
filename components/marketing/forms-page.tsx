@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { PdfPreview } from "./pdf-preview"
 import {
   Accessibility,
   ArrowRight,
@@ -220,6 +221,17 @@ export function FormsPage() {
           </div>
         </section>
 
+        {/* Import a PDF form */}
+        <section id="pdf-import" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07]">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+            <SectionHeading eyebrow="PDF import" title="Have a fillable PDF form? Try it here.">
+              Drop a fillable PDF and see the form it becomes: fields with their labels, choices, required fields, date and currency formats, and the show / hide behaviour from its scripts and its printed &ldquo;go to question …&rdquo; instructions. Nothing is stored, and scripts in the PDF are never run.
+            </SectionHeading>
+            <div className="mt-8"><PdfPreview /></div>
+            <DocLinks links={[{ href: "/docs/tasks/import-pdf", label: "Import a PDF form" }]} />
+          </div>
+        </section>
+
         {/* Grid */}
         <section id="grid" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
           <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1fr_auto]">
@@ -428,7 +440,7 @@ export function FormsPage() {
             <div className="mt-10">
               <Shot name="forms-trigger" alt="A workflow whose Form submitted trigger is linked to the Customer return form, with the form page link, Copy link, Open form, QR code and every form variable listed" sizes="(min-width: 1152px) 1104px, 100vw" />
             </div>
-            <DocLinks links={[{ href: "/docs/tasks/forms#sharing-and-embedding-forms", label: "Sharing and embedding" }, { href: "/docs/tasks/forms#friendly-form-links", label: "Friendly form links" }, { href: "/docs/tasks/forms#form-sign-in-page", label: "Form sign-in page" }, { href: "/docs/tasks/forms#the-form-submitted-trigger", label: "The Form submitted trigger" }, { href: "/docs/tasks/forms#form-pages-and-qr-codes", label: "QR codes" }]} />
+            <DocLinks links={[{ href: "/docs/tasks/forms#sharing-and-embedding-forms", label: "Sharing and embedding" }, { href: "/docs/tasks/forms#friendly-form-links", label: "Friendly form links" }, { href: "/docs/tasks/forms#sign-in-page-for-forms-and-apps", label: "Sign-in page for forms and apps" }, { href: "/docs/tasks/forms#the-form-submitted-trigger", label: "The Form submitted trigger" }, { href: "/docs/tasks/forms#form-pages-and-qr-codes", label: "QR codes" }]} />
           </div>
         </section>
 

@@ -64,7 +64,7 @@ describe('system role defaults', () => {
   it('Viewer: a read-only consumer — no build, design or admin permission', () => {
     expect([...roles.viewer].filter((p) => BUILD_AND_ADMIN.includes(p as never))).toEqual([])
     expect(roles.viewer.has('forms.wizard')).toBe(false)
-    expect([...roles.viewer].sort()).toEqual(['data.view', 'forms.submit', 'org.view', 'projects.view', 'reports.view', 'tasks.complete', 'tasks.view_own', 'team.view_members'])
+    expect([...roles.viewer].sort()).toEqual(['apps.view', 'data.view', 'forms.submit', 'org.view', 'projects.view', 'reports.view', 'tasks.complete', 'tasks.view_own', 'team.view_members'])
   })
 
   it('Member: does work (own tasks, rows, own reports, involved queue, own wizard forms) and builds nothing else', () => {

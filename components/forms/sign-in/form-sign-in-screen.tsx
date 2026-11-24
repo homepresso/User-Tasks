@@ -13,7 +13,8 @@ import { EmbedFrame } from '../embed-frame'
 import { FontLinks } from '@/components/fonts/font-links'
 
 /**
- * The form sign-in page (/form-login), and its preview in Settings → Forms.
+ * The workspace sign-in page for forms and apps (/form-login, /sign-in), and
+ * its preview in Settings → Sign-in page.
  * Same sign-in methods as the app's /login — password (organisation, email,
  * password) and the configured SSO buttons — through the same server
  * actions (app/actions/auth.ts): no new auth logic. After signing in the
@@ -50,6 +51,8 @@ export interface FormSignInScreenProps {
   error?: string | null
   /** The settings preview: nothing is submitted. */
   preview?: boolean
+  /** What is being opened (the embedded "Open … in a new tab" wording). Default form. */
+  target?: 'form' | 'app'
 }
 
 export function FormSignInScreen(props: FormSignInScreenProps) {
@@ -69,7 +72,7 @@ export function FormSignInScreen(props: FormSignInScreenProps) {
           workspaceName={workspace?.name ?? null}
           headings={themeStyle.headings}
           preview={preview}
-          form={(tone) => (embed ? <OpenInNewTab url={props.openUrl} tone={tone} preview={preview} /> : <SignInForm {...props} tone={tone} />)}
+          form={(tone) => (embed ? <OpenInNewTab url={props.openUrl} tone={tone} preview={preview} target={props.target ?? 'form'} /> : <SignInForm {...props} tone={tone} />)}
         />
       </div>
     </EmbedFrame>
@@ -78,15 +81,15 @@ export function FormSignInScreen(props: FormSignInScreenProps) {
 
 const BUTTON = 'inline-flex h-11 w-full select-none items-center justify-center gap-2 rounded-[var(--theme-button-radius,8px)] px-4 text-sm font-semibold shadow-elev-1 transition-[filter,opacity,box-shadow] duration-150 hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2'
 
-function OpenInNewTab({ url, tone, preview }: { url: string; tone: PanelTone; preview?: boolean }) {
+function OpenInNewTab({ url, tone, preview, target }: { url: string; tone: PanelTone; preview?: boolean; target: 'form' | 'app' }) {
   return (
     <div className="space-y-3" data-sign-in-embedded>
       <p className={cn('text-sm leading-relaxed', tone === 'dark' ? 'text-zinc-300' : 'text-fg-muted')}>
-        Your browser can&apos;t sign you in inside another website. Open the form in a new tab to sign in and fill it in there.
+        Your browser can&apos;t sign you in inside another website. {target === 'app' ? 'Open the app in a new tab to sign in and use it there.' : 'Open the form in a new tab to sign in and fill it in there.'}
       </p>
       <a href={preview ? undefined : url} target="_blank" rel="noopener" className={BUTTON}
         style={{ backgroundColor: 'var(--fsi-accent)', color: 'var(--fsi-on-accent)', outlineColor: 'var(--fsi-ink)' }} data-sign-in-open-tab>
-        Open the form in a new tab <ExternalLink className="size-4" aria-hidden />
+        {target === 'app' ? 'Open the app in a new tab' : 'Open the form in a new tab'} <ExternalLink className="size-4" aria-hidden />
       </a>
     </div>
   )

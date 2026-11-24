@@ -1,0 +1,215 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "465ef29c-d6e0-5816-8da9-bc2619da8996",
+  "asset": {
+    "id": "465ef29c-d6e0-5816-8da9-bc2619da8996",
+    "name": "One-to-one logged",
+    "description": "From the Log a one-to-one form: saves the notes, and puts a follow-up task on the manager's calendar for the next one-to-one.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Notes logged",
+        "config": {
+          "form_id": "c641b09d-dac2-5e5d-90cb-4ac2ae102d83",
+          "form_name": "Log a one-to-one"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Meeting reference",
+        "config": {
+          "name": "meeting_ref",
+          "expression": "1on1-{{=FORMAT_DATE(NOW(), \"YYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{form.type}} · {{form.employee_name}} · {{form.met_on}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Save the notes",
+        "config": {
+          "table_id": "b97fec2d-1c06-5195-80a7-f7346019f621",
+          "table_name": "One-to-ones",
+          "operation": "insert",
+          "column_values": {
+            "meeting_ref": "{{meeting_ref}}",
+            "employee_name": "{{form.employee_name}}",
+            "employee_email": "{{form.employee}}",
+            "manager_name": "{{submitted_by_name}}",
+            "manager_email": "{{submitted_by_email}}",
+            "department": "{{form.department}}",
+            "met_on": "{{form.met_on}}",
+            "type": "{{form.type}}",
+            "agenda": "{{form.agenda}}",
+            "notes": "{{form.notes}}",
+            "actions": "{{form.actions}}",
+            "mood": "{{form.mood}}",
+            "next_on": "{{form.next_on}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "next",
+        "type": "condition",
+        "label": "Next one booked?",
+        "config": {
+          "branches": [
+            {
+              "label": "Booked",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.next_on}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "follow",
+        "type": "user_task",
+        "label": "Follow up the actions",
+        "config": {
+          "task_title": "1:1 with {{form.employee_name}}: follow up",
+          "task_description": "<p>Agreed actions from {{form.met_on}}:</p><p>{{form.actions}}</p><p>Check them before your next one-to-one.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Followed up"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "form_buttons": [
+            {
+              "id": "followed_up",
+              "label": "Followed up",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Followed up"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "One-to-one follow-up",
+            "align": "left",
+            "subtitle": "{{form.employee_name}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{form.next_on}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Logged",
+        "config": {
+          "reason": "{{meeting_ref}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "end2",
+        "type": "end_workflow",
+        "label": "Logged (no next date)",
+        "config": {
+          "reason": "{{meeting_ref}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1040
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-row",
+        "source": "title",
+        "target": "row"
+      },
+      {
+        "id": "e-row-next",
+        "source": "row",
+        "target": "next"
+      },
+      {
+        "id": "e-next-follow-booked",
+        "source": "next",
+        "target": "follow",
+        "label": "Booked"
+      },
+      {
+        "id": "e-next-end2-else",
+        "source": "next",
+        "target": "end2",
+        "label": "Else"
+      },
+      {
+        "id": "e-follow-end-followed_up",
+        "source": "follow",
+        "target": "end",
+        "label": "Followed up"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

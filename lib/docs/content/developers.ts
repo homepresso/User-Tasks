@@ -537,7 +537,7 @@ Packages live in **Govern › Packages** (also under **Settings → Packages**),
 
 | | |
 |---|---|
-| **Package** | Root artifacts (usually a workflow) plus everything they use, found automatically: sub-workflows, custom steps, decision tables, data tables, integrations and their references and objects, connectors, email templates, agents, custom roles, retention policies, MCP servers. You can add items and leave items out. |
+| **Package** | Root artifacts (usually a workflow or an [app](/docs/tasks/apps#package-and-share-an-app)) plus everything they use, found automatically: sub-workflows, custom steps, decision tables, data tables, integrations and their references and objects, connectors, email templates, agents, custom roles, retention policies, MCP servers, forms — and, for an app, every form, workflow, table, report, API reference, agent and linked app its pages and menu use. You can add items and leave items out. |
 | **Version** | An immutable build of the package: \`1.0.0\`, \`1.1.0\`, … Each build exports the current state of every item, removes secrets, signs the result and stores it as a published version you can download again. |
 | **Requirement** | Something an install has to supply: connector credentials, integration auth, other secrets, \`\${env:VAR}\` references, environment-specific URLs and hosts, assignees and roles. Generated at build time from what was removed or is environment-specific. |
 | **Package library** | The packages installed in a workspace, with version, source, signer and status — **Complete** or **Incomplete** with a setup checklist. |

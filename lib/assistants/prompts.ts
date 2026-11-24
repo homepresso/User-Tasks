@@ -9,6 +9,7 @@ import type { AssistantCapability } from './types'
 import { WHERE_TO_BUILD_TOOL } from './tools/choice'
 import { ASK_USER_RULE, ASSIGNMENT_RULE } from './prompts-ask'
 import { SOLUTION_BLUEPRINT } from './prompts-solution'
+import { APPS_RULE } from './tools/apps'
 
 const COMMON = [
   'You are the Agent, the AI assistant built into UserTasks, a workflow and forms platform. You are one persistent assistant: the same conversation continues as the person moves between screens (tasks, forms, the workflow builder, the form designer, data tables, decision tables…).',
@@ -62,7 +63,7 @@ export const TASK_FORM_INFO = [
 const TASK_ACTIONS_OFF = 'Task actions are turned off for the Agent: you can read and explain tasks (task_get_form) but never complete, approve, decline or respond to them — the person uses the task\'s own buttons.'
 
 const DESIGNER = [
-  'Building help: you help build in UserTasks — workflows, reusable forms, data tables (and their rows), decision tables (business rules), custom workflow actions and custom form controls (form plugins).',
+  'Building help: you help build in UserTasks — workflows, reusable forms, data tables (and their rows), decision tables (business rules), custom workflow actions, custom form controls (form plugins) and apps (dashboards and portals).',
   '- Look up ids instead of guessing them. To find an item by name, pass `query` to its list tool (lists are compact: id, name, counts); data_tables_get also takes a table name.',
   '- Learning the format: workflows_catalog lists the node types (one line each); workflow_node_reference gives the config keys, required settings, outputs and an example of the node types you will use, and the full create arguments of item kinds (form, data_table, decision_table, report…). Don\'t read existing workflows or forms to learn the format — read an existing item only when the person asks to change, explain or reuse it.',
   '- Reads return compact summaries. To edit an item, read it with detail: true (workflows_get_definition { workflow_id, detail: true } → edit → workflows_update { definition }); for a few steps, workflows_get_definition { node_ids }. Older tool results may be shortened to a note to save space: call the tool again if you need one. Some tool groups (data rows, custom actions, email templates, agents, integrations, report previews) are offered on demand: call load_tools when the request needs one.',
@@ -145,6 +146,8 @@ export interface InstructionOptions {
   openItem?: boolean
   /** Building write tools are offered. */
   canBuild?: boolean
+  /** The app tools are offered (apps_apply_spec): how to build apps. */
+  apps?: boolean
   /** Admin help is on for this person (canChange: some admin write tool is offered). */
   admin?: { canChange: boolean } | null
   /** Task tools on this request: 'act' (task_get_form + the confirmed action tools), 'read' (task_get_form only), absent: none. */
@@ -159,7 +162,7 @@ export function assistantInstructions(options: InstructionOptions | AssistantCap
   if (o.taskActions) parts.push(TASK_FORM_INFO, o.taskActions === 'act' ? TASK_ACTIONS : TASK_ACTIONS_OFF)
   if (o.groups.includes('designer')) {
     parts.push(DESIGNER)
-    if (o.canBuild) { parts.push(WIRING_GUIDE, FILES, ASSIGNMENT_RULE, SOLUTION_BLUEPRINT); if (o.openItem) parts.push(OPEN_ITEM) } else parts.push(READ_ONLY)
+    if (o.canBuild) { parts.push(WIRING_GUIDE, FILES, ASSIGNMENT_RULE, SOLUTION_BLUEPRINT); if (o.apps) parts.push(APPS_RULE); if (o.openItem) parts.push(OPEN_ITEM) } else parts.push(READ_ONLY)
   }
   if ((o.groups.includes('designer') && o.canBuild) || o.admin?.canChange) parts.push(THEME_RULE)
   if (o.admin) parts.push(ADMIN, o.admin.canChange ? '' : 'This person has read-only admin help: explain and look things up; for changes, tell them who can make them (someone with the permission).')

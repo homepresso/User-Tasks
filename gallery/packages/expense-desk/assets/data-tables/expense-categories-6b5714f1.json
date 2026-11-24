@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "6b5714f1-29a4-5114-8338-31b3dd77d919",
+  "asset": {
+    "id": "6b5714f1-29a4-5114-8338-31b3dd77d919",
+    "name": "Expense categories",
+    "description": "The expense policy per category: the per-claim limit in USD, the GL code finance posts to and whether a receipt is needed.",
+    "columns": [
+      {
+        "id": "5e263e41-6386-5226-a32c-192974a07d4f",
+        "required": true,
+        "key": "category",
+        "name": "Category",
+        "type": "text"
+      },
+      {
+        "id": "554de4c9-0f5b-562c-9749-5797eb5d3292",
+        "required": false,
+        "key": "limit_usd",
+        "name": "Per-claim limit (USD)",
+        "type": "number"
+      },
+      {
+        "id": "21a545a8-b9cd-52d3-9c15-adccf408a046",
+        "required": false,
+        "key": "gl_code",
+        "name": "GL code",
+        "type": "text"
+      },
+      {
+        "id": "2289196e-abe6-5917-9b96-ae6a0a784512",
+        "required": false,
+        "key": "receipt_required",
+        "name": "Receipt required",
+        "type": "boolean"
+      },
+      {
+        "id": "55b5a6d5-ee07-55b9-bebe-93331e94e30f",
+        "required": false,
+        "key": "guidance",
+        "name": "Guidance",
+        "type": "text"
+      }
+    ]
+  }
+}

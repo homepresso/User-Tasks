@@ -23,6 +23,7 @@ import { readsTableRows } from './label-field'
 import { loadRuleUser } from '@/lib/services/form-rule-user'
 import { innerFieldsDeep } from '@/lib/forms/repeating-section'
 import { holdsNestedSignatures } from '@/lib/forms/signature-cells'
+import { lookupItemKey, lookupLabelKey, normalizeLookupConfig } from './lookup'
 
 /** Whether a form's rules, sections or List validations read the user (`user.*`): the server then loads its own view of the submitter. */
 export function readsRuleUser(metadata: Record<string, unknown> | null | undefined): boolean {
@@ -50,6 +51,16 @@ function lookupFillTargets(fields: ReturnType<typeof normalizeTaskFields>, fills
     const target = fields.find((f) => f.key === key)
     if (!target || target.type === 'lookup' || target.type === 'attachments') continue
     Object.assign(out, coerceTaskFieldValues([target], { [key]: value }))
+  }
+  return out
+}
+
+/** The fill values of some lookups only (their own fill targets). */
+function fillsOf(fields: ReturnType<typeof normalizeTaskFields>, fills: Record<string, unknown>, lookupKeys: readonly string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const field of fields) {
+    if (field.type !== 'lookup' || !field.lookup || !lookupKeys.includes(field.key)) continue
+    for (const { to } of normalizeLookupConfig(field.lookup).fill ?? []) if (Object.prototype.hasOwnProperty.call(fills, to)) out[to] = fills[to]
   }
   return out
 }
@@ -142,14 +153,12 @@ async function checkedValues(
   const actor = options.actorId ?? options.ctx?.actorId ?? null
   const anonymous = !actor && options.ctx?.authKind === 'anonymous'
   const ruleUser = !options.partial && values && (actor || anonymous) && readsRuleUser(metadata) ? await loadRuleUser(supabase, tenantId, actor) : undefined
-  const merged = mergeTaskFieldValues(metadata, values, { ...options, labelRows, ...(ruleUser ? { ruleUser: ruleUser as unknown as Record<string, unknown> } : {}) })
-  if (Object.keys(merged.errors).length > 0) return merged
-  const fields = allFields
-  const errors: Record<string, string> = {}
   // {{param.x}} / {{var.x}} in lookup filters and Data table base filters: the server-validated
   // parameters / variables the caller put into the values (serverFormContext) — never stored.
   const context: Record<string, unknown> = {}
   for (const key of [FORM_PARAMS_KEY, FORM_VARS_KEY, CONTROLS_KEY]) if (values && Object.prototype.hasOwnProperty.call(values, key)) context[key] = values[key]
+  const fields = allFields
+  const existing = isPlainObject(metadata?.template_values) ? metadata!.template_values as Record<string, unknown> : {}
 
   // Lookups: confirm the values, store `<key>_item`. On drafts only the
   // submitted lookups are resolved; completion checks every lookup.
@@ -157,20 +166,46 @@ async function checkedValues(
   const lookupKeys = options.partial
     ? lookups.filter((f) => values && Object.prototype.hasOwnProperty.call(values, f.key)).map((f) => f.key)
     : lookups.map((f) => f.key)
-  let templateValues = merged.templateValues
-  if (lookupKeys.length) {
+  // Resolved BEFORE the merge, from the submitted lookup values: the server-verified `<key>_item` / `<key>_label`
+  // and the "fill other fields" values are what rules (a Set values copying `{{form.<lookup>_item.x}}` into a
+  // read-only field), labels and Before-submit checks read — never the browser's own item, which could be forged.
+  const resolveLookups = async (input: Record<string, unknown>, keys: string[]) => {
     const { resolveLookupSelections } = await import('@/lib/services/form-lookup')
     const { createServiceClient } = await import('@/lib/cron-auth')
-    const existing = isPlainObject(metadata?.template_values) ? metadata!.template_values as Record<string, unknown> : {}
-    const resolved = await resolveLookupSelections(createServiceClient(), tenantId, fields, { ...merged.templateValues, ...context }, {
+    return resolveLookupSelections(createServiceClient(), tenantId, fields, { ...input, ...context }, {
       strict: !options.partial,
       taskId: options.taskId ?? null,
       task: options.task ?? null,
       previous: existing,
-      keys: lookupKeys,
+      keys,
     })
+  }
+  const lookupInput = lookupKeys.length && values ? { ...existing, ...values } : null
+  const early = lookupInput ? await resolveLookups(lookupInput, lookupKeys) : null
+  const derived = early ? { ...early.items, ...lookupFillTargets(fields, early.fills ?? {}) } : undefined
+  const merged = mergeTaskFieldValues(metadata, values, { ...options, labelRows, ...(derived ? { derived } : {}), ...(ruleUser ? { ruleUser: ruleUser as unknown as Record<string, unknown> } : {}) })
+  if (Object.keys(merged.errors).length > 0) return merged
+  const errors: Record<string, string> = {}
+
+  let templateValues = merged.templateValues
+  if (lookupKeys.length) {
+    // What is stored follows the merged values (a section left out blanks its lookups): a lookup whose
+    // value the merge kept as sent reuses the early resolution, any other is resolved again.
+    const same = (k: string) => early && lookupInput && JSON.stringify(merged.templateValues[k] ?? null) === JSON.stringify(lookupInput[k] ?? null)
+    const again = lookupKeys.filter((k) => !same(k))
+    const reused = lookupKeys.filter((k) => same(k))
+    const resolved = again.length ? await resolveLookups(merged.templateValues, again) : { errors: {}, items: {}, fills: {} }
+    for (const k of reused) if (early!.errors[k]) errors[k] = early!.errors[k]
     Object.assign(errors, resolved.errors)
-    templateValues = { ...templateValues, ...resolved.items, ...lookupFillTargets(fields, resolved.fills ?? {}) }
+    const pick = (src: Record<string, unknown>, keys: string[]) => Object.fromEntries(Object.entries(src).filter(([k]) => keys.some((key) => k === lookupItemKey(key) || k === lookupLabelKey(key))))
+    const reusedFills = early ? fillsOf(fields, early.fills ?? {}, reused) : {}
+    templateValues = {
+      ...templateValues,
+      ...(early ? pick(early.items, reused) : {}),
+      ...lookupFillTargets(fields, reusedFills),
+      ...resolved.items,
+      ...lookupFillTargets(fields, resolved.fills ?? {}),
+    }
   }
   // List lookup cells (lib/forms/list-field.ts): each confirmed in its column's source, labels from the source.
   const lists = fields.filter((f) => f.type === 'list' && !f.read_only && f.list?.columns.some((c) => c.type === 'lookup'))

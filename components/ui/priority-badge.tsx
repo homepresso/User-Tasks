@@ -31,3 +31,14 @@ export function PriorityBadge({ priority, className }: { priority: string; class
     </span>
   )
 }
+
+/** Icon-only priority (lists): the bars, with the label for screen readers and as a tooltip. */
+export function PriorityMark({ priority, className }: { priority: string; className?: string }) {
+  const p = PRIORITY[priority] ?? PRIORITY.none
+  return (
+    <span className={cn('inline-flex shrink-0', className)} title={`${p.label} priority`} data-priority={priority}>
+      <PriorityIcon bars={p.bars} className={p.color} />
+      <span className="sr-only">{p.label} priority</span>
+    </span>
+  )
+}

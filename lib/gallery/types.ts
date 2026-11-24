@@ -50,7 +50,7 @@ export const NATIVE_BADGE = { label: 'No integrations needed', description: 'Use
 export type GalleryCategoryId = (typeof GALLERY_CATEGORIES)[number]['id']
 
 /** How a package's main workflow starts. */
-export type GalleryTrigger = 'form' | 'api' | 'schedule' | 'event'
+export type GalleryTrigger = 'form' | 'api' | 'schedule' | 'event' | 'app'
 
 export const GALLERY_TRIGGERS: Record<GalleryTrigger, { label: string; badge: string; description: string }> = {
   form: {
@@ -72,6 +72,11 @@ export const GALLERY_TRIGGERS: Record<GalleryTrigger, { label: string; badge: st
     label: 'Event-driven',
     badge: 'Event-driven',
     description: 'Starts when something changes: a data-table row is created or updated, or a task changes state.',
+  },
+  app: {
+    label: 'Opens as an app',
+    badge: 'App',
+    description: 'An app people open from the Apps menu: pages of task lists, charts, forms and buttons, with the forms, workflows and data it uses. After install, choose who can use it in the app’s settings.',
   },
 }
 
@@ -95,6 +100,34 @@ export type GalleryNeed = keyof typeof GALLERY_NEEDS
 
 export type GalleryDifficulty = 'starter' | 'intermediate' | 'advanced'
 
+/** A screenshot in gallery.json (path relative to the package folder). */
+export interface GalleryScreenshot {
+  /** screenshots/<name>.webp or .png */
+  file: string
+  /** One sentence: what the screenshot shows (also its alt text). */
+  caption: string
+  /** The colour scheme it was taken in (default light). */
+  theme?: 'light' | 'dark'
+}
+
+/** Limits for official package screenshots. */
+export const GALLERY_SCREENSHOT_LIMITS = { count: 6, bytes: 400 * 1024 } as const
+
+/** A screenshot path in gallery.json: inside the package's screenshots/ folder, WebP or PNG. */
+export const GALLERY_SCREENSHOT_FILE = /^screenshots\/[a-z0-9][a-z0-9-]{0,60}\.(webp|png)$/
+
+/** Where the build publishes a package's screenshot (under public/). */
+export function galleryScreenshotUrl(slug: string, file: string): string {
+  return `/gallery/screenshots/${slug}/${file.replace(/^screenshots\//, '')}`
+}
+
+/** Is this image a WebP or PNG (by its bytes)? */
+export function isScreenshotImage(bytes: Uint8Array, file: string): boolean {
+  const ascii = (from: number, to: number) => String.fromCharCode(...bytes.subarray(from, to))
+  if (file.endsWith('.png')) return bytes.length > 8 && bytes[0] === 0x89 && ascii(1, 4) === 'PNG'
+  return bytes.length > 12 && ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP'
+}
+
 export interface GalleryChangelogEntry {
   version: string
   /** YYYY-MM-DD */
@@ -114,8 +147,14 @@ export interface GalleryMeta {
   /** Long description: paragraphs separated by blank lines. */
   description: string
   trigger: GalleryTrigger
-  /** The workflow (asset id) that starts the process. */
-  entry_workflow: string
+  /**
+   * The workflow (asset id) that starts the process. Required unless the
+   * package is app-first (`entry_app`); an app-first package may still name
+   * the workflow its main button starts (then verification runs it too).
+   */
+  entry_workflow?: string
+  /** App-first packages (trigger "app"): the app (asset id in the apps section) people open after install. */
+  entry_app?: string
   /**
    * A reusable form (asset id) people submit to start the process on its own
    * page (/f/<id>): its Submit button's Start workflow action, or the entry
@@ -137,10 +176,16 @@ export interface GalleryMeta {
   steps: Array<{ title: string; body: string }>
   /** Example start: variables for the entry workflow (sample API call and verification). */
   sample_input: Record<string, unknown>
-  /** What a run started with sample_input reaches (verified against the local stack). */
+  /** What a run started with sample_input reaches (verified against the local stack). Not used by app-first packages without an entry workflow. */
   expect: 'waiting' | 'completed'
   /** Lucide-style icon name for cards. */
   icon?: string
+  /**
+   * Real screenshots of what the package installs (app-first packages show
+   * their app): files in the package folder (`screenshots/<name>.webp|png`),
+   * copied to public/gallery/screenshots/<slug>/ by the build. Demo data only.
+   */
+  screenshots?: GalleryScreenshot[]
   /**
    * Third-party systems the package talks to, as shown on the system chips
    * ("Workday", "SAP S/4HANA"). Empty / absent for built-in-only packages.

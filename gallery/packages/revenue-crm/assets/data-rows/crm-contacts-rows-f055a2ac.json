@@ -1,0 +1,1691 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "f055a2ac-22a3-5e94-b144-6dd4b846e645",
+  "asset": {
+    "id": "f055a2ac-22a3-5e94-b144-6dd4b846e645",
+    "name": "CRM contacts rows",
+    "rows": [
+      {
+        "id": "5cc27595-d2af-5506-8acd-23c6dd0b1810",
+        "data": {
+          "contact_id": "CON-2001",
+          "name": "Zoe Castillo",
+          "title": "Head of Facilities",
+          "account": "Harborview Logistics",
+          "account_id": "ACC-1001",
+          "email": "zoe.castillo@harborviewlogistics.example",
+          "phone": "+1 555 0100",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-12"
+        }
+      },
+      {
+        "id": "737595ac-9b6d-564d-94ee-34caaa374324",
+        "data": {
+          "contact_id": "CON-2002",
+          "name": "Priscilla Mensah",
+          "title": "Plant Manager",
+          "account": "Harborview Logistics",
+          "account_id": "ACC-1001",
+          "email": "priscilla.mensah@harborviewlogistics.example",
+          "phone": "+1 555 0101",
+          "role": "Champion",
+          "last_contacted": "2026-06-09"
+        }
+      },
+      {
+        "id": "3f085ca9-a530-5890-a315-1bbc318ce77f",
+        "data": {
+          "contact_id": "CON-2003",
+          "name": "Hugo Osei",
+          "title": "Procurement Manager",
+          "account": "Harborview Logistics",
+          "account_id": "ACC-1001",
+          "email": "hugo.osei@harborviewlogistics.example",
+          "phone": "+1 555 0102",
+          "role": "Finance",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "b10cdea9-bd83-59ce-9ce5-ddb035b53879",
+        "data": {
+          "contact_id": "CON-2004",
+          "name": "Hugo Tanaka",
+          "title": "Head of Facilities",
+          "account": "Pinecrest Health",
+          "account_id": "ACC-1002",
+          "email": "hugo.tanaka@pinecresthealth.example",
+          "phone": "+1 555 0103",
+          "role": "Decision maker",
+          "last_contacted": "2026-09-11"
+        }
+      },
+      {
+        "id": "250b104d-ac05-5173-82b2-0325fe6a93fe",
+        "data": {
+          "contact_id": "CON-2005",
+          "name": "Mateo Varga",
+          "title": "Operations Manager",
+          "account": "Pinecrest Health",
+          "account_id": "ACC-1002",
+          "email": "mateo.varga@pinecresthealth.example",
+          "phone": "+1 555 0104",
+          "role": "Champion",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "cfb91578-ecb0-51ac-bbed-7c7616d1c0f6",
+        "data": {
+          "contact_id": "CON-2006",
+          "name": "Freya Tanaka",
+          "title": "Procurement Manager",
+          "account": "Pinecrest Health",
+          "account_id": "ACC-1002",
+          "email": "freya.tanaka@pinecresthealth.example",
+          "phone": "+1 555 0105",
+          "role": "Finance",
+          "last_contacted": "2026-11-09"
+        }
+      },
+      {
+        "id": "71421234-b281-5013-bac7-722d62955c66",
+        "data": {
+          "contact_id": "CON-2007",
+          "name": "Theo Delacroix",
+          "title": "VP Operations",
+          "account": "Summit Ridge Energy",
+          "account_id": "ACC-1003",
+          "email": "theo.delacroix@summitridgeenergy.example",
+          "phone": "+1 555 0106",
+          "role": "Decision maker",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "73914c08-dbeb-5eba-b97b-aa6adb527108",
+        "data": {
+          "contact_id": "CON-2008",
+          "name": "Sofia Bennett",
+          "title": "Director of Reliability",
+          "account": "Summit Ridge Energy",
+          "account_id": "ACC-1003",
+          "email": "sofia.bennett@summitridgeenergy.example",
+          "phone": "+1 555 0107",
+          "role": "Champion",
+          "last_contacted": "2026-11-10"
+        }
+      },
+      {
+        "id": "a7a6d0fb-79ff-51b4-acd8-88409f16101b",
+        "data": {
+          "contact_id": "CON-2009",
+          "name": "Mateo Mensah",
+          "title": "Field Supervisor",
+          "account": "Summit Ridge Energy",
+          "account_id": "ACC-1003",
+          "email": "mateo.mensah@summitridgeenergy.example",
+          "phone": "+1 555 0108",
+          "role": "User",
+          "last_contacted": "2026-10-12"
+        }
+      },
+      {
+        "id": "d18816af-4874-5874-9a48-7db84cf2ef90",
+        "data": {
+          "contact_id": "CON-2010",
+          "name": "Freya Nakamura",
+          "title": "Head of Facilities",
+          "account": "Bluefin Analytics",
+          "account_id": "ACC-1004",
+          "email": "freya.nakamura@bluefinanalytics.example",
+          "phone": "+1 555 0109",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-04"
+        }
+      },
+      {
+        "id": "84be7a9b-4c1b-5b13-b896-68238201ec01",
+        "data": {
+          "contact_id": "CON-2011",
+          "name": "Olivia Mensah",
+          "title": "Director of Reliability",
+          "account": "Bluefin Analytics",
+          "account_id": "ACC-1004",
+          "email": "olivia.mensah@bluefinanalytics.example",
+          "phone": "+1 555 0110",
+          "role": "Champion",
+          "last_contacted": "2026-11-19"
+        }
+      },
+      {
+        "id": "a5b66490-2c14-531b-93bb-9069e422d4fa",
+        "data": {
+          "contact_id": "CON-2012",
+          "name": "Tomas Fontaine",
+          "title": "Field Supervisor",
+          "account": "Bluefin Analytics",
+          "account_id": "ACC-1004",
+          "email": "tomas.fontaine@bluefinanalytics.example",
+          "phone": "+1 555 0111",
+          "role": "User",
+          "last_contacted": "2026-09-11"
+        }
+      },
+      {
+        "id": "a88ec4cc-41e6-5885-9c4c-1e31ff19c0ba",
+        "data": {
+          "contact_id": "CON-2013",
+          "name": "Zoe Nakamura",
+          "title": "VP Operations",
+          "account": "Cedar & Stone Retail",
+          "account_id": "ACC-1005",
+          "email": "zoe.nakamura@cedarandstoneretail.example",
+          "phone": "+1 555 0112",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-13"
+        }
+      },
+      {
+        "id": "1da38d9f-c154-5c0a-bf13-f666d38a4593",
+        "data": {
+          "contact_id": "CON-2014",
+          "name": "Lucas Bennett",
+          "title": "Plant Manager",
+          "account": "Cedar & Stone Retail",
+          "account_id": "ACC-1005",
+          "email": "lucas.bennett@cedarandstoneretail.example",
+          "phone": "+1 555 0113",
+          "role": "Champion",
+          "last_contacted": "2026-10-28"
+        }
+      },
+      {
+        "id": "7069471d-84e7-5954-baa0-50dd28d5cecd",
+        "data": {
+          "contact_id": "CON-2015",
+          "name": "Isla Kowalski",
+          "title": "Procurement Manager",
+          "account": "Cedar & Stone Retail",
+          "account_id": "ACC-1005",
+          "email": "isla.kowalski@cedarandstoneretail.example",
+          "phone": "+1 555 0114",
+          "role": "Finance",
+          "last_contacted": "2026-11-06"
+        }
+      },
+      {
+        "id": "d4224126-a437-5a5e-b54d-817bb09b3887",
+        "data": {
+          "contact_id": "CON-2016",
+          "name": "Yara Lindqvist",
+          "title": "VP Operations",
+          "account": "Ironbridge Manufacturing",
+          "account_id": "ACC-1006",
+          "email": "yara.lindqvist@ironbridgemanufacturing.example",
+          "phone": "+1 555 0115",
+          "role": "Decision maker",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "1b75fa4e-6ecf-5605-9226-10fb479d7452",
+        "data": {
+          "contact_id": "CON-2017",
+          "name": "Isla Achterberg",
+          "title": "Director of Reliability",
+          "account": "Ironbridge Manufacturing",
+          "account_id": "ACC-1006",
+          "email": "isla.achterberg@ironbridgemanufacturing.example",
+          "phone": "+1 555 0116",
+          "role": "Champion",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "d11dc8cd-9c44-5b8a-a333-70dc029fa05e",
+        "data": {
+          "contact_id": "CON-2018",
+          "name": "Nora Hartley",
+          "title": "VP Finance",
+          "account": "Ironbridge Manufacturing",
+          "account_id": "ACC-1006",
+          "email": "nora.hartley@ironbridgemanufacturing.example",
+          "phone": "+1 555 0117",
+          "role": "Economic buyer",
+          "last_contacted": "2026-09-21"
+        }
+      },
+      {
+        "id": "72e9415c-2640-5fb5-b0b9-c1af4dbd5fc2",
+        "data": {
+          "contact_id": "CON-2019",
+          "name": "Freya Mensah",
+          "title": "VP Operations",
+          "account": "Lumen Credit Union",
+          "account_id": "ACC-1007",
+          "email": "freya.mensah@lumencreditunion.example",
+          "phone": "+1 555 0118",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-16"
+        }
+      },
+      {
+        "id": "983ee413-dd92-5e3c-8e47-d3fcf95bd9bc",
+        "data": {
+          "contact_id": "CON-2020",
+          "name": "Aisha Haddad",
+          "title": "Operations Manager",
+          "account": "Lumen Credit Union",
+          "account_id": "ACC-1007",
+          "email": "aisha.haddad@lumencreditunion.example",
+          "phone": "+1 555 0119",
+          "role": "Champion",
+          "last_contacted": "2026-10-16"
+        }
+      },
+      {
+        "id": "7cd9ff7d-90fa-54be-971e-5e1634dfb055",
+        "data": {
+          "contact_id": "CON-2021",
+          "name": "Leila Nakamura",
+          "title": "Data Engineering Lead",
+          "account": "Lumen Credit Union",
+          "account_id": "ACC-1007",
+          "email": "leila.nakamura@lumencreditunion.example",
+          "phone": "+1 555 0120",
+          "role": "Technical evaluator",
+          "last_contacted": "2026-11-17"
+        }
+      },
+      {
+        "id": "35c7a75a-4d4c-5859-ab2c-988ff4c3f7c5",
+        "data": {
+          "contact_id": "CON-2022",
+          "name": "Yara Larsen",
+          "title": "Chief Operating Officer",
+          "account": "Aurora Biotech",
+          "account_id": "ACC-1008",
+          "email": "yara.larsen@aurorabiotech.example",
+          "phone": "+1 555 0121",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-19"
+        }
+      },
+      {
+        "id": "4252bc37-8cd8-5b70-b992-b1913773974d",
+        "data": {
+          "contact_id": "CON-2023",
+          "name": "Yara Bennett",
+          "title": "Director of Reliability",
+          "account": "Aurora Biotech",
+          "account_id": "ACC-1008",
+          "email": "yara.bennett@aurorabiotech.example",
+          "phone": "+1 555 0122",
+          "role": "Champion",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "18cfce6f-3689-5e38-bdc2-e653d3686697",
+        "data": {
+          "contact_id": "CON-2024",
+          "name": "Nora Abara",
+          "title": "CFO",
+          "account": "Aurora Biotech",
+          "account_id": "ACC-1008",
+          "email": "nora.abara@aurorabiotech.example",
+          "phone": "+1 555 0123",
+          "role": "Economic buyer",
+          "last_contacted": "2026-11-18"
+        }
+      },
+      {
+        "id": "d6f9b21d-e9af-5c65-8094-087b2da0905d",
+        "data": {
+          "contact_id": "CON-2025",
+          "name": "Ethan Varga",
+          "title": "Head of Facilities",
+          "account": "Redwood Freight",
+          "account_id": "ACC-1009",
+          "email": "ethan.varga@redwoodfreight.example",
+          "phone": "+1 555 0124",
+          "role": "Decision maker",
+          "last_contacted": "2026-09-16"
+        }
+      },
+      {
+        "id": "7fc37a6c-f564-578a-b856-dab15ae5520e",
+        "data": {
+          "contact_id": "CON-2026",
+          "name": "Hugo Moreau",
+          "title": "Plant Manager",
+          "account": "Redwood Freight",
+          "account_id": "ACC-1009",
+          "email": "hugo.moreau@redwoodfreight.example",
+          "phone": "+1 555 0125",
+          "role": "Champion",
+          "last_contacted": "2026-11-16"
+        }
+      },
+      {
+        "id": "fbb7c4f0-32d3-508e-a79b-96589d94aee8",
+        "data": {
+          "contact_id": "CON-2027",
+          "name": "Aisha Bennett",
+          "title": "CFO",
+          "account": "Redwood Freight",
+          "account_id": "ACC-1009",
+          "email": "aisha.bennett@redwoodfreight.example",
+          "phone": "+1 555 0126",
+          "role": "Economic buyer",
+          "last_contacted": "2026-10-30"
+        }
+      },
+      {
+        "id": "a26b2223-357f-5527-8c4b-5c6ef93f49f6",
+        "data": {
+          "contact_id": "CON-2028",
+          "name": "Leila Reyes",
+          "title": "Head of Facilities",
+          "account": "Silverline Insurance",
+          "account_id": "ACC-1010",
+          "email": "leila.reyes@silverlineinsurance.example",
+          "phone": "+1 555 0127",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "5925a04d-3c17-5953-991b-de170dace057",
+        "data": {
+          "contact_id": "CON-2029",
+          "name": "Priscilla Whitfield",
+          "title": "Plant Manager",
+          "account": "Silverline Insurance",
+          "account_id": "ACC-1010",
+          "email": "priscilla.whitfield@silverlineinsurance.example",
+          "phone": "+1 555 0128",
+          "role": "Champion",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "ef3548b8-1ae0-5299-86ea-df615fd9df12",
+        "data": {
+          "contact_id": "CON-2030",
+          "name": "Yara Sato",
+          "title": "Analyst",
+          "account": "Silverline Insurance",
+          "account_id": "ACC-1010",
+          "email": "yara.sato@silverlineinsurance.example",
+          "phone": "+1 555 0129",
+          "role": "User",
+          "last_contacted": "2026-11-17"
+        }
+      },
+      {
+        "id": "58d2ce4d-b3fa-5d64-be61-599b79b32fb0",
+        "data": {
+          "contact_id": "CON-2031",
+          "name": "Hana Moreau",
+          "title": "Chief Operating Officer",
+          "account": "Kestrel Robotics",
+          "account_id": "ACC-1011",
+          "email": "hana.moreau@kestrelrobotics.example",
+          "phone": "+1 555 0130",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-09"
+        }
+      },
+      {
+        "id": "0d7e7c3f-8e26-55a8-b5fa-a9dbfbbb46fa",
+        "data": {
+          "contact_id": "CON-2032",
+          "name": "Owen Fontaine",
+          "title": "Director of Reliability",
+          "account": "Kestrel Robotics",
+          "account_id": "ACC-1011",
+          "email": "owen.fontaine@kestrelrobotics.example",
+          "phone": "+1 555 0131",
+          "role": "Champion",
+          "last_contacted": "2026-11-09"
+        }
+      },
+      {
+        "id": "8d79a292-2b8b-5ca8-8954-ca421beef5ee",
+        "data": {
+          "contact_id": "CON-2033",
+          "name": "Diego Mensah",
+          "title": "Data Engineering Lead",
+          "account": "Kestrel Robotics",
+          "account_id": "ACC-1011",
+          "email": "diego.mensah@kestrelrobotics.example",
+          "phone": "+1 555 0132",
+          "role": "Technical evaluator",
+          "last_contacted": "2024-03-13"
+        }
+      },
+      {
+        "id": "a233c3d2-589f-5f06-a3ef-d0dad840ab7b",
+        "data": {
+          "contact_id": "CON-2034",
+          "name": "Kofi Hartley",
+          "title": "Head of Facilities",
+          "account": "Meridian Hospitality",
+          "account_id": "ACC-1012",
+          "email": "kofi.hartley@meridianhospitality.example",
+          "phone": "+1 555 0133",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-17"
+        }
+      },
+      {
+        "id": "a5c8226c-de62-5aa9-9286-a35b3ced71bc",
+        "data": {
+          "contact_id": "CON-2035",
+          "name": "Noah Varga",
+          "title": "Operations Manager",
+          "account": "Meridian Hospitality",
+          "account_id": "ACC-1012",
+          "email": "noah.varga@meridianhospitality.example",
+          "phone": "+1 555 0134",
+          "role": "Champion",
+          "last_contacted": "2026-08-10"
+        }
+      },
+      {
+        "id": "3f44c2b4-187a-5ad9-87d0-3253deba4dc5",
+        "data": {
+          "contact_id": "CON-2036",
+          "name": "Jasper Okoro",
+          "title": "VP Finance",
+          "account": "Meridian Hospitality",
+          "account_id": "ACC-1012",
+          "email": "jasper.okoro@meridianhospitality.example",
+          "phone": "+1 555 0135",
+          "role": "Economic buyer",
+          "last_contacted": "2026-10-06"
+        }
+      },
+      {
+        "id": "66554f0f-6ae0-56a0-a9b8-3842c3e237cf",
+        "data": {
+          "contact_id": "CON-2037",
+          "name": "Theo Osei",
+          "title": "Head of Facilities",
+          "account": "Oakhaven Schools",
+          "account_id": "ACC-1013",
+          "email": "theo.osei@oakhavenschools.example",
+          "phone": "+1 555 0136",
+          "role": "Decision maker",
+          "last_contacted": "2026-07-29"
+        }
+      },
+      {
+        "id": "f0f24d20-d8d9-5d3c-a246-4ea16e141cf2",
+        "data": {
+          "contact_id": "CON-2038",
+          "name": "Zoe Lindqvist",
+          "title": "Plant Manager",
+          "account": "Oakhaven Schools",
+          "account_id": "ACC-1013",
+          "email": "zoe.lindqvist@oakhavenschools.example",
+          "phone": "+1 555 0137",
+          "role": "Champion",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "f642d408-a614-5039-a595-774c272025c4",
+        "data": {
+          "contact_id": "CON-2039",
+          "name": "Aisha Kowalski",
+          "title": "Shift Lead",
+          "account": "Oakhaven Schools",
+          "account_id": "ACC-1013",
+          "email": "aisha.kowalski@oakhavenschools.example",
+          "phone": "+1 555 0138",
+          "role": "User",
+          "last_contacted": "2026-09-07"
+        }
+      },
+      {
+        "id": "0716bc1f-0e0b-532f-88e2-2294186785d9",
+        "data": {
+          "contact_id": "CON-2040",
+          "name": "Chloe Fontaine",
+          "title": "Head of Facilities",
+          "account": "Copperfield Foods",
+          "account_id": "ACC-1014",
+          "email": "chloe.fontaine@copperfieldfoods.example",
+          "phone": "+1 555 0139",
+          "role": "Decision maker",
+          "last_contacted": "2026-10-21"
+        }
+      },
+      {
+        "id": "a44e40db-c713-5ee9-b38b-294c2380644e",
+        "data": {
+          "contact_id": "CON-2041",
+          "name": "Freya Novak",
+          "title": "Director of Reliability",
+          "account": "Copperfield Foods",
+          "account_id": "ACC-1014",
+          "email": "freya.novak@copperfieldfoods.example",
+          "phone": "+1 555 0140",
+          "role": "Champion",
+          "last_contacted": "2026-11-11"
+        }
+      },
+      {
+        "id": "5d39a166-2fd0-5ecd-97f8-e4415711d963",
+        "data": {
+          "contact_id": "CON-2042",
+          "name": "Mateo Whitfield",
+          "title": "Shift Lead",
+          "account": "Copperfield Foods",
+          "account_id": "ACC-1014",
+          "email": "mateo.whitfield@copperfieldfoods.example",
+          "phone": "+1 555 0141",
+          "role": "User",
+          "last_contacted": "2026-10-19"
+        }
+      },
+      {
+        "id": "6af6d60d-9c5e-5f55-b6fc-0f40d920956a",
+        "data": {
+          "contact_id": "CON-2043",
+          "name": "Samuel Hartley",
+          "title": "Chief Operating Officer",
+          "account": "Tidewater Utilities",
+          "account_id": "ACC-1015",
+          "email": "samuel.hartley@tidewaterutilities.example",
+          "phone": "+1 555 0142",
+          "role": "Decision maker",
+          "last_contacted": "2026-10-27"
+        }
+      },
+      {
+        "id": "dcffaa49-0c47-58e4-934a-6e61cf139a1b",
+        "data": {
+          "contact_id": "CON-2044",
+          "name": "Samuel Larsen",
+          "title": "Operations Manager",
+          "account": "Tidewater Utilities",
+          "account_id": "ACC-1015",
+          "email": "samuel.larsen@tidewaterutilities.example",
+          "phone": "+1 555 0143",
+          "role": "Champion",
+          "last_contacted": "2026-11-09"
+        }
+      },
+      {
+        "id": "463b218c-e1ab-53f7-9fc4-2e098dd6773a",
+        "data": {
+          "contact_id": "CON-2045",
+          "name": "Amara Ibarra",
+          "title": "VP Finance",
+          "account": "Tidewater Utilities",
+          "account_id": "ACC-1015",
+          "email": "amara.ibarra@tidewaterutilities.example",
+          "phone": "+1 555 0144",
+          "role": "Economic buyer",
+          "last_contacted": "2026-09-28"
+        }
+      },
+      {
+        "id": "512dfa16-36b1-58cf-86bb-71eaf517b8be",
+        "data": {
+          "contact_id": "CON-2046",
+          "name": "Caleb Osei",
+          "title": "VP Operations",
+          "account": "Granite Peak Capital",
+          "account_id": "ACC-1016",
+          "email": "caleb.osei@granitepeakcapital.example",
+          "phone": "+1 555 0145",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-02"
+        }
+      },
+      {
+        "id": "c75e4bb8-31d3-5f23-be2e-aab3e39e48f0",
+        "data": {
+          "contact_id": "CON-2047",
+          "name": "Aisha Reyes",
+          "title": "Operations Manager",
+          "account": "Granite Peak Capital",
+          "account_id": "ACC-1016",
+          "email": "aisha.reyes@granitepeakcapital.example",
+          "phone": "+1 555 0146",
+          "role": "Champion",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "68bdc71a-7290-5645-bb48-bd686ed86a35",
+        "data": {
+          "contact_id": "CON-2048",
+          "name": "Isla Tanaka",
+          "title": "Shift Lead",
+          "account": "Granite Peak Capital",
+          "account_id": "ACC-1016",
+          "email": "isla.tanaka@granitepeakcapital.example",
+          "phone": "+1 555 0147",
+          "role": "User",
+          "last_contacted": "2026-11-13"
+        }
+      },
+      {
+        "id": "2ac11a29-a73f-5697-89f5-e2be10531af7",
+        "data": {
+          "contact_id": "CON-2049",
+          "name": "Leila Moreau",
+          "title": "VP Operations",
+          "account": "Willow Creek Clinics",
+          "account_id": "ACC-1017",
+          "email": "leila.moreau@willowcreekclinics.example",
+          "phone": "+1 555 0148",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-18"
+        }
+      },
+      {
+        "id": "60bc34b0-26c9-5098-a948-2ced06c918f9",
+        "data": {
+          "contact_id": "CON-2050",
+          "name": "Ravi Achterberg",
+          "title": "Director of Reliability",
+          "account": "Willow Creek Clinics",
+          "account_id": "ACC-1017",
+          "email": "ravi.achterberg@willowcreekclinics.example",
+          "phone": "+1 555 0149",
+          "role": "Champion",
+          "last_contacted": "2026-11-09"
+        }
+      },
+      {
+        "id": "4ff666e1-8041-55ec-8e0e-968510206e48",
+        "data": {
+          "contact_id": "CON-2051",
+          "name": "Owen Whitfield",
+          "title": "CFO",
+          "account": "Willow Creek Clinics",
+          "account_id": "ACC-1017",
+          "email": "owen.whitfield@willowcreekclinics.example",
+          "phone": "+1 555 0150",
+          "role": "Economic buyer",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "68c6fe15-9a88-5d21-894a-3e51fb3aeab8",
+        "data": {
+          "contact_id": "CON-2052",
+          "name": "Lucas Mensah",
+          "title": "Head of Facilities",
+          "account": "Nimbus Software",
+          "account_id": "ACC-1018",
+          "email": "lucas.mensah@nimbussoftware.example",
+          "phone": "+1 555 0151",
+          "role": "Decision maker",
+          "last_contacted": "2025-06-23"
+        }
+      },
+      {
+        "id": "267ee379-3976-5289-8348-a08492c42b66",
+        "data": {
+          "contact_id": "CON-2053",
+          "name": "Tomas Nakamura",
+          "title": "Director of Reliability",
+          "account": "Nimbus Software",
+          "account_id": "ACC-1018",
+          "email": "tomas.nakamura@nimbussoftware.example",
+          "phone": "+1 555 0152",
+          "role": "Champion",
+          "last_contacted": "2026-09-23"
+        }
+      },
+      {
+        "id": "d384553d-c30a-57dc-a1b0-151be6c01997",
+        "data": {
+          "contact_id": "CON-2054",
+          "name": "Lucas Ibarra",
+          "title": "CFO",
+          "account": "Nimbus Software",
+          "account_id": "ACC-1018",
+          "email": "lucas.ibarra@nimbussoftware.example",
+          "phone": "+1 555 0153",
+          "role": "Economic buyer",
+          "last_contacted": "2026-09-10"
+        }
+      },
+      {
+        "id": "d8691a7a-baac-5f8e-b01d-5b3c3b040f27",
+        "data": {
+          "contact_id": "CON-2055",
+          "name": "Hugo Sato",
+          "title": "Head of Facilities",
+          "account": "Atlas Fabrication",
+          "account_id": "ACC-1019",
+          "email": "hugo.sato@atlasfabrication.example",
+          "phone": "+1 555 0154",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "4fe58aab-1b49-5e6f-83fc-20ab7fab10b0",
+        "data": {
+          "contact_id": "CON-2056",
+          "name": "Owen Castillo",
+          "title": "Operations Manager",
+          "account": "Atlas Fabrication",
+          "account_id": "ACC-1019",
+          "email": "owen.castillo@atlasfabrication.example",
+          "phone": "+1 555 0155",
+          "role": "Champion",
+          "last_contacted": "2026-11-09"
+        }
+      },
+      {
+        "id": "43eccc4b-4de7-5888-b0b4-82b1da53f439",
+        "data": {
+          "contact_id": "CON-2057",
+          "name": "Tomas Achterberg",
+          "title": "VP Finance",
+          "account": "Atlas Fabrication",
+          "account_id": "ACC-1019",
+          "email": "tomas.achterberg@atlasfabrication.example",
+          "phone": "+1 555 0156",
+          "role": "Economic buyer",
+          "last_contacted": "2026-11-19"
+        }
+      },
+      {
+        "id": "518f790b-741b-5a86-a5ca-68367ed40638",
+        "data": {
+          "contact_id": "CON-2058",
+          "name": "Chloe Kowalski",
+          "title": "Chief Operating Officer",
+          "account": "Clearwater Municipal",
+          "account_id": "ACC-1020",
+          "email": "chloe.kowalski@clearwatermunicipal.example",
+          "phone": "+1 555 0157",
+          "role": "Decision maker",
+          "last_contacted": "2026-09-07"
+        }
+      },
+      {
+        "id": "86f8fce2-ca4a-56a9-9e5b-430a3da26ece",
+        "data": {
+          "contact_id": "CON-2059",
+          "name": "Diego Achterberg",
+          "title": "Plant Manager",
+          "account": "Clearwater Municipal",
+          "account_id": "ACC-1020",
+          "email": "diego.achterberg@clearwatermunicipal.example",
+          "phone": "+1 555 0158",
+          "role": "Champion",
+          "last_contacted": "2026-11-17"
+        }
+      },
+      {
+        "id": "edf8b0cf-6875-5cc9-aab0-fa340d23776a",
+        "data": {
+          "contact_id": "CON-2060",
+          "name": "Ravi Tanaka",
+          "title": "VP Finance",
+          "account": "Clearwater Municipal",
+          "account_id": "ACC-1020",
+          "email": "ravi.tanaka@clearwatermunicipal.example",
+          "phone": "+1 555 0159",
+          "role": "Economic buyer",
+          "last_contacted": "2026-10-19"
+        }
+      },
+      {
+        "id": "b37c6f83-59f7-5806-bb25-90eb5568b06e",
+        "data": {
+          "contact_id": "CON-2061",
+          "name": "Kofi Ibarra",
+          "title": "VP Operations",
+          "account": "Foxglove Pharma",
+          "account_id": "ACC-1021",
+          "email": "kofi.ibarra@foxglovepharma.example",
+          "phone": "+1 555 0160",
+          "role": "Decision maker",
+          "last_contacted": "2026-09-03"
+        }
+      },
+      {
+        "id": "ce0c5378-f8eb-56f9-b608-5bd29ffdbc91",
+        "data": {
+          "contact_id": "CON-2062",
+          "name": "Hana Tanaka",
+          "title": "Director of Reliability",
+          "account": "Foxglove Pharma",
+          "account_id": "ACC-1021",
+          "email": "hana.tanaka@foxglovepharma.example",
+          "phone": "+1 555 0161",
+          "role": "Champion",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "58ebd03e-9a68-5698-91ea-5a66166dc6f7",
+        "data": {
+          "contact_id": "CON-2063",
+          "name": "Theo Ibarra",
+          "title": "Finance Business Partner",
+          "account": "Foxglove Pharma",
+          "account_id": "ACC-1021",
+          "email": "theo.ibarra@foxglovepharma.example",
+          "phone": "+1 555 0162",
+          "role": "Finance",
+          "last_contacted": "2026-09-28"
+        }
+      },
+      {
+        "id": "3e6725d8-2374-589b-94e5-0b910364e22f",
+        "data": {
+          "contact_id": "CON-2064",
+          "name": "Ravi Osei",
+          "title": "Head of Facilities",
+          "account": "Stonegate Properties",
+          "account_id": "ACC-1022",
+          "email": "ravi.osei@stonegateproperties.example",
+          "phone": "+1 555 0163",
+          "role": "Decision maker",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "2bc50f9a-5bc5-5b8b-9ad4-8134f605c824",
+        "data": {
+          "contact_id": "CON-2065",
+          "name": "Nora Larsen",
+          "title": "Plant Manager",
+          "account": "Stonegate Properties",
+          "account_id": "ACC-1022",
+          "email": "nora.larsen@stonegateproperties.example",
+          "phone": "+1 555 0164",
+          "role": "Champion",
+          "last_contacted": "2026-11-18"
+        }
+      },
+      {
+        "id": "348be0bc-5f3a-50e0-b99c-b813f487defc",
+        "data": {
+          "contact_id": "CON-2066",
+          "name": "Lucas Nakamura",
+          "title": "CFO",
+          "account": "Stonegate Properties",
+          "account_id": "ACC-1022",
+          "email": "lucas.nakamura@stonegateproperties.example",
+          "phone": "+1 555 0165",
+          "role": "Economic buyer",
+          "last_contacted": "2026-08-10"
+        }
+      },
+      {
+        "id": "acfe281d-352e-59b8-981b-6dd6543d25f0",
+        "data": {
+          "contact_id": "CON-2067",
+          "name": "Lucas Brennan",
+          "title": "Head of Facilities",
+          "account": "Brightline Telecom",
+          "account_id": "ACC-1023",
+          "email": "lucas.brennan@brightlinetelecom.example",
+          "phone": "+1 555 0166",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-16"
+        }
+      },
+      {
+        "id": "3fa99b7b-cf33-56d0-912f-7fdfb9c460d7",
+        "data": {
+          "contact_id": "CON-2068",
+          "name": "Mateo Larsen",
+          "title": "Director of Reliability",
+          "account": "Brightline Telecom",
+          "account_id": "ACC-1023",
+          "email": "mateo.larsen@brightlinetelecom.example",
+          "phone": "+1 555 0167",
+          "role": "Champion",
+          "last_contacted": "2026-11-18"
+        }
+      },
+      {
+        "id": "5a3ed4ab-bb9e-52e8-a999-0eff083d4945",
+        "data": {
+          "contact_id": "CON-2069",
+          "name": "Priscilla Reyes",
+          "title": "Analyst",
+          "account": "Brightline Telecom",
+          "account_id": "ACC-1023",
+          "email": "priscilla.reyes@brightlinetelecom.example",
+          "phone": "+1 555 0168",
+          "role": "User",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "9f2bf157-02ec-5e92-95ce-fced96723eee",
+        "data": {
+          "contact_id": "CON-2070",
+          "name": "Felix Lindqvist",
+          "title": "Head of Facilities",
+          "account": "Evergreen Grocers",
+          "account_id": "ACC-1024",
+          "email": "felix.lindqvist@evergreengrocers.example",
+          "phone": "+1 555 0169",
+          "role": "Decision maker",
+          "last_contacted": "2026-10-09"
+        }
+      },
+      {
+        "id": "486778b0-825c-5b39-93a3-6358c738279a",
+        "data": {
+          "contact_id": "CON-2071",
+          "name": "Priscilla Delacroix",
+          "title": "Plant Manager",
+          "account": "Evergreen Grocers",
+          "account_id": "ACC-1024",
+          "email": "priscilla.delacroix@evergreengrocers.example",
+          "phone": "+1 555 0170",
+          "role": "Champion",
+          "last_contacted": "2026-08-06"
+        }
+      },
+      {
+        "id": "20021387-5156-53ec-bba3-53add49876c7",
+        "data": {
+          "contact_id": "CON-2072",
+          "name": "Hugo Mensah",
+          "title": "CFO",
+          "account": "Evergreen Grocers",
+          "account_id": "ACC-1024",
+          "email": "hugo.mensah@evergreengrocers.example",
+          "phone": "+1 555 0171",
+          "role": "Economic buyer",
+          "last_contacted": "2026-10-22"
+        }
+      },
+      {
+        "id": "3acafe17-d882-5e7c-ba52-391417b20ff4",
+        "data": {
+          "contact_id": "CON-2073",
+          "name": "Leila Kowalski",
+          "title": "Head of Facilities",
+          "account": "Polaris Aerospace",
+          "account_id": "ACC-1025",
+          "email": "leila.kowalski@polarisaerospace.example",
+          "phone": "+1 555 0172",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-13"
+        }
+      },
+      {
+        "id": "e6ecd8d3-8b30-5c46-aaa8-944647ef1e12",
+        "data": {
+          "contact_id": "CON-2074",
+          "name": "Mei Castillo",
+          "title": "Director of Reliability",
+          "account": "Polaris Aerospace",
+          "account_id": "ACC-1025",
+          "email": "mei.castillo@polarisaerospace.example",
+          "phone": "+1 555 0173",
+          "role": "Champion",
+          "last_contacted": "2026-07-31"
+        }
+      },
+      {
+        "id": "f6466370-7917-5513-b6f5-df411e42486d",
+        "data": {
+          "contact_id": "CON-2075",
+          "name": "Kofi Abara",
+          "title": "CFO",
+          "account": "Polaris Aerospace",
+          "account_id": "ACC-1025",
+          "email": "kofi.abara@polarisaerospace.example",
+          "phone": "+1 555 0174",
+          "role": "Economic buyer",
+          "last_contacted": "2026-11-06"
+        }
+      },
+      {
+        "id": "0009ca96-1686-5eb7-b393-7932d1c0cc56",
+        "data": {
+          "contact_id": "CON-2076",
+          "name": "Samuel Quinn",
+          "title": "VP Operations",
+          "account": "Sagebrush Outdoor",
+          "account_id": "ACC-1026",
+          "email": "samuel.quinn@sagebrushoutdoor.example",
+          "phone": "+1 555 0175",
+          "role": "Decision maker",
+          "last_contacted": "2026-10-14"
+        }
+      },
+      {
+        "id": "02b99e55-7b73-5687-a68a-95a76bf754ee",
+        "data": {
+          "contact_id": "CON-2077",
+          "name": "Caleb Lindqvist",
+          "title": "Operations Manager",
+          "account": "Sagebrush Outdoor",
+          "account_id": "ACC-1026",
+          "email": "caleb.lindqvist@sagebrushoutdoor.example",
+          "phone": "+1 555 0176",
+          "role": "Champion",
+          "last_contacted": "2026-10-19"
+        }
+      },
+      {
+        "id": "f98f21f8-54fd-5018-98f0-aefdbfd55ea6",
+        "data": {
+          "contact_id": "CON-2078",
+          "name": "Yara Kowalski",
+          "title": "VP Finance",
+          "account": "Sagebrush Outdoor",
+          "account_id": "ACC-1026",
+          "email": "yara.kowalski@sagebrushoutdoor.example",
+          "phone": "+1 555 0177",
+          "role": "Economic buyer",
+          "last_contacted": "2026-07-20"
+        }
+      },
+      {
+        "id": "1fb0f725-2456-523b-a70f-5195bba73af6",
+        "data": {
+          "contact_id": "CON-2079",
+          "name": "Aisha Okoro",
+          "title": "Head of Facilities",
+          "account": "Marlow & Finch Legal",
+          "account_id": "ACC-1027",
+          "email": "aisha.okoro@marlowandfinchlegal.example",
+          "phone": "+1 555 0178",
+          "role": "Decision maker",
+          "last_contacted": "2026-10-28"
+        }
+      },
+      {
+        "id": "b0e89e81-6f58-5d9f-af6a-3756d19a4b5b",
+        "data": {
+          "contact_id": "CON-2080",
+          "name": "Mateo Ibarra",
+          "title": "Operations Manager",
+          "account": "Marlow & Finch Legal",
+          "account_id": "ACC-1027",
+          "email": "mateo.ibarra@marlowandfinchlegal.example",
+          "phone": "+1 555 0179",
+          "role": "Champion",
+          "last_contacted": "2026-10-22"
+        }
+      },
+      {
+        "id": "00c93efb-d59f-516e-8af9-0df9a2ba43b1",
+        "data": {
+          "contact_id": "CON-2081",
+          "name": "Samuel Moreau",
+          "title": "Solutions Architect",
+          "account": "Marlow & Finch Legal",
+          "account_id": "ACC-1027",
+          "email": "samuel.moreau@marlowandfinchlegal.example",
+          "phone": "+1 555 0180",
+          "role": "Technical evaluator",
+          "last_contacted": "2026-11-16"
+        }
+      },
+      {
+        "id": "fdf1ee0a-2d58-53d4-af9c-01beb16313d7",
+        "data": {
+          "contact_id": "CON-2082",
+          "name": "Tomas Brennan",
+          "title": "VP Operations",
+          "account": "Quarry Lane Mining",
+          "account_id": "ACC-1028",
+          "email": "tomas.brennan@quarrylanemining.example",
+          "phone": "+1 555 0181",
+          "role": "Decision maker",
+          "last_contacted": "2026-09-14"
+        }
+      },
+      {
+        "id": "9948591f-1fae-5437-a1d6-9c94548fa570",
+        "data": {
+          "contact_id": "CON-2083",
+          "name": "Jasper Novak",
+          "title": "Operations Manager",
+          "account": "Quarry Lane Mining",
+          "account_id": "ACC-1028",
+          "email": "jasper.novak@quarrylanemining.example",
+          "phone": "+1 555 0182",
+          "role": "Champion",
+          "last_contacted": "2026-11-17"
+        }
+      },
+      {
+        "id": "7a975705-caeb-5b01-b3dd-b1fabf5aaf72",
+        "data": {
+          "contact_id": "CON-2084",
+          "name": "Mei Reyes",
+          "title": "Finance Business Partner",
+          "account": "Quarry Lane Mining",
+          "account_id": "ACC-1028",
+          "email": "mei.reyes@quarrylanemining.example",
+          "phone": "+1 555 0183",
+          "role": "Finance",
+          "last_contacted": "2026-07-24"
+        }
+      },
+      {
+        "id": "f30db634-8032-5ad0-a9b7-5b4e9b7cfa73",
+        "data": {
+          "contact_id": "CON-2085",
+          "name": "Sofia Osei",
+          "title": "Chief Operating Officer",
+          "account": "Bayside Medical Group",
+          "account_id": "ACC-1029",
+          "email": "sofia.osei@baysidemedicalgroup.example",
+          "phone": "+1 555 0184",
+          "role": "Decision maker",
+          "last_contacted": "2026-07-20"
+        }
+      },
+      {
+        "id": "e7782009-d488-53a3-b32e-d2729497a3d6",
+        "data": {
+          "contact_id": "CON-2086",
+          "name": "Hugo Castillo",
+          "title": "Operations Manager",
+          "account": "Bayside Medical Group",
+          "account_id": "ACC-1029",
+          "email": "hugo.castillo@baysidemedicalgroup.example",
+          "phone": "+1 555 0185",
+          "role": "Champion",
+          "last_contacted": "2026-06-26"
+        }
+      },
+      {
+        "id": "51414aa2-2e3b-5229-b272-b84af42db45e",
+        "data": {
+          "contact_id": "CON-2087",
+          "name": "Leila Haddad",
+          "title": "Procurement Manager",
+          "account": "Bayside Medical Group",
+          "account_id": "ACC-1029",
+          "email": "leila.haddad@baysidemedicalgroup.example",
+          "phone": "+1 555 0186",
+          "role": "Finance",
+          "last_contacted": "2026-10-16"
+        }
+      },
+      {
+        "id": "0b26378c-0fe8-51ef-b5cf-b2dab28b88ca",
+        "data": {
+          "contact_id": "CON-2088",
+          "name": "Amara Bennett",
+          "title": "VP Operations",
+          "account": "Vantage Point Media",
+          "account_id": "ACC-1030",
+          "email": "amara.bennett@vantagepointmedia.example",
+          "phone": "+1 555 0187",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-13"
+        }
+      },
+      {
+        "id": "9c0cf437-da99-52f7-ae50-6d75b9ade22c",
+        "data": {
+          "contact_id": "CON-2089",
+          "name": "Hana Whitfield",
+          "title": "Plant Manager",
+          "account": "Vantage Point Media",
+          "account_id": "ACC-1030",
+          "email": "hana.whitfield@vantagepointmedia.example",
+          "phone": "+1 555 0188",
+          "role": "Champion",
+          "last_contacted": "2026-09-18"
+        }
+      },
+      {
+        "id": "13c13a51-5fa2-508b-b6b8-846efb8aa763",
+        "data": {
+          "contact_id": "CON-2090",
+          "name": "Ravi Varga",
+          "title": "Analyst",
+          "account": "Vantage Point Media",
+          "account_id": "ACC-1030",
+          "email": "ravi.varga@vantagepointmedia.example",
+          "phone": "+1 555 0189",
+          "role": "User",
+          "last_contacted": "2026-10-21"
+        }
+      },
+      {
+        "id": "0ab9ca3d-44b4-53c8-bee8-b94c9a0cd2f0",
+        "data": {
+          "contact_id": "CON-2091",
+          "name": "Jasper Fontaine",
+          "title": "Chief Operating Officer",
+          "account": "Highland Dairy Co-op",
+          "account_id": "ACC-1031",
+          "email": "jasper.fontaine@highlanddairycoop.example",
+          "phone": "+1 555 0190",
+          "role": "Decision maker",
+          "last_contacted": "2026-10-23"
+        }
+      },
+      {
+        "id": "9e64d78f-8f6d-56a6-a55a-b9964c25357b",
+        "data": {
+          "contact_id": "CON-2092",
+          "name": "Mei Kowalski",
+          "title": "Plant Manager",
+          "account": "Highland Dairy Co-op",
+          "account_id": "ACC-1031",
+          "email": "mei.kowalski@highlanddairycoop.example",
+          "phone": "+1 555 0191",
+          "role": "Champion",
+          "last_contacted": "2026-11-19"
+        }
+      },
+      {
+        "id": "5c3458fd-f8c0-50c3-846a-6c5ecfa8d2d7",
+        "data": {
+          "contact_id": "CON-2093",
+          "name": "Amara Moreau",
+          "title": "Shift Lead",
+          "account": "Highland Dairy Co-op",
+          "account_id": "ACC-1031",
+          "email": "amara.moreau@highlanddairycoop.example",
+          "phone": "+1 555 0192",
+          "role": "User",
+          "last_contacted": "2026-11-20"
+        }
+      },
+      {
+        "id": "bfe1accb-685d-505a-9794-1a2a0b63ed72",
+        "data": {
+          "contact_id": "CON-2094",
+          "name": "Felix Varga",
+          "title": "Chief Operating Officer",
+          "account": "Juniper Data Systems",
+          "account_id": "ACC-1032",
+          "email": "felix.varga@juniperdatasystems.example",
+          "phone": "+1 555 0193",
+          "role": "Decision maker",
+          "last_contacted": "2026-09-09"
+        }
+      },
+      {
+        "id": "db86e2df-4677-50da-86ca-7fa5b266d5d5",
+        "data": {
+          "contact_id": "CON-2095",
+          "name": "Freya Fontaine",
+          "title": "Director of Reliability",
+          "account": "Juniper Data Systems",
+          "account_id": "ACC-1032",
+          "email": "freya.fontaine@juniperdatasystems.example",
+          "phone": "+1 555 0194",
+          "role": "Champion",
+          "last_contacted": "2026-10-13"
+        }
+      },
+      {
+        "id": "6d1def91-2375-5057-b797-d5a832f7d4ef",
+        "data": {
+          "contact_id": "CON-2096",
+          "name": "Caleb Delacroix",
+          "title": "VP Finance",
+          "account": "Juniper Data Systems",
+          "account_id": "ACC-1032",
+          "email": "caleb.delacroix@juniperdatasystems.example",
+          "phone": "+1 555 0195",
+          "role": "Economic buyer",
+          "last_contacted": "2026-09-28"
+        }
+      },
+      {
+        "id": "9bf21599-6aa7-5072-a5f1-780f2087ecc9",
+        "data": {
+          "contact_id": "CON-2097",
+          "name": "Isla Delacroix",
+          "title": "Chief Operating Officer",
+          "account": "Orchard Valley Farms",
+          "account_id": "ACC-1033",
+          "email": "isla.delacroix@orchardvalleyfarms.example",
+          "phone": "+1 555 0196",
+          "role": "Decision maker",
+          "last_contacted": "2026-10-21"
+        }
+      },
+      {
+        "id": "c836f344-08a3-5921-a5ad-aa959958c46f",
+        "data": {
+          "contact_id": "CON-2098",
+          "name": "Mateo Osei",
+          "title": "Operations Manager",
+          "account": "Orchard Valley Farms",
+          "account_id": "ACC-1033",
+          "email": "mateo.osei@orchardvalleyfarms.example",
+          "phone": "+1 555 0197",
+          "role": "Champion",
+          "last_contacted": "2026-09-30"
+        }
+      },
+      {
+        "id": "412b779b-78bf-559a-a33d-7f58ffb1dc30",
+        "data": {
+          "contact_id": "CON-2099",
+          "name": "Nora Novak",
+          "title": "Finance Business Partner",
+          "account": "Orchard Valley Farms",
+          "account_id": "ACC-1033",
+          "email": "nora.novak@orchardvalleyfarms.example",
+          "phone": "+1 555 0198",
+          "role": "Finance",
+          "last_contacted": "2026-10-20"
+        }
+      },
+      {
+        "id": "2bdb53dc-8208-5552-998e-6d867800b650",
+        "data": {
+          "contact_id": "CON-2100",
+          "name": "Olivia Reyes",
+          "title": "Chief Operating Officer",
+          "account": "Crescent Bay Resorts",
+          "account_id": "ACC-1034",
+          "email": "olivia.reyes@crescentbayresorts.example",
+          "phone": "+1 555 0199",
+          "role": "Decision maker",
+          "last_contacted": "2026-09-25"
+        }
+      },
+      {
+        "id": "b76f886c-3e8c-5695-b969-6f6cfcca06a8",
+        "data": {
+          "contact_id": "CON-2101",
+          "name": "Theo Whitfield",
+          "title": "Operations Manager",
+          "account": "Crescent Bay Resorts",
+          "account_id": "ACC-1034",
+          "email": "theo.whitfield@crescentbayresorts.example",
+          "phone": "+1 555 01100",
+          "role": "Champion",
+          "last_contacted": "2026-11-19"
+        }
+      },
+      {
+        "id": "44df438d-5781-513f-babb-e408e9995c66",
+        "data": {
+          "contact_id": "CON-2102",
+          "name": "Priscilla Ibarra",
+          "title": "Solutions Architect",
+          "account": "Crescent Bay Resorts",
+          "account_id": "ACC-1034",
+          "email": "priscilla.ibarra@crescentbayresorts.example",
+          "phone": "+1 555 01101",
+          "role": "Technical evaluator",
+          "last_contacted": "2026-11-03"
+        }
+      },
+      {
+        "id": "47653dc9-5908-521b-bb7e-ae4000f5a44e",
+        "data": {
+          "contact_id": "CON-2103",
+          "name": "Noah Brennan",
+          "title": "Chief Operating Officer",
+          "account": "Riverside Polytechnic",
+          "account_id": "ACC-1035",
+          "email": "noah.brennan@riversidepolytechnic.example",
+          "phone": "+1 555 01102",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-12"
+        }
+      },
+      {
+        "id": "b4707136-e279-59bf-a3d3-aa2d27ab1045",
+        "data": {
+          "contact_id": "CON-2104",
+          "name": "Elena Tanaka",
+          "title": "Operations Manager",
+          "account": "Riverside Polytechnic",
+          "account_id": "ACC-1035",
+          "email": "elena.tanaka@riversidepolytechnic.example",
+          "phone": "+1 555 01103",
+          "role": "Champion",
+          "last_contacted": "2026-11-13"
+        }
+      },
+      {
+        "id": "5644712b-fdff-54ed-9030-41380501b5ff",
+        "data": {
+          "contact_id": "CON-2105",
+          "name": "Elena Kowalski",
+          "title": "VP Finance",
+          "account": "Riverside Polytechnic",
+          "account_id": "ACC-1035",
+          "email": "elena.kowalski@riversidepolytechnic.example",
+          "phone": "+1 555 01104",
+          "role": "Economic buyer",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "7214dd51-15e6-56da-b419-ecd25d0a0312",
+        "data": {
+          "contact_id": "CON-2106",
+          "name": "Olivia Brennan",
+          "title": "Chief Operating Officer",
+          "account": "Falcon Ridge Security",
+          "account_id": "ACC-1036",
+          "email": "olivia.brennan@falconridgesecurity.example",
+          "phone": "+1 555 01105",
+          "role": "Decision maker",
+          "last_contacted": "2026-11-19"
+        }
+      },
+      {
+        "id": "a7f5829e-a81a-57e8-98a9-7356c1748b7b",
+        "data": {
+          "contact_id": "CON-2107",
+          "name": "Jasper Reyes",
+          "title": "Plant Manager",
+          "account": "Falcon Ridge Security",
+          "account_id": "ACC-1036",
+          "email": "jasper.reyes@falconridgesecurity.example",
+          "phone": "+1 555 01106",
+          "role": "Champion",
+          "last_contacted": "2026-11-10"
+        }
+      },
+      {
+        "id": "bce9c7db-b65e-5e66-ba99-9c3f0af838cc",
+        "data": {
+          "contact_id": "CON-2108",
+          "name": "Elena Fontaine",
+          "title": "Procurement Manager",
+          "account": "Falcon Ridge Security",
+          "account_id": "ACC-1036",
+          "email": "elena.fontaine@falconridgesecurity.example",
+          "phone": "+1 555 01107",
+          "role": "Finance",
+          "last_contacted": "2026-11-13"
+        }
+      },
+      {
+        "id": "c7308a72-e377-5036-9429-30d59f428b46",
+        "data": {
+          "contact_id": "CON-2109",
+          "name": "Leila Mensah",
+          "title": "VP Operations",
+          "account": "Sunpath Solar",
+          "account_id": "ACC-1037",
+          "email": "leila.mensah@sunpathsolar.example",
+          "phone": "+1 555 01108",
+          "role": "Decision maker",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "032eab03-5f0a-5877-bfe4-39dc754dcfd1",
+        "data": {
+          "contact_id": "CON-2110",
+          "name": "Sofia Novak",
+          "title": "Operations Manager",
+          "account": "Sunpath Solar",
+          "account_id": "ACC-1037",
+          "email": "sofia.novak@sunpathsolar.example",
+          "phone": "+1 555 01109",
+          "role": "Champion",
+          "last_contacted": "2026-11-02"
+        }
+      },
+      {
+        "id": "2c685d49-a50f-584e-b1c4-d7720330b85a",
+        "data": {
+          "contact_id": "CON-2111",
+          "name": "Owen Mensah",
+          "title": "Shift Lead",
+          "account": "Sunpath Solar",
+          "account_id": "ACC-1037",
+          "email": "owen.mensah@sunpathsolar.example",
+          "phone": "+1 555 01110",
+          "role": "User",
+          "last_contacted": "2026-11-19"
+        }
+      },
+      {
+        "id": "067ce5f8-e8ab-5ed3-9e31-24759b8c7653",
+        "data": {
+          "contact_id": "CON-2112",
+          "name": "Mei Lindqvist",
+          "title": "VP Operations",
+          "account": "Monarch Textiles",
+          "account_id": "ACC-1038",
+          "email": "mei.lindqvist@monarchtextiles.example",
+          "phone": "+1 555 01111",
+          "role": "Decision maker",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "bb0d4057-2c91-53d3-b56b-d5fdc8c09b10",
+        "data": {
+          "contact_id": "CON-2113",
+          "name": "Leila Delacroix",
+          "title": "Director of Reliability",
+          "account": "Monarch Textiles",
+          "account_id": "ACC-1038",
+          "email": "leila.delacroix@monarchtextiles.example",
+          "phone": "+1 555 01112",
+          "role": "Champion",
+          "last_contacted": "2026-10-02"
+        }
+      },
+      {
+        "id": "e8339f47-734c-5d0a-87fd-2a9223c07576",
+        "data": {
+          "contact_id": "CON-2114",
+          "name": "Hugo Abara",
+          "title": "Solutions Architect",
+          "account": "Monarch Textiles",
+          "account_id": "ACC-1038",
+          "email": "hugo.abara@monarchtextiles.example",
+          "phone": "+1 555 01113",
+          "role": "Technical evaluator",
+          "last_contacted": "2026-11-05"
+        }
+      },
+      {
+        "id": "99c04892-9cfa-539a-915d-4a37b0357af0",
+        "data": {
+          "contact_id": "CON-2115",
+          "name": "Ethan Fontaine",
+          "title": "VP Operations",
+          "account": "Lakeshore Transit",
+          "account_id": "ACC-1039",
+          "email": "ethan.fontaine@lakeshoretransit.example",
+          "phone": "+1 555 01114",
+          "role": "Decision maker",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "0e4aba66-c580-5924-b706-079fcf35832c",
+        "data": {
+          "contact_id": "CON-2116",
+          "name": "Chloe Reyes",
+          "title": "Director of Reliability",
+          "account": "Lakeshore Transit",
+          "account_id": "ACC-1039",
+          "email": "chloe.reyes@lakeshoretransit.example",
+          "phone": "+1 555 01115",
+          "role": "Champion",
+          "last_contacted": "2026-07-31"
+        }
+      },
+      {
+        "id": "0e2c6ba2-d14f-5586-8007-c2a321c28f95",
+        "data": {
+          "contact_id": "CON-2117",
+          "name": "Kofi Tanaka",
+          "title": "Field Supervisor",
+          "account": "Lakeshore Transit",
+          "account_id": "ACC-1039",
+          "email": "kofi.tanaka@lakeshoretransit.example",
+          "phone": "+1 555 01116",
+          "role": "User",
+          "last_contacted": "2026-11-19"
+        }
+      },
+      {
+        "id": "90e1e7e4-35ff-5d5a-9150-cc9d07d9d60d",
+        "data": {
+          "contact_id": "CON-2118",
+          "name": "Hugo Novak",
+          "title": "Head of Facilities",
+          "account": "Cobalt Precision",
+          "account_id": "ACC-1040",
+          "email": "hugo.novak@cobaltprecision.example",
+          "phone": "+1 555 01117",
+          "role": "Decision maker",
+          "last_contacted": "2026-06-12"
+        }
+      },
+      {
+        "id": "105bf01e-ad7a-5e1e-9813-cfa54c7de4e5",
+        "data": {
+          "contact_id": "CON-2119",
+          "name": "Aisha Larsen",
+          "title": "Director of Reliability",
+          "account": "Cobalt Precision",
+          "account_id": "ACC-1040",
+          "email": "aisha.larsen@cobaltprecision.example",
+          "phone": "+1 555 01118",
+          "role": "Champion",
+          "last_contacted": ""
+        }
+      },
+      {
+        "id": "1d4ffeab-9b20-5b2d-b1ca-53f3f2b7343a",
+        "data": {
+          "contact_id": "CON-2120",
+          "name": "Ethan Novak",
+          "title": "Field Supervisor",
+          "account": "Cobalt Precision",
+          "account_id": "ACC-1040",
+          "email": "ethan.novak@cobaltprecision.example",
+          "phone": "+1 555 01119",
+          "role": "User",
+          "last_contacted": "2026-08-26"
+        }
+      }
+    ]
+  }
+}

@@ -38,3 +38,20 @@ export function formatDurationDelta(ms: number | null | undefined): string {
 }
 
 const trim = (v: string) => v.replace(/\.0$/, '')
+
+/**
+ * A duration in its two largest units, compact: `45s`, `12m`, `3h 20m`,
+ * `2d 4h` (dashboards and app widgets, where a column of "2.2 d" reads
+ * worse than "2d 4h"). `—` for missing or negative values.
+ */
+export function formatDurationParts(ms: number | null | undefined): string {
+  if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 0) return '—'
+  const totalMin = Math.round(ms / 60_000)
+  if (totalMin < 1) return `${Math.max(0, Math.round(ms / 1000))}s`
+  const d = Math.floor(totalMin / 1440)
+  const h = Math.floor((totalMin % 1440) / 60)
+  const m = totalMin % 60
+  if (d) return h ? `${d}d ${h}h` : `${d}d`
+  if (h) return m ? `${h}h ${m}m` : `${h}h`
+  return `${m}m`
+}

@@ -67,6 +67,7 @@ export const KITCHEN_SINK_EXCLUDED: Record<string, string> = {
   middleware_received: 'trigger — synchronous webhook endpoint',
   schedule: 'trigger — fired by the scheduler (add one to run the self-test nightly; see docs)',
   esign_event: 'trigger — fired by an e-signature provider (external)',
+  agent_error: 'trigger — fired when an agent fails for good',
   // External services / providers.
   http_request: 'calls an external URL',
   call_reference: 'calls an integration reference (external API)',
@@ -84,6 +85,7 @@ export const KITCHEN_SINK_EXCLUDED: Record<string, string> = {
   esign_send: 'sends to an e-signature provider (external)',
   esign_wait: 'waits on an e-signature provider (external)',
   esign_envelope: 'calls an e-signature provider (external)',
+  instance_admin: 'instance admins only (cross-workspace operations); a workspace self-test must not need them',
   // Needs a run that a task started.
   update_task: "writes the run's own triggering task; a Run now start has none (Create Subtask and Auto Action cover task writes)",
 }

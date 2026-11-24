@@ -310,6 +310,8 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | import | `POST /data-tables/{id}/rows/import` | `data_rows_import` | `rows import` | CSV / TSV / .xlsx: insert, upsert or replace; dry_run validates; MCP also takes csv_text |
 | write cells | `PATCH /data-tables/{id}/rows/{rowId}/cells` | `data_rows_write_cells` | `rows cells` | inline edit through a grid view: read-only columns refused, 409 on a stale row |
 | write cells (batch) | `PATCH /data-tables/{id}/rows/cells` | `data_rows_write_cells_batch` | `rows cells-batch` | edit all rows: an outcome per row (conflict / invalid / saved), nothing rolled back, one workflow event per changed row |
+| group | `GET /data-tables/{id}/rows/groups` | `data_rows_groups` | `rows groups` | counts and sums per group (one or two columns) over the whole filtered result |
+| children | `GET /data-tables/{id}/rows/{rowId}/children` | `data_rows_children` | `rows children` | a child relation's rows of a row (lookup-linked table or same-table hierarchy), or the counts per relation |
 
 ## Reports
 
@@ -339,7 +341,7 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | list runs | `GET /agents/runs` | `agents_runs_list` | `agents runs` |  |
 | get run | `GET /agents/runs/{id}` | `agent_runs_get` | `agents run` | with the step trace |
 | usage | `GET /agents/{id}/usage` | `agents_usage_get` | `agents usage` | tokens and cost |
-| workspace usage | `GET /agents/usage` | `agents_workspace_usage_get` | `agents workspace-usage` | tokens, cost, budgets, prices |
+| workspace usage | `GET /agents/usage` | `agents_workspace_usage_get` | `agents workspace-usage` | tokens, cost, budgets, prices; breakdowns with group_by (day, agent, model, profile, source, user) |
 | set prices / budgets | `PUT /agents/cost-settings` | `agents_cost_settings_update` | `agents cost-settings` |  |
 | list versions | `GET /agents/{id}/versions` | `agents_versions_list` | `agents versions` |  |
 | restore version | `POST /agents/{id}/versions/{version}/restore` | `agents_version_restore` | `agents restore` |  |
@@ -446,6 +448,40 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | list members | `GET /org/units/{id}/members` | `org_unit_members` | `org-units members` | recursive=true adds the units below |
 | add member | `PUT /org/units/{id}/members/{userId}` | `org_unit_member_add` | `org-units add-member` |  |
 | remove member | `DELETE /org/units/{id}/members/{userId}` | `org_unit_member_remove` | `org-units remove-member` |  |
+
+## Apps
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /apps` | `apps_list` | `apps list` |  |
+| get | `GET /apps/{id}` | `apps_get` | `apps get` |  |
+| create | `POST /apps` | `apps_create` | `apps create` |  |
+| update | `PATCH /apps/{id}` | `apps_update` | `apps update` | audience and editors are replaced |
+| delete | `DELETE /apps/{id}` | `apps_delete` | `apps delete` |  |
+| widget catalogue | `GET /apps/widget-types` | `apps_widget_types` | `apps widget-types` |  |
+| list pages | `GET /apps/{id}/pages` | `apps_pages_list` | `apps pages` |  |
+| get page | `GET /apps/{id}/pages/{pageId}` | `apps_page_get` | `apps page` |  |
+| add page | `POST /apps/{id}/pages` | `apps_page_create` | `apps add-page` |  |
+| update page | `PATCH /apps/{id}/pages/{pageId}` | `apps_page_update` | `apps update-page` | widgets and filters are replaced |
+| delete page | `DELETE /apps/{id}/pages/{pageId}` | `apps_page_delete` | `apps delete-page` |  |
+| reorder pages | `POST /apps/{id}/pages/reorder` | `apps_pages_reorder` | `apps reorder-pages` |  |
+| access issues | `GET /apps/{id}/access` | `apps_access_check` | `apps access` | audience × objects the app uses; viewers need view, contributors submit / start |
+| grant access | `POST /apps/{id}/access/grant` | `apps_access_grant` | `apps grant-access` | form grants (View + Submit) through object permissions; team.change_roles |
+| package preview | `POST /apps/{id}/package/preview` | `apps_package_preview` | `apps package-preview` | dependencies, requirements, embed sites; audience and editors never travel |
+| package / export | `POST /apps/{id}/package` | `apps_package` | `apps package` | builds the app's signed .utpkg; install with POST /package-installs |
+| rules reference | `GET /apps/rule-types` | `apps_rule_types` | `apps rule-types` | triggers, actions, system variables, rule / parameter / variable JSON schemas |
+| run a rule's server action | `POST /apps/{id}/actions` | `apps_run_rule_action` | `apps run-action` | action read from the saved app; slot values only; governed, rate limited, audited |
+| search objects to bind | `GET /apps/spec/search` | `apps_search` | `apps search` | what the caller may see; apps.manage, or edit access to the given app |
+| object details | `GET /apps/spec/object` | `apps_object_details` | `apps object` | form fields and parameters, table columns and views, workflow trigger |
+| spec reference | `GET /apps/spec/reference` | `apps_spec_reference` | `apps spec-reference` | spec JSON schema, design guide, templates, widget one-liners, example |
+| plan an app spec | `POST /apps/spec/plan` | `apps_plan` | `apps plan` | read-only: plain-language errors, warnings, summary |
+| apply an app spec | `POST /apps/spec/apply` | `apps_apply_spec` | `apps apply` | whole app or change in one step; saved to the draft (publish: true publishes); nothing kept when a step fails; audited |
+| publish the draft | `POST /apps/{id}/publish` | `apps_publish` | `apps publish` | snapshot the draft as the next version; the audience sees it; audited |
+| discard the draft | `DELETE /apps/{id}/draft` | `apps_draft_discard` | `apps draft-discard` | back to the published version; audited |
+| list versions | `GET /apps/{id}/versions` | `apps_versions` | `apps versions` | published versions, newest first |
+| get a version | `GET /apps/{id}/versions/{version}` | `apps_version_get` | `apps version` | immutable snapshot |
+| compare versions | `GET /apps/{id}/compare` | `apps_compare` | `apps compare` | draft / published / version numbers; default published → draft |
+| restore a version into the draft | `POST /apps/{id}/versions/{version}/restore` | `apps_version_restore` | `apps version-restore` | nothing changes for the audience until published; audited |
 
 ## Projects
 
@@ -607,14 +643,24 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | delete | — | — | — | set enabled false to turn the screen off |
 | next step | `GET /tasks/{id}/next` | `tasks_next_step` | `tasks next` | completing a task (REST / MCP) returns the same summary as `next` |
 
-## Form sign-in page
+## Sign-in page (forms and apps)
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | one setting per workspace: get returns it |
+| get | `GET /workspace/sign-in-page` | `sign_in_page_get` | `sign-in-page get` |  |
+| create | — | — | — | every workspace has it (the defaults until changed) |
+| update | `PATCH /workspace/sign-in-page` | `sign_in_page_update` | `sign-in-page update` | settings.edit; the logo is uploaded in Settings → Sign-in page |
+| delete | — | — | — | update back to the defaults (the settings card has Reset to defaults) |
+
+## Form sign-in page (earlier name of the sign-in page)
 
 | Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
 |---|---|---|---|---|
 | list | — | — | — | one setting per workspace: get returns it |
 | get | `GET /workspace/form-sign-in-page` | `form_sign_in_page_get` | `form-sign-in-page get` |  |
 | create | — | — | — | every workspace has it (the defaults until changed) |
-| update | `PATCH /workspace/form-sign-in-page` | `form_sign_in_page_update` | `form-sign-in-page update` | settings.edit; the logo is uploaded in Settings → Forms |
+| update | `PATCH /workspace/form-sign-in-page` | `form_sign_in_page_update` | `form-sign-in-page update` | settings.edit; same settings as /workspace/sign-in-page |
 | delete | — | — | — | update back to the defaults (the settings card has Reset to defaults) |
 
 ## Workspace single sign-on
@@ -626,6 +672,34 @@ Every configurable resource can be listed, read, created, edited and deleted fro
 | create | — | — | — | every workspace has it (the defaults until changed) |
 | update | `PATCH /workspace/sso` | `workspace_sso_update` | `workspace-sso update` | settings.edit; the identity providers themselves are instance settings (auth.sso_providers) |
 | delete | — | — | — | update back to the defaults (auto_sign_in true, sso_only false, idp null) |
+
+## Tags
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | `GET /tags` | `tags_list` | `tags list` | any member; usage counts only the object types the caller may view |
+| get | — | — | — | list returns every tag with its style (filter with q) |
+| create | — | — | — | tags are free text on each object; set-style adds a tag to the registry |
+| update | `PUT /tags/style` | `tags_set_style` | `tags set-style` | tags.manage; colour token or auto, description |
+| delete | `DELETE /tags/style` | `tags_reset_style` | `tags reset-style` | tags.manage; back to the automatic colour (the tag stays on its objects) |
+| rename | `POST /tags/rename` | `tags_rename` | `tags rename` | tags.manage; renames or merges on every object in one transaction |
+| remove from all objects | `POST /tags/remove` | `tags_remove` | `tags remove` | tags.manage; one transaction |
+| suggest | `GET /tags/suggest` | `tags_suggest` | `tags suggest` | autocomplete, ranked by match then usage |
+| list objects | `GET /tags/objects` | `tags_objects` | `tags objects` | objects of one type carrying a tag; only those the caller may see |
+| apply to objects | `POST /tags/apply` | `tags_apply` | `tags apply` | add / remove / set through each object's own update and permission |
+| get settings | `GET /tags/settings` | `tags_settings_get` | `tags settings` |  |
+| update settings | `PATCH /tags/settings` | `tags_settings_update` | `tags update-settings` | tags.manage; auto_color, allow_new |
+
+## Query settings
+
+| Operation | REST (`/api/v1`) | MCP tool | CLI (`usertasks …`) | Notes |
+|---|---|---|---|---|
+| list | — | — | — | one query setting per workspace: get returns it |
+| get | `GET /settings/query` | `query_settings_get` | `query-settings get` | with the effective mode per service, rollup coverage and read times |
+| create | — | — | — | every workspace has settings (Auto until changed): update sets them |
+| update | `PATCH /settings/query` | `query_settings_update` | `query-settings update` | settings.edit; per-widget overrides live on the widget (data_source) |
+| delete | — | — | — | set a service / app back to inherit (null) to remove an override |
+| rollups | `POST /settings/query/rollups` | `query_rollups_run` | `query-settings rollups` | backfill / rebuild / reconcile this workspace |
 
 ## Document OCR
 

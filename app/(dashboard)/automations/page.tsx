@@ -1,32 +1,21 @@
 "use client"
 
 import { Suspense } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { serverRead } from "@/lib/server-read"
+import { useQueryClient } from "@tanstack/react-query"
 import { CreateWorkflowDialog } from "@/components/automations/create-workflow-dialog"
 import { WorkflowList } from "@/components/automations/workflow-list"
 import { ImportConfigButton } from "@/components/shared/config-transfer"
 import { ExtensionImportButton } from "@/components/extensions/importers"
 import { PageHeader } from "@/components/ui/page-header"
-import { ListSkeleton, PageSkeleton } from "@/components/ui/page-skeleton"
+import { ListSkeleton } from "@/components/ui/page-skeleton"
 import { usePermissions } from "@/lib/permissions-context"
 
 export default function AutomationsPage() {
   const { can } = usePermissions()
   const queryClient = useQueryClient()
 
-  const { data: tagDefs, isLoading: isTagsLoading } = useQuery({
-    queryKey: ["tag-definitions"],
-    queryFn: async () => (await serverRead("automations.tagDefinitions")).data ?? [],
-    enabled: can('workflows.view'),
-  })
-
   if (!can('workflows.view')) {
     return <p className="text-sm text-fg-muted">Not authorized.</p>
-  }
-
-  if (isTagsLoading && !tagDefs) {
-    return <PageSkeleton variant="list" />
   }
 
   return (
@@ -47,7 +36,7 @@ export default function AutomationsPage() {
 
       {/* The list's page, filters and size live in the URL (useSearchParams). */}
       <Suspense fallback={<ListSkeleton />}>
-        <WorkflowList initialTagDefs={tagDefs ?? []} />
+        <WorkflowList />
       </Suspense>
     </div>
   )

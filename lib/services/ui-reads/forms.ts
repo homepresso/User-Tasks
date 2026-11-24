@@ -150,10 +150,19 @@ export const reads = {
     run: async (ctx) => (await import('../anonymous-forms')).getAnonymousWorkspaceSettings(ctx),
   }),
 
-  /** Settings → Forms → Form sign-in page (any member reads it; settings.edit changes it). */
+  /** Settings → Sign-in page (forms and apps; any member reads it; settings.edit changes it). */
   'forms.signInPage': defineRead({
     args: NO_ARGS,
     run: async (ctx) => (await import('../form-sign-in-page')).getFormSignInSettings(ctx),
+  }),
+
+  /** The sign-in page's support link (an app's "not available" state offers it; already public on the sign-in page). */
+  'forms.signInSupport': defineRead({
+    args: NO_ARGS,
+    run: async (ctx) => {
+      const s = await (await import('../form-sign-in-page')).getFormSignInSettings(ctx)
+      return s.support_link_url ? { label: s.support_link_label || 'Get help', url: s.support_link_url } : null
+    },
   }),
 
   /**

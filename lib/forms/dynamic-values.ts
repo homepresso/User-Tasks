@@ -151,7 +151,7 @@ const INPUT_NAME_RE = /^[A-Za-z0-9_.$-]{1,100}$/
 const PROP_KEY_RE = /^props\.[A-Za-z_][A-Za-z0-9_]{0,63}$/
 const UNSAFE = /(^|\.)(__proto__|constructor|prototype)(\.|$)/
 
-interface FieldLike { key?: string; type: string; display?: string; custom?: { props?: Record<string, unknown> } | null }
+interface FieldLike { key?: string; type: string; display?: string; custom?: { props?: Record<string, unknown> } | null; lookup?: { multiple?: boolean } | null }
 
 /** The type a built-in property expects on a field of this type (null: not bindable there). */
 export function fieldPropType(field: FieldLike, prop: string): DynamicValueType | null {
@@ -168,7 +168,9 @@ export function fieldPropType(field: FieldLike, prop: string): DynamicValueType 
     case 'placeholder':
       return TEXT_LIKE.has(t) || t === 'rich_text' || t === 'text_list' || t === 'number' || t === 'currency' || t === 'date' || t === 'lookup' || t === 'user' || (t === 'choice' && field.display !== 'radio') ? 'string' : null
     case 'default':
-      if (t === 'attachments' || t === 'image' || t === 'signature' || t === 'custom' || t === 'data_table' || t === 'lookup' || t === 'list') return null
+      if (t === 'attachments' || t === 'image' || t === 'signature' || t === 'custom' || t === 'data_table' || t === 'list') return null
+      // A lookup's default (often {{param.x}} from the link that opened the form): its value(s), confirmed against the source on submit.
+      if (t === 'lookup') return field.lookup?.multiple ? 'string_list' : 'string'
       return t === 'multi_choice' ? 'string_list' : t === 'number' || t === 'currency' ? 'number' : t === 'boolean' ? 'boolean' : t === 'date' ? 'date' : 'string'
     case 'options': return t === 'choice' || t === 'multi_choice' ? 'options' : null
     case 'min': case 'max': return t === 'number' || t === 'currency' || t === 'multi_choice' ? 'number' : null

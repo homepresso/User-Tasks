@@ -146,7 +146,8 @@ export const FRAME_RUNTIME = `(function () {
     try { window.parent.postMessage(msg, parentOrigin); } catch (e) { /* not serialisable */ }
   }
   function fail(message) { post({ type: 'error', message: String(message || 'The control failed').slice(0, 500) }); }
-  window.addEventListener('error', function (e) { fail(e && e.message); });
+  // "ResizeObserver loop …" is a benign browser notice (a control resizing while it is observed), not a failure.
+  window.addEventListener('error', function (e) { if (e && /ResizeObserver loop/.test(String(e.message || ''))) return; fail(e && e.message); });
   window.addEventListener('unhandledrejection', function (e) { fail(e && e.reason && e.reason.message || 'Unhandled error in the control'); });
   function measure() {
     // Nothing is reported before the element has painted with its state: no collapse to 0, no jump.

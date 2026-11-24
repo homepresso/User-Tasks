@@ -1,0 +1,91 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "445d215e-333b-593b-9f8f-29518849b114",
+  "asset": {
+    "id": "445d215e-333b-593b-9f8f-29518849b114",
+    "name": "Knowledge articles rows",
+    "rows": [
+      {
+        "id": "1986bfbc-006d-5bd0-8006-789b89746b91",
+        "data": {
+          "title": "Connect to the VPN from home",
+          "category": "Network & VPN",
+          "summary": "Install the client, sign in with your work account and pick the nearest gateway.",
+          "url": "https://help.example.com/kb/vpn-setup",
+          "updated_on": "2026-11-02"
+        }
+      },
+      {
+        "id": "16eead28-2637-5553-9d74-45a9a78ccdfa",
+        "data": {
+          "title": "Reset your password",
+          "category": "Access & accounts",
+          "summary": "Use the self-service portal; you need your phone for the verification code.",
+          "url": "https://help.example.com/kb/password-reset",
+          "updated_on": "2026-10-21"
+        }
+      },
+      {
+        "id": "bae36f7f-89b0-50e0-bcaa-a7a78f8d8855",
+        "data": {
+          "title": "Set up multi-factor authentication",
+          "category": "Access & accounts",
+          "summary": "Enrol the authenticator app and keep a backup code somewhere safe.",
+          "url": "https://help.example.com/kb/mfa",
+          "updated_on": "2026-11-10"
+        }
+      },
+      {
+        "id": "26aad39e-9a4a-59bd-a1e2-9546df1e769a",
+        "data": {
+          "title": "Add a shared mailbox",
+          "category": "Email & calendar",
+          "summary": "Ask the mailbox owner for access, then add it in your mail client settings.",
+          "url": "https://help.example.com/kb/shared-mailbox",
+          "updated_on": "2026-09-30"
+        }
+      },
+      {
+        "id": "8e650a74-378d-5381-a157-56f1930d2b3e",
+        "data": {
+          "title": "Print from your laptop",
+          "category": "Printing",
+          "summary": "Add the follow-me print queue and release jobs with your badge at any printer.",
+          "url": "https://help.example.com/kb/follow-me-print",
+          "updated_on": "2026-10-05"
+        }
+      },
+      {
+        "id": "7565c86d-51e2-5678-8835-cc1a18672a23",
+        "data": {
+          "title": "Request new software",
+          "category": "Software",
+          "summary": "Approved apps install from the company portal; anything else needs a ticket.",
+          "url": "https://help.example.com/kb/software-portal",
+          "updated_on": "2026-11-12"
+        }
+      },
+      {
+        "id": "8ff8d6da-6c37-56c2-8126-3563cf5cc7fe",
+        "data": {
+          "title": "Book a loan laptop",
+          "category": "Hardware",
+          "summary": "Loan laptops are available from the IT desk for up to four weeks.",
+          "url": "https://help.example.com/kb/loan-laptops",
+          "updated_on": "2026-08-18"
+        }
+      },
+      {
+        "id": "613c5de5-6633-596f-aaf9-b520093f3ec3",
+        "data": {
+          "title": "Join the guest Wi-Fi",
+          "category": "Network & VPN",
+          "summary": "Visitors get a daily code at reception; staff devices use the corporate network.",
+          "url": "https://help.example.com/kb/guest-wifi",
+          "updated_on": "2026-10-27"
+        }
+      }
+    ]
+  }
+}

@@ -15,11 +15,14 @@ import { normalizeScheduleConfig } from '@/lib/workflow-schedule'
 import { isSemver } from '@/lib/packages/semver'
 import { normalizeOperator } from '@/lib/conditions'
 import { PACKAGE_SECTIONS } from '@/lib/packages/build'
+import { brokenPageLinks } from '@/lib/apps/references'
+import { pageFilterSchema, pageLayoutSchema } from '@/lib/apps/schema'
+import { cleanAppIconSvg } from '@/lib/apps/icon-svg'
 import { scanAssetReferences } from '@/lib/portability/dependencies'
 import { isUuid } from '@/lib/portability/plan'
 import { scrubSecretsForExport, SECRET_PLACEHOLDER } from '@/lib/portability/scrub'
 import { canonicalizeNodeConfigShapes } from '@/lib/portability/normalize'
-import { fieldDefinitionProblems, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { fieldDefinitionProblems, reservedFieldKeyProblems, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { normalizeFormDefinition, readNodeForm } from '@/lib/forms/definition'
 import { buttonProblems } from '@/lib/forms/buttons'
 import { FormThemeRefSchema } from '@/lib/forms/form-theme'
@@ -40,7 +43,7 @@ const ESIGN_PROVIDER_HOSTS: Record<string, string[]> = {
 }
 import { buildGalleryPackage, galleryRequirements, packageAssets } from './build'
 import type { GallerySource } from './source'
-import { GALLERY_CATEGORIES, GALLERY_NEEDS, GALLERY_TRIGGERS, type GalleryMeta } from './types'
+import { GALLERY_CATEGORIES, GALLERY_NEEDS, GALLERY_SCREENSHOT_FILE, GALLERY_SCREENSHOT_LIMITS, GALLERY_TRIGGERS, type GalleryMeta } from './types'
 
 const TRIGGER_NODE_TYPES = new Set<string>(NODE_CATALOG.filter((n) => n.category === 'trigger').map((n) => n.type))
 
@@ -49,7 +52,9 @@ export const TRIGGER_NODES_BY_KIND: Record<GalleryMeta['trigger'], string[]> = {
   form: ['webhook_received', 'form_submitted'],
   api: ['webhook_received', 'middleware_received'],
   schedule: ['schedule'],
-  event: ['data_table_event', 'form_submitted', 'task_created', 'task_completed', 'task_updated', 'task_submitted', 'task_received', 'workflow_sla', 'workflow_error'],
+  event: ['data_table_event', 'form_submitted', 'task_created', 'task_completed', 'task_updated', 'task_submitted', 'task_received', 'workflow_sla', 'workflow_error', 'agent_error'],
+  // App-first: the workflow the app's main button starts (by hand, its start form or a form page).
+  app: ['manual', 'webhook_received', 'form_submitted'],
 }
 
 /** Nodes a gallery workflow must not use: placeholders are not real steps; raw HTTP bypasses the adaptable integration/reference model. */
@@ -62,7 +67,7 @@ const SECTION_OF_TYPE: Record<string, string> = {
   workflow: 'workflows', workflow_activity: 'workflow_activities', data_table: 'data_tables', integration: 'integrations',
   connector: 'connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports',
   role: 'roles', mcp_server: 'mcp_servers', retention_policy: 'retention_policies', log_destination: 'log_destinations', reference: 'references',
-  form: 'forms', form_theme: 'form_themes', form_control: 'form_controls',
+  form: 'forms', form_theme: 'form_themes', form_control: 'form_controls', app: 'apps',
 }
 
 /**
@@ -98,8 +103,15 @@ export function validateMeta(meta: GalleryMeta, slug: string): GalleryIssue[] {
   need(GALLERY_CATEGORIES.some((c) => c.id === meta.category && c.id !== 'form-controls' && c.id !== 'workflow-actions'), `category must be one of ${GALLERY_CATEGORIES.filter((c) => c.id !== 'form-controls' && c.id !== 'workflow-actions').map((c) => c.id).join(', ')} (form controls live in gallery/controls, workflow actions in gallery/actions)`)
   need(typeof meta.summary === 'string' && meta.summary.length >= 40 && meta.summary.length <= 200, 'summary must be 40-200 characters')
   need(typeof meta.description === 'string' && meta.description.length >= 200, 'description must be at least 200 characters')
-  need(Object.keys(GALLERY_TRIGGERS).includes(meta.trigger), 'trigger must be form, api, schedule or event')
-  need(isUuid(meta.entry_workflow), 'entry_workflow must be the id of a workflow in the package')
+  need(Object.keys(GALLERY_TRIGGERS).includes(meta.trigger), 'trigger must be form, api, schedule, event or app')
+  if (meta.trigger === 'app' || meta.entry_app !== undefined) {
+    // App-first: the app people open; an entry workflow is optional (its main button's process).
+    need(isUuid(meta.entry_app), 'entry_app must be the id of an app in the package')
+    need(meta.trigger === 'app' || isUuid(meta.entry_workflow), 'a package with an entry_app needs trigger "app" (or an entry_workflow for its trigger)')
+    need(meta.entry_workflow === undefined || isUuid(meta.entry_workflow), 'entry_workflow must be the id of a workflow in the package')
+  } else {
+    need(isUuid(meta.entry_workflow), 'entry_workflow must be the id of a workflow in the package')
+  }
   need(typeof meta.start === 'string' && meta.start.length >= 20, 'start (how the process starts) is required')
   need(['starter', 'intermediate', 'advanced'].includes(meta.difficulty), 'difficulty must be starter, intermediate or advanced')
   need(Number.isInteger(meta.setup_minutes) && meta.setup_minutes > 0 && meta.setup_minutes <= 240, 'setup_minutes must be a whole number of minutes')
@@ -114,9 +126,19 @@ export function validateMeta(meta: GalleryMeta, slug: string): GalleryIssue[] {
   need(Array.isArray(meta.setup) && meta.setup.length >= 1, 'setup steps are required')
   need(Array.isArray(meta.steps) && meta.steps.length >= 3 && meta.steps.every((s) => s?.title && s?.body), 'at least three flow steps with title and body')
   need(meta.sample_input && typeof meta.sample_input === 'object' && !Array.isArray(meta.sample_input), 'sample_input must be an object')
-  need(meta.expect === 'waiting' || meta.expect === 'completed', 'expect must be waiting or completed')
+  if (meta.entry_workflow !== undefined) need(meta.expect === 'waiting' || meta.expect === 'completed', 'expect must be waiting or completed')
   if (meta.systems !== undefined) {
     need(Array.isArray(meta.systems) && meta.systems.length <= 6 && meta.systems.every((s) => typeof s === 'string' && s.trim().length >= 2 && s.length <= 40), 'systems must be up to six system names (2-40 characters)')
+  }
+  if (meta.screenshots !== undefined) {
+    const shots = Array.isArray(meta.screenshots) ? meta.screenshots : []
+    need(Array.isArray(meta.screenshots) && shots.length >= 1 && shots.length <= GALLERY_SCREENSHOT_LIMITS.count, `screenshots must list 1-${GALLERY_SCREENSHOT_LIMITS.count} images`)
+    for (const [i, shot] of shots.entries()) {
+      need(typeof shot?.file === 'string' && GALLERY_SCREENSHOT_FILE.test(shot.file), `screenshots[${i}].file must be screenshots/<name>.webp or .png`)
+      need(typeof shot?.caption === 'string' && shot.caption.trim().length >= 10 && shot.caption.length <= 200, `screenshots[${i}].caption must be 10-200 characters (it is the alt text)`)
+      need(shot?.theme === undefined || shot.theme === 'light' || shot.theme === 'dark', `screenshots[${i}].theme must be light or dark`)
+    }
+    need(new Set(shots.map((s) => s?.file)).size === shots.length, 'screenshots must not list a file twice')
   }
   return issues
 }
@@ -126,8 +148,10 @@ export function validateMeta(meta: GalleryMeta, slug: string): GalleryIssue[] {
  * against data tables in the package (columns exist), buttons (outcome
  * buttons match the step's outcomes, redirects are app paths).
  */
-export function formIssues(def: ReturnType<typeof normalizeFormDefinition>, tablesById: Map<string, any>, path: string, outcomes: string[] | null = null): GalleryIssue[] {
+export function formIssues(def: ReturnType<typeof normalizeFormDefinition>, tablesById: Map<string, any>, path: string, outcomes: string[] | null = null, rawFields?: unknown): GalleryIssue[] {
   const issues: GalleryIssue[] = []
+  // Keys the normaliser drops silently (reserved names; the item scope's names inside repeating sections).
+  for (const [key, message] of Object.entries(reservedFieldKeyProblems(rawFields))) issues.push({ path, message: `field "${key}": ${message}` })
   for (const [key, message] of Object.entries(fieldDefinitionProblems(def.fields))) issues.push({ path, message: `field "${key}": ${message}` })
   for (const field of def.fields as TaskFieldDef[]) {
     if (field.type === 'lookup' && field.lookup?.source === 'table') {
@@ -255,7 +279,7 @@ function validateWorkflowAsset(wf: any, ids: Map<string, Set<string>>, refsById:
     if (node.type === 'user_task' || node.type === 'form_submitted' || node.type.startsWith('task_')) {
       if (Array.isArray(c.fields) && c.fields.length) {
         const outcomes = node.type === 'user_task' ? (c.outcomes ?? []).map(String) : null
-        issues.push(...formIssues(readNodeForm(c), tablesById, `${path} (${node.label})`, outcomes))
+        issues.push(...formIssues(readNodeForm(c), tablesById, `${path} (${node.label})`, outcomes, c.fields))
         if (c.form_theme !== undefined && !FormThemeRefSchema.safeParse(c.form_theme).success) add(`"${node.label}": form_theme is not a valid theme reference`)
       }
     }
@@ -327,15 +351,39 @@ export function validateGallerySource(source: GallerySource, options: { communit
     const path = `${slug}/assets/${source.paths.forms?.[index] ?? 'forms'}`
     if (!Array.isArray(form.fields) || !form.fields.length) { issues.push({ path, message: 'a form needs at least one field' }); continue }
     if (form.theme !== undefined && form.theme !== null && !FormThemeRefSchema.safeParse(form.theme).success) issues.push({ path, message: 'theme is not a valid theme reference' })
-    issues.push(...formIssues(normalizeFormDefinition(form), tablesById, path))
+    issues.push(...formIssues(normalizeFormDefinition(form), tablesById, path, null, form.fields))
   }
 
   for (const [index, wf] of (assets.workflows ?? []).entries()) {
     issues.push(...validateWorkflowAsset(wf, ids, refsById, tablesById, decisionById, `${slug}/assets/${source.paths.workflows?.[index] ?? 'workflows'}`))
   }
-  const entry = (assets.workflows ?? []).find((wf: any) => wf.id === meta.entry_workflow)
-  if (!entry) issues.push({ path: `${slug}/gallery.json`, message: 'entry_workflow is not a workflow in the package' })
-  else {
+  // App-first packages: the entry app exists, has pages, and its page links resolve.
+  if (meta.entry_app !== undefined) {
+    const app = (assets.apps ?? []).find((a: any) => String(a?.id) === String(meta.entry_app))
+    if (!app) issues.push({ path: `${slug}/gallery.json`, message: 'entry_app is not an app in the package' })
+    else {
+      if (!Array.isArray(app.pages) || !app.pages.length) issues.push({ path: `${slug}/gallery.json`, message: 'the entry app needs at least one page' })
+      for (const link of brokenPageLinks(app)) issues.push({ path: `${slug}/gallery.json`, message: `the entry app links to page "${link.id}" (${link.where}), which it does not have` })
+    }
+  }
+  for (const [index, app] of (assets.apps ?? []).entries()) {
+    const path = `${slug}/assets/${source.paths.apps?.[index] ?? 'apps'}`
+    if (Object.hasOwn(app ?? {}, 'audience') || Object.hasOwn(app ?? {}, 'editors')) issues.push({ path, message: 'apps never carry an audience or editors (the installer chooses them)' })
+    for (const icon of Array.isArray(app?.icons) ? app.icons : []) if (!cleanAppIconSvg(String(icon?.svg ?? ''))) issues.push({ path, message: `icon "${icon?.name ?? icon?.id}" is not a safe SVG` })
+    // Every page's layout (widgets, rules, parameters) and filters as the app service checks them on install.
+    for (const page of Array.isArray(app?.pages) ? app.pages : []) {
+      const where = `page "${page?.slug ?? page?.title ?? '?'}"`
+      const layout = pageLayoutSchema.safeParse(page?.layout ?? {})
+      if (!layout.success) for (const issue of layout.error.issues.slice(0, 5)) issues.push({ path, message: `${where} › ${issue.path.join('.') || 'layout'}: ${issue.message}` })
+      for (const [i, f] of (Array.isArray(page?.filters) ? page.filters : []).entries()) {
+        const filter = pageFilterSchema.safeParse(f)
+        if (!filter.success) issues.push({ path, message: `${where} › filter ${i + 1}: ${filter.error.issues[0]?.message ?? 'invalid'}` })
+      }
+    }
+  }
+  const entry = meta.entry_workflow === undefined && meta.entry_app !== undefined ? null : (assets.workflows ?? []).find((wf: any) => wf.id === meta.entry_workflow)
+  if (entry === undefined) issues.push({ path: `${slug}/gallery.json`, message: 'entry_workflow is not a workflow in the package' })
+  else if (entry) {
     const allowedTriggers = TRIGGER_NODES_BY_KIND[meta.trigger] ?? []
     if (!allowedTriggers.includes(entry.trigger_type)) issues.push({ path: `${slug}/gallery.json`, message: `trigger "${meta.trigger}" needs an entry workflow triggered by ${allowedTriggers.join(' / ')} (found ${entry.trigger_type})` })
     if (meta.entry_form !== undefined && !formsById.has(String(meta.entry_form))) issues.push({ path: `${slug}/gallery.json`, message: 'entry_form must be a form in the package' })

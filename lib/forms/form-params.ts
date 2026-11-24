@@ -125,6 +125,19 @@ export function formContextNameProblem(name: string, taken: Iterable<string> = [
   return null
 }
 
+/** Parameter / variable names of a raw layout that are reserved (they would be dropped silently on save), with why. */
+export function reservedFormContextNames(layout: unknown): Array<{ kind: 'parameter' | 'variable'; name: string; problem: string }> {
+  if (!isPlainObject(layout)) return []
+  const out: Array<{ kind: 'parameter' | 'variable'; name: string; problem: string }> = []
+  for (const [kind, list] of [['parameter', layout.params], ['variable', layout.variables]] as const) {
+    for (const entry of Array.isArray(list) ? list : []) {
+      const name = isPlainObject(entry) && typeof entry.name === 'string' ? entry.name.trim() : ''
+      if (name && RESERVED.has(name)) out.push({ kind, name, problem: `"${name}" is reserved: choose another name` })
+    }
+  }
+  return out
+}
+
 /** A free name for a new parameter / variable: `base`, `base_2`… (never a reserved one). */
 export function freeFormContextName(base: string, taken: Iterable<string>): string {
   const used = new Set(taken)

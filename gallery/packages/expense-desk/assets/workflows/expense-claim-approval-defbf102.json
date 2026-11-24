@@ -1,0 +1,441 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "defbf102-7c16-5305-a94e-dc58cda7d996",
+  "asset": {
+    "id": "defbf102-7c16-5305-a94e-dc58cda7d996",
+    "name": "Expense claim approval",
+    "description": "A claim from the Expense claim form: logged in the register, checked against the category limit, approved by the claimant’s manager and paid by finance.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Claim submitted",
+        "config": {
+          "form_id": "c654788a-0c51-533a-90df-f1ce5dd41129",
+          "form_name": "Expense claim"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Claim reference",
+        "config": {
+          "name": "claim_ref",
+          "expression": "EXP-{{=FORMAT_DATE(NOW(), \"YYYYMM\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{claim_ref}} · {{form.claimant}} · ${{form.amount}} {{form.category}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "limit",
+        "type": "condition",
+        "label": "Over the policy limit?",
+        "config": {
+          "branches": [
+            {
+              "label": "Over limit",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.amount}}",
+                  "operator": "gt",
+                  "value": "{{form.limit}}"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "over",
+        "type": "set_variable",
+        "label": "Flag: over limit",
+        "config": {
+          "name": "policy",
+          "expression": "Over limit"
+        },
+        "position": {
+          "x": 80,
+          "y": 620
+        }
+      },
+      {
+        "id": "within",
+        "type": "set_variable",
+        "label": "Flag: within policy",
+        "config": {
+          "name": "policy",
+          "expression": "Within policy"
+        },
+        "position": {
+          "x": 720,
+          "y": 620
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the claim",
+        "config": {
+          "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+          "table_name": "Expense claims",
+          "operation": "insert",
+          "column_values": {
+            "claim_ref": "{{claim_ref}}",
+            "claimant": "{{form.claimant}}",
+            "department": "{{form.department}}",
+            "category": "{{form.category}}",
+            "merchant": "{{form.merchant}}",
+            "amount": "{{form.amount}}",
+            "expense_date": "{{form.expense_date}}",
+            "status": "Submitted",
+            "policy": "{{policy}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "approve",
+        "type": "user_task",
+        "label": "Manager approval",
+        "config": {
+          "task_title": "Approve expense claim: {{form.claimant}} · ${{form.amount}}",
+          "task_description": "<p><strong>{{form.claimant}}</strong> ({{form.department}}) claims <strong>${{form.amount}}</strong> for {{form.category}} at {{form.merchant}} on {{form.expense_date}}.</p><p>Purpose: {{form.purpose}}</p><p>Policy check: <strong>{{policy}}</strong> (limit ${{form.limit}}, GL {{form.gl_code}}).</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.manager}}",
+          "fields": [
+            {
+              "key": "approved_amount",
+              "label": "Approved amount (USD)",
+              "type": "currency",
+              "currency": "USD",
+              "min": 0,
+              "required": true,
+              "default": "{{form.amount}}"
+            },
+            {
+              "key": "comment",
+              "label": "Comment for the claimant",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "approved_amount",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Expense claim",
+            "align": "left",
+            "subtitle": "{{claim_ref}} · {{policy}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 2,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "approved",
+        "type": "update_data_table",
+        "label": "Mark approved",
+        "config": {
+          "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+          "table_name": "Expense claims",
+          "operation": "update",
+          "match_column": "claim_ref",
+          "match_value": "{{claim_ref}}",
+          "column_values": {
+            "status": "Approved",
+            "amount": "{{task_data.approved_amount}}",
+            "approver_comment": "{{task_data.comment}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "pay",
+        "type": "user_task",
+        "label": "Pay the claim",
+        "config": {
+          "task_title": "Pay {{claim_ref}}: ${{task_data.approved_amount}} to {{form.claimant}}",
+          "task_description": "<p>Approved claim <strong>{{claim_ref}}</strong> for {{form.claimant}} ({{form.email}}). Post it to GL {{form.gl_code}} and include it in the next payment run.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Mark paid"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "ad666da9-0a00-5fd6-a660-c262150f82c1",
+          "fields": [
+            {
+              "key": "paid_on",
+              "label": "Paid on",
+              "type": "date",
+              "required": true,
+              "default": "{{today}}"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "paid_on",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "mark_paid",
+              "label": "Mark paid",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Mark paid"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Payment run",
+            "align": "left",
+            "subtitle": "{{claim_ref}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "paid",
+        "type": "update_data_table",
+        "label": "Mark paid",
+        "config": {
+          "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+          "table_name": "Expense claims",
+          "operation": "update",
+          "match_column": "claim_ref",
+          "match_value": "{{claim_ref}}",
+          "column_values": {
+            "status": "Paid"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "end_paid",
+        "type": "end_workflow",
+        "label": "Paid",
+        "config": {
+          "reason": "{{claim_ref}} paid"
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "update_data_table",
+        "label": "Mark rejected",
+        "config": {
+          "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+          "table_name": "Expense claims",
+          "operation": "update",
+          "match_column": "claim_ref",
+          "match_value": "{{claim_ref}}",
+          "column_values": {
+            "status": "Rejected",
+            "approver_comment": "{{task_data.comment}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1180
+        }
+      },
+      {
+        "id": "end_rejected",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "config": {
+          "reason": "{{claim_ref}} rejected"
+        },
+        "position": {
+          "x": 720,
+          "y": 1320
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-limit",
+        "source": "title",
+        "target": "limit"
+      },
+      {
+        "id": "e-limit-over-over_limit",
+        "source": "limit",
+        "target": "over",
+        "label": "Over limit"
+      },
+      {
+        "id": "e-limit-within-else",
+        "source": "limit",
+        "target": "within",
+        "label": "Else"
+      },
+      {
+        "id": "e-over-log",
+        "source": "over",
+        "target": "log"
+      },
+      {
+        "id": "e-within-log",
+        "source": "within",
+        "target": "log"
+      },
+      {
+        "id": "e-log-approve",
+        "source": "log",
+        "target": "approve"
+      },
+      {
+        "id": "e-approve-approved-approve",
+        "source": "approve",
+        "target": "approved",
+        "label": "Approve"
+      },
+      {
+        "id": "e-approve-rejected-reject",
+        "source": "approve",
+        "target": "rejected",
+        "label": "Reject"
+      },
+      {
+        "id": "e-approved-pay",
+        "source": "approved",
+        "target": "pay"
+      },
+      {
+        "id": "e-pay-paid-mark_paid",
+        "source": "pay",
+        "target": "paid",
+        "label": "Mark paid"
+      },
+      {
+        "id": "e-paid-end_paid",
+        "source": "paid",
+        "target": "end_paid"
+      },
+      {
+        "id": "e-rejected-end_rejected",
+        "source": "rejected",
+        "target": "end_rejected"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

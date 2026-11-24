@@ -1,5 +1,6 @@
 "use client"
 
+import { INSTANCE_ACTIONS, INSTANCE_ACTION_LABELS, INSTANCE_DATASETS } from '@/lib/instance-admin/schema'
 import { ExtensionNodeConfig } from './extension-node-config'
 import { AddTaskAttachmentConfig } from "@/components/task-attachments/add-task-attachment-config"
 import { TeamPicker } from "@/components/tasks/assignee-search"
@@ -41,11 +42,13 @@ import { NodeFormSection } from '@/components/forms/node-form-section'
 import { normalizeTaskFields, valueFields } from '@/lib/task-field-schema'
 import { QUEUE_BEHAVIOURS, QUEUE_BEHAVIOUR_LABELS, normaliseQueueBehaviour } from '@/lib/tasks/queue-rules'
 import { CallReferenceConfig } from "./call-reference-config"
+import { EmailTemplateMapping } from "./email-template-mapping"
 import { TriggerFilterConfig } from "./trigger-filter-config"
 import { DocWordConfig, DocExcelConfig, DocPowerPointConfig } from "./doc-config-panels"
 import { DocumentActionConfig, isDocumentActionPanel } from "./document-action-panels"
 import { MediaActionConfig, isMediaActionPanel } from "./media-action-panels"
 import { EsignActionConfig, EsignEventTriggerConfig, isEsignActionPanel } from "./esign-action-panels"
+import { AgentErrorTriggerConfig } from "./agent-error-trigger-config"
 import { normalizeTableColumns } from '@/lib/data-table-columns'
 import { PERMISSION_KEYS } from '@/lib/permissions'
 import { agentOutputPrefix, runAgentOutputPrefix } from '@/lib/agent-knowledge'
@@ -367,6 +370,9 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
     return { groups, onInsertLoop: onInsertLoopBefore && node.type !== 'loop' ? (items: string) => onInsertLoopBefore(nodeId, items) : undefined }
   }, [allNodes, allEdges, node, workflowVariables, onInsertLoopBefore, linkedForms])
 
+  // Data paths this step can read, forms first (email template auto-mapping).
+  const templateCandidates = useMemo(() => (dataPicker?.groups ?? []).flatMap((g) => g.roots.map((r) => r.path)), [dataPicker])
+
   // This step's wiring warnings: references that will be blank, config keys the engine ignores.
   const allWiring = useMemo(() => (node
     ? validateWorkflowWiring({ nodes: allNodes ?? [node], edges: allEdges ?? [], workflowVariables, linkedForms, onlyNodeIds: [node.id] })
@@ -542,7 +548,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       )}
 
       {/* Error handling — show on all non-trigger nodes */}
-      {!['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event'].includes(node.type) && (
+      {!['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event', 'agent_error'].includes(node.type) && (
         <div onPointerDown={(e) => e.stopPropagation()}>
           <label className="block text-xs font-medium mb-1.5 text-fg-muted">On error</label>
           <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
@@ -566,7 +572,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
       )}
 
       {/* Execution mode — show on action/operation nodes */}
-      {!['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event', 'condition', 'switch_case', 'end_workflow', 'placeholder'].includes(node.type) && (
+      {!['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event', 'agent_error', 'condition', 'switch_case', 'end_workflow', 'placeholder'].includes(node.type) && (
         <div onPointerDown={(e) => e.stopPropagation()}>
           <label className="block text-xs font-medium mb-1.5 text-fg-muted">Execution</label>
           <div className="flex gap-0.5 rounded-md bg-muted p-0.5">
@@ -642,9 +648,30 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
         <StartFormPageSection workflowId={workflowId} />
       )}
 
+      {/* ─── Any trigger: what a step interrupted by a lost worker does on recovery (lib/workflow-checkpoints.ts) ─── */}
+      {nodeCatalogEntry(node.type)?.category === "trigger" && (
+        <div className="mt-3" data-interrupted-steps>
+          <label className="block text-xs font-medium mb-1.5 text-fg-muted">If a step is interrupted</label>
+          <Select value={node.config.interrupted_steps === "retry" ? "retry" : "fail"} onChange={(e) => updateConfig("interrupted_steps", e.target.value === "retry" ? "retry" : undefined)}>
+            <option value="fail">Fail it as outcome unknown (On error decides)</option>
+            <option value="retry">Run it again</option>
+          </Select>
+          <p className="mt-1 text-xs text-fg-muted">
+            When the server running this workflow stops in the middle of a step, the run continues after the last completed step.
+            Steps that can safely run twice (emails, data table writes, GET/PUT/DELETE requests, requests with an Idempotency-Key) run again;
+            for other steps choose whether to run them again or fail them.
+          </p>
+        </div>
+      )}
+
       {/* ─── Form submitted trigger ─── */}
       {node.type === "form_submitted" && (
         <FormSubmittedTriggerConfig config={node.config} onBatchUpdate={batchUpdateConfig} />
+      )}
+
+      {/* ─── Agent error trigger ─── */}
+      {node.type === "agent_error" && (
+        <AgentErrorTriggerConfig config={node.config} onUpdate={updateConfig} />
       )}
 
       {/* ─── E-signature event trigger ─── */}
@@ -1259,6 +1286,15 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
             <button onClick={() => updateConfig("headers", [...(node.config.headers ?? []), { key: '', value: '' }])}
               className="text-xs font-medium text-primary-text underline-offset-4 hover:underline">+ Add header</button>
           </div>
+
+          <label className="flex items-start gap-2 text-xs" data-idempotency-header>
+            <Checkbox checked={node.config.idempotency_header === true}
+              onChange={(e) => updateConfig("idempotency_header", e.target.checked ? true : undefined)} />
+            <span>
+              Send an Idempotency-Key header
+              <span className="block text-fg-muted">The same key on every retry of this step, so a service that supports it does not act twice when a run is recovered.</span>
+            </span>
+          </label>
 
           {/* Query Params */}
           <div>
@@ -2166,11 +2202,21 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
         <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
           <div>
             <label className="block text-xs font-medium mb-1.5">Email template</label>
-            <Select value={node.config.email_template_id ?? ""} onChange={(e) => updateConfig("email_template_id", e.target.value || undefined)} >
+            <Select value={node.config.email_template_id ?? ""} onChange={(e) => batchUpdateConfig({ email_template_id: e.target.value || undefined, _template_variables: undefined })} >
               <option value="">Custom subject and body</option>
               {emailTemplates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
             </Select>
           </div>
+          {node.config.email_template_id && (
+            <EmailTemplateMapping
+              templateId={String(node.config.email_template_id)}
+              snapshot={node.config._template_variables}
+              mappings={node.config.template_variables}
+              onChange={({ mappings, snapshot }) => batchUpdateConfig({ ...(mappings !== undefined ? { template_variables: Object.keys(mappings).length ? mappings : undefined } : {}), ...(snapshot !== undefined ? { _template_variables: snapshot } : {}) })}
+              candidates={templateCandidates}
+              extraVariables={extraVariables}
+            />
+          )}
           <div>
             <label className="block text-xs font-medium mb-1.5">To</label>
             <VariableInput value={node.config.to ?? ""} onChange={(value) => updateConfig("to", value)}
@@ -2361,7 +2407,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
             Middleware workflows are synchronous system flows and cannot pause for a human <code className="text-primary-text">User Task</code>.
           </InlineNotice>
         ) : (
-          <UserTaskConfig config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} emailTemplates={emailTemplates}
+          <UserTaskConfig config={node.config} onUpdate={updateConfig} onBatchUpdate={batchUpdateConfig} extraVariables={extraVariables} emailTemplates={emailTemplates} templateCandidates={templateCandidates}
             formSection={<NodeFormSection variant="user_task" node={node} allNodes={allNodes ?? []} allEdges={allEdges ?? []} workflowVariables={workflowVariables} workflowId={workflowId} onPatch={batchUpdateConfig} onUpdateOtherNode={(id, config) => onUpdateNode(id, { config })} />} />
         )
       )}
@@ -2375,6 +2421,10 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
           onBatchUpdate={batchUpdateConfig}
           extraVariables={extraVariables}
         />
+      )}
+
+      {node.type === "instance_admin" && (
+        <InstanceAdminStepConfig config={node.config} onUpdate={updateConfig} extraVariables={extraVariables} />
       )}
 
       {node.type === "check_permission" && (
@@ -2926,7 +2976,7 @@ function DecisionTableConfig({ config, onUpdate, onBatchUpdate, extraVariables }
 }
 
 // ─── User Task Config ───
-function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, emailTemplates, formSection }: {
+function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, emailTemplates, templateCandidates = [], formSection }: {
   /** The Form section (designer, saved forms) — components/forms/node-form-section. */
   formSection: React.ReactNode
   config: Record<string, any>
@@ -2934,6 +2984,7 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
   onBatchUpdate: (updates: Record<string, any>) => void
   extraVariables: { name: string; group: string }[]
   emailTemplates: Array<{ id: string; name: string; subject: string }>
+  templateCandidates?: string[]
 }) {
   const { data: users } = useUserOptions('all-users')
   const { data: teams } = useTeamOptions('all-teams')
@@ -2967,11 +3018,24 @@ function UserTaskConfig({ config, onUpdate, onBatchUpdate, extraVariables, email
 
       <div>
         <label className="block text-xs font-medium mb-1.5">Assignment notification template</label>
-        <Select value={config.notification_template_id ?? ''} onChange={e => onUpdate('notification_template_id', e.target.value || undefined)} >
+        <Select value={config.notification_template_id ?? ''} onChange={e => onBatchUpdate({ notification_template_id: e.target.value || undefined, _notification_template_variables: undefined })} >
           <option value="">Default task notification</option>
           {emailTemplates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
         </Select>
         <p className="mt-1 text-xs text-fg-muted">Uses the template subject and plain-text body for the assignee’s in-app notification.</p>
+        {config.notification_template_id && (
+          <div className="mt-2">
+            <EmailTemplateMapping
+              noun="Notification template"
+              templateId={String(config.notification_template_id)}
+              snapshot={config._notification_template_variables}
+              mappings={config.notification_template_variables}
+              onChange={({ mappings, snapshot }) => onBatchUpdate({ ...(mappings !== undefined ? { notification_template_variables: Object.keys(mappings).length ? mappings : undefined } : {}), ...(snapshot !== undefined ? { _notification_template_variables: snapshot } : {}) })}
+              candidates={templateCandidates}
+              extraVariables={extraVariables}
+            />
+          </div>
+        )}
       </div>
 
       {/* Priority */}
@@ -3697,6 +3761,51 @@ function GovernanceRoleAssignmentConfig({
 }
 
 // ─── Permission Check Config ───
+/** "UserTasks Instance" step (instance admins only): read a dataset or run an on-behalf action. */
+function InstanceAdminStepConfig({ config, onUpdate, extraVariables }: {
+  config: Record<string, any>
+  onUpdate: (key: string, value: any) => void
+  extraVariables: { name: string; group: string }[]
+}) {
+  const mode = config.mode === 'action' ? 'action' : 'read'
+  const mapKey = mode === 'action' ? 'inputs' : 'params'
+  const map: Record<string, string> = config[mapKey] ?? {}
+  const keys = mode === 'action'
+    ? ['reason', 'user_id', 'workspace_id', 'invitation_id', 'email', 'role', 'extension_id', 'days', 'ends_at']
+    : ['workspace_id', 'user_id', 'status', 'q', 'days', 'sort', 'dir', 'limit']
+  return (
+    <div className="space-y-4" onPointerDown={(e) => e.stopPropagation()}>
+      <Card variant="inset" padding="sm">
+        <p className="mb-1 text-xs font-medium text-fg">UserTasks instance (instance admins only)</p>
+        <p className="text-xs text-fg-muted">
+          Operational data of every workspace, and on-behalf actions recorded in both audit logs. Checked on every run: actions need a run started by a person who is an instance admin; scheduled reads need the workflow’s owner and publisher to be instance admins.
+        </p>
+      </Card>
+      <div>
+        <label className="block text-xs font-medium mb-1.5">Mode</label>
+        <AutocompleteSelect value={mode} options={[{ value: 'read', label: 'Read data' }, { value: 'action', label: 'Act on a workspace’s behalf' }]} onChange={(v: string) => onUpdate('mode', v)} />
+      </div>
+      {mode === 'read' ? (
+        <div>
+          <label className="block text-xs font-medium mb-1.5">Dataset</label>
+          <AutocompleteSelect value={config.dataset ?? ''} placeholder="Choose a dataset…" options={INSTANCE_DATASETS.map((d) => ({ value: d, label: d.replace(/_/g, ' ') }))} onChange={(v: string) => onUpdate('dataset', v)} />
+        </div>
+      ) : (
+        <div>
+          <label className="block text-xs font-medium mb-1.5">Action</label>
+          <AutocompleteSelect value={config.action ?? ''} placeholder="Choose an action…" options={INSTANCE_ACTIONS.map((a) => ({ value: a, label: INSTANCE_ACTION_LABELS[a] }))} onChange={(v: string) => onUpdate('action', v)} />
+        </div>
+      )}
+      {keys.map((k) => (
+        <div key={k}>
+          <label className="text-xs block mb-1.5 text-fg-muted">{k}{mode === 'action' && k === 'reason' ? ' (required)' : ''}</label>
+          <VariableInput value={map[k] ?? ''} onChange={(value) => { const next = { ...map }; if (value) next[k] = value; else delete next[k]; onUpdate(mapKey, next) }} placeholder={`{{${k}}}`} extraVariables={extraVariables} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function PermissionCheckConfig({
   config,
   onUpdate,
@@ -4609,7 +4718,7 @@ function GoToActivityConfig({ config, onUpdate, onBatchUpdate, allNodes, current
   const overrides = (config.input_overrides ?? {}) as Record<string, string>
 
   // Get available nodes (exclude self and triggers)
-  const triggerTypes = ['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event']
+  const triggerTypes = ['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted', 'middleware_received', 'schedule', 'webhook_received', 'esign_event', 'agent_error']
   const availableNodes = allNodes.filter(n => n.id !== currentNodeId && !triggerTypes.includes(n.type))
 
   // Get target node's expected inputs (from config like call_reference inputs, loop items, etc.)
@@ -6040,6 +6149,49 @@ function RunAgentConfig({ config, onUpdate, onBatchUpdate, extraVariables, workf
         <p className="text-xs mt-0.5 text-fg-muted">
           Up to 10 files. Images go to vision models as images, PDFs as documents where the model&apos;s API takes them (OpenAI), everything else as extracted text; the agent can also read them with read_attached_file. Only names and sizes are logged.
         </p>
+      </div>
+
+      {/* Workflow data as context */}
+      <div className="space-y-2">
+        <label className="flex items-start gap-2 cursor-pointer">
+          <Checkbox
+            checked={config.include_workflow_data === true}
+            onChange={(e) => onUpdate("include_workflow_data", e.target.checked)}
+            className="mt-0.5"
+            data-testid="run-agent-include-workflow-data"
+          />
+          <div>
+            <span className="text-2xs font-medium text-fg">Use this workflow&apos;s data as context</span>
+            <p className="text-xs text-fg-muted">
+              The agent also gets the run&apos;s data (what started it, its variables and earlier steps&apos; results), so it works on this item instead of searching for one. Secrets and internal values are left out; large values are trimmed.
+            </p>
+          </div>
+        </label>
+        {config.include_workflow_data === true && (
+          <div className="ml-6 space-y-2">
+            <div>
+              <label className="block text-xs font-medium mb-1.5">Which data</label>
+              <Select aria-label="Which workflow data" value={config.workflow_data_scope === 'fields' ? 'fields' : 'all'}
+                onChange={(e) => onUpdate('workflow_data_scope', e.target.value === 'fields' ? 'fields' : undefined)}>
+                <option value="all">All of the workflow&apos;s data</option>
+                <option value="fields">Only the fields I pick</option>
+              </Select>
+            </div>
+            {config.workflow_data_scope === 'fields' && (
+              <div>
+                <label className="block text-xs font-medium mb-1.5">Fields</label>
+                <Input
+                  value={Array.isArray(config.workflow_data_fields) ? config.workflow_data_fields.join(', ') : String(config.workflow_data_fields ?? '')}
+                  onChange={(e) => onUpdate('workflow_data_fields', e.target.value || undefined)}
+                  placeholder="claim_id, amount, form.description"
+                  className="font-mono"
+                  aria-label="Workflow data fields"
+                />
+                <p className="text-xs mt-0.5 text-fg-muted">Variable names or paths, separated by commas.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {selectedAgent && (

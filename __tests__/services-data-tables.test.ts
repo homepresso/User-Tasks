@@ -197,6 +197,18 @@ describe('data tables service: rows', () => {
     expect(ordered.rows.map((r) => r.id)).toEqual(['row-2', 'row-1'])
     expect(data.parseRowOrder('amount.asc')).toEqual({ sort_field: 'amount', sort_direction: 'asc' })
   })
+
+  it('narrows an "equals" filter in the database before the newest-rows scan (case-insensitive, wildcards literal)', async () => {
+    const db = seed()
+    const scanned: string[] = []
+    const from = db.from.bind(db)
+    ;(db as any).from = (table: string) => { const q: any = from(table); const ilike = q.ilike?.bind(q); if (ilike) q.ilike = (col: string, pattern: string) => { scanned.push(`${col}=${pattern}`); return ilike(col, pattern) }; return q }
+    const open = await data.queryRows(ctx(db), 'tbl-a', { filters: [{ field: 'status', operator: 'equals', value: 'OPEN' }] }, page)
+    expect(open.rows.map((r) => r.id)).toEqual(['row-1'])
+    expect(scanned).toEqual(['data->>status=OPEN'])
+    await data.queryRows(ctx(db), 'tbl-a', { filters: [{ field: 'status', operator: 'equals', value: '50%_x' }] }, page)
+    expect(scanned.at(-1)).toBe('data->>status=50\\%\\_x')
+  })
 })
 
 describe('/api/v1/data-tables routes', () => {

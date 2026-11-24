@@ -10,6 +10,7 @@ import { FormGovernanceSection } from './form-governance-section'
 import { FormAnonymousSection } from './form-anonymous-section'
 import { FormAvailabilityHint, FormAvailabilityStatus } from './form-availability-hint'
 import { FormSystemNameField } from './form-system-name-field'
+import { TagInput, parseTagText } from '@/components/ui/tag-input'
 
 /**
  * A reusable form's settings — name, description, tags, friendly link name
@@ -76,7 +77,7 @@ export function FormDetailsEditor({ form, draft, onDraftChange, onSaved, onNotic
     <form className="space-y-3" data-testid="form-details-fields" onSubmit={(e) => { e.preventDefault(); void save() }}>
       <Field label="Name"><Input required maxLength={120} value={value.name} onChange={(e) => set({ ...value, name: e.target.value })} data-testid="form-name" /></Field>
       <Field label="Description" optional><Input maxLength={2000} value={value.description} onChange={(e) => set({ ...value, description: e.target.value })} /></Field>
-      <Field label="Tags" description="Comma separated" optional><Input value={value.tags} onChange={(e) => set({ ...value, tags: e.target.value })} /></Field>
+      <Field label="Tags" description="Type to pick an existing tag; Enter or comma adds" optional><TagInput listInline value={parseTagText(value.tags)} onChange={(next) => set({ ...value, tags: next.join(', ') })} /></Field>
       {form && (
         <FormSystemNameField formId={form.id} formName={value.name} value={value.systemName} saved={form.system_name ?? null}
           onChange={(systemName) => set({ ...value, systemName })} onValidity={setSystemNameOk} />

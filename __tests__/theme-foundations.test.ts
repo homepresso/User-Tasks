@@ -73,6 +73,18 @@ describe('Gallery and Atelier follow the device into dark', () => {
     expect(themeStylesheet(t)).toContain(`@media (prefers-color-scheme: dark){:root{--theme-primary:${t.colors.dark.primary} !important`)
   })
 
+  it('Lagoon (and Lagoon Minimal) has a dark palette: deep navy canvas, teal actions, in /embed as in the app', () => {
+    for (const id of ['lagoon', 'lagoon-minimal']) {
+      const t = presetToWorkspaceTheme(id)!
+      expect(t.meta.mode).toBe('auto')
+      expect(canvasMode(t, false)).toBe('light')
+      expect(canvasMode(t, true)).toBe('dark')
+      expect(isDarkColor(t.colors.dark.cardBg)).toBe(true)
+      expect(paletteContrastIssues(t.colors.dark, 'dark', t.chrome)).toEqual([])
+      expect(themeStylesheet(t)).toContain(`@media (prefers-color-scheme: dark){:root{--theme-primary:${t.colors.dark.primary} !important`)
+    }
+  })
+
   it('Gallery keeps the ink-black primary in light, white-on-black actions in dark, camel only as the accent', () => {
     const g = presetToWorkspaceTheme('basecamp')!
     expect(g.colors.light.primary).toBe('#17150F')

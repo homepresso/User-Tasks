@@ -9,6 +9,7 @@
 
 import { assertRegexInput, compileUserRegex } from './safe-regex'
 import { isTruthyValue } from './conditions'
+import { lookupPerson } from './workflow-people'
 
 export interface FunctionDef {
   name: string
@@ -94,6 +95,8 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'CEILING', category: 'math', description: 'Round up to a number of decimals (default 0)', args: [{ name: 'value', type: 'number' }, { name: 'decimals', type: 'number', optional: true }], example: 'CEILING(2.341, 2) → 2.35', returnType: 'number' },
   { name: 'FLOOR', category: 'math', description: 'Round down to a number of decimals (default 0)', args: [{ name: 'value', type: 'number' }, { name: 'decimals', type: 'number', optional: true }], example: 'FLOOR(2.349, 2) → 2.34', returnType: 'number' },
 
+  { name: 'NPV', category: 'math', description: 'Net present value of cash flows at a discount rate (a decimal: 0.1 = 10%), like Excel: the first value is discounted one period (add a period-0 investment yourself). Values may be numbers or a list (PLUCK(form.cash_flows, "net")); blanks and text are skipped', args: [{ name: 'rate', type: 'number' }, { name: 'values', type: 'number...' }], example: 'NPV(0.1, -10000, 3000, 4200, 6800) → 1188.44', returnType: 'number' },
+  { name: 'IRR', category: 'math', description: 'Internal rate of return of cash flows (period 0 first, usually negative), as a decimal (0.087 = 8.7%), like Excel. Values may be numbers or a list; empty (null) when there is no rate (all flows the same sign)', args: [{ name: 'values', type: 'number...' }], example: 'IRR(-70000, 12000, 15000, 18000, 21000, 26000) → 0.0866', returnType: 'number' },
   // ─── Logical ───
   { name: 'IF', category: 'logical', description: 'If condition then A else B. The condition can be a comparison (status == "open"); "false", "0", "" and missing values are false', args: [{ name: 'condition', type: 'any' }, { name: 'then', type: 'any' }, { name: 'else', type: 'any' }], example: 'IF(amount > 1000, "CFO", "Manager") → "CFO"', returnType: 'any' },
   { name: 'AND', category: 'logical', description: 'True if all values are true', args: [{ name: 'values', type: 'boolean...' }], example: 'AND(true, true) → true', returnType: 'boolean' },
@@ -139,6 +142,8 @@ export const FUNCTION_CATALOG: FunctionDef[] = [
   { name: 'REGEX_REPLACE', category: 'regex', description: 'Replace matches with a string', args: [{ name: 'text', type: 'string' }, { name: 'pattern', type: 'string' }, { name: 'replacement', type: 'string' }], example: 'REGEX_REPLACE("a1b2", "\\\\d", "X") → "aXbX"', returnType: 'string' },
 
   // ─── Data ───
+  { name: 'USER_NAME', category: 'data', description: 'A person’s name from their user id (or a person value), in this workspace. Workflows only; empty when unknown', args: [{ name: 'user_id', type: 'string' }], example: 'USER_NAME(workflow_started_by) → "Maya Patel"', returnType: 'string' },
+  { name: 'USER_EMAIL', category: 'data', description: 'A person’s email address from their user id (or a person value), in this workspace. Workflows only; empty when unknown', args: [{ name: 'user_id', type: 'string' }], example: 'USER_EMAIL(workflow_started_by) → "maya.patel@example.com"', returnType: 'string' },
   { name: 'GUID', category: 'data', description: 'Generate a new UUID', args: [], example: 'GUID() → "a1b2c3..."', returnType: 'string' },
   { name: 'BASE64_ENCODE', category: 'data', description: 'Encode string to Base64', args: [{ name: 'text', type: 'string' }], example: 'BASE64_ENCODE("Hello") → "SGVsbG8="', returnType: 'string' },
   { name: 'BASE64_DECODE', category: 'data', description: 'Decode Base64 to string', args: [{ name: 'text', type: 'string' }], example: 'BASE64_DECODE("SGVsbG8=") → "Hello"', returnType: 'string' },
@@ -171,6 +176,20 @@ export const FUNCTION_CATEGORIES: { id: string; label: string; icon: string; col
 
 // ─── Function evaluator ───
 
+/** Whether the "(" at `open` is balanced by the last character of `expr` (quotes respected). */
+function closesAtEnd(expr: string, open: number): boolean {
+  let depth = 0
+  let quote = ''
+  for (let i = open; i < expr.length; i++) {
+    const c = expr[i]
+    if (quote) { if (c === '\\') i++; else if (c === quote) quote = ''; continue }
+    if (c === '"' || c === "'") quote = c
+    else if (c === '(') depth++
+    else if (c === ')' && --depth === 0) return i === expr.length - 1
+  }
+  return false
+}
+
 /**
  * Parse a function call string like FUNC_NAME(arg1, arg2, "string arg", ...)
  * and return { name, args[] }
@@ -178,6 +197,9 @@ export const FUNCTION_CATEGORIES: { id: string; label: string; icon: string; col
 export function parseFunctionCall(expr: string): { name: string; args: string[] } | null {
   const match = expr.match(/^([A-Z_][A-Z0-9_]*)\s*\(([\s\S]*)\)$/)
   if (!match) return null
+  // The name's own "(" must close at the very end: `COUNT(a) - COUNT(b)` is an operator
+  // expression over two calls, not COUNT with the argument "a) - COUNT(b".
+  if (!closesAtEnd(expr, expr.indexOf('('))) return null
 
   const name = match[1]
   const argsStr = match[2].trim()
@@ -229,8 +251,10 @@ export function parseFunctionCall(expr: string): { name: string; args: string[] 
 //   gives null.
 // - An operand is a literal ("text", 12.5, true, false, null), a variable
 //   name, a FUNCTION(...) call or a parenthesised expression. An unknown
-//   name means the argument is not an expression and is read as plain text
-//   (the pre-existing behaviour), as are unquoted dates and ids such as
+//   snake_case name (contact_phone) with no value is null, as is a whole
+//   expression that is one name with no value; other unknown words mean the
+//   argument is not an expression and are read as plain text (the
+//   pre-existing behaviour), as are unquoted dates and ids such as
 //   2026-01-05 or 021-555-1234.
 
 export type FormulaToken =
@@ -287,8 +311,11 @@ export function tokenizeFormula(src: string): FormulaToken[] | null {
           else if (c === ')' && --depth === 0) break
         }
         if (depth !== 0 || k >= src.length) return null
-        tokens.push({ t: 'call', v: src.slice(i, k + 1) })
-        i = k + 1
+        // A member path after the call (FIRST(rows).amount) belongs to the call: evaluateFunction reads it.
+        const member = /^(?:\.[A-Za-z_]\w*|\[\d+\])+/.exec(src.slice(k + 1))
+        const callEnd = k + 1 + (member ? member[0].length : 0)
+        tokens.push({ t: 'call', v: src.slice(i, callEnd) })
+        i = callEnd
         continue
       }
       tokens.push({ t: 'id', v: m[0] })
@@ -372,6 +399,8 @@ function evaluateOperatorExpression(tokens: FormulaToken[], evalFn: (expr: strin
           for (let i = 1; i < parts.length; i++) value = value?.[parts[i]]
           return value
         }
+        // A variable name that isn't there (snake_case: never plain text) is empty, not its own name.
+        if (isVariableName(token.v)) return null
       }
       throw new NotAnExpression()
     }
@@ -486,8 +515,20 @@ function resolveArg(arg: string, evalFn: (expr: string) => any, scope?: Record<s
   // Number
   const num = Number(arg)
   if (!isNaN(num) && arg !== '') return num
+  // A variable name with no value (snake_case, e.g. contact_phone): empty, not the name itself.
+  if (scope && isVariableName(arg)) return null
   // Plain string (variable reference already resolved)
   return arg
+}
+
+/**
+ * An unquoted name that can only be a variable: lower-case snake_case with an
+ * underscore (`contact_phone`, `irr_step`). An unknown one reads as empty (null)
+ * instead of its own text. Single plain words (`open`, `days`) and dotted text
+ * (`example.com`) keep the older reading as text, as documented.
+ */
+export function isVariableName(text: string): boolean {
+  return /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/.test(text)
 }
 
 /** A field of a row: the flat key first, then a dotted/indexed path (`address.city`, `tags[0]`). */
@@ -556,6 +597,59 @@ function toDate(v: any): Date | null {
   return isNaN(d.getTime()) ? null : d
 }
 
+/** Cash flows for NPV / IRR: numbers and lists of numbers (one level), in order; blanks, text and booleans skipped (as Excel does for references). */
+function cashFlows(args: any[]): number[] {
+  const out: number[] = []
+  for (const a of args.flat()) {
+    const n = typeof a === 'number' ? a : typeof a === 'string' ? rowNumber(a) : null
+    if (n !== null && Number.isFinite(n)) out.push(n)
+  }
+  return out.slice(0, MAP_LIMITS.rows)
+}
+
+/** Σ value / (1 + rate)^(i + first): `first` = 1 for NPV (Excel), 0 for IRR's period-0 sum. */
+function npv(rate: number, flows: number[], first: number): number {
+  let total = 0
+  for (let i = 0; i < flows.length; i++) total += flows[i] / Math.pow(1 + rate, i + first)
+  return total
+}
+
+/**
+ * IRR: the rate where the period-0 NPV is 0. Newton from 10% (Excel's guess), then
+ * — when it does not settle — bisection over the bracket nearest 10% found by
+ * scanning -99%…1000%. Null without a sign change (no rate exists).
+ */
+function irr(flows: number[]): number | null {
+  if (flows.length < 2 || !flows.some((v) => v > 0) || !flows.some((v) => v < 0)) return null
+  const f = (r: number) => npv(r, flows, 0)
+  const df = (r: number) => { let d = 0; for (let t = 1; t < flows.length; t++) d -= t * flows[t] / Math.pow(1 + r, t + 1); return d }
+  let r = 0.1
+  for (let i = 0; i < 50; i++) {
+    const y = f(r)
+    const d = df(r)
+    if (!Number.isFinite(y) || !Number.isFinite(d) || d === 0) break
+    const next = r - y / d
+    if (!Number.isFinite(next) || next <= -1) break
+    if (Math.abs(next - r) < 1e-12) return next
+    r = next
+  }
+  // Bisection: brackets from a scan, the one nearest the 10% guess first.
+  const grid: number[] = []
+  for (let x = -0.99; x < 1; x += 0.01) grid.push(x)
+  for (let x = 1; x <= 10; x += 0.1) grid.push(x)
+  const brackets: Array<[number, number]> = []
+  for (let i = 1; i < grid.length; i++) if (Math.sign(f(grid[i - 1])) !== Math.sign(f(grid[i]))) brackets.push([grid[i - 1], grid[i]])
+  if (!brackets.length) return null
+  brackets.sort((a, b) => Math.abs((a[0] + a[1]) / 2 - 0.1) - Math.abs((b[0] + b[1]) / 2 - 0.1))
+  let [lo, hi] = brackets[0]
+  for (let i = 0; i < 200 && hi - lo > 1e-13; i++) {
+    const mid = (lo + hi) / 2
+    if (Math.sign(f(lo)) === Math.sign(f(mid))) lo = mid
+    else hi = mid
+  }
+  return (lo + hi) / 2
+}
+
 /** Extract valid numbers from args, filtering out NaN */
 function toNums(args: any[]): number[] {
   // Flatten one level so SUM(PLUCK(items,"price")) / AVG([1,2,3]) work as well as
@@ -605,7 +699,47 @@ function dedupe(list: unknown[]): unknown[] {
   return out
 }
 
+/**
+ * A function call followed by a member path — `FIRST(rows).amount`,
+ * `INDEX(list, 2).name`, `SPLIT(x, ",")[0]` — split into the call and the
+ * path (dot names and [n] indexes), else null.
+ */
+export function splitMemberAccess(text: string): { call: string; path: Array<string | number> } | null {
+  const head = text.match(/^[A-Z_][A-Z0-9_]*\s*\(/)
+  if (!head) return null
+  let depth = 0
+  let quote: string | null = null
+  let end = -1
+  for (let i = head[0].length - 1; i < text.length; i++) {
+    const c = text[i]
+    if (quote) { if (c === '\\') i++; else if (c === quote) quote = null; continue }
+    if (c === '"' || c === "'") { quote = c; continue }
+    if (c === '(') depth++
+    else if (c === ')' && --depth === 0) { end = i; break }
+  }
+  if (end < 0 || end === text.length - 1) return null
+  const rest = text.slice(end + 1)
+  if (!/^(?:\.[A-Za-z_][A-Za-z0-9_]*|\[\d+\])+$/.test(rest)) return null
+  const path: Array<string | number> = []
+  for (const m of rest.matchAll(/\.([A-Za-z_][A-Za-z0-9_]*)|\[(\d+)\]/g)) path.push(m[1] !== undefined ? m[1] : Number(m[2]))
+  return { call: text.slice(0, end + 1), path }
+}
+
+/** Read a member path of a value (own properties only; anything missing → undefined). */
+function readMemberPath(value: any, path: ReadonlyArray<string | number>): any {
+  let cur = value
+  for (const key of path) {
+    if (cur === null || cur === undefined || typeof cur !== 'object') return undefined
+    if (typeof key === 'string' && !Object.prototype.hasOwnProperty.call(cur, key)) return undefined
+    cur = cur[key as keyof typeof cur]
+  }
+  return cur
+}
+
 export function evaluateFunction(expr: string, scope?: Record<string, any>): any {
+  // A call's result read further: FIRST(rows).amount (the call is evaluated, then the path read).
+  const member = splitMemberAccess(String(expr ?? '').trim())
+  if (member) return readMemberPath(evaluateFunction(member.call, scope), member.path) ?? null
   // Tolerate surrounding whitespace — "{{= ADD(x, 1) }}" arrives as " ADD(x, 1) ",
   // and an untrimmed expr fails the FUNC(...) match, leaking the literal text
   // into the output instead of the evaluated result.
@@ -614,7 +748,10 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
     // Not a single FUNCTION(...) call: an operator expression such as
     // `{{= price * qty }}` or `{{= status == "open" }}`, else the text as-is.
     const expression = tryOperatorExpression(String(expr ?? ''), (e) => evaluateFunction(e, scope), scope, true)
-    return expression ? expression.value : expr
+    if (expression) return expression.value
+    // The whole expression is one name with no value (`{{= total_cost }}`, `{{= nope }}`): empty, not the name.
+    if (scope && /^[a-z_][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+|\[\d+\])*$/.test(String(expr ?? '').trim())) return null
+    return expr
   }
 
   const { name } = parsed
@@ -774,6 +911,8 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
         return boundedRows(args[0]).filter((row: any) => looseEquals(readField(row, field), args[2])).length
       }
       case 'POWER': return Math.pow(Number(args[0]) || 0, Number(args[1]) || 0)
+      case 'NPV': { const rate = Number(args[0]); return Number.isFinite(rate) && rate > -1 ? npv(rate, cashFlows(args.slice(1)), 1) : null }
+      case 'IRR': return irr(cashFlows(args))
       case 'SQRT': return Math.sqrt(Number(args[0]) || 0)
       case 'MOD': return (Number(args[0]) || 0) % (Number(args[1]) || 1)
       case 'RANDOM': return Math.floor(Math.random() * (Number(args[0]) || 100))
@@ -874,6 +1013,12 @@ export function evaluateFunction(expr: string, scope?: Record<string, any>): any
 
       // ─── Data ───
       case 'GUID': return crypto.randomUUID()
+      case 'USER_NAME': case 'USER_EMAIL': {
+        // The workspace's people, loaded by the engine for steps that use these functions (lib/workflow-people.ts).
+        const person = lookupPerson(scope, args[0])
+        if (!person) return ''
+        return name === 'USER_EMAIL' ? person.email ?? '' : person.name || person.email || ''
+      }
       case 'BASE64_ENCODE': return typeof btoa === 'function' ? btoa(String(args[0] ?? '')) : Buffer.from(String(args[0] ?? '')).toString('base64')
       case 'BASE64_DECODE': return typeof atob === 'function' ? atob(String(args[0] ?? '')) : Buffer.from(String(args[0] ?? ''), 'base64').toString()
 

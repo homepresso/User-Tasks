@@ -2,7 +2,7 @@ import net from 'node:net'
 import type { InstanceConfig, ProviderConfig } from '@/lib/config'
 import { DEFAULT_PROVIDERS, PROVIDER_AREAS, type ProviderArea } from '@/lib/config/schema'
 import { runDoctor, worstStatus, type CheckStatus } from '@/lib/admin/doctor'
-import { targetClientConfig, type TargetConnection } from '@/lib/admin/switch/db-copy'
+import { targetClientConfig, type TargetConnection } from '@/lib/admin/ops/target-connection'
 import {
   PROFILE_AREAS, PROFILE_AREA_TO_PROVIDER, postgresUrl, supabaseAreas,
   type Profile, type ProfileArea,

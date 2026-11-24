@@ -1,0 +1,663 @@
+{
+  "format_version": 3,
+  "asset_type": "apps",
+  "id": "ed43d9a0-d0bf-5d73-943f-3cca32b1552b",
+  "asset": {
+    "id": "ed43d9a0-d0bf-5d73-943f-3cca32b1552b",
+    "name": "IT service desk",
+    "slug": "it-service-desk",
+    "subtitle": "Tickets, SLAs and self-help",
+    "description": "Raise a ticket, follow your tickets, work the team board and keep SLAs on track; the knowledge base answers the common questions.",
+    "icon": "LifeBuoy",
+    "color": "#2563eb",
+    "menu": [],
+    "settings": {
+      "nav": {
+        "style": "top",
+        "header_style": "plain",
+        "density": "comfortable"
+      },
+      "style": {
+        "default": {
+          "radius": "md",
+          "shadow": "sm"
+        },
+        "presets": [
+          {
+            "name": "Quiet",
+            "style": {
+              "shadow": "none",
+              "colors": {
+                "background": "token:subtle"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "pages": [
+      {
+        "id": "5aa6ae97-ee0b-577c-afef-c0fcc5ae5dfb",
+        "slug": "home",
+        "title": "Home",
+        "icon": "House",
+        "position": 0,
+        "layout": {
+          "widgets": [
+            {
+              "id": "notice",
+              "w": 12,
+              "h": 2,
+              "type": "announcement",
+              "config": {
+                "html": "<p><strong>Planned maintenance:</strong> email and calendar will be unavailable on Saturday from 06:00 to 08:00 UTC.</p>",
+                "tone": "warning"
+              }
+            },
+            {
+              "id": "actions",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Raise a ticket",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "lg",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "modal",
+                      "width": "md",
+                      "motion": "scale",
+                      "resizable": true,
+                      "title": "Raise a ticket"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "a54ac138-74a6-58e2-bd1e-8c8e2b99bf13",
+                      "open": "modal"
+                    }
+                  },
+                  {
+                    "label": "Knowledge base",
+                    "icon": "BookOpen",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "lg",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "knowledge"
+                    }
+                  },
+                  {
+                    "label": "Team board",
+                    "icon": "SquareKanban",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "lg",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "badge": "my_tasks",
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "board"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "mine",
+              "title": "My tickets",
+              "w": 7,
+              "h": 8,
+              "type": "my_submissions",
+              "config": {
+                "form_id": "a54ac138-74a6-58e2-bd1e-8c8e2b99bf13",
+                "limit": 10
+              }
+            },
+            {
+              "id": "fixes",
+              "title": "Popular fixes",
+              "w": 5,
+              "h": 8,
+              "type": "links",
+              "config": {
+                "links": [
+                  {
+                    "label": "Connect to the VPN",
+                    "url": "https://help.example.com/kb/vpn-setup",
+                    "description": "Client, sign-in and gateways"
+                  },
+                  {
+                    "label": "Reset your password",
+                    "url": "https://help.example.com/kb/password-reset",
+                    "description": "Self-service with your phone"
+                  },
+                  {
+                    "label": "Set up multi-factor authentication",
+                    "url": "https://help.example.com/kb/mfa",
+                    "description": "Authenticator app and backup codes"
+                  },
+                  {
+                    "label": "Print from your laptop",
+                    "url": "https://help.example.com/kb/follow-me-print",
+                    "description": "Follow-me printing with your badge"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "6753bd0d-9627-5df2-ba23-446b7d51e59c",
+        "slug": "board",
+        "title": "Team board",
+        "icon": "SquareKanban",
+        "position": 1,
+        "layout": {
+          "widgets": [
+            {
+              "id": "workload",
+              "title": "My workload",
+              "w": 4,
+              "h": 4,
+              "type": "my_workload",
+              "config": {
+                "at_risk_hours": 24
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open tickets",
+              "w": 4,
+              "h": 4,
+              "type": "metric",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "status": "open",
+                "compare_previous": false,
+                "icon": "Inbox",
+                "accent": "blue",
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "done",
+              "title": "Resolved this week",
+              "w": 4,
+              "h": 4,
+              "type": "metric",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "status": "completed",
+                "date_range": {
+                  "preset": "7d"
+                },
+                "compare_previous": true,
+                "icon": "CircleCheck",
+                "accent": "green",
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "board",
+              "title": "Tickets by status",
+              "w": 12,
+              "h": 10,
+              "type": "kanban",
+              "config": {
+                "scope": "all",
+                "assignee": {
+                  "filter": "agent"
+                },
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "columns": [
+                  "todo",
+                  "in_progress",
+                  "blocked",
+                  "completed"
+                ],
+                "allow_drag": true,
+                "per_column": 20
+              }
+            },
+            {
+              "id": "people",
+              "title": "Open tickets per agent (click to filter)",
+              "w": 5,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "tasks",
+                "chart": "horizontal_bar",
+                "group_by": "assignee",
+                "series_by": "none",
+                "click": {
+                  "filter": "agent"
+                },
+                "interval": "day",
+                "aggregate": "count",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "status": "open",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "queue",
+              "title": "Open tickets",
+              "w": 7,
+              "h": 7,
+              "type": "task_list",
+              "config": {
+                "scope": "all",
+                "assignee": {
+                  "filter": "agent"
+                },
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "status": "open",
+                "limit": 10,
+                "show_claim": true,
+                "open_in": "drawer"
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "agent",
+            "kind": "user",
+            "label": "Agent",
+            "default": null
+          }
+        ]
+      },
+      {
+        "id": "94cb934f-04e4-51c0-96f3-b9348f3ca680",
+        "slug": "sla",
+        "title": "SLA",
+        "icon": "Timer",
+        "position": 2,
+        "layout": {
+          "widgets": [
+            {
+              "id": "sla",
+              "title": "Open tickets against SLA",
+              "w": 4,
+              "h": 5,
+              "type": "sla",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "status": "open",
+                "at_risk_hours": 8
+              }
+            },
+            {
+              "id": "state",
+              "title": "SLA state (register)",
+              "style": {
+                "value_colors": [
+                  {
+                    "value": "On track",
+                    "color": "token:success"
+                  },
+                  {
+                    "value": "At risk",
+                    "color": "token:warning"
+                  },
+                  {
+                    "value": "Breached",
+                    "color": "token:danger"
+                  },
+                  {
+                    "value": "Met",
+                    "color": "token:chart-1"
+                  }
+                ]
+              },
+              "w": 4,
+              "h": 5,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "sla_state",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "746ab20f-5436-50e7-b277-19c420b69652",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "overdue",
+              "title": "Breached: past due",
+              "w": 4,
+              "h": 5,
+              "type": "overdue_list",
+              "config": {
+                "scope": "all",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "limit": 8,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "by_agent",
+              "title": "SLA by agent",
+              "w": 6,
+              "h": 7,
+              "type": "sla_breakdown",
+              "config": {
+                "source": "tasks",
+                "by": "assignee",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "date_range": {
+                  "filter": "period"
+                },
+                "at_risk_hours": 8,
+                "limit": 10
+              }
+            },
+            {
+              "id": "trend",
+              "title": "Resolved within SLA",
+              "w": 6,
+              "h": 7,
+              "type": "sla_trend",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "week"
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "period",
+            "kind": "date_range",
+            "label": "Period",
+            "default": {
+              "preset": "30d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "600972a0-e484-5f29-ab36-7bded2c276c8",
+        "slug": "insights",
+        "title": "Insights",
+        "icon": "ChartColumn",
+        "position": 3,
+        "layout": {
+          "widgets": [
+            {
+              "id": "cats",
+              "title": "Top categories",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "category",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "746ab20f-5436-50e7-b277-19c420b69652",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "prio",
+              "title": "Tickets by priority",
+              "style": {
+                "palette": "cool"
+              },
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "priority",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "746ab20f-5436-50e7-b277-19c420b69652",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "flow",
+              "title": "Raised versus resolved",
+              "w": 6,
+              "h": 7,
+              "type": "throughput",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "week"
+              }
+            },
+            {
+              "id": "cycle",
+              "title": "Time to resolve",
+              "w": 6,
+              "h": 7,
+              "type": "cycle_time",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "week"
+              }
+            },
+            {
+              "id": "register",
+              "title": "All tickets",
+              "w": 12,
+              "h": 10,
+              "type": "data_grid",
+              "config": {
+                "table_id": "746ab20f-5436-50e7-b277-19c420b69652",
+                "columns": [
+                  "ticket_ref",
+                  "title",
+                  "requester",
+                  "category",
+                  "priority",
+                  "status",
+                  "agent",
+                  "opened_on",
+                  "sla_state"
+                ],
+                "editable": false,
+                "group_by": "status",
+                "page_size": 25
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "period",
+            "kind": "date_range",
+            "label": "Period",
+            "default": {
+              "preset": "90d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "4b67aadc-6b97-564d-b38c-17f4b74b87a9",
+        "slug": "knowledge",
+        "title": "Knowledge",
+        "icon": "BookOpen",
+        "position": 4,
+        "layout": {
+          "widgets": [
+            {
+              "id": "search",
+              "w": 12,
+              "h": 2,
+              "type": "heading",
+              "config": {
+                "text": "Knowledge base",
+                "subtitle": "Most questions have a quick answer here. Still stuck? Raise a ticket.",
+                "level": 2
+              }
+            },
+            {
+              "id": "articles",
+              "title": "Articles",
+              "w": 12,
+              "h": 11,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "445d215e-333b-593b-9f8f-29518849b114",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "title",
+                  "subtitle": "category",
+                  "description": "summary",
+                  "image_style": "none",
+                  "badge": "category",
+                  "badge_colors": [
+                    {
+                      "value": "Access & accounts",
+                      "tone": "accent"
+                    },
+                    {
+                      "value": "Network & VPN",
+                      "tone": "info"
+                    },
+                    {
+                      "value": "Hardware",
+                      "tone": "warning"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "updated_on",
+                      "label": "Updated",
+                      "icon": "CalendarDays"
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "kind": "open_url",
+                    "label": "Read the article",
+                    "url": "{{url}}"
+                  }
+                ],
+                "layout": "grid",
+                "card_size": "md",
+                "sort": "title",
+                "sort_dir": "asc",
+                "show_search": true,
+                "page_size": 12,
+                "empty_text": "No articles match your search."
+              }
+            },
+            {
+              "id": "raise",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Still stuck? Raise a ticket",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "modal",
+                      "width": "md",
+                      "motion": "scale",
+                      "resizable": true,
+                      "title": "Raise a ticket"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "a54ac138-74a6-58e2-bd1e-8c8e2b99bf13",
+                      "open": "modal"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "center",
+                "gap": "md"
+              }
+            }
+          ]
+        },
+        "filters": []
+      }
+    ]
+  }
+}

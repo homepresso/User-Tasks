@@ -1,0 +1,325 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "42c6e09b-8199-55b0-8535-df1b7a8990e6",
+  "asset": {
+    "id": "42c6e09b-8199-55b0-8535-df1b7a8990e6",
+    "name": "CRM support case",
+    "description": "A new support case: its SLA comes from the priority (Urgent 4 hours, High 8, Normal 24, Low 72), it is logged in CRM cases and support gets a task due by the SLA that escalates to their manager when it runs late. Resolving it records the resolution, whether the SLA was met, and emails the customer’s contact.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true,
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Case opened",
+        "config": {
+          "form_id": "86426d38-a064-55dc-b288-3cd352930f68",
+          "form_name": "New support case"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Case ID",
+        "config": {
+          "name": "case_id",
+          "expression": "CS-{{=UPPER(LEFT(GUID(), 6))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "hours",
+        "type": "set_variable",
+        "label": "SLA hours",
+        "config": {
+          "name": "sla_hours",
+          "expression": "{{=IF(form.priority == \"Urgent\", 4, IF(form.priority == \"High\", 8, IF(form.priority == \"Low\", 72, 24)))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "due",
+        "type": "set_variable",
+        "label": "Due by",
+        "config": {
+          "name": "due_at",
+          "expression": "{{=ADD_HOURS(NOW(), sla_hours)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{case_id}} {{form.account}}: {{form.subject}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the case",
+        "config": {
+          "table_id": "f1c68ed0-80cb-5d6b-8389-a42ab5f9eb6a",
+          "table_name": "CRM cases",
+          "operation": "insert",
+          "column_values": {
+            "case_id": "{{case_id}}",
+            "subject": "{{form.subject}}",
+            "account": "{{form.account}}",
+            "account_id": "{{form.account_id}}",
+            "contact": "{{form.contact}}",
+            "contact_email": "{{form.contact_email}}",
+            "category": "{{form.category}}",
+            "priority": "{{form.priority}}",
+            "status": "New",
+            "owner": "Support queue",
+            "opened_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "due_by": "{{=FORMAT_DATE(due_at, \"YYYY-MM-DD HH:mm\")}}",
+            "sla_hours": "{{sla_hours}}",
+            "sla": "On track",
+            "description": "{{form.description}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "work",
+        "type": "user_task",
+        "label": "Resolve the case",
+        "config": {
+          "task_title": "Resolve {{case_id}}: {{form.subject}} ({{form.account}}, {{form.priority}})",
+          "task_description": "<p><strong>{{form.account}}</strong> · {{form.contact}} ({{form.contact_email}}) · {{form.category}} · <strong>{{form.priority}}</strong>.</p><p>{{form.description}}</p><p>Respond within <strong>{{sla_hours}} hours</strong> (due {{=FORMAT_DATE(due_at, \"YYYY-MM-DD HH:mm\")}} UTC). Resolving emails the customer.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Resolved",
+            "Closed without a fix"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "ba84bd34-2bc4-5003-9f6e-24f98da54dc3",
+          "fields": [
+            {
+              "key": "resolution",
+              "label": "Resolution (sent to the customer)",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "resolution",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resolved",
+              "label": "Resolved",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resolved"
+            },
+            {
+              "id": "closed",
+              "label": "Close without a fix",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Closed without a fix"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Support case",
+            "align": "left",
+            "subtitle": "{{case_id}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{due_at}}",
+          "reminders": [
+            {
+              "offset_minutes": 60
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 240
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "resolved",
+        "type": "update_data_table",
+        "label": "Mark resolved",
+        "config": {
+          "table_id": "f1c68ed0-80cb-5d6b-8389-a42ab5f9eb6a",
+          "table_name": "CRM cases",
+          "operation": "update",
+          "match_column": "case_id",
+          "match_value": "{{case_id}}",
+          "column_values": {
+            "status": "Resolved",
+            "owner": "{{completed_by_name}}",
+            "resolved_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "resolution": "{{task_data.resolution}}",
+            "sla": "{{=IF(NOW() <= due_at, \"Met\", \"Missed\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Email the customer",
+        "onError": "continue",
+        "config": {
+          "to": "{{form.contact_email}}",
+          "email_template_id": "34ac0322-87dc-52e8-851d-aa727b3e0ded"
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "end_resolved",
+        "type": "end_workflow",
+        "label": "Resolved",
+        "config": {},
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "closed",
+        "type": "update_data_table",
+        "label": "Mark closed",
+        "config": {
+          "table_id": "f1c68ed0-80cb-5d6b-8389-a42ab5f9eb6a",
+          "table_name": "CRM cases",
+          "operation": "update",
+          "match_column": "case_id",
+          "match_value": "{{case_id}}",
+          "column_values": {
+            "status": "Closed",
+            "owner": "{{completed_by_name}}",
+            "resolved_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "resolution": "{{task_data.resolution}}",
+            "sla": "{{=IF(NOW() <= due_at, \"Met\", \"Missed\")}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1040
+        }
+      },
+      {
+        "id": "end_closed",
+        "type": "end_workflow",
+        "label": "Closed",
+        "config": {},
+        "position": {
+          "x": 720,
+          "y": 1180
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-hours",
+        "source": "ref",
+        "target": "hours"
+      },
+      {
+        "id": "e-hours-due",
+        "source": "hours",
+        "target": "due"
+      },
+      {
+        "id": "e-due-title",
+        "source": "due",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-work",
+        "source": "log",
+        "target": "work"
+      },
+      {
+        "id": "e-work-resolved-resolved",
+        "source": "work",
+        "target": "resolved",
+        "label": "Resolved"
+      },
+      {
+        "id": "e-resolved-mail",
+        "source": "resolved",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-end_resolved",
+        "source": "mail",
+        "target": "end_resolved"
+      },
+      {
+        "id": "e-work-closed-closed_without_a_fix",
+        "source": "work",
+        "target": "closed",
+        "label": "Closed without a fix"
+      },
+      {
+        "id": "e-closed-end_closed",
+        "source": "closed",
+        "target": "end_closed"
+      }
+    ]
+  }
+}

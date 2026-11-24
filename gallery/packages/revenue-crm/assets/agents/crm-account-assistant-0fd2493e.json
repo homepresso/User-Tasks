@@ -1,0 +1,74 @@
+{
+  "format_version": 3,
+  "asset_type": "agents",
+  "id": "0fd2493e-8050-50c4-8245-0aa9af7dff4d",
+  "asset": {
+    "id": "0fd2493e-8050-50c4-8245-0aa9af7dff4d",
+    "is_active": true,
+    "system_prompt": "",
+    "tools": [],
+    "integration_id": null,
+    "name": "CRM account assistant",
+    "description": "Optional: summarises an account or deal from the CRM tables and drafts a follow-up email. Choose an AI provider on the agent to switch it on.",
+    "model": "gpt-4o-mini",
+    "role": "a concise B2B sales assistant for Brightwater Labs",
+    "task": "Answer questions about accounts, deals and activities using the CRM tables you can read: summarise where an account or deal stands (stage, amount in USD, last activities, open quotes, health) and, when asked, draft a short follow-up email in plain text.",
+    "boundaries": "- Read only: never change data.\n- Use only what is in the CRM tables; say so when something is not recorded.\n- Amounts are in USD.\n- Keep emails under 150 words with one clear next step.",
+    "output_config": {
+      "variables": [
+        {
+          "name": "answer",
+          "type": "string",
+          "description": "The summary or the drafted email"
+        }
+      ],
+      "data_access": {
+        "mode": "selected",
+        "table_ids": [
+          "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "d94fcb41-7ceb-565a-bfdd-d46824060a9b",
+          "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+          "f055a2ac-22a3-5e94-b144-6dd4b846e645"
+        ],
+        "grants": [
+          {
+            "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+            "read": true,
+            "insert": false,
+            "update": false,
+            "delete": false
+          },
+          {
+            "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+            "read": true,
+            "insert": false,
+            "update": false,
+            "delete": false
+          },
+          {
+            "table_id": "d94fcb41-7ceb-565a-bfdd-d46824060a9b",
+            "read": true,
+            "insert": false,
+            "update": false,
+            "delete": false
+          },
+          {
+            "table_id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+            "read": true,
+            "insert": false,
+            "update": false,
+            "delete": false
+          },
+          {
+            "table_id": "f055a2ac-22a3-5e94-b144-6dd4b846e645",
+            "read": true,
+            "insert": false,
+            "update": false,
+            "delete": false
+          }
+        ]
+      }
+    }
+  }
+}

@@ -4,11 +4,13 @@ import { DashboardAuthProvider } from '@/lib/dashboard-auth-context'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { WorkspaceThemeProvider } from '@/components/providers/theme-provider'
 import { loadSessionWorkspaceTheme } from '@/lib/theme/server'
+import { loadSessionWorkspace } from '@/lib/session-workspace'
 import { themeFontHrefs, themeStylesheet } from '@/lib/theme/to-css'
 import { FontLinks } from '@/components/fonts/font-links'
 import { resolveStorageUrl } from '@/lib/storage/refs'
 import { APP_NAME, TITLE_TEMPLATE } from '@/lib/page-title'
 import { enforceHostWorkspace } from '@/lib/workspace-host'
+import { enforceAppVisitor } from '@/lib/apps/sign-in-server'
 import { redirectToSetupIfNeeded } from '@/lib/setup/server'
 import { ExtensionsProvider } from '@/components/extensions/extensions-provider'
 import { loadExtensionUiState } from '@/lib/extensions/ui-server'
@@ -29,12 +31,16 @@ export default async function DashboardLayout({
   // On a workspace address (acme.usertasks.com): unknown → 404, signed out →
   // sign in, non-member → no access, another current workspace → switch
   // (lib/workspace-host.ts). Elsewhere a no-op.
+  // App pages (/apps/<slug>…): a signed-out visitor goes to the workspace sign-in page for apps.
+  await enforceAppVisitor()
   await enforceHostWorkspace()
   // Self-hosted with no workspaces and no users yet: /setup (cached; cloud never checks).
   await redirectToSetupIfNeeded()
   // The workspace theme is rendered on the server so the first paint (the
   // loading shell included) already has the right colours, fonts and sizes.
   const theme = await loadSessionWorkspaceTheme()
+  // The browser's cached role and permissions must be this workspace's (lib/dashboard-auth-cache.ts).
+  const workspace = await loadSessionWorkspace()
   const fontHrefs = themeFontHrefs(theme)
   // Extensions usable in this workspace (lib/extensions/ui-server): empty, with
   // no database call, in a build without extensions.
@@ -45,7 +51,7 @@ export default async function DashboardLayout({
       <FontLinks hrefs={fontHrefs} />
       <style id="workspace-theme" dangerouslySetInnerHTML={{ __html: themeStylesheet(theme) }} />
       <WorkspaceThemeProvider theme={theme}>
-        <DashboardAuthProvider>
+        <DashboardAuthProvider currentTenantId={workspace ? workspace.current : undefined}>
           <ExtensionsProvider initial={extensionUi}>
             <Suspense fallback={null}>
               <DashboardShell>{children}</DashboardShell>

@@ -6,7 +6,7 @@ import { ServiceError } from '@/lib/services/context'
 
 /** GET /api/v1/form-controls — the workspace's custom form controls. */
 export const GET = apiRoute(listFormControlsEndpoint, async ({ ctx, query }) =>
-  listFormControls(ctx, { search: query.search, enabled: query.enabled === undefined ? undefined : query.enabled === 'true' }, resolvePage(query)))
+  listFormControls(ctx, { search: query.search, enabled: query.enabled === undefined ? undefined : query.enabled === 'true', tag: query.tagged }, resolvePage(query)))
 
 /** POST /api/v1/form-controls — upload a package (zip / module + manifest) or import from a URL. */
 export const POST = apiRoute(createFormControlEndpoint, async ({ ctx, body }) => {

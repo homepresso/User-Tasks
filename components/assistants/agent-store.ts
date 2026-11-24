@@ -11,6 +11,8 @@ import {
 } from '@/lib/assistants/history'
 import type { AdminArea, AssistantAvailability, AssistantEvent, ChatAttachment, ChatMessage, DesignerContext, ScreenInfo } from '@/lib/assistants/types'
 import type { AgentJobView, AgentTranscript } from '@/lib/assistants/background'
+import { activityText, type AgentActivity } from '@/lib/assistants/activity'
+import { describeSimpleFailure, type AgentFailureView } from '@/lib/agents/errors'
 import { JOBS_TOAST_EVENT, type JobsToastDetail } from '@/lib/user-jobs/types'
 
 /**
@@ -49,6 +51,8 @@ interface AgentState {
   messages: ChatMessage[]
   busy: boolean
   status: string
+  /** What the working placeholder says while this tab streams a turn (lib/assistants/activity.ts); null when idle. */
+  activity: AgentActivity | null
   open: boolean
   availability: AssistantAvailability | null
   /** The form designer dialog (a modal) hosts the panel while it is open. */
@@ -85,7 +89,7 @@ export interface AgentJobState {
 export interface AgentView { label: string | null; starters: string[]; dirty: boolean }
 
 let state: AgentState = {
-  key: null, items: [], messages: [], busy: false, status: '', open: readOpen(), availability: null, docks: 0,
+  key: null, items: [], messages: [], busy: false, status: '', activity: null, open: readOpen(), availability: null, docks: 0,
   pending: [], uploading: false, lastScreen: null, view: { label: null, starters: [], dirty: false }, processIntent: 0, draftIntent: null,
   job: null, conversationId: null, merged: [], pendingTurn: null,
 }
@@ -131,7 +135,7 @@ if (typeof window !== 'undefined') {
     if (state.job?.id) void postJob(state.job.id, { action: 'cancel' })
     abort?.abort()
     clearTimeout(pollTimer)
-    set({ key: null, items: [], messages: [], busy: false, status: '', open: false, availability: null, pending: [], lastScreen: null, job: null, conversationId: null, merged: [], pendingTurn: null })
+    set({ key: null, items: [], messages: [], busy: false, status: '', activity: null, open: false, availability: null, pending: [], lastScreen: null, job: null, conversationId: null, merged: [], pendingTurn: null })
   })
   // Another tab changed this conversation: follow it (unless a turn is streaming here).
   window.addEventListener('storage', (e) => {
@@ -141,7 +145,7 @@ if (typeof window !== 'undefined') {
     const followed = state.job && !state.job.live && merged.includes(state.job.turnId)
     set({
       items: conv.items, messages: conv.messages, conversationId: conv.id ?? state.conversationId, merged, pendingTurn: conv.pending_turn ?? null,
-      ...(followed ? { job: null, busy: false, status: '' } : {}),
+      ...(followed ? { job: null, busy: false, status: '', activity: null } : {}),
     })
   })
   // The bell's / a toast's "View": open the panel with the finished work merged.
@@ -166,7 +170,7 @@ export function setAgentAvailability(availability: AssistantAvailability | null)
     const conv = key ? loadConversation(key) : emptyConversation()
     set({
       key, items: conv.items, messages: conv.messages, availability, pending: [], lastScreen: null,
-      job: null, busy: false, status: '', conversationId: conv.id ?? newConversationId(), merged: conv.merged ?? [], pendingTurn: conv.pending_turn ?? null,
+      job: null, busy: false, status: '', activity: null, conversationId: conv.id ?? newConversationId(), merged: conv.merged ?? [], pendingTurn: conv.pending_turn ?? null,
     })
     // Work that finished (or still runs) while this page was closed.
     if (key) void syncAgentJobs()
@@ -270,6 +274,9 @@ let syncing = false
 let wantBackground = false
 /** The person pressed Stop (or started a new conversation) during this turn. */
 let userStopped = false
+/** The files of a message the server refused before starting (Retry sends them again), and that error bubble's id. */
+let unsentAttachments: ChatAttachment[] | null = null
+let unsentFor: string | null = null
 const POLL_MS = 3_000
 
 function toast(detail: JobsToastDetail) {
@@ -333,7 +340,8 @@ function schedulePoll(ms = POLL_MS) {
 }
 
 /** Apply one panel event to the items (live, or replaying a background job). Returns false for the turn-level events. */
-function createEventHandler(taskId: string | null) {
+function createEventHandler(taskId: string | null, onActivity?: (a: AgentActivity | null) => void) {
+  const phase = (a: Omit<AgentActivity, 'since'> | null) => onActivity?.(a ? { ...a, since: Date.now() } : null)
   let assistantId: string | null = null
   const appendText = (text: string) => {
     if (!assistantId) {
@@ -347,17 +355,25 @@ function createEventHandler(taskId: string | null) {
   }
   return (event: AssistantEvent): boolean => {
     switch (event.type) {
-      case 'delta': appendText(event.text); return true
+      case 'delta':
+        if (state.activity?.phase !== 'writing') phase({ phase: 'writing' })
+        appendText(event.text); return true
       case 'delta_reset':
         if (assistantId) { const id = assistantId; setItems((prev) => prev.filter((it) => it.id !== id), false); assistantId = null }
+        phase({ phase: 'thinking' })
+        return true
+      case 'retry':
+        // Automatic retries are quiet: the bubble keeps saying it is working (the chat route doesn't send these; an older server might).
         return true
       case 'tool_start':
         assistantId = null
         set({ status: `${event.label}…` })
+        phase({ phase: 'tool', label: event.label })
         setItems((prev) => [...prev, { kind: 'tool', id: `tool-${event.id}`, label: event.label, state: 'running' }], false)
         return true
       case 'tool_end':
         setItems((prev) => prev.map((it) => (it.id === `tool-${event.id}` && it.kind === 'tool' ? { ...it, state: event.ok ? 'ok' : 'error' } : it)), false)
+        phase({ phase: 'thinking' })
         return true
       case 'proposal':
         assistantId = null
@@ -402,6 +418,15 @@ function createEventHandler(taskId: string | null) {
   }
 }
 
+/** An error bubble: friendly text, the failure's details, and Retry (resume from the conversation as it is) unless retrying can't help. */
+function errorItem(text: string, failure?: AgentFailureView, retry: { mode: 'resume' } | { mode: 'resend'; text: string; display?: string } = { mode: 'resume' }): ChatItem {
+  const canRetry = failure ? failure.retryable : true
+  return {
+    kind: 'error', id: uid('e'), text, ...(failure ? { failure } : {}),
+    ...(canRetry ? (retry.mode === 'resend' ? { retry: 'resend' as const, resend: { text: retry.text, ...(retry.display ? { display: retry.display } : {}) } } : { retry: 'resume' as const }) : {}),
+  }
+}
+
 /**
  * Merge a finished background job into the conversation (once per turn):
  * what this tab showed live of that turn is replaced by the full replay,
@@ -418,7 +443,7 @@ export function mergeAgentTranscript(t: AgentTranscript) {
   for (const event of t.events ?? []) handle(event)
   const extra: ChatItem[] = []
   if (t.truncated) extra.push({ kind: 'assistant', id: uid('a'), text: '_Part of the Agent\'s activity was too long to keep; the result is below._' })
-  if (t.outcome === 'failed' && t.error) extra.push({ kind: 'error', id: uid('e'), text: t.error })
+  if (t.outcome === 'failed' && t.error) extra.push(errorItem(t.error, t.failure ?? undefined))
   if (t.outcome === 'cancelled') extra.push({ kind: 'error', id: uid('e'), text: 'Stopped.' })
   set({
     items: [...state.items.map((it) => (it.kind === 'tool' && it.state === 'running' ? { ...it, state: 'error' as const } : it)), ...extra],
@@ -460,7 +485,7 @@ export async function syncAgentJobs(): Promise<void> {
     } else if (state.job) {
       // The followed job finished (merged above) or is gone.
       const turn = state.job.turnId
-      set({ job: null, busy: false, status: '', pendingTurn: state.pendingTurn?.turn_id === turn ? null : state.pendingTurn }, true)
+      set({ job: null, busy: false, status: '', activity: null, pendingTurn: state.pendingTurn?.turn_id === turn ? null : state.pendingTurn }, true)
       userStopped = false
     } else if (state.pendingTurn && !abort) {
       // A turn in flight before a reload that left no job (it never became one): nothing to wait for.
@@ -495,27 +520,51 @@ async function run(body: { text?: string; display?: string; decision?: { tool_ca
   userStopped = false
   wantBackground = !state.open
   const turnId = newTurnId()
+  /** The last item before this turn's output (its admin retry note goes on an answer after it). */
+  const turnAfterItem = state.items[state.items.length - 1]?.id ?? null
   const conversationId = state.conversationId ?? newConversationId()
   set({
-    busy: true, status: 'The Agent is thinking…', conversationId,
+    busy: true, status: 'Working on it…', activity: { phase: 'working', since: Date.now() }, conversationId,
     job: { id: null, turnId, live: true, background: false, message: null },
-    pendingTurn: { turn_id: turnId, after_item: state.items[state.items.length - 1]?.id ?? null },
+    pendingTurn: { turn_id: turnId, after_item: turnAfterItem },
   }, true)
-  const handleItem = createEventHandler(ctx.task_id)
+  const onActivity = (a: AgentActivity | null) => {
+    if (state.job?.turnId !== turnId) return
+    const text = a ? activityText(a)?.text : null
+    set({ activity: a, ...(text ? { status: text } : {}) })
+  }
+  const handleItem = createEventHandler(ctx.task_id, onActivity)
   const handle = (event: AssistantEvent) => {
     if (handleItem(event)) return
     switch (event.type) {
       case 'job':
         if (state.job?.turnId !== turnId) break
         set({ job: { ...state.job, id: event.id } })
+        // The server has the turn: from "Working on it…" to "Thinking…".
+        if (state.activity?.phase === 'working') onActivity({ phase: 'thinking', since: Date.now() })
         if (wantBackground && !state.open) { wantBackground = false; void moveToBackground(event.id) }
         break
       case 'messages':
         if (state.job?.turnId !== turnId) break // the conversation was cleared meanwhile
         set({ messages: [...state.messages, ...event.messages], merged: withMergedTurn(state.merged, turnId), pendingTurn: null }, true)
         break
+      case 'done':
+        // Admins only (the route sends it to them): the turn's automatic retries, under its last answer.
+        if (event.retries && state.job?.turnId === turnId) {
+          const retries = event.retries
+          setItems((prev) => {
+            const start = turnAfterItem ? prev.findIndex((it) => it.id === turnAfterItem) : -1
+            for (let i = prev.length - 1; i > start; i--) {
+              const it = prev[i]
+              if (it.kind === 'assistant' && it.text.trim()) return prev.map((x, j) => (j === i ? { ...it, retries } : x))
+            }
+            return prev
+          })
+        }
+        break
       case 'error':
-        if (event.code !== 'cancelled') setItems((prev) => [...prev, { kind: 'error', id: uid('e'), text: event.error }])
+        if (event.code !== 'cancelled') setItems((prev) => [...prev, errorItem(event.error, event.failure)])
+        onActivity(null)
         break
       default:
         break
@@ -538,10 +587,22 @@ async function run(body: { text?: string; display?: string; decision?: { tool_ca
       }),
     })
     if (!res.ok || !res.body) {
-      const err = await res.json().catch(() => null) as { error?: string } | null
-      handle({ type: 'error', error: err?.error ?? `The Agent is unavailable (${res.status})` })
-      // The message wasn't answered: keep the conversation consistent for the next try.
-      if (body.text !== undefined) set({ messages: state.messages.slice(0, -1) }, true)
+      const err = await res.json().catch(() => null) as { error?: string; failure?: AgentFailureView } | null
+      const failure = err?.failure ?? describeSimpleFailure('unknown', `The Agent is unavailable right now (${res.status}) — please try again.`)
+      // The message wasn't answered: keep the conversation consistent for the next try (Retry sends it again, with its files).
+      let resend: { mode: 'resend'; text: string; display?: string } | { mode: 'resume' } = { mode: 'resume' }
+      if (body.text !== undefined) {
+        const unsent = state.messages[state.messages.length - 1]
+        set({ messages: state.messages.slice(0, -1) }, true)
+        resend = { mode: 'resend', text: body.text, ...(body.display ? { display: body.display } : {}) }
+        if (unsent?.role === 'user' && unsent.attachments?.length) unsentAttachments = unsent.attachments
+      } else if (body.decision) {
+        resend = { mode: 'resume' }
+      }
+      const item = errorItem(err?.error ?? failure.message, failure, resend)
+      // A refused decision can't be re-sent from here (the card is still there to use).
+      setItems((prev) => [...prev, body.decision ? { ...item, retry: undefined } as ChatItem : item])
+      if (item.kind === 'error' && item.retry === 'resend') unsentFor = item.id
       unanswered = true
       return
     }
@@ -559,9 +620,10 @@ async function run(body: { text?: string; display?: string; decision?: { tool_ca
     }
   } catch (error) {
     if ((error as Error)?.name === 'AbortError') {
-      if (userStopped) setItems((prev) => [...prev, { kind: 'error', id: uid('e'), text: 'Stopped.' }])
+      if (userStopped) setItems((prev) => [...prev, { kind: 'error', id: uid('e'), text: 'Stopped.', stopped: true, retry: 'resume' }])
     } else if (!getState().job?.id) {
-      handle({ type: 'error', error: 'Could not reach the Agent — check your connection and try again' })
+      const message = 'I couldn\'t reach UserTasks — check your connection and try again.'
+      handle({ type: 'error', error: message, failure: describeSimpleFailure('network', message) })
     }
   } finally {
     abort = null
@@ -570,11 +632,11 @@ async function run(body: { text?: string; display?: string; decision?: { tool_ca
     const delivered = state.merged.includes(turnId)
     if (!delivered && !unanswered && !userStopped && job?.id && state.key) {
       // The live view broke (connection, workspace switch) but the job goes on: follow it.
-      set({ job: { ...job, live: false }, status: 'Working in the background…' }, true)
+      set({ job: { ...job, live: false }, status: 'Working in the background…', activity: null }, true)
       schedulePoll(1_000)
     } else {
       set({
-        busy: false, status: '', job: null,
+        busy: false, status: '', activity: null, job: null,
         // A stopped turn is never merged later (what it showed stays as it is).
         merged: userStopped ? withMergedTurn(state.merged, turnId) : state.merged,
         pendingTurn: state.pendingTurn?.turn_id === turnId ? null : state.pendingTurn,
@@ -643,6 +705,32 @@ export function answerChoice(itemId: string, picked: Array<{ label: string; repl
   sendAgentMessage(answer.reply, { display: answer.display })
 }
 
+/**
+ * Retry from an error bubble (only the latest one, while idle): 'resume' asks
+ * again from the conversation as it is — the unanswered message, or the
+ * steps already done in a turn that failed part-way (tools that ran are
+ * never re-run); 'resend' sends a message the server refused before starting.
+ */
+export function retryAgent(itemId: string) {
+  if (abort || state.job || state.uploading) return
+  const index = state.items.findIndex((it) => it.id === itemId)
+  const item = state.items[index]
+  if (!item || item.kind !== 'error' || !item.retry || item.retried) return
+  if (state.items.slice(index + 1).some((it) => it.kind !== 'screen')) return
+  setItems((prev) => prev.map((it) => (it.id === itemId && it.kind === 'error' ? { ...it, retried: true } : it)))
+  if (item.retry === 'resend' && item.resend) {
+    if (unsentFor === itemId && unsentAttachments?.length) set({ pending: unsentAttachments })
+    unsentAttachments = null
+    unsentFor = null
+    void run({ text: item.resend.text, ...(item.resend.display ? { display: item.resend.display } : {}) })
+    return
+  }
+  const last = state.messages[state.messages.length - 1]
+  // Nothing unanswered to resume (the conversation moved on): nothing to do.
+  if (!last || last.role === 'assistant') return
+  void run({})
+}
+
 export function decideAgentChange(itemId: string, toolCallId: string, approved: boolean) {
   if (abort || state.job) return
   setItems((prev) => prev.map((it) => (it.id === itemId && it.kind === 'confirm' ? { ...it, state: approved ? 'approved' : 'declined' } : it)))
@@ -669,7 +757,7 @@ export function clearAgentConversation() {
     abort?.abort()
   }
   clearTimeout(pollTimer)
-  set({ messages: [], items: [], pending: [], lastScreen: null, job: null, busy: false, status: '', conversationId: newConversationId(), merged: [], pendingTurn: null }, true)
+  set({ messages: [], items: [], pending: [], lastScreen: null, job: null, busy: false, status: '', activity: null, conversationId: newConversationId(), merged: [], pendingTurn: null }, true)
 }
 
 /** Apply proposed values through the live form (each re-checked there). */

@@ -1,5 +1,6 @@
 'use client'
 
+import { RowChangeHistory } from './change-history'
 import { useState, useEffect, useRef } from 'react'
 import { Trash2, Copy, Check, FileText, Upload, ExternalLink, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -122,6 +123,7 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
       // Invalidate so the parent list refreshes with the new data and
       // the drawer's next open picks up fresh metadata (updated_at, etc).
       queryClient.invalidateQueries({ queryKey: ['custom-table-rows', tableId] })
+      queryClient.invalidateQueries({ queryKey: ['data-row-changes', tableId] })
       router.refresh()
     } catch (e: any) {
       setError(e?.message ?? 'Failed to save')
@@ -225,6 +227,8 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
                 Row-level retention overrides the table default when a policy is assigned here.
               </p>
             </div>
+
+            <RowChangeHistory tableId={tableId} rowId={row.id} />
 
             {error && <InlineNotice tone="danger" message={error} onDismiss={() => setError(null)} />}
           </DialogBody>

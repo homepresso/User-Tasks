@@ -1,0 +1,674 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "3a95010f-b56e-5aab-8f8a-4799267f15e7",
+  "asset": {
+    "id": "3a95010f-b56e-5aab-8f8a-4799267f15e7",
+    "name": "Comment theme keywords",
+    "description": "Puts each survey comment into a theme by its keywords when results are published (first match wins). Add your own words or themes here; comments that match nothing count as \"Other\".",
+    "inputs": [
+      {
+        "id": "76492c4c-ae69-59bc-9bea-f19a2a5ffb97",
+        "key": "comment",
+        "label": "Comment",
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "bd2259c8-4e20-59e3-8b69-28b67f9c445d",
+        "key": "theme",
+        "label": "Theme",
+        "type": "string"
+      },
+      {
+        "id": "1cbbd9c7-d172-51f6-b556-c9f7899aa92d",
+        "key": "theme_driver",
+        "label": "Driver",
+        "type": "string"
+      }
+    ],
+    "rules": [
+      {
+        "id": "311da6c1-ac81-53cf-9711-cc99fc3b46c8",
+        "label": "Workload and pace: \"workload\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "23fe29ce-1634-5e06-b3ef-80848a004f98",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "workload"
+          }
+        ],
+        "outputs": {
+          "theme": "Workload and pace",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "f5fd1b0a-15c3-556a-93e7-6b7c94ceb13b",
+        "label": "Workload and pace: \"overtime\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "220133f8-50aa-5050-a63f-b6fda14397b7",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "overtime"
+          }
+        ],
+        "outputs": {
+          "theme": "Workload and pace",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "43af5eda-96f3-5b06-b942-0f4d260c7224",
+        "label": "Workload and pace: \"evenings\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "e9cb1161-eeb2-59cb-93f0-0109d0da6f40",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "evenings"
+          }
+        ],
+        "outputs": {
+          "theme": "Workload and pace",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "ca7b3df8-9e35-575c-a745-bb8eed56a709",
+        "label": "Workload and pace: \"burn\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "8f706dd0-d601-5bd5-9596-1b2aaaa4e56a",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "burn"
+          }
+        ],
+        "outputs": {
+          "theme": "Workload and pace",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "78de28a4-e074-5a37-969e-86d42bb160fc",
+        "label": "Workload and pace: \"too much\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "a9faff0a-b63e-5b24-b28f-1bf4c901cbca",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "too much"
+          }
+        ],
+        "outputs": {
+          "theme": "Workload and pace",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "18e89c16-1282-5b0f-ab35-be68415a3e7d",
+        "label": "Workload and pace: \"busy\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "8f2623d8-6657-55ca-8233-61c2afdebd19",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "busy"
+          }
+        ],
+        "outputs": {
+          "theme": "Workload and pace",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "ae95b94c-6a2b-5b7a-8e6e-e18b4427658a",
+        "label": "Workload and pace: \"on-call\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "373fce30-9ec1-5bba-9137-aae6509caba9",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "on-call"
+          }
+        ],
+        "outputs": {
+          "theme": "Workload and pace",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "b4cf93f5-7d88-5f12-930d-66b28dccd692",
+        "label": "Career paths: \"promotion\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "908bae83-3ca5-542b-bac2-e3f0ddc8c91d",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "promotion"
+          }
+        ],
+        "outputs": {
+          "theme": "Career paths",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "f7c57b4d-0afa-559a-8740-e969c4cf2931",
+        "label": "Career paths: \"career\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "f3e43f37-6c6b-5dba-830d-05fbb771b979",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "career"
+          }
+        ],
+        "outputs": {
+          "theme": "Career paths",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "de542820-afab-5a59-ae06-50adf67f00aa",
+        "label": "Career paths: \"next level\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "3b1de416-f6a0-51e1-9afa-6834892a8f89",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "next level"
+          }
+        ],
+        "outputs": {
+          "theme": "Career paths",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "ea22f0b4-337d-5377-a51b-36c2b506c969",
+        "label": "Career paths: \"progress\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "f9a8cc66-fbeb-52fe-9ad5-1728b4197b2b",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "progress"
+          }
+        ],
+        "outputs": {
+          "theme": "Career paths",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "b8a48298-c1ca-514e-9600-e080dd3ded61",
+        "label": "Career paths: \"path\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "eee297a1-da04-5f2f-9f6f-0ddfb4569278",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "path"
+          }
+        ],
+        "outputs": {
+          "theme": "Career paths",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "144b4076-b12b-5bc0-9cf7-db6242052e0a",
+        "label": "Tools and systems: \"tool\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "b1fa742d-42ca-57af-9eed-eee26a1880e8",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "tool"
+          }
+        ],
+        "outputs": {
+          "theme": "Tools and systems",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "933e01f6-e08c-5129-be50-fb01c020f885",
+        "label": "Tools and systems: \"system\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "52d3b111-9167-5467-b9c1-2aa013b18709",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "system"
+          }
+        ],
+        "outputs": {
+          "theme": "Tools and systems",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "8e8f03e8-579d-507f-a622-e3a264cd05cf",
+        "label": "Tools and systems: \"laptop\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "772b9e81-a18d-56de-8a25-e060d4b158aa",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "laptop"
+          }
+        ],
+        "outputs": {
+          "theme": "Tools and systems",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "cc1bd50c-3a09-5648-b176-a99d09ec4bb8",
+        "label": "Tools and systems: \"software\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "bc5296e0-bcec-5e8e-8ab2-c5af3b794ae7",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "software"
+          }
+        ],
+        "outputs": {
+          "theme": "Tools and systems",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "957f139b-c7e7-5757-95d7-54e9351b445a",
+        "label": "Tools and systems: \"slow\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "c88673c2-8ba8-54b6-b6f7-47fc755a77a1",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "slow"
+          }
+        ],
+        "outputs": {
+          "theme": "Tools and systems",
+          "theme_driver": "Growth"
+        }
+      },
+      {
+        "id": "3c5a3572-ef21-5fdf-952b-3d7b7f8b23ee",
+        "label": "Leadership communication: \"leadership\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "dfc98de0-33e9-53dc-b581-aef0566df5ae",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "leadership"
+          }
+        ],
+        "outputs": {
+          "theme": "Leadership communication",
+          "theme_driver": "Leadership"
+        }
+      },
+      {
+        "id": "e1fbbf6f-d0a4-5007-9b1b-7bd41e9de33e",
+        "label": "Leadership communication: \"decision\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "783aa41b-1c6b-54a5-a9bc-3235c2dbfe64",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "decision"
+          }
+        ],
+        "outputs": {
+          "theme": "Leadership communication",
+          "theme_driver": "Leadership"
+        }
+      },
+      {
+        "id": "80220781-7400-5294-8f67-be7a5cc968da",
+        "label": "Leadership communication: \"strategy\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "7941cc08-57af-500e-ac38-ed1031f5f91f",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "strategy"
+          }
+        ],
+        "outputs": {
+          "theme": "Leadership communication",
+          "theme_driver": "Leadership"
+        }
+      },
+      {
+        "id": "ce3d20ed-9683-59f1-b5ff-c5b323777807",
+        "label": "Leadership communication: \"all-hands\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "67491436-ec8c-5c32-9ba3-2107bf39fad5",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "all-hands"
+          }
+        ],
+        "outputs": {
+          "theme": "Leadership communication",
+          "theme_driver": "Leadership"
+        }
+      },
+      {
+        "id": "b34fd472-0c8d-51dc-9b8a-e9cd65c64459",
+        "label": "Leadership communication: \"communicat\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "35a85fbd-8c56-5474-a1e0-1dd55c8b0927",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "communicat"
+          }
+        ],
+        "outputs": {
+          "theme": "Leadership communication",
+          "theme_driver": "Leadership"
+        }
+      },
+      {
+        "id": "a7872beb-f399-5d34-b5e8-39e9c7a214e3",
+        "label": "Recognition from peers: \"thank\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "1bc1ed11-df97-543e-9bac-a9df1dec7e75",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "thank"
+          }
+        ],
+        "outputs": {
+          "theme": "Recognition from peers",
+          "theme_driver": "Recognition"
+        }
+      },
+      {
+        "id": "4ca63281-3e93-5158-a43c-af3877bc3301",
+        "label": "Recognition from peers: \"kudos\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "a3de64ee-c33e-5f57-85b7-e5045de6549c",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "kudos"
+          }
+        ],
+        "outputs": {
+          "theme": "Recognition from peers",
+          "theme_driver": "Recognition"
+        }
+      },
+      {
+        "id": "cc4bb206-e2a3-5380-ae99-3e8d403e62dd",
+        "label": "Recognition from peers: \"recogn\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "7118cebc-4a6a-571b-9059-30651425bb40",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "recogn"
+          }
+        ],
+        "outputs": {
+          "theme": "Recognition from peers",
+          "theme_driver": "Recognition"
+        }
+      },
+      {
+        "id": "f048eb66-2378-55ae-99ea-6ef5e48a734a",
+        "label": "Recognition from peers: \"appreciat\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "919f3f0a-1bbe-5e2d-a50f-d7ec0563afb7",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "appreciat"
+          }
+        ],
+        "outputs": {
+          "theme": "Recognition from peers",
+          "theme_driver": "Recognition"
+        }
+      },
+      {
+        "id": "6c749c7f-8b8e-54d2-bd8a-351dab48da13",
+        "label": "Feedback quality: \"feedback\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "fa17ed38-b11b-5162-9aac-0eae93664f78",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "feedback"
+          }
+        ],
+        "outputs": {
+          "theme": "Feedback quality",
+          "theme_driver": "Recognition"
+        }
+      },
+      {
+        "id": "996b8cba-18e6-5b4b-a96f-d10d697fbe58",
+        "label": "Feedback quality: \"review\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "138cc922-a24c-5063-96d3-4417ac8f1e81",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "review"
+          }
+        ],
+        "outputs": {
+          "theme": "Feedback quality",
+          "theme_driver": "Recognition"
+        }
+      },
+      {
+        "id": "abc2e859-04d8-5118-a6c3-058bbffab680",
+        "label": "Team culture: \"team\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "95628ff8-76b9-55eb-a6f9-a3a52a127963",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "team"
+          }
+        ],
+        "outputs": {
+          "theme": "Team culture",
+          "theme_driver": "Belonging"
+        }
+      },
+      {
+        "id": "c17e2873-c81b-583b-a8a2-c67ba07efa98",
+        "label": "Team culture: \"colleague\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "d0d9dc87-22d4-511e-babe-79f3bca549e0",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "colleague"
+          }
+        ],
+        "outputs": {
+          "theme": "Team culture",
+          "theme_driver": "Belonging"
+        }
+      },
+      {
+        "id": "167f38b9-f6f6-57de-a944-913da475bc68",
+        "label": "Team culture: \"culture\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "382f7040-dea5-575c-8f04-061176b3fddb",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "culture"
+          }
+        ],
+        "outputs": {
+          "theme": "Team culture",
+          "theme_driver": "Belonging"
+        }
+      },
+      {
+        "id": "b14702ab-2129-5e7f-bc88-fd289484b81e",
+        "label": "Team culture: \"belong\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "beb6a0d7-784e-54d0-adaa-74c3ab7cd217",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "belong"
+          }
+        ],
+        "outputs": {
+          "theme": "Team culture",
+          "theme_driver": "Belonging"
+        }
+      },
+      {
+        "id": "ef72a614-e51c-5818-8cd4-5923b9ea5143",
+        "label": "Team culture: \"inclus\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "94ca808e-0050-581e-a046-95ee703ce368",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "inclus"
+          }
+        ],
+        "outputs": {
+          "theme": "Team culture",
+          "theme_driver": "Belonging"
+        }
+      },
+      {
+        "id": "c81c3f61-5aef-51d2-b486-3a321fda79b9",
+        "label": "Hybrid working: \"remote\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "e1db0ddd-cb32-598e-b7b0-0644e7b63be3",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "remote"
+          }
+        ],
+        "outputs": {
+          "theme": "Hybrid working",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "97582cc1-2d94-5fd0-b5b6-0f39abf5a3fb",
+        "label": "Hybrid working: \"hybrid\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "c76f0202-1378-589b-b0c9-a9068b2c7ce5",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "hybrid"
+          }
+        ],
+        "outputs": {
+          "theme": "Hybrid working",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "be6b39bc-b8e0-5dfe-acdd-26d09c42142e",
+        "label": "Hybrid working: \"office\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "45127cc2-da04-5f07-984b-8dd89b2254ad",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "office"
+          }
+        ],
+        "outputs": {
+          "theme": "Hybrid working",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "bb5ba7e2-40e4-521f-82c5-6ab7e8258ad7",
+        "label": "Hybrid working: \"flexib\"",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "5a7d249b-f8e7-5352-a4bb-442677cfb08c",
+            "inputKey": "comment",
+            "operator": "contains",
+            "value": "flexib"
+          }
+        ],
+        "outputs": {
+          "theme": "Hybrid working",
+          "theme_driver": "Wellbeing"
+        }
+      },
+      {
+        "id": "3437d6f1-2ef5-5b8e-997c-484d5520bfb4",
+        "label": "Other",
+        "enabled": true,
+        "conditions": [],
+        "outputs": {
+          "theme": "Other",
+          "theme_driver": "Engagement"
+        }
+      }
+    ],
+    "hit_policy": "first"
+  }
+}

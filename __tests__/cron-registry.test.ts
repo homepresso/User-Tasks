@@ -106,6 +106,8 @@ describe('JOBS registry', () => {
       // Background jobs (lib/user-jobs), not a pg_cron job before the registry.
       'user-jobs': 'every minute',
       'provider-switches': 'every minute',
+      // Report rollups maintenance (lib/jobs/report-rollups): queued rebuilds, backfill, hourly reconcile.
+      'report-rollups': 'every minute',
       'process-sla': 'every 5 min',
       'process-reminders': 'every 5 min',
       'process-escalations': 'every 5 min',
@@ -133,10 +135,10 @@ describe('JOBS registry', () => {
   it('due sets at typical minutes', () => {
     const names = (iso: string, history?: Map<string, Date | null>) => dueJobs(at(iso), history).map((job) => job.name)
     expect(names('2026-10-25T07:01:00Z')).toEqual([
-      'process-schedules', 'process-workflows', 'process-agents', 'process-media', 'esign-poll', 'github-sync-push', 'github-sync-deploy', 'ship-events', 'provider-switches', 'user-jobs',
+      'process-schedules', 'process-workflows', 'process-agents', 'process-media', 'esign-poll', 'github-sync-push', 'github-sync-deploy', 'ship-events', 'provider-switches', 'user-jobs', 'report-rollups',
     ])
-    expect(names('2026-10-25T07:05:00Z')).toHaveLength(13)
-    expect(names('2026-10-25T07:10:00Z')).toHaveLength(17)
+    expect(names('2026-10-25T07:05:00Z')).toHaveLength(14)
+    expect(names('2026-10-25T07:10:00Z')).toHaveLength(18)
     expect(names('2026-10-25T03:00:00Z')).toContain('process-retention')
     expect(names('2026-10-25T04:00:00Z')).toContain('cleanup-logs')
     expect(names('2026-10-25T04:00:00Z')).not.toContain('process-retention')

@@ -1,0 +1,247 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "11039956-6d35-554f-9c9f-1105413ee9e3",
+  "asset": {
+    "id": "11039956-6d35-554f-9c9f-1105413ee9e3",
+    "name": "CRM renewal call",
+    "description": "Started by the daily sales checks 30 days before a customer renews: the account manager calls the customer and records the renewal outlook.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Started by the daily checks",
+        "config": {},
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "call",
+        "type": "user_task",
+        "label": "Renewal call",
+        "config": {
+          "task_title": "Renewal in 30 days: {{account}} (${{arr}} ARR)",
+          "task_description": "<p><strong>{{account}}</strong> renews on <strong>{{renewal_date}}</strong>: ${{arr}} ARR, health <strong>{{health}}</strong>, owner {{owner}}.</p><p>Call the sponsor, confirm the renewal and look for expansion.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Renewing",
+            "At risk"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "be702552-8900-523c-bb28-57b652b5ba4e",
+          "fields": [
+            {
+              "key": "outlook",
+              "label": "Outlook",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "outlook",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "renewing",
+              "label": "Renewing",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Renewing"
+            },
+            {
+              "id": "at_risk",
+              "label": "At risk",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "At risk"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Renewal",
+            "align": "left",
+            "subtitle": "{{account_id}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 7,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "ok",
+        "type": "update_data_table",
+        "label": "Healthy",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "update",
+          "match_column": "account_id",
+          "match_value": "{{account_id}}",
+          "column_values": {
+            "health": "Healthy",
+            "notes": "Renewal call: {{task_data.outlook}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Renewing",
+        "config": {
+          "reason": "{{account}} renewing"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "risk",
+        "type": "update_data_table",
+        "label": "At risk",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "update",
+          "match_column": "account_id",
+          "match_value": "{{account_id}}",
+          "column_values": {
+            "health": "At risk",
+            "notes": "Renewal call: {{task_data.outlook}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 340
+        }
+      },
+      {
+        "id": "end_risk",
+        "type": "end_workflow",
+        "label": "At risk",
+        "config": {
+          "reason": "{{account}} renewal at risk"
+        },
+        "position": {
+          "x": 720,
+          "y": 480
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-call",
+        "source": "trigger",
+        "target": "call"
+      },
+      {
+        "id": "e-call-ok-renewing",
+        "source": "call",
+        "target": "ok",
+        "label": "Renewing"
+      },
+      {
+        "id": "e-ok-end_ok",
+        "source": "ok",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-call-risk-at_risk",
+        "source": "call",
+        "target": "risk",
+        "label": "At risk"
+      },
+      {
+        "id": "e-risk-end_risk",
+        "source": "risk",
+        "target": "end_risk"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-account_id",
+        "name": "account_id",
+        "type": "string",
+        "description": "Account ID",
+        "defaultValue": "",
+        "required": true,
+        "label": "Account ID"
+      },
+      {
+        "id": "v-account",
+        "name": "account",
+        "type": "string",
+        "description": "Account",
+        "defaultValue": "",
+        "required": true,
+        "label": "Account"
+      },
+      {
+        "id": "v-arr",
+        "name": "arr",
+        "type": "string",
+        "description": "ARR (USD)",
+        "defaultValue": "",
+        "required": true,
+        "label": "ARR (USD)"
+      },
+      {
+        "id": "v-renewal_date",
+        "name": "renewal_date",
+        "type": "string",
+        "description": "Renewal date",
+        "defaultValue": "",
+        "required": true,
+        "label": "Renewal date"
+      },
+      {
+        "id": "v-health",
+        "name": "health",
+        "type": "string",
+        "description": "Health",
+        "defaultValue": "",
+        "required": true,
+        "label": "Health"
+      },
+      {
+        "id": "v-owner",
+        "name": "owner",
+        "type": "string",
+        "description": "Owner",
+        "defaultValue": "",
+        "required": true,
+        "label": "Owner"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

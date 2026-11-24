@@ -1153,7 +1153,7 @@ usertasks tasks complete <task-id> --outcome Approve --set approved_amount:=7200
     },
     screenshot: { name: 'run-detail', alt: 'A UserTasks run detail page showing the path taken and the status and duration of each step', caption: 'Every run keeps its path, each step’s status and duration, and the error if one failed.' },
     faqs: [
-      { question: 'Which models can agents use?', answer: 'Any chat-completions endpoint that is OpenAI-compatible and supports tool calling — for example OpenAI, Azure OpenAI, Groq, Together, Ollama, or an Anthropic-compatible proxy.' },
+      { question: 'Which models can agents use?', answer: 'Any chat-completions endpoint that is OpenAI-compatible and supports tool calling — for example OpenAI, Azure OpenAI, Groq, Together, Baseten, Ollama, or an Anthropic-compatible proxy.' },
       { question: 'How do I stop an agent doing something it should not?', answer: 'Agents can only call the tools you grant, and those tools run with permission checks. Put a User Task after the agent so a person approves high-impact actions, and branch on the structured output so uncertain answers always go to review.' },
       { question: 'Are prompts and model outputs sent to my log platform?', answer: 'No. Agent runs, steps, tool calls, token counts and errors are recorded and emitted as agent.run.* events, but prompts and model outputs are not included in exported events.' },
       { question: 'Do I have to use AI at all?', answer: 'No. Agents are optional; every other feature works without them.' },

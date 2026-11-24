@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { executeWorkflow, resumeWorkflow } from "@/lib/workflow-engine"
 import type { NodeEvent } from "@/lib/workflow-engine"
+import { resumeRun, startRun } from "@/lib/processing/dispatch"
 import {
   authorizeTestRunResume,
   authorizeWorkflowExecute,
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
   let resumeRunId: string | null = null
   let resumeEventId: string | undefined
   let actorId: string | null
+  let tenantId: string
   // "Use form drafts" (Test runner toggle): linked forms' working drafts, for testers who can edit forms.
   let testFormDrafts = false
   let preLogs: Array<{ level: string; message: string; metadata?: Record<string, unknown> }> = []
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       resumeRunId = authorized.run.id
       resumeEventId = authorized.run.event_id ?? undefined
       actorId = authorized.ctx.actorId
+      tenantId = authorized.run.tenant_id
       // Attachments in the test task's values: only the tester's own uploads, as the server recorded them.
       const taskData = variables?.task_data
       if (taskData && typeof taskData === 'object' && !Array.isArray(taskData)) {
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
       const authorized = await authorizeWorkflowExecute({ workflowId: workflow_id, test: true })
       workflowId = authorized.workflow.id
       actorId = authorized.ctx.actorId
+      tenantId = authorized.workflow.tenant_id
       if (form_drafts === true) {
         const { hasPerm } = await import('@/lib/services/context')
         testFormDrafts = hasPerm(authorized.ctx, 'forms.edit')
@@ -73,7 +76,32 @@ export async function POST(request: NextRequest) {
   // Designer test runs are started by the signed-in user (workflow_started_by).
   const initiator = { userId: actorId, via: 'test' as const }
   // Resume exactly the paused state that was checked (run id + its event).
-  const resumeOptions = resumeEventId ? { eventId: resumeEventId } : undefined
+  // Test runs run here, or — with separate processing workers and "Run test
+  // runs on workers" — on a worker, its events relayed back to this stream
+  // (lib/processing/dispatch).
+  const runTest = (onEvent: (event: NodeEvent) => void) => resumeRunId
+    ? resumeRun({
+        runId: resumeRunId,
+        tenantId,
+        workflowId,
+        test: true,
+        onEvent,
+        ...(resumeEventId ? { eventId: resumeEventId } : {}),
+        variables: {
+          outcome: variables?.outcome ?? 'completed',
+          outcome_notes: variables?.outcome_notes ?? '',
+          ...(variables ?? {}),
+        },
+      })
+    : startRun({
+        workflowId,
+        tenantId,
+        test: true,
+        onEvent,
+        variables: variables ?? undefined,
+        initiator,
+        ...(testFormDrafts ? { testFormDrafts } : {}),
+      })
 
   // Check if client accepts SSE
   const acceptsSSE = request.headers.get('accept')?.includes('text/event-stream')
@@ -108,26 +136,8 @@ export async function POST(request: NextRequest) {
 
         for (const data of preLogs) send({ type: 'log', data } as NodeEvent)
         try {
-          if (resumeRunId) {
-            const result = await resumeWorkflow(resumeRunId, {
-              outcome: variables?.outcome ?? 'completed',
-              outcome_notes: variables?.outcome_notes ?? '',
-              ...(variables ?? {}),
-            }, engineSend, resumeOptions)
-            send({ type: 'done', data: { ...engineDone, ...result } } as NodeEvent)
-          } else {
-            const result = await executeWorkflow(
-              workflowId,
-              undefined,
-              true,
-              variables ?? undefined,
-              engineSend,
-              undefined,
-              undefined,
-              { initiator, ...(testFormDrafts ? { testFormDrafts } : {}) },
-            )
-            send({ type: 'done', data: { ...engineDone, ...result, run_id: result.run_id } } as NodeEvent)
-          }
+          const result = await runTest(engineSend)
+          send({ type: 'done', data: { ...engineDone, ...result, run_id: result.run_id } } as NodeEvent)
         } catch (error: any) {
           send({ type: 'log', data: { level: 'error', message: `Resume/execute failed: ${error.message}` } })
           send({ type: 'done', data: { status: 'failed', error: error.message } })
@@ -151,25 +161,7 @@ export async function POST(request: NextRequest) {
 
   // Non-streaming fallback — collect all events and return as JSON
   try {
-    let result: any
-    if (resumeRunId) {
-      result = await resumeWorkflow(resumeRunId, {
-        outcome: variables?.outcome ?? 'completed',
-        outcome_notes: variables?.outcome_notes ?? '',
-        ...(variables ?? {}),
-      }, collectEvent, resumeOptions)
-    } else {
-      result = await executeWorkflow(
-        workflowId,
-        undefined,
-        true,
-        variables ?? undefined,
-        collectEvent,
-        undefined,
-        undefined,
-        { initiator, ...(testFormDrafts ? { testFormDrafts } : {}) },
-      )
-    }
+    const result: any = await runTest(collectEvent)
     return NextResponse.json({ events, result: { ...engineDone, ...result, run_id: result?.run_id } })
   } catch (error: any) {
     return NextResponse.json({

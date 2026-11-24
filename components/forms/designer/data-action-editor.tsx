@@ -294,6 +294,15 @@ export function TableActionEditor({ action, state, placeholders, onChange }: {
           </select>
         </label>
       )}
+      {(action.type === 'table_create' || action.type === 'table_update' || action.type === 'table_delete') && !action.each_selected && state.fields.some((f) => f.type === 'list' || f.type === 'repeating_section') && (
+        <label className="block text-2xs">For each item
+          <select className={inputClass} value={action.each_item ?? ''} data-each-item
+            onChange={(e) => onChange({ ...action, each_item: e.target.value || undefined })}>
+            <option value="">Once</option>
+            {state.fields.filter((f) => f.type === 'list' || f.type === 'repeating_section').map((f) => <option key={f.key} value={f.key}>Once for each item of {f.label || f.key} ({'{{row.<field>}}'})</option>)}
+          </select>
+        </label>
+      )}
       {(action.type === 'table_read' || action.type === 'table_list' || action.type === 'table_update') && (
         <div ref={filterRef}>
           <ActionFilterEditor value={action.filter} columns={columns} placeholders={placeholders} onChange={(filter) => onChange({ ...action, filter })} />

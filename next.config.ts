@@ -105,6 +105,16 @@ const nextConfig: NextConfig = {
     // function bodies at ~4.5 MB whatever this says). The upload route
     // refuses a body shorter than the size the browser declared.
     proxyClientMaxBodySize: `${Math.max(1, Math.min(Number(process.env.FORM_UPLOAD_MAX_BODY_MB) || 50, 1024))}mb`,
+    // Next's default loads every page and route module when the server
+    // starts. Here that is ~3,900 modules (the gallery catalogue, the docs
+    // registry, the SQL Server / MSAL drivers…) and ~414 MiB idle RSS for
+    // `node server.js`; off, ~660 modules and ~113 MiB, with the same
+    // throughput — each page loads on its first request instead (a small
+    // first-hit delay). Vercel is unaffected either way: its functions run
+    // Next in minimal mode, which never preloads. NEXT_PRELOAD_ENTRIES=true
+    // turns it back on — read when `next start` starts, but baked in at build
+    // time for the standalone server (Docker). See docs/deployment-profiles.md#server-memory.
+    preloadEntriesOnStart: process.env.NEXT_PRELOAD_ENTRIES === "true",
   },
   // The project directory is the root. Without it Turbopack infers the root
   // from the outermost lockfile, so a checkout nested inside another (a git
@@ -141,9 +151,8 @@ const nextConfig: NextConfig = {
     : OUTPUT_FILE_TRACING_INCLUDES,
   async redirects() {
     return [
-      // Apps (formerly Projects) were retired; send old links to automations.
-      { source: "/apps", destination: "/automations", permanent: true },
-      { source: "/apps/:path*", destination: "/automations", permanent: true },
+      // /apps is the app builder again (Apps, Nov 2026): its old redirects to /automations are gone.
+      // Projects (the old name of the retired apps) still go to automations.
       { source: "/projects", destination: "/automations", permanent: true },
       { source: "/projects/:path*", destination: "/automations", permanent: true },
       // The old dashboard URL lands on Home (/home), the post-login landing page.

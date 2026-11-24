@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { defineEndpoint } from './registry'
-import { deletedResponse, itemResponse, listResponse, looseObject, paginationQuery } from './common'
+import { deletedResponse, itemResponse, listResponse, looseObject, paginationQuery, tagsBodyField } from './common'
 
 const tags = ['Form controls']
 
@@ -23,6 +23,7 @@ export const formControlUpdateBody = z.object({
   name: z.string().min(1).max(120).optional(),
   description: z.string().max(2000).nullable().optional(),
   approved_hosts: z.array(z.string()).optional().describe('Network hosts to allow (only hosts a version\'s manifest asks for)'),
+  tags: tagsBodyField,
 })
 
 const saveResponse = z.looseObject({
@@ -38,6 +39,7 @@ export const listFormControlsEndpoint = defineEndpoint({
   query: paginationQuery.extend({
     search: z.string().optional().describe('Name, tag or description contains'),
     enabled: z.enum(['true', 'false']).optional(),
+    tagged: z.string().max(60).optional().describe('Only controls carrying this tag (a label; not the element tag)'),
   }),
   response: listResponse('form_controls'), listKey: 'form_controls',
   cli: { resource: 'form-controls', verb: 'list' },

@@ -436,3 +436,24 @@ describe('portability: Label fields travel with the form', () => {
     expect(mergeTaskFieldValues({ fields: old }, { a: 'x' })).toEqual({ errors: {}, templateValues: { a: 'x' } })
   })
 })
+
+describe('labels over List rows on the server', () => {
+  it('read calculated columns as the server works them out (never the cells the browser sent)', () => {
+    const fields = [
+      { key: 'lines', label: 'Lines', type: 'list', list: { entry_mode: 'inline', columns: [{ key: 'qty', label: 'Qty', type: 'number' }, { key: 'price', label: 'Price', type: 'currency' }, { key: 'amount', label: 'Amount', type: 'calculated', formula: 'qty * price' }] } },
+      { key: 'total', label: 'Total', type: 'label', label_config: { expression: 'SUM(form.lines, "amount")', include: true } },
+    ]
+    const sent = { lines: [{ qty: 2, price: 5 }, { qty: 1, price: 3, amount: 999 }] }
+    expect(mergeTaskFieldValues({ fields }, sent).templateValues.total).toBe(13)
+  })
+})
+
+describe('labels over List rows in the browser', () => {
+  it('work out calculated columns from the cells people typed (text numbers included)', () => {
+    const fields = [
+      { key: 'lines', label: 'Lines', type: 'list', list: { entry_mode: 'inline', columns: [{ key: 'qty', label: 'Qty', type: 'number' }, { key: 'price', label: 'Price', type: 'currency' }, { key: 'amount', label: 'Amount', type: 'calculated', formula: 'qty * price' }] } },
+      { key: 'total', label: 'Total', type: 'label', label_config: { expression: 'SUM(form.lines, "amount")' } },
+    ] as any[]
+    expect(computeLabelValues(fields, { lines: [{ qty: '2', price: '5' }, { qty: 1, price: 3 }] }).total.value).toBe(13)
+  })
+})

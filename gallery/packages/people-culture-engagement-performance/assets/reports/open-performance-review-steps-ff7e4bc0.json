@@ -1,0 +1,36 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "ff7e4bc0-5965-55a9-a825-6a8ee80d8d01",
+  "asset": {
+    "id": "ff7e4bc0-5965-55a9-a825-6a8ee80d8d01",
+    "name": "Open performance review steps",
+    "description": "Every open step of the performance reviews: who it is with and when it is due.",
+    "category": "Performance",
+    "is_shared": true,
+    "config": {
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "7ab8a1f9-ed8e-5eed-8430-bdaee04111d5"
+      },
+      "columns": [
+        "title",
+        "assignee",
+        "status",
+        "due_date",
+        "created_at"
+      ],
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      }
+    }
+  }
+}

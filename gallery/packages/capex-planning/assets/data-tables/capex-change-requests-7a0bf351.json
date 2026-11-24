@@ -1,0 +1,110 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+  "asset": {
+    "id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+    "name": "CapEx change requests",
+    "description": "Requests for more money on approved projects: overrun %, reason and decision. More than 10% goes back through approval.",
+    "columns": [
+      {
+        "id": "f10b193b-5e10-558d-a0d4-94dc21087e42",
+        "required": true,
+        "key": "cr_ref",
+        "name": "Change request",
+        "type": "text"
+      },
+      {
+        "id": "24490e2f-cb30-5c51-ba9d-799af2ce5706",
+        "required": false,
+        "key": "project_ref",
+        "name": "Project",
+        "type": "text"
+      },
+      {
+        "id": "7f1c4764-28b1-56b6-bbca-2b167e9aa1b1",
+        "required": false,
+        "key": "project_title",
+        "name": "Project title",
+        "type": "text"
+      },
+      {
+        "id": "510b36e7-cf2a-5d8a-9f54-f3e8a75e79a4",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Production",
+          "Logistics",
+          "Engineering & R&D",
+          "IT",
+          "Facilities & EHS",
+          "Commercial"
+        ]
+      },
+      {
+        "id": "e4d064f4-3956-5277-933b-866570c6086d",
+        "required": false,
+        "key": "requested_by",
+        "name": "Requested by",
+        "type": "text"
+      },
+      {
+        "id": "098c3147-de97-52c4-a390-0911c18df5c8",
+        "required": false,
+        "key": "original_amount",
+        "name": "Approved before (USD)",
+        "type": "number"
+      },
+      {
+        "id": "c1e2e11c-afe2-5a9c-a74a-c07087e8aba4",
+        "required": false,
+        "key": "additional_amount",
+        "name": "Additional (USD)",
+        "type": "number"
+      },
+      {
+        "id": "91f93f36-f585-5366-86d0-d206473f23b4",
+        "required": false,
+        "key": "revised_amount",
+        "name": "Revised total (USD)",
+        "type": "number"
+      },
+      {
+        "id": "ab75ce91-1eae-5ffa-95fd-a100f4ba91dc",
+        "required": false,
+        "key": "overrun_pct",
+        "name": "Overrun %",
+        "type": "number"
+      },
+      {
+        "id": "ba45d845-2aeb-5a0a-b1e4-54fbe8b1fe6f",
+        "required": false,
+        "key": "reason",
+        "name": "Reason",
+        "type": "text"
+      },
+      {
+        "id": "81839660-396b-5237-ad49-a68157fa9335",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Pending re-approval",
+          "Approved",
+          "Auto-approved",
+          "Rejected"
+        ]
+      },
+      {
+        "id": "87716531-8b3e-5dc4-91b4-07e9e602f85d",
+        "required": false,
+        "key": "decided_on",
+        "name": "Decided",
+        "type": "date"
+      }
+    ]
+  }
+}

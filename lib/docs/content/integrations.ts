@@ -377,6 +377,17 @@ PostgreSQL, SQL Server and MySQL drivers are always installed. The Snowflake (\`
 
 The SFTP connector pins the server's host key. Run **Test connection**: it shows the server's SHA-256 fingerprint. Check it with your server administrator, then paste it into **Host key fingerprint**. Every file operation stays under **Default remote path**. Transfers are limited to \`SFTP_MAX_BYTES\` (default 25 MB).
 
+## Baseten
+
+The Baseten connector reaches Baseten's OpenAI-compatible Chat Completions API in one of two ways. Choose one under **Endpoint**:
+
+- **Model APIs**: Baseten-hosted open models (DeepSeek, Kimi, GLM, GPT OSS, Nemotron and others). Pick a **Model**, or type any current slug in **Model name (custom)**.
+- **Dedicated deployment**: a model you deployed on Baseten, on Baseten Cloud or Baseten Self-hosted (your own cloud account and VPC). Paste the deployment URL or model ID from the model's API endpoint page. The predict URL, the \`…/sync/v1\` URL and a bare model ID all work. Enter the model name the deployment serves. The deployment must serve an OpenAI-compatible \`/v1/chat/completions\` route, as Baseten's LLM engines do.
+
+You use your own Baseten account and API key (Baseten dashboard → **Settings → API keys**), and Baseten bills the usage to you. UserTasks never supplies a Baseten key. The key is stored encrypted, never shown again and never logged. **Test connection** sends a one-token completion to the chosen model.
+
+The connector adds **Chat Completion** and **JSON Completion** references for workflows. **JSON Completion** sends \`response_format: json_object\`, which works on every Model API model except Muse Spark Open. Agents and the Agent assistant can use the same connection, and runs on Model APIs are priced from Baseten's list prices. Baseten is a cloud service, so it isn't available on air-gapped installs.
+
 ## How connector calls behave
 
 - **Retries:** a 429 answer is retried after the provider's \`Retry-After\`. 502, 503 and 504 answers are retried only for reads and for writes that carry an idempotency key; Stripe calls always carry one. All attempts share the call's timeout.
@@ -645,7 +656,7 @@ Kerberos uses the hosts' clocks: keep the UserTasks server within 5 minutes of t
     body: `
 ## Inbound
 
-An inbound webhook belongs to a workflow with a **Webhook** or **Middleware** trigger. Each has a slug and a secret (stored only as a bcrypt hash):
+An inbound webhook belongs to a workflow with a **Webhook** or **Middleware** trigger. Each has a slug and a secret (stored only as hashes — SHA-256 and bcrypt — never in plain text):
 
 \`\`\`bash
 usertasks webhooks create <workflow-id> --set slug=invoice-intake

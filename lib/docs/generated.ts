@@ -382,8 +382,10 @@ const REPO_LINKS: Record<string, string> = {
   'self-hosting.md': '/docs/self-hosting',
   'migrations.md': '/docs/self-hosting/database',
   'infrastructure.md': '/docs/self-hosting/infrastructure',
+  'query-settings.md': '/docs/self-hosting/query-settings',
   'optional-drivers.md': '/docs/self-hosting/optional-drivers',
   'switching-providers.md': '/docs/self-hosting/switching-providers',
+  'infrastructure-add-on.md': '/docs/self-hosting/infrastructure-add-on',
   'deployment-profiles.md': '/docs/self-hosting/deployment-profiles',
   'setup-on-prem.md': '/docs/self-hosting/on-premises',
   'setup-azure.md': '/docs/self-hosting/azure',
@@ -448,6 +450,11 @@ export function includeRepoMarkdown(relativePath: string): DocBlock[] {
  * nothing on the site renders this list. Keep appending new notes here.
  */
 export const CHANGELOG_FILES = [
+  { id: 'pdf-styling', file: 'docs/changes/pdf-styling.md' },
+  { id: 'app-drafts', file: 'docs/changes/app-drafts.md' },
+  { id: 'tag-colours', file: 'docs/changes/tag-colours.md' },
+  { id: 'apps', file: 'docs/changes/apps.md' },
+  { id: 'data-table-grouping', file: 'docs/changes/data-table-grouping.md' },
   { id: 'importers', file: 'docs/changes/importers.md' },
   { id: 'directory-sources', file: 'docs/changes/directory-sources.md' },
   { id: 'report-charts', file: 'docs/changes/report-charts.md' },

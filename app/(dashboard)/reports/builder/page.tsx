@@ -38,6 +38,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { serverQuery } from '@/lib/server-read'
 import { usePermissions } from '@/lib/permissions-context'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
+import { TagInput } from '@/components/ui/tag-input'
 
 const VIZ_OPTIONS = [
   { value: 'table', label: 'Table', icon: '▦' },
@@ -322,6 +323,7 @@ export default function ReportBuilderPage() {
   const [saveName, setSaveName] = useState('')
   const [saveDesc, setSaveDesc] = useState('')
   const [saveShared, setSaveShared] = useState(false)
+  const [saveTags, setSaveTags] = useState<string[]>([])
   const [showSave, setShowSave] = useState(false)
   // Synchronous guard so a double click on Save Report can't create two reports.
   const { pending: saving, run: runSave } = useSubmitGuard()
@@ -642,6 +644,7 @@ export default function ReportBuilderPage() {
       setSaveName(report.name ?? '')
       setSaveDesc(report.description ?? '')
       setSaveShared(Boolean(report.is_shared))
+      setSaveTags(Array.isArray(report.tags) ? report.tags : [])
       setEditing({ id: report.id, name: report.name })
       setExpandedSections((prev) => new Set([...prev, 'charts']))
       setAutoRun(true)
@@ -792,7 +795,7 @@ export default function ReportBuilderPage() {
       }
       if (editing) {
         // The user's own report is updated in place; anyone else's is saved as a new one.
-        const updated = await updateReport(editing.id, { name: saveName, description: saveDesc, config })
+        const updated = await updateReport(editing.id, { name: saveName, description: saveDesc, config, tags: saveTags })
         if (updated.updated) {
           // The report page reads it through TanStack Query: drop the cached copy.
           await queryClient.invalidateQueries({ queryKey: ['report', editing.id] })
@@ -806,6 +809,7 @@ export default function ReportBuilderPage() {
         config,
         category: sourceDef?.category.toLowerCase() ?? 'custom',
         is_shared: saveShared,
+        tags: saveTags,
       })
       router.push(`/reports/${(result as any).id}`)
     } catch (err: any) {
@@ -1849,6 +1853,7 @@ export default function ReportBuilderPage() {
                 rows={2}
                 className="w-full rounded-lg border px-3 py-2 text-sm border-border bg-panel text-fg"
               />
+              <TagInput value={saveTags} onChange={setSaveTags} listInline placeholder="Tags (optional)" aria-label="Tags" />
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={saveShared} onChange={e => setSaveShared(e.target.checked)} className="rounded" />
                 <span className="text-fg">Share with team</span>

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   WIZARD_STEP_IDS, checkAddress, idpFromForm, markStep, nextStep, parseInviteList, parseProgress, parseStoredIdps, stepAfter, stepBefore, summariseIdp, upsertIdp, idpRedirects,
 } from '@/lib/setup/wizard-model'
-import { supabaseMoves, signInSummary } from '@/lib/setup/wizard-data'
+import { signInSummary } from '@/lib/setup/wizard-data'
 import { markStepAs, removeIdpAs, saveEmailAs, saveIdpAs, sendTestEmailAs, testIdpAs, type WizardDeps } from '@/lib/setup/wizard-server'
 import { hostsForOptions, hostOfUrl } from '@/lib/install/egress'
 import { resolveInstanceConfig, type InstanceConfig } from '@/lib/config'
@@ -65,19 +65,6 @@ describe('setup wizard model', () => {
     expect(mismatch.messages[0]).toMatch(/APP_URL is https:\/\/tasks\.example\.com/)
     expect(checkAddress('http://tasks.corp', 'http://tasks.corp').messages.join()).toMatch(/plain http/)
     expect(checkAddress('http://localhost:3490', 'http://localhost:3490').messages.join()).toMatch(/local address/)
-  })
-
-  it('moving off Supabase: in order, on the page only where it is safe, otherwise the commands', () => {
-    const on = { enabled: true, block: null }
-    const areas = (['db', 'auth', 'storage', 'realtime', 'email'] as const).map((area) => ({ area, label: area, onSupabase: area !== 'email', actions: { change: on, settings: on } }))
-    const direct = supabaseMoves(areas, 'direct', true)
-    expect(direct.map((m) => m.area)).toEqual(['storage', 'realtime', 'auth', 'db'])
-    expect(direct.every((m) => m.how === 'page')).toBe(true)
-    const serverless = supabaseMoves(areas, 'direct', false)
-    expect(serverless.find((m) => m.area === 'db')).toMatchObject({ how: 'cli' })
-    expect(serverless.find((m) => m.area === 'db')!.commands[0]).toMatch(/--dry-run$/)
-    const locked = supabaseMoves(areas.map((a) => ({ ...a, actions: { change: { enabled: false, block: { kind: 'flag-off' as const, message: 'off' } }, settings: on } })), 'direct', true)
-    expect(locked.every((m) => m.how === 'cli')).toBe(true)
   })
 
   it('sign-in summary refuses on Supabase Auth and when the environment pins the providers', () => {

@@ -483,9 +483,25 @@ Copy \`.env.example\` to \`.env.local\` (for \`npm run dev\` / \`npm start\`) or
 `,
   },
   {
+    slug: 'self-hosting/query-settings',
+    title: 'Query settings and report rollups',
+    description: 'Settings → Query: report metrics from flat rollup tables (kept current in the same transaction as each change) or real-time queries, per service, app and widget; cache TTLs; permissions, accuracy (exact counts, percentiles within 9.1%), backfill, reconcile, the report-rollups job and usertasks-admin rollups.',
+    body: `
+::include docs/query-settings.md
+`,
+  },
+  {
+    slug: 'self-hosting/infrastructure-add-on',
+    title: 'Infrastructure add-on',
+    description: 'What the free edition runs (any configuration, the bundled and Supabase stacks, email and sign-in settings) and what the paid Infrastructure add-on ($9,000 USD per deployment per year) adds: provider switches with data copies, backups and rollback, moving off Supabase, installs onto separated services; licence, expiry and installs that already moved services.',
+    body: `
+::include docs/infrastructure-add-on.md
+`,
+  },
+  {
     slug: 'self-hosting/switching-providers',
     title: 'Switching providers',
-    description: 'Move a running install between providers with usertasks-admin or from Settings → Infrastructure: status, doctor, switch per area (database, auth, storage, scheduler, realtime, email, secrets, cache, KMS) with backups and rollback, provider settings, background switches with live progress, downtime expectations.',
+    description: 'Infrastructure add-on: move a running install between providers with usertasks-admin or from Settings → Infrastructure: status, doctor, switch per area (database, auth, storage, scheduler, realtime, email, secrets, cache, KMS) with backups and rollback, provider settings, background switches with live progress, downtime expectations.',
     body: `
 ::include docs/switching-providers.md
 

@@ -4,7 +4,12 @@
  * OCI distribution API that `docker login` / `docker pull` speak.
  *
  *   docker login usertasks.com -u licence --password-stdin   (the pull token)
- *   docker pull usertasks.com/editions/sharepoint@sha256:…
+ *   docker pull usertasks.com/editions/enterprise@sha256:…
+ *
+ * Repositories: editions/enterprise (the Enterprise image; it also serves the
+ * SharePoint alias, whose tokens are then minted for enterprise) and
+ * editions/sharepoint (the legacy SharePoint edition repository, while its
+ * upstream is still configured).
  *
  * - Auth: HTTP Basic (or Bearer) carrying a pull token (./pull-token.ts),
  *   checked on every request — MAC and expiry, no database. A token opens

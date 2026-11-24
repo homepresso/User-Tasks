@@ -1,0 +1,108 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "0c9a2634-1aec-5cf8-b7e9-fe25adfb1419",
+  "asset": {
+    "id": "0c9a2634-1aec-5cf8-b7e9-fe25adfb1419",
+    "name": "Development actions",
+    "description": "The actions of each development plan (child records): courses, stretch assignments, mentoring, with due dates and status.",
+    "columns": [
+      {
+        "id": "9603b363-b98b-587b-a6f8-de6ba59998fe",
+        "required": true,
+        "key": "action_ref",
+        "name": "Action",
+        "type": "text"
+      },
+      {
+        "id": "0dc3e75d-9254-5071-86f2-2c140c2dc036",
+        "required": false,
+        "key": "plan",
+        "name": "Plan",
+        "type": "lookup",
+        "lookup": {
+          "sourceTableId": "90281922-a4f8-50c7-be76-3644ec3c0685",
+          "sourceTableName": "Development plans",
+          "sourceColumn": "plan_ref"
+        }
+      },
+      {
+        "id": "78154042-bcb2-5e8a-a958-c06c9c792f0d",
+        "required": false,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "fcf31420-497e-5f3e-88dd-d3e38230a3eb",
+        "required": false,
+        "key": "employee_email",
+        "name": "Employee email",
+        "type": "email"
+      },
+      {
+        "id": "799728e6-1dca-593b-8dd3-5b2aaa8a663a",
+        "required": false,
+        "key": "action",
+        "name": "Action",
+        "type": "text"
+      },
+      {
+        "id": "ee20cb4c-25ae-5e6e-ada0-5939caba396b",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Course",
+          "Workshop",
+          "Programme",
+          "Micro-course",
+          "Book",
+          "Mentoring",
+          "Stretch assignment"
+        ]
+      },
+      {
+        "id": "d521bcf3-eddb-55d7-b9fa-fa4a8215b99c",
+        "required": false,
+        "key": "learning_item",
+        "name": "Learning item",
+        "type": "text"
+      },
+      {
+        "id": "246d20a3-cc9f-55cb-b4b5-a709d0500695",
+        "required": false,
+        "key": "skill",
+        "name": "Skill",
+        "type": "text"
+      },
+      {
+        "id": "e343f834-b06f-55bc-aa34-cb3511e372bd",
+        "required": false,
+        "key": "due_date",
+        "name": "Due date",
+        "type": "date"
+      },
+      {
+        "id": "e8b2b25f-e2f0-53b4-8c47-c749cb435a1a",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Not started",
+          "In progress",
+          "Done"
+        ]
+      },
+      {
+        "id": "3927a693-42f4-568b-8a3b-2cebdfa90fc9",
+        "required": false,
+        "key": "hours",
+        "name": "Hours",
+        "type": "number"
+      }
+    ]
+  }
+}

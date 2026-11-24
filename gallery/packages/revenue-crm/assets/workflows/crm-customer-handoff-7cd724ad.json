@@ -1,0 +1,338 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "7cd724ad-ae7d-5bbc-909f-bbef4196b684",
+  "asset": {
+    "id": "7cd724ad-ae7d-5bbc-909f-bbef4196b684",
+    "name": "CRM customer handoff",
+    "description": "Called when a deal closes won: creates the customer health record, makes the account a customer and adds the deal to its ARR, drafts a welcome email with the optional CRM account assistant, and gives customer success the onboarding kickoff.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Called by Close a deal",
+        "config": {},
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "health",
+        "type": "update_data_table",
+        "label": "Create the health record",
+        "config": {
+          "table_id": "bafc25ef-96cd-5ab6-bd6f-1f885fdb8182",
+          "table_name": "CRM customer health",
+          "operation": "insert",
+          "column_values": {
+            "account_id": "{{account_id}}",
+            "account": "{{account}}",
+            "deal_id": "{{deal_id}}",
+            "csm": "Unassigned",
+            "stage": "Onboarding",
+            "health_score": "70",
+            "kickoff": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), 7), \"YYYY-MM-DD\")}}",
+            "next_review": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), 30), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "acc",
+        "type": "update_data_table",
+        "label": "Find the account",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "account_id",
+              "operator": "eq",
+              "value": "{{account_id}}"
+            }
+          ],
+          "limit": 1,
+          "output_rows_var": "accounts",
+          "output_count_var": "account_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "customer",
+        "type": "update_data_table",
+        "label": "Make it a customer",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "update",
+          "match_column": "account_id",
+          "match_value": "{{account_id}}",
+          "column_values": {
+            "status": "Customer",
+            "arr": "{{=ROUND(TO_NUMBER(COALESCE(FIRST(accounts).arr, 0)) + TO_NUMBER(amount), 0)}}",
+            "customer_since": "{{=COALESCE(FIRST(accounts).customer_since, FORMAT_DATE(TODAY(), \"YYYY-MM-DD\"))}}",
+            "renewal_date": "{{=FORMAT_DATE(ADD_DAYS(TODAY(), 365), \"YYYY-MM-DD\")}}",
+            "health": "Watch"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "welcome0",
+        "type": "set_variable",
+        "label": "No draft yet",
+        "config": {
+          "name": "welcome",
+          "expression": ""
+        },
+        "position": {
+          "x": 720,
+          "y": 620
+        }
+      },
+      {
+        "id": "ai",
+        "type": "run_agent",
+        "label": "Draft a welcome email (optional AI)",
+        "config": {
+          "agent_id": "0fd2493e-8050-50c4-8245-0aa9af7dff4d",
+          "agent_name": "CRM account assistant",
+          "output_variable": "welcome",
+          "max_iterations": 3,
+          "timeout_ms": 60000,
+          "user_message": "Draft a short welcome email from customer success to {{account}}, who just bought {{deal}} (${{amount}}). Mention the kickoff in about a week."
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "kickoff",
+        "type": "user_task",
+        "label": "Onboarding kickoff",
+        "config": {
+          "task_title": "Onboard {{account}}: kickoff for {{deal}}",
+          "task_description": "<p><strong>{{account}}</strong> signed <strong>{{deal}}</strong> for ${{amount}} (owner {{owner}}).</p><p>Book the kickoff within a week, set the success plan and update the health record.</p><p>Suggested welcome email (when the AI assistant is switched on):</p><blockquote>{{=COALESCE(welcome.answer, welcome, \"Switch on the CRM account assistant to get a draft here.\")}}</blockquote>",
+          "task_priority": "high",
+          "outcomes": [
+            "Kickoff booked"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "17127475-ad19-5fdf-954f-f42b7066a468",
+          "fields": [
+            {
+              "key": "kickoff_date",
+              "label": "Kickoff date",
+              "type": "date",
+              "required": true
+            },
+            {
+              "key": "csm_name",
+              "label": "Customer success manager",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "kickoff_date",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "csm_name",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "kickoff_booked",
+              "label": "Kickoff booked",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Kickoff booked"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Customer handoff",
+            "align": "left",
+            "subtitle": "{{deal_id}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "plan",
+        "type": "update_data_table",
+        "label": "Update the health record",
+        "config": {
+          "table_id": "bafc25ef-96cd-5ab6-bd6f-1f885fdb8182",
+          "table_name": "CRM customer health",
+          "operation": "update",
+          "match_column": "deal_id",
+          "match_value": "{{deal_id}}",
+          "column_values": {
+            "csm": "{{task_data.csm_name}}",
+            "kickoff": "{{task_data.kickoff_date}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Handed over",
+        "config": {
+          "reason": "{{account}} handed over to customer success"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-health",
+        "source": "trigger",
+        "target": "health"
+      },
+      {
+        "id": "e-health-acc",
+        "source": "health",
+        "target": "acc"
+      },
+      {
+        "id": "e-acc-customer",
+        "source": "acc",
+        "target": "customer"
+      },
+      {
+        "id": "e-customer-welcome0",
+        "source": "customer",
+        "target": "welcome0"
+      },
+      {
+        "id": "e-welcome0-ai",
+        "source": "welcome0",
+        "target": "ai"
+      },
+      {
+        "id": "e-ai-kickoff",
+        "source": "ai",
+        "target": "kickoff"
+      },
+      {
+        "id": "e-kickoff-plan-kickoff_booked",
+        "source": "kickoff",
+        "target": "plan",
+        "label": "Kickoff booked"
+      },
+      {
+        "id": "e-plan-end",
+        "source": "plan",
+        "target": "end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-account_id",
+        "name": "account_id",
+        "type": "string",
+        "description": "Account ID",
+        "defaultValue": "",
+        "required": true,
+        "label": "Account ID"
+      },
+      {
+        "id": "v-account",
+        "name": "account",
+        "type": "string",
+        "description": "Account",
+        "defaultValue": "",
+        "required": true,
+        "label": "Account"
+      },
+      {
+        "id": "v-deal_id",
+        "name": "deal_id",
+        "type": "string",
+        "description": "Deal ID",
+        "defaultValue": "",
+        "required": true,
+        "label": "Deal ID"
+      },
+      {
+        "id": "v-deal",
+        "name": "deal",
+        "type": "string",
+        "description": "Deal",
+        "defaultValue": "",
+        "required": true,
+        "label": "Deal"
+      },
+      {
+        "id": "v-amount",
+        "name": "amount",
+        "type": "number",
+        "description": "Amount (USD)",
+        "defaultValue": "",
+        "required": true,
+        "label": "Amount (USD)"
+      },
+      {
+        "id": "v-owner",
+        "name": "owner",
+        "type": "string",
+        "description": "Owner",
+        "defaultValue": "",
+        "required": true,
+        "label": "Owner"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

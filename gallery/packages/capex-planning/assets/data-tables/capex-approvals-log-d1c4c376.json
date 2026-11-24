@@ -1,0 +1,73 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+  "asset": {
+    "id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+    "name": "CapEx approvals log",
+    "description": "Every approval decision: project, step, approver, decision, comment, date and how long it waited (child rows of CapEx projects).",
+    "columns": [
+      {
+        "id": "2eabefac-9e6d-59cf-8fe6-2e38a52c19fd",
+        "required": true,
+        "key": "project_ref",
+        "name": "Project",
+        "type": "text"
+      },
+      {
+        "id": "020ac1cf-2507-580f-a863-f5d3c91d2252",
+        "required": false,
+        "key": "step",
+        "name": "Step",
+        "type": "text"
+      },
+      {
+        "id": "a714be5c-20c6-577c-8b6b-7827354dc79f",
+        "required": false,
+        "key": "approver",
+        "name": "Approver",
+        "type": "text"
+      },
+      {
+        "id": "7cbc95dc-d7dd-5987-8ac7-203e351f9eee",
+        "required": false,
+        "key": "decision",
+        "name": "Decision",
+        "type": "select",
+        "options": [
+          "Approved",
+          "Changes requested",
+          "Rejected"
+        ]
+      },
+      {
+        "id": "b558922d-03f6-57df-b269-56ef5aa5aaf8",
+        "required": false,
+        "key": "comment",
+        "name": "Comment",
+        "type": "text"
+      },
+      {
+        "id": "bff5c418-4e86-5750-9f9d-b1f24e29e7ca",
+        "required": false,
+        "key": "decided_on",
+        "name": "Decided",
+        "type": "date"
+      },
+      {
+        "id": "b5e96599-c0e2-5322-9c29-a507c7a42bc3",
+        "required": false,
+        "key": "days_taken",
+        "name": "Days waited",
+        "type": "number"
+      },
+      {
+        "id": "845b3274-31d7-5095-bad0-8d4156c8419f",
+        "required": false,
+        "key": "tier",
+        "name": "Tier",
+        "type": "text"
+      }
+    ]
+  }
+}

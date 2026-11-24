@@ -1,6 +1,6 @@
 /**
  * Whether Settings → Infrastructure may change providers, and whether this
- * deployment can run a switch in the background (lib/admin/infrastructure-switching).
+ * deployment can run a switch in the background (the Infrastructure add-on).
  * Kept apart from the engine so the tick's job registry can ask cheaply.
  */
 
@@ -95,7 +95,7 @@ export function areaActionStates(input: { area: ProviderArea; label: string; pro
   }
   const change = common() ?? (input.access === 'api' && DIRECT_ONLY_SWITCH_AREAS.includes(input.area) ? block('needs-direct-db', needsDirectReason(input.area, 'switch', input.label)) : ok)
   const settings = !input.hasSettings
-    ? block('no-settings', `${input.providerLabel} has no settings to edit here: use Change… to pick another provider.`)
+    ? block('no-settings', `${input.providerLabel} has no settings to edit here.`)
     : common() ?? (input.access === 'api' && DIRECT_ONLY_SETTINGS_AREAS.includes(input.area) ? block('needs-direct-db', needsDirectReason(input.area, 'settings', input.label)) : ok)
   return { change, settings }
 }

@@ -1,0 +1,272 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "834786c2-04da-5925-9632-362a7be6e5d5",
+  "asset": {
+    "id": "834786c2-04da-5925-9632-362a7be6e5d5",
+    "name": "Log activity",
+    "description": "Record a call, email, meeting, demo or note. Add a follow-up date to get a reminder task.",
+    "tags": [
+      "crm",
+      "activities"
+    ],
+    "fields": [
+      {
+        "key": "type",
+        "label": "Type",
+        "type": "choice",
+        "options": [
+          "Call",
+          "Email",
+          "Meeting",
+          "Demo",
+          "Note"
+        ],
+        "required": true,
+        "default": "Call"
+      },
+      {
+        "key": "subject",
+        "label": "Subject",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Pricing check-in"
+      },
+      {
+        "key": "account",
+        "label": "Account",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "search_columns": [
+            "name",
+            "account_id",
+            "city"
+          ],
+          "display_columns": [
+            "name",
+            "industry",
+            "region"
+          ],
+          "value_column": "name",
+          "fill": [
+            {
+              "from": "account_id",
+              "to": "account_id"
+            }
+          ],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        },
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.account}}"
+          }
+        }
+      },
+      {
+        "key": "account_id",
+        "label": "Account ID",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "deal_id",
+        "label": "Deal ID (optional)",
+        "type": "text",
+        "placeholder": "DL-…",
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.deal_id}}"
+          }
+        }
+      },
+      {
+        "key": "contact",
+        "label": "Contact",
+        "type": "text"
+      },
+      {
+        "key": "date",
+        "label": "Date",
+        "type": "date",
+        "required": true,
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{today}}"
+          }
+        }
+      },
+      {
+        "key": "duration_min",
+        "label": "Minutes",
+        "type": "number",
+        "min": 0
+      },
+      {
+        "key": "activity_outcome",
+        "label": "Outcome",
+        "type": "choice",
+        "options": [
+          "Connected",
+          "Left voicemail",
+          "Positive",
+          "Neutral",
+          "Needs follow-up",
+          "No show"
+        ],
+        "required": true,
+        "default": "Positive"
+      },
+      {
+        "key": "follow_up",
+        "label": "Follow up on",
+        "type": "date",
+        "help_text": "You get a task due that day."
+      },
+      {
+        "key": "notes",
+        "label": "Notes",
+        "type": "textarea"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "type",
+              "span": 1
+            },
+            {
+              "field_key": "subject",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "account",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "account_id",
+              "span": 1
+            },
+            {
+              "field_key": "deal_id",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "contact",
+              "span": 1
+            },
+            {
+              "field_key": "date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "duration_min",
+              "span": 1
+            },
+            {
+              "field_key": "activity_outcome",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "follow_up",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "notes",
+              "span": 2
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "account",
+          "label": "Account",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "deal_id",
+          "label": "Deal",
+          "type": "text",
+          "source": "context"
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Log activity",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Activity logged",
+            "text": "{{type}} with {{account}} saved.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Log another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Log activity",
+      "subtitle": "Calls, emails, meetings, demos and notes.",
+      "align": "left"
+    }
+  }
+}

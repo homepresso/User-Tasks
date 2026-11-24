@@ -55,7 +55,7 @@ export const TRIGGER_GROUPS: ReadonlyArray<{ value: QueueTriggerGroup; label: st
   {
     value: 'data_event', label: 'Data event', types: [
       'data_table_event', 'task_created', 'task_received', 'task_updated', 'task_completed', 'task_rejected',
-      'retention_policy_review', 'retention_policy_executed', 'workflow_error', 'workflow_sla',
+      'retention_policy_review', 'retention_policy_executed', 'workflow_error', 'workflow_sla', 'agent_error',
     ],
   },
 ]
@@ -330,6 +330,27 @@ export interface QueueItem {
   step_label: string | null
   started_by: QueuePerson | null
   assignee: QueuePerson | null
+  /**
+   * The worker lease of a `processing` job (migration 20270124090000; added
+   * by lib/services/workflow-queue-list). `stuck`: the lease expired — the
+   * worker was lost and the job can be retried or cancelled.
+   */
+  lease?: QueueLease | null
+}
+
+export interface QueueLease {
+  locked_by: string | null
+  locked_at: string | null
+  expires_at: string | null
+  stuck: boolean
+  lost_count: number
+}
+
+/** Mirror of public.queue_job_lease_expired: lease past, or no lease and locked over 15 minutes ago. */
+export function queueLeaseExpired(expiresAt: string | null | undefined, lockedAt: string | null | undefined, now = Date.now()): boolean {
+  if (expiresAt) return Date.parse(expiresAt) < now
+  const locked = lockedAt ? Date.parse(lockedAt) : Number.NEGATIVE_INFINITY
+  return locked < now - 15 * 60_000
 }
 
 export type QueueViewCounts = Record<QueueView, number>

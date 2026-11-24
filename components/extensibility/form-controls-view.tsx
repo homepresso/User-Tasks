@@ -1,8 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Blocks, Download, FileDown, FileUp, Globe, LayoutGrid, Link2, ShieldAlert, ShieldCheck, Trash2, Upload, Users } from 'lucide-react'
+import { AlertTriangle, Blocks, FlaskConical, Download, FileDown, FileUp, Globe, LayoutGrid, Link2, ShieldAlert, ShieldCheck, Trash2, Upload, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { Input } from '@/components/ui/input'
@@ -21,10 +21,16 @@ import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { serverRead } from '@/lib/server-read'
 import { usePermissions } from '@/lib/permissions-context'
 import { compareSemver } from '@/lib/forms/custom-controls/manifest'
+import type { FormControlManifest } from '@/lib/forms/custom-controls/contract'
 import {
   canTrustFormControls, deleteFormControl, exportFormControl, importFormControl, importFormControlFromUrl, updateFormControl, uploadFormControl,
 } from '@/app/actions/form-controls'
 import { ControlIcon } from '@/components/forms/designer/control-icon'
+import { SearchInput } from '@/components/ui/input'
+import { TagList } from '@/components/ui/tag-chip'
+import { TagFilterMenu, TagsActionButton, useTagFilter } from '@/components/ui/list-tags'
+import { ObjectTagsDialog } from '@/components/ui/object-tags-dialog'
+import { ControlTryDialog } from './control-try-dialog'
 
 /**
  * Extensibility → Form controls: the workspace's custom form controls (web
@@ -64,6 +70,17 @@ export function FormControlsView() {
   const manifestRef = useRef<HTMLInputElement>(null)
   const importRef = useRef<HTMLInputElement>(null)
   const guard = useSubmitGuard()
+  const tagFilter = useTagFilter(controls, (c: Control) => c.tags)
+  const [search, setSearch] = useState('')
+  // ?q= (Settings → Tags links here with the control's name).
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q')
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of the URL after hydration */
+    if (q) setSearch(q)
+  }, [])
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[] }>(null)
+  const q = search.trim().toLowerCase()
+  const shown = controls.filter((c) => tagFilter.matches(c) && (!q || c.name.toLowerCase().includes(q) || c.tag.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q) || (c.tags ?? []).some((t) => t.toLowerCase().includes(q))))
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ['form-controls-library'] })
@@ -191,26 +208,45 @@ export function FormControlsView() {
               />
             </Card>
           ) : (
-            <ul className="space-y-3">
-              {controls.map((control) => (
-                <ControlCard key={control.id} control={control} canEdit={can('extensibility.edit')} canDelete={can('extensibility.delete')} canTrust={canTrust} act={act} />
-              ))}
-            </ul>
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <SearchInput value={search} onValueChange={setSearch} placeholder="Search controls…" aria-label="Search form controls" wrapperClassName="w-full max-w-xs" />
+                <TagFilterMenu tags={tagFilter.allTags} selected={tagFilter.selected} onChange={tagFilter.setSelected} />
+                {(q || tagFilter.active) && <span className="num text-xs text-fg-muted">{shown.length} of {plural(controls.length, 'control')}</span>}
+              </div>
+              {shown.length === 0 ? (
+                <EmptyState size="sm" variant="no-results" title="No controls match" action={{ label: 'Clear filters', onClick: () => { setSearch(''); tagFilter.clear() } }} />
+              ) : (
+                <ul className="space-y-3">
+                  {shown.map((control) => (
+                    <ControlCard key={control.id} control={control} canEdit={can('extensibility.edit')} canDelete={can('extensibility.delete')} canTrust={canTrust} act={act}
+                      onTags={() => setTagsTarget({ id: control.id, name: control.name, tags: control.tags ?? [] })} onTagClick={tagFilter.toggle} />
+                  ))}
+                </ul>
+              )}
+            </>
           )}
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="form_controls" id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['form-controls-library']]} />
+      )}
     </div>
   )
 }
 
 const fileInputClass = 'mt-1 block w-full text-xs text-fg file:mr-2 file:h-7 file:cursor-pointer file:rounded-md file:border file:border-solid file:border-border file:bg-panel file:px-2.5 file:text-xs file:font-medium file:text-fg hover:file:bg-subtle'
 
-function ControlCard({ control, canEdit, canDelete, canTrust, act }: {
+function ControlCard({ control, canEdit, canDelete, canTrust, act, onTags, onTagClick }: {
   control: Control
+  onTags: () => void
+  onTagClick: (tag: string) => void
   canEdit: boolean
   canDelete: boolean
   canTrust: boolean
   act: <T>(fn: () => Promise<{ ok: true; data: T } | { ok: false; error: string }>, success: (data: T) => { text: string; details?: string[] }) => Promise<void>
 }) {
   const [showUsage, setShowUsage] = useState(false)
+  const [trying, setTrying] = useState(false)
   const [confirm, setConfirm] = useState<null | { kind: 'delete'; version?: string } | { kind: 'trust' }>(null)
   const { data: usages, isLoading: usagesLoading } = useQuery({
     queryKey: ['form-control-usages', control.id],
@@ -237,6 +273,9 @@ function ControlCard({ control, canEdit, canDelete, canTrust, act }: {
               : <span className="inline-flex items-center gap-1 text-xs font-normal text-fg-muted"><ShieldCheck size={12} aria-hidden /> Sandboxed</span>}
           </p>
           {control.description && <p className="mt-0.5 text-ui text-fg-muted">{control.description}</p>}
+          {(control.tags?.length ?? 0) > 0 && (
+            <span className="mt-1.5 block" data-tags-cell=""><TagList tags={control.tags} max={4} size="xs" onTagClick={onTagClick} /></span>
+          )}
           {manifest && (
             <p className="mt-1 text-xs text-fg-muted">
               Stores {manifest.value.type}{manifest.props.length ? ` · ${plural(manifest.props.length, 'property', 'properties')}` : ''}{manifest.capabilities.length ? ` · asks for ${manifest.capabilities.join(', ')}` : ''}{manifest.author ? ` · by ${manifest.author}` : ''}{manifest.license ? ` · ${manifest.license}` : ''}
@@ -253,6 +292,8 @@ function ControlCard({ control, canEdit, canDelete, canTrust, act }: {
               className="mr-2 items-center"
             />
           )}
+          <TagsActionButton onClick={onTags} />
+          {manifest && <Button size="sm" variant="ghost" leadingIcon={<FlaskConical />} onClick={() => setTrying(true)} data-action="try">Try it</Button>}
           <Button size="sm" variant="ghost" leadingIcon={<Users />} onClick={() => setShowUsage((v) => !v)} aria-expanded={showUsage}>Usage</Button>
           <Button size="sm" variant="ghost" leadingIcon={<FileDown />} onClick={() => void act(() => exportFormControl(control.id), (data) => { download(`${control.tag}.form-control.json`, JSON.stringify(data, null, 2)); return { text: `Exported ${control.tag}.` } })}>Export</Button>
           {canDelete && <IconButton size="sm" variant="danger-ghost" label={`Delete ${control.name}`} icon={<Trash2 />} onClick={() => setConfirm({ kind: 'delete' })} />}
@@ -345,6 +386,7 @@ function ControlCard({ control, canEdit, canDelete, canTrust, act }: {
           )}
         </div>
       )}
+      {manifest && trying && <ControlTryDialog manifest={manifest as FormControlManifest} open onClose={() => setTrying(false)} />}
     </li>
   )
 }

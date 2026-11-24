@@ -1,0 +1,42 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "579b02bd-33de-56da-84cf-2b18079aa497",
+  "asset": {
+    "id": "579b02bd-33de-56da-84cf-2b18079aa497",
+    "name": "CRM quote approvals waiting",
+    "description": "Quote approvals not done yet, oldest due first (the CRM quote approval workflow’s tasks).",
+    "category": "Sales",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "4d9b7c25-d4c0-5bac-bfa3-969d96e41808"
+      },
+      "columns": [
+        "title",
+        "priority",
+        "due_date",
+        "status",
+        "created_at"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 200,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

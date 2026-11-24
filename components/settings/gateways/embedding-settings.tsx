@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { PageSkeleton } from '@/components/ui/page-skeleton'
-import { getEmbeddingAction, setEmbeddingAction } from '@/app/actions/gateways'
+import { getEmbeddingAction, loadAppEmbedOriginsAction, saveAppEmbedOrigins, setEmbeddingAction } from '@/app/actions/gateways'
 
 /** Settings → Trusted embedding: the sites approved to frame this workspace's embeddable pages. */
 export function EmbeddingSettings() {
@@ -65,6 +65,48 @@ export function EmbeddingSettings() {
         {(data?.instance_origins ?? []).length > 0 && <p className="text-xs text-fg-muted">Also allowed for every workspace on this instance: {data!.instance_origins.join(', ')}</p>}
         {canEdit && <Button size="sm" onClick={() => void save()} loading={saving}>Save</Button>}
       </Card>
+      <AppEmbedOrigins canEdit={canEdit} />
     </div>
+  )
+}
+
+/** Sites app pages may embed (the Embed widget): outbound frames, the other direction from the list above. */
+function AppEmbedOrigins({ canEdit }: { canEdit: boolean }) {
+  const queryClient = useQueryClient()
+  const [text, setText] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [notice, setNotice] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
+  const { data } = useQuery({
+    queryKey: ['app-embed-origins'],
+    queryFn: async () => {
+      const r = await loadAppEmbedOriginsAction()
+      if (!r.ok) throw new Error(r.error)
+      return r.data
+    },
+  })
+  useEffect(() => { if (data) setText(data.origins.join('\n')) }, [data])
+  async function save() {
+    setSaving(true)
+    try {
+      const r = await saveAppEmbedOrigins(text.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean))
+      if (!r.ok) setNotice({ tone: 'danger', message: r.error })
+      else { setNotice({ tone: 'success', message: 'Saved.' }); void queryClient.invalidateQueries({ queryKey: ['app-embed-origins'] }) }
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <Card className="p-4 space-y-3" data-app-embed-origins>
+      <div>
+        <h2 className="text-base font-semibold text-fg">Sites app pages may embed</h2>
+        <p className="text-xs text-fg-muted">The Embed widget on app pages shows only these sites (https only). YouTube and Vimeo videos play in the Video widget without being listed.</p>
+      </div>
+      {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
+      <label className="block text-sm">
+        <span className="block text-xs text-fg-muted mb-1">One origin per line: https://maps.example.com, https://*.example.com</span>
+        <Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} disabled={!canEdit} placeholder="https://dashboards.example.com" />
+      </label>
+      {canEdit && <Button size="sm" onClick={() => void save()} loading={saving}>Save</Button>}
+    </Card>
   )
 }

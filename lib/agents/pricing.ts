@@ -68,6 +68,7 @@ export const PRICE_SOURCES: Record<string, { url: string; as_of: string; verifie
   groq: { url: 'https://groq.com/pricing', as_of: '2026-11-07', verified: 'litellm' },
   deepseek: { url: 'https://api-docs.deepseek.com/quick_start/pricing', as_of: '2026-11-07', verified: 'litellm' },
   together: { url: 'https://www.together.ai/pricing', as_of: '2026-11-07', verified: 'litellm' },
+  baseten: { url: 'https://www.baseten.co/pricing/', as_of: '2026-11-21', verified: 'vendor' },
   perplexity: { url: 'https://docs.perplexity.ai/getting-started/pricing', as_of: '2026-10-29', verified: 'vendor' },
   bedrock: { url: 'https://aws.amazon.com/bedrock/pricing/', as_of: '2026-11-07', verified: 'litellm' },
 }
@@ -179,6 +180,26 @@ export const DEFAULT_MODEL_PRICES: readonly ModelPrice[] = [
   list('together', 'moonshotai/Kimi-K3', 3, 15, 0.3),
   list('together', 'zai-org/GLM-5.3', 1.4, 4.4, 0.26),
   list('together', 'Qwen/Qwen3.7-Max', 2.5, 7.5, 0.5),
+  // Baseten Model APIs (baseten.co/pricing, 2026-11-21; slugs from the Model APIs overview). Dedicated
+  // deployments are billed per GPU minute, not per token: their runs stay "cost unknown" unless an admin adds a price.
+  list('baseten', 'deepseek-ai/DeepSeek-V4.1-Flash', 0.3, 1.2, 0.007, undefined, undefined, '2026-11-21'),
+  list('baseten', 'deepseek-ai/DeepSeek-V4.1-Flash-Fast', 0.6, 2.4, 0.014, undefined, undefined, '2026-11-21'),
+  list('baseten', 'deepseek-ai/DeepSeek-V4.1-Flash-1017', 0.3, 1.2, 0.007, undefined, undefined, '2026-11-21'),
+  list('baseten', 'deepseek-ai/DeepSeek-V4.1-Flash-1017-Fast', 0.6, 2.4, 0.014, undefined, undefined, '2026-11-21'),
+  list('baseten', 'deepseek-ai/DeepSeek-V4-Pro-0813', 1.32, 3.96, 0.132, undefined, undefined, '2026-11-21'),
+  list('baseten', 'deepseek-ai/DeepSeek-V4-Flash-0731', 0.13, 0.26, 0.028, undefined, undefined, '2026-11-21'),
+  list('baseten', 'moonshotai/Kimi-K3.1-Pro', 2, 10, 0.2, undefined, undefined, '2026-11-21'),
+  list('baseten', 'moonshotai/Kimi-K3', 3, 15, 0.3, undefined, undefined, '2026-11-21'),
+  list('baseten', 'zai-org/GLM-5.3', 1.4, 4.4, 0.14, undefined, undefined, '2026-11-21'),
+  list('baseten', 'zai-org/GLM-5.3-Fast', 2.1, 6.6, 0.21, undefined, undefined, '2026-11-21'),
+  list('baseten', 'zai-org/GLM-5.3-Flash', 0.15, 0.5, 0.03, undefined, undefined, '2026-11-21'),
+  list('baseten', 'zai-org/GLM-5.2', 1.4, 4.4, 0.14, undefined, undefined, '2026-11-21'),
+  list('baseten', 'zai-org/GLM-5.2-Fast', 2.1, 6.6, 0.21, undefined, undefined, '2026-11-21'),
+  list('baseten', 'openai/gpt-oss-120b', 0.1, 0.5, null, undefined, undefined, '2026-11-21'),
+  list('baseten', 'nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B', 0.6, 2.4, 0.12, undefined, undefined, '2026-11-21'),
+  list('baseten', 'nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B', 0.2, 0.5, 0.04, undefined, undefined, '2026-11-21'),
+  list('baseten', 'reflection/Beam-1.0', 0.4, 1.2, 0.04, undefined, undefined, '2026-11-21'),
+  list('baseten', 'meta-models/muse-spark-open', 1.25, 4.25, 0.15, undefined, undefined, '2026-11-21'),
   // Perplexity.
   list('perplexity', 'sonar', 0.25, 2.5, 0.0625, 'token prices only; search / tool fees are billed separately'),
   // Amazon Bedrock, Claude (LiteLLM price list; Bedrock's own prices).

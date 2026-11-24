@@ -1,0 +1,552 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "b750574a-e414-53c9-8b2b-d66f80c32c8c",
+  "asset": {
+    "id": "b750574a-e414-53c9-8b2b-d66f80c32c8c",
+    "name": "Survey cycle",
+    "description": "Launches a survey: adds the cycle, invites the audience by email, reminds people who have not answered, closes it on the date, publishes the results (Publish survey results) and asks the People partner to agree action plans with the teams.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Survey launched",
+        "config": {
+          "form_id": "ba5a9692-20ac-5f30-8d7e-9c30fa744239",
+          "form_name": "Launch a survey"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{form.survey_name}} ({{form.cycle_code}})"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "audience",
+        "type": "update_data_table",
+        "label": "Read the audience",
+        "config": {
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "table_name": "People directory",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Active"
+            }
+          ],
+          "limit": 5000,
+          "output_rows_var": "everyone",
+          "output_count_var": "everyone_n"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "aud",
+        "type": "set_variable",
+        "label": "Audience",
+        "config": {
+          "name": "audience",
+          "expression": "{{=IF(COUNT(form.departments) == 0, everyone, FILTER_WHERE(MAP(everyone, \"IF(LIST_CONTAINS(form.departments, department), row, \\\"\\\")\"), \"status\", \"Active\"))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "link",
+        "type": "set_variable",
+        "label": "Survey link",
+        "config": {
+          "name": "survey_link",
+          "expression": "{{=CONCAT(app_url, \"/f/\", IF(form.type == \"Pulse\", \"e15022ac-a3c4-5353-9094-da979e823409\", \"c9c37320-5b8f-5f73-986e-0619723f0219\"), \"?cycle=\", URL_ENCODE(form.cycle_code))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "name",
+        "type": "set_variable",
+        "label": "Survey name",
+        "config": {
+          "name": "survey_name",
+          "expression": "{{form.survey_name}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "closes",
+        "type": "set_variable",
+        "label": "Close date",
+        "config": {
+          "name": "closes_on",
+          "expression": "{{form.closes_on}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "min",
+        "type": "set_variable",
+        "label": "Minimum group size",
+        "config": {
+          "name": "min_group",
+          "expression": "{{form.min_group}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "add_cycle",
+        "type": "update_data_table",
+        "label": "Add the cycle",
+        "config": {
+          "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+          "table_name": "Survey cycles",
+          "operation": "insert",
+          "column_values": {
+            "cycle_code": "{{form.cycle_code}}",
+            "name": "{{form.survey_name}}",
+            "label": "{{form.survey_name}}",
+            "cycle_order": "{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}",
+            "type": "{{form.type}}",
+            "status": "Open",
+            "opens_on": "{{form.opens_on}}",
+            "closes_on": "{{form.closes_on}}",
+            "audience": "{{=IF(COUNT(form.departments) == 0, \"Everyone\", JOIN(\", \", form.departments))}}",
+            "invited": "{{=COUNT(audience)}}",
+            "responded": "0",
+            "participation_pct": "0",
+            "min_group_size": "{{form.min_group}}",
+            "reminder_days": "{{form.reminder_days}}",
+            "results_released": "No"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "open",
+        "type": "pause_until",
+        "label": "Wait until it opens",
+        "config": {
+          "date": "{{form.opens_on}}T08:00:00Z"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "invite_each",
+        "type": "loop",
+        "label": "Invite each person",
+        "config": {
+          "items": "{{audience}}",
+          "item_var": "item",
+          "index_var": "item_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "invite",
+        "type": "update_data_table",
+        "label": "Participation record",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "insert",
+          "column_values": {
+            "cycle_code": "{{form.cycle_code}}",
+            "cycle_name": "{{form.survey_name}}",
+            "employee_name": "{{item.name}}",
+            "employee_email": "{{item.email}}",
+            "department": "{{item.department}}",
+            "location": "{{item.location}}",
+            "tenure_band": "{{item.tenure_band}}",
+            "status": "Invited",
+            "invited_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "responded_on": "",
+            "reminders_sent": "0",
+            "closes_on": "{{form.closes_on}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1600
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Invitation email",
+        "config": {
+          "to": "{{item.email}}",
+          "email_template_id": "f5408c7d-52ed-58fa-b2c5-aed42d9601a8"
+        },
+        "position": {
+          "x": 720,
+          "y": 1740
+        }
+      },
+      {
+        "id": "wait",
+        "type": "delay",
+        "label": "Wait before reminding",
+        "config": {
+          "duration": "{{form.reminder_days}}",
+          "unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      },
+      {
+        "id": "pending",
+        "type": "update_data_table",
+        "label": "Who has not answered",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "cycle_code",
+              "operator": "eq",
+              "value": "{{form.cycle_code}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Invited"
+            }
+          ],
+          "limit": 5000,
+          "output_rows_var": "pending",
+          "output_count_var": "pending_n"
+        },
+        "position": {
+          "x": 400,
+          "y": 2020
+        }
+      },
+      {
+        "id": "remind_each",
+        "type": "loop",
+        "label": "Remind each person",
+        "config": {
+          "items": "{{pending}}",
+          "item_var": "item",
+          "index_var": "item_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 2160
+        }
+      },
+      {
+        "id": "remind",
+        "type": "send_email",
+        "label": "Reminder email",
+        "config": {
+          "to": "{{item.employee_email}}",
+          "email_template_id": "fd9872f2-df64-53b7-9adf-346133e73589"
+        },
+        "position": {
+          "x": 720,
+          "y": 2300
+        }
+      },
+      {
+        "id": "reminded",
+        "type": "update_data_table",
+        "label": "Count the reminder",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "update",
+          "column_values": {
+            "reminders_sent": "1"
+          },
+          "row_id": "{{item.row_id}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 2440
+        }
+      },
+      {
+        "id": "close",
+        "type": "pause_until",
+        "label": "Wait until it closes",
+        "config": {
+          "date": "{{form.closes_on}}T23:00:00Z"
+        },
+        "position": {
+          "x": 400,
+          "y": 2580
+        }
+      },
+      {
+        "id": "settle",
+        "type": "delay",
+        "label": "Let the sealed ballots arrive",
+        "config": {
+          "duration": 30,
+          "unit": "minutes"
+        },
+        "position": {
+          "x": 400,
+          "y": 2720
+        }
+      },
+      {
+        "id": "publish",
+        "type": "call_sub_workflow",
+        "label": "Publish the results",
+        "config": {
+          "sub_workflow_id": "6408c047-3dda-5894-93cc-d9c8bdf0d3eb",
+          "sub_workflow_name": "Publish survey results",
+          "input_mappings": {
+            "cycle_code": "{{form.cycle_code}}",
+            "survey_name": "{{form.survey_name}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2860
+        }
+      },
+      {
+        "id": "plans",
+        "type": "user_task",
+        "label": "Agree action plans",
+        "config": {
+          "task_title": "Agree action plans for {{form.survey_name}}",
+          "task_description": "<p>The results of <strong>{{form.survey_name}}</strong> are on the Engagement page of the People &amp; Culture app.</p><p>Share them with each department head and agree one or two action plans per team (Admin → Create action plan). Segments with fewer than {{form.min_group}} responses are hidden.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Plans agreed"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "d3261bad-1d02-58db-9008-dcd03d78b7ce",
+          "fields": [
+            {
+              "key": "plans_count",
+              "label": "Action plans agreed",
+              "type": "number",
+              "required": true,
+              "min": 0
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "plans_count",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "plans_agreed",
+              "label": "Plans agreed",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Plans agreed"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Agree action plans",
+            "align": "left",
+            "subtitle": "{{form.survey_name}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 14,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 3000
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Survey complete",
+        "config": {
+          "reason": "{{form.cycle_code}} published"
+        },
+        "position": {
+          "x": 400,
+          "y": 3140
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-audience",
+        "source": "title",
+        "target": "audience"
+      },
+      {
+        "id": "e-audience-aud",
+        "source": "audience",
+        "target": "aud"
+      },
+      {
+        "id": "e-aud-link",
+        "source": "aud",
+        "target": "link"
+      },
+      {
+        "id": "e-link-name",
+        "source": "link",
+        "target": "name"
+      },
+      {
+        "id": "e-name-closes",
+        "source": "name",
+        "target": "closes"
+      },
+      {
+        "id": "e-closes-min",
+        "source": "closes",
+        "target": "min"
+      },
+      {
+        "id": "e-min-add_cycle",
+        "source": "min",
+        "target": "add_cycle"
+      },
+      {
+        "id": "e-add_cycle-open",
+        "source": "add_cycle",
+        "target": "open"
+      },
+      {
+        "id": "e-open-invite_each",
+        "source": "open",
+        "target": "invite_each"
+      },
+      {
+        "id": "e-invite_each-invite-each_item",
+        "source": "invite_each",
+        "target": "invite",
+        "label": "Each item"
+      },
+      {
+        "id": "e-invite-mail",
+        "source": "invite",
+        "target": "mail"
+      },
+      {
+        "id": "e-invite_each-wait-done",
+        "source": "invite_each",
+        "target": "wait",
+        "label": "Done"
+      },
+      {
+        "id": "e-wait-pending",
+        "source": "wait",
+        "target": "pending"
+      },
+      {
+        "id": "e-pending-remind_each",
+        "source": "pending",
+        "target": "remind_each"
+      },
+      {
+        "id": "e-remind_each-remind-each_item",
+        "source": "remind_each",
+        "target": "remind",
+        "label": "Each item"
+      },
+      {
+        "id": "e-remind-reminded",
+        "source": "remind",
+        "target": "reminded"
+      },
+      {
+        "id": "e-remind_each-close-done",
+        "source": "remind_each",
+        "target": "close",
+        "label": "Done"
+      },
+      {
+        "id": "e-close-settle",
+        "source": "close",
+        "target": "settle"
+      },
+      {
+        "id": "e-settle-publish",
+        "source": "settle",
+        "target": "publish"
+      },
+      {
+        "id": "e-publish-plans",
+        "source": "publish",
+        "target": "plans"
+      },
+      {
+        "id": "e-plans-end-plans_agreed",
+        "source": "plans",
+        "target": "end",
+        "label": "Plans agreed"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

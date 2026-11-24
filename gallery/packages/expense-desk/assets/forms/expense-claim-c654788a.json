@@ -1,0 +1,290 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "c654788a-0c51-533a-90df-f1ce5dd41129",
+  "asset": {
+    "id": "c654788a-0c51-533a-90df-f1ce5dd41129",
+    "name": "Expense claim",
+    "description": "Claim back money you spent for work. Your manager approves it and finance pays it in the next payment run.",
+    "tags": [
+      "expenses",
+      "finance"
+    ],
+    "fields": [
+      {
+        "key": "h_you",
+        "label": "About you",
+        "type": "heading"
+      },
+      {
+        "key": "claimant",
+        "label": "Your name",
+        "type": "text",
+        "required": true,
+        "placeholder": "First and last name"
+      },
+      {
+        "key": "email",
+        "label": "Work email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "choice",
+        "options": [
+          "Sales",
+          "Marketing",
+          "Engineering",
+          "Finance",
+          "Operations",
+          "People"
+        ],
+        "required": true
+      },
+      {
+        "key": "manager",
+        "label": "Approving manager",
+        "type": "user",
+        "required": true,
+        "help_text": "Your manager approves the claim."
+      },
+      {
+        "key": "h_claim",
+        "label": "The expense",
+        "type": "heading"
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "lookup",
+        "required": true,
+        "help_text": "The policy limit and GL code fill in for you.",
+        "lookup": {
+          "source": "table",
+          "table_id": "6b5714f1-29a4-5114-8338-31b3dd77d919",
+          "search_columns": [
+            "category",
+            "guidance"
+          ],
+          "display_columns": [
+            "category",
+            "guidance"
+          ],
+          "value_column": "category",
+          "fill": [
+            {
+              "from": "limit_usd",
+              "to": "limit"
+            },
+            {
+              "from": "gl_code",
+              "to": "gl_code"
+            }
+          ],
+          "sort": {
+            "column": "category",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "limit",
+        "label": "Policy limit (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "read_only": true
+      },
+      {
+        "key": "gl_code",
+        "label": "GL code",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "merchant",
+        "label": "Merchant",
+        "type": "text",
+        "required": true,
+        "placeholder": "Who you paid"
+      },
+      {
+        "key": "amount",
+        "label": "Amount (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "required": true
+      },
+      {
+        "key": "expense_date",
+        "label": "Date of the expense",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "purpose",
+        "label": "Business purpose",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "What it was for and who it was with"
+      },
+      {
+        "key": "receipts",
+        "label": "Receipts",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 5,
+          "max_file_mb": 10,
+          "types": [
+            "documents",
+            "images",
+            "pdf"
+          ]
+        },
+        "help_text": "A photo or PDF of each receipt."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_you",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "claimant",
+              "span": 1
+            },
+            {
+              "field_key": "email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "department",
+              "span": 1
+            },
+            {
+              "field_key": "manager",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_claim",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "category",
+              "span": 1
+            },
+            {
+              "field_key": "merchant",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "limit",
+              "span": 1
+            },
+            {
+              "field_key": "gl_code",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "amount",
+              "span": 1
+            },
+            {
+              "field_key": "expense_date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "purpose",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "receipts",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit claim",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Claim submitted",
+            "text": "Thanks {{claimant}}. Your manager has been asked to approve your {{category}} claim. Follow it under My claims.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another claim"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "New expense claim",
+      "subtitle": "Amounts in USD. Claims approved by the 25th are paid in this month’s run.",
+      "align": "left"
+    }
+  }
+}

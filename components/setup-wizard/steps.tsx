@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { ArrowRight, BookOpen, CheckCircle2, CircleAlert, CircleDashed, CircleX, ExternalLink, RefreshCw } from 'lucide-react'
+import { ArrowRight, CheckCircle2, CircleAlert, CircleDashed, CircleX, ExternalLink, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field } from '@/components/ui/field'
@@ -13,9 +13,9 @@ import { toUrlSlug } from '@/lib/utils/slug'
 import { setupWizardOrganisation, setupWizardStep } from '@/app/actions/setup-wizard'
 import type { CheckStatus } from '@/lib/admin/doctor'
 import type { WizardPageData } from '@/lib/setup/wizard-data'
-import { AreaActions } from '@/components/settings/switch-log-panel'
+import { AreaActions } from '@/components/settings/area-actions'
 import { AreaActionNotes } from '@/components/settings/infrastructure-actions'
-import { CopyBlock } from '@/components/settings/provider-switch-wizard'
+import { AddonUpsellCard } from '@/components/settings/addon-upsell-card'
 import { StepFooter, stepHref } from './setup-wizard'
 
 const HEALTH: Record<CheckStatus, { label: string; icon: React.ReactNode; cls: string }> = {
@@ -93,8 +93,9 @@ export function ServicesStep({ data }: { data: WizardPageData }) {
       </div>
       {!s.gate.enabled && <InlineNotice tone="warning" message={s.gate.reason ?? 'Changes from this page are turned off on this server.'} />}
       <p className="text-sm text-fg-muted">
-        Each service below can be changed in place. <strong>Change…</strong> picks another provider (with a connection test and a review before anything is saved);
-        <strong> Settings</strong> edits the current one. Passwords and keys you type are stored encrypted and never shown again.
+        Every service below is checked. <strong>Settings</strong> on Email and Sign-in edits them here (free); <strong>Change…</strong> moves a
+        service to another provider with the Infrastructure add-on (a connection test and a review before anything is saved).
+        Passwords and keys you type are stored encrypted and never shown again.
       </p>
       <ul className="grid gap-2">
         {s.areas.map((a) => (
@@ -105,7 +106,7 @@ export function ServicesStep({ data }: { data: WizardPageData }) {
               {a.onSupabase && <span className="rounded-full bg-subtle px-2 py-0.5 text-xs text-fg-muted">Supabase</span>}
               <span className="ml-auto flex items-center gap-2">
                 <HealthBadge status={a.health} />
-                <AreaActions area={a.area} label={a.label} actions={a.actions} />
+                <AreaActions area={a.area} label={a.label} provider={a.provider} actions={a.actions} addon={s.addon} upsellAnchor="#move-off-supabase" />
               </span>
             </div>
             <p className="mt-0.5 text-xs text-fg-muted">{a.what}{a.source === 'env' ? ' Set in the server environment.' : ''}</p>
@@ -126,36 +127,30 @@ export function ServicesStep({ data }: { data: WizardPageData }) {
           </li>
         ))}
       </ul>
-      {s.moves.length > 0 && <SupabaseMoves moves={s.moves} />}
+      {s.areas.some((a) => a.onSupabase) && <SupabaseMoves addon={s.addon} />}
       <StepFooter step="services" />
     </>
   )
 }
 
-function SupabaseMoves({ moves }: { moves: NonNullable<WizardPageData['services']>['moves'] }) {
+/**
+ * "Moving off Supabase (optional)": the Infrastructure add-on. With it
+ * licensed, its page walks through the moves (one service at a time, backups,
+ * rollback); without it, the add-on card says what it does and how to get it.
+ * Staying on Supabase needs nothing.
+ */
+function SupabaseMoves({ addon }: { addon: NonNullable<WizardPageData['services']>['addon'] }) {
   return (
-    <section aria-labelledby="move-off-supabase" className="space-y-3 rounded-lg border border-border bg-subtle p-4">
-      <h3 id="move-off-supabase" className="text-sm font-semibold text-fg">Moving off Supabase (optional)</h3>
+    <section aria-labelledby="move-off-supabase-title" id="move-off-supabase" className="space-y-3 rounded-lg border border-border bg-subtle p-4 scroll-mt-24">
+      <h3 id="move-off-supabase-title" className="text-sm font-semibold text-fg">Moving off Supabase (optional)</h3>
       <p className="text-xs text-fg-muted">
-        You can move one service at a time, in this order. Every move copies your data and keeps the original, takes a backup first, and can be
-        rolled back (Settings → Infrastructure → Switch log, or <code>usertasks-admin rollback &lt;switch id&gt;</code>). Nothing is deleted in Supabase.
+        The services that run on Supabase keep running there, with nothing else to set up. Moving the files, live updates, secret store,
+        sign-in or database to your own infrastructure — one service at a time, copying your data with a backup and rollback — is
+        part of the Infrastructure add-on.
       </p>
-      <ol className="space-y-3">
-        {moves.map((m, i) => (
-          <li key={m.area} className="space-y-1 text-sm" data-move={m.area}>
-            <p><span className="font-medium">{i + 1}. {m.label} → {m.target}.</span> <span className="text-fg-muted">{m.detail}</span></p>
-            {m.how === 'page'
-              ? <p className="text-xs text-fg-muted">Use <strong>Change…</strong> on the {m.label} card above: it tests the new provider, shows the plan and asks you to confirm before it copies anything.</p>
-              : (
-                <div className="space-y-1">
-                  <p className="text-xs text-fg-muted">Run these on the server where UserTasks is installed (the first command only checks and shows the plan):</p>
-                  {m.commands.map((c) => <CopyBlock key={c} text={c} />)}
-                </div>
-              )}
-          </li>
-        ))}
-      </ol>
-      <Link href="/docs/self-hosting/switching-providers" className="inline-flex items-center gap-1 text-xs underline"><BookOpen className="size-3" aria-hidden /> Switching providers: the full guide</Link>
+      {addon.state === 'ready' && addon.href
+        ? <Link href={`${addon.href}?section=move-off-supabase`} className="inline-flex items-center gap-1 text-sm underline"><ArrowRight className="size-3.5" aria-hidden /> Plan the move off Supabase</Link>
+        : <AddonUpsellCard kind="infrastructure" state={addon.state === 'unlicensed' ? 'unlicensed' : 'missing'} reason={addon.reason} compact />}
     </section>
   )
 }
@@ -172,7 +167,7 @@ export function DoneStep({ data }: { data: WizardPageData }) {
   })
   const links = [
     { href: '/home', label: 'Go to your home page' },
-    { href: '/settings/infrastructure', label: 'Settings → Infrastructure: services, health and the switch log' },
+    { href: '/settings/infrastructure', label: 'Settings → Infrastructure: services and health' },
     { href: '/team', label: 'Your team' },
     { href: '/docs/self-hosting', label: 'Self-hosting guide: backups and upgrades' },
   ]

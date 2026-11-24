@@ -19,6 +19,7 @@
  *  - Rate limited per user; rows capped (default 200, at most 1000).
  */
 
+import { eligibleCaller } from './instance-admin/access'
 import { controlReportId, normalizeCustomControlConfig } from '@/lib/forms/custom-controls/field'
 import type { ReportResult } from '@/lib/forms/custom-controls/contract'
 import { normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
@@ -107,7 +108,7 @@ export async function runControlReport(ctx: ServiceContext, input: ControlReport
   const config = normalizeReportConfig(report.config ?? {})
   let preview: { data: any[]; total: number; available_columns?: Array<{ key: string; label?: string; type?: string }> }
   try {
-    preview = await executeReportPreview(db, ctx.tenantId, config, undefined, ctx.permissions ? [...ctx.permissions] : null) as any
+    preview = await executeReportPreview(db, ctx.tenantId, config, undefined, ctx.permissions ? [...ctx.permissions] : null, { actorId: eligibleCaller(ctx) }) as any
   } catch (error) {
     throw ServiceError.validation(`The report could not run: ${String((error as Error)?.message ?? 'error').slice(0, 200)}`)
   }

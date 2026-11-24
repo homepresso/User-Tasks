@@ -1,0 +1,268 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "abd56279-8d33-5bd9-a02d-7de84c403f0f",
+  "asset": {
+    "id": "abd56279-8d33-5bd9-a02d-7de84c403f0f",
+    "name": "Facilities request",
+    "description": "Report something broken or ask the facilities team for help: pick the location, say what is wrong and how urgent it is.",
+    "tags": [
+      "facilities",
+      "workplace"
+    ],
+    "fields": [
+      {
+        "key": "requester",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "email",
+        "label": "Work email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "location",
+        "label": "Location",
+        "type": "lookup",
+        "required": true,
+        "help_text": "Search by site, building or floor.",
+        "lookup": {
+          "source": "table",
+          "table_id": "c584e8b8-a26a-513b-926b-1e830de2fec9",
+          "search_columns": [
+            "site",
+            "building",
+            "floor",
+            "code"
+          ],
+          "display_columns": [
+            "site",
+            "building",
+            "floor"
+          ],
+          "value_column": "code",
+          "fill": [
+            {
+              "from": "site",
+              "to": "site"
+            },
+            {
+              "from": "building",
+              "to": "building"
+            },
+            {
+              "from": "floor",
+              "to": "floor"
+            }
+          ],
+          "sort": {
+            "column": "code",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "site",
+        "label": "Site",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "building",
+        "label": "Building",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "floor",
+        "label": "Floor",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "spot",
+        "label": "Exact spot",
+        "type": "text",
+        "required": true,
+        "placeholder": "Room, desk number or landmark"
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "choice",
+        "options": [
+          "Electrical",
+          "Plumbing",
+          "Heating & cooling",
+          "Cleaning",
+          "Furniture",
+          "Access & security",
+          "Other"
+        ],
+        "required": true
+      },
+      {
+        "key": "priority",
+        "label": "Priority",
+        "type": "choice",
+        "options": [
+          "Urgent",
+          "High",
+          "Normal",
+          "Low"
+        ],
+        "required": true,
+        "default": "Normal",
+        "help_text": "Urgent: a safety risk or the site cannot work."
+      },
+      {
+        "key": "title",
+        "label": "What is wrong?",
+        "type": "text",
+        "required": true,
+        "placeholder": "One line, e.g. \"Leaking tap in the kitchen\""
+      },
+      {
+        "key": "details",
+        "label": "Details",
+        "type": "textarea"
+      },
+      {
+        "key": "photos",
+        "label": "Photos",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 4,
+          "max_file_mb": 10,
+          "types": [
+            "images"
+          ]
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "requester",
+              "span": 1
+            },
+            {
+              "field_key": "email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "location",
+              "span": 1
+            },
+            {
+              "field_key": "spot",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 3,
+          "cells": [
+            {
+              "field_key": "site",
+              "span": 1
+            },
+            {
+              "field_key": "building",
+              "span": 1
+            },
+            {
+              "field_key": "floor",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "category",
+              "span": 1
+            },
+            {
+              "field_key": "priority",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "title",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "details",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "photos",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send request",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Request sent",
+            "text": "Thanks {{requester}}. The facilities team will assign a technician to \"{{title}}\" at {{site}}, {{building}}.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Send another request"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Facilities request",
+      "subtitle": "For emergencies (fire, flood, injury) call security first.",
+      "align": "left"
+    }
+  }
+}

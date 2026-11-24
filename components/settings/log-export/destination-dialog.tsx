@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import * as Dialog from '@radix-ui/react-dialog'
-import { overlayClass } from '@/components/ui/dialog'
+import { DialogAgentSlot, overlayClass } from '@/components/ui/dialog'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -88,6 +88,7 @@ export function DestinationDialog({
                 Events are shipped continuously, at least once, usually within seconds.
               </Dialog.Description>
             </div>
+            <DialogAgentSlot className="ml-auto mr-1 mt-0" />
             <Dialog.Close className="rounded p-1 hover:opacity-70" aria-label="Close">
               <X size={16} />
             </Dialog.Close>

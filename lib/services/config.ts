@@ -87,6 +87,8 @@ export const CONFIG_SECTIONS: readonly SectionDef[] = [
   { section: 'form_controls', type: 'form_control', table: 'form_controls', view: 'extensibility.view', create: 'extensibility.create', edit: 'extensibility.edit', topLevel: true },
   { section: 'form_themes', type: 'form_theme', table: 'form_themes', view: 'forms.view', create: 'forms.edit', edit: 'forms.edit', topLevel: true },
   { section: 'forms', type: 'form', table: 'forms', view: 'forms.view', create: 'forms.edit', edit: 'forms.edit', topLevel: true },
+  // App builder apps (pages, menu, settings, used icons); audience and editors never travel.
+  { section: 'apps', type: 'app', table: 'apps', view: 'apps.manage', create: 'apps.manage', edit: 'apps.manage', topLevel: true },
 ]
 
 const SECTION_BY_NAME = new Map<string, SectionDef>(
@@ -125,7 +127,7 @@ const SYNC_TYPE: Partial<Record<PlanAssetType, SyncAssetType>> = {
   integration: 'integration', reference: 'reference', object: 'object', agent: 'agent', report: 'report',
   retention_policy: 'retention_policy', role: 'role', mcp_server: 'mcp_server',
   email_template: 'email_template', connector: 'connector', log_destination: 'log_destination',
-  form: 'form', form_theme: 'form_theme',
+  form: 'form', form_theme: 'form_theme', app: 'app',
 }
 
 const IN_CHUNK = 200
@@ -141,6 +143,7 @@ const DEPENDENCY_TABLES: Array<{ type: AssetRef['type']; table: string }> = [
   { type: 'report', table: 'reports' }, { type: 'role', table: 'roles' }, { type: 'mcp_server', table: 'mcp_servers' },
   { type: 'retention_policy', table: 'retention_policies' }, { type: 'log_destination', table: 'log_destinations' },
   { type: 'form', table: 'forms' }, { type: 'form_theme', table: 'form_themes' }, { type: 'form_control', table: 'form_controls' },
+  { type: 'app', table: 'apps' },
 ]
 
 /** Asset refs (type + id) for tenant ids of any exportable type. */
@@ -588,6 +591,40 @@ function settleLogDestinationPlans(plan: ConfigPlan, manifest: Record<string, an
   }
 }
 
+/**
+ * People (users, teams, roles) an app names that are not in this workspace are
+ * dropped when it is written (lib/services/app-packages.ts), so their absence
+ * locally is not a pending change.
+ */
+async function settleAppPlans(ctx: ServiceContext, plan: ConfigPlan, manifest: Record<string, any>) {
+  const updates = plan.assets.filter((a) => a.section === 'apps' && a.action === 'update' && a.source_id && a.diffs?.length)
+  if (!updates.length) return
+  const { collectAppReferences } = await import('@/lib/apps/references')
+  const { comparableAppAsset } = await import('@/lib/portability/apps')
+  const incoming = new Map<string, any>((Array.isArray(manifest.apps) ? manifest.apps : []).map((app: any) => [String(app?.id), app]))
+  for (const asset of updates) {
+    const source = incoming.get(asset.source_id!)
+    if (!source) continue
+    const people = collectAppReferences(comparableAppAsset(source)).filter((r) => r.kind === 'user' || r.kind === 'team' || r.kind === 'role')
+    if (!people.length) continue
+    const live = new Set<string>()
+    for (const [table, kind, column] of [['user_memberships', 'user', 'user_id'], ['teams', 'team', 'id'], ['roles', 'role', 'id']] as const) {
+      const ids = people.filter((p) => p.kind === kind).map((p) => p.id)
+      if (ids.length) for (const row of await selectIn(ctx, table, column, column, ids).catch(() => [])) live.add(String(row[column]))
+    }
+    const format = (segs: Array<string | number>) => segs.reduce<string>((path, seg) => (typeof seg === 'number' ? `${path}[${seg}]` : path ? `${path}.${seg}` : seg), '')
+    const absent = new Set(people.filter((p) => !live.has(p.id)).map((p) => format(p.path)))
+    if (!absent.size) continue
+    asset.diffs = asset.diffs!.filter((d) => !absent.has(d.path))
+    if (!asset.diffs.length) {
+      delete asset.diffs
+      asset.action = 'unchanged'
+      plan.summary.update--
+      plan.summary.unchanged++
+    }
+  }
+}
+
 /** The tenant's current (scrubbed) export of every local row the seed points at. */
 async function loadCurrent(ctx: ServiceContext, seed: AssetIdMaps): Promise<{ current: Record<string, any>; raw: Record<string, any> }> {
   const idsByType: Partial<Record<string, string[]>> = {}
@@ -738,6 +775,7 @@ export async function applyConfig(ctx: ServiceContext, input: ConfigApplyInput):
   })
   settleConnectorPlans(plan, manifest, raw, identity.warnings)
   settleLogDestinationPlans(plan, manifest, raw, identity.warnings)
+  await settleAppPlans(ctx, plan, manifest)
   const themePlan = manifest[THEME_SECTION] !== undefined
     ? await planWorkspaceThemeSection(ctx, manifest[THEME_SECTION], paths[THEME_SECTION]?.[0])
     : null

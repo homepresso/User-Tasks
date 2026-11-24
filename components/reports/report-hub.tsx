@@ -48,11 +48,17 @@ import {
   toggleFavorite,
   toggleShare,
   duplicateReport,
+  addAiUsageReport,
 } from "@/app/actions/reports";
+import { AI_USAGE_REPORTS } from "@/lib/reports/ai-usage-reports";
 import { InlineNotice } from "@/components/ui/inline-notice";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ExportAssetDialog } from "@/components/shared/config-transfer";
 import { usePermissions } from "@/lib/permissions-context";
+import { TagFilterMenu, TagsCell, useTagFilter } from "@/components/ui/list-tags";
+import { TagList } from "@/components/ui/tag-chip";
+import { BulkTagsDialog, ObjectTagsDialog, useCanEditTags } from "@/components/ui/object-tags-dialog";
+import { Tag as TagIcon } from "lucide-react";
 import { canAccessPath } from "@/lib/route-permissions";
 import {
   buildQueuedDeleteNotice,
@@ -125,6 +131,9 @@ export function ReportHub({
   // Each analytics page needs its domain's permission (lib/route-permissions).
   const { permissions } = usePermissions();
   const analytics = PRE_BUILT_REPORTS.filter((r) => canAccessPath(r.href, permissions));
+  // Ready-made Agents & AI usage reports: the source needs agents.view; adding one needs reports.create.
+  const aiReports = permissions.has("agents.view") && permissions.has("reports.create") ? AI_USAGE_REPORTS : [];
+  const [addingAi, setAddingAi] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<SavedFilter>("all");
   const [sortBy, setSortBy] = useState<SavedSortField>("updated_at");
@@ -133,6 +142,10 @@ export function ReportHub({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [localReports, setLocalReports] = useState<any[]>(savedReports);
+  const tagFilter = useTagFilter(localReports, (r: { tags?: string[] | null }) => r.tags);
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[]; own: boolean }>(null);
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false);
+  const canEditTags = useCanEditTags("reports");
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showBulkDelete, setShowBulkDelete] = useState(false);
@@ -162,15 +175,17 @@ export function ReportHub({
       if (
         q &&
         !(r.name ?? "").toLowerCase().includes(q) &&
-        !(r.description ?? "").toLowerCase().includes(q)
+        !(r.description ?? "").toLowerCase().includes(q) &&
+        !(r.tags ?? []).some((t: string) => t.toLowerCase().includes(q))
       )
         return false;
+      if (!tagFilter.matches(r)) return false;
       if (filter === "mine" && r.created_by !== userId) return false;
       if (filter === "shared" && !r.is_shared) return false;
       if (filter === "favorites" && !r.is_favorite) return false;
       return true;
     });
-  }, [localReports, search, filter, userId]);
+  }, [localReports, search, filter, userId, tagFilter]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
@@ -317,6 +332,9 @@ export function ReportHub({
           <DropdownMenuItem icon={<FileDown />} onSelect={() => setExportTarget({ ids: [report.id], name: report.name ?? "Report" })}>
             Export definition
           </DropdownMenuItem>
+          <DropdownMenuItem icon={<TagIcon />} onSelect={() => setTagsTarget({ id: report.id, name: report.name ?? "Report", tags: report.tags ?? [], own: report.created_by === userId })}>
+            Tags…
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem danger icon={<Trash2 />} onSelect={() => setDeleteTarget({ id: report.id, name: report.name ?? "Report" })}>
             Delete
@@ -352,6 +370,45 @@ export function ReportHub({
               </Card>
             </Link>
           ))}
+        </div>
+      </section>}
+
+      {aiReports.length > 0 && <section className="space-y-3" aria-labelledby="reports-ai-usage" data-testid="ai-usage-reports">
+        <div>
+          <h2 id="reports-ai-usage" className="text-base font-semibold text-fg">AI usage reports</h2>
+          <p className="mt-0.5 text-xs text-fg-muted">Ready-made reports on the Agents &amp; AI usage source. Adding one saves it to your reports — edit, share, export or show it in an app like any other.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {aiReports.map((r) => {
+            const existing = localReports.find((s) => s.name === r.name && s.config?.data_source === "ai_usage" && s.created_by === userId);
+            return (
+              <Card key={r.key} padding="md" className="flex h-full items-start gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-subtle text-fg-muted" aria-hidden>
+                  <Bot className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-fg">{r.name}</span>
+                  <span className="mt-0.5 line-clamp-2 block text-xs text-fg-muted">{r.description}</span>
+                  <span className="mt-2 block">
+                    {existing
+                      ? <Link href={`/reports/${existing.id}`} className="text-xs font-medium text-primary underline">Open</Link>
+                      : <Button size="sm" variant="secondary" loading={addingAi === r.key} aria-label={`Add ${r.name}`} onClick={async () => {
+                          setAddingAi(r.key);
+                          try {
+                            const { id } = await addAiUsageReport(r.key);
+                            await queryClient.invalidateQueries({ queryKey: ["reports"] });
+                            router.push(`/reports/${id}`);
+                          } catch (error) {
+                            setNotice({ tone: "error", message: error instanceof Error ? error.message : "Could not add the report" });
+                          } finally {
+                            setAddingAi(null);
+                          }
+                        }}>Add report</Button>}
+                  </span>
+                </span>
+              </Card>
+            );
+          })}
         </div>
       </section>}
 
@@ -404,6 +461,7 @@ export function ReportHub({
         <div className="flex flex-wrap items-center gap-2">
           <SearchInput value={search} onValueChange={setSearch} placeholder="Search reports…" className="w-full min-w-[220px] max-w-sm" />
           <SegmentedControl aria-label="Show" size="sm" value={filter} onValueChange={(v) => setFilter(v)} options={filterOptions} />
+          <TagFilterMenu tags={tagFilter.allTags} selected={tagFilter.selected} onChange={tagFilter.setSelected} />
           <div className="ml-auto flex items-center gap-2">
             {viewMode === "grid" && (
               <Select
@@ -431,6 +489,9 @@ export function ReportHub({
             <span className="num text-ui font-medium text-fg">{formatCount(selected.size)} selected</span>
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
             <div className="flex-1" />
+            {canEditTags && (
+              <Button size="sm" variant="secondary" leadingIcon={<TagIcon />} onClick={() => setBulkTagsOpen(true)} data-bulk-tags>Tags…</Button>
+            )}
             <Button size="sm" variant="secondary" leadingIcon={<FileDown />} onClick={() => setExportTarget({ ids: [...selected], name: plural(selected.size, "report") })}>
               Export
             </Button>
@@ -453,7 +514,7 @@ export function ReportHub({
               size="sm"
               variant="no-results"
               title="No reports match your filters"
-              action={{ label: "Clear filters", onClick: () => { setSearch(""); setFilter("all"); } }}
+              action={{ label: "Clear filters", onClick: () => { setSearch(""); setFilter("all"); tagFilter.clear(); } }}
             />
           )
         ) : viewMode === "grid" ? (
@@ -485,6 +546,11 @@ export function ReportHub({
                         {report.name}
                       </Link>
                       {report.description && <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">{report.description}</p>}
+                      {(report.tags?.length ?? 0) > 0 && (
+                        <span className="mt-1.5 block" data-tags-cell="" onClick={(e) => e.stopPropagation()}>
+                          <TagList tags={report.tags} max={3} size="xs" onTagClick={tagFilter.toggle} />
+                        </span>
+                      )}
                     </div>
                     <RowMenu report={report} />
                   </div>
@@ -511,6 +577,7 @@ export function ReportHub({
                 <TH col="status" aria-sort={sortBy === "category" ? (sortDir === "asc" ? "ascending" : "descending") : undefined}>
                   <button type="button" className="inline-flex items-center gap-1 hover:text-fg" onClick={() => toggleSort("category")}>Category <SortIcon field="category" /></button>
                 </TH>
+                <TH col="text" className="w-56" data-tags-column>Tags</TH>
                 <TH col="status">Sharing</TH>
                 <TH col="date" aria-sort={sortBy === "updated_at" ? (sortDir === "asc" ? "ascending" : "descending") : undefined}>
                   <button type="button" className="inline-flex items-center gap-1 hover:text-fg" onClick={() => toggleSort("updated_at")}>Updated <SortIcon field="updated_at" /></button>
@@ -535,6 +602,7 @@ export function ReportHub({
                       </Link>
                     </TD>
                     <TD className="whitespace-nowrap capitalize text-fg-muted">{String(report.category ?? "—").replace(/_/g, " ")}</TD>
+                    <TD className="max-w-56"><TagsCell tags={report.tags} selected={tagFilter.selected} onToggle={tagFilter.toggle} /></TD>
                     <TD className="whitespace-nowrap text-fg-muted">{report.is_shared ? "Shared" : "Private"}</TD>
                     <TD className="num whitespace-nowrap text-fg-muted">{formatRelative(report.updated_at)}</TD>
                     <TDActions><RowMenu report={report} /></TDActions>
@@ -555,6 +623,15 @@ export function ReportHub({
           showPageNumbers
           noun="reports"
         />
+        {tagsTarget && (
+          <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null); }} type="reports" id={tagsTarget.id} name={tagsTarget.name}
+            tags={tagsTarget.tags} invalidate={[["reports"]]}
+            canEdit={canEditTags && tagsTarget.own}
+            readOnlyReason={canEditTags && !tagsTarget.own ? "Only the report's creator can change its tags." : undefined} />
+        )}
+        {bulkTagsOpen && (
+          <BulkTagsDialog open onOpenChange={setBulkTagsOpen} type="reports" ids={[...selected]} invalidate={[["reports"]]} onDone={() => setSelected(new Set())} />
+        )}
       </section>
     </div>
   );

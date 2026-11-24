@@ -1,0 +1,56 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "445d215e-333b-593b-9f8f-29518849b114",
+  "asset": {
+    "id": "445d215e-333b-593b-9f8f-29518849b114",
+    "name": "Knowledge articles",
+    "description": "Self-help articles the app shows before people raise a ticket: title, category, a one-line summary and the link.",
+    "columns": [
+      {
+        "id": "111caf64-b17f-5a19-8251-6a8d3733430a",
+        "required": true,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "ea6e19af-7b02-58f0-9eef-714258d3b492",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Hardware",
+          "Software",
+          "Access & accounts",
+          "Network & VPN",
+          "Email & calendar",
+          "Printing",
+          "Other"
+        ]
+      },
+      {
+        "id": "d2e6e5ed-a012-5113-9d1c-13780c41531d",
+        "required": false,
+        "key": "summary",
+        "name": "Summary",
+        "type": "text"
+      },
+      {
+        "id": "e812717f-24a1-518c-8dbb-5ab8a022a267",
+        "required": false,
+        "key": "url",
+        "name": "Link",
+        "type": "url"
+      },
+      {
+        "id": "a8d7085e-e448-56fb-872d-fc9bf5460ce6",
+        "required": false,
+        "key": "updated_on",
+        "name": "Updated",
+        "type": "date"
+      }
+    ]
+  }
+}

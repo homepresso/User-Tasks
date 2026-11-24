@@ -1,0 +1,113 @@
+{
+  "id": "52f58731-4234-5b4d-af2c-dc08c6ff76b0",
+  "slug": "expense-desk",
+  "title": "Expense desk",
+  "category": "finance",
+  "summary": "An expense app: claim in a slide-in panel, follow claims to payment, approve your team’s claims and see spend by category and department in USD.",
+  "description": "Expense desk is a ready-made app for expense claims. People open it from the Apps menu, press New claim and fill in the Expense claim form in a panel that slides in from the right: the category comes from the Expense categories table, which fills in the policy limit and GL code, and receipts can be attached.\n\nEach claim starts the Expense claim approval workflow. The claim is logged in the Expense claims table and checked against the category limit, then the claimant’s manager approves or rejects it (they can adjust the amount). Approved claims go to finance to pay; the table always shows where each claim is.\n\nThe app has four pages: Home (the main buttons, spend KPIs, spend by category and your recent claims), My claims (your claims and the timeline of the latest one), Approvals for managers (your approval queue, the approval SLA and its trend, time to approve, a spreadsheet of everything open) and Insights (spend by department, claims by status, a category by status pivot and the full register; click a claim to see it in a side panel). Twelve sample claims make the charts useful straight after install.",
+  "trigger": "app",
+  "entry_app": "dbb2c23b-042f-59ce-b62d-a47c6409996a",
+  "entry_workflow": "defbf102-7c16-5305-a94e-dc58cda7d996",
+  "entry_form": "c654788a-0c51-533a-90df-f1ce5dd41129",
+  "start": "Open Expense desk from the Apps menu and press New claim; the Expense claim form opens in a side panel and starts the approval workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 5,
+  "tags": [
+    "expenses",
+    "approvals",
+    "app",
+    "finance",
+    "sla",
+    "charts"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "setup": [
+    "Open Apps → Expense desk → Settings → Audience: add your staff as contributors (they submit claims) and managers as contributors (they approve). Leadership can be viewers.",
+    "Edit the Expense categories rows to match your expense policy (limits in USD and GL codes).",
+    "Assignees: pick who in finance pays approved claims (the \"Pay the claim\" step). Manager approvals go to the manager chosen on each claim.",
+    "Replace the sample claims in the Expense claims table, or keep them while you try the app."
+  ],
+  "steps": [
+    {
+      "title": "New claim",
+      "body": "New claim opens the Expense claim form in a slide-in panel; the category fills in the policy limit and GL code."
+    },
+    {
+      "title": "Logged and checked",
+      "body": "The workflow logs the claim in the Expense claims table and flags claims over the category limit."
+    },
+    {
+      "title": "Manager approves",
+      "body": "The claimant’s manager approves (adjusting the amount if needed) or rejects it from the Approvals page."
+    },
+    {
+      "title": "Finance pays",
+      "body": "Approved claims become a payment task for finance; marking it paid updates the register."
+    },
+    {
+      "title": "See the spend",
+      "body": "Home and Insights chart spend by category, department and status in USD."
+    }
+  ],
+  "sample_input": {
+    "claimant": "Jordan Rivera",
+    "email": "jordan.rivera@example.com",
+    "department": "Sales",
+    "manager": "$owner",
+    "category": "Travel",
+    "limit": 1500,
+    "gl_code": "6100",
+    "merchant": "Skyline Air",
+    "amount": 420,
+    "expense_date": "2026-11-18",
+    "purpose": "Customer workshop in Denver with Brightwater Labs"
+  },
+  "expect": "completed",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Approve",
+        "values": {
+          "approved_amount": 420,
+          "comment": "Thanks, approved."
+        }
+      },
+      {
+        "outcome": "Mark paid",
+        "values": {
+          "paid_on": "2026-11-21"
+        }
+      }
+    ]
+  },
+  "icon": "receipt",
+  "screenshots": [
+    {
+      "file": "screenshots/home.webp",
+      "caption": "Home: the main buttons, spend KPIs, spend by category and your recent claims."
+    },
+    {
+      "file": "screenshots/new-claim.webp",
+      "caption": "New claim opens the Expense claim form in a slide-in panel."
+    },
+    {
+      "file": "screenshots/approvals.webp",
+      "caption": "Approvals: the manager’s queue, approval SLA, trend and time to approve."
+    },
+    {
+      "file": "screenshots/insights-dark.webp",
+      "caption": "Insights in dark mode: spend by department and status, and the claims register.",
+      "theme": "dark"
+    }
+  ]
+}

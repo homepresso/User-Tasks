@@ -65,6 +65,12 @@ export interface AgentWorkflowLink {
   branch?: string | null
   /** When the step started (the run trace shows agents of parallel branches overlapping). */
   started_at?: string
+  /** "Use this workflow's data as context": what was passed (sizes and counts, no values). */
+  workflow_data?: import('./workflow-data').WorkflowDataSummary | null
+  /** The run's agent_error_depth (started by an Agent error trigger: its agents' failures are not reported again). */
+  agent_error_depth?: number
+  /** A Save & Test run: failures are not reported to Agent error triggers. */
+  test?: boolean
 }
 
 /** What the queue worker needs to continue a paused run. */
@@ -110,6 +116,8 @@ export async function pauseForApproval(params: {
   provider?: string | null
   agentVersion?: number | null
   initiatedBy?: string | null
+  /** agent_runs.context (e.g. the workflow data summary). */
+  context?: Record<string, unknown> | null
 }): Promise<{ runId: string | null; taskId: string | null; eventId: string }> {
   const { db, tenantId, agent, result } = params
   if (result.status !== 'awaiting_approval' || !result.pending || !result.state) throw new Error('Run is not waiting for approval')
@@ -136,6 +144,7 @@ export async function pauseForApproval(params: {
     actorId: params.actingUserId, callerType: params.callerType, callerId: params.callerId ?? null, traceId: params.traceId ?? null,
     workflowRunId: params.workflow?.run_id ?? null, runId: params.runId ?? null, queueJobId: params.queueJobId ?? null, pausedContext: paused as any,
     provider: params.provider ?? null, agentVersion: params.agentVersion ?? null, initiatedBy: params.initiatedBy ?? null,
+    context: params.context ?? null,
   })
 
   // Reviewer: configured user → configured team → the agent's creator → the acting person.

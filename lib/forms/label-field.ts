@@ -60,6 +60,7 @@ import { dataTableKeyColumn, isChangeSet, type DataTableChangeSet, type DataTabl
 import { CONTROLS_KEY, FORM_PARAMS_KEY, FORM_VARS_KEY } from './form-params'
 import { layoutFormRules, resolveRuleTemplate, ruleClaimGate, ruleWrittenReadOnlyValues, type FormRule } from './form-rules'
 import { allActions } from './field-buttons'
+import { calculateColumn, type ListFieldConfig } from './list-field'
 
 /* ── Config ─────────────────────────────────────────────────────────── */
 
@@ -130,7 +131,7 @@ export function normalizeLabelConfig(raw: unknown): LabelFieldConfig {
 }
 
 interface LabelLike { key: string; type: string; label?: string; default?: string; label_config?: LabelFieldConfig }
-interface FieldLike { key: string; type: string; label?: string; data_table?: DataTableFieldConfig; default?: string; label_config?: LabelFieldConfig }
+interface FieldLike { key: string; type: string; label?: string; data_table?: DataTableFieldConfig; list?: ListFieldConfig; default?: string; label_config?: LabelFieldConfig }
 
 export const isLabel = (f: { type: string }): boolean => f.type === 'label'
 /** Labels whose value is stored with the submission. */
@@ -301,6 +302,17 @@ export function labelScope(fields: readonly FieldLike[], values: Record<string, 
       const n = plainNumber(own[f.key] as string)
       if (n !== null) own[f.key] = n
     }
+    // A List's calculated columns (quantity * price) are worked out here: the rows as typed carry only what people entered.
+    const calculated = f.type === 'list' ? (f.list?.columns ?? []).filter((c) => c.type === 'calculated') : []
+    if (calculated.length && Array.isArray(own[f.key])) {
+      own[f.key] = (own[f.key] as unknown[]).map((row) => {
+        if (!isPlainObject(row)) return row
+        const typed: Record<string, unknown> = { ...row }
+        for (const c of f.list!.columns) if ((c.type === 'number' || c.type === 'currency') && typeof typed[c.key] === 'string') { const n = plainNumber(typed[c.key] as string); if (n !== null) typed[c.key] = n }
+        for (const c of calculated) typed[c.key] = calculateColumn(c, typed)
+        return typed
+      })
+    }
   }
   const obj = (k: string) => (isPlainObject(values?.[k]) ? values[k] as Record<string, unknown> : {})
   return { ...own, form: own, task_data: own, param: obj(FORM_PARAMS_KEY), var: obj(FORM_VARS_KEY), control: obj(CONTROLS_KEY) }
@@ -315,13 +327,14 @@ export function plainNumber(text: string): number | null {
 }
 
 /** Evaluate a label's formula in a scope (labelScope). Never throws. */
-export function evaluateLabelExpression(body: string | undefined, scope: Record<string, unknown>): LabelEvaluation {
+export function evaluateLabelExpression(body: string | undefined, scope: Record<string, unknown>, options: { allow?: ReadonlySet<string> } = {}): LabelEvaluation {
   const formula = expressionBody(body ?? '')
   if (!formula) return { value: null }
   if (formula.length > LABEL_LIMITS.expression) return { value: null, error: `The expression is longer than ${LABEL_LIMITS.expression} characters` }
   const { functions, problem } = lex(formula)
   if (problem) return { value: null, error: problem }
-  const volatile = functions.find((fn) => VOLATILE_FUNCTIONS.has(fn))
+  // Callers that re-evaluate on every read (app pages) may allow some of them (NOW()).
+  const volatile = functions.find((fn) => VOLATILE_FUNCTIONS.has(fn) && !options.allow?.has(fn))
   if (volatile) return { value: null, error: `${volatile}() can't be used in a label` }
   const started = Date.now()
   let raw: unknown

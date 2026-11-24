@@ -1,0 +1,123 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "27d156db-4c0c-51fc-9be4-a690408786de",
+  "asset": {
+    "id": "27d156db-4c0c-51fc-9be4-a690408786de",
+    "name": "CapEx approval thresholds",
+    "description": "Who approves a capital request, by its total cost in USD. First matching rule wins. Under $25,000: the department head. $25,000 to $250,000: plus the finance controller and the CFO. Over $250,000: plus the CEO and the capital committee. Edit the amounts to match your delegation of authority.",
+    "inputs": [
+      {
+        "id": "f75ed363-88e9-5f40-a17d-1846d2eac2d1",
+        "key": "amount",
+        "label": "Total capital cost (USD)",
+        "type": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "3212ae11-ebc7-5fbd-80d4-e3bf2d69bbf7",
+        "key": "approval_tier",
+        "label": "Approval tier",
+        "type": "text"
+      },
+      {
+        "id": "7098f41c-2aa9-5074-87d5-7f5599a1fba6",
+        "key": "needs_controller",
+        "label": "Finance controller",
+        "type": "boolean"
+      },
+      {
+        "id": "7315b92c-dd4a-5401-a097-719cffffbaef",
+        "key": "needs_cfo",
+        "label": "CFO",
+        "type": "boolean"
+      },
+      {
+        "id": "20ae62e0-c8d0-54c7-91f4-76e7424b2afc",
+        "key": "needs_ceo",
+        "label": "CEO",
+        "type": "boolean"
+      },
+      {
+        "id": "5a080c47-060d-5a85-84df-b107e429be60",
+        "key": "needs_committee",
+        "label": "Capital committee",
+        "type": "boolean"
+      },
+      {
+        "id": "a2d00920-a9ce-50b5-8cb5-34cf2e0245ab",
+        "key": "sla_days",
+        "label": "Approval SLA (days)",
+        "type": "number"
+      },
+      {
+        "id": "6bb06d66-d9d7-5ca6-b78a-4dd69b6cdb5b",
+        "key": "route_label",
+        "label": "Approval route",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "b327ec9d-5d0f-5fba-83cd-46f92136c4e1",
+        "label": "Under $25,000",
+        "enabled": true,
+        "outputs": {
+          "approval_tier": "Tier 1",
+          "needs_controller": false,
+          "needs_cfo": false,
+          "needs_ceo": false,
+          "needs_committee": false,
+          "sla_days": 5,
+          "route_label": "Department head"
+        },
+        "conditions": [
+          {
+            "id": "57603dbc-fc16-5787-b72e-35b42b3f5b5d",
+            "inputKey": "amount",
+            "operator": "less_than",
+            "value": "25000"
+          }
+        ]
+      },
+      {
+        "id": "bf83425f-fd0c-5488-bdcc-f0db5665552c",
+        "label": "$25,000 to $250,000",
+        "enabled": true,
+        "outputs": {
+          "approval_tier": "Tier 2",
+          "needs_controller": true,
+          "needs_cfo": true,
+          "needs_ceo": false,
+          "needs_committee": false,
+          "sla_days": 10,
+          "route_label": "Department head, finance controller, CFO"
+        },
+        "conditions": [
+          {
+            "id": "08b66e00-8029-5228-bbd9-967bd20d4c54",
+            "inputKey": "amount",
+            "operator": "less_than_or_equal",
+            "value": "250000"
+          }
+        ]
+      },
+      {
+        "id": "6578a5be-19ae-5950-bd74-135c0ba29d08",
+        "label": "Over $250,000",
+        "enabled": true,
+        "outputs": {
+          "approval_tier": "Tier 3",
+          "needs_controller": true,
+          "needs_cfo": true,
+          "needs_ceo": true,
+          "needs_committee": true,
+          "sla_days": 20,
+          "route_label": "Department head, finance controller, CFO, CEO, capital committee"
+        },
+        "conditions": []
+      }
+    ]
+  }
+}

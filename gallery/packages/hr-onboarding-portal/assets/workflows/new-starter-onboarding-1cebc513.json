@@ -1,0 +1,686 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "1cebc513-e8c4-5143-b67b-74549293c4ac",
+  "asset": {
+    "id": "1cebc513-e8c4-5143-b67b-74549293c4ac",
+    "name": "New starter onboarding",
+    "description": "A request from the New starter request form: the starter and four checklist items are logged, then IT, Facilities, the People team and the manager each get a task due on the start date; each one ticks off its item and moves the progress on.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Starter requested",
+        "config": {
+          "form_id": "7e72464e-c3f4-55fb-a232-76cde5cc168c",
+          "form_name": "New starter request"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Starter reference",
+        "config": {
+          "name": "starter_ref",
+          "expression": "NS-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{form.starter_name}} · {{form.role}} · starts {{form.start_date}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Add the starter",
+        "config": {
+          "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+          "table_name": "New starters",
+          "operation": "insert",
+          "column_values": {
+            "starter_ref": "{{starter_ref}}",
+            "name": "{{form.starter_name}}",
+            "role": "{{form.role}}",
+            "department": "{{form.department}}",
+            "start_date": "{{form.start_date}}",
+            "location": "{{form.location}}",
+            "status": "Preparing",
+            "progress": "0"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "add_it",
+        "type": "update_data_table",
+        "label": "Checklist: IT",
+        "config": {
+          "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+          "table_name": "Onboarding checklist",
+          "operation": "insert",
+          "column_values": {
+            "item_ref": "{{starter_ref}}-IT",
+            "starter": "{{form.starter_name}}",
+            "item": "Laptop, accounts and access",
+            "team": "IT",
+            "due_date": "{{form.start_date}}",
+            "status": "To do"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "add_fac",
+        "type": "update_data_table",
+        "label": "Checklist: Facilities",
+        "config": {
+          "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+          "table_name": "Onboarding checklist",
+          "operation": "insert",
+          "column_values": {
+            "item_ref": "{{starter_ref}}-FAC",
+            "starter": "{{form.starter_name}}",
+            "item": "Desk, badge and parking",
+            "team": "Facilities",
+            "due_date": "{{form.start_date}}",
+            "status": "To do"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "add_ppl",
+        "type": "update_data_table",
+        "label": "Checklist: People team",
+        "config": {
+          "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+          "table_name": "Onboarding checklist",
+          "operation": "insert",
+          "column_values": {
+            "item_ref": "{{starter_ref}}-PPL",
+            "starter": "{{form.starter_name}}",
+            "item": "Contract, payroll and induction",
+            "team": "People team",
+            "due_date": "{{form.start_date}}",
+            "status": "To do"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "add_mgr",
+        "type": "update_data_table",
+        "label": "Checklist: Manager",
+        "config": {
+          "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+          "table_name": "Onboarding checklist",
+          "operation": "insert",
+          "column_values": {
+            "item_ref": "{{starter_ref}}-MGR",
+            "starter": "{{form.starter_name}}",
+            "item": "First-week plan and buddy",
+            "team": "Manager",
+            "due_date": "{{form.start_date}}",
+            "status": "To do"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "task_it",
+        "type": "user_task",
+        "label": "IT setup",
+        "config": {
+          "task_title": "Set up laptop and accounts for {{form.starter_name}}",
+          "task_description": "<p><strong>{{form.starter_name}}</strong> joins {{form.department}} as {{form.role}} on <strong>{{form.start_date}}</strong> ({{form.location}}, {{form.employment}}).</p><p>Equipment: {{form.equipment}}. Create their accounts and have the kit ready.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "f6737c78-8d36-58c1-8147-36735bb9a5e4",
+          "fields": [
+            {
+              "key": "asset_tag",
+              "label": "Laptop asset tag",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "asset_tag",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "IT setup",
+            "align": "left",
+            "subtitle": "{{form.starter_name}} · starts {{form.start_date}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{form.start_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "done_it",
+        "type": "update_data_table",
+        "label": "Tick off: IT setup",
+        "config": {
+          "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+          "table_name": "Onboarding checklist",
+          "operation": "update",
+          "match_column": "item_ref",
+          "match_value": "{{starter_ref}}-IT",
+          "column_values": {
+            "status": "Done"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "prog_it",
+        "type": "update_data_table",
+        "label": "Progress 25%",
+        "config": {
+          "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+          "table_name": "New starters",
+          "operation": "update",
+          "match_column": "starter_ref",
+          "match_value": "{{starter_ref}}",
+          "column_values": {
+            "progress": "25"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "task_fac",
+        "type": "user_task",
+        "label": "Facilities setup",
+        "config": {
+          "task_title": "Desk and badge for {{form.starter_name}}",
+          "task_description": "<p>Prepare a desk, a building badge and parking at <strong>{{form.location}}</strong> for {{form.start_date}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "24128ad1-7eba-5885-8aac-6a5ea132f1d7",
+          "fields": [
+            {
+              "key": "desk",
+              "label": "Desk or locker",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "desk",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Facilities setup",
+            "align": "left",
+            "subtitle": "{{form.starter_name}} · starts {{form.start_date}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{form.start_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "done_fac",
+        "type": "update_data_table",
+        "label": "Tick off: Facilities setup",
+        "config": {
+          "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+          "table_name": "Onboarding checklist",
+          "operation": "update",
+          "match_column": "item_ref",
+          "match_value": "{{starter_ref}}-FAC",
+          "column_values": {
+            "status": "Done"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1740
+        }
+      },
+      {
+        "id": "prog_fac",
+        "type": "update_data_table",
+        "label": "Progress 50%",
+        "config": {
+          "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+          "table_name": "New starters",
+          "operation": "update",
+          "match_column": "starter_ref",
+          "match_value": "{{starter_ref}}",
+          "column_values": {
+            "progress": "50"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      },
+      {
+        "id": "task_ppl",
+        "type": "user_task",
+        "label": "People team",
+        "config": {
+          "task_title": "Contract, payroll and induction for {{form.starter_name}}",
+          "task_description": "<p>Send the contract, set up payroll and benefits and book {{form.starter_name}} on the next induction.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "fc3d9872-c26e-5285-af39-66c90b01084e",
+          "fields": [
+            {
+              "key": "induction",
+              "label": "Induction date",
+              "type": "date"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "induction",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "People team",
+            "align": "left",
+            "subtitle": "{{form.starter_name}} · starts {{form.start_date}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{form.start_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 2020
+        }
+      },
+      {
+        "id": "done_ppl",
+        "type": "update_data_table",
+        "label": "Tick off: People team",
+        "config": {
+          "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+          "table_name": "Onboarding checklist",
+          "operation": "update",
+          "match_column": "item_ref",
+          "match_value": "{{starter_ref}}-PPL",
+          "column_values": {
+            "status": "Done"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2160
+        }
+      },
+      {
+        "id": "prog_ppl",
+        "type": "update_data_table",
+        "label": "Progress 75%",
+        "config": {
+          "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+          "table_name": "New starters",
+          "operation": "update",
+          "match_column": "starter_ref",
+          "match_value": "{{starter_ref}}",
+          "column_values": {
+            "progress": "75"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2300
+        }
+      },
+      {
+        "id": "task_mgr",
+        "type": "user_task",
+        "label": "Manager plan",
+        "config": {
+          "task_title": "Plan {{form.starter_name}}’s first week",
+          "task_description": "<p>{{form.starter_name}} starts on <strong>{{form.start_date}}</strong>. Share a first-week plan and name a buddy.</p><p>{{form.notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.manager}}",
+          "fields": [
+            {
+              "key": "buddy",
+              "label": "Buddy",
+              "type": "text"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "buddy",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Manager plan",
+            "align": "left",
+            "subtitle": "{{form.starter_name}} · starts {{form.start_date}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{form.start_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 2440
+        }
+      },
+      {
+        "id": "done_mgr",
+        "type": "update_data_table",
+        "label": "Tick off: Manager plan",
+        "config": {
+          "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+          "table_name": "Onboarding checklist",
+          "operation": "update",
+          "match_column": "item_ref",
+          "match_value": "{{starter_ref}}-MGR",
+          "column_values": {
+            "status": "Done"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2580
+        }
+      },
+      {
+        "id": "prog_mgr",
+        "type": "update_data_table",
+        "label": "Progress 100%",
+        "config": {
+          "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+          "table_name": "New starters",
+          "operation": "update",
+          "match_column": "starter_ref",
+          "match_value": "{{starter_ref}}",
+          "column_values": {
+            "progress": "100",
+            "status": "Ready"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2720
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Ready for day one",
+        "config": {
+          "reason": "{{form.starter_name}} is ready for {{form.start_date}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2860
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-add_it",
+        "source": "log",
+        "target": "add_it"
+      },
+      {
+        "id": "e-add_it-add_fac",
+        "source": "add_it",
+        "target": "add_fac"
+      },
+      {
+        "id": "e-add_fac-add_ppl",
+        "source": "add_fac",
+        "target": "add_ppl"
+      },
+      {
+        "id": "e-add_ppl-add_mgr",
+        "source": "add_ppl",
+        "target": "add_mgr"
+      },
+      {
+        "id": "e-add_mgr-task_it",
+        "source": "add_mgr",
+        "target": "task_it"
+      },
+      {
+        "id": "e-task_it-done_it-done",
+        "source": "task_it",
+        "target": "done_it",
+        "label": "Done"
+      },
+      {
+        "id": "e-done_it-prog_it",
+        "source": "done_it",
+        "target": "prog_it"
+      },
+      {
+        "id": "e-prog_it-task_fac",
+        "source": "prog_it",
+        "target": "task_fac"
+      },
+      {
+        "id": "e-task_fac-done_fac-done",
+        "source": "task_fac",
+        "target": "done_fac",
+        "label": "Done"
+      },
+      {
+        "id": "e-done_fac-prog_fac",
+        "source": "done_fac",
+        "target": "prog_fac"
+      },
+      {
+        "id": "e-prog_fac-task_ppl",
+        "source": "prog_fac",
+        "target": "task_ppl"
+      },
+      {
+        "id": "e-task_ppl-done_ppl-done",
+        "source": "task_ppl",
+        "target": "done_ppl",
+        "label": "Done"
+      },
+      {
+        "id": "e-done_ppl-prog_ppl",
+        "source": "done_ppl",
+        "target": "prog_ppl"
+      },
+      {
+        "id": "e-prog_ppl-task_mgr",
+        "source": "prog_ppl",
+        "target": "task_mgr"
+      },
+      {
+        "id": "e-task_mgr-done_mgr-done",
+        "source": "task_mgr",
+        "target": "done_mgr",
+        "label": "Done"
+      },
+      {
+        "id": "e-done_mgr-prog_mgr",
+        "source": "done_mgr",
+        "target": "prog_mgr"
+      },
+      {
+        "id": "e-prog_mgr-end",
+        "source": "prog_mgr",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

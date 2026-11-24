@@ -89,11 +89,16 @@ RUN if [ "$INCLUDE_OPTIONAL_DB_DRIVERS" != "true" ]; then \
 # docs/deployment-profiles.md#memory.
 ARG NEXT_BUILD_CPUS=2
 # Extensions compiled in (lib/extensions/build/codegen.ts): a comma list of
-# installed packages or in-repo paths. Empty (the public image) = none. An
-# Enterprise image is built FROM a context that also installs the private
-# extension packages and sets this.
+# installed packages or in-repo paths. Empty (the public image) = none. The
+# Enterprise image (the private usertasks-enterprise build) puts the paid
+# extensions into .ext-local/<id> of the build context and sets this to
+# ./.ext-local/sharepoint,./.ext-local/infrastructure,….
 ARG USERTASKS_EXTENSIONS=
-RUN USERTASKS_EXTENSIONS=$USERTASKS_EXTENSIONS NEXT_BUILD_TYPECHECK=false NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS npm run build \
+# The server loads each page on its first request (~113 MiB idle instead of
+# ~414 MiB). true = preload every page at start, as Next does by default;
+# fixed at build time in the standalone server (docs/deployment-profiles.md#server-memory).
+ARG NEXT_PRELOAD_ENTRIES=
+RUN USERTASKS_EXTENSIONS=$USERTASKS_EXTENSIONS NEXT_PRELOAD_ENTRIES=$NEXT_PRELOAD_ENTRIES NEXT_BUILD_TYPECHECK=false NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS npm run build \
  && node scripts/build-worker.mjs .next/standalone/worker.cjs \
  && node packages/admin/scripts/build.mjs .next/standalone/admin.cjs
 
@@ -109,8 +114,15 @@ RUN addgroup -S nodejs -g 1001 && adduser -S nextjs -u 1001 -G nodejs
 # Declared in this last stage so a new commit doesn't invalidate the build cache.
 ARG GIT_COMMIT=
 ARG BUILD_TIME=
+# Edition images (lib/editions/running.ts, Settings → Extensions): the private
+# Enterprise build passes USERTASKS_EDITION=enterprise and its version
+# (<core>-ent.<n>). Empty in the public image.
+ARG USERTASKS_EDITION=
+ARG USERTASKS_EDITION_VERSION=
 ENV GIT_COMMIT=$GIT_COMMIT \
-    BUILD_TIME=$BUILD_TIME
+    BUILD_TIME=$BUILD_TIME \
+    USERTASKS_EDITION=$USERTASKS_EDITION \
+    USERTASKS_EDITION_VERSION=$USERTASKS_EDITION_VERSION
 # FFmpeg / ffprobe for the media steps that process files locally (Media
 # Utilities, Redact Video, frame-sampled Analyze Video, splitting long audio
 # for transcription, non-PNG/JPEG images) — Alpine's package (LGPL/GPL

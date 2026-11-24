@@ -109,6 +109,8 @@ function substituteBareIdentifiers(fnExpr: string, ctx: ExpressionContext): stri
   const pattern = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|([A-Za-z_][A-Za-z0-9_]*(?:\[\d+\])*(?:\.[A-Za-z0-9_]+(?:\[\d+\])*)*)/g
   return fnExpr.replace(pattern, (match: string, quoted: string, identifier: string, offset: number) => {
     if (quoted) return match
+    // A member of a call's result (FIRST(rows).lead_id): the path, not a variable of that name.
+    if (offset > 0 && fnExpr[offset - 1] === '.') return match
     // Function name? (next non-space char is an open paren)
     let next = offset + match.length
     while (next < fnExpr.length && fnExpr[next] === ' ') next++

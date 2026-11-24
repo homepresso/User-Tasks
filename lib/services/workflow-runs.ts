@@ -26,6 +26,7 @@ import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { applyScope, requireVisibleRun, resolveRunScope, runScopeFilter } from './run-visibility'
 import { audit, dbError } from './_shared'
 import { RunNotResumableError } from '@/lib/workflow-run-errors'
+import { QueuedRunTimeoutError, resumeRun } from '@/lib/processing/dispatch'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow_runs rows are untyped here */
 
@@ -168,12 +169,18 @@ export async function actOnWorkflowRun(ctx: ServiceContext, ref: WorkflowRunRef,
 
       let result: { status: string }
       try {
-        // Loaded lazily: pause/cancel (and schema scripts) don't need the engine.
-        const { resumeWorkflow } = await import('@/lib/workflow-engine')
-        // Claims the run only while it still waits on the event we looked at.
-        result = await resumeWorkflow(run.id, variables, undefined, run.event_id ? { eventId: run.event_id } : undefined)
+        // Claims the run only while it still waits on the event we looked at
+        // (here, or on a processing worker while this request waits).
+        result = await resumeRun({
+          runId: run.id,
+          tenantId: ctx.tenantId,
+          workflowId: String(run.workflow_id ?? ''),
+          variables,
+          eventId: run.event_id,
+        })
       } catch (error) {
         if (error instanceof RunNotResumableError) throw ServiceError.conflict('The run is no longer waiting or paused')
+        if (error instanceof QueuedRunTimeoutError) throw new ServiceError('internal', error.message, { status: 504, details: { job_id: error.jobId, timed_out: true } })
         throw new ServiceError('internal', `Resume failed: ${error instanceof Error ? error.message : String(error)}`)
       }
       const closed = await closeOpenTasks(ctx, run.event_id)
@@ -680,8 +687,13 @@ export async function migrateInstances(ctx: ServiceContext, input: InstanceMigra
     let newStatus = 'paused'
     let startError: string | undefined
     try {
-      const { resumeWorkflow } = await import('@/lib/workflow-engine')
-      const started = await resumeWorkflow(newRunId, { _goto_node_id: item.target_node_id }, undefined, { migrated: true })
+      const started = await resumeRun({
+        runId: newRunId,
+        tenantId: ctx.tenantId,
+        workflowId: String(run.workflow_id ?? ''),
+        variables: { _goto_node_id: item.target_node_id },
+        migrated: true,
+      })
       newStatus = started.status
       if (started.error) startError = started.error
     } catch (e) {

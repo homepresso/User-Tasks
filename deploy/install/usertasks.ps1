@@ -5,8 +5,9 @@
 #   usertasks backup [-Out <dir>]          database dump + files + .env, in backups\
 #   usertasks restore <backup|latest> [-Yes]
 #   usertasks upgrade [-To <version>] [-Yes] [-SkipBackup] [-AllowDowngrade] [-Build]
-#                     [-Edition sharepoint|core] [-Licence <file>] [-Bundle <offline bundle>]
-#   usertasks bundle-download -Edition sharepoint -Licence <file> [-Version <v>] [-Platform linux/amd64] [-Out <file.tar>]
+#                     [-Edition enterprise|sharepoint|core] [-Licence <file>] [-Bundle <offline bundle>]
+#                     (a bundle: its .tar, or its parts: the .parts.json or the folder holding them)
+#   usertasks bundle-download [-Edition enterprise] -Licence <file> [-Version <v>] [-Platform linux/amd64] [-Out <file.tar>]
 #   usertasks config [-Preset <name>] [-Force]   re-run the service choices
 #   usertasks setup-code                   a new first-run setup code for /setup
 #   usertasks admin <args>                 usertasks-admin inside the app container
@@ -305,7 +306,10 @@ function Ensure-Image([string]$image, [bool]$allowBuild, [string]$version) {
   Fail "could not pull $image (re-run with -Build to build it locally)"
 }
 
-# ── editions: licence-gated images (-Edition sharepoint) ────────────────────
+# ── editions: licence-gated images (-Edition enterprise) ────────────────────
+# enterprise: one image with every paid extension, each unlocked by its own
+# licence (a licence alone picks it); sharepoint: the older SharePoint edition,
+# which usertasks.com now serves the Enterprise image under.
 # The same flow as the sh wrapper: usertasks.com checks the licence and returns
 # a 30-minute read-only credential for its registry front with the edition
 # manifest (edition.json) signed by the release key; the image is pulled by the
@@ -315,8 +319,13 @@ $script:EditionApi = $env:USERTASKS_EDITION_API
 if (-not $script:EditionApi) { $script:EditionApi = 'https://usertasks.com/api/public/extensions' }
 $script:Ed = $null; $script:EditionError = ''; $script:EditionErrorCode = ''
 
-function Test-Edition([string]$e) { return ($e -eq 'sharepoint') }
-function Get-EditionName([string]$e) { if ($e -eq 'sharepoint') { return 'UserTasks for SharePoint Server' }; return "the $e edition" }
+$script:EditionsList = 'enterprise, sharepoint'
+function Test-Edition([string]$e) { return ($e -eq 'enterprise' -or $e -eq 'sharepoint') }
+function Get-EditionName([string]$e) { if ($e -eq 'enterprise') { return 'UserTasks Enterprise' }; if ($e -eq 'sharepoint') { return 'UserTasks for SharePoint Server' }; return "the $e edition" }
+# The paid extensions whose licence opens an edition (the installed licence is exported for the first that has one).
+function Get-EditionExtensions([string]$e) { if ($e -eq 'enterprise') { return @('sharepoint', 'infrastructure', 'processing') }; return @($e) }
+# A refusal an implicit Enterprise install may fall back from (never a licence refusal).
+function Test-EditionFallback([string]$code) { return ($code -in @('', 'edition_not_found', 'editions_unavailable', 'upstream_error', 'offline')) }
 function Get-EditionLatestCore([string]$e) {
   try { $r = Invoke-RestMethod -UseBasicParsing "$($script:EditionApi)/$e"; if (Test-Version ([string]$r.latest_core_version)) { return [string]$r.latest_core_version } } catch { }
   return ''
@@ -330,10 +339,14 @@ function Get-EditionLicence([string]$e, [string]$file) {
     if (-not (Test-Path $file)) { Fail "licence file not found: $file" }
     Copy-Item -Force $file $keep; Protect-File $keep
   } elseif ($script:Image -and $script:Project -and (Test-Path $script:StateFile)) {
-    $out = Get-AdminOutput @('licence', 'export', '--ext', $e)
-    if ($out -match '"licence_id"') { [IO.File]::WriteAllText($keep, $out + "`n"); Protect-File $keep }
+    foreach ($x in (Get-EditionExtensions $e)) {
+      $out = Get-AdminOutput @('licence', 'export', '--ext', $x)
+      if ($out -match '"licence_id"') { [IO.File]::WriteAllText($keep, $out + "`n"); Protect-File $keep; break }
+    }
   }
-  if (-not (Test-Path $keep)) { Fail "$(Get-EditionName $e) needs a licence: pass -Licence <file> (your trial or purchased .licence file; start a trial at https://usertasks.com/sharepoint/trial)" }
+  $sp = Join-Path $dir 'sharepoint.licence'
+  if (-not (Test-Path $keep) -and $e -eq 'enterprise' -and (Test-Path $sp)) { Copy-Item -Force $sp $keep; Protect-File $keep }
+  if (-not (Test-Path $keep)) { Fail "$(Get-EditionName $e) needs a licence: pass -Licence <file> (your trial or purchased .licence file; licences: https://usertasks.com/extensions, a SharePoint trial: https://usertasks.com/sharepoint/trial)" }
   return $keep
 }
 function Test-EditionImage([string]$image, [string]$manifest) {
@@ -360,7 +373,7 @@ function Request-Edition([string]$e, [string]$licence, [string]$version, [string
   } catch {
     $msg = ''
     if ($_.ErrorDetails -and $_.ErrorDetails.Message) { try { $j = $_.ErrorDetails.Message | ConvertFrom-Json; $msg = [string]$j.error; $script:EditionErrorCode = [string]$j.code } catch { } }
-    if (-not $_.Exception.Response) { $msg = "could not reach $($script:EditionApi) (check the network or proxy settings; offline hosts: usertasks bundle-download on a connected machine)" }
+    if (-not $_.Exception.Response) { $script:EditionErrorCode = 'offline'; $msg = "could not reach $($script:EditionApi) (check the network or proxy settings; offline hosts: usertasks bundle-download on a connected machine)" }
     if (-not $msg) { $msg = "the download was refused ($($_.Exception.Message))" }
     $script:EditionError = $msg
     return $false
@@ -428,13 +441,100 @@ function Install-EditionLicence([string]$file) {
 
 # ── offline bundles (the same format as the sh wrapper) ─────────────────────
 
+# ── split bundles (parts; the same format as the sh wrapper) ────────────
+# A bundle over GitHub's 2 GiB release-asset limit comes in parts: <name>.tar.part-001 …,
+# <name>.tar.parts.json (size + sha256 of the whole and of each part, in order) and
+# <name>.tar.parts.json.sig (its ed25519 signature by the release key). The signature,
+# then every part, then the joined file are checked before anything is unpacked.
+
+function Read-Parts([string]$manifest) {
+  $leaf = Split-Path -Leaf $manifest
+  try { $m = Get-Content -Raw -LiteralPath $manifest | ConvertFrom-Json } catch { Fail "$leaf is not a bundle parts manifest" }
+  if ([string]$m.name -cnotmatch '^[A-Za-z0-9._-]+\.tar$' -or [string]$m.size -cnotmatch '^\d+$' -or [string]$m.sha256 -cnotmatch '^[0-9a-f]{64}$') { Fail "$leaf is not a bundle parts manifest" }
+  $parts = @($m.parts)
+  if ($parts.Count -lt 1) { Fail "$leaf lists no parts" }
+  $sum = [int64]0; $i = 0
+  foreach ($p in $parts) {
+    $i++
+    if ([string]$p.name -cne ('{0}.part-{1:D3}' -f $m.name, $i) -or [string]$p.size -cnotmatch '^\d+$' -or [string]$p.sha256 -cnotmatch '^[0-9a-f]{64}$') { Fail "$leaf lists an unexpected part (entry $i)" }
+    $sum += [int64]$p.size
+  }
+  if ($sum -ne [int64]$m.size) { Fail "the parts in $leaf do not add up to the bundle size" }
+  return $m
+}
+
+# Test-Part: 0 intact, 1 missing, 2 wrong size, 3 checksum mismatch.
+function Test-Part([string]$file, $size, [string]$sha) {
+  if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { return 1 }
+  if ((Get-Item -LiteralPath $file).Length -ne [int64]$size) { return 2 }
+  if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant() -ne $sha) { return 3 }
+  return 0
+}
+
+# Join-Parts: verify the signature and every part, join them (streamed) into $work, check the whole. Returns the .tar.
+function Join-Parts([string]$manifest, [string]$key, [string]$work) {
+  $dir = Split-Path -Parent $manifest; $leaf = Split-Path -Leaf $manifest
+  if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { Fail "parts manifest not found: $manifest" }
+  if (-not (Test-Path -LiteralPath "$manifest.sig" -PathType Leaf)) { Fail "$leaf.sig is missing: copy it next to $leaf (the parts can't be checked without it)" }
+  if (-not (Test-Signature $manifest "$manifest.sig" $key)) { Fail "signature check FAILED: $leaf was not signed by the UserTasks release key. Nothing was installed." }
+  Ok "signature of $leaf"
+  $m = Read-Parts $manifest; $n = @($m.parts).Count
+  Step "Checking the $n parts of $($m.name)"
+  $i = 0
+  foreach ($p in $m.parts) {
+    $i++
+    switch (Test-Part (Join-Path $dir $p.name) $p.size $p.sha256) {
+      1 { Fail "part $i of $n ($($p.name)) is missing: copy it next to $leaf (or download it again)" }
+      2 { Fail "part $i of $n ($($p.name)) is incomplete or damaged (wrong size): download it again" }
+      3 { Fail "part $i of $n ($($p.name)) is damaged (checksum mismatch): download it again" }
+    }
+  }
+  Ok "$n parts (sizes and checksums)"
+  New-Item -ItemType Directory -Force -Path $work | Out-Null
+  $out = Join-Path $work $m.name
+  $os = [IO.File]::Create($out)
+  try {
+    foreach ($p in $m.parts) {
+      $is = [IO.File]::OpenRead((Join-Path $dir $p.name))
+      try { $is.CopyTo($os, 1048576) } finally { $is.Dispose() }
+    }
+  } finally { $os.Dispose() }
+  if ((Get-FileHash -Algorithm SHA256 -LiteralPath $out).Hash.ToLowerInvariant() -ne $m.sha256) { Remove-Item -Force -LiteralPath $out; Fail "the joined bundle does not match ${leaf} (checksum mismatch): download the parts again" }
+  Ok "joined $($m.name) (checksum)"
+  return $out
+}
+
+# Resolve-Bundle: a bundle .tar, or its parts (the .parts.json, one of the parts, or the folder holding them).
+function Resolve-Bundle([string]$path, [string]$key, [string]$work) {
+  $m = ''
+  if ($path -like '*.parts.json') { $m = $path }
+  elseif ($path -match '\.part-\d{3}$') { $m = ($path -replace '\.part-\d{3}$', '') + '.parts.json' }
+  elseif (Test-Path -LiteralPath $path -PathType Container) {
+    $ms = @(Get-ChildItem -LiteralPath $path -File | Where-Object { $_.Name -like '*.parts.json' })
+    if ($ms.Count -gt 1) { Fail "$path holds more than one bundle: name its .parts.json" }
+    if ($ms.Count -eq 1) { $m = $ms[0].FullName }
+    else {
+      $ts = @(Get-ChildItem -LiteralPath $path -File | Where-Object { $_.Name -like '*.tar' })
+      if ($ts.Count -ne 1) { Fail "$path has no offline bundle (a .tar, or the .part-NNN files with their .parts.json)" }
+      $path = $ts[0].FullName
+    }
+  }
+  if ($m) { return @{ File = (Join-Parts $m $key $work); Joined = $true } }
+  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { Fail "bundle not found: $path" }
+  return @{ File = $path; Joined = $false }
+}
+
+# Open-Bundle: a bundle (its .tar, or its parts), unpacked into releases\.bundle and checked. Returns its folder.
 function Open-Bundle([string]$file) {
   if (-not (Test-Path $file)) { Fail "bundle not found: $file" }
+  $join = Join-Path $script:Dir 'releases\.bundle-join'
+  $rb = Resolve-Bundle $file (Join-Path $script:Dir 'release-key.pub.pem') $join
   $bo = Join-Path $script:Dir 'releases\.bundle'
   if (Test-Path $bo) { Remove-Item -Recurse -Force $bo }
   New-Item -ItemType Directory -Force -Path $bo | Out-Null
-  Step "Unpacking $(Split-Path -Leaf $file)"
-  & tar -xf $file -C $bo; if ($LASTEXITCODE -ne 0) { Fail "could not unpack $file" }
+  Step "Unpacking $(Split-Path -Leaf $rb.File)"
+  & tar -xf $rb.File -C $bo; if ($LASTEXITCODE -ne 0) { Fail "could not unpack $($rb.File)" }
+  if ($rb.Joined) { Remove-Item -Recurse -Force $join }
   $bj = Get-ChildItem -Path $bo -Filter 'bundle.json' -Recurse -Depth 1 | Select-Object -First 1
   if (-not $bj) { Fail "$file is not a UserTasks offline bundle (no bundle.json)" }
   $dir = $bj.DirectoryName
@@ -484,7 +584,8 @@ function Invoke-BundleDownload([string[]]$rest) {
       default { Fail "bundle-download: unknown option $($rest[$i])" }
     }
   }
-  if (-not (Test-Edition $e)) { Fail 'bundle-download: -Edition sharepoint is required' }
+  if (-not $e) { $e = 'enterprise' }
+  if (-not (Test-Edition $e)) { Fail "bundle-download: unknown edition $e (editions: $($script:EditionsList))" }
   if ($lic) { if (-not (Test-Path $lic)) { Fail "licence file not found: $lic" }; $lic = (Resolve-Path $lic).Path }
   elseif (Test-Path (Join-Path $script:Dir 'state.env')) { $lic = Get-EditionLicence $e '' }
   else { Fail 'bundle-download: -Licence <file> is required' }
@@ -534,7 +635,13 @@ function Invoke-BundleDownload([string[]]$rest) {
   }
   Copy-Item (Join-Path $ed.work 'edition.json'), (Join-Path $ed.work 'edition.json.sig') $s
   Step "Saving the images ($($imgs.Count))"
-  & docker save -o (Join-Path $s 'images.tar') @imgs; if ($LASTEXITCODE -ne 0) { Fail 'docker save failed' }
+  $raw = Join-Path $stage 'images.raw.tar'
+  & docker save -o $raw @imgs; if ($LASTEXITCODE -ne 0) { Fail 'docker save failed' }
+  # gzip, streamed: docker load reads it by its content (images.tar keeps its name for older installers).
+  $is = [IO.File]::OpenRead($raw); $os = [IO.File]::Create((Join-Path $s 'images.tar'))
+  try { $gz = New-Object IO.Compression.GZipStream($os, [IO.Compression.CompressionMode]::Compress); try { $is.CopyTo($gz, 1048576) } finally { $gz.Dispose() } }
+  finally { $os.Dispose(); $is.Dispose() }
+  Remove-Item -Force $raw
   $bundle = [ordered]@{ format = 1; kind = 'usertasks.bundle'; edition = $e; edition_version = $ed.version; core_version = $ed.core; platform = $plat; image = $img; images = ($imgs -join ' '); created_at = (Get-Stamp) }
   [IO.File]::WriteAllText((Join-Path $s 'bundle.json'), (($bundle | ConvertTo-Json) + "`n"))
   $lines = foreach ($f in @('bundle.json', 'edition.json', 'edition.json.sig', 'images.tar', 'release/SHA256SUMS', 'release/SHA256SUMS.sig', "release/usertasks-$($ed.core).tar.gz", 'release/install.sh', 'release/install.ps1')) {
@@ -673,19 +780,34 @@ function Invoke-ProfileCli([string]$image, [string[]]$cliArgs) {
   $script:ProfileOut = ($out | ForEach-Object { "$_" }) -join "`n"
   return ($LASTEXITCODE -eq 0)
 }
+# Your own PostgreSQL or file storage moves services off the standard stack:
+# the Infrastructure add-on (a paid extension) needs its licence first. The
+# bundled stack and a Supabase project need none; neither does a re-run with
+# the services an install already uses.
+function Get-InfraLicenceArgs {
+  $keep = Join-Path $script:Dir 'licences\infrastructure.licence'
+  if ($script:InfraLicenceSrc) {
+    if (-not (Test-Path $script:InfraLicenceSrc)) { Fail "licence file not found: $($script:InfraLicenceSrc)" }
+    New-Item -ItemType Directory -Force -Path (Split-Path $keep) | Out-Null
+    Copy-Item -Force $script:InfraLicenceSrc $keep
+  }
+  if (Test-Path $keep) { return @('--licence=/work/licences/infrastructure.licence') }
+  return @()
+}
 function Apply-Profile([string]$image) {
   $updates = [ordered]@{}
   if (Test-ProfileCli $image) {
     Write-ProfileJson
+    $licArgs = @(Get-InfraLicenceArgs)
+    $envName = Split-Path -Leaf $script:EnvFile
     Step 'Checking the service choices (usertasks-admin install profile)'
-    if (-not (Invoke-ProfileCli $image @('validate', '--from', '/work/profile.json'))) { Say $script:ProfileOut; Fail 'the service choices are not valid (see above); nothing was started' }
+    if (-not (Invoke-ProfileCli $image (@('validate', '--from', '/work/profile.json', '--merge', "/work/$envName") + $licArgs))) { Say $script:ProfileOut; Fail 'the service choices are not valid (see above; your own services need -Licence <Infrastructure licence file>); nothing was started' }
     $areas = Get-ExternalAreas
     if ($areas) {
       if (-not (Invoke-ProfileCli $image @('check', '--from', '/work/profile.json', '--area', $areas))) { Say $script:ProfileOut; Fail 'a service could not be reached (see above). Fix it and run the installer again.' }
       Ok "reached: $areas"
     }
-    $envName = Split-Path -Leaf $script:EnvFile
-    if (-not (Invoke-ProfileCli $image @('write', '--from', '/work/profile.json', '--format', 'env', '--merge', "/work/$envName", '--out', '/work/.env.profile'))) { Say $script:ProfileOut; Fail 'could not write the settings from the service choices' }
+    if (-not (Invoke-ProfileCli $image (@('write', '--from', '/work/profile.json', '--format', 'env', '--merge', "/work/$envName", '--out', '/work/.env.profile') + $licArgs))) { Say $script:ProfileOut; Fail 'could not write the settings from the service choices' }
     $pf = Join-Path $script:Dir '.env.profile'
     foreach ($l in [IO.File]::ReadAllLines($pf)) { if ($l -match '^([A-Z][A-Z0-9_]*)=(.*)$') { $updates[$Matches[1]] = $Matches[2] } }
     Remove-Item -Force $pf
@@ -757,13 +879,16 @@ function Invoke-Install([string[]]$rest) {
     switch ($rest[$i]) {
       '-Dir' { $dir = $rest[++$i] } '-Version' { $v = $rest[++$i] } '-Port' { $port = $rest[++$i] } '-Url' { $url = $rest[++$i] }
       '-Project' { $env:USERTASKS_PROJECT = $rest[++$i] } '-Preset' { $env:USERTASKS_PRESET_CHOICE = $rest[++$i] } '-Build' { $build = $true }
-      '-Edition' { $edition = $rest[++$i] } { $_ -in '-Licence', '-License' } { $licence = $rest[++$i] } '-Bundle' { $bundle = $rest[++$i] }
+      '-Edition' { $edition = $rest[++$i] } { $_ -in '-Licence', '-License' } { $licence = $rest[++$i]; $script:InfraLicenceSrc = $licence } '-Bundle' { $bundle = $rest[++$i] }
       default { Fail "install: unknown option $($rest[$i])" }
     }
   }
   if (-not $dir -or -not $v) { Fail 'install: -Dir and -Version are required' }
+  # A licence and no -Edition: the Enterprise image (every paid extension; the licence unlocks its own).
+  $implicit = $false
+  if (-not $edition -and $licence -and -not $bundle) { $edition = 'enterprise'; $implicit = $true }
   if ($edition -eq 'core') { $edition = '' }
-  if ($edition -and -not (Test-Edition $edition)) { Fail "unknown edition: $edition (editions: sharepoint)" }
+  if ($edition -and -not (Test-Edition $edition)) { Fail "unknown edition: $edition (editions: $($script:EditionsList))" }
   $script:Dir = $dir; $script:StateFile = Join-Path $dir 'state.env'; $script:EnvFile = Join-Path $dir '.env'
   Enter-Lock
   try {
@@ -772,7 +897,7 @@ function Invoke-Install([string[]]$rest) {
       Initialize-State $dir
       if ($script:Version -ne $v) { Say "UserTasks $($script:Version) is installed in $dir. To move to $v run: usertasks upgrade -To $v" }
       Say 'Existing install found: re-checking it (secrets and data are kept).'
-      if ($edition -and $edition -ne $script:Edition -and -not $bundle) { Say "To switch this install to $(Get-EditionName $edition), keeping its data: usertasks upgrade -Edition $edition"; $edition = '' }
+      if ($edition -and $edition -ne $script:Edition -and -not $bundle) { if (-not $implicit) { Say "To switch this install to $(Get-EditionName $edition), keeping its data: usertasks upgrade -Edition $edition" }; $edition = '' }
     } else {
       $script:Project = $env:USERTASKS_PROJECT; if (-not $script:Project) { $script:Project = 'usertasks' }
       if ($script:Project -notmatch '^[a-z0-9][a-z0-9_-]*$') { Fail 'project name: lowercase letters, digits, - and _' }
@@ -792,8 +917,15 @@ function Invoke-Install([string[]]$rest) {
       if ($existing -and $prevImage -and -not $licence -and $script:EditionVersion -and (Test-Path $kept) -and (Test-EditionImage $prevImage $kept)) { $script:Image = $prevImage }
       else {
         $licFile = Get-EditionLicence $script:Edition $licence
-        $script:Image = Get-EditionImage $script:Edition $licFile $script:Version 'install' '. Nothing was installed.'
-        $script:EditionVersion = $script:Ed.version
+        if ($implicit -and -not (Request-Edition $script:Edition $licFile $script:Version 'install' (Join-Path $dir 'editions\.request') (Join-Path $dir 'release-key.pub.pem'))) {
+          if (-not (Test-EditionFallback $script:EditionErrorCode)) { Fail "$($script:EditionError). Nothing was installed." }
+          # Picked only because a licence was given: no Enterprise build to use is not a reason to stop.
+          Warn "UserTasks Enterprise could not be downloaded ($($script:EditionError)): installing the public image. Switch later, data kept: usertasks upgrade -Edition enterprise"
+          $script:Edition = ''; $script:EditionVersion = ''; $script:Image = Get-ReleaseImage $script:Rel
+        } else {
+          $script:Image = Get-EditionImage $script:Edition $licFile $script:Version 'install' '. Nothing was installed.'
+          $script:EditionVersion = $script:Ed.version
+        }
       }
     } else {
       $script:Image = Get-ReleaseImage $script:Rel
@@ -943,7 +1075,7 @@ function Invoke-Upgrade([string[]]$rest) {
   try {
     $from = $script:Version; $fromImg = $script:Image; $fromRel = $script:Rel; $fromEdition = $script:Edition
     $ed = $fromEdition; if ($null -ne $edition) { $ed = $edition }; if ($ed -eq 'core') { $ed = '' }
-    if ($ed -and -not (Test-Edition $ed)) { Fail "unknown edition: $ed (editions: sharepoint, or core for the public image)" }
+    if ($ed -and -not (Test-Edition $ed)) { Fail "unknown edition: $ed (editions: $($script:EditionsList), or core for the public image)" }
     $bundleDir = ''
     if ($bundle) {
       $bundleDir = Open-Bundle (Resolve-Path $bundle).Path
@@ -1100,7 +1232,7 @@ function Invoke-Cli([string[]]$rest) {
 $cmd = 'help'; $rest = @()
 if ($args.Count -gt 0) { $cmd = [string]$args[0]; if ($args.Count -gt 1) { $rest = [string[]]$args[1..($args.Count - 1)] } }
 $serverCommands = 'status', 'logs', 'backup', 'restore', 'upgrade', 'config', 'uninstall', 'setup-code', 'admin', 'start', 'stop', 'restart', 'version', '--version'
-if ($cmd -in 'help', '-h', '--help', '-?') { Get-Content $PSCommandPath | Select-Object -Skip 1 -First 17 | ForEach-Object { $_ -replace '^# ?', '' }; exit 0 }
+if ($cmd -in 'help', '-h', '--help', '-?') { Get-Content $PSCommandPath | Select-Object -Skip 1 -First 18 | ForEach-Object { $_ -replace '^# ?', '' }; exit 0 }
 if ($cmd -eq 'install') { $script:Dir = ''; Invoke-Install $rest; exit 0 }
 if ($cmd -eq 'bundle-download') {
   # Works without an install (install.ps1 -BundleDownload passes -Work <folder>).

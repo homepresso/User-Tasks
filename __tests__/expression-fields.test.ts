@@ -60,7 +60,7 @@ const CONVERTED: Array<{ node: string; key: string; bind: RegExp; resolved: stri
   { node: 'collection_get', key: 'key', bind: /updateConfig\("key", value\)/, resolved: 'resolveExpression(config.key' },
   { node: 'collection_filter', key: 'value', bind: /updateConfig\("value", value\)/, resolved: 'resolveExpression(config.value' },
   { node: 'send_email', key: 'to', bind: /updateConfig\("to", value\)/, resolved: /resolveExpression\(\s*config\.to\b|config\.to[\s\S]{0,80}resolveExpression/ },
-  { node: 'send_email', key: 'subject', bind: /updateConfig\("subject", value\)/, resolved: /resolveExpression\(\s*emailTemplate\?\.subject \?\? config\.subject/ },
+  { node: 'send_email', key: 'subject', bind: /updateConfig\("subject", value\)/, resolved: /renderEmailTemplate\(emailTemplate, ctx, config\.template_variables\)[\s\S]{0,200}resolveExpression\(config\.subject, ctx\)/ },
   { node: 'send_email', key: 'from', bind: /updateConfig\("from", value\)/, resolved: 'resolveExpression(config.from' },
   { node: 'send_email', key: 'reply_to', bind: /updateConfig\("reply_to", value\)/, resolved: 'resolveExpression(config.reply_to' },
   { node: 'server_event', key: 'event_name', bind: /updateConfig\("event_name", value\)/, resolved: 'resolveExpression(config.event_name' },

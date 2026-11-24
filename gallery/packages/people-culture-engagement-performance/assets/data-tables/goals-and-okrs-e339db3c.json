@@ -1,0 +1,147 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e339db3c-8a2e-5997-9060-6633bb357429",
+  "asset": {
+    "id": "e339db3c-8a2e-5997-9060-6633bb357429",
+    "name": "Goals and OKRs",
+    "description": "Company, department and individual objectives for the quarter, aligned to the level above, with progress worked out from their key results (child records).",
+    "columns": [
+      {
+        "id": "752a852c-826e-5783-a7cb-43ac3b886743",
+        "required": true,
+        "key": "goal_ref",
+        "name": "Goal",
+        "type": "text"
+      },
+      {
+        "id": "a4ab53ee-0b33-5e17-a11c-e213dc5f76c3",
+        "required": true,
+        "key": "objective",
+        "name": "Objective",
+        "type": "text"
+      },
+      {
+        "id": "9dd028b0-b27c-5ca5-8943-9fef4c5286b0",
+        "required": false,
+        "key": "level",
+        "name": "Level",
+        "type": "select",
+        "options": [
+          "Company",
+          "Department",
+          "Individual"
+        ]
+      },
+      {
+        "id": "52695ef7-dcf8-55f4-b8bb-a940f1065256",
+        "required": false,
+        "key": "aligned_to",
+        "name": "Aligned to",
+        "type": "text"
+      },
+      {
+        "id": "78d2efb5-191d-5277-ac6f-257a619b3585",
+        "required": false,
+        "key": "owner_name",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "fe11c839-6308-5a07-9120-81b4e06997da",
+        "required": false,
+        "key": "owner_email",
+        "name": "Owner email",
+        "type": "email"
+      },
+      {
+        "id": "5357a8ac-4e3c-5eea-ab21-b406efbdbb68",
+        "required": false,
+        "key": "manager_email",
+        "name": "Manager email",
+        "type": "email"
+      },
+      {
+        "id": "f1a65b2a-4107-5ac9-87a3-6d88abd2a76f",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Company",
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "42df35bd-3c0d-5b63-a84f-a2298225558d",
+        "required": false,
+        "key": "quarter",
+        "name": "Quarter",
+        "type": "text"
+      },
+      {
+        "id": "b0af7798-8d2f-5a9c-bf11-6715c68f70dd",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "On track",
+          "At risk",
+          "Off track",
+          "Done"
+        ]
+      },
+      {
+        "id": "08b2fff4-6ce4-5a5f-aed9-fc99c6e83392",
+        "required": false,
+        "key": "progress",
+        "name": "Progress %",
+        "type": "number"
+      },
+      {
+        "id": "ca59f799-8854-5947-84af-07dd35d02018",
+        "required": false,
+        "key": "progress_bar",
+        "name": "Progress",
+        "type": "text"
+      },
+      {
+        "id": "f0033e3a-3413-5c47-ae66-a24a1804f39e",
+        "required": false,
+        "key": "key_results",
+        "name": "Key results",
+        "type": "number"
+      },
+      {
+        "id": "e7690b66-1646-55ae-bbca-8dc99ae13f23",
+        "required": false,
+        "key": "due_date",
+        "name": "Due date",
+        "type": "date"
+      },
+      {
+        "id": "cb17182a-acd9-59cd-b5da-f18673999d43",
+        "required": false,
+        "key": "last_check_in",
+        "name": "Last check-in",
+        "type": "date"
+      }
+    ],
+    "child_relations": [
+      {
+        "id": "rel_goal_krs",
+        "table_id": "6d174f2d-1916-589a-ac03-91b5f271812d",
+        "lookup_column": "goal",
+        "label": "Key results"
+      }
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a3168e6d-03c0-523a-9cdc-9ee7a81f887b",
+  "asset": {
+    "id": "a3168e6d-03c0-523a-9cdc-9ee7a81f887b",
+    "name": "CRM deal stage history",
+    "description": "Every stage change of a deal: from, to, when, and the amount and probability at the time (written by the deal stage automation).",
+    "columns": [
+      {
+        "id": "947a7a71-06b3-59d3-b819-1472f9313f14",
+        "required": false,
+        "key": "deal_id",
+        "name": "Deal ID",
+        "type": "text"
+      },
+      {
+        "id": "acc415a5-3931-581f-97aa-289b8ec216d4",
+        "required": false,
+        "key": "deal",
+        "name": "Deal",
+        "type": "text"
+      },
+      {
+        "id": "b60c8af3-e0f4-5769-bfa7-49f7b32c01bf",
+        "required": false,
+        "key": "account_id",
+        "name": "Account ID",
+        "type": "text"
+      },
+      {
+        "id": "ac9fc907-2dbf-596b-b2c9-562a6d80ff67",
+        "required": false,
+        "key": "from_stage",
+        "name": "From",
+        "type": "text"
+      },
+      {
+        "id": "8b743012-be86-5dcd-a65d-ba44c437f9b5",
+        "required": false,
+        "key": "to_stage",
+        "name": "To",
+        "type": "select",
+        "options": [
+          "Prospecting",
+          "Qualification",
+          "Proposal",
+          "Negotiation",
+          "Closed won",
+          "Closed lost"
+        ]
+      },
+      {
+        "id": "6d5f97a7-ccdc-5376-ab0f-4d95d06f2c42",
+        "required": false,
+        "key": "changed_on",
+        "name": "Changed on",
+        "type": "date"
+      },
+      {
+        "id": "d96a6fa0-3fa6-5633-b93d-d384acaf3d44",
+        "required": false,
+        "key": "changed_by",
+        "name": "Changed by",
+        "type": "text"
+      },
+      {
+        "id": "93da6095-1271-5a01-9656-6a86167f5224",
+        "required": false,
+        "key": "amount",
+        "name": "Amount (USD)",
+        "type": "number"
+      },
+      {
+        "id": "fbca542b-86bc-5cd5-b453-da3f6165f2eb",
+        "required": false,
+        "key": "probability",
+        "name": "Probability %",
+        "type": "number"
+      }
+    ]
+  }
+}

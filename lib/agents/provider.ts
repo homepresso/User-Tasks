@@ -19,6 +19,8 @@
  *   deepseek      https://api.deepseek.com/chat/completions              Bearer
  *   groq          https://api.groq.com/openai/v1/chat/completions        Bearer
  *   together      https://api.together.xyz/v1/chat/completions           Bearer
+ *   baseten       https://inference.baseten.co/v1/chat/completions       Bearer (Model APIs)
+ *                 https://model-{id}.api.baseten.co/environments/{env}/sync/v1/chat/completions  Bearer (dedicated)
  *   perplexity    https://api.perplexity.ai/chat/completions             Bearer
  *   xai           https://api.x.ai/v1/chat/completions                   Bearer
  *   ollama        {base}/v1/chat/completions                             none (or Bearer when a key is set)
@@ -29,9 +31,11 @@
  * `/chat/completions` is used verbatim.
  */
 
+import { BASETEN_DEFAULT_MODEL, isBasetenHost } from '@/lib/connectors/definitions/baseten'
+
 export type AgentProviderKind =
   | 'openai' | 'anthropic' | 'azure_openai' | 'gemini' | 'bedrock' | 'mistral'
-  | 'deepseek' | 'groq' | 'together' | 'perplexity' | 'xai' | 'ollama' | 'other'
+  | 'deepseek' | 'groq' | 'together' | 'baseten' | 'perplexity' | 'xai' | 'ollama' | 'other'
 
 /** Integration types (connector keys) that are AI providers usable by agents. */
 export const AI_PROVIDER_TYPES: Record<string, AgentProviderKind> = {
@@ -47,6 +51,7 @@ export const AI_PROVIDER_TYPES: Record<string, AgentProviderKind> = {
   deepseek: 'deepseek',
   groq: 'groq',
   together: 'together',
+  baseten: 'baseten',
   perplexity: 'perplexity',
   xai: 'xai',
   grok: 'xai',
@@ -65,6 +70,7 @@ const DEFAULT_PATH: Record<AgentProviderKind, string> = {
   deepseek: '',
   groq: '/openai/v1',
   together: '/v1',
+  baseten: '/v1',
   perplexity: '',
   xai: '/v1',
   ollama: '/v1',
@@ -79,6 +85,7 @@ export const DEFAULT_MODEL: Partial<Record<AgentProviderKind, string>> = {
   mistral: 'mistral-large-latest',
   deepseek: 'deepseek-chat',
   groq: 'llama-3.3-70b-versatile',
+  baseten: BASETEN_DEFAULT_MODEL,
   perplexity: 'sonar-pro',
   xai: 'grok-4',
   ollama: 'llama3.1',
@@ -99,6 +106,7 @@ export function agentProviderKind(integrationType: string | null | undefined, ba
   if (host === 'api.deepseek.com') return 'deepseek'
   if (host === 'api.groq.com') return 'groq'
   if (host === 'api.together.xyz') return 'together'
+  if (isBasetenHost(host)) return 'baseten'
   if (host === 'api.perplexity.ai') return 'perplexity'
   if (host === 'api.x.ai') return 'xai'
   return byType ?? 'other'
@@ -116,7 +124,8 @@ export function resolveChatUrl(kind: AgentProviderKind, baseUrl: string): string
   if (/\/chat\/completions$/i.test(trimmed)) return trimmed
   let path = ''
   try { path = new URL(trimmed).pathname.replace(/\/+$/, '') } catch { /* relative / invalid: leave as is */ }
-  const prefix = path === '' ? DEFAULT_PATH[kind] : ''
+  // Baseten stores a bare host (Model APIs) or a deployment's …/sync root: /v1 always follows.
+  const prefix = kind === 'baseten' ? (/\/v1$/i.test(path) ? '' : '/v1') : path === '' ? DEFAULT_PATH[kind] : ''
   return `${trimmed}${prefix}/chat/completions`
 }
 
@@ -206,11 +215,13 @@ export function providerFileSupport(kind: AgentProviderKind): { images: boolean;
 
 /* ── Errors / retries ── */
 
-export type AgentErrorKind = 'rate_limited' | 'provider_unavailable' | 'timeout' | 'auth' | 'bad_request' | 'not_found' | 'network' | 'unknown'
+/** `quota`: out of credit (402 / insufficient_quota) — never retried. */
+export type AgentErrorKind = 'rate_limited' | 'quota' | 'provider_unavailable' | 'timeout' | 'auth' | 'bad_request' | 'not_found' | 'network' | 'unknown'
 
 export function classifyHttpStatus(status: number): AgentErrorKind {
   if (status === 401 || status === 403) return 'auth'
   if (status === 404) return 'not_found'
+  if (status === 402) return 'quota'
   if (status === 408) return 'timeout'
   if (status === 429) return 'rate_limited'
   if (status >= 500 || status === 409 || status === 529) return 'provider_unavailable'
@@ -241,7 +252,9 @@ export function parseRetryAfterHeader(value: string | null | undefined, now: num
 export function providerErrorMessage(kind: AgentErrorKind, status: number | null, body: string, url: string): string {
   const detail = body.replace(/\s+/g, ' ').trim().slice(0, 300)
   const where = (() => { try { const u = new URL(url); return `${u.host}${u.pathname}` } catch { return url } })()
+  const toolsUnsupported = kind === 'bad_request' && /tool/i.test(detail) && /(not supported|unsupported|does not support|doesn't support|not enabled)/i.test(detail)
   const hint = kind === 'auth' ? ' — check the integration\'s API key'
+    : toolsUnsupported ? ' — this model doesn\'t support tool calling: pick a model that does, or remove the agent\'s tools'
     : kind === 'not_found' ? ` — check the model id and the integration's base URL (${where})`
     : kind === 'rate_limited' ? ' — the provider is rate limiting this key'
     : ''

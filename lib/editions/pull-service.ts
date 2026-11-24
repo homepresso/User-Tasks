@@ -2,6 +2,17 @@
  * POST /api/public/extensions/<edition>/pull-token: a licence in, a
  * 30-minute read-only registry credential for that one edition out.
  *
+ *   enterprise   any licence for a paid extension the build contains
+ *                (edition.json "extensions": sharepoint-se, infrastructure,
+ *                processing-tier when it is in), versions <core>-ent.<n>
+ *   sharepoint   the legacy SharePoint edition, an ALIAS: a SharePoint
+ *                licence; served from the Enterprise upstream (its signed
+ *                compatibility manifest, `sharepoint-edition-<ref>`, so the
+ *                installers of SharePoint edition installs accept it) once
+ *                that upstream is configured, else from its own repository.
+ *                The credential is then for the repository that serves it
+ *                (`repository` in the response).
+ *
  * Request (JSON, ≤ 64 KB):
  *   { "licence": "<the .licence file: JSON text, base64 of it, or the object>",
  *     "version": "latest" | "<core x.y.z>" | "<edition x.y.z-spa.b.c>",   (default latest)
@@ -13,6 +24,7 @@
  *     "username": "licence", "password": "<pull token>", "expires_at": "…",
  *     "image": "usertasks.com/editions/sharepoint@sha256:…",
  *     "edition_version": "0.3.0-sp1.2.0", "core_version": "0.3.0", "extension_version": "1.2.0",
+ *     "included_extensions": "sharepoint,infrastructure", "served_by": "enterprise" (alias only),
  *     "index_digest": "sha256:…",
  *     "edition_manifest": "<base64 of edition.json>", "edition_signature": "<base64 of edition.json.sig>",
  *     "licence_id": "…", "trial": false, "licence_expires_at": "…", "licence_cutoff_at": "…" }
@@ -25,8 +37,8 @@
  */
 
 import type { LicenceKey } from '@/lib/licensing/keyring'
-import { isReleaseVersion, parseEditionVersion, type EditionDefinition } from './catalog'
-import { EditionManifestError, parseEditionManifest, type EditionManifest } from './edition-manifest'
+import { isEditionBuildVersion, isReleaseVersion, type EditionDefinition } from './catalog'
+import { EditionManifestError, editionManifestExtensions, parseEditionManifest, type EditionManifest } from './edition-manifest'
 import { checkLicenceForEdition } from './licence-gate'
 import { mintPullToken } from './pull-token'
 import type { PullLogEntry } from './access-log'
@@ -38,6 +50,12 @@ export const EDITION_SIGNATURE_FILE = 'edition.json.sig'
 export interface EditionRelease {
   manifest: Buffer
   signature: Buffer
+  /**
+   * Where the image is served from when not the edition's own repository (a
+   * legacy edition served by the Enterprise upstream): the token is minted for
+   * that edition and the image named in its repository.
+   */
+  source?: { edition: string; repository: string }
 }
 
 export interface PullServiceDeps {
@@ -67,7 +85,7 @@ export function releaseTagFor(edition: EditionDefinition, version: string): stri
   if (version === 'latest') return 'edition-latest'
   // A core version (its newest edition build), or one exact edition version
   // (x.y.z-spa.b.c, which also reads as a semver pre-release).
-  if (isReleaseVersion(version) || parseEditionVersion(edition, version)) return `edition-${version}`
+  if (isReleaseVersion(version) || isEditionBuildVersion(edition, version)) return `edition-${version}`
   return null
 }
 
@@ -139,22 +157,33 @@ export async function issuePullToken(edition: EditionDefinition, body: Record<st
     return { status: 502, body: { error: 'The edition build is not readable. Please try again later, or contact us.', code: 'upstream_error' } }
   }
 
-  const { token, payload } = mintPullToken({ edition: edition.id, licenceId, trial: gate.trial, now }, config.secret)
+  // The build must contain an extension the licence grants (Enterprise: its signed list).
+  const included = editionManifestExtensions(manifest).map((e) => e.id)
+  const inBuild = checkLicenceForEdition({ raw, edition, now, keyring: deps.keyring(), revoked: config.revoked, onlyExtensions: included })
+  if (!inBuild.ok) {
+    await deps.log({ ...logged, outcome: 'denied', code: inBuild.code, edition_version: manifest.edition_version })
+    return { status: 403, body: { error: inBuild.message, code: inBuild.code } }
+  }
+
+  const source = release.source ?? { edition: edition.id, repository: edition.repository }
+  const { token, payload } = mintPullToken({ edition: source.edition, licenceId, trial: gate.trial, now }, config.secret)
   const expiresAt = new Date(payload.exp * 1000).toISOString()
   await deps.log({ ...logged, outcome: 'issued', code: null, edition_version: manifest.edition_version, token_id: payload.jti, token_expires_at: expiresAt })
   return {
     status: 200,
     body: {
       registry: config.registryHost,
-      repository: edition.repository,
+      repository: source.repository,
       username: PULL_TOKEN_USERNAME,
       password: token,
       expires_at: expiresAt,
-      image: `${config.registryHost}/${edition.repository}@${manifest.index_digest}`,
+      image: `${config.registryHost}/${source.repository}@${manifest.index_digest}`,
       edition: edition.id,
       edition_version: manifest.edition_version,
       core_version: manifest.core_version,
-      extension_version: manifest.extension_version,
+      ...(manifest.extension_version ? { extension_version: manifest.extension_version } : {}),
+      included_extensions: included.join(','),
+      ...(manifest.served_by ? { served_by: manifest.served_by } : {}),
       index_digest: manifest.index_digest,
       edition_manifest: release.manifest.toString('base64'),
       edition_signature: release.signature.toString('base64'),
@@ -181,7 +210,9 @@ export async function latestEditionInfo(edition: EditionDefinition, deps: Pick<P
     try {
       const release = await deps.readRelease('edition-latest')
       const m = release ? parseEditionManifest(release.manifest) : null
-      value = m ? { ...base, available: true, latest_core_version: m.core_version, latest_edition_version: m.edition_version } : { ...base, available: false }
+      value = m
+        ? { ...base, available: true, latest_core_version: m.core_version, latest_edition_version: m.edition_version, included_extensions: editionManifestExtensions(m).map((e) => e.id), ...(m.served_by ? { served_by: m.served_by } : {}) }
+        : { ...base, available: false }
     } catch (error) {
       console.error(`[editions] ${edition.id} latest: ${(error as Error).message}`)
       return { ...base, available: false }

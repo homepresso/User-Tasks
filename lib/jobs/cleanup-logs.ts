@@ -28,6 +28,9 @@ import {
  * `submission_retention_days` (forms without one keep them; forms on legal
  * hold or with a retention policy are skipped).
  *
+ * Also purges step effect records older than 30 days and relayed test-run
+ * events older than a day (lib/workflow-checkpoints.ts, lib/processing/dispatch.ts).
+ *
  * Also cancels designer test runs left waiting for more than 24 hours
  * (lib/workflow-test-runs.ts — never a production run) and their open tasks.
  *
@@ -156,6 +159,18 @@ export async function cleanupExpiredLogs(options: { supabase?: SupabaseClient } 
     }
   } catch (err) {
     console.warn('[cleanup-logs] queue purge failed:', err)
+  }
+
+  // Step effect records (idempotency keys of performed emails / data-table
+  // writes, lib/workflow-checkpoints.ts) after 30 days, and relayed test-run
+  // events left over after a day (migration 20270125100000; skipped before).
+  try {
+    const { data } = await (supabase as any).rpc('purge_step_effects', { p_before: daysAgoIso(30), p_batch_size: 50_000 })
+    totals['workflow_step_effects'] = Number(data ?? 0)
+    const { data: relay } = await (supabase as any).rpc('purge_run_event_relay', { p_before: daysAgoIso(1) })
+    totals['workflow_run_event_relay'] = Number(relay ?? 0)
+  } catch (err) {
+    console.warn('[cleanup-logs] step effect purge failed:', err)
   }
 
   // Form submissions past their form's submission_retention_days (forms

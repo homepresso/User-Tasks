@@ -24,7 +24,9 @@
  * ever act with the signed-in person's own permissions, so a forged history
  * gains nothing.
  */
-import { addUsage, callModel, type AgentUsage, type StreamState } from '@/lib/agent-executor'
+import { addUsage, callModel, type AgentUsage, type RetryInfo, type StreamState } from '@/lib/agent-executor'
+import { classifyFailure, describeFailure, retryStatusMessage, type AgentFailureCode, type AgentFailureView } from '@/lib/agents/errors'
+import type { RetryPolicy } from '@/lib/agents/retry'
 import { chatBodyParams, providerFileSupport, type AgentProviderKind } from '@/lib/agents/provider'
 import { rememberThinkingRejected, thinkingParams, thinkingRejected, withoutThinking } from '@/lib/agents/reasoning'
 import { messagesHeaders, messagesUrl, toMessagesBody, useAnthropicNative } from '@/lib/agents/anthropic-messages'
@@ -132,6 +134,8 @@ export interface TurnInput {
   signal?: AbortSignal
   fetchImpl?: typeof fetch
   sleep?: (ms: number) => Promise<void>
+  /** Retry policy overrides (default: lib/agents/retry.ts retryPolicy — env, then 4 attempts / 45 s). */
+  retryPolicy?: Partial<RetryPolicy>
 }
 
 export interface TurnResult {
@@ -143,6 +147,14 @@ export interface TurnResult {
   toolCalls: number
   usageMissing: boolean
   error?: string
+  /** A provider failure as the person reads it (lib/agents/errors.ts); `error` is then its friendly message. */
+  failure?: AgentFailureView
+  /** The failure's technical message (logs / the usage row; never shown as is). */
+  failureDetail?: string
+  /** Model-call retries made in this turn (telemetry). */
+  retries?: number
+  /** The last retry's reason (an AgentFailureCode) and HTTP status — for the admin's Details after the turn (never shown live). */
+  lastRetry?: { code: AgentFailureCode; status: number | null }
   /** The turn stopped early but resumably (budget / step limit): the last message says "say continue". */
   stopReason?: 'budget' | 'steps'
 }
@@ -459,7 +471,12 @@ export async function runAssistantTurn(input: TurnInput): Promise<TurnResult> {
   const tools = new Map(input.tools.map((t) => [t.name, t]))
   const emit = input.onEvent
   const push = (m: ChatMessage) => { working.push(m); newMessages.push(m) }
-  const result = (status: TurnResult['status'], error?: string): TurnResult => ({ status, newMessages, usage, llmCalls, toolCalls, usageMissing, ...(error ? { error } : {}) })
+  let retries = 0
+  let lastRetry: TurnResult['lastRetry'] | undefined
+  const result = (status: TurnResult['status'], error?: string, failure?: { view: AgentFailureView; detail: string }): TurnResult => ({
+    status, newMessages, usage, llmCalls, toolCalls, usageMissing, ...(error ? { error } : {}), ...(retries ? { retries } : {}), ...(lastRetry ? { lastRetry } : {}),
+    ...(failure ? { failure: failure.view, failureDetail: failure.detail } : {}),
+  })
   const resultMax = (name: string) => tools.get(name)?.maxResultChars ?? TOOL_RESULT_MAX
   /** Stop early but resumably: every call is answered; the last message tells the person to say "continue". */
   const resumableStop = (reason: 'budget' | 'steps', limit: number): TurnResult => {
@@ -598,13 +615,23 @@ export async function runAssistantTurn(input: TurnInput): Promise<TurnResult> {
     const groupsNow = [...activeGroups].sort().join(',')
     if (groupsNow !== providerGroups) { providerTools = toolsForProvider(offered()); providerGroups = groupsNow }
     if (providerTools) body.tools = providerTools
-    llmCalls++
     const stream = {
       state: streamState,
       onDelta: (d: { text?: string }) => { if (d.text) emit({ type: 'delta', text: d.text }) },
       onReset: () => emit({ type: 'delta_reset' }),
     }
-    const opts = { deadline, signal: input.signal, fetchImpl, sleep, maxRetries: 2, stream }
+    // Retries: lib/agents/retry.ts (429 / 5xx / 529 / timeouts / network; Retry-After honoured; env AGENT_RETRY_*). Only this model call is retried — tools that already ran are not.
+    const opts = {
+      deadline, signal: input.signal, fetchImpl, sleep, stream, provider: input.connection.provider,
+      ...(input.retryPolicy ? { policy: input.retryPolicy } : {}),
+      onRetry: (_attempt: number, _message: string, _delay: number, info: RetryInfo) => {
+        retries++
+        const code = classifyFailure({ kind: info.kind, status: info.status, message: '' })
+        lastRetry = { code, status: info.status }
+        // Server-side only (telemetry, the job's progress): the chat route never sends it to the browser — retries are quiet.
+        emit({ type: 'retry', attempt: info.nextAttempt, max_attempts: info.maxAttempts, delay_ms: info.delayMs, code, message: retryStatusMessage(info) })
+      },
+    }
     // The thinking level (lib/agents/reasoning.ts): only for models known to take it; dropped (and remembered) if the provider rejects it.
     const { provider, model } = input.connection
     let thinking = input.connection.thinking && !thinkingRejected(provider, model) ? thinkingParams(provider, model, input.connection.thinking, { native }) : {}
@@ -631,7 +658,13 @@ export async function runAssistantTurn(input: TurnInput): Promise<TurnResult> {
       // Claude's document blocks are native-only: the compatibility endpoint gets the PDFs' fallbacks.
       call = await callModel(input.connection.url, input.connection.headers, { ...withoutThinking(body), messages: messagesNow() }, opts)
     }
-    if (!call.ok) return result(call.kind === 'cancelled' ? 'cancelled' : 'failed', call.error)
+    if (!call.ok) {
+      if (call.kind === 'cancelled') return result('cancelled', call.error)
+      const view = describeFailure(call.failure)
+      return result('failed', view.message, { view, detail: call.error })
+    }
+    // Only answered calls count (a call that failed after its retries is not usage).
+    llmCalls++
     const step = addUsage(usage, call.json?.usage)
     if (!step) usageMissing = true
     lastPrompt = step?.prompt_tokens ?? Math.ceil(chars / 4)

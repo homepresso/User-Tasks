@@ -50,18 +50,57 @@ export function formatPercent(value: number | null | undefined, opts: { locale?:
   return nf(opts.locale, { style: 'percent', maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(ratio)
 }
 
+/**
+ * The workspace's own currency: shown with its bare symbol (`$1,234.50`, not
+ * en-GB's `US$1,234.50`). Other currencies keep the locale's distinguishing
+ * symbol (`A$`, `€`, `£`) or, where amounts in several currencies sit side by
+ * side (`mixed`), the ISO code (`USD 1,234.50`).
+ */
+export const DEFAULT_CURRENCY = 'USD'
+
+export interface CurrencyOptions {
+  locale?: string
+  maxFractionDigits?: number
+  /** The workspace's own currency (default USD): shown with its bare symbol. */
+  home?: string
+  /** Amounts in more than one currency are shown together: label each with its ISO code. */
+  mixed?: boolean
+}
+
+/** How a currency is labelled: the bare symbol for the home currency, the ISO code when mixed, else the locale's symbol. */
+export function currencyDisplay(currency: string, opts: Pick<CurrencyOptions, 'home' | 'mixed'> = {}): 'narrowSymbol' | 'symbol' | 'code' {
+  if (opts.mixed) return 'code'
+  return currency.toUpperCase() === (opts.home ?? DEFAULT_CURRENCY).toUpperCase() ? 'narrowSymbol' : 'symbol'
+}
+
 /** Money in the record's own currency (ISO 4217): `$1,234.50`, `€12`. Falls back to a plain number for an unknown code. */
-export function formatCurrency(amount: number | null | undefined, currency: string, opts: { locale?: string; maxFractionDigits?: number } = {}): string {
+export function formatCurrency(amount: number | null | undefined, currency: string, opts: CurrencyOptions = {}): string {
   if (!isNum(amount)) return '—'
   try {
     return nf(opts.locale, {
       style: 'currency',
       currency: currency.toUpperCase(),
+      currencyDisplay: currencyDisplay(currency, opts),
       ...(opts.maxFractionDigits !== undefined ? { maximumFractionDigits: opts.maxFractionDigits, minimumFractionDigits: Math.min(opts.maxFractionDigits, 2) } : {}),
     }).format(amount)
   } catch {
     return `${formatCount(amount, { locale: opts.locale, maxFractionDigits: 2 })} ${currency.toUpperCase()}`
   }
+}
+
+/**
+ * A headline amount (KPI / metric tiles): millions compact ($4.44M), whole
+ * units from 1,000 ($73,990) and for whole amounts ($0, $250), cents only
+ * when there are some ($42.50). Exact figures stay in tables.
+ */
+export function formatCurrencyHeadline(amount: number | null | undefined, currency: string, opts: Omit<CurrencyOptions, 'maxFractionDigits'> = {}): string {
+  if (!isNum(amount)) return '—'
+  const abs = Math.abs(amount)
+  if (abs >= 1_000_000) {
+    try { return nf(opts.locale, { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: currencyDisplay(currency, opts), notation: 'compact', maximumFractionDigits: 2 }).format(amount) } catch { /* fall through */ }
+  }
+  // Thousands and whole amounts read without cents ($73,990, $0, $250); small amounts with cents keep them ($42.50).
+  return formatCurrency(amount, currency, { ...opts, ...(abs >= 1000 || Number.isInteger(amount) ? { maxFractionDigits: 0 } : {}) })
 }
 
 /** File / payload size: `512 B`, `12.4 KB`, `3.1 MB` (1024-based). */

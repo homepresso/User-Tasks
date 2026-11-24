@@ -369,7 +369,9 @@ describe('the quick-add form', () => {
     expect(html).toContain('value="Why"')
     expect(html).toContain('value="1.5"')
     expect(html).toContain('value="2026-12-01"')
-    expect(html).toContain('value="x, y"')
+    // Tags are chips in the shared tag input (autocomplete), not a comma-separated text box.
+    expect(html).toContain('data-tag="x"')
+    expect(html).toContain('data-tag="y"')
     expect(html).toContain('data-subtask-save')
   })
 

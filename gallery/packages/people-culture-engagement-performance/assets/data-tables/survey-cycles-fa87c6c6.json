@@ -1,0 +1,147 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+  "asset": {
+    "id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+    "name": "Survey cycles",
+    "description": "Each survey run: quarterly engagement, pulse, onboarding (day 30) and exit. Holds the dates, the minimum group size for results (anonymity threshold) and the headline numbers once results are published.",
+    "columns": [
+      {
+        "id": "6556a07f-d12f-59f1-ae00-d25935c5a350",
+        "required": true,
+        "key": "cycle_code",
+        "name": "Cycle code",
+        "type": "text"
+      },
+      {
+        "id": "b676ad49-2674-5975-b1c0-33e13bc606c9",
+        "required": false,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "67bf3c5d-d932-595c-bcec-caa1ee3d5877",
+        "required": false,
+        "key": "label",
+        "name": "Label",
+        "type": "text"
+      },
+      {
+        "id": "cd265744-b535-5520-a0e1-03d6e3d29a69",
+        "required": false,
+        "key": "cycle_order",
+        "name": "Order",
+        "type": "number"
+      },
+      {
+        "id": "464ce0a8-bc08-5891-8672-604800d7097c",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Quarterly engagement",
+          "Pulse",
+          "Onboarding",
+          "Exit"
+        ]
+      },
+      {
+        "id": "3250218c-5a9f-54ac-b41c-1420569a25e8",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Draft",
+          "Open",
+          "Closing",
+          "Published"
+        ]
+      },
+      {
+        "id": "709569f4-5b4f-52f0-895e-8ca6102c755c",
+        "required": false,
+        "key": "opens_on",
+        "name": "Opens on",
+        "type": "date"
+      },
+      {
+        "id": "a90cfd21-19d6-58bc-a704-6bac300e7c86",
+        "required": false,
+        "key": "closes_on",
+        "name": "Closes on",
+        "type": "date"
+      },
+      {
+        "id": "0fe8b1af-b4fd-56c5-ac5e-d73338d9e456",
+        "required": false,
+        "key": "audience",
+        "name": "Audience",
+        "type": "text"
+      },
+      {
+        "id": "54eb6645-4feb-5932-9f48-eac5fe1eeb76",
+        "required": false,
+        "key": "invited",
+        "name": "Invited",
+        "type": "number"
+      },
+      {
+        "id": "7959b238-b91a-5e21-a8ec-17f07211f90d",
+        "required": false,
+        "key": "responded",
+        "name": "Responded",
+        "type": "number"
+      },
+      {
+        "id": "5385bd6e-0b94-55a0-a3ca-f5a7939ae19d",
+        "required": false,
+        "key": "participation_pct",
+        "name": "Participation %",
+        "type": "number"
+      },
+      {
+        "id": "d68f9196-c0fd-5756-b34f-de0a5c08b05d",
+        "required": false,
+        "key": "engagement_score",
+        "name": "Engagement score",
+        "type": "number"
+      },
+      {
+        "id": "4706497a-1d55-5a51-936f-ce614edcbda0",
+        "required": false,
+        "key": "enps",
+        "name": "eNPS",
+        "type": "number"
+      },
+      {
+        "id": "628b0963-a7ba-5cb2-9ea2-14e5a375f691",
+        "required": false,
+        "key": "min_group_size",
+        "name": "Minimum group size",
+        "type": "number"
+      },
+      {
+        "id": "36a6a736-4152-5c12-85ae-ffc67bc187ca",
+        "required": false,
+        "key": "reminder_days",
+        "name": "Reminder after (days)",
+        "type": "number"
+      },
+      {
+        "id": "855f5776-ef61-5014-a3e6-2953b98b7885",
+        "required": false,
+        "key": "results_released",
+        "name": "Results released",
+        "type": "select",
+        "options": [
+          "Yes",
+          "No"
+        ]
+      }
+    ]
+  }
+}

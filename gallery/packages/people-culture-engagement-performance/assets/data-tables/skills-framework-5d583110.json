@@ -1,0 +1,39 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "5d583110-8550-541c-a3b9-2dc8357ff4a6",
+  "asset": {
+    "id": "5d583110-8550-541c-a3b9-2dc8357ff4a6",
+    "name": "Skills framework",
+    "description": "The competencies people grow in, by category, with what good looks like.",
+    "columns": [
+      {
+        "id": "5423ec31-e0ea-590f-a9d8-00a55e357efb",
+        "required": true,
+        "key": "skill",
+        "name": "Skill",
+        "type": "text"
+      },
+      {
+        "id": "1a601b47-186d-54e6-9ac2-652057dfa305",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Craft",
+          "Collaboration",
+          "Customer",
+          "Leadership"
+        ]
+      },
+      {
+        "id": "0f8b53bd-b437-562d-b388-ab75dd2d3399",
+        "required": false,
+        "key": "description",
+        "name": "What good looks like",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -27,6 +27,8 @@ interface ReportChartProps {
   height?: number
   /** Legend / tooltip names of the series (column labels), by key. */
   seriesLabels?: Record<string, string>
+  /** No card of its own (it sits in one already: an app page widget). */
+  bare?: boolean
   /** Optional style overrides from saved report config */
   style?: {
     colors?: string[]
@@ -46,7 +48,7 @@ function cellText(v: unknown): string {
 
 export function ReportChart({
   type, data, xKey = 'name', yKeys = ['value'], nameKey = 'name', valueKey = 'value',
-  title, height = 300, style, seriesLabels,
+  title, height = 300, style, seriesLabels, bare = false,
 }: ReportChartProps) {
   const categorical = type === 'pie' || type === 'funnel'
   // Series colours: the report's own palette (unless it is the old default blue), else the theme's via the resolver.
@@ -62,7 +64,7 @@ export function ReportChart({
 
   if (!data.length) {
     return (
-      <ChartFrame title={displayTitle}>
+      <ChartFrame bare={bare} title={displayTitle}>
         <div className="flex items-center justify-center" style={{ minHeight: Math.min(height, 200) }}>
           <EmptyState size="sm" variant="no-results" icon={BarChart3} title="Nothing to chart yet" description="No rows match this report's filters." />
         </div>
@@ -218,7 +220,7 @@ export function ReportChart({
   })()
 
   return (
-    <ChartFrame title={displayTitle} table={table}>
+    <ChartFrame bare={bare} title={displayTitle} table={table}>
       <ResponsiveContainer width="100%" height={height}>
         {chart as any}
       </ResponsiveContainer>

@@ -1,0 +1,125 @@
+{
+  "id": "86df1dc0-d053-56a8-b3af-247a01b6e212",
+  "slug": "hr-onboarding-portal",
+  "title": "HR onboarding portal",
+  "category": "hr-people",
+  "summary": "An onboarding app: request a new starter in a side panel, track each starter’s checklist, see every team’s onboarding tasks and the start dates on a calendar.",
+  "description": "HR onboarding portal is a ready-made app that gets new starters ready for day one. A hiring manager opens it from the Apps menu, presses New starter and fills in the New starter request in a panel that slides in from the right: name, job title, department, manager, start date, location, employment type and equipment.\n\nEach request starts the New starter onboarding workflow. The starter is added to the New starters table and four items to the Onboarding checklist (IT, Facilities, People team, Manager). IT, Facilities and the People team then get a task each, and the manager gets one to plan the first week; every task is due on the start date. Completing a task ticks off its checklist item and moves the starter’s progress on by 25%.\n\nThe app has five pages: Home (the main buttons, starters in the pipeline, average checklist progress on a gauge, open tasks, progress per starter and who is joining soon), Checklist (items by status, items per team and status, and the checklist grid grouped by starter), Team tasks (your tasks, tasks per person and a Kanban board), Start dates (a month calendar of the tasks due on each start date beside the starter list) and Resources (manager links and how onboarding works). Six sample starters and their checklists make it useful straight after install.",
+  "trigger": "app",
+  "entry_app": "fd4e4f24-b5bc-5f50-b9db-da7b7b6f57a0",
+  "entry_workflow": "1cebc513-e8c4-5143-b67b-74549293c4ac",
+  "entry_form": "7e72464e-c3f4-55fb-a232-76cde5cc168c",
+  "start": "Open Onboarding portal from the Apps menu and press New starter; the request form opens in a side panel and starts the onboarding workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "onboarding",
+    "new starter",
+    "checklist",
+    "calendar",
+    "hr",
+    "app"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "setup": [
+    "Open Apps → Onboarding portal → Settings → Audience: add hiring managers and the IT, Facilities and People teams as contributors.",
+    "Assignees: pick who in IT, Facilities and the People team prepares each new starter (one person per step; change them to teams later). The manager step goes to the manager chosen on each request.",
+    "Edit the locations, departments and equipment on the New starter request form.",
+    "Replace the links on the Resources page with your own guides, and delete the sample starters when you go live."
+  ],
+  "steps": [
+    {
+      "title": "New starter",
+      "body": "New starter opens the request form in a side panel: who, role, department, manager, start date, location and equipment."
+    },
+    {
+      "title": "Checklist created",
+      "body": "The workflow adds the starter and four checklist items (IT, Facilities, People team, Manager)."
+    },
+    {
+      "title": "Teams prepare",
+      "body": "IT, Facilities and the People team each get a task due on the start date."
+    },
+    {
+      "title": "Manager plans",
+      "body": "The manager plans the first week and names a buddy."
+    },
+    {
+      "title": "Ready for day one",
+      "body": "Each task ticks off its item and adds 25% progress; the starter is marked Ready when all four are done."
+    }
+  ],
+  "sample_input": {
+    "starter_name": "Jordan Rivera",
+    "role": "Customer success manager",
+    "department": "Sales",
+    "manager": "$owner",
+    "start_date": "2026-12-14",
+    "location": "Denver HQ",
+    "employment": "Full time",
+    "equipment": [
+      "Laptop",
+      "Headset"
+    ],
+    "notes": "Prefers a desk near the window."
+  },
+  "expect": "completed",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Done",
+        "values": {
+          "asset_tag": "LT-1088"
+        }
+      },
+      {
+        "outcome": "Done",
+        "values": {
+          "desk": "3-14"
+        }
+      },
+      {
+        "outcome": "Done",
+        "values": {
+          "induction": "2026-12-14"
+        }
+      },
+      {
+        "outcome": "Done",
+        "values": {
+          "buddy": "Maya Patel"
+        }
+      }
+    ]
+  },
+  "icon": "user-plus",
+  "screenshots": [
+    {
+      "file": "screenshots/home.webp",
+      "caption": "Home: starters in the pipeline, average checklist progress, progress per starter and who is joining soon."
+    },
+    {
+      "file": "screenshots/checklist.webp",
+      "caption": "Checklist: items by status, items per team and the checklist grouped by starter."
+    },
+    {
+      "file": "screenshots/calendar.webp",
+      "caption": "Start dates: onboarding tasks on a month calendar beside the starter list."
+    },
+    {
+      "file": "screenshots/new-starter-dark.webp",
+      "caption": "New starter request in a side panel, in dark mode.",
+      "theme": "dark"
+    }
+  ]
+}

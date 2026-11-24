@@ -1,0 +1,215 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+  "asset": {
+    "id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+    "name": "CapEx change requests rows",
+    "rows": [
+      {
+        "id": "4fc80061-3423-5566-8a9b-625a66764405",
+        "data": {
+          "cr_ref": "CR-26-001",
+          "project_ref": "CPX-26-001",
+          "project_title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "requested_by": "Alex Morgan",
+          "original_amount": 99500,
+          "additional_amount": 17400,
+          "revised_amount": 116900,
+          "overrun_pct": 17.5,
+          "reason": "Delay costs",
+          "status": "Approved",
+          "decided_on": "2026-06-03"
+        }
+      },
+      {
+        "id": "738742ff-5636-596f-9fb2-91d9f89806a2",
+        "data": {
+          "cr_ref": "CR-26-002",
+          "project_ref": "CPX-26-002",
+          "project_title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "requested_by": "Jonas Berg",
+          "original_amount": 107500,
+          "additional_amount": 24700,
+          "revised_amount": 132200,
+          "overrun_pct": 23,
+          "reason": "Scope change",
+          "status": "Approved",
+          "decided_on": "2026-07-04"
+        }
+      },
+      {
+        "id": "a3a0f718-b874-5fa0-a27c-814d9951cfcf",
+        "data": {
+          "cr_ref": "CR-26-003",
+          "project_ref": "CPX-26-003",
+          "project_title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "requested_by": "Lucía Fernández",
+          "original_amount": 30500,
+          "additional_amount": 7800,
+          "revised_amount": 38300,
+          "overrun_pct": 25.5,
+          "reason": "Scope change",
+          "status": "Approved",
+          "decided_on": "2026-08-05"
+        }
+      },
+      {
+        "id": "e230fee3-6ca0-5032-8c6a-82f107713095",
+        "data": {
+          "cr_ref": "CR-26-004",
+          "project_ref": "CPX-26-004",
+          "project_title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "requested_by": "Owen Gallagher",
+          "original_amount": 96500,
+          "additional_amount": 29000,
+          "revised_amount": 125500,
+          "overrun_pct": 30,
+          "reason": "Price increase",
+          "status": "Approved",
+          "decided_on": "2026-09-06"
+        }
+      },
+      {
+        "id": "b9b66b94-c029-5217-9795-b67306f9db01",
+        "data": {
+          "cr_ref": "CR-26-005",
+          "project_ref": "CPX-26-005",
+          "project_title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "requested_by": "Aiko Tanaka",
+          "original_amount": 608000,
+          "additional_amount": 185400,
+          "revised_amount": 793400,
+          "overrun_pct": 30.5,
+          "reason": "Currency and freight",
+          "status": "Approved",
+          "decided_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "b0fc1148-5d09-51cc-9505-93111a3ba4f2",
+        "data": {
+          "cr_ref": "CR-26-006",
+          "project_ref": "CPX-26-006",
+          "project_title": "Data platform build",
+          "business_unit": "Commercial",
+          "requested_by": "Felix Wagner",
+          "original_amount": 12000,
+          "additional_amount": 3600,
+          "revised_amount": 15600,
+          "overrun_pct": 30,
+          "reason": "Price increase",
+          "status": "Approved",
+          "decided_on": "2026-06-08"
+        }
+      },
+      {
+        "id": "1882a46a-a8ac-5777-8066-e9f70f722a4f",
+        "data": {
+          "cr_ref": "CR-26-007",
+          "project_ref": "CPX-26-007",
+          "project_title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "requested_by": "Zainab Ali",
+          "original_amount": 101000,
+          "additional_amount": 30800,
+          "revised_amount": 131800,
+          "overrun_pct": 30.5,
+          "reason": "Delay costs",
+          "status": "Approved",
+          "decided_on": "2026-07-09"
+        }
+      },
+      {
+        "id": "1e08f4f4-8aa7-5b25-8a3d-07e28e370d09",
+        "data": {
+          "cr_ref": "CR-26-008",
+          "project_ref": "CPX-26-008",
+          "project_title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "requested_by": "Mateo Rossi",
+          "original_amount": 148500,
+          "additional_amount": 43800,
+          "revised_amount": 192300,
+          "overrun_pct": 29.5,
+          "reason": "Currency and freight",
+          "status": "Rejected",
+          "decided_on": "2026-08-10"
+        }
+      },
+      {
+        "id": "6a7d77d8-776c-58e0-9f84-350c2b8a8df2",
+        "data": {
+          "cr_ref": "CR-26-009",
+          "project_ref": "CPX-26-009",
+          "project_title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "requested_by": "Hannah Brooks",
+          "original_amount": 54000,
+          "additional_amount": 16700,
+          "revised_amount": 70700,
+          "overrun_pct": 31,
+          "reason": "Scope change",
+          "status": "Rejected",
+          "decided_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "56f770c5-9ac8-5efa-b583-88532a90bc2b",
+        "data": {
+          "cr_ref": "CR-26-010",
+          "project_ref": "CPX-26-010",
+          "project_title": "Security operations tooling",
+          "business_unit": "IT",
+          "requested_by": "Ravi Shah",
+          "original_amount": 612000,
+          "additional_amount": 143800,
+          "revised_amount": 755800,
+          "overrun_pct": 23.5,
+          "reason": "Unforeseen site conditions",
+          "status": "Pending re-approval",
+          "decided_on": ""
+        }
+      },
+      {
+        "id": "333669d2-ca67-5368-a122-79503db5ed74",
+        "data": {
+          "cr_ref": "CR-26-011",
+          "project_ref": "CPX-26-011",
+          "project_title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "requested_by": "Alex Morgan",
+          "original_amount": 40500,
+          "additional_amount": 11700,
+          "revised_amount": 52200,
+          "overrun_pct": 29,
+          "reason": "Scope change",
+          "status": "Pending re-approval",
+          "decided_on": ""
+        }
+      },
+      {
+        "id": "483cf8ce-22cf-5bd6-9c0d-72583cb65b5d",
+        "data": {
+          "cr_ref": "CR-26-012",
+          "project_ref": "CPX-26-012",
+          "project_title": "Yard tractor",
+          "business_unit": "Commercial",
+          "requested_by": "Jonas Berg",
+          "original_amount": 97000,
+          "additional_amount": 7300,
+          "revised_amount": 104300,
+          "overrun_pct": 7.5,
+          "reason": "Currency and freight",
+          "status": "Auto-approved",
+          "decided_on": "2026-07-14"
+        }
+      }
+    ]
+  }
+}

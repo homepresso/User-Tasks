@@ -19,6 +19,9 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { RetentionPolicyAssignment } from '@/components/governance/retention-policy-assignment'
 import { getRetentionStatus } from '@/lib/retention-policies'
 import { ExportAssetButton } from '@/components/shared/config-transfer'
+import { TagList } from '@/components/ui/tag-chip'
+import { ObjectTagsDialog, useCanEditTags } from '@/components/ui/object-tags-dialog'
+import { Tag as TagIcon } from 'lucide-react'
 import { useDesignerContext } from '@/lib/assistants/client-registry'
 
 interface TableColumn {
@@ -31,6 +34,7 @@ interface TableColumn {
 }
 
 interface CustomTable {
+  tags?: string[]
   id: string
   name: string
   description?: string | null
@@ -93,6 +97,8 @@ export default function CustomTablePage({
   const { tab } = use(searchParams)
   const [activeTab, setActiveTab] = useState<'rows' | 'schema' | 'access'>(tab === 'schema' || tab === 'access' ? tab : 'rows')
   const [importOpen, setImportOpen] = useState(false)
+  const [tagsOpen, setTagsOpen] = useState(false)
+  const canEditTags = useCanEditTags('data_tables')
   const { can } = usePermissions()
 
   const { data: table, isLoading: isTableLoading } = useQuery({
@@ -148,6 +154,9 @@ export default function CustomTablePage({
               {' · '}
               {retentionStatus.label}
             </span>
+            {Array.isArray(table.tags) && table.tags.length > 0 && (
+              <TagList tags={table.tags} max={0} size="xs" className="mt-1.5" />
+            )}
           </>
         }
         actions={
@@ -155,7 +164,14 @@ export default function CustomTablePage({
             {can('data.manage_rows') && (
               <Button variant="secondary" leadingIcon={<Upload />} onClick={() => setImportOpen(true)} data-testid="data-table-import">Import</Button>
             )}
+            {canEditTags && (
+              <Button variant="secondary" leadingIcon={<TagIcon />} onClick={() => setTagsOpen(true)} data-tags-action>Tags…</Button>
+            )}
             <ExportAssetButton ids={[table.id]} name={table.name} allowRows />
+            {tagsOpen && (
+              <ObjectTagsDialog open onOpenChange={setTagsOpen} type="data_tables" id={table.id} name={table.name}
+                tags={Array.isArray(table.tags) ? table.tags : []} invalidate={[['custom-table', id], ['custom-tables']]} />
+            )}
           </>
         }
         tabs={

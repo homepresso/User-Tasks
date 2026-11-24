@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { defineEndpoint } from './registry'
-import { csvFilter, deletedResponse, idParams, itemResponse, listResponse, looseObject, paginationQuery } from './common'
+import { csvFilter, deletedResponse, idParams, itemResponse, listResponse, looseObject, paginationQuery, tagQueryField, tagsBodyField } from './common'
 
 /**
  * Packages: author / build / sign .utpkg files (packages, versions) and the
@@ -9,7 +9,7 @@ import { csvFilter, deletedResponse, idParams, itemResponse, listResponse, loose
  * lib/services/package-installs.
  */
 
-const ASSET_TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control'] as const
+const ASSET_TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control', 'app'] as const
 
 const itemRef = z.object({
   type: z.enum(ASSET_TYPES).describe('Artifact type'),
@@ -30,6 +30,7 @@ const packageRow = z.looseObject({
   excluded: z.array(itemRef),
   data_modes: z.record(z.string(), z.string()),
   latest_version: z.string().nullable(),
+  tags: z.array(z.string()).optional().describe('Tags'),
 })
 const versionRow = z.looseObject({
   id: z.string(),
@@ -84,6 +85,7 @@ export const packageCreateBody = z.object({
   excluded: z.array(itemRef).optional().describe('Auto-included artifacts to leave out'),
   data_modes: dataModes.optional(),
   package_uid: z.string().uuid().optional().describe('Re-create a package with an existing identity (another workspace)'),
+  tags: tagsBodyField,
 })
 
 export const packageUpdateBody = z.object({
@@ -99,6 +101,7 @@ export const packageUpdateBody = z.object({
   add: z.array(itemRef).optional().describe('Add artifacts (and their dependencies)'),
   remove: z.array(itemRef).optional().describe('Leave artifacts out'),
   data_modes: dataModes.optional().describe('Merged over the stored modes'),
+  tags: tagsBodyField,
 })
 
 export const packagePreviewBody = z.object({
@@ -222,6 +225,13 @@ const installPlanResponse = z.looseObject({
   dependencies: z.array(looseObject),
   blockers: z.array(z.string()).describe('Why a real install would be refused'),
   warnings: z.array(looseObject),
+  apps: z.array(z.looseObject({
+    source_id: z.string(), name: z.string(), slug: z.string(), pages: z.number().int(),
+    local_id: z.string().nullable(), local_slug: z.string().nullable(),
+    embed_origins: z.array(z.string()), embed_origins_missing: z.array(z.string()).describe('Sites its Embed widgets frame that Settings → Embedding does not allow yet'),
+    set_audience: z.boolean().describe('A new app: its audience is empty until the installer shares it'),
+    slug_conflict: z.string().optional().describe('The slug is taken here: the address the new app gets instead'),
+  })).optional().describe('Apps in the package (audience and editors never travel: the installer becomes the editor)'),
   install: installRow.optional(),
   result: looseObject.optional(),
 })
@@ -251,7 +261,7 @@ const packageParams = z.object({ id: z.string().describe('Package id or slug') }
 
 export const listPackagesEndpoint = defineEndpoint({
   method: 'GET', path: '/packages', operationId: 'listPackages', tags, summary: 'List packages authored in this workspace',
-  permission: 'packages.view', query: paginationQuery, response: listResponse('packages', packageRow), listKey: 'packages',
+  permission: 'packages.view', query: paginationQuery.extend({ tag: tagQueryField }), response: listResponse('packages', packageRow), listKey: 'packages',
   cli: { resource: 'packages', verb: 'list' },
 })
 export const createPackageEndpoint = defineEndpoint({

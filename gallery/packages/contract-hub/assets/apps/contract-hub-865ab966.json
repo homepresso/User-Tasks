@@ -1,0 +1,446 @@
+{
+  "format_version": 3,
+  "asset_type": "apps",
+  "id": "865ab966-f2a6-5726-9aa9-779a4a4a4eb8",
+  "asset": {
+    "id": "865ab966-f2a6-5726-9aa9-779a4a4a4eb8",
+    "name": "Contract hub",
+    "slug": "contracts",
+    "subtitle": "Approvals, renewals and the register",
+    "description": "Submit a contract for approval, follow the approval pipeline, see the renewals coming up and keep the contract register in one place.",
+    "icon": "FilePen",
+    "color": "#4338ca",
+    "menu": [],
+    "settings": {
+      "nav": {
+        "style": "top",
+        "header_style": "plain",
+        "density": "comfortable"
+      },
+      "style": {
+        "default": {
+          "radius": "lg",
+          "shadow": "sm"
+        },
+        "presets": []
+      }
+    },
+    "pages": [
+      {
+        "id": "40824934-9f03-5ea5-baff-d78c1d12c57e",
+        "slug": "overview",
+        "title": "Overview",
+        "icon": "LayoutDashboard",
+        "position": 0,
+        "layout": {
+          "widgets": [
+            {
+              "id": "actions",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Submit a contract",
+                    "icon": "FilePlus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "lg",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Submit a contract"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "21f3d5fd-7c35-5437-9fd8-cf517721e729",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Renewals",
+                    "icon": "CalendarClock",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "renewals"
+                    }
+                  },
+                  {
+                    "label": "My reviews",
+                    "icon": "ClipboardCheck",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "badge": "my_tasks",
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "reviews"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "value",
+              "title": "Contract value (USD)",
+              "w": 4,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "value_usd",
+                "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+                "format": "currency",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "DollarSign",
+                "accent": "violet"
+              }
+            },
+            {
+              "id": "count",
+              "title": "Contracts in the register",
+              "w": 4,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+                "format": "number",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "Files",
+                "accent": "blue"
+              }
+            },
+            {
+              "id": "reviews",
+              "title": "Reviews open",
+              "w": 4,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "workflow_id": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+                "status": "open",
+                "compare_previous": false,
+                "icon": "Scale",
+                "accent": "amber",
+                "click": {
+                  "page": "reviews"
+                },
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "funnel",
+              "title": "Approval pipeline",
+              "w": 7,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "funnel",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "stage",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "by_type",
+              "title": "Value by contract type (USD)",
+              "w": 5,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "type",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "value_usd",
+                "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+                "max_groups": 8
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "8e07d5a9-b44f-50ee-ad67-510d0bbde0ea",
+        "slug": "renewals",
+        "title": "Renewals",
+        "icon": "CalendarClock",
+        "position": 1,
+        "layout": {
+          "widgets": [
+            {
+              "id": "cal",
+              "title": "Renewal decisions and reviews by due date",
+              "w": 8,
+              "h": 12,
+              "type": "task_calendar",
+              "config": {
+                "scope": "all",
+                "workflow_id": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+                "status": "all",
+                "view": "month"
+              }
+            },
+            {
+              "id": "soon",
+              "title": "Renewal decisions, soonest first",
+              "w": 4,
+              "h": 12,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "title",
+                  "subtitle": "counterparty",
+                  "image_style": "none",
+                  "badge": "type",
+                  "badge_colors": [],
+                  "fields": [
+                    {
+                      "key": "renewal_date",
+                      "label": "Decide by",
+                      "icon": "CalendarClock"
+                    },
+                    {
+                      "key": "value_usd",
+                      "label": "USD",
+                      "icon": "DollarSign"
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "kind": "detail",
+                    "label": "Details"
+                  }
+                ],
+                "layout": "list",
+                "card_size": "sm",
+                "sort": "renewal_date",
+                "sort_dir": "asc",
+                "show_search": false,
+                "page_size": 8
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "fb17d429-1279-5b92-bae2-502c0b5d934a",
+        "slug": "register",
+        "title": "Register",
+        "icon": "Table",
+        "position": 2,
+        "layout": {
+          "widgets": [
+            {
+              "id": "grid",
+              "title": "Contract register",
+              "w": 12,
+              "h": 12,
+              "type": "data_grid",
+              "config": {
+                "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+                "columns": [
+                  "contract_ref",
+                  "title",
+                  "counterparty",
+                  "type",
+                  "value_usd",
+                  "owner",
+                  "start_date",
+                  "end_date",
+                  "renewal_date",
+                  "auto_renew",
+                  "stage"
+                ],
+                "editable": true,
+                "group_by": "type",
+                "page_size": 25
+              }
+            },
+            {
+              "id": "pivot",
+              "title": "Value by type and stage (USD)",
+              "w": 12,
+              "h": 7,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+                "rows": "field",
+                "row_field": "type",
+                "columns": "field",
+                "column_field": "stage",
+                "interval": "month",
+                "aggregate": "sum",
+                "value_field": "value_usd"
+              }
+            }
+          ],
+          "rules": [
+            {
+              "id": "open_contract",
+              "name": "Open a contract in a side panel",
+              "enabled": true,
+              "when": {
+                "type": "row_click",
+                "widget": "grid"
+              },
+              "then": [
+                {
+                  "type": "open_target",
+                  "target": {
+                    "kind": "record",
+                    "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+                    "row_id": "{{event.row.id}}"
+                  },
+                  "open_mode": {
+                    "mode": "panel_right",
+                    "width": "md",
+                    "motion": "slide",
+                    "resizable": true
+                  },
+                  "title": "{{event.row.title}}"
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "ce8623ee-a22f-5953-acd8-e4979831beb1",
+        "slug": "reviews",
+        "title": "My reviews",
+        "icon": "Scale",
+        "position": 3,
+        "layout": {
+          "widgets": [
+            {
+              "id": "mine",
+              "title": "Waiting for me",
+              "w": 7,
+              "h": 9,
+              "type": "task_list",
+              "config": {
+                "scope": "mine",
+                "workflow_id": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+                "status": "open",
+                "limit": 10,
+                "show_claim": true,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "where",
+              "title": "Where contracts wait",
+              "w": 5,
+              "h": 9,
+              "type": "bottleneck",
+              "config": {
+                "workflow_id": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+                "limit": 6
+              }
+            },
+            {
+              "id": "sla",
+              "title": "Reviews on time by reviewer",
+              "w": 6,
+              "h": 7,
+              "type": "sla_breakdown",
+              "config": {
+                "source": "tasks",
+                "by": "assignee",
+                "workflow_id": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+                "date_range": {
+                  "filter": "period"
+                },
+                "at_risk_hours": 24,
+                "limit": 10
+              }
+            },
+            {
+              "id": "cycle",
+              "title": "Time per review",
+              "w": 6,
+              "h": 7,
+              "type": "cycle_time",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "week"
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "period",
+            "kind": "date_range",
+            "label": "Period",
+            "default": {
+              "preset": "90d"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

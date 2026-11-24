@@ -114,6 +114,8 @@ export const SERVER_RULE_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set([
 export function isServerRuleAction(action: Pick<FieldButtonAction, 'type' | 'commit_mode'>): boolean {
   return SERVER_RULE_ACTIONS.has(action.type) || ((action.type === 'commit_row' || action.type === 'delete_row') && action.commit_mode === 'save_now')
 }
+/** Steps that may run once per item of a repeating section / List (`each_item`). */
+export const EACH_ITEM_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['table_create', 'table_update', 'table_delete', 'call_reference'])
 /** Steps with on-success / on-failure steps of their own (server steps, and Commit / Delete row). */
 export const BRANCHING_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['call_reference', ...TABLE_ACTION_TYPES, 'commit_row', 'delete_row'])
 /** The branch names a server step's own steps are addressed by (ActionBranch.response). */
@@ -277,6 +279,15 @@ export interface FieldButtonAction {
   empty_text?: string
   /** table_*: run once per selected row of this List ({{row.<column>}} = that row). */
   each_selected?: string
+  /**
+   * table_create / table_update / table_delete / call_reference: run once
+   * per item of this repeating section or List — every item, not only the
+   * selected ones ({{row.<field>}} = that item; the server reads the item
+   * from the submitted values, never from the event). Ignored with
+   * each_selected. "Map to data event" (lib/forms/data-event.ts) writes
+   * child records with it.
+   */
+  each_item?: string
   /** call_reference: false = fire and forget (queued; the form doesn't wait). Default true. */
   wait?: boolean
   /** call_reference: give up after this many milliseconds (1–30 s; default 10 s). */
@@ -641,6 +652,8 @@ function normalizeAction(raw: unknown, rule = false): FieldButtonAction | null {
       break
   }
   if (raw.allow_anonymous === true && isServerRuleAction(out)) out.allow_anonymous = true
+  // Once per item of a repeating section / List (rules only; each_selected wins).
+  if (rule && EACH_ITEM_ACTIONS.has(type) && !out.each_selected && typeof raw.each_item === 'string' && KEY_RE.test(raw.each_item)) out.each_item = raw.each_item
   // A nested List (lib/forms/list-field.ts): the child column (path) and the parent row.
   if (NESTED_LIST_ACTIONS.has(type) && typeof raw.child === 'string' && CHILD_PATH_RE.test(raw.child.trim())) {
     out.child = raw.child.trim()
@@ -1706,6 +1719,11 @@ export async function runFieldButton(config: Pick<FieldButtonConfig, 'actions'> 
               if (!picked.length) { host.message(action.empty_text ? interpolateButtonText(action.empty_text, { values, extras }) : 'Select a row first', 'info'); return stop('selection_empty') }
               const base = isPlainObject(extras.event) ? extras.event : {}
               for (const i of picked) outcome = await host.runExtra(index, action, values, branch, { ...base, row: rows[i], row_number: i + 1, index: i })
+            } else if (action.each_item && !action.each_selected && EACH_ITEM_ACTIONS.has(action.type)) {
+              // Once per item of a repeating section / List (child records): no items, nothing to write.
+              const rows = rawListRows(values[action.each_item])
+              const base = isPlainObject(extras.event) ? extras.event : {}
+              for (let i = 0; i < rows.length; i++) outcome = await host.runExtra(index, action, values, branch, { ...base, row: rows[i], row_number: i + 1, index: i })
             } else {
               outcome = await host.runExtra(index, action, values, branch)
             }

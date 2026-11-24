@@ -1,0 +1,2561 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+  "asset": {
+    "id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+    "name": "Survey participation rows",
+    "rows": [
+      {
+        "id": "122a3c2e-2e98-5ebe-87bb-4240c7686173",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rosa Ortiz",
+          "employee_email": "rosa.ortiz@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6f1ad781-b0a4-5ddc-8d54-c371ea8367a3",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Daniel Okafor",
+          "employee_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6db7ab66-7a6f-52d0-9f63-d6c12d57e4c0",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Owen Gallagher",
+          "employee_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "2e0b499e-7482-5912-813b-759814e2196f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Alex Ward",
+          "employee_email": "alex.ward@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "ad152a7c-b04f-5ab9-ad50-c970c018886a",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Jamal Alvarez",
+          "employee_email": "jamal.alvarez@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "ae5c718b-f55c-5b3d-a947-4c33645f6495",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Hannah Owens",
+          "employee_email": "hannah.owens@fernhill.example",
+          "department": "Engineering",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "28580791-46e2-5208-95e5-34f79d84cf65",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Sofia Price",
+          "employee_email": "sofia.price@fernhill.example",
+          "department": "Engineering",
+          "location": "Austin",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "0b5be5c5-4ea2-52b7-b50c-20067c5c77a1",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Iris Kapoor",
+          "employee_email": "iris.kapoor@fernhill.example",
+          "department": "Engineering",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "242c455f-eb91-56e9-8eee-d2a2b1ceb08e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Esme Silva",
+          "employee_email": "esme.silva@fernhill.example",
+          "department": "Engineering",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "18c41b89-f19f-5dbc-b916-41757d17208c",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Diego Weber",
+          "employee_email": "diego.weber@fernhill.example",
+          "department": "Engineering",
+          "location": "Chicago",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "708d2ff3-dfe9-53b5-a0a8-c8cb68a34bf4",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rahul Mori",
+          "employee_email": "rahul.mori@fernhill.example",
+          "department": "Engineering",
+          "location": "Chicago",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "5eb38ce7-bb48-5e1d-9d90-07814073bd8e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Lucía Laurent",
+          "employee_email": "lucia.laurent@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "8abb9a81-8524-56fe-9cb1-fb64a136ff96",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ingrid Silva",
+          "employee_email": "ingrid.silva@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "928eaa63-de95-5853-9153-e76ce4a51740",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Chloe Sato",
+          "employee_email": "chloe.sato@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "c4eb89f6-2d2a-5838-a20b-66f899467651",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Felix Iyer",
+          "employee_email": "felix.iyer@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "1522cc75-afa6-5b25-95c4-bbb367866269",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Fatima Kim",
+          "employee_email": "fatima.kim@fernhill.example",
+          "department": "Engineering",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "b72deaa4-09e2-50fa-96d6-69af073d969a",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Hugo Rossi",
+          "employee_email": "hugo.rossi@fernhill.example",
+          "department": "Engineering",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "a100ce9c-0167-5e9c-a2c5-daeda69b3ebe",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Lucas Schmidt",
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "department": "Engineering",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "b271a95b-4d99-5e43-8955-80bf92771dc4",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Talia Tanaka",
+          "employee_email": "talia.tanaka@fernhill.example",
+          "department": "Engineering",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "048343ad-23aa-5072-bd7f-28ffc19f85a8",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rosa Morgan",
+          "employee_email": "rosa.morgan@fernhill.example",
+          "department": "Engineering",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6c602537-95de-533d-8ad7-91c633cbf7f5",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Zoe Levi",
+          "employee_email": "zoe.levi@fernhill.example",
+          "department": "Engineering",
+          "location": "Chicago",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "c87de1cb-47c8-50e9-bddd-0a07ef77ea6a",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Talia Jordan",
+          "employee_email": "talia.jordan@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "a957e09c-a4d0-562e-b72e-53e92bb346db",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Clara Quinn",
+          "employee_email": "clara.quinn@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "2f999eeb-1182-5f9b-a6bf-136a52fd5fa7",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Zoe Price",
+          "employee_email": "zoe.price@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "09ca7ecd-8f41-55d6-8775-d002c54ba161",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ben Murphy",
+          "employee_email": "ben.murphy@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "9ab8d9e6-6d4c-52ce-b03f-d1627f603c81",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Andre Laurent",
+          "employee_email": "andre.laurent@fernhill.example",
+          "department": "Engineering",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "f1e16944-84dc-5dbb-95b5-d491523425f9",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Andre Kim",
+          "employee_email": "andre.kim@fernhill.example",
+          "department": "Engineering",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "0b5aeaf4-86bf-5cf6-b0a1-a2bbed9796ff",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Talia Costa",
+          "employee_email": "talia.costa@fernhill.example",
+          "department": "Engineering",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "e779916e-20b1-5be2-b994-cde9a380d275",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Yuki Berg",
+          "employee_email": "yuki.berg@fernhill.example",
+          "department": "Engineering",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "db4a2315-4fa4-5eca-831e-064cc7aba0c9",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Alex Schmidt",
+          "employee_email": "alex.schmidt@fernhill.example",
+          "department": "Engineering",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "b7b30f29-fabf-5540-abd9-516756c8f665",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Malik Kim",
+          "employee_email": "malik.kim@fernhill.example",
+          "department": "Engineering",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "99d580b6-8a19-57b9-ad93-f8caa53e7fa2",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Jonas Patel",
+          "employee_email": "jonas.patel@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "0fa6b2b1-09a8-525f-bd19-2d2fc51abbc7",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Clara Haddad",
+          "employee_email": "clara.haddad@fernhill.example",
+          "department": "Engineering",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "b1f035b2-e09a-5967-9bf8-a92f81c1c651",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Priya Raman",
+          "employee_email": "priya.raman@fernhill.example",
+          "department": "Product",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "b08ef7d0-012b-5ea2-83b6-a2d0c390c845",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rosa Chen",
+          "employee_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "7f9863fe-9e0f-5397-9f05-54999ea1f69f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Kenji Sato",
+          "employee_email": "kenji.sato@fernhill.example",
+          "department": "Product",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "43342de2-de35-5198-81bb-71d7ffd5388d",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Grace Larsen",
+          "employee_email": "grace.larsen@fernhill.example",
+          "department": "Product",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "1cbea133-8270-50a3-add4-2ec79ec88673",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Liam Mensah",
+          "employee_email": "liam.mensah@fernhill.example",
+          "department": "Product",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "f3d259b4-a155-5d65-b2ac-a0e75803d589",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Marcus Brooks",
+          "employee_email": "marcus.brooks@fernhill.example",
+          "department": "Product",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "964b6b23-cafe-5104-b3a7-e189d18f61bd",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Victor Grant",
+          "employee_email": "victor.grant@fernhill.example",
+          "department": "Product",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "322bac08-eeaf-5f2c-a17e-c6e6ddc8ace7",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Nadia Hughes",
+          "employee_email": "nadia.hughes@fernhill.example",
+          "department": "Product",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "bf95acd1-25dd-50c5-a588-dbad4411be30",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ava Novak",
+          "employee_email": "ava.novak@fernhill.example",
+          "department": "Product",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6ffa5199-8ca4-5bc4-92b0-ac3ef0948ffa",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Clara Farouk",
+          "employee_email": "clara.farouk@fernhill.example",
+          "department": "Product",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "59c7a999-9673-5ba0-9c01-b3b8a64d3821",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ravi Haddad",
+          "employee_email": "ravi.haddad@fernhill.example",
+          "department": "Product",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "d6b57af8-1d81-5f19-bf86-196f2ace8486",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ethan Fraser",
+          "employee_email": "ethan.fraser@fernhill.example",
+          "department": "Product",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "c64a18a9-4116-58fc-8e4e-8ceddeef9e7b",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Aiko Tanaka",
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "department": "Design",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "ccf7a0b6-3c41-51f4-9ee6-08e6f4cd99bc",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Marcus Patel",
+          "employee_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "location": "Boise studio",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "59f6a43c-c3ef-5a0b-be45-00115d12c3b1",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Jonas Farouk",
+          "employee_email": "jonas.farouk@fernhill.example",
+          "department": "Design",
+          "location": "Boise studio",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "13526ec4-a1e5-510c-9741-8ed685bf25d5",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Caleb Ward",
+          "employee_email": "caleb.ward@fernhill.example",
+          "department": "Design",
+          "location": "Boise studio",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "533611db-c029-5db6-ab04-5e890670243f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Arjun Kapoor",
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "department": "Design",
+          "location": "Boise studio",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "094873b8-b1a5-5335-be23-018e9edf5c41",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Isla Carter",
+          "employee_email": "isla.carter@fernhill.example",
+          "department": "Design",
+          "location": "Boise studio",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "1f1d47bc-ba4b-5a53-a512-12240f005563",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Caleb Iyer",
+          "employee_email": "caleb.iyer@fernhill.example",
+          "department": "Design",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "a2b0ad67-7c38-5be4-b656-5ff5fb02f7cb",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Mateo Rossi",
+          "employee_email": "mateo.rossi@fernhill.example",
+          "department": "Design",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6d8e86ee-38f6-5ee2-93bd-70912ce1df9f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Iris Jordan",
+          "employee_email": "iris.jordan@fernhill.example",
+          "department": "Design",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "553eaef9-905b-58e7-a1bf-36ab4434644e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Samir Grant",
+          "employee_email": "samir.grant@fernhill.example",
+          "department": "Design",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "548f49e9-d66f-5c37-8c0b-4811c08bc1db",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Sam Torres",
+          "employee_email": "sam.torres@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "abdddc86-57fc-57af-a338-6b5910f70b3f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Nora Raman",
+          "employee_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "cf3dc9a3-bde1-5b03-aa80-e4548ddea2d3",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Lucas Raman",
+          "employee_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "c622db35-ff34-5b2e-8749-b3286a7d3749",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Kwame Okafor",
+          "employee_email": "kwame.okafor@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "9932ae97-1dcc-57a9-aa8a-4566632878d5",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rahul Tanaka",
+          "employee_email": "rahul.tanaka@fernhill.example",
+          "department": "Sales",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "edff1132-7fe1-5b20-ab3c-43b2ac5ac342",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "June Bennett",
+          "employee_email": "june.bennett@fernhill.example",
+          "department": "Sales",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "55ec19f6-7d26-5547-9dac-5224be185998",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ava Ward",
+          "employee_email": "ava.ward@fernhill.example",
+          "department": "Sales",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "4b371d3a-0293-5d6d-add3-d9b42aa9e5f2",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Chloe Grant",
+          "employee_email": "chloe.grant@fernhill.example",
+          "department": "Sales",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "f217c3f5-1a85-599c-88f5-2abe3d3231ce",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Elena Tanaka",
+          "employee_email": "elena.tanaka@fernhill.example",
+          "department": "Sales",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "b92b672a-4ed0-50a1-8111-98d2ac1d6d3a",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Caleb Berg",
+          "employee_email": "caleb.berg@fernhill.example",
+          "department": "Sales",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "aecfdddf-85ae-5d75-9c49-86b2c5720e07",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ava Okafor",
+          "employee_email": "ava.okafor@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "164dcce3-dc6d-57c1-a23b-a6f02a3521b0",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Jonas Park",
+          "employee_email": "jonas.park@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "56eea9fb-cc0a-510c-a1cc-5bf8e562664c",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Nora Torres",
+          "employee_email": "nora.torres@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "d3cddd56-ced1-5ff2-9893-d3d50ef717d2",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Sofia Quinn",
+          "employee_email": "sofia.quinn@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "2410efa7-4452-5585-8b1a-662e7addb484",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Nora Laurent",
+          "employee_email": "nora.laurent@fernhill.example",
+          "department": "Sales",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "121caecd-93a7-5722-8334-70039b2b2b6c",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Zoe Sato",
+          "employee_email": "zoe.sato@fernhill.example",
+          "department": "Sales",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "fb20d6dc-2c1b-5423-8ac7-f02bbda8bce8",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Tomás Park",
+          "employee_email": "tomas.park@fernhill.example",
+          "department": "Sales",
+          "location": "Remote (US)",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "d35f6c2b-fe1d-59fd-9ac7-d67b3162f349",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Maya Haddad",
+          "employee_email": "maya.haddad@fernhill.example",
+          "department": "Sales",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "53ed2464-2ca6-5e87-a14a-81e81b5c4966",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Malik Quinn",
+          "employee_email": "malik.quinn@fernhill.example",
+          "department": "Sales",
+          "location": "Chicago",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "0bf7f02c-8432-555b-9674-b1f5d44ab9af",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "June Silva",
+          "employee_email": "june.silva@fernhill.example",
+          "department": "Sales",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "5033dcdf-7227-5f34-b203-6149945b49d8",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ingrid Alvarez",
+          "employee_email": "ingrid.alvarez@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "4cb252f8-d7ec-55cb-ab60-3c5850af357c",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Oscar Fernández",
+          "employee_email": "oscar.fernandez@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "763de571-2bd8-5d75-adf5-3f127cdf0d06",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Oscar Levi",
+          "employee_email": "oscar.levi@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "56abd761-d80a-5860-bfff-14d7b9cde8a7",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Isla Raman",
+          "employee_email": "isla.raman@fernhill.example",
+          "department": "Sales",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "cbdb3210-521b-5aa4-8c4f-0722883f6aed",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Omar Murphy",
+          "employee_email": "omar.murphy@fernhill.example",
+          "department": "Sales",
+          "location": "Austin",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "786fc8ef-da1b-5950-96c0-9c35dd28d7f5",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Owen Rahman",
+          "employee_email": "owen.rahman@fernhill.example",
+          "department": "Sales",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "ff59c173-3185-5c61-8af0-fd527da5869b",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Grace Kim",
+          "employee_email": "grace.kim@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "71ec8b1a-7a62-584d-9888-a8ed780cba3c",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Yuki Sato",
+          "employee_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "4045fe83-8061-557a-ba5c-ef075e970771",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Arjun Wagner",
+          "employee_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "b1872a10-fd66-5429-9168-151378ce5efb",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "June Laurent",
+          "employee_email": "june.laurent@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "182d7c2b-9ede-5fe1-a08f-c51725f6734f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Victor Okafor",
+          "employee_email": "victor.okafor@fernhill.example",
+          "department": "Customer Success",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6e335223-2dc9-5ec3-a25e-0e96d711bb48",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Priya Price",
+          "employee_email": "priya.price@fernhill.example",
+          "department": "Customer Success",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "86e6f0f4-5ad7-5d8d-8694-a63c78c74727",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Maya Bennett",
+          "employee_email": "maya.bennett@fernhill.example",
+          "department": "Customer Success",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "f1c13a2e-dfb1-5f1c-99ff-d65a3d578d85",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Nora Rahman",
+          "employee_email": "nora.rahman@fernhill.example",
+          "department": "Customer Success",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "8d37106a-aaab-5141-9f8e-704462d81d35",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Lena Quinn",
+          "employee_email": "lena.quinn@fernhill.example",
+          "department": "Customer Success",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "21ae75c6-55c8-5c45-a136-58baf21f6b9e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Kenji Park",
+          "employee_email": "kenji.park@fernhill.example",
+          "department": "Customer Success",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "4c09a4f7-3d08-5b6a-8011-2fb6f6daaf61",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Aiko Mensah",
+          "employee_email": "aiko.mensah@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "1ed833e8-420c-5c98-a1ba-0129bcb41e02",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ethan Larsen",
+          "employee_email": "ethan.larsen@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "976f44dc-590b-5947-bc74-419805a1a17a",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Jonas Raman",
+          "employee_email": "jonas.raman@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "77281eba-8df1-53f3-8321-32d6214d58a9",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Leah Mehta",
+          "employee_email": "leah.mehta@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "ae4638e6-a669-5128-a287-4fbff4de1f24",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Marcus Carter",
+          "employee_email": "marcus.carter@fernhill.example",
+          "department": "Customer Success",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "f817624f-193f-5e5c-bf71-62eb212bbb72",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Yuki Mehta",
+          "employee_email": "yuki.mehta@fernhill.example",
+          "department": "Customer Success",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6388d00a-249a-5bcb-bbb3-7d08a1190df3",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Clara Tanaka",
+          "employee_email": "clara.tanaka@fernhill.example",
+          "department": "Customer Success",
+          "location": "Remote (US)",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "f9b56a95-139f-5728-9d75-6a2093c239fa",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ben Berg",
+          "employee_email": "ben.berg@fernhill.example",
+          "department": "Customer Success",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "880acf0d-07ce-5278-9196-42301ba2db06",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ruby Farouk",
+          "employee_email": "ruby.farouk@fernhill.example",
+          "department": "Customer Success",
+          "location": "Chicago",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "1adfdae1-57e2-573a-be91-c7dd5f356121",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rosa Mehta",
+          "employee_email": "rosa.mehta@fernhill.example",
+          "department": "Customer Success",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "7a0c122b-482b-58bc-8517-95dac23790cf",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Elena Larsen",
+          "employee_email": "elena.larsen@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "ada353c8-f740-59d4-b702-d6acb5d5f293",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Chloe Weber",
+          "employee_email": "chloe.weber@fernhill.example",
+          "department": "Customer Success",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "f89db8c7-31cc-527f-8c21-52bf3b337a69",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Jonas Berg",
+          "employee_email": "jonas.berg@fernhill.example",
+          "department": "Marketing",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "09de2712-504c-5c87-9cdb-12484123ccea",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Sofia Torres",
+          "employee_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "fe98aa16-9c23-57ac-92bb-e6e24d3b338f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Marcus Quinn",
+          "employee_email": "marcus.quinn@fernhill.example",
+          "department": "Marketing",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "fb52c07c-a008-5c4f-9f87-99efbc5a381e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Alex Ali",
+          "employee_email": "alex.ali@fernhill.example",
+          "department": "Marketing",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "09d42608-4530-58b8-9c99-cff303b648e1",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Leah Novak",
+          "employee_email": "leah.novak@fernhill.example",
+          "department": "Marketing",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6e1fe47b-cd22-5dc7-ab4d-683a2b8aa632",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Owen Ward",
+          "employee_email": "owen.ward@fernhill.example",
+          "department": "Marketing",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "05d22d41-d797-5672-8199-3afcd4488529",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Iris Kim",
+          "employee_email": "iris.kim@fernhill.example",
+          "department": "Marketing",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "e62d1af2-5136-579f-a8fd-7da9bc0efb9d",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Kwame Murphy",
+          "employee_email": "kwame.murphy@fernhill.example",
+          "department": "Marketing",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "1e474510-2e22-5c6e-b8ca-0ee56ca51874",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Clara Bennett",
+          "employee_email": "clara.bennett@fernhill.example",
+          "department": "Marketing",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "2dc49c4c-ba85-59dd-87d6-ddd61de72878",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rahul Fernández",
+          "employee_email": "rahul.fernandez@fernhill.example",
+          "department": "Marketing",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "342d3367-053b-503c-8960-557408179801",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Mei Owens",
+          "employee_email": "mei.owens@fernhill.example",
+          "department": "Marketing",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "8c91d49d-3240-5141-b513-f7ad2a48d355",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rosa Quinn",
+          "employee_email": "rosa.quinn@fernhill.example",
+          "department": "Marketing",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "3063872e-7c44-57c0-93fd-82101c5b60e9",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ravi Okafor",
+          "employee_email": "ravi.okafor@fernhill.example",
+          "department": "Marketing",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "96883d78-d52f-510e-98dd-00509931e923",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Mateo Dubois",
+          "employee_email": "mateo.dubois@fernhill.example",
+          "department": "Marketing",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "31498bcc-9051-5526-a5c7-8f08f6478a12",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Felix Wagner",
+          "employee_email": "felix.wagner@fernhill.example",
+          "department": "Finance",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-21",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "a5385a8c-f17e-54e1-856d-e0eb681aac2f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Lucía Fernández",
+          "employee_email": "lucia.fernandez@fernhill.example",
+          "department": "Finance",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "df025855-762b-5f7e-91b5-01f6d4540c48",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Arjun Gallagher",
+          "employee_email": "arjun.gallagher@fernhill.example",
+          "department": "Finance",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "c20fe814-609e-52fb-8e70-883ad81a8864",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Aiko Wagner",
+          "employee_email": "aiko.wagner@fernhill.example",
+          "department": "Finance",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "dd2f2210-d0b2-5f56-a59f-2546b366292e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Owen Weber",
+          "employee_email": "owen.weber@fernhill.example",
+          "department": "Finance",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6b03fae6-a939-56f8-a6e9-40ce353a2b5a",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Victor Park",
+          "employee_email": "victor.park@fernhill.example",
+          "department": "Finance",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "b8840a97-647c-55c6-beb8-b8601d319d92",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Nadia Weber",
+          "employee_email": "nadia.weber@fernhill.example",
+          "department": "Finance",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-19",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "cd4b6d77-01eb-5ee6-8c85-1a450c7a0373",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Yuki Ward",
+          "employee_email": "yuki.ward@fernhill.example",
+          "department": "Finance",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "18bf411a-4790-5d0d-989c-c0c1dd021e45",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Theo Mehta",
+          "employee_email": "theo.mehta@fernhill.example",
+          "department": "Finance",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "783224e7-e8a2-56cc-994b-f08ab39c462e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Noah Novak",
+          "employee_email": "noah.novak@fernhill.example",
+          "department": "Finance",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "6bce887b-a7e8-57f2-9294-4a8e270a22fb",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Jonas Ortiz",
+          "employee_email": "jonas.ortiz@fernhill.example",
+          "department": "Finance",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "d10cd9a7-31c8-5d1c-a79b-f912c249760f",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Lucía Jordan",
+          "employee_email": "lucia.jordan@fernhill.example",
+          "department": "Finance",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "85b2038c-07b1-5203-aadc-5ee29c36fa93",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Alex Morgan",
+          "employee_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "0175977b-0a58-52eb-a43e-3d985a0ab9bc",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Maya Patel",
+          "employee_email": "maya.patel@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "407ad0f2-4b4c-52ce-bf36-20e7e3a76140",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Alex Quinn",
+          "employee_email": "alex.quinn@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "a4d6d99a-d0d1-5b13-b584-9632009d4c08",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Kenji Dubois",
+          "employee_email": "kenji.dubois@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "f6272021-5e6f-5059-893e-4f89b2e2c931",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Oscar Patel",
+          "employee_email": "oscar.patel@fernhill.example",
+          "department": "People & Operations",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "014a82c4-96db-578e-989f-b24fcba33e1e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Andre Owens",
+          "employee_email": "andre.owens@fernhill.example",
+          "department": "People & Operations",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "502b2278-a601-5a86-940f-10f00e43b5b6",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Lena Fernández",
+          "employee_email": "lena.fernandez@fernhill.example",
+          "department": "People & Operations",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "deedb513-26bb-50b6-b1db-3d778bd922de",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Hugo Sato",
+          "employee_email": "hugo.sato@fernhill.example",
+          "department": "People & Operations",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "643d3b82-68c3-53bb-bd09-01845746eb98",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Ben Jordan",
+          "employee_email": "ben.jordan@fernhill.example",
+          "department": "People & Operations",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "c5baa089-9dc9-5524-a2db-d71d03cec7cc",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Nora Larsen",
+          "employee_email": "nora.larsen@fernhill.example",
+          "department": "People & Operations",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "ec340c38-52d5-5bbb-8739-419b9aa0e9b3",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Nadia Ward",
+          "employee_email": "nadia.ward@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "c3bbb938-6098-57a9-84c5-0bcc4ea3274e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Owen Rossi",
+          "employee_email": "owen.rossi@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-16",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "0eb59ed6-70a3-51e2-9e45-4972c8058996",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rosa Farouk",
+          "employee_email": "rosa.farouk@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 1,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "91b1c16e-083b-50c3-ad50-d88eba53a9fc",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Jonas Okafor",
+          "employee_email": "jonas.okafor@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "d04bfe1c-d327-5b94-907e-f378a438284d",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Zoe Mori",
+          "employee_email": "zoe.mori@fernhill.example",
+          "department": "People & Operations",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "92993f70-0a2c-5fe2-b3ad-ba48f43557bc",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Victor Berg",
+          "employee_email": "victor.berg@fernhill.example",
+          "department": "People & Operations",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "ca365e65-2c5f-573f-b231-0c4ecc51e036",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Alex Novak",
+          "employee_email": "alex.novak@fernhill.example",
+          "department": "People & Operations",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-18",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "8c6a522d-cdb2-5397-a086-e2a87032923e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Arjun Rossi",
+          "employee_email": "arjun.rossi@fernhill.example",
+          "department": "People & Operations",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "3be9d34b-33d7-5430-90f0-e841ac73855e",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rosa Tanaka",
+          "employee_email": "rosa.tanaka@fernhill.example",
+          "department": "People & Operations",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-20",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "8b40473d-2c23-53e3-964a-3646b9b3de56",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Isla Ortiz",
+          "employee_email": "isla.ortiz@fernhill.example",
+          "department": "People & Operations",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "status": "Responded",
+          "invited_on": "2026-11-16",
+          "responded_on": "2026-11-17",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "be8d51a5-811d-5e34-ad87-bfec05dcdf11",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "cycle_name": "November 2026 pulse",
+          "employee_name": "Rahul Carter",
+          "employee_email": "rahul.carter@fernhill.example",
+          "department": "People & Operations",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "status": "Invited",
+          "invited_on": "2026-11-16",
+          "responded_on": "",
+          "reminders_sent": 0,
+          "closes_on": "2026-11-30"
+        }
+      }
+    ]
+  }
+}

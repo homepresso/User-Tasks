@@ -26,6 +26,9 @@ import { InlineNotice } from '@/components/ui/inline-notice'
 import { Pagination } from '@/components/ui/list-controls'
 import { ExportAssetButton, ExportAssetDialog } from '@/components/shared/config-transfer'
 import { buildQueuedDeleteNotice, type DeleteNotice } from '@/lib/queued-delete-feedback'
+import { TagFilterMenu, TagsActionButton, TagsCell, useTagFilter } from '@/components/ui/list-tags'
+import { BulkTagsDialog, ObjectTagsDialog, useCanEditTags } from '@/components/ui/object-tags-dialog'
+import { Tag as TagIcon } from 'lucide-react'
 
 interface DataTableListProps {
   tables: any[]
@@ -96,6 +99,10 @@ export function DataTableList({ tables }: DataTableListProps) {
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [bulkDeleteNotice, setBulkDeleteNotice] = useState<DeleteNotice | null>(null)
   const [localTables, setLocalTables] = useState<any[]>(tables)
+  const tagFilter = useTagFilter(localTables, (t: { tags?: string[] | null }) => t.tags)
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[] }>(null)
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false)
+  const canEditTags = useCanEditTags('data_tables')
 
   const depsTable = localTables.find(t => t.id === depsId)
   const { data: deps, isLoading: depsLoading } = useTableDependencies(depsId ?? '')
@@ -139,14 +146,15 @@ export function DataTableList({ tables }: DataTableListProps) {
 
   const filtered = useMemo(() => {
     const q = normalizedSearch
-    return localTables.filter(t =>
+    return localTables.filter(t => tagFilter.matches(t) && (
       !q
       || (t.name ?? '').toLowerCase().includes(q)
       || (t.description ?? '').toLowerCase().includes(q)
       || (t.creator?.display_name ?? '').toLowerCase().includes(q)
-      || rowMatchesByTable.has(t.id),
+      || (t.tags ?? []).some((tag: string) => tag.toLowerCase().includes(q))
+      || rowMatchesByTable.has(t.id)),
     )
-  }, [localTables, normalizedSearch, rowMatchesByTable])
+  }, [localTables, normalizedSearch, rowMatchesByTable, tagFilter])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -247,8 +255,9 @@ export function DataTableList({ tables }: DataTableListProps) {
           aria-label="Search tables"
           wrapperClassName="w-full max-w-sm"
         />
+        <TagFilterMenu tags={tagFilter.allTags} selected={tagFilter.selected} onChange={tagFilter.setSelected} />
         <span className="num text-xs text-fg-muted">
-          {normalizedSearch ? `${formatCount(sorted.length)} of ${plural(localTables.length, 'table')}` : plural(localTables.length, 'table')}
+          {normalizedSearch || tagFilter.active ? `${formatCount(sorted.length)} of ${plural(localTables.length, 'table')}` : plural(localTables.length, 'table')}
         </span>
         {selected.size > 0 && (
           <div className="ml-auto flex items-center gap-1 rounded-md bg-primary-wash py-0.5 pl-3 pr-1">
@@ -256,6 +265,7 @@ export function DataTableList({ tables }: DataTableListProps) {
             <ExportAssetButton ids={[...selected]} name={plural(selected.size, 'table')} allowRows variant="ghost" size="sm" />
             {/* Bulk / toolbar actions contributed by extensions for data tables. */}
             <ExtensionToolbarActions objectType="data_table" items={localTables.filter((t) => selected.has(t.id)) as unknown as Array<Record<string, unknown>>} />
+            {canEditTags && <Button size="sm" variant="ghost" leadingIcon={<TagIcon />} onClick={() => setBulkTagsOpen(true)} data-bulk-tags>Tags…</Button>}
             <Button size="sm" variant="ghost" leadingIcon={<Shield />} onClick={() => setShowBulkPermissions(true)}>
               Permissions
             </Button>
@@ -281,6 +291,7 @@ export function DataTableList({ tables }: DataTableListProps) {
             {sortHeader('name', 'Name', { className: columnClass.title })}
             {sortHeader('rows', 'Rows', { numeric: true, className: 'w-24' })}
             {sortHeader('columns', 'Columns', { numeric: true, className: 'w-24' })}
+            <th scope="col" className={cn(thClass, columnClass.text, 'w-48')} data-tags-column>Tags</th>
             <th scope="col" className={cn(thClass, columnClass.text, 'w-48')}>Retention</th>
             <th scope="col" className={cn(thClass, columnClass.people, 'w-48')}>Created by</th>
             {sortHeader('updated_at', 'Updated', { className: cn(columnClass.date, 'w-36') })}
@@ -290,10 +301,10 @@ export function DataTableList({ tables }: DataTableListProps) {
         <TBody>
           {sorted.length === 0 && (
             <TableEmpty
-              colSpan={8}
+              colSpan={9}
               variant="no-results"
-              title={`No tables match “${search.trim()}”`}
-              action={{ label: 'Clear search', onClick: () => setSearch('') }}
+              title={search.trim() ? `No tables match “${search.trim()}”` : 'No tables carry the chosen tags'}
+              action={{ label: 'Clear filters', onClick: () => { setSearch(''); tagFilter.clear() } }}
             />
           )}
           {paged.map((table) => {
@@ -332,6 +343,9 @@ export function DataTableList({ tables }: DataTableListProps) {
                 </TD>
                 <TD numeric>{formatCount(table.row_count?.[0]?.count ?? 0)}</TD>
                 <TD numeric>{formatCount((table.columns as any[])?.length ?? 0)}</TD>
+                <TD className="max-w-48">
+                  <TagsCell tags={table.tags} selected={tagFilter.selected} onToggle={tagFilter.toggle} />
+                </TD>
                 <TD className="max-w-48 truncate whitespace-nowrap text-fg-muted">
                   {table.retention_policy_id ? (policyName.get(table.retention_policy_id) ?? 'Policy assigned') : '—'}
                 </TD>
@@ -347,6 +361,7 @@ export function DataTableList({ tables }: DataTableListProps) {
                   <span title={formatAbsolute(updated)}>{formatRelative(updated)}</span>
                 </TD>
                 <TDActions onClick={(e) => e.stopPropagation()}>
+                  <TagsActionButton onClick={() => setTagsTarget({ id: table.id, name: table.name, tags: table.tags ?? [] })} />
                   <IconButton size="sm" label="Export" icon={<Download />} onClick={() => setExportId(table.id)} />
                   <IconButton size="sm" label="Dependency map" icon={<MapIcon />} onClick={() => setDepsId(table.id)} />
                 </TDActions>
@@ -394,6 +409,13 @@ export function DataTableList({ tables }: DataTableListProps) {
         loading={depsLoading}
         rowLabel="Rows"
       />
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="data_tables" id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['custom-tables']]} />
+      )}
+      {bulkTagsOpen && (
+        <BulkTagsDialog open onOpenChange={setBulkTagsOpen} type="data_tables" ids={[...selected]} invalidate={[['custom-tables']]} onDone={() => setSelected(new Set())} />
+      )}
     </div>
   )
 }

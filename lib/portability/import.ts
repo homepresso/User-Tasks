@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto'
 import { serviceRoleClient } from '@/lib/services/_shared'
 import { isActionManifest } from '@/lib/custom-actions/manifest'
 import { isRetiredFormAsset, restoreFormHeaderImage, stripWorkflowFormPins } from './forms'
+import { isRetiredAppAsset } from './apps'
 import { unpinAgentVersions } from '@/lib/agents/pins'
 import {
   createEmptyAssetIdMaps,
@@ -20,6 +21,16 @@ import {
   type AssetIdMaps,
 } from './id-maps'
 import { resolveSecretPlaceholders } from './scrub'
+import { manifestTags } from '@/lib/tags/normalize'
+import { isMissingTagsColumn } from '@/lib/services/tags-column'
+
+/**
+ * `tags` for an imported row: only when the manifest has them, so importing
+ * an older manifest (no tags key) leaves an existing object's tags alone.
+ */
+function tagsField(asset: any): { tags?: string[] } {
+  return Array.isArray(asset?.tags) ? { tags: manifestTags(asset.tags) } : {}
+}
 import {
   cloneJson,
   isObjectBackedReference,
@@ -119,6 +130,9 @@ export async function importManifest(params: ImportManifestParams) {
   const retiredForms = (Array.isArray(manifest.forms) ? manifest.forms : []).filter(isRetiredFormAsset)
   const portableForms = (Array.isArray(manifest.forms) ? manifest.forms : []).filter((form: unknown) => !isRetiredFormAsset(form))
   if (Array.isArray(manifest.forms) && (portableForms.length > 0 || retiredForms.length === 0)) created.forms = []
+  // Today's apps (with pages); an `apps` section of the retired shape (asset links) is skipped below.
+  const portableApps = (Array.isArray(manifest.apps) ? manifest.apps : []).filter((app: unknown) => !isRetiredAppAsset(app))
+  if (portableApps.length) created.apps = []
 
   const updatedCounts: Record<string, number> = {}
   const upsertErrors: Array<{ asset_type: string; source_id: string; error: string }> = []
@@ -177,21 +191,27 @@ export async function importManifest(params: ImportManifestParams) {
     client?: any
   }): Promise<any> => {
     const db = args.client ?? supabase
+    // A database without the tags column yet (migration 20270122150000) imports the row without its tags.
+    const withoutTags = (payload: Record<string, any>) => { const { tags: _tags, ...rest } = payload; return rest }
     if (args.existing) {
       const payload = resolveSecretPlaceholders(args.payload, args.existing)
-      const { data, error } = await (db as any)
+      const update = (values: Record<string, any>) => (db as any)
         .from(args.table)
-        .update(payload)
+        .update(values)
         .eq('id', args.existing.id)
         .eq('tenant_id', tenantId)
         .select('*')
         .single()
+      let { data, error } = await update(payload)
+      if (error && 'tags' in payload && isMissingTagsColumn(error)) ({ data, error } = await update(withoutTags(payload)))
       if (error || !data) throw new Error(error?.message ?? args.failureMessage)
       updatedCounts[args.mapName] = (updatedCounts[args.mapName] ?? 0) + 1
       return data
     }
     const payload = mode === 'upsert' ? resolveSecretPlaceholders(args.payload) : args.payload
-    const { data, error } = await (db as any).from(args.table).insert(payload).select('*').single()
+    const insert = (values: Record<string, any>) => (db as any).from(args.table).insert(values).select('*').single()
+    let { data, error } = await insert(payload)
+    if (error && 'tags' in payload && isMissingTagsColumn(error)) ({ data, error } = await insert(withoutTags(payload)))
     if (error || !data) throw new Error(error?.message ?? args.failureMessage)
     return data
   }
@@ -214,6 +234,12 @@ export async function importManifest(params: ImportManifestParams) {
     const createdForms = (created.forms ?? []).map((item: any) => item.id)
     const createdThemes = (created.form_themes ?? []).map((item: any) => item.id)
     const createdControls = (created.form_controls ?? []).map((item: any) => item.id)
+    const createdApps = (created.apps ?? []).map((item: any) => item.id)
+    if (createdApps.length) {
+      // Apps have no client write grants (pages, editors cascade).
+      const admin = await serviceRoleClient(serviceContext).catch(() => supabase)
+      await (admin as any).from('apps').delete().eq('tenant_id', tenantId).in('id', createdApps)
+    }
     if (createdForms.length || createdThemes.length || createdControls.length) {
       const admin = await serviceRoleClient(serviceContext).catch(() => supabase)
       if (createdForms.length) await (admin as any).from('forms').delete().eq('tenant_id', tenantId).in('id', createdForms)
@@ -325,6 +351,7 @@ export async function importManifest(params: ImportManifestParams) {
             columns,
             // Grid views (lib/grid/column-model.ts; migration 20270116110000): only when the export has some.
             ...(Array.isArray(table.views) && table.views.length ? { views: remapKnownIds(cloneJson(table.views), idMaps) } : {}),
+            ...tagsField(table),
             created_by: actingUserId ?? null,
           },
         })
@@ -334,6 +361,37 @@ export async function importManifest(params: ImportManifestParams) {
           created.data_tables.push(data)
         }
       })
+    }
+
+    // Child-record relations (custom_tables.child_relations, migration 20270119090000) and lookup
+    // columns between the tables of this import: written again once every table has its local id,
+    // so a child table imported before its parent still points at the right table.
+    for (const table of manifest.data_tables ?? []) {
+      const relations = Array.isArray(table?.child_relations) ? table.child_relations : []
+      const lookups = (Array.isArray(table?.columns) ? table.columns : []).some((col: any) => col?.lookup?.sourceTableId && idMaps.data_table[String(col.lookup.sourceTableId)])
+      const localId = idMaps.data_table[table?.id]
+      if (!localId || (!relations.length && !lookups)) continue
+      await guardAsset('data_table', table.id, async () => {
+        const patch: Record<string, unknown> = {}
+        if (lookups) patch.columns = remapKnownIds(cloneJson(table.columns), idMaps)
+        if (relations.length) patch.child_relations = remapKnownIds(cloneJson(relations), idMaps)
+        let { error } = await (supabase as any).from('custom_tables').update(patch).eq('id', localId).eq('tenant_id', tenantId)
+        // A database without the column (migration not applied) keeps the remapped lookups.
+        if (error?.code === '42703' && patch.child_relations) {
+          delete patch.child_relations
+          ;({ error } = Object.keys(patch).length ? await (supabase as any).from('custom_tables').update(patch).eq('id', localId).eq('tenant_id', tenantId) : { error: null })
+        }
+        if (error) throw new Error(`Failed to link data table "${table.name}": ${error.message}`)
+      })
+    }
+
+    // Field-change history (custom_tables.audit_changes, migration 20270128090000). It records updates only, so
+    // imported or sample rows start with an empty history. A database without the column imports the table without it.
+    for (const table of manifest.data_tables ?? []) {
+      const localId = idMaps.data_table[table?.id]
+      if (!localId || table?.audit_changes !== true) continue
+      const { error } = await (supabase as any).from('custom_tables').update({ audit_changes: true }).eq('id', localId).eq('tenant_id', tenantId)
+      if (error && error.code !== '42703' && error.code !== 'PGRST204') throw new Error(`Failed to switch on the change history of "${table.name}": ${error.message}`)
     }
 
     const referencesByIntegrationId = new Map<string, any[]>()
@@ -583,6 +641,7 @@ export async function importManifest(params: ImportManifestParams) {
             inputs: cloneJson(normalizedTable.inputs ?? []),
             outputs: cloneJson(normalizedTable.outputs ?? []),
             rules: remapKnownIds(cloneJson(normalizedTable.rules ?? []), idMaps),
+            ...tagsField(table),
           },
         })
         if (!existing) {
@@ -811,6 +870,7 @@ export async function importManifest(params: ImportManifestParams) {
             category: report.category ?? null,
             is_shared: report.is_shared ?? false,
             config: normalizedConfig,
+            ...tagsField(report),
           },
         })
         if (!existing) {
@@ -977,6 +1037,7 @@ export async function importManifest(params: ImportManifestParams) {
             user_variables: userVariables,
             swimlanes,
             is_active: workflow.is_active ?? false,
+            ...tagsField(workflow),
           },
         })
         if (!existing) {
@@ -1005,6 +1066,41 @@ export async function importManifest(params: ImportManifestParams) {
       await guardAsset('form', String(pending.asset.id ?? ''), async () => {
         await applyFormManifest(serviceContext, { ...pending.asset, buttons: remapKnownIds(cloneJson(pending.buttons), idMaps) }, pending.localId)
       })
+    }
+
+    // Apps after everything they use (forms, workflows, tables, reports,
+    // references, agents). Written through lib/services/app-packages: objects
+    // remapped by the app reference walker, people not in this workspace
+    // dropped, icons sanitised again, a new app gets a free slug, the
+    // installer as its editor and an empty audience; links between apps of
+    // this manifest follow their local slugs once all are written.
+    const appSlugs = new Map<string, string>()
+    const writtenApps: string[] = []
+    const appResults: Array<{ id: string; created: boolean; had_unpublished_changes?: boolean; source_id: string }> = []
+    if (portableApps.length) {
+      const { applyAppManifest, relinkApps, publishImportedApps } = await import('@/lib/services/app-packages')
+      for (const app of portableApps) {
+        await guardAsset('app', app?.id, async () => {
+          const existing = await findExistingForUpsert('apps', 'app', app.id).catch(() => null)
+          const result = await applyAppManifest(serviceContext, cloneJson(app), existing?.id ?? null, idMaps, appSlugs)
+          idMaps.app[app.id] = result.id
+          if (typeof app.slug === 'string') appSlugs.set(app.slug, result.slug)
+          writtenApps.push(result.id)
+          appResults.push({ id: result.id, created: result.created, had_unpublished_changes: result.had_unpublished_changes, source_id: String(app.id ?? '') })
+          for (const warning of result.warnings) importWarnings.push({ asset_type: 'app', source_id: String(app.id ?? ''), warning })
+          if (result.created) {
+            onAssetWritten?.('app', app.id, result.id)
+            created.apps.push({ id: result.id, slug: result.slug })
+          } else {
+            updatedCounts.app = (updatedCounts.app ?? 0) + 1
+          }
+        })
+      }
+      await relinkApps(serviceContext, writtenApps, appSlugs)
+      // Apps go live like form packages (published as their next version) — unless their editors had unpublished changes.
+      for (const { id, warning } of await publishImportedApps(serviceContext, appResults)) {
+        importWarnings.push({ asset_type: 'app', source_id: appResults.find((r) => r.id === id)?.source_id ?? '', warning })
+      }
     }
 
     // Log destinations last: their filters may name workflows (workflow_ids
@@ -1048,7 +1144,7 @@ export async function importManifest(params: ImportManifestParams) {
 
     // Apps were retired. Old manifests may still carry an apps (or
     // projects) section — skip it and surface the count.
-    const retiredApps = Array.isArray(manifest.apps) ? manifest.apps : Array.isArray(manifest.projects) ? manifest.projects : []
+    const retiredApps = [...(Array.isArray(manifest.apps) ? manifest.apps.filter(isRetiredAppAsset) : []), ...(Array.isArray(manifest.projects) ? manifest.projects : [])]
     if (retiredApps.length > 0) {
       importWarnings.push({
         asset_type: 'app',
@@ -1135,7 +1231,7 @@ export type ImportTenantManifestParams = {
  * Insertion order follows importManifest (email templates → connectors → data tables →
  * integrations/references → objects → business rules → retention policies →
  * roles → mcp servers → workflow activities → reports → agents → form themes →
- * forms → workflows → log destinations).
+ * forms → workflows → apps → log destinations).
  *
  * Scrub resolution: in create mode there is no existing record to resolve
  * '__SECRET__' placeholders against, so those values are dropped and the

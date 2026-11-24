@@ -25,6 +25,7 @@ import { FavoriteStar, useFavoriteForms } from "./favorite-star"
 import { taskFormPath } from "./task-row-details"
 import { TaskDetailPanel } from "@/components/tasks/task-detail-panel"
 import { UnreadDot, unreadTitleClass } from "@/components/tasks/unread-dot"
+import { TaskTags } from "@/components/tasks/task-tags"
 import { MarkAllReadButton } from "@/components/tasks/task-read-controls"
 import { showsUnread } from "@/lib/tasks/unread"
 import { SortButton } from "@/components/tasks/sortable-header"
@@ -221,14 +222,17 @@ function OpenFormButton({ task }: { task: HomeTask }) {
  * The row's title cell: a disclosure button (Enter / Space toggle) that
  * expands the row; the task's own link sits in the expanded details.
  */
-function Disclosure({ open, onToggle, controls, title, unread = false, ref }: { open: boolean; onToggle: () => void; controls: string; title: string; unread?: boolean; ref?: React.Ref<HTMLButtonElement> }) {
+function Disclosure({ open, onToggle, controls, title, unread = false, tags, ref }: { open: boolean; onToggle: () => void; controls: string; title: string; unread?: boolean; tags?: readonly string[]; ref?: React.Ref<HTMLButtonElement> }) {
   return (
     <span data-sticky-cell className={cn("flex min-w-0 items-center self-stretch", stickyCellClass)}>
       <button ref={ref} type="button" onClick={onToggle} aria-expanded={open} aria-controls={open ? controls : undefined}
         className="flex min-w-0 items-center gap-1.5 rounded-sm text-left font-medium text-fg" data-home-task-toggle title={title}>
         <ChevronRight className={cn("size-3.5 shrink-0 text-fg-muted transition-transform duration-[var(--ds-dur-fast)]", open && "rotate-90")} aria-hidden="true" />
         <UnreadDot unread={unread} />
-        <span className={cn("truncate", unreadTitleClass(unread))}>{title}</span>
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className={cn("truncate", unreadTitleClass(unread))}>{title}</span>
+          {tags?.length ? <TaskTags tags={tags} max={3} className="font-normal" /> : null}
+        </span>
       </button>
     </span>
   )
@@ -253,7 +257,7 @@ function TaskRow({ task, cols, children, rowAttr, onNotice }: { task: HomeTask; 
     <li {...rowAttr} data-expanded={open || undefined} data-unread={unread || undefined}>
       <div className={rowClass("cursor-pointer")} style={{ gridTemplateColumns: cols }}
         onClick={(e) => { if (!(e.target as HTMLElement).closest("a, button, input, select, [role='dialog']")) setOpen((v) => !v) }}>
-        <Disclosure ref={toggleRef} open={open} onToggle={() => setOpen((v) => !v)} controls={detailsId} title={task.title} unread={unread} />
+        <Disclosure ref={toggleRef} open={open} onToggle={() => setOpen((v) => !v)} controls={detailsId} title={task.title} unread={unread} tags={task.tags} />
         {children}
         <span className="flex flex-nowrap items-center gap-0.5 md:justify-end">
           {task.run_id && <ProcessViewIconLink runId={task.run_id} title={task.title} />}

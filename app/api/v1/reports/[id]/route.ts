@@ -3,6 +3,7 @@ import { prepareRoundTripBody } from '@/lib/api-schemas/registry'
 import { validateApiKey, requireApiPermission, ok, err } from '@/lib/api-auth'
 import { normalizeReportConfig } from '@/lib/report-config'
 import { reportShareDenied, scopeReportRead, scopeReportWrite } from '@/lib/reports-access'
+import { normalizeTagList, TagListError } from '@/lib/tags/normalize'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await validateApiKey(request)
@@ -39,6 +40,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (body.category !== undefined) updates.category = String(body.category ?? '').trim() || null
   if (body.is_shared !== undefined) updates.is_shared = body.is_shared === true
   if (body.config !== undefined) updates.config = normalizeReportConfig(body.config ?? {})
+  if (body.tags !== undefined) {
+    try { updates.tags = normalizeTagList(body.tags) } catch (e) { return err(e instanceof TagListError ? e.message : 'Invalid tags') }
+  }
   const shareDenied = reportShareDenied(updates, auth.permissions)
   if (shareDenied) return err(shareDenied, 403)
 

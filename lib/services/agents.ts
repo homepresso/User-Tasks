@@ -25,7 +25,7 @@ import { normalizeAgentOutputConfig } from '@/lib/agent-knowledge'
 import { deactivateWorkflowsReferencingAgent } from '@/lib/agent-references'
 import { AGENT_CAPS } from '@/lib/agents/prepare'
 import { normalizeExpectations } from '@/lib/agents/evals'
-import { requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
+import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { audit, dbError, queueDeletion, resolvePage, serviceRoleClient, syncChange, type PageInput } from './_shared'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- agent rows are untyped here */
@@ -405,12 +405,41 @@ export async function agentUsage(ctx: ServiceContext, agentId: string, days = 30
   return agentUsageView({ ...ctx, db, supabase: db }, agent, days)
 }
 
-/** Workspace agent usage (tokens + cost), per-agent totals, budgets and the price table in effect. */
-export async function workspaceAgentUsage(ctx: ServiceContext, days = 30) {
+/**
+ * Workspace agent usage (tokens + cost), per-agent totals, budgets and the
+ * price table in effect. With any breakdown parameter (group_by, period,
+ * from / to or a filter) the answer also has `breakdown`: every AI call of
+ * the workspace — agent runs and the in-product Agent's requests — rolled up
+ * by model, profile, agent, source, person or day (lib/agents/cost-breakdown.ts).
+ */
+export async function workspaceAgentUsage(ctx: ServiceContext, days = 30, query: import('@/lib/agents/usage').BreakdownQuery = {}) {
   requirePerm(ctx, 'agents.view')
   const db = await serviceRoleClient(ctx)
   const { workspaceCostView } = await import('@/lib/agents/usage')
-  return workspaceCostView({ ...ctx, db, supabase: db }, days)
+  const wantsBreakdown = Object.entries(query).some(([k, v]) => k !== 'days' && v !== undefined && v !== null && v !== '')
+  const [view, breakdown] = await Promise.all([
+    workspaceCostView({ ...ctx, db, supabase: db }, days),
+    wantsBreakdown ? workspaceCostBreakdown(ctx, { days, ...query }) : Promise.resolve(null),
+  ])
+  return breakdown ? { ...view, breakdown } : view
+}
+
+/**
+ * The workspace's AI cost breakdown for a period (agents.view; per person
+ * needs assistants.manage). Agents → Costs & budgets, and `breakdown` of
+ * GET /agents/usage.
+ */
+export async function workspaceCostBreakdown(ctx: ServiceContext, query: import('@/lib/agents/usage').BreakdownQuery = {}) {
+  requirePerm(ctx, 'agents.view')
+  const db = await serviceRoleClient(ctx)
+  const { workspaceCostBreakdown: load } = await import('@/lib/agents/usage')
+  const { PeriodError } = await import('@/lib/agents/cost-breakdown')
+  try {
+    return await load(db, ctx.tenantId, query, { canSeePeople: hasPerm(ctx, 'assistants.manage') })
+  } catch (error) {
+    if (error instanceof PeriodError) throw ServiceError.validation(error.message)
+    throw error
+  }
 }
 
 /**

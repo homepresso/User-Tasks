@@ -1,0 +1,1030 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "7ab8a1f9-ed8e-5eed-8430-bdaee04111d5",
+  "asset": {
+    "id": "7ab8a1f9-ed8e-5eed-8430-bdaee04111d5",
+    "name": "Performance review",
+    "description": "One person's review: self review → peer nominations (each peer gets a Peer feedback task) → manager review with ratings and a written summary → calibration by the People partner → the manager shares it → the employee acknowledges. Each step has a due date, reminders and escalation; the Performance reviews table follows every stage.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Review started",
+        "config": {
+          "form_id": "93994e2f-b73b-55be-b473-15ed152385a4",
+          "form_name": "Start a performance review"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Review reference",
+        "config": {
+          "name": "review_ref",
+          "expression": "PR-{{=FORMAT_DATE(NOW(), \"YYMM\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{form.cycle}} · {{form.employee_name}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Review cycle (30 days)",
+        "config": {
+          "sla_label": "Review cycle (30 days)",
+          "mode": "relative",
+          "amount": "30",
+          "unit": "days",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Add the review",
+        "config": {
+          "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+          "table_name": "Performance reviews",
+          "operation": "insert",
+          "column_values": {
+            "review_ref": "{{review_ref}}",
+            "cycle": "{{form.cycle}}",
+            "employee_name": "{{form.employee_name}}",
+            "employee_email": "{{form.employee}}",
+            "manager_name": "{{form.manager_name}}",
+            "manager_email": "",
+            "department": "{{form.department}}",
+            "stage": "Self review",
+            "stage_order": "1",
+            "due_date": "{{form.self_due}}",
+            "overdue": "No",
+            "peer_feedback": "0",
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "self",
+        "type": "user_task",
+        "label": "Self review",
+        "config": {
+          "task_title": "Your self review: {{form.cycle}}",
+          "task_description": "<p>Reflect on the last six months: what you achieved, what you learned and where you want to grow. Your manager sees this before writing their review.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Submit"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.employee_user}}",
+          "fields": [
+            {
+              "key": "achievements",
+              "label": "What are you most proud of?",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "learned",
+              "label": "What did you learn or find hard?",
+              "type": "textarea"
+            },
+            {
+              "key": "growth",
+              "label": "Where do you want to grow next?",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "self_rating",
+              "label": "How would you rate your performance?",
+              "type": "choice",
+              "options": [
+                "1 - Below expectations",
+                "2 - Partially meets",
+                "3 - Meets expectations",
+                "4 - Exceeds expectations",
+                "5 - Outstanding"
+              ],
+              "required": true,
+              "display": "radio"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "achievements",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "learned",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "growth",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "self_rating",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "submit",
+              "label": "Submit",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Submit"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Self review",
+            "align": "left",
+            "subtitle": "{{form.cycle}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{form.self_due}}",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "st_peers",
+        "type": "update_data_table",
+        "label": "Stage: peer feedback",
+        "config": {
+          "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+          "table_name": "Performance reviews",
+          "operation": "update",
+          "match_column": "review_ref",
+          "match_value": "{{review_ref}}",
+          "column_values": {
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "stage": "Peer feedback",
+            "stage_order": "2",
+            "self_rating": "{{task_data.self_rating}}",
+            "due_date": "{{=FORMAT_DATE(ADD_DAYS(NOW(), 7), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "nominate",
+        "type": "user_task",
+        "label": "Peer nominations",
+        "config": {
+          "task_title": "Choose who gives you peer feedback",
+          "task_description": "<p>Pick two to four colleagues who know your work well. Each gets a short feedback task.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Send requests"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.employee_user}}",
+          "fields": [
+            {
+              "key": "peers",
+              "label": "Peers",
+              "type": "user",
+              "required": true,
+              "user_config": {
+                "multiple": true
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "peers",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "send_requests",
+              "label": "Send requests",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Send requests"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Peer nominations",
+            "align": "left",
+            "subtitle": "{{form.cycle}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "peers",
+        "type": "set_variable",
+        "label": "Nominated peers",
+        "config": {
+          "name": "peers",
+          "expression": "{{task_data.peers}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "each_peer",
+        "type": "loop",
+        "label": "Each peer",
+        "config": {
+          "items": "{{peers}}",
+          "item_var": "peer",
+          "index_var": "peer_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "ask",
+        "type": "call_sub_workflow",
+        "label": "Ask for feedback",
+        "executionMode": "async",
+        "config": {
+          "sub_workflow_id": "c332f88e-e0dd-5ad7-9354-bb56d78c0ea4",
+          "sub_workflow_name": "Peer feedback",
+          "input_mappings": {
+            "about_name": "{{form.employee_name}}",
+            "about_email": "{{form.employee}}",
+            "about_department": "{{form.department}}",
+            "reviewer_id": "{{peer.id}}",
+            "requested_by": "{{form.employee_name}}",
+            "context": "Peer feedback for the {{form.cycle}}.",
+            "due_date": "{{=FORMAT_DATE(ADD_DAYS(NOW(), 7), \"YYYY-MM-DD\")}}",
+            "review_ref": "{{review_ref}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1460
+        }
+      },
+      {
+        "id": "st_mgr",
+        "type": "update_data_table",
+        "label": "Stage: manager review",
+        "config": {
+          "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+          "table_name": "Performance reviews",
+          "operation": "update",
+          "match_column": "review_ref",
+          "match_value": "{{review_ref}}",
+          "column_values": {
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "stage": "Manager review",
+            "stage_order": "3",
+            "peer_feedback": "{{=COUNT(peers)}}",
+            "due_date": "{{=FORMAT_DATE(ADD_DAYS(NOW(), 10), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "manager",
+        "type": "user_task",
+        "label": "Manager review",
+        "config": {
+          "task_title": "Review {{form.employee_name}}: {{form.cycle}}",
+          "task_description": "<p>Read {{form.employee_name}}'s self review and the peer feedback (Feedback table, review {{review_ref}}), then rate their performance and potential and write a summary they will read.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Submit for calibration"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.manager_user}}",
+          "fields": [
+            {
+              "key": "manager_rating",
+              "label": "Performance",
+              "type": "choice",
+              "options": [
+                "1 - Below expectations",
+                "2 - Partially meets",
+                "3 - Meets expectations",
+                "4 - Exceeds expectations",
+                "5 - Outstanding"
+              ],
+              "required": true,
+              "display": "radio"
+            },
+            {
+              "key": "potential",
+              "label": "Potential",
+              "type": "choice",
+              "options": [
+                "Low",
+                "Medium",
+                "High"
+              ],
+              "required": true,
+              "display": "radio"
+            },
+            {
+              "key": "summary",
+              "label": "Summary for the employee",
+              "type": "rich_text",
+              "required": true,
+              "rich_text": {
+                "toolbar": "basic",
+                "max_length": 6000
+              }
+            },
+            {
+              "key": "next_goals",
+              "label": "Focus for the next six months",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "manager_rating",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "potential",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "summary",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "next_goals",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "submit_for_calibration",
+              "label": "Submit for calibration",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Submit for calibration"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Manager review",
+            "align": "left",
+            "subtitle": "{{form.employee_name}} · {{form.department}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 10,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 2880
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 400,
+          "y": 1740
+        }
+      },
+      {
+        "id": "st_cal",
+        "type": "update_data_table",
+        "label": "Stage: calibration",
+        "config": {
+          "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+          "table_name": "Performance reviews",
+          "operation": "update",
+          "match_column": "review_ref",
+          "match_value": "{{review_ref}}",
+          "column_values": {
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "stage": "Calibration",
+            "stage_order": "4",
+            "in_calibration": "Yes",
+            "manager_rating": "{{task_data.manager_rating}}",
+            "calibrated_rating": "{{task_data.manager_rating}}",
+            "potential": "{{task_data.potential}}",
+            "due_date": "{{=FORMAT_DATE(ADD_DAYS(NOW(), 5), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      },
+      {
+        "id": "mgr_rating",
+        "type": "set_variable",
+        "label": "Manager rating",
+        "config": {
+          "name": "manager_rating",
+          "expression": "{{task_data.manager_rating}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2020
+        }
+      },
+      {
+        "id": "mgr_summary",
+        "type": "set_variable",
+        "label": "Manager summary",
+        "config": {
+          "name": "manager_summary",
+          "expression": "{{task_data.summary}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2160
+        }
+      },
+      {
+        "id": "mgr_potential",
+        "type": "set_variable",
+        "label": "Potential",
+        "config": {
+          "name": "potential",
+          "expression": "{{task_data.potential}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2300
+        }
+      },
+      {
+        "id": "calibrate",
+        "type": "user_task",
+        "label": "Calibration",
+        "config": {
+          "task_title": "Calibrate {{form.employee_name}} ({{form.department}})",
+          "task_description": "<p>The manager rated <strong>{{form.employee_name}}</strong> <strong>{{manager_rating}}</strong> with <strong>{{potential}}</strong> potential. Confirm or adjust the rating after the calibration session; the Performance page shows the whole grid.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Confirm",
+            "Send back to manager"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "d3261bad-1d02-58db-9008-dcd03d78b7ce",
+          "fields": [
+            {
+              "key": "calibrated_rating",
+              "label": "Calibrated rating",
+              "type": "choice",
+              "options": [
+                "1 - Below expectations",
+                "2 - Partially meets",
+                "3 - Meets expectations",
+                "4 - Exceeds expectations",
+                "5 - Outstanding"
+              ],
+              "required": true,
+              "display": "radio"
+            },
+            {
+              "key": "cal_potential",
+              "label": "Potential",
+              "type": "choice",
+              "options": [
+                "Low",
+                "Medium",
+                "High"
+              ],
+              "required": true,
+              "display": "radio",
+              "default": "{{potential}}"
+            },
+            {
+              "key": "cal_note",
+              "label": "Calibration note (not shared)",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "calibrated_rating",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "cal_potential",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "cal_note",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "confirm",
+              "label": "Confirm",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Confirm"
+            },
+            {
+              "id": "send_back_to_manager",
+              "label": "Send back to manager",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Send back to manager"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Calibration",
+            "align": "left",
+            "subtitle": "{{form.employee_name}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 400,
+          "y": 2440
+        }
+      },
+      {
+        "id": "band",
+        "type": "decision_table",
+        "label": "Nine-box band",
+        "config": {
+          "decision_table_id": "78ba389b-6aee-584d-9193-d89a40e67dcf",
+          "decision_table_name": "Performance and potential band",
+          "input_mappings": {
+            "rating": "{{=TO_NUMBER(LEFT(task_data.calibrated_rating, 1))}}",
+            "potential": "{{task_data.cal_potential}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2580
+        }
+      },
+      {
+        "id": "st_share",
+        "type": "update_data_table",
+        "label": "Stage: shared",
+        "config": {
+          "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+          "table_name": "Performance reviews",
+          "operation": "update",
+          "match_column": "review_ref",
+          "match_value": "{{review_ref}}",
+          "column_values": {
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "stage": "Shared",
+            "stage_order": "5",
+            "in_calibration": "Yes",
+            "calibrated_rating": "{{task_data.calibrated_rating}}",
+            "potential": "{{task_data.cal_potential}}",
+            "due_date": "{{=FORMAT_DATE(ADD_DAYS(NOW(), 7), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2720
+        }
+      },
+      {
+        "id": "share",
+        "type": "user_task",
+        "label": "Share with the employee",
+        "config": {
+          "task_title": "Share the review with {{form.employee_name}}",
+          "task_description": "<p>Hold the review conversation with {{form.employee_name}}. Calibrated rating: <strong>{{task_data.calibrated_rating}}</strong> ({{band}}).</p><p>{{manager_summary}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Shared"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.manager_user}}",
+          "fields": [
+            {
+              "key": "met_on",
+              "label": "Conversation held on",
+              "type": "date",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "met_on",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "shared",
+              "label": "Shared",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Shared"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Review conversation",
+            "align": "left",
+            "subtitle": "{{form.employee_name}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 7,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 400,
+          "y": 2860
+        }
+      },
+      {
+        "id": "ack",
+        "type": "user_task",
+        "label": "Acknowledge",
+        "config": {
+          "task_title": "Your {{form.cycle}} is ready",
+          "task_description": "<p>Your manager shared your review:</p><p>{{manager_summary}}</p><p>Acknowledge it (this does not mean you agree) and add any comments.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Acknowledge"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.employee_user}}",
+          "fields": [
+            {
+              "key": "employee_comments",
+              "label": "Your comments",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "employee_comments",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "acknowledge",
+              "label": "Acknowledge",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Acknowledge"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Acknowledge your review",
+            "align": "left",
+            "subtitle": "{{form.cycle}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 3000
+        }
+      },
+      {
+        "id": "st_done",
+        "type": "update_data_table",
+        "label": "Stage: acknowledged",
+        "config": {
+          "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+          "table_name": "Performance reviews",
+          "operation": "update",
+          "match_column": "review_ref",
+          "match_value": "{{review_ref}}",
+          "column_values": {
+            "last_update": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "stage": "Acknowledged",
+            "stage_order": "6",
+            "overdue": "No"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 3140
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Review complete",
+        "config": {
+          "reason": "{{review_ref}} acknowledged"
+        },
+        "position": {
+          "x": 400,
+          "y": 3280
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-sla",
+        "source": "title",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-row",
+        "source": "sla",
+        "target": "row"
+      },
+      {
+        "id": "e-row-self",
+        "source": "row",
+        "target": "self"
+      },
+      {
+        "id": "e-self-st_peers-submit",
+        "source": "self",
+        "target": "st_peers",
+        "label": "Submit"
+      },
+      {
+        "id": "e-st_peers-nominate",
+        "source": "st_peers",
+        "target": "nominate"
+      },
+      {
+        "id": "e-nominate-peers-send_requests",
+        "source": "nominate",
+        "target": "peers",
+        "label": "Send requests"
+      },
+      {
+        "id": "e-peers-each_peer",
+        "source": "peers",
+        "target": "each_peer"
+      },
+      {
+        "id": "e-each_peer-ask-each_item",
+        "source": "each_peer",
+        "target": "ask",
+        "label": "Each item"
+      },
+      {
+        "id": "e-each_peer-st_mgr-done",
+        "source": "each_peer",
+        "target": "st_mgr",
+        "label": "Done"
+      },
+      {
+        "id": "e-st_mgr-manager",
+        "source": "st_mgr",
+        "target": "manager"
+      },
+      {
+        "id": "e-manager-st_cal-submit_for_calibration",
+        "source": "manager",
+        "target": "st_cal",
+        "label": "Submit for calibration"
+      },
+      {
+        "id": "e-st_cal-mgr_rating",
+        "source": "st_cal",
+        "target": "mgr_rating"
+      },
+      {
+        "id": "e-mgr_rating-mgr_summary",
+        "source": "mgr_rating",
+        "target": "mgr_summary"
+      },
+      {
+        "id": "e-mgr_summary-mgr_potential",
+        "source": "mgr_summary",
+        "target": "mgr_potential"
+      },
+      {
+        "id": "e-mgr_potential-calibrate",
+        "source": "mgr_potential",
+        "target": "calibrate"
+      },
+      {
+        "id": "e-calibrate-band-confirm",
+        "source": "calibrate",
+        "target": "band",
+        "label": "Confirm"
+      },
+      {
+        "id": "e-calibrate-st_mgr-send_back_to_manager",
+        "source": "calibrate",
+        "target": "st_mgr",
+        "label": "Send back to manager"
+      },
+      {
+        "id": "e-band-st_share",
+        "source": "band",
+        "target": "st_share"
+      },
+      {
+        "id": "e-st_share-share",
+        "source": "st_share",
+        "target": "share"
+      },
+      {
+        "id": "e-share-ack-shared",
+        "source": "share",
+        "target": "ack",
+        "label": "Shared"
+      },
+      {
+        "id": "e-ack-st_done-acknowledge",
+        "source": "ack",
+        "target": "st_done",
+        "label": "Acknowledge"
+      },
+      {
+        "id": "e-st_done-end",
+        "source": "st_done",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

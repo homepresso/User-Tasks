@@ -754,6 +754,24 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "groupDataRows",
+    "method": "GET",
+    "path": "/data-tables/{id}/rows/groups",
+    "envelope": true
+  },
+  {
+    "operationId": "getDataRowChildren",
+    "method": "GET",
+    "path": "/data-tables/{id}/rows/{rowId}/children",
+    "envelope": true
+  },
+  {
+    "operationId": "getDataRowChanges",
+    "method": "GET",
+    "path": "/data-tables/{id}/rows/{rowId}/changes",
+    "envelope": true
+  },
+  {
     "operationId": "listIntegrations",
     "method": "GET",
     "path": "/integrations",
@@ -1452,6 +1470,247 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "listApps",
+    "method": "GET",
+    "path": "/apps",
+    "envelope": true,
+    "listKey": "apps"
+  },
+  {
+    "operationId": "createApp",
+    "method": "POST",
+    "path": "/apps",
+    "envelope": true
+  },
+  {
+    "operationId": "listAppWidgetTypes",
+    "method": "GET",
+    "path": "/apps/widget-types",
+    "envelope": true,
+    "listKey": "widget_types"
+  },
+  {
+    "operationId": "getApp",
+    "method": "GET",
+    "path": "/apps/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateApp",
+    "method": "PATCH",
+    "path": "/apps/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteApp",
+    "method": "DELETE",
+    "path": "/apps/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "listAppPages",
+    "method": "GET",
+    "path": "/apps/{id}/pages",
+    "envelope": true,
+    "listKey": "pages"
+  },
+  {
+    "operationId": "createAppPage",
+    "method": "POST",
+    "path": "/apps/{id}/pages",
+    "envelope": true
+  },
+  {
+    "operationId": "reorderAppPages",
+    "method": "POST",
+    "path": "/apps/{id}/pages/reorder",
+    "envelope": true
+  },
+  {
+    "operationId": "getAppPage",
+    "method": "GET",
+    "path": "/apps/{id}/pages/{pageId}",
+    "envelope": true
+  },
+  {
+    "operationId": "updateAppPage",
+    "method": "PATCH",
+    "path": "/apps/{id}/pages/{pageId}",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteAppPage",
+    "method": "DELETE",
+    "path": "/apps/{id}/pages/{pageId}",
+    "envelope": true
+  },
+  {
+    "operationId": "getAppAccess",
+    "method": "GET",
+    "path": "/apps/{id}/access",
+    "envelope": true
+  },
+  {
+    "operationId": "grantAppAccess",
+    "method": "POST",
+    "path": "/apps/{id}/access/grant",
+    "envelope": true
+  },
+  {
+    "operationId": "previewAppPackage",
+    "method": "POST",
+    "path": "/apps/{id}/package/preview",
+    "envelope": true
+  },
+  {
+    "operationId": "packageApp",
+    "method": "POST",
+    "path": "/apps/{id}/package",
+    "envelope": true
+  },
+  {
+    "operationId": "getAppRuleTypes",
+    "method": "GET",
+    "path": "/apps/rule-types",
+    "envelope": true
+  },
+  {
+    "operationId": "runAppAction",
+    "method": "POST",
+    "path": "/apps/{id}/actions",
+    "envelope": true
+  },
+  {
+    "operationId": "searchAppObjects",
+    "method": "GET",
+    "path": "/apps/spec/search",
+    "envelope": true
+  },
+  {
+    "operationId": "getAppObjectDetails",
+    "method": "GET",
+    "path": "/apps/spec/object",
+    "envelope": true
+  },
+  {
+    "operationId": "getAppSpecReference",
+    "method": "GET",
+    "path": "/apps/spec/reference",
+    "envelope": true
+  },
+  {
+    "operationId": "planAppSpec",
+    "method": "POST",
+    "path": "/apps/spec/plan",
+    "envelope": true
+  },
+  {
+    "operationId": "applyAppSpec",
+    "method": "POST",
+    "path": "/apps/spec/apply",
+    "envelope": true
+  },
+  {
+    "operationId": "publishApp",
+    "method": "POST",
+    "path": "/apps/{id}/publish",
+    "envelope": true
+  },
+  {
+    "operationId": "discardAppDraft",
+    "method": "DELETE",
+    "path": "/apps/{id}/draft",
+    "envelope": true
+  },
+  {
+    "operationId": "listAppVersions",
+    "method": "GET",
+    "path": "/apps/{id}/versions",
+    "envelope": true,
+    "listKey": "versions"
+  },
+  {
+    "operationId": "getAppVersion",
+    "method": "GET",
+    "path": "/apps/{id}/versions/{version}",
+    "envelope": true
+  },
+  {
+    "operationId": "compareAppVersions",
+    "method": "GET",
+    "path": "/apps/{id}/compare",
+    "envelope": true
+  },
+  {
+    "operationId": "restoreAppVersion",
+    "method": "POST",
+    "path": "/apps/{id}/versions/{version}/restore",
+    "envelope": true
+  },
+  {
+    "operationId": "listTags",
+    "method": "GET",
+    "path": "/tags",
+    "envelope": true,
+    "listKey": "tags"
+  },
+  {
+    "operationId": "suggestTags",
+    "method": "GET",
+    "path": "/tags/suggest",
+    "envelope": true,
+    "listKey": "suggestions"
+  },
+  {
+    "operationId": "listTagObjects",
+    "method": "GET",
+    "path": "/tags/objects",
+    "envelope": true,
+    "listKey": "items"
+  },
+  {
+    "operationId": "setTagStyle",
+    "method": "PUT",
+    "path": "/tags/style",
+    "envelope": true
+  },
+  {
+    "operationId": "deleteTagStyle",
+    "method": "DELETE",
+    "path": "/tags/style",
+    "envelope": true
+  },
+  {
+    "operationId": "renameTag",
+    "method": "POST",
+    "path": "/tags/rename",
+    "envelope": true
+  },
+  {
+    "operationId": "removeTag",
+    "method": "POST",
+    "path": "/tags/remove",
+    "envelope": true
+  },
+  {
+    "operationId": "applyTags",
+    "method": "POST",
+    "path": "/tags/apply",
+    "envelope": true
+  },
+  {
+    "operationId": "getTagSettings",
+    "method": "GET",
+    "path": "/tags/settings",
+    "envelope": true
+  },
+  {
+    "operationId": "updateTagSettings",
+    "method": "PATCH",
+    "path": "/tags/settings",
+    "envelope": true
+  },
+  {
     "operationId": "listRetentionPolicies",
     "method": "GET",
     "path": "/retention-policies",
@@ -1966,6 +2225,18 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "envelope": true
   },
   {
+    "operationId": "getSignInPage",
+    "method": "GET",
+    "path": "/workspace/sign-in-page",
+    "envelope": true
+  },
+  {
+    "operationId": "updateSignInPage",
+    "method": "PATCH",
+    "path": "/workspace/sign-in-page",
+    "envelope": true
+  },
+  {
     "operationId": "getFormSignInPage",
     "method": "GET",
     "path": "/workspace/form-sign-in-page",
@@ -2011,6 +2282,24 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "testDocumentOcr",
     "method": "POST",
     "path": "/document-ocr/test",
+    "envelope": true
+  },
+  {
+    "operationId": "getQuerySettings",
+    "method": "GET",
+    "path": "/settings/query",
+    "envelope": true
+  },
+  {
+    "operationId": "updateQuerySettings",
+    "method": "PATCH",
+    "path": "/settings/query",
+    "envelope": true
+  },
+  {
+    "operationId": "runQueryRollups",
+    "method": "POST",
+    "path": "/settings/query/rollups",
     "envelope": true
   },
   {
@@ -2646,6 +2935,212 @@ export const OPERATIONS: readonly OperationInfo[] = [
     "operationId": "getAdminWorkspace",
     "method": "GET",
     "path": "/admin/workspaces/{slug}",
+    "envelope": true
+  },
+  {
+    "operationId": "getAdminProcessing",
+    "method": "GET",
+    "path": "/admin/processing",
+    "envelope": true
+  },
+  {
+    "operationId": "configureAdminProcessing",
+    "method": "PATCH",
+    "path": "/admin/processing",
+    "envelope": true
+  },
+  {
+    "operationId": "recoverAdminProcessingJob",
+    "method": "POST",
+    "path": "/admin/processing/jobs/{id}/recover",
+    "envelope": true
+  },
+  {
+    "operationId": "getInstanceOverview",
+    "method": "GET",
+    "path": "/instance/overview",
+    "envelope": true
+  },
+  {
+    "operationId": "listInstanceAlerts",
+    "method": "GET",
+    "path": "/instance/alerts",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceWorkspaces",
+    "method": "GET",
+    "path": "/instance/workspaces",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "getInstanceWorkspace",
+    "method": "GET",
+    "path": "/instance/workspaces/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "listInstanceWorkspaceAudit",
+    "method": "GET",
+    "path": "/instance/workspaces/{id}/audit",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceUsers",
+    "method": "GET",
+    "path": "/instance/users",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "getInstanceUser",
+    "method": "GET",
+    "path": "/instance/users/{id}",
+    "envelope": true
+  },
+  {
+    "operationId": "listInstanceMemberships",
+    "method": "GET",
+    "path": "/instance/memberships",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceInvitations",
+    "method": "GET",
+    "path": "/instance/invitations",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "inviteInstanceUser",
+    "method": "POST",
+    "path": "/instance/invitations",
+    "envelope": true
+  },
+  {
+    "operationId": "listInstanceUsage",
+    "method": "GET",
+    "path": "/instance/usage",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceAiUsage",
+    "method": "GET",
+    "path": "/instance/ai-usage",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceAssets",
+    "method": "GET",
+    "path": "/instance/assets",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceHealth",
+    "method": "GET",
+    "path": "/instance/health",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceQueue",
+    "method": "GET",
+    "path": "/instance/queue",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceSignIns",
+    "method": "GET",
+    "path": "/instance/sign-ins",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceLicences",
+    "method": "GET",
+    "path": "/instance/licences",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "listInstanceAudit",
+    "method": "GET",
+    "path": "/instance/audit",
+    "envelope": true,
+    "listKey": "rows"
+  },
+  {
+    "operationId": "unlockInstanceUser",
+    "method": "POST",
+    "path": "/instance/users/{id}/unlock",
+    "envelope": true
+  },
+  {
+    "operationId": "sendInstancePasswordReset",
+    "method": "POST",
+    "path": "/instance/users/{id}/password-reset",
+    "envelope": true
+  },
+  {
+    "operationId": "signOutInstanceUser",
+    "method": "POST",
+    "path": "/instance/users/{id}/sign-out",
+    "envelope": true
+  },
+  {
+    "operationId": "resendInstanceInvitation",
+    "method": "POST",
+    "path": "/instance/invitations/{id}/resend",
+    "envelope": true
+  },
+  {
+    "operationId": "revokeInstanceInvitation",
+    "method": "POST",
+    "path": "/instance/invitations/{id}/revoke",
+    "envelope": true
+  },
+  {
+    "operationId": "changeInstanceMemberRole",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/members/{user_id}/role",
+    "envelope": true
+  },
+  {
+    "operationId": "deactivateInstanceMember",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/members/{user_id}/deactivate",
+    "envelope": true
+  },
+  {
+    "operationId": "reactivateInstanceMember",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/members/{user_id}/reactivate",
+    "envelope": true
+  },
+  {
+    "operationId": "extendInstanceTrial",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/licences/{extension_id}/extend",
+    "envelope": true
+  },
+  {
+    "operationId": "reactivateInstanceLicence",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/licences/{extension_id}/reactivate",
+    "envelope": true
+  },
+  {
+    "operationId": "resumeInstancePausedRuns",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/resume-paused-runs",
     "envelope": true
   },
   {

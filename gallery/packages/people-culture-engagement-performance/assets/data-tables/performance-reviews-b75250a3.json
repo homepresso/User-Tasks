@@ -1,0 +1,190 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+  "asset": {
+    "id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+    "name": "Performance reviews",
+    "description": "One row per person in the review cycle: the stage (self review → peer feedback → manager review → calibration → shared → acknowledged), the ratings, potential and due date.",
+    "columns": [
+      {
+        "id": "c3e0435a-7579-5c07-845c-05db025a7c89",
+        "required": true,
+        "key": "review_ref",
+        "name": "Review",
+        "type": "text"
+      },
+      {
+        "id": "24d7f107-50c6-5178-8087-15a5106edb4d",
+        "required": false,
+        "key": "cycle",
+        "name": "Cycle",
+        "type": "text"
+      },
+      {
+        "id": "d1777ae1-addf-5330-bcf0-fd43de686419",
+        "required": false,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "347cd1ca-0fc3-56a5-ade7-8e1cb0173515",
+        "required": false,
+        "key": "employee_email",
+        "name": "Employee email",
+        "type": "email"
+      },
+      {
+        "id": "3ae3051b-4eaa-5c54-a166-33cccf3055f6",
+        "required": false,
+        "key": "manager_name",
+        "name": "Manager",
+        "type": "text"
+      },
+      {
+        "id": "37bb6d29-8087-5590-a412-ea0019c11141",
+        "required": false,
+        "key": "manager_email",
+        "name": "Manager email",
+        "type": "email"
+      },
+      {
+        "id": "142873c8-79ab-5602-a674-da86660280e1",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "a02f24a4-0181-59f2-853e-34f03bcf689e",
+        "required": false,
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "Self review",
+          "Peer feedback",
+          "Manager review",
+          "Calibration",
+          "Shared",
+          "Acknowledged"
+        ]
+      },
+      {
+        "id": "bdd25b06-8bab-58de-bb00-da5608cc1423",
+        "required": false,
+        "key": "stage_order",
+        "name": "Stage no.",
+        "type": "number"
+      },
+      {
+        "id": "9a88dd43-d703-5060-98c5-fb8df89cfc4a",
+        "required": false,
+        "key": "self_rating",
+        "name": "Self rating",
+        "type": "select",
+        "options": [
+          "1 - Below expectations",
+          "2 - Partially meets",
+          "3 - Meets expectations",
+          "4 - Exceeds expectations",
+          "5 - Outstanding"
+        ]
+      },
+      {
+        "id": "9aa9ccdb-a28d-5252-afa2-820302133986",
+        "required": false,
+        "key": "manager_rating",
+        "name": "Manager rating",
+        "type": "select",
+        "options": [
+          "1 - Below expectations",
+          "2 - Partially meets",
+          "3 - Meets expectations",
+          "4 - Exceeds expectations",
+          "5 - Outstanding"
+        ]
+      },
+      {
+        "id": "0dea81d0-5816-5d0d-ae32-4fb09cae827b",
+        "required": false,
+        "key": "calibrated_rating",
+        "name": "Calibrated rating",
+        "type": "select",
+        "options": [
+          "1 - Below expectations",
+          "2 - Partially meets",
+          "3 - Meets expectations",
+          "4 - Exceeds expectations",
+          "5 - Outstanding"
+        ]
+      },
+      {
+        "id": "7171a408-a1dc-5f50-92a4-7100320c18f4",
+        "required": false,
+        "key": "potential",
+        "name": "Potential",
+        "type": "select",
+        "options": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      {
+        "id": "2238decb-78a4-5e63-a270-744c0827c639",
+        "required": false,
+        "key": "in_calibration",
+        "name": "Calibrated",
+        "type": "select",
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "bec87b39-0d52-54b9-bc31-81ba946cb7f3",
+        "required": false,
+        "key": "due_date",
+        "name": "Stage due",
+        "type": "date"
+      },
+      {
+        "id": "7b6c44ab-5992-5ccb-8754-0b32b9109758",
+        "required": false,
+        "key": "overdue",
+        "name": "Overdue",
+        "type": "select",
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "7fcca9f8-2e0b-5d77-9ffa-f7c8d0fbc847",
+        "required": false,
+        "key": "peer_feedback",
+        "name": "Peer feedback received",
+        "type": "number"
+      },
+      {
+        "id": "5e519a65-8fad-51f8-a934-c0c27d98cf99",
+        "required": false,
+        "key": "last_update",
+        "name": "Last update",
+        "type": "date"
+      }
+    ]
+  }
+}

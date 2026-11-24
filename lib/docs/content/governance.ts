@@ -534,7 +534,7 @@ Every workspace can have its own web address, **\`acme.usertasks.com\`**. Member
 
 ## Setting the address
 
-Open **Settings → General → Workspace address**. Every member can see it; changing it needs **Edit settings**.
+Open **Settings → General → Workspace address**. Changing it needs **Edit settings**, which owners and admins have. Managers see it read-only; members and viewers don't see workspace settings, but the address still shows wherever they share a form link.
 
 - **Rules:** lowercase letters a–z, numbers and hyphens, 3–40 characters. It can't start or end with a hyphen or contain two in a row.
 - **Reserved names** can't be used: \`www\`, \`app\`, \`api\`, \`docs\`, \`admin\`, \`mail\`, \`status\`, \`cdn\`, \`static\`, \`assets\`, \`auth\`, \`login\`, \`help\`, \`support\`, \`blog\`, \`gallery\`, \`form\` and others.
@@ -548,7 +548,7 @@ The address is not the organisation name people type when they sign in. That sta
 ## How an address behaves
 
 - **Signed out:** you are sent to sign in, then straight back to the page you asked for. Sign-in happens on the main address, so SSO and single sign-on settings need no change.
-- **A member:** the app opens in that workspace. If your current workspace was another one (or the **All organizations** view), it switches. It's the same switch as the avatar menu's, and it stays after you leave the address.
+- **A member:** the app opens in that workspace, with your role there. If your current workspace was another one (or the **All organizations** view), it switches, and it stays switched after you leave the address. This is how someone in two workspaces moves between them: open the other workspace's address.
 - **Signed in, not a member:** a "You don't have access to Acme" page, with **Go to my workspace** and **Use another account**.
 - **No workspace has the address:** a "No workspace at this address" page (404).
 
@@ -560,7 +560,8 @@ One sign-in covers every workspace address, and signing out on any of them signs
 |---|---|---|---|
 | Read | \`GET /api/v1/workspace/address\` | \`workspace_address_get\` | \`usertasks workspace-address get\` |
 | Check | \`GET /api/v1/workspace/address/check?subdomain=…\` | \`workspace_address_check\` | \`usertasks workspace-address check <subdomain>\` |
-| Change / remove | \`PATCH /api/v1/workspace/address\` \`{ subdomain }\` (\`null\` removes) | \`workspace_address_set\` | \`usertasks workspace-address set <subdomain>\` |
+| Change | \`PATCH /api/v1/workspace/address\` \`{ subdomain }\` | \`workspace_address_set\` | \`usertasks workspace-address set <subdomain>\` |
+| Remove | \`PATCH /api/v1/workspace/address\` \`{ "subdomain": null }\` | \`workspace_address_set\` with \`null\` | not in the CLI (use REST or MCP) |
 
 Reading and checking are open to every member. Changing needs \`settings.edit\` and is written to the audit log with the old and new address.
 
@@ -640,6 +641,87 @@ curl -X POST "$URL/api/v1/workspace-theme/fonts" -H "Authorization: Bearer $KEY"
 - Fonts are looked up by file name in that workspace's font folder. If a file is missing, the default font is used and the apply returns a warning. Upload the file there, then apply again.
 - Logo and favicon URLs that are not that workspace's own uploads are dropped, with a warning.
 - The plan shows \`workspace_theme\` as \`update\` or \`unchanged\`, with field diffs. Applying it needs \`settings.edit\`.
+`,
+  },
+  {
+    slug: 'governance/tags',
+    title: 'Tags and colours',
+    description: 'Give tags a colour and a description that show wherever the tag appears; automatic colours, Settings → Tags, rename and merge, and the REST, MCP and CLI surfaces.',
+    body: `
+Tags are short labels you add to the things you build and work on (for example \`finance\`, \`onboarding\`, \`urgent\`). Every tag has a **colour**, and the colour is the same in every list: the task lists (Home, My tasks, the Task tracker, My team), every object list, search results and task pages.
+
+## What can have tags
+
+| Object | Where you see and filter its tags | Who can change them |
+|---|---|---|
+| Tasks | Task lists, task pages | \`tasks.complete\` (the task's own rules) |
+| Workflows | Workflows list (Tags column), Scheduled workflows | \`workflows.edit\` |
+| Forms | Forms library | \`forms.edit\` |
+| Integrations and references | Integrations | \`integrations.edit\` / \`integrations.manage_references\` |
+| Agents | Agents | \`agents.edit\` |
+| Workflow activities (custom actions) | Extensibility → Workflow actions | \`extensibility.edit\` |
+| Data tables | Data (Tags column), each table's header | \`data.edit_schema\` |
+| Reports | Reports → Saved reports (cards and list) | \`reports.edit_own\`, and only the report's creator |
+| Business rules | Automations → Business rules (list and cards), the rule's Details | \`workflows.edit\` |
+| Email templates | Automations → Email templates | \`workflows.edit\` |
+| Form controls (form plugins) | Extensibility → Form controls | \`extensibility.edit\` |
+| Apps | Apps page (cards), app Settings | \`apps.manage\` or the app's editors |
+| Packages (authored here) | Packages → Authored here, the package editor | \`packages.manage\` |
+
+Every list shows a **Tags** column (or the chips on each card): up to three chips and **+N** for the rest. Click a chip, or use the **Tags** filter in the toolbar, to show only items with that tag. Tags are left out of lists where they would add little: installed-package records, API keys, OAuth apps, log export destinations, directory sources, retention policies, teams, org units and projects.
+
+## Automatic colours
+
+A tag nobody has coloured gets an **automatic colour** from its name, so the same tag always looks the same, in every list and for everyone. Names match without regard to case or extra spaces: \`Finance\`, \`finance\` and \` finance \` are one tag with one colour.
+
+To show uncoloured tags in neutral grey instead, turn off **Automatic colours** in **Settings → Tags** (needs \`tags.manage\`).
+
+## Adding tags
+
+Wherever you add tags — an object's settings or editor (a form, business rule, email template, app, package, a new data table, a report when you save it), a subtask, a workflow activity, the Workflows and Integrations lists, or **Tags…** on a row — start typing: matching tags from the whole workspace appear with their colour and how often they are used, best matches first. Use the arrow keys and **Enter** (or a comma) to add one. Typing an existing tag in another case adds the existing spelling, so near-duplicates don't creep in. **Create “…”** adds a brand-new tag.
+
+If **Anyone can add new tags** is off in **Settings → Tags**, only people with \`tags.manage\` can create new tags; everyone else picks from the existing ones.
+
+**Tags…** on a row — in its **⋯** menu, or the tag button where a list has row buttons instead — opens the item's tags right there in every object list; each change saves straight away. When you select several rows (Workflows, references, Agents, Data tables, Reports, Business rules, Workflow actions), **Tags…** in the selection bar adds or removes tags on all of them. Both need permission to edit those items; without it, the tags are shown read-only and say why.
+
+## Settings → Tags
+
+**Settings → Tags** is the central place for the workspace's tags. It lists every tag — those with a colour or description, and every tag on an object you can see — with its colour, description, total and a count per object type. Search by name or description, and sort by any column. Counts only include objects you're allowed to see.
+
+Select a tag to see **where it's used**: the objects grouped by type, each with a link to open it, a page at a time.
+
+With \`tags.manage\` (Owner, Admin and Manager by default) you can also:
+
+- **Choose a colour** from a fixed palette of 15 (gray, red, orange, amber, yellow, lime, green, teal, cyan, blue, indigo, violet, purple, pink and rose) or **Auto**, and add a **description** (shown when you hover over the tag). Each colour has a light and a dark version, tinted into your [workspace theme](/docs/governance/workspace-theme)'s surface colour, with text that meets WCAG AA contrast. You can also click a tag in the Workflows or Integrations list, or on a task page, to pick its colour.
+- **Rename** a tag: it changes on every object in the workspace at once, and its colour and description move with it.
+- **Merge** a tag into another: objects that had both keep one, and the target keeps its own colour and description (taking the other's where it has none).
+- **Remove from all objects**: the tag is taken off every object and its colour and description are deleted.
+- **Create a tag** before anything uses it (**New tag**), so people can pick it.
+- Select several tags to set one **colour** for all of them, or to **delete unused** tags (those with a colour or description but on no object).
+
+Rename, merge and remove each run as one database transaction and are recorded in the audit log, as are colour, description and settings changes. Everyone else with access to Settings sees the page read-only.
+
+## API, MCP and CLI
+
+| | REST (\`/api/v1\`) | MCP tool | CLI |
+|---|---|---|---|
+| List tags with colours and usage | \`GET /tags\` | \`tags_list\` | \`usertasks tags list\` |
+| Autocomplete | \`GET /tags/suggest\` | \`tags_suggest\` | \`usertasks tags suggest --q fin\` |
+| Where a tag is used | \`GET /tags/objects\` | \`tags_objects\` | \`usertasks tags objects --name finance --type workflows\` |
+| Set a colour or description (or create) | \`PUT /tags/style\` | \`tags_set_style\` | \`usertasks tags set-style --set name=finance --set color=green\` |
+| Reset to the automatic colour | \`DELETE /tags/style?name=…\` | \`tags_reset_style\` | \`usertasks tags reset-style --name finance\` |
+| Rename or merge | \`POST /tags/rename\` | \`tags_rename\` | \`usertasks tags rename --set from=fin --set to=finance\` |
+| Remove from every object | \`POST /tags/remove\` | \`tags_remove\` | \`usertasks tags remove --set name=finance\` |
+| Add / remove tags on objects | \`POST /tags/apply\` | \`tags_apply\` | \`usertasks tags apply -f change.json\` |
+| Tags on create / update | \`tags\` in each object's create / update body | \`tags\` on each create / update tool | \`tags\` in the body file (\`-f\`) |
+| Filter a list by tag | \`?tag=finance\` on each list (\`?tagged=\` for form controls, whose \`tag\` is the element name) | \`tag\` on the list tools | \`--tag finance\` |
+| Settings | \`GET\` / \`PATCH /tags/settings\` | \`tags_settings_get\` / \`tags_settings_update\` | \`usertasks tags settings\` / \`tags update-settings\` |
+
+Colours are stored as palette names (\`green\`), never as hex codes. Registry writes need \`tags.manage\` (an OAuth app needs \`settings:write\`). \`POST /tags/apply\` saves each object through its own update, so it needs that object's edit permission.
+
+Object types for \`/tags/objects\` and \`/tags/apply\`: \`tasks\`, \`workflows\`, \`forms\`, \`integrations\`, \`references\`, \`agents\`, \`activities\`, \`data_tables\`, \`reports\`, \`business_rules\`, \`email_templates\`, \`form_controls\`, \`apps\`, \`packages\`. A list filter matches the tag as typed and its usual case variants (\`finance\`, \`Finance\`, \`FINANCE\`).
+
+An object's tags travel with it in config-as-code exports, packages and GitHub sync (workflows, data tables, reports, business rules, email templates, form controls, apps, forms, integrations, references and workflow activities). Only tagged objects carry the \`tags\` key, and importing a file without it leaves an object's tags as they are. Tag colours are workspace settings: they aren't part of config-as-code exports or packages. In the **All organizations** view, tags on another workspace's tasks show their automatic colour.
 `,
   },
 ]

@@ -95,6 +95,7 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   forms_duplicate: 'forms.edit',
   forms_delete: 'forms.delete',
   forms_submit: 'forms.submit',
+  forms_data_event_create_workflow: 'workflows.create',
   // The form wizard (the service checks ownership; its steps run with the wizard's own context).
   forms_wizard_create: 'forms.wizard',
   // dry_run needs forms.view; an import forms.edit (checked in lib/services/infopath-import).
@@ -134,6 +135,23 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   org_unit_member_add: 'org.manage',
   org_unit_member_remove: 'org.manage',
   org_import: 'org.manage', // dry run included: it reads every member's attributes
+  // apps (update / pages: edit access is checked in the service — an editor of the app or apps.manage)
+  apps_create: 'apps.manage',
+  apps_delete: 'apps.manage',
+  apps_update: 'apps.view',
+  apps_page_create: 'apps.view',
+  apps_page_update: 'apps.view',
+  apps_page_delete: 'apps.view',
+  apps_pages_reorder: 'apps.view',
+  apps_access_grant: 'team.change_roles',
+  apps_package: 'packages.manage',
+  apps_run_rule_action: 'apps.view',
+  // Apply an app spec: Build apps for a new app, edit access for an existing one (checked in lib/services/app-spec).
+  apps_apply_spec: 'apps.view',
+  // Drafts and publishing: edit access to the app is checked in lib/services/app-versions.
+  apps_publish: 'apps.view',
+  apps_draft_discard: 'apps.view',
+  apps_version_restore: 'apps.view',
   // projects
   projects_create: 'projects.manage',
   projects_update: 'projects.manage',
@@ -238,6 +256,7 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   gateways_revoke_instance: 'settings.edit',
   task_completion_settings_update: 'settings.edit',
   form_sign_in_page_update: 'settings.edit',
+  sign_in_page_update: 'settings.edit',
   workspace_sso_update: 'settings.edit',
   workspace_theme_apply_preset: 'settings.edit',
   workspace_theme_font_upload: 'settings.edit',
@@ -245,6 +264,18 @@ export const TOOL_PERMISSIONS: Record<string, Permission> = {
   document_ocr_update: 'settings.edit',
   document_ocr_remove_key: 'settings.edit',
   document_ocr_test: 'settings.edit',
+  // query settings (Settings → Query; audited in lib/services/query-settings)
+  // the service checks settings.edit (self-hosted) or instance admin (cloud); tasks.view_own is the floor
+  query_settings_update: 'tasks.view_own',
+  query_rollups_run: 'tasks.view_own',
+  // tag colours (the workspace tag registry; audited in lib/services/tags)
+  tags_set_style: 'tags.manage',
+  tags_reset_style: 'tags.manage',
+  tags_rename: 'tags.manage',
+  tags_settings_update: 'tags.manage',
+  tags_remove: 'tags.manage',
+  // each object's own edit permission is checked by its service (lib/services/object-tags)
+  tags_apply: 'tasks.view_own',
   // config as code: every section is gated by its own create/edit permission in
   // lib/services/config (as POST /config/apply, which has no single permission)
   config_apply: 'tasks.view_own',
@@ -328,6 +359,8 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   data_rows_get: 'data.view',
   data_views_get: 'data.view',
   data_views_options: 'data.view',
+  data_rows_groups: 'data.view',
+  data_rows_children: 'data.view',
   // reports
   reports_query: 'reports.view',
   reports_sources_list: 'reports.view',
@@ -373,6 +406,21 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   org_peers: 'tasks.view_own',
   org_scope_resolve: 'tasks.view_own',
   // projects (get / members: projects.view, or being on the project — checked in the service)
+  apps_list: 'apps.view',
+  apps_get: 'apps.view',
+  apps_widget_types: 'apps.view',
+  apps_pages_list: 'apps.view',
+  apps_page_get: 'apps.view',
+  apps_access_check: 'apps.view',
+  apps_package_preview: 'packages.view',
+  apps_rule_types: 'apps.view',
+  apps_plan: 'apps.view',
+  apps_search: 'apps.view',
+  apps_object_details: 'apps.view',
+  apps_spec_reference: 'apps.view',
+  apps_versions: 'apps.view',
+  apps_version_get: 'apps.view',
+  apps_compare: 'apps.view',
   projects_list: 'projects.view',
   projects_mine: 'tasks.view_own',
   projects_get: 'tasks.view_own',
@@ -397,6 +445,7 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   forms_wizard_results: 'forms.submit',
   forms_get: 'forms.view',
   forms_draft_get: 'forms.edit',
+  forms_data_event: 'forms.edit',
   forms_draft_compare: 'forms.edit',
   forms_draft_reviewers_list: 'forms.edit',
   forms_versions: 'forms.view',
@@ -468,10 +517,19 @@ export const READ_TOOL_PERMISSIONS: Record<string, Permission> = {
   workspace_embedding_get: 'settings.view',
   task_completion_settings_get: 'tasks.view_own',
   form_sign_in_page_get: 'tasks.view_own',
+  sign_in_page_get: 'tasks.view_own',
   workspace_sso_get: 'tasks.view_own',
   tasks_next_step: 'tasks.view_own',
   workspace_theme_presets_list: 'tasks.view_own',
   document_ocr_get: 'settings.view',
+  // the service checks settings.view (self-hosted) or instance admin (cloud)
+  query_settings_get: 'tasks.view_own',
+  // tags: readable by any member (usage counts only what the caller may view)
+  tags_list: 'tasks.view_own',
+  tags_settings_get: 'tasks.view_own',
+  tags_suggest: 'tasks.view_own',
+  // the type's view permission is checked in lib/services/tags
+  tags_objects: 'tasks.view_own',
   // config export: per-section view permissions are checked in lib/services/config
   config_export: 'tasks.view_own',
   // packages (dry runs: install plan, inspect)
@@ -504,6 +562,12 @@ export function requiredToolPermission(toolName: string): Permission | undefined
 // auditToolCall skips them so each mutation is audited exactly once.
 // Tests/executions are not audited by the services, so they stay here.
 export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
+  'tags_set_style',
+  'tags_reset_style',
+  'tags_rename',
+  'tags_settings_update',
+  'tags_remove',
+  'tags_apply',
   'tasks_claim',
   'tasks_attachments_add',
   'tasks_attachments_add_init',
@@ -607,6 +671,20 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'org_unit_member_add',
   'org_unit_member_remove',
   'org_import',
+  'apps_create',
+  'apps_update',
+  'apps_delete',
+  'apps_page_create',
+  'apps_page_update',
+  'apps_page_delete',
+  'apps_pages_reorder',
+  'apps_access_grant',
+  'apps_package',
+  'apps_run_rule_action',
+  'apps_apply_spec',
+  'apps_publish',
+  'apps_draft_discard',
+  'apps_version_restore',
   'projects_create',
   'projects_update',
   'projects_archive',
@@ -646,18 +724,22 @@ export const AUDITED_IN_SERVICE: ReadonlySet<string> = new Set([
   'gateways_revoke_instance',
   'task_completion_settings_update',
   'form_sign_in_page_update',
+  'sign_in_page_update',
   'workspace_sso_update',
   'workspace_theme_apply_preset',
   'workspace_theme_font_upload',
   'document_ocr_update',
   'document_ocr_remove_key',
   'document_ocr_test',
+  'query_settings_update',
+  'query_rollups_run',
 ])
 
 // Category prefix → audit object type (best-effort; some are cast strings that
 // aren't in AuditObjectType but are still useful audit rows).
 const CATEGORY_AUDIT_TYPE: Record<string, AuditObjectType | string> = {
   agents: 'agent',
+  apps: 'app',
   api: 'api_key',
   data: 'data_table',
   decision: 'decision_table',

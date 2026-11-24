@@ -102,6 +102,8 @@ export interface UsageRecord {
   /** Some call reported no usage: the cost can't be known. */
   usageMissing: boolean
   error?: string | null
+  /** The feature that made the call (Agents → Costs & budgets → by source): the Agent chat when omitted — column added by 20270126130000. */
+  source?: 'assistant' | 'pdf_import' | 'redact_ai'
 }
 
 /** The cost of a request at the prices in effect today. */
@@ -137,12 +139,17 @@ export async function recordAssistantUsage(db: SupabaseClient, record: UsageReco
       cost_status: cost.status,
       error: record.error ? String(record.error).slice(0, 1000) : null,
       ...(record.modelRule ? { model_rule: record.modelRule } : {}),
+      ...(record.source && record.source !== 'assistant' ? { source: record.source } : {}),
+      ...(record.usage.cached_tokens ? { cached_tokens: Math.max(0, Math.floor(record.usage.cached_tokens)) } : {}),
     }
-    const { error } = await (db as any).from('assistant_usage').insert(row) ?? {}
-    // Before migration 20261231000001 there is no model_rule column: record the rest.
-    if (error && 'model_rule' in row && /model_rule/.test(String(error.message ?? ''))) {
-      delete row.model_rule
-      await (db as any).from('assistant_usage').insert(row)
+    let { error } = await (db as any).from('assistant_usage').insert(row) ?? {}
+    // Before migration 20270126130000 there are no source / cached_tokens columns, before
+    // 20261231000001 no model_rule column: record the rest.
+    for (const column of ['source', 'cached_tokens', 'model_rule']) {
+      if (!error || !/column|schema cache/i.test(String(error.message ?? ''))) break
+      if (!(column in row)) continue
+      delete row[column]
+      ;({ error } = await (db as any).from('assistant_usage').insert(row) ?? {})
     }
   } catch (error) {
     console.error('[assistants] usage record failed:', (error as Error)?.message)

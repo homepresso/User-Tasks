@@ -33,6 +33,11 @@ regexes = [
   '''idempotency_key=legacy-po-\d+''',
   '''empotency_key=legacy-po-\d+''',
   '''S3_SECRET = env\.E2E_S3_SECRET_KEY''',
+  # CapEx showcase sample data: budget line codes (e.g. 2026-COM-Equipment-Q1)
+  # in a column named budget_key; fictional, not credentials (verified 2026-11-24).
+  '''budget_key": "20\d\d-[A-Za-z]+-[A-Za-z]+(-Q[1-4])?"''',
+  # Fake OpenAI-style key (alphabet + digits) in the agent error tests (verified 2026-11-24).
+  '''sk-proj-abcdefghijklmnop\d+''',
   # Azure built-in role definition id (public, the same in every tenant).
   '''keyVaultSecretsUser: '4633458b-17de-408a-b874-0445c86b69e6''',
   # Fake keys and tokens in unit tests (verified 2026-11-07).

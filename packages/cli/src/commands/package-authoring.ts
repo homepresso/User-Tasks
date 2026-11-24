@@ -26,7 +26,7 @@ import { buildBody, collect } from '../input'
 import { grid } from '../output'
 import type { Runtime } from '../runtime'
 
-export const ASSET_TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme'] as const
+export const ASSET_TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control', 'app'] as const
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

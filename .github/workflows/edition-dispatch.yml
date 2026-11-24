@@ -1,12 +1,13 @@
 name: Edition rebuild notice
 
-# When a UserTasks release is published, tell the edition build (a separate,
-# private repository that compiles paid extensions into their own images) so
-# it builds for the new release within minutes. Optional: it does nothing
-# unless the EDITION_DISPATCH_REPO variable (owner/name) and the
+# When a UserTasks release is published, tell the edition builds (separate,
+# private repositories that compile the paid extensions into the Enterprise
+# image) so they build for the new release within minutes. Optional: it does
+# nothing unless the EDITION_DISPATCH_REPO variable (owner/name, or several
+# separated by commas or spaces, e.g. homepresso/usertasks-enterprise) and the
 # EDITION_DISPATCH_TOKEN secret (a fine-grained token with Contents: read and
-# write on that one repository, which repository_dispatch needs) are set. The
-# edition build also checks for new releases every six hours on its own.
+# write on those repositories, which repository_dispatch needs) are set. The
+# edition builds also check for new releases every six hours on their own.
 
 on:
   release:
@@ -35,5 +36,7 @@ jobs:
           if [ -z "$GH_TOKEN" ]; then echo "::notice::EDITION_DISPATCH_TOKEN is not set: skipped"; exit 0; fi
           v="${VERSION#v}"
           printf '%s' "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$' || { echo "::error::not a version: $VERSION"; exit 1; }
-          printf '{"event_type":"core-release","client_payload":{"version":"%s"}}' "$v" | gh api "repos/$REPO/dispatches" --method POST --input -
-          echo "Announced $v to the edition build."
+          for r in $(printf '%s' "$REPO" | tr ',' ' '); do
+            printf '{"event_type":"core-release","client_payload":{"version":"%s"}}' "$v" | gh api "repos/$r/dispatches" --method POST --input -
+            echo "Announced $v to $r."
+          done

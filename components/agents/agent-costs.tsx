@@ -7,7 +7,7 @@
  * overrides (editable with settings.edit). PriceTableEditor is shared with
  * Settings → Infrastructure (instance prices).
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
@@ -22,7 +22,7 @@ import { plural } from '@/lib/format/plural'
 import { formatCost, type ModelPrice } from '@/lib/agents/pricing'
 import type { PriceDiff, PriceDiffRow } from '@/lib/agents/price-feed'
 
-const PROVIDERS = ['*', 'openai', 'anthropic', 'azure_openai', 'gemini', 'bedrock', 'mistral', 'deepseek', 'groq', 'together', 'perplexity', 'xai', 'ollama', 'other']
+const PROVIDERS = ['*', 'openai', 'anthropic', 'azure_openai', 'gemini', 'bedrock', 'mistral', 'deepseek', 'groq', 'together', 'baseten', 'perplexity', 'xai', 'ollama', 'other']
 const PROVIDER_OPTIONS = PROVIDERS.map((p) => ({ value: p, label: p === '*' ? 'any' : p }))
 
 export function PriceTableEditor({ value, onChange, disabled }: { value: ModelPrice[]; onChange: (next: ModelPrice[]) => void; disabled?: boolean }) {
@@ -218,22 +218,38 @@ const costText = (byCurrency: Record<string, number>) => {
   return entries.length ? entries.map(([cur, n]) => formatCost(n, cur)).join(' + ') : formatCost(0, 'USD')
 }
 
-export function WorkspaceCosts({ data, onSave, priceUpdates, onPricesChanged }: { data: WorkspaceCostData; onSave: (input: { model_prices: ModelPrice[]; budgets: WorkspaceCostData['budgets'] }) => Promise<string | null>; priceUpdates?: PriceUpdateActions; onPricesChanged?: () => Promise<void> | void }) {
+export function WorkspaceCosts({ data, onSave, priceUpdates, onPricesChanged, renderBreakdown }: {
+  data: WorkspaceCostData
+  onSave: (input: { model_prices: ModelPrice[]; budgets: WorkspaceCostData['budgets'] }) => Promise<string | null>
+  priceUpdates?: PriceUpdateActions
+  onPricesChanged?: () => Promise<void> | void
+  /** The AI cost breakdown (components/agents/cost-breakdown.tsx), given "add a price" for unpriced models. */
+  renderBreakdown?: (helpers: { canEditPrices: boolean; onAddPrice: (provider: string, model: string) => void }) => ReactNode
+}) {
   const [prices, setPrices] = useState<ModelPrice[]>(data.prices.workspace)
   const [budgets, setBudgets] = useState(data.budgets)
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [saving, setSaving] = useState(false)
   const cur = budgets.budget_currency || 'USD'
   const maxDay = Math.max(0.0001, ...data.days.map((d) => d.cost?.[cur] ?? 0))
+  // "Add a price" from the breakdown: a row for the model in this workspace's prices (unless there is one), then scroll to it.
+  const addPrice = (provider: string, model: string) => {
+    const known = PROVIDERS.includes(provider) ? provider : '*'
+    if (!prices.some((p) => p.provider === known && p.model === model)) {
+      setPrices((list) => [...list, { provider: known, model, input_per_1m: 0, output_per_1m: 0, cached_input_per_1m: null, currency: cur, effective_date: new Date().toISOString().slice(0, 10) }])
+    }
+    setStatus({ ok: true, message: `Enter the price of ${model} per 1M tokens, then save` })
+    requestAnimationFrame(() => document.getElementById('model-prices')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
   const setBudget = (key: keyof WorkspaceCostData['budgets'], v: string) => setBudgets((b) => ({ ...b, [key]: key === 'budget_currency' ? v.toUpperCase().slice(0, 3) : Math.max(0, Number(v) || 0) }))
 
   return (
     <div className="space-y-4" data-testid="agent-costs">
       <StatGrid>
-        <StatCard label="Spent, last 24 hours" value={costText(data.cost_last_24h)}>
+        <StatCard label="Agent runs, last 24 hours" value={costText(data.cost_last_24h)}>
           <p className="num text-xs text-fg-muted">{plural(data.tokens_last_24h, 'token')}</p>
         </StatCard>
-        <StatCard label="Spent this month" value={costText(data.cost_this_month)}>
+        <StatCard label="Agent runs this month" value={costText(data.cost_this_month)}>
           <p className="num text-xs text-fg-muted">{plural(data.tokens_this_month, 'token')}</p>
         </StatCard>
         <StatCard label="Monthly budget" value={budgets.monthly_cost_budget ? formatCost(budgets.monthly_cost_budget, cur) : 'None'}>
@@ -244,8 +260,10 @@ export function WorkspaceCosts({ data, onSave, priceUpdates, onPricesChanged }: 
         </StatCard>
       </StatGrid>
 
+      {renderBreakdown?.({ canEditPrices: data.can_edit, onAddPrice: addPrice })}
+
       <Card padding="none">
-        <CardHeader title={`Cost per day (${cur}), last 30 days`} />
+        <CardHeader title={`Agent runs: cost per day (${cur}), last 30 days`} description="What the workspace budgets below count: runs of your agents. The in-product Agent has its own monthly cap (Settings → Agent)." />
         <CardBody className="pt-0">
           <div className="flex h-20 items-end gap-0.5" role="img" aria-label="Workspace agent cost per day">
             {data.days.map((d) => (
@@ -305,7 +323,7 @@ export function WorkspaceCosts({ data, onSave, priceUpdates, onPricesChanged }: 
         </CardBody>
       </Card>
 
-      <Card padding="none" data-testid="model-prices">
+      <Card padding="none" data-testid="model-prices" id="model-prices" className="scroll-mt-4">
         <CardHeader
           title="Model prices"
           description={(

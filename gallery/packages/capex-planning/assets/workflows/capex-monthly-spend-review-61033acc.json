@@ -1,0 +1,418 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "61033acc-fb66-5337-99a5-5f398ff05897",
+  "asset": {
+    "id": "61033acc-fb66-5337-99a5-5f398ff05897",
+    "name": "CapEx monthly spend review",
+    "description": "On the 1st of every month: flags projects that have spent 80% and 100% of their approved amount and business units that have committed 80% and 100% of their budget, then asks finance to review the month.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Monthly on the 1st",
+        "config": {
+          "schedule_mode": "monthly",
+          "day_of_month": 1,
+          "time_of_day": "07:00",
+          "timezone": "UTC"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "zero_over",
+        "type": "set_variable",
+        "label": "Count: at or over 100%",
+        "config": {
+          "name": "over_count",
+          "expression": "0"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "zero_warn",
+        "type": "set_variable",
+        "label": "Count: 80% used",
+        "config": {
+          "name": "warn_count",
+          "expression": "0"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "list",
+        "type": "update_data_table",
+        "label": "Projects in delivery",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "In progress"
+            }
+          ],
+          "limit": 500,
+          "output_rows_var": "live_projects",
+          "output_count_var": "live_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each project",
+        "config": {
+          "items": "{{live_projects}}",
+          "item_var": "project"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "level",
+        "type": "condition",
+        "label": "How much is spent?",
+        "config": {
+          "branches": [
+            {
+              "label": "100% or more",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{project.utilisation_pct}}",
+                  "operator": "gte",
+                  "value": "100"
+                }
+              ]
+            },
+            {
+              "label": "80% or more",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{project.utilisation_pct}}",
+                  "operator": "gte",
+                  "value": "80"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      },
+      {
+        "id": "inc_over",
+        "type": "math",
+        "label": "Count it (100%)",
+        "config": {
+          "expression": "{{over_count}} + 1",
+          "output_var": "over_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "flag_over",
+        "type": "update_data_table",
+        "label": "Flag: at or over 100%",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project.project_ref}}",
+          "column_values": {
+            "spend_alert": "At or over 100%"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "inc_warn",
+        "type": "math",
+        "label": "Count it (80%)",
+        "config": {
+          "expression": "{{warn_count}} + 1",
+          "output_var": "warn_count"
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "flag_warn",
+        "type": "update_data_table",
+        "label": "Flag: 80% used",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project.project_ref}}",
+          "column_values": {
+            "spend_alert": "80% used"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1040
+        }
+      },
+      {
+        "id": "flag_ok",
+        "type": "update_data_table",
+        "label": "Clear the flag",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project.project_ref}}",
+          "column_values": {
+            "spend_alert": ""
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 900
+        }
+      },
+      {
+        "id": "bus",
+        "type": "update_data_table",
+        "label": "Business units this year",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "fiscal_year",
+              "operator": "eq",
+              "value": "{{=FORMAT_DATE(NOW(), \"YYYY\")}}"
+            }
+          ],
+          "limit": 50,
+          "output_rows_var": "units",
+          "output_count_var": "unit_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "bu_over",
+        "type": "set_variable",
+        "label": "Business units at 100%+",
+        "config": {
+          "name": "bu_over_count",
+          "expression": "{{=SUM(MAP(units, \"IF(committed_pct >= 100, 1, 0)\"))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "bu_warn",
+        "type": "set_variable",
+        "label": "Business units at 80%+",
+        "config": {
+          "name": "bu_warn_count",
+          "expression": "{{=SUM(MAP(units, \"IF(committed_pct >= 80, 1, 0)\"))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "review",
+        "type": "user_task",
+        "label": "Monthly CapEx review",
+        "config": {
+          "task_title": "Monthly CapEx review: {{over_count}} projects at 100%+, {{warn_count}} at 80%+",
+          "task_description": "<p>The monthly spend-vs-plan check ran on {{live_count}} projects in delivery.</p><ul><li><strong>{{over_count}}</strong> have spent at or over 100% of their approved amount</li><li><strong>{{warn_count}}</strong> have spent 80% or more</li><li>Business units this year: <strong>{{bu_over_count}}</strong> have committed 100% or more of their budget, <strong>{{bu_warn_count}}</strong> 80% or more</li></ul><p>Open the CapEx planner (Budget and Projects pages) to see them; the Spend alert column shows which.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Reviewed"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "2575f8cd-93f0-5850-9edf-e0e132e3d491",
+          "fields": [
+            {
+              "key": "notes",
+              "label": "Actions agreed",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "notes",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "reviewed",
+              "label": "Reviewed",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Reviewed"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Month-end CapEx review",
+            "align": "left",
+            "subtitle": "{{=FORMAT_DATE(NOW(), \"MMMM YYYY\")}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Reviewed",
+        "config": {
+          "reason": "Monthly review: {{over_count}} at 100%+, {{warn_count}} at 80%+"
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-zero_over",
+        "source": "trigger",
+        "target": "zero_over"
+      },
+      {
+        "id": "e-zero_over-zero_warn",
+        "source": "zero_over",
+        "target": "zero_warn"
+      },
+      {
+        "id": "e-zero_warn-list",
+        "source": "zero_warn",
+        "target": "list"
+      },
+      {
+        "id": "e-list-each",
+        "source": "list",
+        "target": "each"
+      },
+      {
+        "id": "e-each-level-each_item",
+        "source": "each",
+        "target": "level",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-level-inc_over-100_or_more",
+        "source": "level",
+        "target": "inc_over",
+        "label": "100% or more"
+      },
+      {
+        "id": "e-level-inc_warn-80_or_more",
+        "source": "level",
+        "target": "inc_warn",
+        "label": "80% or more"
+      },
+      {
+        "id": "e-level-flag_ok-else",
+        "source": "level",
+        "target": "flag_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-inc_over-flag_over",
+        "source": "inc_over",
+        "target": "flag_over"
+      },
+      {
+        "id": "e-inc_warn-flag_warn",
+        "source": "inc_warn",
+        "target": "flag_warn"
+      },
+      {
+        "id": "e-each-bus-done",
+        "source": "each",
+        "target": "bus",
+        "label": "Done"
+      },
+      {
+        "id": "e-bus-bu_over",
+        "source": "bus",
+        "target": "bu_over"
+      },
+      {
+        "id": "e-bu_over-bu_warn",
+        "source": "bu_over",
+        "target": "bu_warn"
+      },
+      {
+        "id": "e-bu_warn-review",
+        "source": "bu_warn",
+        "target": "review"
+      },
+      {
+        "id": "e-review-done-reviewed",
+        "source": "review",
+        "target": "done",
+        "label": "Reviewed"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

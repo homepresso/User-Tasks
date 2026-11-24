@@ -6,6 +6,7 @@ import { canAccessTable } from '@/lib/api-key-permissions'
 import { fromMcpContext, type ServiceContext } from '@/lib/services/context'
 import * as dataTables from '@/lib/services/data-tables'
 import * as dataTableViews from '@/lib/services/data-table-views'
+import * as groupingService from '@/lib/services/data-table-grouping'
 import { decodeBase64, importRowsNow, planImport, type DataImportOptions } from '@/lib/services/data-import'
 import { DATA_IMPORT_LIMITS } from '@/lib/data-import/parse'
 import { messageOf } from './_util'
@@ -113,8 +114,9 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
 
   server.tool('data_tables_list', 'List custom data tables. Data tables are the foundation for reports, lookups, retention assignment, and workflow triggers when rows are created, updated, or deleted. Pass query to find tables by name.', {
     query: z.string().optional().describe('Only tables whose name contains this text (case-insensitive)'),
+    tag: z.string().optional().describe('Only tables carrying this tag'),
   }, async (args) => run(async () => {
-    const { data_tables } = await dataTables.listDataTables(readCtx(), { search: args?.query }, { limit: null, offset: 0 })
+    const { data_tables } = await dataTables.listDataTables(readCtx(), { search: args?.query, tag: args?.tag }, { limit: null, offset: 0 })
     return { tables: data_tables }
   }))
 
@@ -126,6 +128,7 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
     name: z.string().describe('Table name'),
     description: z.string().optional().describe('Optional table description'),
     columns: z.array(columnSchema).describe('Column definitions. System columns for ID and Date Created are added automatically.'),
+    tags: z.array(z.string()).optional().describe('Optional tags'),
   }, async (args) => run(async () => {
     const table = await dataTables.createDataTable(writeCtx(), args)
     return { created: true, table: { id: table.id, name: table.name, slug: table.slug } }
@@ -136,8 +139,16 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
     columns: z.array(columnSchema).describe('Full replacement list of custom columns. System columns ID and Date Created are preserved automatically.'),
     description: z.string().optional().describe('Optional updated table description'),
     name: z.string().optional().describe('Optional updated table name'),
+    child_relations: z.array(z.object({
+      id: z.string().optional().describe('Relation id (kept when given)'),
+      table_id: z.string().describe('Child table id (this table\'s own id for a hierarchy)'),
+      lookup_column: z.string().describe('Key of the child table\'s lookup column whose source is this table'),
+      label: z.string().max(80).optional(),
+      roots_only: z.boolean().optional().describe('Hierarchy: the grid lists only rows without a parent at the top'),
+    })).max(5).optional().describe('Optional full replacement list of child-record relations (rows of table_id linked to a row of this table by lookup_column)'),
+    tags: z.array(z.string()).optional().describe('Optional replacement tags ([] clears)'),
   }, async (args) => run(async () => {
-    await dataTables.updateDataTable(writeCtx(), args.table_id, { columns: args.columns, description: args.description, name: args.name })
+    await dataTables.updateDataTable(writeCtx(), args.table_id, { columns: args.columns, description: args.description, name: args.name, ...(args.child_relations ? { child_relations: args.child_relations } : {}), ...(args.tags ? { tags: args.tags } : {}) })
     return { updated: true, table_id: args.table_id }
   }))
 
@@ -323,6 +334,26 @@ export function registerDataTools(server: McpToolServer, ctx: McpContext) {
     resolve: z.array(z.string()).max(50).optional().describe('Stored values to resolve to labels'),
     row: z.record(z.string(), z.any()).optional().describe('The row being edited, for {{row.<column>}} filters'),
   }, async (args) => run(async () => dataTableViews.gridColumnOptions(readCtx(), await resolveTableRef(readCtx(), args.table_id), args.view_id, { column: args.column, query: args.query, resolve: args.resolve, row: args.row })))
+
+  server.tool('data_rows_groups', 'Group the rows of a custom table by one or two columns over the whole filtered result (search, filters): per group the value (null for blank cells), the row count, the sums of the sum columns and, for two columns, the second-level groups. Read a group\'s rows with data_rows_query and an equals filter (is_empty for the empty group).', {
+    table_id: z.string().describe('Table ID, name or system name'),
+    group_by: z.array(z.string()).min(1).max(2).describe('One or two column keys'),
+    search: z.string().optional().describe('Search across row ID and all row values'),
+    filters: z.array(rowFilterSchema).optional().describe('Optional row filters'),
+    sum: z.array(z.string()).max(10).optional().describe('Number columns to total per group'),
+    group_order: z.enum(['asc', 'desc']).optional().describe('Order of the groups (default asc)'),
+  }, async (args) => run(async () => groupingService.groupRows(readCtx(), await resolveTableRef(readCtx(), args.table_id), {
+    group_by: args.group_by, search: args.search, filters: args.filters, sum: args.sum,
+    direction: args.group_order ? [args.group_order, args.group_order] : undefined,
+  })))
+
+  server.tool('data_rows_children', 'Child records of a row: the rows of a child relation (a child table, or the same table for a hierarchy, linked through a lookup column pointing at this table) with the child table\'s columns and link_value (the value a new child stores in lookup_column). Without relation: the child count of every relation of the row.', {
+    table_id: z.string().describe('Table ID, name or system name'),
+    row_id: z.string().describe('Parent row ID'),
+    relation: z.string().optional().describe('Child relation id (see child_relations in data_tables_get)'),
+    limit: z.number().int().min(1).max(200).optional().describe('Child rows per page (default 50)'),
+    offset: z.number().int().min(0).optional(),
+  }, async (args) => run(async () => groupingService.rowChildren(readCtx(), await resolveTableRef(readCtx(), args.table_id), args.row_id, { relation: args.relation, limit: args.limit, offset: args.offset })))
 
   server.tool('data_rows_write_cells', 'Inline edit: change cells of one row through a grid view. The server enforces the view: inline editing on, only editable columns (read-only, hidden and calculated columns are refused), values typed by each column\'s control, bound values must be options of their source, people must be in the workspace. Pass expected_updated_at (the row\'s updated_at you read) to get a conflict instead of overwriting a newer change. data-table event workflows fire for the update.', {
     table_id: z.string().describe('Table ID, name or system name'),

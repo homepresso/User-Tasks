@@ -507,6 +507,7 @@ export type Database = {
           retention_applied_at: string | null
           retention_policy_id: string | null
           slug: string
+          tags: string[]
           tenant_id: string
           updated_at: string
           views: Json
@@ -521,6 +522,7 @@ export type Database = {
           retention_applied_at?: string | null
           retention_policy_id?: string | null
           slug: string
+          tags?: string[]
           tenant_id: string
           updated_at?: string
           views?: Json
@@ -535,6 +537,7 @@ export type Database = {
           retention_applied_at?: string | null
           retention_policy_id?: string | null
           slug?: string
+          tags?: string[]
           tenant_id?: string
           updated_at?: string
           views?: Json
@@ -715,6 +718,7 @@ export type Database = {
           name: string
           outputs: Json
           rules: Json
+          tags: string[]
           tenant_id: string
           updated_at: string
         }
@@ -727,6 +731,7 @@ export type Database = {
           name: string
           outputs?: Json
           rules?: Json
+          tags?: string[]
           tenant_id: string
           updated_at?: string
         }
@@ -739,6 +744,7 @@ export type Database = {
           name?: string
           outputs?: Json
           rules?: Json
+          tags?: string[]
           tenant_id?: string
           updated_at?: string
         }
@@ -1003,6 +1009,7 @@ export type Database = {
           is_default: boolean
           name: string
           subject: string
+          tags: string[]
           tenant_id: string
           text_body: string
           updated_at: string
@@ -1016,6 +1023,7 @@ export type Database = {
           is_default?: boolean
           name: string
           subject?: string
+          tags?: string[]
           tenant_id: string
           text_body?: string
           updated_at?: string
@@ -1029,6 +1037,7 @@ export type Database = {
           is_default?: boolean
           name?: string
           subject?: string
+          tags?: string[]
           tenant_id?: string
           text_body?: string
           updated_at?: string
@@ -2541,6 +2550,7 @@ export type Database = {
           is_shared: boolean | null
           last_run_at: string | null
           name: string
+          tags: string[]
           tenant_id: string
           updated_at: string | null
         }
@@ -2555,6 +2565,7 @@ export type Database = {
           is_shared?: boolean | null
           last_run_at?: string | null
           name: string
+          tags?: string[]
           tenant_id: string
           updated_at?: string | null
         }
@@ -2569,6 +2580,7 @@ export type Database = {
           is_shared?: boolean | null
           last_run_at?: string | null
           name?: string
+          tags?: string[]
           tenant_id?: string
           updated_at?: string | null
         }

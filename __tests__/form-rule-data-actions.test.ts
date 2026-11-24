@@ -462,3 +462,23 @@ describe('on-load data (form_load rules) and role-gated server steps', () => {
     await expect(run(anon(), 'r_onload_mgr', {})).rejects.toThrow(/conditions do not hold/)
   })
 })
+
+describe('once per item (each_item, "Map to data event" child records)', () => {
+  const addEach = () => {
+    forms[FORM].layout = { ...forms[FORM].layout, variables: [...forms[FORM].layout.variables, { name: 'step_1_id', type: 'text' }], rules: [...forms[FORM].layout.rules, { id: 'r_each', event: 'before_submit', then: [{ type: 'table_create', table_id: PRODUCTS, each_item: 'products', column_values: { sku: '{{row.sku}}', name: '{{row.name}}', country: '{{var.step_1_id}}' } }] }] }
+  }
+  const items = [{ sku: 'A-1', name: 'Anvil', price: 30 }, { sku: 'B-2', name: 'Bolt', price: 50 }]
+
+  it('the item is read from the submitted values by its position, never from the event', async () => {
+    addEach()
+    await run(USER, 'r_each', { products: items, __form_vars: { step_1_id: 'parent-9' } }, { index: 1, row: { sku: 'FORGED', name: 'Evil' } })
+    expect(writes.upsert[0].list).toEqual([{ data: { sku: 'B-2', name: 'Bolt', country: 'parent-9' } }])
+  })
+
+  it('a position outside the items is refused', async () => {
+    addEach()
+    await expect(run(USER, 'r_each', { products: items }, { index: 5 })).rejects.toThrow(/not in the form/)
+    await expect(run(USER, 'r_each', { products: items }, { row: { sku: 'X' } })).rejects.toThrow(/not in the form/)
+    expect(writes.upsert).toEqual([])
+  })
+})

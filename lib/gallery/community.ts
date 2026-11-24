@@ -183,7 +183,7 @@ export function validateCommunityPackage(bytes: Uint8Array, listing: Pick<Commun
   } as unknown as GalleryMeta
   const source: GallerySource = {
     dir: '', slug: slug || 'package', meta, readme: String(header?.readme ?? ''), files: [],
-    manifest: { ...assets, ...(tableRows.length ? { table_rows: tableRows } : {}) }, paths: {}, controls: [], errors: [],
+    manifest: { ...assets, ...(tableRows.length ? { table_rows: tableRows } : {}) }, paths: {}, controls: [], screenshots: [], errors: [],
   }
   for (const issue of validateGallerySource(source, { community: true })) issues.push({ path: issue.path.replace(/^[^/]*\/assets\//, '').replace(/^[^/]*\/gallery\.json$/, 'listing'), message: issue.message })
 

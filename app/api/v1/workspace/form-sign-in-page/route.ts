@@ -2,7 +2,7 @@ import { apiRoute } from '@/lib/api/route'
 import { getFormSignInPageEndpoint, updateFormSignInPageEndpoint } from '@/lib/api-schemas/form-sign-in-page'
 import { getFormSignInSettings, setFormSignInSettings } from '@/lib/services/form-sign-in-page'
 
-/** GET /api/v1/workspace/form-sign-in-page */
+/** GET /api/v1/workspace/form-sign-in-page — the earlier name of /workspace/sign-in-page (same resource). */
 export const GET = apiRoute(getFormSignInPageEndpoint, async ({ ctx }) => getFormSignInSettings(ctx))
 
 /** PATCH /api/v1/workspace/form-sign-in-page — the settings to change (settings.edit; audited). */

@@ -1,0 +1,3380 @@
+{
+  "format_version": 3,
+  "asset_type": "apps",
+  "id": "033d9bff-4f32-582c-8392-6e6a383f8b84",
+  "asset": {
+    "id": "033d9bff-4f32-582c-8392-6e6a383f8b84",
+    "name": "CapEx planner",
+    "slug": "capex",
+    "subtitle": "Plan, approve and track capital spend in USD",
+    "description": "Capital expenditure from budget to asset: plan budgets by business unit, raise requests with a business case and NPV / IRR / payback, route approvals by amount and category, track spend against plan and register the assets.",
+    "icon": "Landmark",
+    "color": "#0b5563",
+    "menu": [
+      {
+        "kind": "group",
+        "label": "Overview",
+        "icon": "LayoutDashboard",
+        "items": [
+          {
+            "kind": "page",
+            "label": "Capital overview",
+            "icon": "LayoutDashboard",
+            "page_slug": "overview"
+          }
+        ]
+      },
+      {
+        "kind": "group",
+        "label": "Requests",
+        "icon": "FilePen",
+        "items": [
+          {
+            "kind": "page",
+            "label": "All requests",
+            "icon": "FilePen",
+            "page_slug": "requests"
+          },
+          {
+            "kind": "form",
+            "label": "New request",
+            "icon": "Plus",
+            "form_id": "78995f6f-dfb2-55d7-9298-eade394cd04e",
+            "open": "modal",
+            "open_mode": {
+              "mode": "panel_right",
+              "width": "lg",
+              "motion": "slide",
+              "resizable": true,
+              "title": "New capital request"
+            },
+            "visibility": {
+              "app_roles": [
+                "contributor",
+                "editor"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "group",
+        "label": "Approvals",
+        "icon": "ClipboardCheck",
+        "items": [
+          {
+            "kind": "page",
+            "label": "Approver workbench",
+            "icon": "ClipboardCheck",
+            "page_slug": "approvals",
+            "badge": "my_tasks",
+            "visibility": {
+              "app_roles": [
+                "contributor",
+                "editor"
+              ]
+            }
+          },
+          {
+            "kind": "tasks",
+            "label": "All my tasks",
+            "icon": "ListTodo",
+            "view": "mine"
+          }
+        ]
+      },
+      {
+        "kind": "group",
+        "label": "Budget",
+        "icon": "Calculator",
+        "items": [
+          {
+            "kind": "page",
+            "label": "Budget vs actual",
+            "icon": "Calculator",
+            "page_slug": "budget"
+          },
+          {
+            "kind": "form",
+            "label": "Allocate budget",
+            "icon": "Sheet",
+            "form_id": "42abc3cd-fb85-5992-996c-eb96d112a990",
+            "open": "modal",
+            "open_mode": {
+              "mode": "panel_right",
+              "width": "md",
+              "motion": "slide",
+              "resizable": true,
+              "title": "Budget allocation"
+            },
+            "visibility": {
+              "app_roles": [
+                "contributor",
+                "editor"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "group",
+        "label": "Projects",
+        "icon": "SquareKanban",
+        "items": [
+          {
+            "kind": "page",
+            "label": "Project board",
+            "icon": "SquareKanban",
+            "page_slug": "projects"
+          },
+          {
+            "kind": "form",
+            "label": "Record spend",
+            "icon": "Receipt",
+            "form_id": "89bb28aa-6c1b-5f1b-bee4-6f169ad5d81d",
+            "open": "modal",
+            "open_mode": {
+              "mode": "panel_right",
+              "width": "md",
+              "motion": "slide",
+              "resizable": true,
+              "title": "Record actual spend"
+            },
+            "visibility": {
+              "app_roles": [
+                "contributor",
+                "editor"
+              ]
+            }
+          },
+          {
+            "kind": "form",
+            "label": "Change request",
+            "icon": "FilePen",
+            "form_id": "6337a740-a278-5424-89d6-2004887e3bd1",
+            "open": "modal",
+            "open_mode": {
+              "mode": "panel_right",
+              "width": "md",
+              "motion": "slide",
+              "resizable": true,
+              "title": "Change request"
+            },
+            "visibility": {
+              "app_roles": [
+                "contributor",
+                "editor"
+              ]
+            }
+          },
+          {
+            "kind": "form",
+            "label": "Close out a project",
+            "icon": "CircleCheck",
+            "form_id": "53b4c452-239e-5cd7-a615-570921bc6bd0",
+            "open": "modal",
+            "open_mode": {
+              "mode": "panel_right",
+              "width": "md",
+              "motion": "slide",
+              "resizable": true,
+              "title": "Post-implementation review"
+            },
+            "visibility": {
+              "app_roles": [
+                "contributor",
+                "editor"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "group",
+        "label": "Assets",
+        "icon": "Package",
+        "items": [
+          {
+            "kind": "page",
+            "label": "Asset register",
+            "icon": "Package",
+            "page_slug": "assets"
+          },
+          {
+            "kind": "form",
+            "label": "Register an asset",
+            "icon": "FilePlus",
+            "form_id": "b4dbd989-8622-5350-80d4-b1c41131d035",
+            "open": "modal",
+            "open_mode": {
+              "mode": "panel_right",
+              "width": "md",
+              "motion": "slide",
+              "resizable": true,
+              "title": "Register an asset"
+            },
+            "visibility": {
+              "app_roles": [
+                "contributor",
+                "editor"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "kind": "group",
+        "label": "Insights",
+        "icon": "ChartSpline",
+        "items": [
+          {
+            "kind": "page",
+            "label": "Portfolio insights",
+            "icon": "ChartSpline",
+            "page_slug": "insights"
+          }
+        ]
+      },
+      {
+        "kind": "group",
+        "label": "Admin",
+        "icon": "Settings",
+        "collapsed": true,
+        "visibility": {
+          "app_roles": [
+            "contributor",
+            "editor"
+          ]
+        },
+        "items": [
+          {
+            "kind": "page",
+            "label": "Approval rules",
+            "icon": "Scale",
+            "page_slug": "admin-rules"
+          },
+          {
+            "kind": "page",
+            "label": "Budget setup",
+            "icon": "Cog",
+            "page_slug": "admin-setup"
+          }
+        ]
+      }
+    ],
+    "settings": {
+      "nav": {
+        "style": "sidebar",
+        "header_style": "plain",
+        "density": "comfortable"
+      },
+      "variables": [
+        {
+          "name": "project_ref",
+          "type": "text",
+          "label": "Selected project"
+        },
+        {
+          "name": "project_id",
+          "type": "text",
+          "label": "Selected project row"
+        },
+        {
+          "name": "project_title",
+          "type": "text",
+          "label": "Selected project title"
+        },
+        {
+          "name": "bu_line",
+          "type": "record",
+          "label": "Business unit budget looked up"
+        }
+      ],
+      "rules": [
+        {
+          "id": "request_sent",
+          "name": "Confirm a new request",
+          "when": {
+            "type": "form_submitted",
+            "form_id": "78995f6f-dfb2-55d7-9298-eade394cd04e"
+          },
+          "then": [
+            {
+              "type": "message",
+              "text": "Request submitted. It is with your department head now.",
+              "tone": "success"
+            },
+            {
+              "type": "refresh",
+              "widgets": []
+            }
+          ]
+        },
+        {
+          "id": "spend_sent",
+          "name": "Confirm recorded spend",
+          "when": {
+            "type": "form_submitted",
+            "form_id": "89bb28aa-6c1b-5f1b-bee4-6f169ad5d81d"
+          },
+          "then": [
+            {
+              "type": "message",
+              "text": "Spend recorded against {{event.values.project_ref}}.",
+              "tone": "success"
+            },
+            {
+              "type": "refresh",
+              "widgets": []
+            }
+          ]
+        }
+      ],
+      "style": {
+        "default": {
+          "radius": "lg",
+          "shadow": "sm",
+          "title_weight": "semibold",
+          "palette": [
+            "token:primary",
+            "token:chart-3",
+            "token:chart-4",
+            "token:chart-7",
+            "token:chart-2",
+            "token:chart-5",
+            "token:chart-6",
+            "token:chart-8"
+          ],
+          "value_colors": [
+            {
+              "value": "Planned",
+              "color": "token:chart-4"
+            },
+            {
+              "value": "Actual",
+              "color": "token:primary"
+            },
+            {
+              "value": "Approved",
+              "color": "token:success"
+            },
+            {
+              "value": "Rejected",
+              "color": "token:danger"
+            },
+            {
+              "value": "Changes requested",
+              "color": "token:warning"
+            }
+          ]
+        },
+        "presets": [
+          {
+            "name": "KPI",
+            "style": {
+              "value_size": "lg",
+              "value_weight": "semibold",
+              "padding": "comfortable"
+            }
+          },
+          {
+            "name": "Callout",
+            "style": {
+              "colors": {
+                "background": "token:subtle",
+                "border": "token:border"
+              },
+              "shadow": "none"
+            }
+          },
+          {
+            "name": "Hero",
+            "style": {
+              "padding": "spacious",
+              "background_image": {
+                "kind": "gradient",
+                "from": "#0b5563",
+                "to": "#123047",
+                "angle": 120
+              },
+              "colors": {
+                "title": "#ffffff",
+                "text": {
+                  "light": "#e6f0f2",
+                  "dark": "#e6f0f2"
+                },
+                "muted": "#b9d3d8"
+              },
+              "shadow": "md"
+            }
+          }
+        ]
+      }
+    },
+    "pages": [
+      {
+        "id": "6ff73409-7dd7-5b50-a239-936ee620fcff",
+        "slug": "overview",
+        "title": "Overview",
+        "icon": "LayoutDashboard",
+        "position": 0,
+        "layout": {
+          "widgets": [
+            {
+              "id": "hero",
+              "style": {
+                "preset": "Hero"
+              },
+              "w": 12,
+              "h": 2,
+              "type": "heading",
+              "config": {
+                "text": "Capital plan FY{{filter.fy}}",
+                "subtitle": "Welcome back, {{sys.user.name}}. Brightwater Manufacturing’s capital budget, commitments and spend in USD, as of {{sys.today}}.",
+                "level": 1
+              }
+            },
+            {
+              "id": "actions",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "New request",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "shortcut": "alt+n",
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "lg",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "New capital request"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "78995f6f-dfb2-55d7-9298-eade394cd04e",
+                      "open": "drawer",
+                      "params": {
+                        "fiscal_year": {
+                          "from": "filter",
+                          "filter": "fy"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "label": "Record spend",
+                    "icon": "Receipt",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Record actual spend"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "89bb28aa-6c1b-5f1b-bee4-6f169ad5d81d",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Change request",
+                    "icon": "FilePen",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Change request"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "6337a740-a278-5424-89d6-2004887e3bd1",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Approvals",
+                    "icon": "ClipboardCheck",
+                    "icon_position": "left",
+                    "style": "ghost",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "badge": "my_tasks",
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "approvals"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "k_budget",
+              "title": "Capital budget",
+              "style": {
+                "preset": "KPI"
+              },
+              "w": 3,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "budget",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "compare_previous": false,
+                "icon": "Landmark",
+                "accent": "teal",
+                "click": {
+                  "page": "budget"
+                },
+                "format": "currency",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "k_committed",
+              "title": "Committed (approved)",
+              "style": {
+                "preset": "KPI"
+              },
+              "w": 3,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "committed",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "compare_previous": false,
+                "icon": "ClipboardCheck",
+                "accent": "blue",
+                "format": "currency",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "k_spent",
+              "title": "Spent to date",
+              "style": {
+                "preset": "KPI"
+              },
+              "w": 3,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "spent",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "compare_previous": false,
+                "icon": "Receipt",
+                "accent": "violet",
+                "format": "currency",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "k_available",
+              "title": "Still available",
+              "style": {
+                "preset": "KPI"
+              },
+              "w": 3,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "available",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "compare_previous": false,
+                "icon": "Hourglass",
+                "accent": "green",
+                "format": "currency",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "g_committed",
+              "title": "Committed against the FY2026 budget",
+              "w": 6,
+              "h": 3,
+              "type": "goal",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "committed",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "format": "currency",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": "2026"
+                  }
+                ],
+                "target": 11590000,
+                "target_label": "FY2026 budget"
+              }
+            },
+            {
+              "id": "g_spent",
+              "title": "Spent against the FY2026 budget",
+              "w": 6,
+              "h": 3,
+              "type": "goal",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "spent",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "format": "currency",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": "2026"
+                  }
+                ],
+                "target": 11590000,
+                "target_label": "FY2026 budget"
+              }
+            },
+            {
+              "id": "gauge_head",
+              "w": 12,
+              "h": 1,
+              "type": "heading",
+              "config": {
+                "text": "Budget committed by business unit",
+                "subtitle": "Approved spend as a share of each unit’s FY{{filter.fy}} budget (amber from 80%, red at 100%)",
+                "level": 3
+              }
+            },
+            {
+              "id": "gauge_prd",
+              "title": "Production",
+              "w": 2,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "committed_pct",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": "PRD"
+                  }
+                ],
+                "min": 0,
+                "max": 120,
+                "warn_at": 80,
+                "danger_at": 100,
+                "higher_is_better": false
+              }
+            },
+            {
+              "id": "gauge_log",
+              "title": "Logistics",
+              "w": 2,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "committed_pct",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": "LOG"
+                  }
+                ],
+                "min": 0,
+                "max": 120,
+                "warn_at": 80,
+                "danger_at": 100,
+                "higher_is_better": false
+              }
+            },
+            {
+              "id": "gauge_eng",
+              "title": "Engineering & R&D",
+              "w": 2,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "committed_pct",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": "ENG"
+                  }
+                ],
+                "min": 0,
+                "max": 120,
+                "warn_at": 80,
+                "danger_at": 100,
+                "higher_is_better": false
+              }
+            },
+            {
+              "id": "gauge_its",
+              "title": "IT",
+              "w": 2,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "committed_pct",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": "ITS"
+                  }
+                ],
+                "min": 0,
+                "max": 120,
+                "warn_at": 80,
+                "danger_at": 100,
+                "higher_is_better": false
+              }
+            },
+            {
+              "id": "gauge_fac",
+              "title": "Facilities & EHS",
+              "w": 2,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "committed_pct",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": "FAC"
+                  }
+                ],
+                "min": 0,
+                "max": 120,
+                "warn_at": 80,
+                "danger_at": 100,
+                "higher_is_better": false
+              }
+            },
+            {
+              "id": "gauge_com",
+              "title": "Commercial",
+              "w": 2,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "committed_pct",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": "COM"
+                  }
+                ],
+                "min": 0,
+                "max": 120,
+                "warn_at": 80,
+                "danger_at": 100,
+                "higher_is_better": false
+              }
+            },
+            {
+              "id": "funnel",
+              "title": "Request pipeline by stage",
+              "w": 6,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "funnel",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "stage",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "max_groups": 12,
+                "sort_by": "choices",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "by_category",
+              "title": "Actual spend by business unit and category (USD)",
+              "w": 6,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "stacked_bar",
+                "group_by": "field",
+                "series_by": "field",
+                "field": "business_unit",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "amount",
+                "table_id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "entry_type",
+                    "op": "equals",
+                    "value": "Actual"
+                  }
+                ],
+                "series_field": "category"
+              }
+            },
+            {
+              "id": "top",
+              "title": "Top projects by NPV",
+              "height": "auto",
+              "max_h": 12,
+              "w": 7,
+              "h": 10,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "title",
+                  "subtitle": "project_ref",
+                  "image_style": "none",
+                  "badge": "stage",
+                  "badge_colors": [
+                    {
+                      "value": "Closed",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "In delivery",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "PO raised",
+                      "tone": "accent"
+                    },
+                    {
+                      "value": "Approved",
+                      "tone": "info"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "npv",
+                      "label": "NPV",
+                      "icon": "TrendingUp"
+                    },
+                    {
+                      "key": "irr_pct",
+                      "label": "IRR %",
+                      "icon": "ChartSpline"
+                    },
+                    {
+                      "key": "payback_years",
+                      "label": "Payback (yrs)",
+                      "icon": "Timer"
+                    },
+                    {
+                      "key": "approved_amount",
+                      "label": "Approved",
+                      "icon": "DollarSign"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "grid",
+                "card_size": "sm",
+                "sort": "npv",
+                "sort_dir": "desc",
+                "show_search": false,
+                "page_size": 6,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "approved_amount",
+                    "op": "gt",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "my_approvals",
+              "title": "My approvals",
+              "height": "auto",
+              "max_h": 12,
+              "w": 5,
+              "h": 10,
+              "type": "task_list",
+              "config": {
+                "scope": "mine",
+                "workflow_id": "29824ef5-163f-54c1-9c07-124d5a130a3c",
+                "status": "open",
+                "limit": 8,
+                "show_claim": false,
+                "open_in": "drawer"
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "viewer"
+          },
+          "rules": [
+            {
+              "id": "top_click",
+              "name": "Open a top project",
+              "enabled": true,
+              "when": {
+                "type": "card_click",
+                "widget": "top"
+              },
+              "then": [
+                {
+                  "type": "set_variable",
+                  "values": [
+                    {
+                      "name": "project_ref",
+                      "value": "{{event.card.project_ref}}"
+                    },
+                    {
+                      "name": "project_id",
+                      "value": "{{event.card.id}}"
+                    },
+                    {
+                      "name": "project_title",
+                      "value": "{{event.card.title}}"
+                    }
+                  ]
+                },
+                {
+                  "type": "open_target",
+                  "target": {
+                    "kind": "page",
+                    "page_slug": "project",
+                    "params": {
+                      "project_ref": {
+                        "from": "expression",
+                        "expr": "{{var.project_ref}}"
+                      },
+                      "project_id": {
+                        "from": "expression",
+                        "expr": "{{var.project_id}}"
+                      }
+                    }
+                  },
+                  "open_mode": {
+                    "mode": "panel_right",
+                    "width": "lg",
+                    "motion": "slide",
+                    "resizable": true
+                  },
+                  "title": "{{var.project_ref}} · {{var.project_title}}"
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": [
+          {
+            "id": "fy",
+            "kind": "text",
+            "label": "Fiscal year",
+            "default": "2026"
+          }
+        ]
+      },
+      {
+        "id": "c436d383-a15e-5b41-ab43-ae9fc6ef7872",
+        "slug": "requests",
+        "title": "Requests",
+        "icon": "FilePen",
+        "position": 1,
+        "layout": {
+          "widgets": [
+            {
+              "id": "actions",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "New request",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "shortcut": "alt+n",
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "lg",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "New capital request"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "78995f6f-dfb2-55d7-9298-eade394cd04e",
+                      "open": "drawer",
+                      "params": {
+                        "fiscal_year": {
+                          "from": "filter",
+                          "filter": "fy"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "label": "PRD",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "sm",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "set_filter",
+                      "filter": "bu",
+                      "value": "PRD"
+                    }
+                  },
+                  {
+                    "label": "LOG",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "sm",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "set_filter",
+                      "filter": "bu",
+                      "value": "LOG"
+                    }
+                  },
+                  {
+                    "label": "ENG",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "sm",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "set_filter",
+                      "filter": "bu",
+                      "value": "ENG"
+                    }
+                  },
+                  {
+                    "label": "ITS",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "sm",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "set_filter",
+                      "filter": "bu",
+                      "value": "ITS"
+                    }
+                  },
+                  {
+                    "label": "FAC",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "sm",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "set_filter",
+                      "filter": "bu",
+                      "value": "FAC"
+                    }
+                  },
+                  {
+                    "label": "COM",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "sm",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "set_filter",
+                      "filter": "bu",
+                      "value": "COM"
+                    }
+                  },
+                  {
+                    "label": "All units",
+                    "icon_position": "left",
+                    "style": "ghost",
+                    "color": "theme",
+                    "size": "sm",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "set_filter",
+                      "filter": "bu",
+                      "value": null
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "budget_note",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "announcement",
+              "config": {
+                "html": "<p><strong>Approval tiers:</strong> under $25,000 the department head; $25,000 to $250,000 plus the finance controller and the CFO; over $250,000 plus the CEO and the capital committee. IT requests add a CIO review and facilities, vehicles and large equipment a safety review. Pick a business unit to check its remaining budget.</p>",
+                "tone": "info"
+              }
+            },
+            {
+              "id": "grid",
+              "title": "Capital requests FY{{filter.fy}}",
+              "height": "auto",
+              "max_h": 16,
+              "w": 12,
+              "h": 12,
+              "type": "data_grid",
+              "config": {
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "columns": [
+                  "project_ref",
+                  "title",
+                  "business_unit",
+                  "category",
+                  "amount",
+                  "npv",
+                  "irr_pct",
+                  "payback_years",
+                  "status",
+                  "stage",
+                  "budget_check"
+                ],
+                "editable": false,
+                "group_by": "status",
+                "page_size": 50,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": {
+                      "filter": "bu"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "by_stage",
+              "title": "Requests by status",
+              "w": 4,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "status",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": {
+                      "filter": "bu"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "by_tier",
+              "title": "Requested amount by tier (USD)",
+              "w": 4,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "approval_tier",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "amount",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "bu_code",
+                    "op": "equals",
+                    "value": {
+                      "filter": "bu"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "mine",
+              "title": "My requests",
+              "height": "auto",
+              "w": 4,
+              "h": 7,
+              "type": "my_submissions",
+              "config": {
+                "form_id": "78995f6f-dfb2-55d7-9298-eade394cd04e",
+                "limit": 8
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "viewer"
+          },
+          "rules": [
+            {
+              "id": "row_open",
+              "name": "Open a request in the project panel",
+              "enabled": true,
+              "when": {
+                "type": "row_click",
+                "widget": "grid"
+              },
+              "then": [
+                {
+                  "type": "set_variable",
+                  "values": [
+                    {
+                      "name": "project_ref",
+                      "value": "{{event.row.project_ref}}"
+                    },
+                    {
+                      "name": "project_id",
+                      "value": "{{event.row.id}}"
+                    },
+                    {
+                      "name": "project_title",
+                      "value": "{{event.row.title}}"
+                    }
+                  ]
+                },
+                {
+                  "type": "open_target",
+                  "target": {
+                    "kind": "page",
+                    "page_slug": "project",
+                    "params": {
+                      "project_ref": {
+                        "from": "expression",
+                        "expr": "{{var.project_ref}}"
+                      },
+                      "project_id": {
+                        "from": "expression",
+                        "expr": "{{var.project_id}}"
+                      }
+                    }
+                  },
+                  "open_mode": {
+                    "mode": "panel_right",
+                    "width": "lg",
+                    "motion": "slide",
+                    "resizable": true
+                  },
+                  "title": "{{var.project_ref}} · {{var.project_title}}"
+                }
+              ],
+              "on_error_actions": []
+            },
+            {
+              "id": "budget_left",
+              "name": "Check the business unit’s remaining budget before requesting",
+              "enabled": true,
+              "when": {
+                "type": "filter_changed",
+                "filter": "bu"
+              },
+              "then": [
+                {
+                  "type": "table_lookup",
+                  "result_var": "bu_line",
+                  "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                  "filter": {
+                    "match": "all",
+                    "conditions": [
+                      {
+                        "column": "bu_code",
+                        "operator": "eq",
+                        "value": "{{filter.bu}}"
+                      },
+                      {
+                        "column": "fiscal_year",
+                        "operator": "eq",
+                        "value": "{{filter.fy}}"
+                      }
+                    ]
+                  },
+                  "limit": 1
+                },
+                {
+                  "type": "set_enabled",
+                  "widget": "actions",
+                  "button": 0,
+                  "enabled": true
+                }
+              ],
+              "on_error_actions": []
+            },
+            {
+              "id": "budget_gone",
+              "name": "No budget left: hold the New request button",
+              "enabled": true,
+              "when": {
+                "type": "variable_changed",
+                "variable": "var.bu_line"
+              },
+              "if": {
+                "match": "all",
+                "conditions": [
+                  {
+                    "column": "var.bu_line.available",
+                    "operator": "lte",
+                    "value": "0"
+                  }
+                ]
+              },
+              "then": [
+                {
+                  "type": "set_enabled",
+                  "widget": "actions",
+                  "button": 0,
+                  "enabled": false
+                },
+                {
+                  "type": "message",
+                  "text": "{{var.bu_line.business_unit}} has committed its whole FY{{filter.fy}} capital budget (${{var.bu_line.available}} available). Ask finance for an allocation first.",
+                  "tone": "warning"
+                }
+              ],
+              "on_error_actions": []
+            },
+            {
+              "id": "budget_ok",
+              "name": "Budget left: say how much",
+              "enabled": true,
+              "when": {
+                "type": "variable_changed",
+                "variable": "var.bu_line"
+              },
+              "if": {
+                "match": "all",
+                "conditions": [
+                  {
+                    "column": "var.bu_line.available",
+                    "operator": "gt",
+                    "value": "0"
+                  }
+                ]
+              },
+              "then": [
+                {
+                  "type": "message",
+                  "text": "{{var.bu_line.business_unit}}: ${{var.bu_line.available}} of the FY{{filter.fy}} capital budget is still available.",
+                  "tone": "info"
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": [
+          {
+            "id": "fy",
+            "kind": "text",
+            "label": "Fiscal year",
+            "default": "2026"
+          },
+          {
+            "id": "bu",
+            "kind": "text",
+            "label": "Business unit code (PRD, LOG, ENG, ITS, FAC, COM)",
+            "default": ""
+          }
+        ]
+      },
+      {
+        "id": "ee084116-133a-5744-b5f3-643d2e489e97",
+        "slug": "approvals",
+        "title": "Approvals",
+        "icon": "ClipboardCheck",
+        "position": 2,
+        "layout": {
+          "widgets": [
+            {
+              "id": "queue",
+              "title": "Waiting for my decision",
+              "height": "auto",
+              "max_h": 14,
+              "w": 7,
+              "h": 10,
+              "type": "task_list",
+              "config": {
+                "scope": "mine",
+                "workflow_id": "29824ef5-163f-54c1-9c07-124d5a130a3c",
+                "status": "open",
+                "limit": 20,
+                "show_claim": true,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "sla",
+              "title": "Approval SLA",
+              "height": "auto",
+              "w": 5,
+              "h": 5,
+              "type": "sla",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "29824ef5-163f-54c1-9c07-124d5a130a3c",
+                "status": "open",
+                "at_risk_hours": 24
+              }
+            },
+            {
+              "id": "cr_queue",
+              "title": "Change requests to re-approve",
+              "height": "auto",
+              "w": 5,
+              "h": 5,
+              "type": "task_list",
+              "config": {
+                "scope": "mine",
+                "workflow_id": "d53b0a5c-cc65-50a6-ab52-9b37d067d911",
+                "status": "open",
+                "limit": 8,
+                "show_claim": false,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "bottleneck",
+              "title": "Where approvals wait",
+              "height": "auto",
+              "w": 6,
+              "h": 7,
+              "type": "bottleneck",
+              "config": {
+                "workflow_id": "29824ef5-163f-54c1-9c07-124d5a130a3c",
+                "limit": 8
+              }
+            },
+            {
+              "id": "cycle",
+              "title": "Time to decide",
+              "w": 6,
+              "h": 7,
+              "type": "cycle_time",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "29824ef5-163f-54c1-9c07-124d5a130a3c",
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "week"
+              }
+            },
+            {
+              "id": "history",
+              "title": "Decision history",
+              "height": "auto",
+              "max_h": 14,
+              "w": 12,
+              "h": 10,
+              "type": "data_grid",
+              "config": {
+                "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+                "columns": [
+                  "project_ref",
+                  "step",
+                  "approver",
+                  "decision",
+                  "comment",
+                  "decided_on",
+                  "days_taken"
+                ],
+                "editable": false,
+                "group_by": "decision",
+                "page_size": 25
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "period",
+            "kind": "date_range",
+            "label": "Period",
+            "default": {
+              "preset": "90d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "5c022d7e-9b15-507b-b5dd-3979c6dc31ed",
+        "slug": "budget",
+        "title": "Budget",
+        "icon": "Calculator",
+        "position": 3,
+        "layout": {
+          "widgets": [
+            {
+              "id": "actions",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Allocate budget",
+                    "icon": "Calculator",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Budget allocation"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "42abc3cd-fb85-5992-996c-eb96d112a990",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Download budget lines",
+                    "icon": "Download",
+                    "icon_position": "left",
+                    "style": "ghost",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "open_record",
+                      "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "plan_actual",
+              "title": "Spend against plan by month (USD)",
+              "w": 12,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "combo",
+                "group_by": "field",
+                "series_by": "field",
+                "field": "period",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "amount",
+                "table_id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+                "max_groups": 24,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ],
+                "series_field": "entry_type",
+                "line_series": "Planned"
+              }
+            },
+            {
+              "id": "budget_pivot",
+              "title": "Budget by business unit and quarter (USD)",
+              "height": "auto",
+              "w": 6,
+              "h": 7,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+                "rows": "field",
+                "row_field": "business_unit",
+                "columns": "field",
+                "column_field": "period",
+                "interval": "month",
+                "aggregate": "sum",
+                "value_field": "budget",
+                "format": "currency",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "spent_pivot",
+              "title": "Spent by business unit and quarter (USD)",
+              "height": "auto",
+              "w": 6,
+              "h": 7,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+                "rows": "field",
+                "row_field": "business_unit",
+                "columns": "field",
+                "column_field": "period",
+                "interval": "month",
+                "aggregate": "sum",
+                "value_field": "spent",
+                "heat": true,
+                "format": "currency",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "heat",
+              "title": "Budget committed: heat map by business unit and category (%)",
+              "height": "auto",
+              "w": 7,
+              "h": 7,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+                "rows": "field",
+                "row_field": "business_unit",
+                "columns": "field",
+                "column_field": "category",
+                "interval": "month",
+                "aggregate": "avg",
+                "value_field": "committed_pct",
+                "heat": true,
+                "format": "percent",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "bu_bar",
+              "title": "Committed % of budget by business unit",
+              "w": 5,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "business_unit",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "committed_pct",
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "lines",
+              "title": "Budget lines FY{{filter.fy}} (finance can edit amounts)",
+              "height": "auto",
+              "max_h": 12,
+              "w": 12,
+              "h": 8,
+              "type": "data_grid",
+              "config": {
+                "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+                "columns": [
+                  "budget_key",
+                  "business_unit",
+                  "category",
+                  "quarter",
+                  "budget",
+                  "committed",
+                  "spent",
+                  "available",
+                  "committed_pct"
+                ],
+                "editable": true,
+                "group_by": "business_unit",
+                "page_size": 40,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "viewer"
+          }
+        },
+        "filters": [
+          {
+            "id": "fy",
+            "kind": "text",
+            "label": "Fiscal year",
+            "default": "2026"
+          }
+        ]
+      },
+      {
+        "id": "dc389f15-443a-5359-af3f-a0d3fe7033ba",
+        "slug": "projects",
+        "title": "Projects",
+        "icon": "SquareKanban",
+        "position": 4,
+        "layout": {
+          "widgets": [
+            {
+              "id": "actions",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Record spend",
+                    "icon": "Receipt",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Record actual spend"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "89bb28aa-6c1b-5f1b-bee4-6f169ad5d81d",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Change request",
+                    "icon": "FilePen",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Change request"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "6337a740-a278-5424-89d6-2004887e3bd1",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Close out",
+                    "icon": "CircleCheck",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Post-implementation review"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "53b4c452-239e-5cd7-a615-570921bc6bd0",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Register asset",
+                    "icon": "Package",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Register an asset"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "b4dbd989-8622-5350-80d4-b1c41131d035",
+                      "open": "drawer"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "board",
+              "title": "Projects by lifecycle stage FY{{filter.fy}}",
+              "w": 12,
+              "h": 14,
+              "type": "kanban",
+              "config": {
+                "scope": "mine",
+                "columns": [
+                  "todo",
+                  "in_progress",
+                  "blocked",
+                  "completed"
+                ],
+                "allow_drag": true,
+                "per_column": 20,
+                "source": "table",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "lane_column": "stage",
+                "lanes": [
+                  "Approved",
+                  "PO raised",
+                  "In delivery",
+                  "Closed"
+                ],
+                "template": {
+                  "title": "title",
+                  "subtitle": "project_ref",
+                  "image_style": "none",
+                  "badge": "stage",
+                  "badge_colors": [
+                    {
+                      "value": "Approved",
+                      "tone": "info"
+                    },
+                    {
+                      "value": "PO raised",
+                      "tone": "accent"
+                    },
+                    {
+                      "value": "In delivery",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "Closed",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "Rejected",
+                      "tone": "danger"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "approved_amount",
+                      "label": "Approved",
+                      "icon": "DollarSign"
+                    },
+                    {
+                      "key": "spent",
+                      "label": "Spent",
+                      "icon": "Receipt"
+                    },
+                    {
+                      "key": "utilisation_pct",
+                      "label": "Spent %",
+                      "icon": "Gauge"
+                    },
+                    {
+                      "key": "business_unit",
+                      "label": "BU",
+                      "icon": "Building2"
+                    }
+                  ]
+                },
+                "sum_field": "approved_amount",
+                "sum_format": "currency",
+                "currency": "USD",
+                "sort": "approved_amount",
+                "sort_dir": "desc",
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "alerts",
+              "title": "Spend alerts (80% and 100% of approved)",
+              "height": "auto",
+              "max_h": 10,
+              "w": 6,
+              "h": 6,
+              "type": "data_grid",
+              "config": {
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "columns": [
+                  "project_ref",
+                  "title",
+                  "business_unit",
+                  "approved_amount",
+                  "spent",
+                  "utilisation_pct",
+                  "spend_alert"
+                ],
+                "editable": false,
+                "page_size": 10,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  },
+                  {
+                    "column": "spend_alert",
+                    "op": "not_empty"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "changes",
+              "title": "Change requests",
+              "height": "auto",
+              "max_h": 10,
+              "w": 6,
+              "h": 6,
+              "type": "data_grid",
+              "config": {
+                "table_id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+                "columns": [
+                  "cr_ref",
+                  "project_ref",
+                  "additional_amount",
+                  "overrun_pct",
+                  "status"
+                ],
+                "editable": false,
+                "page_size": 12
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "viewer"
+          },
+          "rules": [
+            {
+              "id": "open_board",
+              "name": "Open a project from the board",
+              "enabled": true,
+              "when": {
+                "type": "card_click",
+                "widget": "board"
+              },
+              "then": [
+                {
+                  "type": "set_variable",
+                  "values": [
+                    {
+                      "name": "project_ref",
+                      "value": "{{event.card.project_ref}}"
+                    },
+                    {
+                      "name": "project_id",
+                      "value": "{{event.card.id}}"
+                    },
+                    {
+                      "name": "project_title",
+                      "value": "{{event.card.title}}"
+                    }
+                  ]
+                },
+                {
+                  "type": "open_target",
+                  "target": {
+                    "kind": "page",
+                    "page_slug": "project",
+                    "params": {
+                      "project_ref": {
+                        "from": "expression",
+                        "expr": "{{var.project_ref}}"
+                      },
+                      "project_id": {
+                        "from": "expression",
+                        "expr": "{{var.project_id}}"
+                      }
+                    }
+                  },
+                  "open_mode": {
+                    "mode": "panel_right",
+                    "width": "lg",
+                    "motion": "slide",
+                    "resizable": true
+                  },
+                  "title": "{{var.project_ref}} · {{var.project_title}}"
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": [
+          {
+            "id": "fy",
+            "kind": "text",
+            "label": "Fiscal year",
+            "default": "2026"
+          }
+        ]
+      },
+      {
+        "id": "f8f0526a-af2d-5e6d-8af1-d5a1fdda70e4",
+        "slug": "project",
+        "title": "Project",
+        "icon": "Briefcase",
+        "position": 5,
+        "layout": {
+          "widgets": [
+            {
+              "id": "summary",
+              "title": "Project {{param.project_ref}}",
+              "height": "auto",
+              "w": 12,
+              "h": 5,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "title",
+                  "subtitle": "business_unit",
+                  "description": "cost_centre",
+                  "image_style": "none",
+                  "badge": "stage",
+                  "badge_colors": [],
+                  "fields": [
+                    {
+                      "key": "approved_amount",
+                      "label": "Approved (USD)",
+                      "icon": "DollarSign"
+                    },
+                    {
+                      "key": "spent",
+                      "label": "Spent (USD)",
+                      "icon": "Receipt"
+                    },
+                    {
+                      "key": "npv",
+                      "label": "NPV (USD)",
+                      "icon": "TrendingUp"
+                    },
+                    {
+                      "key": "irr_pct",
+                      "label": "IRR %",
+                      "icon": "ChartSpline"
+                    },
+                    {
+                      "key": "payback_years",
+                      "label": "Payback (years)",
+                      "icon": "Timer"
+                    },
+                    {
+                      "key": "po_number",
+                      "label": "PO",
+                      "icon": "ShoppingCart"
+                    },
+                    {
+                      "key": "vendor",
+                      "label": "Vendor",
+                      "icon": "Truck"
+                    },
+                    {
+                      "key": "approval_summary",
+                      "label": "Approval summary",
+                      "icon": "FileText"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "list",
+                "card_size": "lg",
+                "sort_dir": "asc",
+                "show_search": false,
+                "page_size": 1,
+                "empty_text": "Choose a project.",
+                "where": [
+                  {
+                    "column": "project_ref",
+                    "op": "equals",
+                    "value": {
+                      "filter": "param.project_ref"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "actions",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Record spend",
+                    "icon": "Receipt",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Record actual spend"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "89bb28aa-6c1b-5f1b-bee4-6f169ad5d81d",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Change request",
+                    "icon": "FilePen",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Change request"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "6337a740-a278-5424-89d6-2004887e3bd1",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Close out",
+                    "icon": "CircleCheck",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Post-implementation review"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "53b4c452-239e-5cd7-a615-570921bc6bd0",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Withdraw request",
+                    "icon": "OctagonAlert",
+                    "icon_position": "left",
+                    "style": "danger",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "action": {
+                      "kind": "run_rules"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "timeline",
+              "title": "Spend against plan (USD)",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "combo",
+                "group_by": "field",
+                "series_by": "field",
+                "field": "period",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "amount",
+                "table_id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+                "max_groups": 24,
+                "where": [
+                  {
+                    "column": "project_ref",
+                    "op": "equals",
+                    "value": {
+                      "filter": "param.project_ref"
+                    }
+                  }
+                ],
+                "series_field": "entry_type",
+                "line_series": "Planned"
+              }
+            },
+            {
+              "id": "cash",
+              "title": "Cash-flow projection",
+              "height": "auto",
+              "w": 6,
+              "h": 7,
+              "type": "data_grid",
+              "config": {
+                "table_id": "a6f9796a-8279-50be-89fe-22a6c3b69017",
+                "columns": [
+                  "year",
+                  "benefits",
+                  "operating_costs",
+                  "net",
+                  "present_value"
+                ],
+                "editable": false,
+                "page_size": 15,
+                "where": [
+                  {
+                    "column": "project_ref",
+                    "op": "equals",
+                    "value": {
+                      "filter": "param.project_ref"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "actuals",
+              "title": "Actual spend",
+              "height": "auto",
+              "w": 6,
+              "h": 6,
+              "type": "data_grid",
+              "config": {
+                "table_id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+                "columns": [
+                  "period",
+                  "vendor",
+                  "invoice_ref",
+                  "amount",
+                  "description"
+                ],
+                "editable": false,
+                "page_size": 15,
+                "where": [
+                  {
+                    "column": "project_ref",
+                    "op": "equals",
+                    "value": {
+                      "filter": "param.project_ref"
+                    }
+                  },
+                  {
+                    "column": "entry_type",
+                    "op": "equals",
+                    "value": "Actual"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "log",
+              "title": "Approval decisions",
+              "height": "auto",
+              "w": 6,
+              "h": 6,
+              "type": "data_grid",
+              "config": {
+                "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+                "columns": [
+                  "step",
+                  "approver",
+                  "decision",
+                  "decided_on"
+                ],
+                "editable": false,
+                "page_size": 10,
+                "where": [
+                  {
+                    "column": "project_ref",
+                    "op": "equals",
+                    "value": {
+                      "filter": "param.project_ref"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "crs",
+              "title": "Change requests",
+              "height": "auto",
+              "w": 12,
+              "h": 5,
+              "type": "data_grid",
+              "config": {
+                "table_id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+                "columns": [
+                  "cr_ref",
+                  "additional_amount",
+                  "revised_amount",
+                  "overrun_pct",
+                  "reason",
+                  "status",
+                  "decided_on"
+                ],
+                "editable": false,
+                "page_size": 10,
+                "where": [
+                  {
+                    "column": "project_ref",
+                    "op": "equals",
+                    "value": {
+                      "filter": "param.project_ref"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "viewer"
+          },
+          "params": [
+            {
+              "name": "project_ref",
+              "type": "text",
+              "label": "Project",
+              "required": true
+            },
+            {
+              "name": "project_id",
+              "type": "text",
+              "label": "Project row",
+              "required": false
+            }
+          ],
+          "rules": [
+            {
+              "id": "withdraw",
+              "name": "Withdraw the request (confirm first)",
+              "enabled": true,
+              "when": {
+                "type": "button_click",
+                "widget": "actions",
+                "button": 3
+              },
+              "then": [
+                {
+                  "type": "confirm",
+                  "title": "Withdraw {{param.project_ref}}?",
+                  "message": "The request leaves the approval queue and its status becomes Withdrawn. Approvers already asked keep their tasks until you cancel the run.",
+                  "confirm_label": "Withdraw",
+                  "then": [
+                    {
+                      "type": "table_update",
+                      "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                      "row_id": "{{param.project_id}}",
+                      "values": {
+                        "status": "Withdrawn",
+                        "stage": "Withdrawn"
+                      }
+                    },
+                    {
+                      "type": "message",
+                      "text": "{{param.project_ref}} is withdrawn.",
+                      "tone": "success"
+                    },
+                    {
+                      "type": "refresh",
+                      "widgets": [
+                        "summary"
+                      ]
+                    }
+                  ],
+                  "else": []
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "4bd66906-660d-5c28-b6e4-745fb93ea373",
+        "slug": "assets",
+        "title": "Assets",
+        "icon": "Package",
+        "position": 6,
+        "layout": {
+          "widgets": [
+            {
+              "id": "actions",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Register asset",
+                    "icon": "Package",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Register an asset"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "b4dbd989-8622-5350-80d4-b1c41131d035",
+                      "open": "drawer"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "k_cost",
+              "title": "Asset cost",
+              "style": {
+                "preset": "KPI"
+              },
+              "w": 4,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "cost",
+                "table_id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+                "compare_previous": false,
+                "icon": "Package",
+                "accent": "teal",
+                "format": "currency",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "k_nbv",
+              "title": "Net book value",
+              "style": {
+                "preset": "KPI"
+              },
+              "w": 4,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "net_book_value",
+                "table_id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+                "compare_previous": false,
+                "icon": "Scale",
+                "accent": "blue",
+                "format": "currency",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "k_dep",
+              "title": "Annual depreciation",
+              "style": {
+                "preset": "KPI"
+              },
+              "w": 4,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "annual_depreciation",
+                "table_id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+                "compare_previous": false,
+                "icon": "TrendingUp",
+                "accent": "amber",
+                "format": "currency",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "schedule",
+              "title": "Depreciation schedule by fiscal year and category (USD)",
+              "w": 7,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "stacked_bar",
+                "group_by": "field",
+                "series_by": "field",
+                "field": "fiscal_year",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "depreciation",
+                "table_id": "2f7b30a2-32b6-56ad-88c1-f17b990829fc",
+                "max_groups": 12,
+                "series_field": "category"
+              }
+            },
+            {
+              "id": "nbv_cat",
+              "title": "Net book value by category (USD)",
+              "w": 5,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "category",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "net_book_value",
+                "table_id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "register",
+              "title": "Asset register",
+              "height": "auto",
+              "max_h": 16,
+              "w": 12,
+              "h": 12,
+              "type": "data_grid",
+              "config": {
+                "table_id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+                "columns": [
+                  "asset_tag",
+                  "description",
+                  "category",
+                  "business_unit",
+                  "location",
+                  "in_service_date",
+                  "cost",
+                  "useful_life_years",
+                  "annual_depreciation",
+                  "net_book_value"
+                ],
+                "editable": false,
+                "group_by": "category",
+                "page_size": 60
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "viewer"
+          }
+        },
+        "filters": []
+      },
+      {
+        "id": "3e90034f-8f5b-53f9-bf7b-d91506e58e80",
+        "slug": "insights",
+        "title": "Insights",
+        "icon": "ChartSpline",
+        "position": 7,
+        "layout": {
+          "widgets": [
+            {
+              "id": "scatter",
+              "title": "ROI % against cost (USD)",
+              "w": 6,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "scatter",
+                "group_by": "time",
+                "series_by": "none",
+                "y_field": "roi_pct",
+                "field": "title",
+                "interval": "day",
+                "aggregate": "count",
+                "value_field": "amount",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "payback",
+              "title": "Payback distribution",
+              "w": 6,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "payback_band",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "max_groups": 8,
+                "sort_by": "choices"
+              }
+            },
+            {
+              "id": "cycle_tier",
+              "title": "Average approval time by tier (days)",
+              "w": 4,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "approval_tier",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "cycle_days",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "cycle_days",
+                    "op": "gt",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "bottlenecks",
+              "title": "Approval bottlenecks: average wait by step (days)",
+              "w": 8,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "step",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "days_taken",
+                "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+                "max_groups": 10
+              }
+            },
+            {
+              "id": "forecast",
+              "title": "Forecast against plan: FY2026 spend by month (USD)",
+              "w": 8,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "combo",
+                "group_by": "field",
+                "series_by": "field",
+                "field": "period",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "amount",
+                "table_id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+                "max_groups": 24,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": "2026"
+                  }
+                ],
+                "series_field": "entry_type",
+                "line_series": "Planned"
+              }
+            },
+            {
+              "id": "alignment",
+              "title": "Requested by alignment (USD)",
+              "w": 4,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "strategic_alignment",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "amount",
+                "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "vendors",
+              "title": "Spend by vendor this year (USD)",
+              "w": 12,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "vendor",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "spend_ytd",
+                "table_id": "54166558-8ae2-5d41-a80a-ec0f1ee93f45",
+                "max_groups": 10
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "viewer"
+          }
+        },
+        "filters": []
+      },
+      {
+        "id": "eed16ff5-8e4e-5383-ba06-4ea4d44cd156",
+        "slug": "admin-rules",
+        "title": "Approval rules",
+        "icon": "Scale",
+        "position": 8,
+        "layout": {
+          "widgets": [
+            {
+              "id": "intro",
+              "title": "How requests are routed",
+              "style": {
+                "preset": "Callout"
+              },
+              "height": "auto",
+              "w": 7,
+              "h": 7,
+              "type": "text",
+              "config": {
+                "html": "<p>Two business rules (decision tables) route every request:</p><ul><li><strong>CapEx approval thresholds</strong>: the tier by total cost: under $25,000 Tier 1 (department head), $25,000 to $250,000 Tier 2 (+ finance controller and CFO), over $250,000 Tier 3 (+ CEO and capital committee), each with its SLA.</li><li><strong>CapEx category reviews</strong>: CIO review for IT; safety review for facilities, vehicles and equipment over $100,000. They run in parallel after the department head.</li></ul><p>Requests over their budget line always go to the finance controller. Change requests more than 10% over the approved amount are re-approved.</p>"
+              }
+            },
+            {
+              "id": "links",
+              "title": "Change the rules",
+              "height": "auto",
+              "w": 5,
+              "h": 7,
+              "type": "links",
+              "config": {
+                "links": [
+                  {
+                    "label": "Business rules (decision tables)",
+                    "url": "/automations/rules",
+                    "description": "Edit the thresholds and category reviews"
+                  },
+                  {
+                    "label": "Workflows",
+                    "url": "/automations",
+                    "description": "Approvers, SLAs, reminders and escalation"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "categories",
+              "title": "Categories (useful life and GL account)",
+              "height": "auto",
+              "max_h": 12,
+              "w": 12,
+              "h": 8,
+              "type": "data_grid",
+              "config": {
+                "table_id": "1d2335d9-e227-56be-82a9-65a6ecbc343c",
+                "columns": [
+                  "category",
+                  "default_life",
+                  "gl_account",
+                  "depreciation_method",
+                  "review_rule"
+                ],
+                "editable": true,
+                "page_size": 10,
+                "where": []
+              }
+            },
+            {
+              "id": "vendors",
+              "title": "Approved vendors",
+              "height": "auto",
+              "max_h": 12,
+              "w": 12,
+              "h": 8,
+              "type": "data_grid",
+              "config": {
+                "table_id": "54166558-8ae2-5d41-a80a-ec0f1ee93f45",
+                "columns": [
+                  "vendor",
+                  "category",
+                  "payment_terms",
+                  "preferred",
+                  "rating",
+                  "contact_email"
+                ],
+                "editable": true,
+                "page_size": 20,
+                "where": []
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "contributor"
+          }
+        },
+        "filters": []
+      },
+      {
+        "id": "3aadfd84-1bc2-5859-8e60-e5750404ea0e",
+        "slug": "admin-setup",
+        "title": "Budget setup",
+        "icon": "Cog",
+        "position": 9,
+        "layout": {
+          "widgets": [
+            {
+              "id": "note",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "announcement",
+              "config": {
+                "html": "<p>Business unit totals are kept up to date by the workflows. Use <strong>Allocate budget</strong> to change a line so the totals follow; edit here only to correct data.</p>",
+                "tone": "warning"
+              }
+            },
+            {
+              "id": "units",
+              "title": "Business units FY{{filter.fy}}",
+              "height": "auto",
+              "max_h": 12,
+              "w": 12,
+              "h": 8,
+              "type": "data_grid",
+              "config": {
+                "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+                "columns": [
+                  "bu_code",
+                  "business_unit",
+                  "head",
+                  "budget",
+                  "committed",
+                  "spent",
+                  "available",
+                  "committed_pct",
+                  "spent_pct"
+                ],
+                "editable": true,
+                "page_size": 10,
+                "where": [
+                  {
+                    "column": "fiscal_year",
+                    "op": "equals",
+                    "value": {
+                      "filter": "fy"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "centres",
+              "title": "Cost centres",
+              "height": "auto",
+              "max_h": 12,
+              "w": 12,
+              "h": 8,
+              "type": "data_grid",
+              "config": {
+                "table_id": "1382c5aa-50a0-53c9-948f-0e1fbe441a4f",
+                "columns": [
+                  "cost_centre",
+                  "business_unit",
+                  "department_head"
+                ],
+                "editable": true,
+                "group_by": "business_unit",
+                "page_size": 30,
+                "where": []
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "fy",
+            "kind": "text",
+            "label": "Fiscal year",
+            "default": "2026"
+          }
+        ]
+      }
+    ]
+  }
+}

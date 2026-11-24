@@ -5,7 +5,7 @@ import { createEmailTemplate, listEmailTemplates } from '@/lib/services/email-te
 
 /** GET /api/v1/email-templates — list templates (no bodies). */
 export const GET = apiRoute(listEmailTemplatesEndpoint, async ({ ctx, query }) =>
-  listEmailTemplates(ctx, { search: query.search }, resolvePage(query)))
+  listEmailTemplates(ctx, { search: query.search, tag: query.tag }, resolvePage(query)))
 
 /** POST /api/v1/email-templates — create a template (HTML sanitised). */
 export const POST = apiRoute(createEmailTemplateEndpoint, async ({ ctx, body }) =>

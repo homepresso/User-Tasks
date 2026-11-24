@@ -49,6 +49,7 @@ const QUEUE_TYPE_TO_SECTION: Record<string, string> = {
   log_destination: 'log_destinations',
   form: 'forms',
   form_theme: 'form_themes',
+  app: 'apps',
 }
 
 /** Build the complete file set + manifest index from a tenant export. */

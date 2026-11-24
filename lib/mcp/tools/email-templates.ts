@@ -28,9 +28,10 @@ export function registerEmailTemplateTools(server: McpToolServer, ctx: McpContex
   server.tool('email_templates_list', 'List email templates (name, subject, default flag). Templates are used by the send_email node (email_template_id) and user_task notifications (notification_template_id).', {
     search: z.string().optional().describe('Name contains'),
     limit: z.number().optional().describe('Maximum results (default 50, hard cap 100)'),
+    tag: z.string().optional().describe('Only templates carrying this tag'),
   }, async (args) => run(async () => {
     const limit = Math.max(1, Math.min(args.limit ?? 50, 100))
-    const { email_templates: rows, total } = await templates.listEmailTemplates(readCtx(), { search: args.search }, { limit, offset: 0 })
+    const { email_templates: rows, total } = await templates.listEmailTemplates(readCtx(), { search: args.search, tag: args.tag }, { limit, offset: 0 })
     return { email_templates: rows, count: rows.length, total }
   }))
 
@@ -45,6 +46,7 @@ export function registerEmailTemplateTools(server: McpToolServer, ctx: McpContex
     html_body: z.string().describe('HTML body'),
     text_body: z.string().optional().describe('Plain-text / in-app notification body (default: generated from the HTML)'),
     is_default: z.boolean().optional().describe('Make this the workspace default (clears the previous default)'),
+    tags: z.array(z.string()).optional().describe('Optional tags'),
   }, async (args) => run(async () => ({ created: true, email_template: await templates.createEmailTemplate(writeCtx(), args) })))
 
   server.tool('email_templates_update', 'Update an email template. Supply only the fields that should change; a new html_body regenerates the text body unless text_body is also given. is_default: true moves the workspace default to this template.', {
@@ -55,6 +57,7 @@ export function registerEmailTemplateTools(server: McpToolServer, ctx: McpContex
     html_body: z.string().optional(),
     text_body: z.string().optional(),
     is_default: z.boolean().optional(),
+    tags: z.array(z.string()).optional().describe('Replacement tags ([] clears)'),
   }, async (args) => run(async () => {
     const { email_template_id: id, ...fields } = args
     return { updated: true, email_template: await templates.updateEmailTemplate(writeCtx(), id, fields) }

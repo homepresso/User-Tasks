@@ -35,6 +35,7 @@
  * (RLS, and every helper here filters by tenant + user); workspace admins do
  * not see other people's Agent jobs (migration 20261231000002).
  */
+import type { AgentFailureView } from '@/lib/agents/errors'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { redactSecrets } from '@/lib/agents/safety'
 import type { TurnResult } from './engine'
@@ -68,6 +69,8 @@ export interface AgentTranscript {
   /** The messages to append to the conversation (what the `messages` event carries). */
   messages: ChatMessage[]
   error: string | null
+  /** A provider failure's friendly view (lib/agents/errors.ts), when the turn failed at the provider. */
+  failure?: AgentFailureView | null
   /** Events were dropped to fit the cap (the messages are kept). */
   truncated?: boolean
 }
@@ -155,7 +158,7 @@ export class TranscriptRecorder {
   readonly events: AssistantEvent[] = []
 
   push(event: AssistantEvent) {
-    if (event.type === 'messages' || event.type === 'done' || event.type === 'job' || event.type === 'error') return
+    if (event.type === 'messages' || event.type === 'done' || event.type === 'job' || event.type === 'error' || event.type === 'retry') return
     const last = this.events[this.events.length - 1]
     if (event.type === 'delta' && last?.type === 'delta') { last.text += event.text; return }
     this.events.push(event.type === 'delta' ? { type: 'delta', text: event.text } : event)
@@ -170,6 +173,7 @@ export class TranscriptRecorder {
       events: redactSecrets(this.events),
       messages: input.result?.newMessages ?? [],
       error: input.error ?? input.result?.error ?? null,
+      ...(input.result?.failure ? { failure: input.result.failure } : {}),
     })
   }
 }

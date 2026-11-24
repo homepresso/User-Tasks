@@ -1,0 +1,4091 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+  "asset": {
+    "id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+    "name": "CapEx budgets rows",
+    "rows": [
+      {
+        "id": "78d1821e-b5e3-5810-bd74-4f3bb949eba7",
+        "data": {
+          "budget_key": "2026-PRD-Equipment-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 520000,
+          "committed": 2923000,
+          "spent": 548650,
+          "available": -2403000,
+          "committed_pct": 562.1
+        }
+      },
+      {
+        "id": "75ad636d-5e6d-56c6-9621-f01a074a72e0",
+        "data": {
+          "budget_key": "2026-PRD-Equipment-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 780000,
+          "committed": 0,
+          "spent": 0,
+          "available": 780000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "c7360190-9831-520e-a69d-2ff57b3ee13b",
+        "data": {
+          "budget_key": "2026-PRD-Equipment-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 780000,
+          "committed": 0,
+          "spent": 0,
+          "available": 780000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3884ea46-f7df-5d23-8054-0eca9feca0be",
+        "data": {
+          "budget_key": "2026-PRD-Equipment-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 520000,
+          "committed": 0,
+          "spent": 0,
+          "available": 520000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3800165e-371a-51c1-9130-ed461c9b382d",
+        "data": {
+          "budget_key": "2026-PRD-IT-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 50000,
+          "committed": 0,
+          "spent": 0,
+          "available": 50000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "49f2dee7-ce53-5e7e-b279-a6ab9b937e23",
+        "data": {
+          "budget_key": "2026-PRD-IT-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "5857d698-495f-58da-9e6e-6893a1ac282b",
+        "data": {
+          "budget_key": "2026-PRD-IT-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "4dee24ec-b705-503c-8f67-e770e645f8fd",
+        "data": {
+          "budget_key": "2026-PRD-IT-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 50000,
+          "committed": 0,
+          "spent": 0,
+          "available": 50000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "1051f141-980e-55dd-b65c-756cce398064",
+        "data": {
+          "budget_key": "2026-PRD-Facilities-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 150000,
+          "committed": 99500,
+          "spent": 109780,
+          "available": 50500,
+          "committed_pct": 66.3
+        }
+      },
+      {
+        "id": "5f298d64-8324-564e-ae17-bad97912750c",
+        "data": {
+          "budget_key": "2026-PRD-Facilities-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 225000,
+          "committed": 0,
+          "spent": 0,
+          "available": 225000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2fba7198-931a-5dc9-bf42-373d064b6cfe",
+        "data": {
+          "budget_key": "2026-PRD-Facilities-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 225000,
+          "committed": 0,
+          "spent": 0,
+          "available": 225000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "fceab934-9b62-56c6-bfc9-7858670eed6a",
+        "data": {
+          "budget_key": "2026-PRD-Facilities-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 150000,
+          "committed": 0,
+          "spent": 0,
+          "available": 150000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "fbf15ca0-ac23-55a0-99bd-be41b84e0861",
+        "data": {
+          "budget_key": "2026-PRD-Vehicles-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 50000,
+          "committed": 506000,
+          "spent": 405250,
+          "available": -456000,
+          "committed_pct": 1012
+        }
+      },
+      {
+        "id": "74c20beb-bf2f-5d78-bb81-72c4320d570a",
+        "data": {
+          "budget_key": "2026-PRD-Vehicles-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f41b73af-38e7-5226-90cf-daca71ee3862",
+        "data": {
+          "budget_key": "2026-PRD-Vehicles-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "cc995d26-0942-57cb-8ed8-f599dc33635c",
+        "data": {
+          "budget_key": "2026-PRD-Vehicles-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 50000,
+          "committed": 0,
+          "spent": 0,
+          "available": 50000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e15c5031-3427-5a44-9d20-e201f400ad6d",
+        "data": {
+          "budget_key": "2026-PRD-R&D-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 65000,
+          "committed": 0,
+          "spent": 0,
+          "available": 65000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "b00bf7b3-2d92-55c1-88e8-b449661afaf7",
+        "data": {
+          "budget_key": "2026-PRD-R&D-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 100000,
+          "committed": 0,
+          "spent": 0,
+          "available": 100000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e2464798-08b9-5df9-934c-b06e119ccae6",
+        "data": {
+          "budget_key": "2026-PRD-R&D-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 100000,
+          "committed": 0,
+          "spent": 0,
+          "available": 100000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "ba25d151-f557-5708-9b38-f7768fe1c6c0",
+        "data": {
+          "budget_key": "2026-PRD-R&D-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 65000,
+          "committed": 0,
+          "spent": 0,
+          "available": 65000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "677c8714-fd07-5e52-bf55-0ba07d7ed52c",
+        "data": {
+          "budget_key": "2026-LOG-Equipment-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 110000,
+          "committed": 0,
+          "spent": 0,
+          "available": 110000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "d95bc585-9852-5137-b6be-c441d0a978a7",
+        "data": {
+          "budget_key": "2026-LOG-Equipment-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 160000,
+          "committed": 51000,
+          "spent": 7710,
+          "available": 109000,
+          "committed_pct": 31.9
+        }
+      },
+      {
+        "id": "b55dae23-a107-5a39-b71d-10dfd3c1d05e",
+        "data": {
+          "budget_key": "2026-LOG-Equipment-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 160000,
+          "committed": 0,
+          "spent": 0,
+          "available": 160000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "d21dda01-8f0c-57ee-9453-516358d13ab3",
+        "data": {
+          "budget_key": "2026-LOG-Equipment-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 110000,
+          "committed": 0,
+          "spent": 0,
+          "available": 110000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7c88aa28-775d-5e25-98eb-9cfaa4212ff4",
+        "data": {
+          "budget_key": "2026-LOG-IT-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7d00d522-d219-5b03-9294-1f76bd12ea52",
+        "data": {
+          "budget_key": "2026-LOG-IT-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 55000,
+          "committed": 0,
+          "spent": 0,
+          "available": 55000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f3f4fab9-8633-5143-8cf0-bc6e676c634b",
+        "data": {
+          "budget_key": "2026-LOG-IT-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 55000,
+          "committed": 0,
+          "spent": 0,
+          "available": 55000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0f44e402-e462-58ac-9a3c-f5832a8e7bde",
+        "data": {
+          "budget_key": "2026-LOG-IT-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e0a8653f-c6b2-52a0-86b1-8f9e3ba8fc17",
+        "data": {
+          "budget_key": "2026-LOG-Facilities-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 70000,
+          "committed": 0,
+          "spent": 0,
+          "available": 70000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a089aaaf-97a4-55f8-aa50-1ab44dc0d2fc",
+        "data": {
+          "budget_key": "2026-LOG-Facilities-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 110000,
+          "committed": 828500,
+          "spent": 0,
+          "available": -718500,
+          "committed_pct": 753.2
+        }
+      },
+      {
+        "id": "ac1339d0-f402-5673-bd71-dc9cb7202529",
+        "data": {
+          "budget_key": "2026-LOG-Facilities-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 110000,
+          "committed": 0,
+          "spent": 0,
+          "available": 110000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "686928e4-c862-558f-b876-1dd7fff3597c",
+        "data": {
+          "budget_key": "2026-LOG-Facilities-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 70000,
+          "committed": 0,
+          "spent": 0,
+          "available": 70000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "20323e52-93e9-52ca-8684-328fe6c90bad",
+        "data": {
+          "budget_key": "2026-LOG-Vehicles-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 135000,
+          "committed": 0,
+          "spent": 0,
+          "available": 135000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6e2d1644-ec3b-5f1c-bfa7-ee0f6867f29f",
+        "data": {
+          "budget_key": "2026-LOG-Vehicles-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 205000,
+          "committed": 758500,
+          "spent": 609630,
+          "available": -553500,
+          "committed_pct": 370
+        }
+      },
+      {
+        "id": "daed4ed0-1329-5c7a-9801-a7193a445ccb",
+        "data": {
+          "budget_key": "2026-LOG-Vehicles-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 205000,
+          "committed": 0,
+          "spent": 0,
+          "available": 205000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "463ab9f6-ef53-5c1b-bddc-575bc3266e5c",
+        "data": {
+          "budget_key": "2026-LOG-Vehicles-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 135000,
+          "committed": 0,
+          "spent": 0,
+          "available": 135000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8186510f-004d-54fe-98b0-5702012ad272",
+        "data": {
+          "budget_key": "2026-LOG-R&D-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "324446d7-dfb0-5331-97f3-58bb6526f7d9",
+        "data": {
+          "budget_key": "2026-LOG-R&D-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f0da2a89-f656-559e-8cac-47ff1dfa7ef2",
+        "data": {
+          "budget_key": "2026-LOG-R&D-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "49954f51-8b59-54ef-9c7d-c5946a233215",
+        "data": {
+          "budget_key": "2026-LOG-R&D-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "53514a2a-f751-5cc0-85b3-e229b268859c",
+        "data": {
+          "budget_key": "2026-ENG-Equipment-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "872e4cb3-ac5a-57f8-94ec-694319a0586e",
+        "data": {
+          "budget_key": "2026-ENG-Equipment-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 115000,
+          "committed": 0,
+          "spent": 0,
+          "available": 115000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "399b614c-5a8b-57e8-90d1-395ebaa63bec",
+        "data": {
+          "budget_key": "2026-ENG-Equipment-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 115000,
+          "committed": 778000,
+          "spent": 51270,
+          "available": -663000,
+          "committed_pct": 676.5
+        }
+      },
+      {
+        "id": "c3e7eb3d-45b6-5967-b261-ea4a46e54511",
+        "data": {
+          "budget_key": "2026-ENG-Equipment-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2702dc53-3cca-5743-827f-218c775fc2d4",
+        "data": {
+          "budget_key": "2026-ENG-IT-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a5a1becf-f779-5e2e-8a27-6943ed7dee77",
+        "data": {
+          "budget_key": "2026-ENG-IT-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 45000,
+          "committed": 0,
+          "spent": 0,
+          "available": 45000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "26edca29-27e9-5184-87ed-f383f2a607e2",
+        "data": {
+          "budget_key": "2026-ENG-IT-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 45000,
+          "committed": 13500,
+          "spent": 11960,
+          "available": 31500,
+          "committed_pct": 30
+        }
+      },
+      {
+        "id": "b6ce440d-fa2d-5493-8b51-046c395b89ab",
+        "data": {
+          "budget_key": "2026-ENG-IT-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "b470178f-2187-522c-9bd5-9e1ab746f934",
+        "data": {
+          "budget_key": "2026-ENG-Facilities-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "5e8dd67e-75ad-5848-a8bb-54c64eb753e5",
+        "data": {
+          "budget_key": "2026-ENG-Facilities-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 45000,
+          "committed": 0,
+          "spent": 0,
+          "available": 45000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7c9f4a50-5fe3-5e07-81be-c67cf39bd755",
+        "data": {
+          "budget_key": "2026-ENG-Facilities-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 45000,
+          "committed": 0,
+          "spent": 0,
+          "available": 45000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "4b59f934-434e-5ff7-9139-cd5712b17558",
+        "data": {
+          "budget_key": "2026-ENG-Facilities-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2e4c6e22-7b84-5b67-8050-2c7fee7c98fb",
+        "data": {
+          "budget_key": "2026-ENG-Vehicles-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6d6aba62-6cda-5ae6-bab4-bf5a6397b1d6",
+        "data": {
+          "budget_key": "2026-ENG-Vehicles-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e4f1686b-72eb-54a4-a48b-bb1b020ebc73",
+        "data": {
+          "budget_key": "2026-ENG-Vehicles-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2af6650d-bf10-5e67-ae9d-2ea8c5f0dbc9",
+        "data": {
+          "budget_key": "2026-ENG-Vehicles-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "d6903a95-2db0-58e1-bd69-3343523e6f44",
+        "data": {
+          "budget_key": "2026-ENG-R&D-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 155000,
+          "committed": 0,
+          "spent": 0,
+          "available": 155000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "136dd10e-b61e-59e5-b5d6-f20ce4a8c5b6",
+        "data": {
+          "budget_key": "2026-ENG-R&D-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 235000,
+          "committed": 0,
+          "spent": 0,
+          "available": 235000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0ac697ec-e44c-58f6-82e1-1e1d3cc68eb8",
+        "data": {
+          "budget_key": "2026-ENG-R&D-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 235000,
+          "committed": 364000,
+          "spent": 258190,
+          "available": -129000,
+          "committed_pct": 154.9
+        }
+      },
+      {
+        "id": "c70b0dfe-4c28-52a7-b30e-89748617dbc3",
+        "data": {
+          "budget_key": "2026-ENG-R&D-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 155000,
+          "committed": 0,
+          "spent": 0,
+          "available": 155000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3d0088d2-3cd6-5221-a104-53a80d06b052",
+        "data": {
+          "budget_key": "2026-ITS-Equipment-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "855f6ca6-f91c-571a-8721-da4656838e60",
+        "data": {
+          "budget_key": "2026-ITS-Equipment-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7b8960e5-1bca-5430-a3b1-dce27d036770",
+        "data": {
+          "budget_key": "2026-ITS-Equipment-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0855c387-4270-5dff-bd7f-7c2d0ed09664",
+        "data": {
+          "budget_key": "2026-ITS-Equipment-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e4126ca4-1b7e-5a51-89d7-8dafa93138b0",
+        "data": {
+          "budget_key": "2026-ITS-IT-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 275000,
+          "committed": 1407500,
+          "spent": 641160,
+          "available": -1132500,
+          "committed_pct": 511.8
+        }
+      },
+      {
+        "id": "f964b336-c94b-5371-9505-3261b9151c3c",
+        "data": {
+          "budget_key": "2026-ITS-IT-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 415000,
+          "committed": 0,
+          "spent": 0,
+          "available": 415000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6dd0e6af-265a-5336-91ff-ea628260e074",
+        "data": {
+          "budget_key": "2026-ITS-IT-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 415000,
+          "committed": 0,
+          "spent": 0,
+          "available": 415000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "1a8fabc4-24ca-5481-8395-478549203c8c",
+        "data": {
+          "budget_key": "2026-ITS-IT-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 275000,
+          "committed": 0,
+          "spent": 0,
+          "available": 275000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "39475c8f-4ff7-562c-b67b-5ee53a4fe82b",
+        "data": {
+          "budget_key": "2026-ITS-Facilities-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2e6343e8-5411-54cb-83ad-59c310b98eac",
+        "data": {
+          "budget_key": "2026-ITS-Facilities-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f82729bb-e066-5aa5-8070-bc5fa7158b21",
+        "data": {
+          "budget_key": "2026-ITS-Facilities-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "cd9a2b7f-6920-5961-85a0-4b35b8b3d1d0",
+        "data": {
+          "budget_key": "2026-ITS-Facilities-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6cff849a-e342-57f0-9975-27d957bbaa4b",
+        "data": {
+          "budget_key": "2026-ITS-Vehicles-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6e107456-757c-5e92-9786-5d88d0d3a991",
+        "data": {
+          "budget_key": "2026-ITS-Vehicles-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "d413a601-38da-5c05-b9ce-c364b50e2f60",
+        "data": {
+          "budget_key": "2026-ITS-Vehicles-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f27949c1-1138-5cbe-8ee9-4ed492d5eec9",
+        "data": {
+          "budget_key": "2026-ITS-Vehicles-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "214152e1-c8d9-527c-9c8d-bbf6d8a760ae",
+        "data": {
+          "budget_key": "2026-ITS-R&D-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8a022fed-d9fa-5b74-b460-61efeeb1c3ad",
+        "data": {
+          "budget_key": "2026-ITS-R&D-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8e7ca934-4b65-551f-bc77-3c88bb488eb1",
+        "data": {
+          "budget_key": "2026-ITS-R&D-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "4a6a067f-e323-5a0b-9eea-743b992c2c7a",
+        "data": {
+          "budget_key": "2026-ITS-R&D-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2d179cb3-2f0e-5efe-ab8e-6520aec3a1f2",
+        "data": {
+          "budget_key": "2026-FAC-Equipment-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "cd57d603-d164-5514-874e-912038466135",
+        "data": {
+          "budget_key": "2026-FAC-Equipment-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 115000,
+          "committed": 49000,
+          "spent": 37330,
+          "available": 66000,
+          "committed_pct": 42.6
+        }
+      },
+      {
+        "id": "5a4b88a9-9123-5003-92ff-b7307533ac68",
+        "data": {
+          "budget_key": "2026-FAC-Equipment-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 115000,
+          "committed": 0,
+          "spent": 0,
+          "available": 115000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "292352d1-97ce-5c19-8fcd-a89f36133752",
+        "data": {
+          "budget_key": "2026-FAC-Equipment-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "48fd3ee0-be50-53c0-b289-d2d714000022",
+        "data": {
+          "budget_key": "2026-FAC-IT-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "02ebaff3-c308-5d32-9ec7-32a59ba14108",
+        "data": {
+          "budget_key": "2026-FAC-IT-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 35000,
+          "committed": 184000,
+          "spent": 31070,
+          "available": -149000,
+          "committed_pct": 525.7
+        }
+      },
+      {
+        "id": "7249474f-1c46-59af-810b-62d17f2245c5",
+        "data": {
+          "budget_key": "2026-FAC-IT-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "78cfd837-ce1f-5ddf-9ddd-274e853167aa",
+        "data": {
+          "budget_key": "2026-FAC-IT-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "bdda49e2-681f-5471-a424-badba041a238",
+        "data": {
+          "budget_key": "2026-FAC-Facilities-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 250000,
+          "committed": 0,
+          "spent": 0,
+          "available": 250000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0e6bd55f-e3bf-59a7-bba4-4feee8c6ef36",
+        "data": {
+          "budget_key": "2026-FAC-Facilities-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 375000,
+          "committed": 1743500,
+          "spent": 1245970,
+          "available": -1368500,
+          "committed_pct": 464.9
+        }
+      },
+      {
+        "id": "410f5303-697c-585e-883a-e3beecfeea08",
+        "data": {
+          "budget_key": "2026-FAC-Facilities-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 375000,
+          "committed": 0,
+          "spent": 0,
+          "available": 375000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "001ca0c4-2dda-5564-86cb-942ba92e8344",
+        "data": {
+          "budget_key": "2026-FAC-Facilities-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 250000,
+          "committed": 0,
+          "spent": 0,
+          "available": 250000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2db8d0f3-4f78-5f2b-8c02-6de3cec88402",
+        "data": {
+          "budget_key": "2026-FAC-Vehicles-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "5be26eb5-ce6c-5b02-b55b-f6b113e57899",
+        "data": {
+          "budget_key": "2026-FAC-Vehicles-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "22291f00-f822-54a0-8e10-5203185785b5",
+        "data": {
+          "budget_key": "2026-FAC-Vehicles-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "1ad007e0-dfc2-5f78-98e2-e80cc8a63f8f",
+        "data": {
+          "budget_key": "2026-FAC-Vehicles-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "48b033c6-fd70-56bb-b199-ec835f631836",
+        "data": {
+          "budget_key": "2026-FAC-R&D-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "05f964bf-e88e-5fd0-8711-46667b37c649",
+        "data": {
+          "budget_key": "2026-FAC-R&D-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "b03a60c4-6c9d-5169-b900-3f88e79ffcc5",
+        "data": {
+          "budget_key": "2026-FAC-R&D-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7085082c-2422-5519-ae79-d1f878b0f557",
+        "data": {
+          "budget_key": "2026-FAC-R&D-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "4330f1b9-3ec1-5715-92b2-a6b34cec017b",
+        "data": {
+          "budget_key": "2026-COM-Equipment-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e82a1ac3-e448-585d-905c-b223b6e546a6",
+        "data": {
+          "budget_key": "2026-COM-Equipment-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a4021550-4453-5651-b648-f8b1f13bb385",
+        "data": {
+          "budget_key": "2026-COM-Equipment-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "426b2170-d1d7-5e84-9eb0-b13b43f45039",
+        "data": {
+          "budget_key": "2026-COM-Equipment-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "c132a513-12dc-5eeb-b189-5df9b54ef109",
+        "data": {
+          "budget_key": "2026-COM-IT-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 60000,
+          "committed": 0,
+          "spent": 0,
+          "available": 60000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a9d2db9e-6b9f-571c-9373-ce9ad3b65c10",
+        "data": {
+          "budget_key": "2026-COM-IT-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 90000,
+          "committed": 0,
+          "spent": 0,
+          "available": 90000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "866aad53-1032-5992-865d-6a669e269dda",
+        "data": {
+          "budget_key": "2026-COM-IT-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 90000,
+          "committed": 221000,
+          "spent": 55720,
+          "available": -131000,
+          "committed_pct": 245.6
+        }
+      },
+      {
+        "id": "15037831-6ab7-50fa-91c1-cd8e7d6ed4e5",
+        "data": {
+          "budget_key": "2026-COM-IT-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 60000,
+          "committed": 0,
+          "spent": 0,
+          "available": 60000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0ce33c90-8996-5138-9867-e567ec907307",
+        "data": {
+          "budget_key": "2026-COM-Facilities-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a7c6de61-3025-54f7-9287-2c11300cc6be",
+        "data": {
+          "budget_key": "2026-COM-Facilities-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "4fa44832-f7dd-56d5-a2fd-dae87470801a",
+        "data": {
+          "budget_key": "2026-COM-Facilities-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 35000,
+          "committed": 113500,
+          "spent": 1490,
+          "available": -78500,
+          "committed_pct": 324.3
+        }
+      },
+      {
+        "id": "e72bf264-72e2-5c2c-a471-67ef3db796f3",
+        "data": {
+          "budget_key": "2026-COM-Facilities-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a4985e7a-2faf-5d42-a98f-a6800404113d",
+        "data": {
+          "budget_key": "2026-COM-Vehicles-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "25ace0a2-ac3f-55df-af62-0d8829bc408e",
+        "data": {
+          "budget_key": "2026-COM-Vehicles-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e497d46c-a4eb-5324-8e1c-f72f4d486974",
+        "data": {
+          "budget_key": "2026-COM-Vehicles-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 30000,
+          "committed": 97000,
+          "spent": 47340,
+          "available": -67000,
+          "committed_pct": 323.3
+        }
+      },
+      {
+        "id": "2eb38ec6-ddeb-551c-af2a-650a6248e196",
+        "data": {
+          "budget_key": "2026-COM-Vehicles-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "dd6fded0-5283-5ebb-9eb5-81dda67b79b0",
+        "data": {
+          "budget_key": "2026-COM-R&D-Q1",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2026-Q1",
+          "budget": 0,
+          "committed": 0,
+          "spent": 0,
+          "available": 0,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "94b04626-f5dc-588a-be6e-23cf7f3a98f7",
+        "data": {
+          "budget_key": "2026-COM-R&D-Q2",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2026-Q2",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7e22ba86-3f1a-5499-8557-c524635f3a8e",
+        "data": {
+          "budget_key": "2026-COM-R&D-Q3",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2026-Q3",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a0132f00-1f11-55d1-b888-692e1fac5e7f",
+        "data": {
+          "budget_key": "2026-COM-R&D-Q4",
+          "fiscal_year": "2026",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2026-Q4",
+          "budget": 0,
+          "committed": 0,
+          "spent": 0,
+          "available": 0,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6b1e3998-d5b4-5d3e-bf98-e5c550a35bbc",
+        "data": {
+          "budget_key": "2027-PRD-Equipment-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 550000,
+          "committed": 0,
+          "spent": 0,
+          "available": 550000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a52df9f5-4bc7-51ea-8af8-81b7248c41ce",
+        "data": {
+          "budget_key": "2027-PRD-Equipment-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 830000,
+          "committed": 0,
+          "spent": 0,
+          "available": 830000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6fa41cff-b019-528d-8f74-f557d80485b4",
+        "data": {
+          "budget_key": "2027-PRD-Equipment-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 830000,
+          "committed": 0,
+          "spent": 0,
+          "available": 830000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "5c2b5cc2-ab03-550b-a34d-43f0a04bc1ec",
+        "data": {
+          "budget_key": "2027-PRD-Equipment-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 550000,
+          "committed": 0,
+          "spent": 0,
+          "available": 550000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "313f50ce-a2b7-5da8-80de-0ceef438fd24",
+        "data": {
+          "budget_key": "2027-PRD-IT-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 55000,
+          "committed": 0,
+          "spent": 0,
+          "available": 55000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "c972a009-6de5-5c65-bb44-2f125b5434e9",
+        "data": {
+          "budget_key": "2027-PRD-IT-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 80000,
+          "committed": 0,
+          "spent": 0,
+          "available": 80000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "dd4b6bae-6937-536b-b485-419b2ff161f8",
+        "data": {
+          "budget_key": "2027-PRD-IT-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 80000,
+          "committed": 0,
+          "spent": 0,
+          "available": 80000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7af9d518-d73f-518c-b5b4-9f7f47da4186",
+        "data": {
+          "budget_key": "2027-PRD-IT-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 55000,
+          "committed": 0,
+          "spent": 0,
+          "available": 55000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "cdb96e55-4dd8-55c2-a86e-245b498e4a05",
+        "data": {
+          "budget_key": "2027-PRD-Facilities-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 160000,
+          "committed": 33500,
+          "spent": 0,
+          "available": 126500,
+          "committed_pct": 20.9
+        }
+      },
+      {
+        "id": "14f810b4-207c-560d-a45d-37d67214c2aa",
+        "data": {
+          "budget_key": "2027-PRD-Facilities-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 240000,
+          "committed": 0,
+          "spent": 0,
+          "available": 240000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6aef2e9d-9dd2-53d5-bedb-ba1c311fd6f8",
+        "data": {
+          "budget_key": "2027-PRD-Facilities-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 240000,
+          "committed": 0,
+          "spent": 0,
+          "available": 240000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0cebdaed-75ee-5da9-b9a2-92ea48a7970e",
+        "data": {
+          "budget_key": "2027-PRD-Facilities-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 160000,
+          "committed": 0,
+          "spent": 0,
+          "available": 160000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "820d9dba-74c3-5ab9-bcea-1bc255896c1b",
+        "data": {
+          "budget_key": "2027-PRD-Vehicles-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 55000,
+          "committed": 0,
+          "spent": 0,
+          "available": 55000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "cfe9e7a0-15de-53d7-970d-2d618f8705f3",
+        "data": {
+          "budget_key": "2027-PRD-Vehicles-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 80000,
+          "committed": 0,
+          "spent": 0,
+          "available": 80000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "fe281d6c-b4c7-5c06-8eff-0dbdfae187f1",
+        "data": {
+          "budget_key": "2027-PRD-Vehicles-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 80000,
+          "committed": 0,
+          "spent": 0,
+          "available": 80000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "fa1f1ccd-678b-5aa2-afc1-d46fb45df37e",
+        "data": {
+          "budget_key": "2027-PRD-Vehicles-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 55000,
+          "committed": 0,
+          "spent": 0,
+          "available": 55000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7e57f91f-6a2c-53a9-9f51-5df025bb0754",
+        "data": {
+          "budget_key": "2027-PRD-R&D-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 70000,
+          "committed": 0,
+          "spent": 0,
+          "available": 70000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "ae15779a-cf0a-515b-b8d8-6723dbb27502",
+        "data": {
+          "budget_key": "2027-PRD-R&D-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 105000,
+          "committed": 0,
+          "spent": 0,
+          "available": 105000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0378d8c8-8900-5373-92cd-ab23420b8335",
+        "data": {
+          "budget_key": "2027-PRD-R&D-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 105000,
+          "committed": 0,
+          "spent": 0,
+          "available": 105000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3270bb5d-b88c-5b73-87a6-0dcf6d88c8da",
+        "data": {
+          "budget_key": "2027-PRD-R&D-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 70000,
+          "committed": 0,
+          "spent": 0,
+          "available": 70000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "1e93fc20-24f7-5cb6-b3d1-0046ba1270b0",
+        "data": {
+          "budget_key": "2027-LOG-Equipment-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 115000,
+          "committed": 0,
+          "spent": 0,
+          "available": 115000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3d9b2921-c000-5e25-976d-7dabe8e30361",
+        "data": {
+          "budget_key": "2027-LOG-Equipment-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 170000,
+          "committed": 97500,
+          "spent": 0,
+          "available": 72500,
+          "committed_pct": 57.4
+        }
+      },
+      {
+        "id": "63459a79-641e-50b8-bcc3-ccc7a66230eb",
+        "data": {
+          "budget_key": "2027-LOG-Equipment-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 170000,
+          "committed": 0,
+          "spent": 0,
+          "available": 170000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "21829289-c74f-5d51-9e2c-2b3bf863ec25",
+        "data": {
+          "budget_key": "2027-LOG-Equipment-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 115000,
+          "committed": 0,
+          "spent": 0,
+          "available": 115000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7b4cd2a6-41a3-52ae-afae-3c0ecec5e980",
+        "data": {
+          "budget_key": "2027-LOG-IT-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 40000,
+          "committed": 0,
+          "spent": 0,
+          "available": 40000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "ed0226bb-24a9-5c0c-8a7e-87a6daf2918f",
+        "data": {
+          "budget_key": "2027-LOG-IT-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 55000,
+          "committed": 0,
+          "spent": 0,
+          "available": 55000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "ce859222-7f4f-57be-a36d-f96994097e15",
+        "data": {
+          "budget_key": "2027-LOG-IT-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 55000,
+          "committed": 0,
+          "spent": 0,
+          "available": 55000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0af7f7fe-f63f-5225-b5c8-2826de441122",
+        "data": {
+          "budget_key": "2027-LOG-IT-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 40000,
+          "committed": 0,
+          "spent": 0,
+          "available": 40000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a9ee95b6-9d1b-56eb-b179-76fbd189e02c",
+        "data": {
+          "budget_key": "2027-LOG-Facilities-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f079a75c-885e-5893-9840-8daed4d2fe13",
+        "data": {
+          "budget_key": "2027-LOG-Facilities-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 115000,
+          "committed": 0,
+          "spent": 0,
+          "available": 115000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2327789d-35fa-5b59-8ec0-bfdf7dfe9754",
+        "data": {
+          "budget_key": "2027-LOG-Facilities-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 115000,
+          "committed": 0,
+          "spent": 0,
+          "available": 115000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "45000257-7fc8-5a43-a703-b92e115506ce",
+        "data": {
+          "budget_key": "2027-LOG-Facilities-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 75000,
+          "committed": 0,
+          "spent": 0,
+          "available": 75000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "ac3b9229-6635-518a-9a8e-b8df961f5265",
+        "data": {
+          "budget_key": "2027-LOG-Vehicles-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 145000,
+          "committed": 0,
+          "spent": 0,
+          "available": 145000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3e78eaf6-27de-5344-adc2-79bf2cc0bbb1",
+        "data": {
+          "budget_key": "2027-LOG-Vehicles-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 220000,
+          "committed": 0,
+          "spent": 0,
+          "available": 220000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a8b77493-0c59-5cf6-9b89-76f1e16c5fb4",
+        "data": {
+          "budget_key": "2027-LOG-Vehicles-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 220000,
+          "committed": 0,
+          "spent": 0,
+          "available": 220000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "dc0ae6cd-ec7f-5f0b-a131-05796f308b85",
+        "data": {
+          "budget_key": "2027-LOG-Vehicles-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 145000,
+          "committed": 0,
+          "spent": 0,
+          "available": 145000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "87ec7fc8-6bff-5218-98a2-75c9f2567ebc",
+        "data": {
+          "budget_key": "2027-LOG-R&D-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "0b16f0d5-9f10-50fb-8e1b-db648ba1f3e1",
+        "data": {
+          "budget_key": "2027-LOG-R&D-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "92fff072-6b7c-592b-b3c8-0ef37d0f8dec",
+        "data": {
+          "budget_key": "2027-LOG-R&D-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3686c504-f56d-5f70-9588-4037f2d39159",
+        "data": {
+          "budget_key": "2027-LOG-R&D-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f5b02073-f402-5d4b-8be0-d54849d7c7ac",
+        "data": {
+          "budget_key": "2027-ENG-Equipment-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 80000,
+          "committed": 0,
+          "spent": 0,
+          "available": 80000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f48f6a2d-a3be-5985-ad73-ff02db42bc72",
+        "data": {
+          "budget_key": "2027-ENG-Equipment-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 120000,
+          "committed": 0,
+          "spent": 0,
+          "available": 120000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "c7b0f43a-4196-575f-9281-b06dca173bb4",
+        "data": {
+          "budget_key": "2027-ENG-Equipment-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 120000,
+          "committed": 0,
+          "spent": 0,
+          "available": 120000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8bf664c1-0a1c-5d47-b358-0d34254328a5",
+        "data": {
+          "budget_key": "2027-ENG-Equipment-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 80000,
+          "committed": 0,
+          "spent": 0,
+          "available": 80000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "37290f58-560b-5b46-9120-aa56506ae612",
+        "data": {
+          "budget_key": "2027-ENG-IT-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2b17f2d9-d985-57fa-9d65-d555b306ef0a",
+        "data": {
+          "budget_key": "2027-ENG-IT-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 50000,
+          "committed": 0,
+          "spent": 0,
+          "available": 50000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "383bbff0-c9a8-54e8-a2bd-d4920c4ed830",
+        "data": {
+          "budget_key": "2027-ENG-IT-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 50000,
+          "committed": 0,
+          "spent": 0,
+          "available": 50000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "38ffb914-e92a-5b26-b4b0-eb1447645d44",
+        "data": {
+          "budget_key": "2027-ENG-IT-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "c0bc9431-d727-5783-b973-4b9a7b122428",
+        "data": {
+          "budget_key": "2027-ENG-Facilities-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "6abc5796-1409-5954-86f9-06e069b03cdd",
+        "data": {
+          "budget_key": "2027-ENG-Facilities-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 50000,
+          "committed": 0,
+          "spent": 0,
+          "available": 50000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "ce7d1c2c-54e1-5f31-b982-3711f6499b10",
+        "data": {
+          "budget_key": "2027-ENG-Facilities-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 50000,
+          "committed": 0,
+          "spent": 0,
+          "available": 50000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "fafe73d0-39b9-5f4b-ac1d-f090aa3cb669",
+        "data": {
+          "budget_key": "2027-ENG-Facilities-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "acce3d7a-9e60-5635-abb0-bb5542b21679",
+        "data": {
+          "budget_key": "2027-ENG-Vehicles-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "9e264e1b-5dd1-5e30-9f93-05cb945c4a94",
+        "data": {
+          "budget_key": "2027-ENG-Vehicles-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2d211c60-6251-5d9e-a81b-bccf59fc686f",
+        "data": {
+          "budget_key": "2027-ENG-Vehicles-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2ae85431-993a-50d1-869b-83bc1c59758c",
+        "data": {
+          "budget_key": "2027-ENG-Vehicles-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a0c34303-de46-5a64-8c0d-b064fd6b3437",
+        "data": {
+          "budget_key": "2027-ENG-R&D-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 165000,
+          "committed": 0,
+          "spent": 0,
+          "available": 165000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "135964a1-baab-5d88-a7ed-45bdc01b013e",
+        "data": {
+          "budget_key": "2027-ENG-R&D-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 250000,
+          "committed": 0,
+          "spent": 0,
+          "available": 250000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "cfbeab8c-d41e-5877-aca2-1962ae3c9be1",
+        "data": {
+          "budget_key": "2027-ENG-R&D-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 250000,
+          "committed": 73500,
+          "spent": 0,
+          "available": 176500,
+          "committed_pct": 29.4
+        }
+      },
+      {
+        "id": "2358bdbe-0c60-5814-afc8-b977e26606ca",
+        "data": {
+          "budget_key": "2027-ENG-R&D-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 165000,
+          "committed": 0,
+          "spent": 0,
+          "available": 165000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "251b2361-4fcb-538d-8c46-ab1e20442369",
+        "data": {
+          "budget_key": "2027-ITS-Equipment-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "02075ad9-fb57-55fe-abf2-34a674d7e31b",
+        "data": {
+          "budget_key": "2027-ITS-Equipment-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "95a2f60c-a9eb-5503-8804-3574ea5b0000",
+        "data": {
+          "budget_key": "2027-ITS-Equipment-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7de5fbdf-f1c6-5a48-972e-28f4e2b4bb7c",
+        "data": {
+          "budget_key": "2027-ITS-Equipment-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "ac82b911-b544-5070-ac7a-5838bf7fee7d",
+        "data": {
+          "budget_key": "2027-ITS-IT-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 290000,
+          "committed": 0,
+          "spent": 0,
+          "available": 290000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "9f9664c7-740e-5779-a24d-92038e920b69",
+        "data": {
+          "budget_key": "2027-ITS-IT-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 440000,
+          "committed": 0,
+          "spent": 0,
+          "available": 440000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "889017f4-a430-529f-8604-a4d905bd1d30",
+        "data": {
+          "budget_key": "2027-ITS-IT-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 440000,
+          "committed": 0,
+          "spent": 0,
+          "available": 440000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a1dea570-80ad-5eb2-b6a1-cf792ce680ea",
+        "data": {
+          "budget_key": "2027-ITS-IT-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 290000,
+          "committed": 21000,
+          "spent": 0,
+          "available": 269000,
+          "committed_pct": 7.2
+        }
+      },
+      {
+        "id": "83ae40a1-1066-5c8c-a79b-cbafc42d553a",
+        "data": {
+          "budget_key": "2027-ITS-Facilities-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e7eceb70-62cc-5078-ae17-fcf9aa359ec7",
+        "data": {
+          "budget_key": "2027-ITS-Facilities-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "1f2882a5-db25-5879-adea-dadc238d2dbc",
+        "data": {
+          "budget_key": "2027-ITS-Facilities-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 30000,
+          "committed": 0,
+          "spent": 0,
+          "available": 30000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "73ee31cf-19c2-5a70-bc25-b68da7e9feec",
+        "data": {
+          "budget_key": "2027-ITS-Facilities-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "252ad167-7164-5137-a3e9-6791a41e481c",
+        "data": {
+          "budget_key": "2027-ITS-Vehicles-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "74ac4b56-93a3-5874-814f-d4b6c06fed9f",
+        "data": {
+          "budget_key": "2027-ITS-Vehicles-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "b4d570b8-6bab-5176-8032-098fa94cadf8",
+        "data": {
+          "budget_key": "2027-ITS-Vehicles-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "9a95bd46-fbb0-5ef5-b33e-a21c0f73e396",
+        "data": {
+          "budget_key": "2027-ITS-Vehicles-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "63fc5889-9c7e-505f-b4ec-3acb52d5df98",
+        "data": {
+          "budget_key": "2027-ITS-R&D-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "c8590acc-e2b9-5e63-97c4-5544b748987d",
+        "data": {
+          "budget_key": "2027-ITS-R&D-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "4f8f99ff-2a7a-58d2-9469-1ec776cea4a4",
+        "data": {
+          "budget_key": "2027-ITS-R&D-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3039502d-2a3a-51f5-9095-700df2d330fe",
+        "data": {
+          "budget_key": "2027-ITS-R&D-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f3114802-5010-5c4d-89ec-75fbc5a58834",
+        "data": {
+          "budget_key": "2027-FAC-Equipment-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 80000,
+          "committed": 0,
+          "spent": 0,
+          "available": 80000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8d2ccaeb-873c-5332-b1ff-e514e49ddf09",
+        "data": {
+          "budget_key": "2027-FAC-Equipment-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 120000,
+          "committed": 0,
+          "spent": 0,
+          "available": 120000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "efef81da-a15b-5b74-98fd-a347f367901f",
+        "data": {
+          "budget_key": "2027-FAC-Equipment-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 120000,
+          "committed": 0,
+          "spent": 0,
+          "available": 120000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8a8a6a36-ac55-5245-98f9-85ecb702b894",
+        "data": {
+          "budget_key": "2027-FAC-Equipment-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 80000,
+          "committed": 0,
+          "spent": 0,
+          "available": 80000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "b6c9c69c-46b1-50bd-9495-db7cc907108d",
+        "data": {
+          "budget_key": "2027-FAC-IT-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8f99862d-583e-51ba-a14b-30a804806c53",
+        "data": {
+          "budget_key": "2027-FAC-IT-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e78b777d-96ab-5bc2-9c1d-1a0e09f96afd",
+        "data": {
+          "budget_key": "2027-FAC-IT-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "d442e799-2228-5ee5-a9ed-d0bcd5b6cd12",
+        "data": {
+          "budget_key": "2027-FAC-IT-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "9b4e2185-1fb5-5961-9c3c-23132079d7cb",
+        "data": {
+          "budget_key": "2027-FAC-Facilities-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 265000,
+          "committed": 330500,
+          "spent": 0,
+          "available": -65500,
+          "committed_pct": 124.7
+        }
+      },
+      {
+        "id": "2f2a6264-5861-57e9-b778-ebd4a3f1ebda",
+        "data": {
+          "budget_key": "2027-FAC-Facilities-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 400000,
+          "committed": 0,
+          "spent": 0,
+          "available": 400000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "cd128d35-0788-5d30-9ac7-c59958fbd803",
+        "data": {
+          "budget_key": "2027-FAC-Facilities-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 400000,
+          "committed": 0,
+          "spent": 0,
+          "available": 400000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "a5905a6d-3fb8-543e-ba92-46d3058f9c08",
+        "data": {
+          "budget_key": "2027-FAC-Facilities-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 265000,
+          "committed": 0,
+          "spent": 0,
+          "available": 265000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "14c9f979-6546-58f1-9727-80773756d244",
+        "data": {
+          "budget_key": "2027-FAC-Vehicles-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "63ea0bb7-5823-5a34-917f-cefb8501a4d9",
+        "data": {
+          "budget_key": "2027-FAC-Vehicles-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "2c7492c4-d329-52ad-880e-f2cb5f1534ba",
+        "data": {
+          "budget_key": "2027-FAC-Vehicles-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "195fb138-0c09-5abc-8a20-7a64e84444d4",
+        "data": {
+          "budget_key": "2027-FAC-Vehicles-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8a4109ad-860e-5368-9321-d7220af1f942",
+        "data": {
+          "budget_key": "2027-FAC-R&D-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "014d527f-45d9-5f66-ae26-2476130119c5",
+        "data": {
+          "budget_key": "2027-FAC-R&D-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "298fd3e9-1146-5898-adab-e4ce372d6771",
+        "data": {
+          "budget_key": "2027-FAC-R&D-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "06e78d04-3f0b-585d-9aaa-1f40477d2716",
+        "data": {
+          "budget_key": "2027-FAC-R&D-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 10000,
+          "committed": 0,
+          "spent": 0,
+          "available": 10000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "3feb1c42-ce8b-54a4-9371-0251bbebdd04",
+        "data": {
+          "budget_key": "2027-COM-Equipment-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Equipment",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f03b6cd2-dbfa-5ab1-a3d9-dffc99e88b01",
+        "data": {
+          "budget_key": "2027-COM-Equipment-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Equipment",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 20000,
+          "committed": 252000,
+          "spent": 0,
+          "available": -232000,
+          "committed_pct": 1260
+        }
+      },
+      {
+        "id": "3002c06d-478b-585c-90bc-1e10cc388cdd",
+        "data": {
+          "budget_key": "2027-COM-Equipment-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Equipment",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 20000,
+          "committed": 0,
+          "spent": 0,
+          "available": 20000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "471796d0-f2e7-5139-a6b5-6dc21dd8a428",
+        "data": {
+          "budget_key": "2027-COM-Equipment-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Equipment",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 15000,
+          "committed": 0,
+          "spent": 0,
+          "available": 15000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "f537910b-55aa-57bc-9910-0efeb28f4bb8",
+        "data": {
+          "budget_key": "2027-COM-IT-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 65000,
+          "committed": 0,
+          "spent": 0,
+          "available": 65000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "1cc9eb8b-9e79-526c-9e0c-447cf55aac9e",
+        "data": {
+          "budget_key": "2027-COM-IT-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 95000,
+          "committed": 0,
+          "spent": 0,
+          "available": 95000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "69e0d064-47a6-5d22-a97a-fb935891e8b0",
+        "data": {
+          "budget_key": "2027-COM-IT-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 95000,
+          "committed": 0,
+          "spent": 0,
+          "available": 95000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "19e30cff-b269-5c67-b90e-93c8d5aaa14c",
+        "data": {
+          "budget_key": "2027-COM-IT-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 65000,
+          "committed": 0,
+          "spent": 0,
+          "available": 65000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "963d5ac3-b28e-5ccd-b591-25f5dd50fa3a",
+        "data": {
+          "budget_key": "2027-COM-Facilities-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "48ce8b9a-75a6-580d-bf10-f82bcf50d802",
+        "data": {
+          "budget_key": "2027-COM-Facilities-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 40000,
+          "committed": 0,
+          "spent": 0,
+          "available": 40000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "1b7c3611-8cc3-57c1-bf24-c966f3b9ae2a",
+        "data": {
+          "budget_key": "2027-COM-Facilities-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 40000,
+          "committed": 0,
+          "spent": 0,
+          "available": 40000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "8c09c402-981a-5048-a11f-dbbcb3879709",
+        "data": {
+          "budget_key": "2027-COM-Facilities-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "109026c6-e9a9-5e34-8744-b7eacb035c36",
+        "data": {
+          "budget_key": "2027-COM-Vehicles-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "7111924a-8442-5df5-92f2-db71a4683534",
+        "data": {
+          "budget_key": "2027-COM-Vehicles-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "da19668d-e194-5c32-8ea6-9b2fbc873bb4",
+        "data": {
+          "budget_key": "2027-COM-Vehicles-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 35000,
+          "committed": 0,
+          "spent": 0,
+          "available": 35000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "cb93747f-4ba1-5af7-a880-d83d1c490c6d",
+        "data": {
+          "budget_key": "2027-COM-Vehicles-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 25000,
+          "committed": 0,
+          "spent": 0,
+          "available": 25000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "5f7eef4f-0e69-5fa5-8832-b1d58c163692",
+        "data": {
+          "budget_key": "2027-COM-R&D-Q1",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "R&D",
+          "quarter": "Q1",
+          "period": "2027-Q1",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "e8bc6345-a14e-506f-9686-bc13c46bb435",
+        "data": {
+          "budget_key": "2027-COM-R&D-Q2",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "R&D",
+          "quarter": "Q2",
+          "period": "2027-Q2",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "05117936-9ea0-59e3-97fd-1bb1cd4ee674",
+        "data": {
+          "budget_key": "2027-COM-R&D-Q3",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "R&D",
+          "quarter": "Q3",
+          "period": "2027-Q3",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      },
+      {
+        "id": "ec4b1d08-64d4-5a3e-9cee-f9f3a3c4b6d3",
+        "data": {
+          "budget_key": "2027-COM-R&D-Q4",
+          "fiscal_year": "2027",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "category": "R&D",
+          "quarter": "Q4",
+          "period": "2027-Q4",
+          "budget": 5000,
+          "committed": 0,
+          "spent": 0,
+          "available": 5000,
+          "committed_pct": 0
+        }
+      }
+    ]
+  }
+}

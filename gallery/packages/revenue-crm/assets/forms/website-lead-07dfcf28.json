@@ -1,0 +1,257 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "07dfcf28-11cd-5310-b79f-4ddc0938b90a",
+  "asset": {
+    "id": "07dfcf28-11cd-5310-b79f-4ddc0938b90a",
+    "name": "Website lead",
+    "description": "Tell us about your project and we will connect you with the right person within one business day.",
+    "tags": [
+      "crm",
+      "leads",
+      "public"
+    ],
+    "fields": [
+      {
+        "key": "h_you",
+        "label": "About you",
+        "type": "heading"
+      },
+      {
+        "key": "name",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "email",
+        "label": "Work email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "title",
+        "label": "Job title",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Operations Manager"
+      },
+      {
+        "key": "phone",
+        "label": "Phone",
+        "type": "text"
+      },
+      {
+        "key": "h_co",
+        "label": "Your company",
+        "type": "heading"
+      },
+      {
+        "key": "company",
+        "label": "Company",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "employees",
+        "label": "Employees",
+        "type": "number",
+        "required": true,
+        "min": 1
+      },
+      {
+        "key": "region",
+        "label": "Region",
+        "type": "choice",
+        "options": [
+          "West",
+          "Central",
+          "East",
+          "EMEA",
+          "APAC"
+        ],
+        "required": true
+      },
+      {
+        "key": "industry",
+        "label": "Industry",
+        "type": "choice",
+        "options": [
+          "Manufacturing",
+          "Healthcare",
+          "Financial services",
+          "Retail",
+          "Software",
+          "Energy",
+          "Education",
+          "Logistics",
+          "Public sector"
+        ],
+        "required": true
+      },
+      {
+        "key": "interest",
+        "label": "Interested in",
+        "type": "choice",
+        "options": [
+          "Platform",
+          "Predictive analytics",
+          "Sensor monitoring",
+          "Compliance reporting"
+        ],
+        "required": true
+      },
+      {
+        "key": "source",
+        "label": "How did you hear about us?",
+        "type": "choice",
+        "options": [
+          "Website",
+          "Webinar",
+          "Referral",
+          "Trade show",
+          "Partner",
+          "Outbound",
+          "Paid search"
+        ],
+        "default": "Website"
+      },
+      {
+        "key": "message",
+        "label": "What would you like to achieve?",
+        "type": "textarea",
+        "placeholder": "Sites, timeline, anything we should know"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_you",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "name",
+              "span": 1
+            },
+            {
+              "field_key": "email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "title",
+              "span": 1
+            },
+            {
+              "field_key": "phone",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_co",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "company",
+              "span": 1
+            },
+            {
+              "field_key": "employees",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "region",
+              "span": 1
+            },
+            {
+              "field_key": "industry",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "interest",
+              "span": 1
+            },
+            {
+              "field_key": "source",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "message",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Thanks, we have it",
+            "text": "Thanks {{name}}. Someone from our team will be in touch within one business day.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Send another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Talk to Brightwater Labs",
+      "subtitle": "Monitoring and analytics for operations teams.",
+      "align": "left"
+    }
+  }
+}

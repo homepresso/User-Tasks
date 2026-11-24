@@ -23,6 +23,7 @@ What the Agent can do depends on the screen and on the person's own permissions:
 | A task (or any task, by name) | Summarises the task, its form and comments, explains the outcomes, drafts a comment, and — after you confirm — completes, approves, declines, accepts, takes, reassigns or claims it, with the same rights as in the app | Act without your confirmation, guess an outcome or a field value, or act on a task you can't action |
 | Form designer, workflow builder, data tables, decision tables, reports, agents, Extensibility | Reads and builds with your build permissions, after you confirm each change | Publish, run, delete items, or change settings |
 | Data tables (rows) | Adds, edits and deletes rows, with a preview you confirm | Change rows you couldn't change yourself |
+| Apps (anywhere, or an app you are viewing or building) | [Builds a whole app or changes one](/docs/tasks/apps#build-an-app-with-the-agent) from one plan you confirm: pages, widgets, buttons, filters, rules, audience; then offers the form grants its audience needs | Show objects you can't see, grant access you can't give, or apply anything you haven't confirmed |
 | Settings, Team, Organization, roles and other admin pages | Explains settings and access, and makes admin changes with your admin permissions, after you confirm each one | Touch secrets, SSO, the workspace address, billing, its own settings, or your own access |
 
 See [Using the Agent](/docs/ai-assistants/using) for each screen, with example prompts.
@@ -54,12 +55,14 @@ The key is stored encrypted and never shown again. The page shows only its last 
 | **Azure OpenAI** | Required: \`https://<resource>.openai.azure.com\` | Your **deployment name** | |
 | **Mistral** | Leave empty | \`mistral-large-latest\` | \`mistral-small-latest\` |
 | **Groq** | Leave empty | \`llama-3.3-70b-versatile\` | \`openai/gpt-oss-120b\` |
+| **Baseten** (choose **OpenAI-compatible**) | Required: \`https://inference.baseten.co/v1\` (Model APIs) or a dedicated deployment's \`https://model-<id>.api.baseten.co/environments/production/sync/v1\` | A Model API slug, e.g. \`deepseek-ai/DeepSeek-V4.1-Flash\`, or the name your deployment serves | \`moonshotai/Kimi-K3\`, \`zai-org/GLM-5.3\` |
 | **Ollama** | Required, e.g. \`http://ollama.internal:11434\` | \`llama3.1\` | \`qwen2.5\`, \`mistral\` |
 | **OpenAI-compatible** (vLLM, LiteLLM, a gateway) | Required, e.g. \`https://llm.example.com/v1\` | None: enter one | |
 
 - Leave the base URL empty for a hosted provider's own API. Set one to go through a proxy or gateway.
 - **Claude** and **Gemini** are reached through their OpenAI-compatible endpoints. You only need the normal API key.
 - **Azure OpenAI**: enter your resource endpoint as the base URL and your deployment name as the model. UserTasks uses Azure's v1 API, so there is no API version to set.
+- **Baseten**: enter your own Baseten API key. Baseten bills the usage to your account. The [Baseten connector](/docs/agents#models) is easier, because it has a model list and accepts a dedicated deployment's URL in any form.
 - **Ollama** and **OpenAI-compatible** servers don't need a key. Enter one if your server or gateway asks for it.
 - A base URL that ends in \`/chat/completions\` is used exactly as you enter it.
 
@@ -67,7 +70,7 @@ The key is stored encrypted and never shown again. The page shows only its last 
 
 If your workspace already has an AI provider connection for [Agents](/docs/agents), choose **Use an Integrations connection** and pick it under **Connection**. The Agent uses the connection's key, base URL and default model. A **Model** you enter on this page overrides the connection's default.
 
-Any active AI connection from **Integrations → Connectors** works (OpenAI, Claude, Gemini, Azure OpenAI, xAI Grok, Mistral, Groq, DeepSeek, Together AI, Perplexity, Ollama or an OpenAI-compatible server). The key is then managed in one place. If the connection is turned off or deleted, the Agent stops until you pick another.
+Any active AI connection from **Integrations → Connectors** works (OpenAI, Claude, Gemini, Azure OpenAI, xAI Grok, Mistral, Groq, DeepSeek, Together AI, Baseten, Perplexity, Ollama or an OpenAI-compatible server). The key is then managed in one place. If the connection is turned off or deleted, the Agent stops until you pick another.
 
 ### Test connection
 
@@ -250,7 +253,7 @@ On Anthropic (Claude) keys the Agent uses Anthropic's Messages API with prompt c
 - Row changes handle up to 200 rows per call. Filtered updates and deletes change 50 rows by default, and at most 200.
 - A build plan has at most 15 items. A long build pauses after about 150 seconds in one request and carries on when you confirm again.
 
-Every request is recorded with its model, tokens and cost, priced from **Agents → Costs & budgets → Model prices**: your workspace's prices first, then the instance's, then the shipped list prices. The settings page shows this month's spend.
+Every request is recorded with its model, tokens and cost, priced from **Agents → Costs & budgets → Model prices**: your workspace's prices first, then the instance's, then the shipped list prices. The settings page shows this month's spend; **Agents → Costs & budgets → AI cost breakdown** breaks it down by model, profile, help group and (for admins of the Agent) person, next to agent runs.
 
 > [!WARNING]
 > The built-in prices cover the current models of OpenAI (and Azure OpenAI deployments named after their model), Anthropic (Claude Sonnet 5.5, Opus 5.5, Haiku 5.5, Fable 5.1 and older, with cache reads and writes), xAI Grok, Gemini, Mistral, Groq, DeepSeek, Together AI, Perplexity and Bedrock Claude. Models without a price (Ollama, OpenAI-compatible servers, other Azure deployment names, models not in the list) show as *cost unknown* and **do not count towards the cap**; Settings → Agent warns when a configured model has none. Use **Fetch latest pricing** or **Add price** in **Agents → Costs & budgets** to cap them. A cap in a currency other than USD only counts prices in that currency.
@@ -334,7 +337,7 @@ When the Agent is available to you, an **Agent** button (with a sparkle icon) si
 
 The panel's title is **Agent**. Its header has **New conversation** and **Close the Agent**.
 
-- Answers stream in as they are written. **Stop** ends an answer early.
+- The moment you send a message, a bubble says *Working on it…*, then what the Agent is doing (*Thinking…*, *Reading the form…*, *Drafting your app…*) until the answer streams in. **Stop** (in the bubble or the composer) ends it early. See [When something goes wrong](#when-something-goes-wrong).
 - Chips under a message show what the Agent looked at or did.
 - Enter sends; Shift+Enter adds a new line.
 
@@ -376,6 +379,7 @@ The Agent is available across the app. What it can do on each screen follows you
 | Reports (builder and viewer) | Building and editing reports (columns, filters, grouping, summary charts), and explaining the data |
 | Agents (designer and playground) | Drafting and editing workflow agents: instructions, tools, knowledge |
 | Integrations | Setting up connectors and references |
+| Apps (viewing or building one) | [Building and changing apps](/docs/tasks/apps#build-an-app-with-the-agent): "add a chart of overdue tasks to this page", "share this app with Finance as contributors" |
 | Email templates, Extensibility, settings and more | Explaining and editing, within your permissions |
 
 **In the Agents section**, new workflow agents are created inactive. The confirmation card lists the agent's data grants, who can use it (access), where it runs (hosts) and any powerful tools a change adds. The Agent never changes an agent's data grants without showing you.
@@ -403,6 +407,72 @@ You don't have to wait for a long answer, such as a [build plan](#build-a-comple
 The work also carries on if you go to another page, reload or close the tab. When you come back, the panel shows *Working in the background* until it's done, then adds the result. **Stop** in the panel still stops the Agent.
 
 Background work runs as you, with your permissions and the same limits as any other request. You can have up to 2 Agent requests working in the background at a time; with more, the Agent keeps working only while the tab is open. The result is kept on the server only until your browser adds it to the conversation (at most 24 hours), and only you can see it. On a phone, closing the Agent sheet works the same way.
+
+## When something goes wrong
+
+**You always see that something is happening.** As soon as you send a message, the Agent's bubble says *Working on it…*, then what it is doing: *Thinking…*, the step it is on (for example *Reading the form…* or *Drafting your app…*), then the answer as it is written. If nothing new happens for 8 seconds it says *Still working…*, and after 25 seconds *This is taking longer than usual…*. **Stop** ends the request at any time.
+
+**Busy providers are retried for you.** When the AI provider is busy or has a hiccup — too many requests (429), overloaded or a server error (500, 502, 503, 504, 529), a timeout or a dropped connection — the Agent waits and tries again on its own, up to 4 attempts within about 45 seconds. You don't see the retries: the bubble keeps saying *Working on it…* or *Thinking…* (and *Still working…* / *This is taking longer than usual…* as time passes), with no mention of the provider, rate limits or attempts. When the provider says how long to wait, the Agent waits exactly that long; if that is longer than it can wait, it stops at once and says when to try again. Only the call to the model is retried: steps the Agent already took in that request (a form it read, a change you confirmed) are never repeated. Problems a retry can't fix — a wrong key, a missing model, a key out of credit, a request that is too long or that the provider's content policy declines — are reported straight away. Failed attempts don't count towards your daily message limit or the workspace's cost. People who manage the Agent (\`assistants.manage\`) can see afterwards that an answer needed retries: a collapsed **Details** under it says, for example, *Answered after 2 automatic retries (rate limited · HTTP 429 · Anthropic)*. Every retry is also in the server logs, and in a workflow agent's run log and trace.
+
+**Errors are explained in plain words**, with what to do next:
+
+| You see | What it means | What to do |
+|---|---|---|
+| *The AI provider is busy right now (too many requests for this key). I tried 4 times…* | The provider is rate limiting the workspace's key. | Select **Retry** in a minute. If it keeps happening, an admin can raise the key's rate limit with the provider (or use a profile with another key). |
+| *The AI provider says this key is out of credit…* | The provider's account has no credit or quota left. | An admin tops it up with the provider, or switches provider in **Settings → Agent**. |
+| *The AI provider rejected the API key…* | The key is wrong, expired or lacks access (401 / 403). | An admin replaces the key in **Settings → Agent**. |
+| *The model isn't available on this provider…* | The model id doesn't exist for this key (404). | An admin picks another model in **Settings → Agent**. |
+| *The AI provider is having trouble. I retried a few times…* | The provider is overloaded or failing (5xx / 529). | Select **Retry** shortly. |
+| *The AI provider took too long to answer…* / *I couldn't reach the AI provider…* | A timeout or a network problem. | Select **Retry**. If it keeps happening, an admin checks the provider's base URL. |
+| *This conversation is too long for the model…* | The conversation and its attachments exceed the model's context window. | Start a **New conversation**, or remove attachments. |
+| *The AI provider declined this request under its content policy…* | The provider's safety filter refused it. | Rephrase the request. |
+| *This model can't use the tools the Agent needs…* | The model doesn't support tool calling. | An admin picks a model that does. |
+| *The Agent isn't set up yet…* | No provider is configured (or its key can't be read). | An admin sets it up in **Settings → Agent**. |
+
+Each error bubble has:
+
+- **Retry**, which asks again: the same message, or — if the Agent had already taken some steps — carrying on from where it stopped. It is shown on the latest error only, and not when retrying can't help (a wrong key, no credit).
+- **Details** (collapsed): the provider, the HTTP status, the provider's error code and type and its request id — enough for an admin or the provider's support to look it up. Details never show the provider's raw response, the API key or request headers. People who can manage the Agent also see the number of attempts, the provider's own message (with anything that looks like a key masked) and an **Open Settings → Agent** link when the fix is there.
+
+The same messages appear in the agent designer's **Playground** and in the PDF import's **Use AI for the hard parts**. The Playground follows the same rule for retries — nothing while it runs; the finished run's line says how many automatic retries it needed, and **View trace** shows each attempt. A workflow agent's run records the friendly message followed by the technical detail, so its run log and trace show both.
+
+### Start a workflow when an agent fails
+
+The **Agent Error** workflow trigger starts a workflow once an agent fails for good — after its automatic retries are used up, or straight away when no retry can help (a wrong key, no credit, a missing model, the Agent or an agent not being set up). It never starts for a retry that later succeeded, or when someone pressed **Stop**.
+
+- **Source**: *Workflow agents* (a Run Agent step), *Agent runs started elsewhere* (the Playground, the API, MCP, the agent queue) and *The Agent (chat assistant)*. None selected = all.
+- **Agents** and / or **Agent profiles** narrow it down (a failure matches either list).
+- **Error kinds**: rate limited, out of credit, key rejected, model unavailable, provider down, timeout / network, context too long, content policy, not configured, tools unsupported, other. **Minimum severity**: *warning* (the provider was busy, slow or unreachable), *error* (this request) or *critical* (the key, credit, model or setup — every request fails until an admin fixes it).
+- **Burst limit**: at most 3 runs per agent (or profile) and error kind every 5 minutes by default, so a rate-limit storm starts one or two runs, not hundreds. Skipped failures are counted in the next run's \`{{agent_error_suppressed}}\`.
+
+Later steps read the failure from \`{{agent_error_message}}\` (the friendly message), \`{{agent_error_kind}}\`, \`{{agent_error_severity}}\`, \`{{agent_error_summary}}\` (provider · HTTP status · error code · request id · attempts), \`{{agent_error_agent_name}}\`, \`{{agent_error_profile_name}}\`, \`{{agent_error_workflow_name}}\`, \`{{agent_error_step}}\`, \`{{agent_error_run_id}}\`, \`{{agent_error_conversation_id}}\`, \`{{agent_error_user_id}}\` and the rest under \`{{agent_error.*}}\` (the data picker lists them). They never hold the provider's raw response, headers, keys or the prompt; a person is identified by id only. Save & Test runs and evaluations don't start it, and a run it started (including its sub-workflows) never reports its own agents' failures, so it can't loop.
+
+Example — *when an agent fails, notify the workspace admins and open a task*:
+
+\`\`\`json
+{
+  "name": "Agent failure alert",
+  "trigger_type": "agent_error",
+  "nodes": [
+    { "id": "trigger", "type": "agent_error", "label": "Agent Error", "position": { "x": 250, "y": 60 },
+      "config": { "sources": ["workflow", "agent_run", "system_agent"], "min_severity": "error", "max_per_window": 3, "window_minutes": 5 } },
+    { "id": "notify_admins", "type": "send_email", "label": "Notify Admins", "position": { "x": 250, "y": 220 },
+      "config": { "to": "{{admin_email}}", "subject": "Agent failed: {{agent_error_kind}} ({{agent_error_severity}})",
+                  "body": "{{agent_error_message}} — {{agent_error_summary}} ({{agent_error_agent_name}}{{agent_error_profile_name}}, {{agent_error_source}})" } },
+    { "id": "open_task", "type": "user_task", "label": "Fix Agent", "position": { "x": 250, "y": 380 },
+      "config": { "task_title": "Agent failed: {{agent_error_kind}}", "task_description": "{{agent_error_message}} — {{agent_error_summary}}",
+                  "assignment_type": "team", "team_id": "<admins team id>", "task_priority": "high", "outcomes": ["resolved"] } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "notify_admins" },
+    { "id": "e2", "source": "notify_admins", "target": "open_task" }
+  ]
+}
+\`\`\`
+
+Replace \`{{admin_email}}\` with the admins' address (or a workflow variable) and the team id with your admins' team. MCP lists the same workflow as the *Agent Failure Alert* recipe.
+
+**Self-hosted:** the retry policy can be tuned with \`AGENT_RETRY_MAX_ATTEMPTS\` (1–8, default 4) and \`AGENT_RETRY_MAX_WAIT_MS\` (0–120000, default 45000) in the instance's environment. They apply to the Agent, workflow agents and the PDF import's AI assist.
 
 ## Questions with answer buttons
 

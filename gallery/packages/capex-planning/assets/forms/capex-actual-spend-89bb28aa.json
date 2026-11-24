@@ -1,0 +1,292 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "89bb28aa-6c1b-5f1b-bee4-6f169ad5d81d",
+  "asset": {
+    "id": "89bb28aa-6c1b-5f1b-bee4-6f169ad5d81d",
+    "name": "CapEx actual spend",
+    "description": "Record an invoice or progress payment against an approved project. The project, its budget line and its business unit are updated, and spend over 110% of the approved amount asks the owner for a change request.",
+    "tags": [
+      "capex",
+      "finance",
+      "spend"
+    ],
+    "fields": [
+      {
+        "key": "project_ref",
+        "label": "Project",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "search_columns": [
+            "project_ref",
+            "title"
+          ],
+          "display_columns": [
+            "project_ref",
+            "title"
+          ],
+          "value_column": "project_ref",
+          "fill": [
+            {
+              "from": "title",
+              "to": "project_title"
+            },
+            {
+              "from": "business_unit",
+              "to": "business_unit"
+            },
+            {
+              "from": "approved_amount",
+              "to": "approved_amount"
+            },
+            {
+              "from": "spent",
+              "to": "spent_before"
+            }
+          ],
+          "sort": {
+            "column": "project_ref",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "project_title",
+        "label": "Project title",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "business_unit",
+        "label": "Business unit",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "approved_amount",
+        "label": "Approved (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "read_only": true
+      },
+      {
+        "key": "spent_before",
+        "label": "Spent so far (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "read_only": true
+      },
+      {
+        "key": "vendor",
+        "label": "Vendor",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "54166558-8ae2-5d41-a80a-ec0f1ee93f45",
+          "search_columns": [
+            "vendor",
+            "category"
+          ],
+          "display_columns": [
+            "vendor",
+            "category"
+          ],
+          "value_column": "vendor",
+          "fill": [],
+          "sort": {
+            "column": "vendor",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "invoice_ref",
+        "label": "Invoice number",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "invoice_date",
+        "label": "Invoice date",
+        "type": "date",
+        "required": true,
+        "default": "{{today}}"
+      },
+      {
+        "key": "amount",
+        "label": "Amount (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "required": true
+      },
+      {
+        "key": "spent_after",
+        "label": "Spent % of approved after this entry",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(approved_amount > 0, ROUND((COALESCE(spent_before, 0) + COALESCE(amount, 0)) / approved_amount * 100, 1), \"\")",
+          "include": true,
+          "format": {
+            "kind": "number",
+            "decimals": 1
+          },
+          "suffix": "%",
+          "emphasis": "strong"
+        }
+      },
+      {
+        "key": "description",
+        "label": "Description",
+        "type": "text",
+        "placeholder": "Progress payment, delivery, installation…"
+      },
+      {
+        "key": "invoice",
+        "label": "Invoice",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 5,
+          "max_file_mb": 10,
+          "types": [
+            "documents",
+            "images",
+            "pdf"
+          ]
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "project_ref",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "project_title",
+              "span": 1
+            },
+            {
+              "field_key": "business_unit",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "approved_amount",
+              "span": 1
+            },
+            {
+              "field_key": "spent_before",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "vendor",
+              "span": 1
+            },
+            {
+              "field_key": "invoice_ref",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "invoice_date",
+              "span": 1
+            },
+            {
+              "field_key": "amount",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "spent_after",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "description",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "invoice",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Record spend",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Spend recorded",
+            "text": "${{amount}} on {{project_ref}} is recorded.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Record another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Record actual spend",
+      "subtitle": "Invoices and progress payments, in USD.",
+      "align": "left"
+    }
+  }
+}

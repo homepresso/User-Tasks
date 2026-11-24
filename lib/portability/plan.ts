@@ -6,6 +6,7 @@
 
 import { normalizeEmailTemplateContent } from '@/lib/email-templates'
 import { normalizeFormAssetLikeImport, stripWorkflowFormPins } from './forms'
+import { comparableAppAsset, remapAppAsset } from './apps'
 import { remapKnownIds, type AssetIdMaps } from './id-maps'
 import {
   isObjectBackedReference,
@@ -73,6 +74,8 @@ export const PLAN_SECTIONS: ReadonlyArray<{ section: string; type: keyof AssetId
   { section: 'form_themes', type: 'form_theme' },
   { section: 'forms', type: 'form' },
   { section: 'workflows', type: 'workflow' },
+  // Apps use forms, workflows, tables, reports, references and agents (all above).
+  { section: 'apps', type: 'app' },
   // Filters may name workflows, so destinations come last.
   { section: 'log_destinations', type: 'log_destination' },
 ]
@@ -86,6 +89,8 @@ const TOP_LEVEL_IGNORED: Record<string, readonly string[]> = {
   connectors: ['generated_integration_id', 'generated_references'],
   // A form's version is per environment (never exported); a file that carries one is not drift.
   forms: ['version'],
+  // Declared template variables are not exported yet (the import re-detects the names from the content).
+  email_templates: ['variables'],
 }
 const OBJECT_SOURCE_IGNORED = new Set(['id', 'object_id'])
 const MAX_DIFFS = 50
@@ -204,6 +209,7 @@ function normalizeLikeImport(section: string, asset: Record<string, any>, localR
   }
   if (section === 'workflows') return stripWorkflowFormPins(normalizeScaffoldWorkflow(asset))
   if (section === 'forms') return normalizeFormAssetLikeImport(asset)
+  if (section === 'apps') return comparableAppAsset(asset)
   if (section === 'reports' && isPlainObject(asset.config)) return { ...asset, config: normalizeScaffoldReportConfig(asset.config) }
   if (section === 'agents') {
     // Versions are per workspace (never imported); a file without data_access
@@ -221,13 +227,13 @@ function normalizeLikeImport(section: string, asset: Record<string, any>, localR
  * default node fields) are matched against whatever is stored.
  */
 function assetDiffs(section: string, incoming: Record<string, any>, localRow: Record<string, any>, secretAt?: SecretLookup): FieldDiff[] {
-  const raw = comparable(section, incoming)
+  const raw = comparable(section, section === 'apps' ? comparableAppAsset(incoming) : incoming)
   const after = comparable(section, normalizeLikeImport(section, incoming, localRow))
   // Workflows are canonicalised on both sides: rows written through the API
   // or the designer keep whatever spelling they were given (condition
   // `logic: "AND"`, `operator: "Equals"`), which the import would rewrite to
   // the same canonical form — so an untouched export must not diff.
-  const before = comparable(section, section === 'workflows' ? normalizeScaffoldWorkflow(localRow) : localRow)
+  const before = comparable(section, section === 'workflows' ? normalizeScaffoldWorkflow(localRow) : section === 'apps' ? comparableAppAsset(localRow) : localRow)
   // Only fields the export carries are compared: anything else in the file
   // is ignored by the import too.
   const scopedAfter = Object.fromEntries(Object.keys(before).map((k) => [k, after[k]]))
@@ -337,7 +343,9 @@ export function planManifest(params: PlanManifestParams): ConfigPlan {
             return typeof stored === 'string' ? secrets.reveal(stored) : undefined
           }
         : undefined
-      const diffs = assetDiffs(section, remapKnownIds(structuredClone(asset), idSeed), localRow, secretAt)
+      // Apps are remapped by the app reference walker (filter values, links), everything else by key.
+      const remapped = section === 'apps' ? remapAppAsset(structuredClone(asset), idSeed) : remapKnownIds(structuredClone(asset), idSeed)
+      const diffs = assetDiffs(section, remapped, localRow, secretAt)
       const matchedBy = matches[key] ?? (localId === sourceId ? 'id' : 'mapping')
       const plan: AssetPlan = { ...base, local_id: type === 'object' ? String(localRow.id) : localId, action: diffs.length ? 'update' : 'unchanged', matched_by: matchedBy }
       if (diffs.length) {

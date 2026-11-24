@@ -21,13 +21,15 @@
  */
 import { attachmentForStorage } from './attachments-core'
 import type { ChatMessage, ChoiceOption, ConfirmCard, InfoCard, ProposedValue } from './types'
+import type { AgentFailureView, AgentRetrySummary } from '@/lib/agents/errors'
 
 /** What a sent message shows for a file (never its content); `error`: it could not be read. */
 export type AttachmentChip = { name: string; mime_type: string; size: number; error?: string }
 
 export type ChatItem =
   | { kind: 'user'; id: string; text: string; attachments?: AttachmentChip[] }
-  | { kind: 'assistant'; id: string; text: string }
+  /** `retries`: the turn needed automatic provider retries (people who manage the Agent only: a collapsed Details under the answer). */
+  | { kind: 'assistant'; id: string; text: string; retries?: AgentRetrySummary }
   | { kind: 'tool'; id: string; label: string; state: 'running' | 'ok' | 'error' }
   | { kind: 'proposal'; id: string; values: ProposedValue[]; skipped: Array<{ key: string; reason: string }>; applied: Record<string, 'applied' | string>; dismissed: boolean }
   | { kind: 'draft'; id: string; draft: 'comment' | 'outcome_note'; text: string; taskId?: string | null }
@@ -39,7 +41,14 @@ export type ChatItem =
   | { kind: 'choice'; id: string; question: string; options: ChoiceOption[]; allow_other?: boolean; multi?: boolean; answered?: string | null }
   | { kind: 'changed'; id: string; title: string; href: string | null; action: 'created' | 'updated' | 'deleted'; itemKind: string; rerun?: { workflowId: string; values: Record<string, unknown> } | null }
   | { kind: 'screen'; id: string; label: string }
-  | { kind: 'error'; id: string; text: string }
+  /**
+   * An error bubble. `failure`: a provider / request failure's friendly view
+   * (Details + admin link); `retry`: what Retry does — 'resume' asks again
+   * from the conversation as it is (the unanswered message, or the steps
+   * already done), 'resend' sends `resend` again (the request never started);
+   * `retried`: Retry was used (the button is gone).
+   */
+  | { kind: 'error'; id: string; text: string; failure?: AgentFailureView; retry?: 'resume' | 'resend'; resend?: { text: string; display?: string }; retried?: boolean; stopped?: boolean }
 
 export interface StoredConversation {
   v: 1

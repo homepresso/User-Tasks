@@ -1,0 +1,271 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "bb9882a9-5419-58c4-b3e0-b7f821d0912b",
+  "asset": {
+    "id": "bb9882a9-5419-58c4-b3e0-b7f821d0912b",
+    "name": "Survey question bank rows",
+    "rows": [
+      {
+        "id": "08e19b0e-a423-5a08-abeb-56be1b9e6a79",
+        "data": {
+          "q_code": "ENG1",
+          "question": "I am proud to work for Fernhill Labs",
+          "short": "Proud to work here",
+          "driver": "Engagement",
+          "kind": "Agreement (1-5)",
+          "in_pulse": true,
+          "active": true,
+          "sort": 1
+        }
+      },
+      {
+        "id": "b86cf579-432e-5a5e-9253-9802ce8d660b",
+        "data": {
+          "q_code": "ENG2",
+          "question": "I rarely think about looking for a job at another company",
+          "short": "Rarely think of leaving",
+          "driver": "Engagement",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 2
+        }
+      },
+      {
+        "id": "6f9188ef-ced7-532a-9ab3-83467e9595b0",
+        "data": {
+          "q_code": "ENG3",
+          "question": "Fernhill Labs motivates me to go beyond what I would in a similar role elsewhere",
+          "short": "Motivated to go beyond",
+          "driver": "Engagement",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 3
+        }
+      },
+      {
+        "id": "354114fd-7883-541f-8719-908933f72cd0",
+        "data": {
+          "q_code": "LEA1",
+          "question": "Our leaders have communicated a vision that motivates me",
+          "short": "Motivating vision",
+          "driver": "Leadership",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 4
+        }
+      },
+      {
+        "id": "4a25b2b2-7480-52b0-a21a-70e079c2696b",
+        "data": {
+          "q_code": "LEA2",
+          "question": "I have confidence in the decisions our leadership team makes",
+          "short": "Confidence in decisions",
+          "driver": "Leadership",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 5
+        }
+      },
+      {
+        "id": "d4eff7b6-c6c3-54fa-ad8b-97832f756b8b",
+        "data": {
+          "q_code": "LEA3",
+          "question": "My manager keeps me informed about what is happening",
+          "short": "Kept informed",
+          "driver": "Leadership",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 6
+        }
+      },
+      {
+        "id": "1c501f78-2d7a-5e5f-a7bd-58cca2b3fc18",
+        "data": {
+          "q_code": "GRO1",
+          "question": "I have access to the learning and development I need to do my job well",
+          "short": "Access to learning",
+          "driver": "Growth",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 7
+        }
+      },
+      {
+        "id": "9c5d2237-5eab-5b7c-a872-baa2524fe7b4",
+        "data": {
+          "q_code": "GRO2",
+          "question": "I can see a path for me to advance my career here",
+          "short": "Career path is clear",
+          "driver": "Growth",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 8
+        }
+      },
+      {
+        "id": "cc32acb9-e7f8-5853-b17f-2019dfcd8afe",
+        "data": {
+          "q_code": "GRO3",
+          "question": "My manager has a useful conversation with me about my growth at least every quarter",
+          "short": "Regular growth conversations",
+          "driver": "Growth",
+          "kind": "Agreement (1-5)",
+          "in_pulse": true,
+          "active": true,
+          "sort": 9
+        }
+      },
+      {
+        "id": "fbd6ae5f-3bf4-5f27-8b07-e2c5ec5c7cc0",
+        "data": {
+          "q_code": "WEL1",
+          "question": "My workload is manageable most weeks",
+          "short": "Manageable workload",
+          "driver": "Wellbeing",
+          "kind": "Agreement (1-5)",
+          "in_pulse": true,
+          "active": true,
+          "sort": 10
+        }
+      },
+      {
+        "id": "4f69ad55-473e-5a38-af03-125d3f0660c5",
+        "data": {
+          "q_code": "WEL2",
+          "question": "I can switch off from work when I need to",
+          "short": "Able to switch off",
+          "driver": "Wellbeing",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 11
+        }
+      },
+      {
+        "id": "d9e3f425-ed87-52d0-b5da-6b9b2869f310",
+        "data": {
+          "q_code": "WEL3",
+          "question": "I feel supported when things get stressful",
+          "short": "Supported under stress",
+          "driver": "Wellbeing",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 12
+        }
+      },
+      {
+        "id": "b0cadcbf-5941-5504-b4fe-9715d97e03a9",
+        "data": {
+          "q_code": "BEL1",
+          "question": "I feel I belong at Fernhill Labs",
+          "short": "Sense of belonging",
+          "driver": "Belonging",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 13
+        }
+      },
+      {
+        "id": "ebcfcf83-fcec-5392-afc9-d25049270972",
+        "data": {
+          "q_code": "BEL2",
+          "question": "I can be myself at work without worrying about how I will be received",
+          "short": "Can be myself",
+          "driver": "Belonging",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 14
+        }
+      },
+      {
+        "id": "aba9fbf5-2c8f-5bc4-b250-27b32d33a439",
+        "data": {
+          "q_code": "BEL3",
+          "question": "Perspectives like mine are included in decisions that affect me",
+          "short": "Perspective included",
+          "driver": "Belonging",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 15
+        }
+      },
+      {
+        "id": "3e418df7-d9fa-5e0d-a750-12d81b5a594f",
+        "data": {
+          "q_code": "REC1",
+          "question": "When I do great work, it is recognised",
+          "short": "Great work is recognised",
+          "driver": "Recognition",
+          "kind": "Agreement (1-5)",
+          "in_pulse": true,
+          "active": true,
+          "sort": 16
+        }
+      },
+      {
+        "id": "8b034b23-96cb-542b-aace-5e8fc1254b13",
+        "data": {
+          "q_code": "REC2",
+          "question": "I receive useful feedback on my work",
+          "short": "Useful feedback",
+          "driver": "Recognition",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 17
+        }
+      },
+      {
+        "id": "821d4d67-1e09-582f-94d8-2f297d88b677",
+        "data": {
+          "q_code": "REC3",
+          "question": "I know how my work contributes to the goals of Fernhill Labs",
+          "short": "See my contribution",
+          "driver": "Recognition",
+          "kind": "Agreement (1-5)",
+          "in_pulse": false,
+          "active": true,
+          "sort": 18
+        }
+      },
+      {
+        "id": "fce509a8-ebcf-576e-b446-b2d2d6ba46cd",
+        "data": {
+          "q_code": "ENPS",
+          "question": "How likely are you to recommend Fernhill Labs as a place to work?",
+          "short": "Recommend working here",
+          "driver": "eNPS",
+          "kind": "eNPS (0-10)",
+          "in_pulse": true,
+          "active": true,
+          "sort": 19
+        }
+      },
+      {
+        "id": "6d677622-6a3c-59d1-ade6-8e9640778ed1",
+        "data": {
+          "q_code": "OPEN",
+          "question": "What is one thing we should start, stop or keep doing?",
+          "short": "Start, stop, keep",
+          "driver": "Comment",
+          "kind": "Open text",
+          "in_pulse": true,
+          "active": true,
+          "sort": 20
+        }
+      }
+    ]
+  }
+}

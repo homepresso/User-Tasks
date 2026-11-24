@@ -1,0 +1,777 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "052d8627-c304-525a-a16c-4cf03f12b9dd",
+  "asset": {
+    "id": "052d8627-c304-525a-a16c-4cf03f12b9dd",
+    "name": "Survey response",
+    "description": "Each Engagement survey answer: marks the person as responded (date only, never the answers), updates the participation rate, works out % favourable per driver and eNPS points, then waits sealed until the survey closes. At close it writes one ballot with no name and no time, with any department, location or tenure group under the minimum size merged into \"Other\".",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Survey answered",
+        "config": {
+          "form_id": "c9c37320-5b8f-5f73-986e-0619723f0219",
+          "form_name": "Engagement survey"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "code",
+        "type": "set_variable",
+        "label": "Survey cycle",
+        "config": {
+          "name": "cycle_code",
+          "expression": "{{=IF(IS_EMPTY(form.cycle_code), form.cycle, form.cycle_code)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Survey response · {{cycle_code}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "cycle",
+        "type": "update_data_table",
+        "label": "Find the survey",
+        "config": {
+          "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+          "table_name": "Survey cycles",
+          "operation": "get",
+          "match_column": "cycle_code",
+          "match_value": "{{cycle_code}}",
+          "output_row_var": "cycle"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "invite",
+        "type": "update_data_table",
+        "label": "Find the invitation",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "cycle_code",
+              "operator": "eq",
+              "value": "{{cycle_code}}"
+            },
+            {
+              "column": "employee_email",
+              "operator": "eq",
+              "value": "{{submitted_by_email}}"
+            }
+          ],
+          "limit": 1,
+          "output_rows_var": "invite_rows",
+          "output_count_var": "invite_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "inv",
+        "type": "set_variable",
+        "label": "Invitation",
+        "config": {
+          "name": "invitation",
+          "expression": "{{=FIRST(invite_rows)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "check",
+        "type": "condition",
+        "label": "Can this answer count?",
+        "config": {
+          "branches": [
+            {
+              "label": "Survey closed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{cycle.status}}",
+                  "operator": "not_equals",
+                  "value": "Open"
+                }
+              ]
+            },
+            {
+              "label": "Already answered",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{invitation.status}}",
+                  "operator": "equals",
+                  "value": "Responded"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "closed",
+        "type": "end_workflow",
+        "label": "Not counted: survey closed",
+        "config": {
+          "reason": "{{cycle_code}} is not open"
+        },
+        "position": {
+          "x": 80,
+          "y": 1040
+        }
+      },
+      {
+        "id": "dupe",
+        "type": "end_workflow",
+        "label": "Not counted: already answered",
+        "config": {
+          "reason": "One answer per person per survey"
+        },
+        "position": {
+          "x": 720,
+          "y": 1180
+        }
+      },
+      {
+        "id": "person",
+        "type": "update_data_table",
+        "label": "Directory record",
+        "config": {
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "table_name": "People directory",
+          "operation": "get",
+          "match_column": "email",
+          "match_value": "{{submitted_by_email}}",
+          "output_row_var": "person"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "has_inv",
+        "type": "condition",
+        "label": "Invited?",
+        "config": {
+          "branches": [
+            {
+              "label": "Invited",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{invite_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "mark",
+        "type": "update_data_table",
+        "label": "Mark as responded (date only)",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "update",
+          "column_values": {
+            "status": "Responded",
+            "responded_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          },
+          "row_id": "{{invitation.row_id}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "add_inv",
+        "type": "update_data_table",
+        "label": "Add a participation record",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "insert",
+          "column_values": {
+            "cycle_code": "{{cycle_code}}",
+            "cycle_name": "{{cycle.name}}",
+            "employee_name": "{{person.name}}",
+            "employee_email": "{{submitted_by_email}}",
+            "department": "{{person.department}}",
+            "location": "{{person.location}}",
+            "tenure_band": "{{person.tenure_band}}",
+            "status": "Responded",
+            "invited_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "responded_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "reminders_sent": "0",
+            "closes_on": "{{cycle.closes_on}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1740
+        }
+      },
+      {
+        "id": "count",
+        "type": "update_data_table",
+        "label": "Count responses",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "cycle_code",
+              "operator": "eq",
+              "value": "{{cycle_code}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Responded"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "responded_rows",
+          "output_count_var": "responded_n"
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      },
+      {
+        "id": "rate",
+        "type": "update_data_table",
+        "label": "Update the participation rate",
+        "config": {
+          "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+          "table_name": "Survey cycles",
+          "operation": "update",
+          "match_column": "cycle_code",
+          "match_value": "{{cycle_code}}",
+          "column_values": {
+            "responded": "{{responded_n}}",
+            "participation_pct": "{{=ROUND(responded_n * 100 / MAX(1, TO_NUMBER(cycle.invited)), 0)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2020
+        }
+      },
+      {
+        "id": "s_engagement",
+        "type": "set_variable",
+        "label": "Engagement (% favourable)",
+        "config": {
+          "name": "score_engagement",
+          "expression": "{{=ROUND((IF(TO_NUMBER(form.engagement.eng1) >= 4, 1, 0) + IF(TO_NUMBER(form.engagement.eng2) >= 4, 1, 0) + IF(TO_NUMBER(form.engagement.eng3) >= 4, 1, 0)) * 100 / 3, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2160
+        }
+      },
+      {
+        "id": "s_leadership",
+        "type": "set_variable",
+        "label": "Leadership (% favourable)",
+        "config": {
+          "name": "score_leadership",
+          "expression": "{{=ROUND((IF(TO_NUMBER(form.leadership.lea1) >= 4, 1, 0) + IF(TO_NUMBER(form.leadership.lea2) >= 4, 1, 0) + IF(TO_NUMBER(form.leadership.lea3) >= 4, 1, 0)) * 100 / 3, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2300
+        }
+      },
+      {
+        "id": "s_growth",
+        "type": "set_variable",
+        "label": "Growth (% favourable)",
+        "config": {
+          "name": "score_growth",
+          "expression": "{{=ROUND((IF(TO_NUMBER(form.growth.gro1) >= 4, 1, 0) + IF(TO_NUMBER(form.growth.gro2) >= 4, 1, 0) + IF(TO_NUMBER(form.growth.gro3) >= 4, 1, 0)) * 100 / 3, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2440
+        }
+      },
+      {
+        "id": "s_wellbeing",
+        "type": "set_variable",
+        "label": "Wellbeing (% favourable)",
+        "config": {
+          "name": "score_wellbeing",
+          "expression": "{{=ROUND((IF(TO_NUMBER(form.wellbeing.wel1) >= 4, 1, 0) + IF(TO_NUMBER(form.wellbeing.wel2) >= 4, 1, 0) + IF(TO_NUMBER(form.wellbeing.wel3) >= 4, 1, 0)) * 100 / 3, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2580
+        }
+      },
+      {
+        "id": "s_belonging",
+        "type": "set_variable",
+        "label": "Belonging (% favourable)",
+        "config": {
+          "name": "score_belonging",
+          "expression": "{{=ROUND((IF(TO_NUMBER(form.belonging.bel1) >= 4, 1, 0) + IF(TO_NUMBER(form.belonging.bel2) >= 4, 1, 0) + IF(TO_NUMBER(form.belonging.bel3) >= 4, 1, 0)) * 100 / 3, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2720
+        }
+      },
+      {
+        "id": "s_recognition",
+        "type": "set_variable",
+        "label": "Recognition (% favourable)",
+        "config": {
+          "name": "score_recognition",
+          "expression": "{{=ROUND((IF(TO_NUMBER(form.recognition.rec1) >= 4, 1, 0) + IF(TO_NUMBER(form.recognition.rec2) >= 4, 1, 0) + IF(TO_NUMBER(form.recognition.rec3) >= 4, 1, 0)) * 100 / 3, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2860
+        }
+      },
+      {
+        "id": "s_enps",
+        "type": "set_variable",
+        "label": "eNPS points",
+        "config": {
+          "name": "enps_points",
+          "expression": "{{=IF(form.enps >= 9, 100, IF(form.enps >= 7, 0, -100))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 3000
+        }
+      },
+      {
+        "id": "min",
+        "type": "set_variable",
+        "label": "Minimum group size",
+        "config": {
+          "name": "min_group",
+          "expression": "{{=MAX(3, TO_NUMBER(COALESCE(cycle.min_group_size, 5)))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 3140
+        }
+      },
+      {
+        "id": "seal",
+        "type": "pause_until",
+        "label": "Sealed until the survey closes",
+        "config": {
+          "date": "{{cycle.closes_on}}T23:00:00Z"
+        },
+        "position": {
+          "x": 400,
+          "y": 3280
+        }
+      },
+      {
+        "id": "n_dept",
+        "type": "update_data_table",
+        "label": "How many in this department answered",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "cycle_code",
+              "operator": "eq",
+              "value": "{{cycle_code}}"
+            },
+            {
+              "column": "department",
+              "operator": "eq",
+              "value": "{{person.department}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Responded"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "dept_rows",
+          "output_count_var": "dept_n"
+        },
+        "position": {
+          "x": 400,
+          "y": 3420
+        }
+      },
+      {
+        "id": "c_dept",
+        "type": "set_variable",
+        "label": "Department or \"Other\"",
+        "config": {
+          "name": "ballot_dept",
+          "expression": "{{=IF(dept_n >= min_group, person.department, CONCAT(\"Other (fewer than \", min_group, \")\"))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 3560
+        }
+      },
+      {
+        "id": "n_loc",
+        "type": "update_data_table",
+        "label": "How many in this location answered",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "cycle_code",
+              "operator": "eq",
+              "value": "{{cycle_code}}"
+            },
+            {
+              "column": "location",
+              "operator": "eq",
+              "value": "{{person.location}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Responded"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "loc_rows",
+          "output_count_var": "loc_n"
+        },
+        "position": {
+          "x": 400,
+          "y": 3700
+        }
+      },
+      {
+        "id": "c_loc",
+        "type": "set_variable",
+        "label": "Location or \"Other\"",
+        "config": {
+          "name": "ballot_loc",
+          "expression": "{{=IF(loc_n >= min_group, person.location, CONCAT(\"Other (fewer than \", min_group, \")\"))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 3840
+        }
+      },
+      {
+        "id": "n_ten",
+        "type": "update_data_table",
+        "label": "How many in this tenure band answered",
+        "config": {
+          "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+          "table_name": "Survey participation",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "cycle_code",
+              "operator": "eq",
+              "value": "{{cycle_code}}"
+            },
+            {
+              "column": "tenure_band",
+              "operator": "eq",
+              "value": "{{person.tenure_band}}"
+            },
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Responded"
+            }
+          ],
+          "limit": 1000,
+          "output_rows_var": "ten_rows",
+          "output_count_var": "ten_n"
+        },
+        "position": {
+          "x": 400,
+          "y": 3980
+        }
+      },
+      {
+        "id": "c_ten",
+        "type": "set_variable",
+        "label": "Tenure band or \"Other\"",
+        "config": {
+          "name": "ballot_ten",
+          "expression": "{{=IF(ten_n >= min_group, person.tenure_band, CONCAT(\"Other (fewer than \", min_group, \")\"))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 4120
+        }
+      },
+      {
+        "id": "ballot",
+        "type": "update_data_table",
+        "label": "Write the sealed ballot (no name, no time)",
+        "config": {
+          "table_id": "7d7e5c5e-274e-562d-91a7-6f1231fbdc34",
+          "table_name": "Sealed survey ballots",
+          "operation": "insert",
+          "column_values": {
+            "cycle_code": "{{cycle_code}}",
+            "department": "{{ballot_dept}}",
+            "location": "{{ballot_loc}}",
+            "tenure_band": "{{ballot_ten}}",
+            "engagement": "{{score_engagement}}",
+            "leadership": "{{score_leadership}}",
+            "growth": "{{score_growth}}",
+            "wellbeing": "{{score_wellbeing}}",
+            "belonging": "{{score_belonging}}",
+            "recognition": "{{score_recognition}}",
+            "enps_points": "{{enps_points}}",
+            "comment": "{{form.comment}}",
+            "comment_driver": "{{form.comment_driver}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 4260
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Counted",
+        "config": {
+          "reason": "Sealed ballot written for {{cycle_code}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 4400
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-code",
+        "source": "trigger",
+        "target": "code"
+      },
+      {
+        "id": "e-code-title",
+        "source": "code",
+        "target": "title"
+      },
+      {
+        "id": "e-title-cycle",
+        "source": "title",
+        "target": "cycle"
+      },
+      {
+        "id": "e-cycle-invite",
+        "source": "cycle",
+        "target": "invite"
+      },
+      {
+        "id": "e-invite-inv",
+        "source": "invite",
+        "target": "inv"
+      },
+      {
+        "id": "e-inv-check",
+        "source": "inv",
+        "target": "check"
+      },
+      {
+        "id": "e-check-closed-survey_closed",
+        "source": "check",
+        "target": "closed",
+        "label": "Survey closed"
+      },
+      {
+        "id": "e-check-dupe-already_answered",
+        "source": "check",
+        "target": "dupe",
+        "label": "Already answered"
+      },
+      {
+        "id": "e-check-person-else",
+        "source": "check",
+        "target": "person",
+        "label": "Else"
+      },
+      {
+        "id": "e-person-has_inv",
+        "source": "person",
+        "target": "has_inv"
+      },
+      {
+        "id": "e-has_inv-mark-invited",
+        "source": "has_inv",
+        "target": "mark",
+        "label": "Invited"
+      },
+      {
+        "id": "e-has_inv-add_inv-else",
+        "source": "has_inv",
+        "target": "add_inv",
+        "label": "Else"
+      },
+      {
+        "id": "e-mark-count",
+        "source": "mark",
+        "target": "count"
+      },
+      {
+        "id": "e-add_inv-count",
+        "source": "add_inv",
+        "target": "count"
+      },
+      {
+        "id": "e-count-rate",
+        "source": "count",
+        "target": "rate"
+      },
+      {
+        "id": "e-rate-s_engagement",
+        "source": "rate",
+        "target": "s_engagement"
+      },
+      {
+        "id": "e-s_engagement-s_leadership",
+        "source": "s_engagement",
+        "target": "s_leadership"
+      },
+      {
+        "id": "e-s_leadership-s_growth",
+        "source": "s_leadership",
+        "target": "s_growth"
+      },
+      {
+        "id": "e-s_growth-s_wellbeing",
+        "source": "s_growth",
+        "target": "s_wellbeing"
+      },
+      {
+        "id": "e-s_wellbeing-s_belonging",
+        "source": "s_wellbeing",
+        "target": "s_belonging"
+      },
+      {
+        "id": "e-s_belonging-s_recognition",
+        "source": "s_belonging",
+        "target": "s_recognition"
+      },
+      {
+        "id": "e-s_recognition-s_enps",
+        "source": "s_recognition",
+        "target": "s_enps"
+      },
+      {
+        "id": "e-s_enps-min",
+        "source": "s_enps",
+        "target": "min"
+      },
+      {
+        "id": "e-min-seal",
+        "source": "min",
+        "target": "seal"
+      },
+      {
+        "id": "e-seal-n_dept",
+        "source": "seal",
+        "target": "n_dept"
+      },
+      {
+        "id": "e-n_dept-c_dept",
+        "source": "n_dept",
+        "target": "c_dept"
+      },
+      {
+        "id": "e-c_dept-n_loc",
+        "source": "c_dept",
+        "target": "n_loc"
+      },
+      {
+        "id": "e-n_loc-c_loc",
+        "source": "n_loc",
+        "target": "c_loc"
+      },
+      {
+        "id": "e-c_loc-n_ten",
+        "source": "c_loc",
+        "target": "n_ten"
+      },
+      {
+        "id": "e-n_ten-c_ten",
+        "source": "n_ten",
+        "target": "c_ten"
+      },
+      {
+        "id": "e-c_ten-ballot",
+        "source": "c_ten",
+        "target": "ballot"
+      },
+      {
+        "id": "e-ballot-done",
+        "source": "ballot",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "9b7da813-440c-54a2-a341-e96a326b9eea",
+  "asset": {
+    "id": "9b7da813-440c-54a2-a341-e96a326b9eea",
+    "name": "Request feedback",
+    "description": "Ask colleagues for feedback on you (or someone you manage): each person gets a short task with strengths, one thing to improve and a rating.",
+    "tags": [
+      "feedback",
+      "performance"
+    ],
+    "fields": [
+      {
+        "key": "about",
+        "label": "Feedback about",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "search_columns": [
+            "name",
+            "department",
+            "job_title"
+          ],
+          "display_columns": [
+            "name",
+            "job_title",
+            "department"
+          ],
+          "value_column": "email",
+          "fill": [
+            {
+              "from": "name",
+              "to": "about_name"
+            },
+            {
+              "from": "department",
+              "to": "about_department"
+            }
+          ],
+          "filters": [],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "about_name",
+        "label": "Name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "about_department",
+        "label": "Department",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "reviewers",
+        "label": "Ask",
+        "type": "user",
+        "required": true,
+        "user_config": {
+          "multiple": true
+        },
+        "help_text": "Up to five people."
+      },
+      {
+        "key": "context",
+        "label": "What would you like feedback on?",
+        "type": "textarea",
+        "placeholder": "e.g. How I ran the Q4 planning workshops"
+      },
+      {
+        "key": "due_date",
+        "label": "Needed by",
+        "type": "date",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "about",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "about_name",
+              "span": 1
+            },
+            {
+              "field_key": "about_department",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "reviewers",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "context",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "due_date",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send requests",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Requests sent",
+            "text": "Each person has a task to give feedback.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Request feedback",
+      "subtitle": "Ask the people who see your work.",
+      "align": "left"
+    }
+  }
+}

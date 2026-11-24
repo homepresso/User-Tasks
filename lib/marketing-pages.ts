@@ -80,7 +80,7 @@ export const AI_ASSISTANTS_PAGE = {
   title: 'Agent: your AI co-worker in every screen',
   metaTitle: 'Agent: an AI Co-worker for Forms, Tasks and Workflow Design, on Your Own Model | UserTasks',
   description:
-    'Agent is one AI panel on every screen: it helps people fill forms, work tasks and design workflows, forms, tables and plugins, following the screen and their permissions. It proposes; people apply, decide and confirm. Bring your own key for OpenAI, Claude, Grok, Gemini, Azure OpenAI, Mistral, Groq, Ollama or any OpenAI-compatible model.',
+    'Agent is one AI panel on every screen: it helps people fill forms, work tasks and design workflows, forms, tables and plugins, following the screen and their permissions. It proposes; people apply, decide and confirm. Bring your own key for OpenAI, Claude, Grok, Gemini, Azure OpenAI, Mistral, Groq, Baseten, Ollama or any OpenAI-compatible model.',
 }
 
 /** /tasks-and-approvals — the task list and approvals (not /tasks: that is the signed-in task list). */

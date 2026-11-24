@@ -1,0 +1,83 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "c584e8b8-a26a-513b-926b-1e830de2fec9",
+  "asset": {
+    "id": "c584e8b8-a26a-513b-926b-1e830de2fec9",
+    "name": "Locations rows",
+    "rows": [
+      {
+        "id": "0075665a-cea5-5386-90b7-3fcc5a2e0faa",
+        "data": {
+          "code": "DEN-A-1",
+          "site": "Denver HQ",
+          "building": "Building A",
+          "floor": "Ground floor"
+        }
+      },
+      {
+        "id": "cf7b7a08-2ea8-5847-81c1-b18eeb8e2079",
+        "data": {
+          "code": "DEN-A-2",
+          "site": "Denver HQ",
+          "building": "Building A",
+          "floor": "Floor 2"
+        }
+      },
+      {
+        "id": "b0eb6206-6982-58a9-81c8-7549981bb252",
+        "data": {
+          "code": "DEN-A-3",
+          "site": "Denver HQ",
+          "building": "Building A",
+          "floor": "Floor 3"
+        }
+      },
+      {
+        "id": "7e66805a-7ea1-5709-a2bb-510d0f2612f7",
+        "data": {
+          "code": "DEN-B-1",
+          "site": "Denver HQ",
+          "building": "Building B",
+          "floor": "Ground floor"
+        }
+      },
+      {
+        "id": "8024f78c-a1c4-5916-9ce0-81fa0a283688",
+        "data": {
+          "code": "DEN-B-2",
+          "site": "Denver HQ",
+          "building": "Building B",
+          "floor": "Floor 2"
+        }
+      },
+      {
+        "id": "feb5069d-5049-5bcf-bc51-bf0e8b9c6cd2",
+        "data": {
+          "code": "AUS-1",
+          "site": "Austin office",
+          "building": "Main building",
+          "floor": "Floor 1"
+        }
+      },
+      {
+        "id": "b9d5db54-5d79-5992-854b-68dcbfe87d66",
+        "data": {
+          "code": "AUS-2",
+          "site": "Austin office",
+          "building": "Main building",
+          "floor": "Floor 2"
+        }
+      },
+      {
+        "id": "48c4ec1a-f70c-5901-8ea0-d2ddfcd82424",
+        "data": {
+          "code": "WH-1",
+          "site": "Riverside warehouse",
+          "building": "Warehouse",
+          "floor": "Dock level"
+        }
+      }
+    ]
+  }
+}

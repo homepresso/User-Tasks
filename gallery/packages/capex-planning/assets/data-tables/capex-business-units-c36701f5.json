@@ -1,0 +1,109 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+  "asset": {
+    "id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+    "name": "CapEx business units",
+    "description": "Capital budget per business unit and fiscal year: budget, committed (approved), spent and available in USD, kept up to date by the workflows.",
+    "columns": [
+      {
+        "id": "80863f06-93a5-52f7-979c-efa02f7a7616",
+        "required": true,
+        "key": "bu_key",
+        "name": "Key",
+        "type": "text"
+      },
+      {
+        "id": "739b66a1-86bb-551f-b625-c67927dc63df",
+        "required": false,
+        "key": "bu_code",
+        "name": "BU code",
+        "type": "text"
+      },
+      {
+        "id": "4f41ecd7-5337-509a-8f6b-c0529221dd64",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Production",
+          "Logistics",
+          "Engineering & R&D",
+          "IT",
+          "Facilities & EHS",
+          "Commercial"
+        ]
+      },
+      {
+        "id": "31ffa3eb-d933-5584-92e4-ade46fe8b1f8",
+        "required": false,
+        "key": "fiscal_year",
+        "name": "Fiscal year",
+        "type": "select",
+        "options": [
+          "2026",
+          "2027",
+          "2028"
+        ]
+      },
+      {
+        "id": "17ce3b6e-54be-51b1-a820-9adcf84d9a54",
+        "required": false,
+        "key": "head",
+        "name": "Head",
+        "type": "text"
+      },
+      {
+        "id": "a7470779-6672-5b7e-b684-24aa87925aae",
+        "required": false,
+        "key": "cost_centres",
+        "name": "Cost centres",
+        "type": "text"
+      },
+      {
+        "id": "a2de5df0-63a1-5f75-b529-04c135b1abd7",
+        "required": false,
+        "key": "budget",
+        "name": "Budget (USD)",
+        "type": "number"
+      },
+      {
+        "id": "1f792c61-8a06-5fa3-bc06-63918a60ceb2",
+        "required": false,
+        "key": "committed",
+        "name": "Committed (USD)",
+        "type": "number"
+      },
+      {
+        "id": "d95d1162-4a14-5990-9cfd-83bbca673077",
+        "required": false,
+        "key": "spent",
+        "name": "Spent (USD)",
+        "type": "number"
+      },
+      {
+        "id": "a01200c0-cbb5-5688-b1ca-99749cd65f77",
+        "required": false,
+        "key": "available",
+        "name": "Available (USD)",
+        "type": "number"
+      },
+      {
+        "id": "60fb5911-21ef-5968-9daa-06d3f02d5544",
+        "required": false,
+        "key": "committed_pct",
+        "name": "Committed %",
+        "type": "number"
+      },
+      {
+        "id": "6d2570e9-ea6f-57c2-bb75-7337ee2eeea0",
+        "required": false,
+        "key": "spent_pct",
+        "name": "Spent %",
+        "type": "number"
+      }
+    ]
+  }
+}

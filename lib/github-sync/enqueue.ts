@@ -28,7 +28,8 @@ export type SyncAssetType =
   | "connector"
   | "log_destination"
   | "form"
-  | "form_theme";
+  | "form_theme"
+  | "app";
 
 export async function recordAssetChange(params: {
   supabase: SupabaseClient;

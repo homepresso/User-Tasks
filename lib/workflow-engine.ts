@@ -3,6 +3,8 @@
  * Traverses workflow nodes and executes actions.
  */
 
+import { PEOPLE, PEOPLE_DIRECTORY_CAP, buildDirectory, usesPeopleFunctions, type PersonEntry } from "./workflow-people";
+import { buildWorkflowDataContext, describeWorkflowData, includesWorkflowData, workflowDataFields, type WorkflowDataSummary } from "./agents/workflow-data";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getServiceDb } from "@/lib/providers/db";
 import {
@@ -68,6 +70,7 @@ import { preResolveLookupConfig, preResolveLookupTemplate } from "./forms/lookup
 import { preResolveDataTableConfig } from "./forms/data-table";
 import { resolveContextParams, substituteParams } from "./forms/form-params";
 import { loadEmailTemplate } from "./email-templates";
+import { renderEmailTemplate } from "./email-editor/render";
 import { RunNotResumableError } from "./workflow-run-errors";
 import {
   INITIATOR_VARIABLES,
@@ -107,6 +110,25 @@ import { decideAcceptance, type QueueTaskFacts } from "./tasks/queue-rules";
 import { decideAcceptanceForAssignees } from "./tasks/queue-rules-server";
 import { setVariableAssignments, usesSetVariableAssignments } from "./workflow-set-variable";
 import { mergeAgentContexts } from "./agents/shared-context";
+import { matchesAgentErrorConfig, normalizeAgentErrorConfig } from "./agents/error-trigger";
+import { runInstanceStep } from "./services/instance-admin/workflow-step";
+import {
+  applyReplayedStep,
+  EFFECT_RECORDED_TYPES,
+  findStepEffect,
+  recordStepEffect,
+  type CompletedStep,
+  checkpointMode,
+  CheckpointRuntime,
+  interruptedStepPolicy,
+  newCheckpoint,
+  OutcomeUnknownError,
+  snapshotVariables,
+  stepIdempotencyKey,
+  variablesDelta,
+  type CheckpointBase,
+  type RunCheckpoint,
+} from "./workflow-checkpoints";
 import type { AadGroupPlanResult } from "./tasks/aad-group-runtime";
 
 export { RunNotResumableError };
@@ -145,6 +167,7 @@ const TRIGGER_TYPES = [
   "schedule",
   "webhook_received",
   "esign_event",
+  "agent_error",
   // Not in the node catalog: the start node API / MCP / import create for
   // workflow trigger_type "manual" (started by hand, the API or the CLI).
   "manual",
@@ -393,6 +416,39 @@ interface ExecutionContext {
   parallel?: ParallelRuntime;
   /** The Parallel branch this path runs on ("A", "A+B" after a join; unset outside a Parallel). */
   branchLabel?: string;
+  /** Checkpoint of the running segment (lib/workflow-checkpoints.ts); unset when off or before the migration. */
+  checkpoint?: CheckpointRuntime;
+  /** Idempotency key of the step running now (`<run>:<node>:<visit>`), for side-effecting handlers. */
+  stepKey?: string;
+}
+
+/**
+ * The "Use this workflow's data as context" block of a Run Agent step: the
+ * run's variables and the steps that already ran (not triggers, not this
+ * step), through lib/agents/workflow-data.ts.
+ */
+async function runAgentWorkflowData(ctx: ExecutionContext, node: WorkflowNode, config: Record<string, any>) {
+  const triggers = new Set<string>(TRIGGER_TYPES as readonly string[]);
+  const steps = Object.entries(ctx.nodeResults)
+    .filter(([id]) => id !== node.id)
+    .map(([id, result]) => ({ id, node: ctx.nodeMap?.get(id), result }))
+    .filter(({ node: n, result }) => n && !triggers.has(n.type) && (result.status === "success" || result.status === "error"))
+    .map(({ id, node: n, result }) => ({
+      id,
+      label: n!.label,
+      type: n!.type,
+      status: result.status === "success" ? "completed" : "failed",
+      ...(result.status === "error" ? { error: String(result.error ?? "failed") } : { output: result.output }),
+    }));
+  return buildWorkflowDataContext({
+    workflowId: ctx.workflowId ?? null,
+    runId: ctx.runId ?? null,
+    stepLabel: node.label,
+    isTest: Boolean(ctx.isTest),
+    variables: ctx.variables,
+    steps,
+    fields: workflowDataFields(config),
+  });
 }
 
 /**
@@ -513,6 +569,8 @@ interface RunCache {
   roles: Map<string, Promise<CachedRow>>;
   /** Live-binding names referenced by each node's config (scan once per run). */
   liveBindingNames: Map<string, string[]>;
+  /** USER_NAME / USER_EMAIL directory (lib/workflow-people.ts). */
+  people?: Promise<Map<string, PersonEntry>>;
 }
 
 function getRunCache(ctx: ExecutionContext): RunCache {
@@ -524,6 +582,34 @@ function getRunCache(ctx: ExecutionContext): RunCache {
     roles: new Map(),
     liveBindingNames: new Map(),
   });
+}
+
+/** The run's people directory (lib/workflow-people.ts): this workspace's members only, on a Symbol key the run never saves. */
+async function ensurePeopleDirectory(ctx: ExecutionContext): Promise<void> {
+  const vars = ctx.variables as Record<string | symbol, unknown>;
+  if (vars[PEOPLE] instanceof Map) return;
+  const cache = getRunCache(ctx);
+  cache.people ??= (async () => {
+    const { data: members, error } = await (ctx.supabase as any)
+      .from("user_memberships")
+      .select("user_id")
+      .eq("tenant_id", ctx.tenantId)
+      .limit(PEOPLE_DIRECTORY_CAP);
+    if (error) throw new Error(`People lookup failed: ${error.message}`);
+    const ids = [...new Set(((members ?? []) as Array<{ user_id: string }>).map((m) => m.user_id).filter(Boolean))];
+    const users: Array<{ id: string; display_name: string | null; email: string | null }> = [];
+    for (let i = 0; i < ids.length; i += 500) {
+      const { data, error: userError } = await (ctx.supabase as any)
+        .from("users")
+        .select("id, display_name, email")
+        .in("id", ids.slice(i, i + 500));
+      if (userError) throw new Error(`People lookup failed: ${userError.message}`);
+      users.push(...(data ?? []));
+    }
+    return buildDirectory(users);
+  })();
+  cache.people.catch(() => { cache.people = undefined; });
+  vars[PEOPLE] = await cache.people;
 }
 
 function cachedLookup<T>(
@@ -725,6 +811,7 @@ async function updateWorkflowRunCompat(
   const optionalColumns = [
     "execution_trace",
     "variables",
+    "checkpoint",
     "sla_label",
     "sla_due_at",
     "sla_warning_at",
@@ -971,7 +1058,18 @@ export async function executeWorkflow(
    * workflow_started_by / workflow_started_via; none means a system start
    * (the owner). Callers' variables never set those.
    */
-  options?: { supabase?: SupabaseClient; initiator?: RunInitiator; testFormDrafts?: boolean },
+  options?: {
+    supabase?: SupabaseClient;
+    initiator?: RunInitiator;
+    testFormDrafts?: boolean;
+    /** Called once the run row exists (the queue processor records it on its job for crash recovery). */
+    onRunCreated?: (runId: string) => void | Promise<void>;
+    /**
+     * Continue a run whose worker was lost (recoverRunFromCheckpoint): the
+     * existing run row, replaying its checkpoint instead of starting anew.
+     */
+    recover?: { runId: string; checkpoint: RunCheckpoint };
+  },
 ): Promise<{
   status: string;
   node_results: Record<string, any>;
@@ -1072,17 +1170,36 @@ export async function executeWorkflow(
     : Promise.resolve(undefined);
 
   const traceId = ensureTraceId(inboundTraceId);
-  const runPromise = insertWithOptionalColumns(supabase, "workflow_runs", {
-    workflow_id: workflowId,
-    tenant_id: workflow.tenant_id,
-    task_id: taskId ?? null,
-    status: "running",
-    version_id: versionId ?? null,
-    trace_id: traceId,
-    // Home: who started it (auto-follow) and the submission behind it.
-    ...runOriginColumns(options?.initiator, startVariables, test),
-  }, ["started_by", "started_via", "form_submission_id"])
-    .then(({ data }) => data?.id as string | undefined);
+  const recover = options?.recover;
+  // The segment's checkpoint (lib/workflow-checkpoints.ts): how it started,
+  // so a lost worker's job can replay it with this run id.
+  const cpMode = checkpointMode();
+  const checkpoint: RunCheckpoint | null = recover
+    ? recover.checkpoint
+    : cpMode === "off"
+      ? null
+      : newCheckpoint({
+          kind: "start",
+          task_id: taskId ?? null,
+          test,
+          ...(testFormDrafts ? { test_form_drafts: true } : {}),
+          variables: startVariables,
+          initiator: options?.initiator ? { userId: options.initiator.userId ?? null, via: options.initiator.via } : null,
+        } satisfies CheckpointBase);
+  const runPromise: Promise<string | undefined> = recover
+    ? Promise.resolve(recover.runId)
+    : insertWithOptionalColumns(supabase, "workflow_runs", {
+        workflow_id: workflowId,
+        tenant_id: workflow.tenant_id,
+        task_id: taskId ?? null,
+        status: "running",
+        version_id: versionId ?? null,
+        trace_id: traceId,
+        // Home: who started it (auto-follow) and the submission behind it.
+        ...runOriginColumns(options?.initiator, startVariables, test),
+        ...(checkpoint ? { checkpoint } : {}),
+      }, ["started_by", "started_via", "form_submission_id", "checkpoint"])
+        .then(({ data }) => data?.id as string | undefined);
 
   // Load user-defined variable defaults from the published version (or draft if testing)
   const userVarDefaults = userVariableDefaults(
@@ -1092,12 +1209,19 @@ export async function executeWorkflow(
   ) as Record<string, any>;
 
   const [task, runId] = await Promise.all([taskPromise, runPromise]);
+  if (runId && options?.onRunCreated && !recover) {
+    try {
+      await options.onRunCreated(runId);
+    } catch {
+      // Best effort: recovery bookkeeping must never fail the run.
+    }
+  }
   // Run stats count every real run when it starts — waiting, failed and
   // still-running runs included (they used to count only on success, so the
   // count looked stuck while runs waited on tasks). Test runs never count.
-  if (runId && !test) await recordWorkflowRun(supabase, workflowId, workflow.run_count);
+  if (runId && !test && !recover) await recordWorkflowRun(supabase, workflowId, workflow.run_count);
   // Files uploaded with a start form now belong to this run.
-  if (runId && startVariables && !test) {
+  if (runId && startVariables && !test && !recover) {
     const { bindStartRunFiles } = await import("@/lib/services/form-files");
     await bindStartRunFiles(supabase, workflow.tenant_id, workflowId, runId, startVariables);
   }
@@ -1144,11 +1268,28 @@ export async function executeWorkflow(
     },
   };
 
-  ctx.logs.push({
-    level: "info",
-    message: `Workflow started: ${workflow.name}`,
-    metadata: { trigger: workflow.trigger_type, task_id: taskId ?? null },
-  });
+  if (runId && checkpoint) {
+    ctx.checkpoint = new CheckpointRuntime(
+      supabase,
+      runId,
+      checkpoint,
+      cpMode,
+      recover ? structuredClone(recover.checkpoint) : null,
+      interruptedStepPolicy(nodes, TRIGGER_TYPES as readonly string[]),
+    );
+  }
+
+  ctx.logs.push(recover
+    ? {
+        level: "warn",
+        message: `Workflow continued after its worker was lost: completed steps are replayed from the checkpoint, not run again`,
+        metadata: { recovered: true, completed_steps: Object.keys(recover.checkpoint.completed ?? {}).length },
+      }
+    : {
+        level: "info",
+        message: `Workflow started: ${workflow.name}`,
+        metadata: { trigger: workflow.trigger_type, task_id: taskId ?? null },
+      });
 
 
   try {
@@ -1363,6 +1504,7 @@ async function finishRun(
       ? updateWorkflowRunCompat(supabase, runId, {
           status: opts.error === undefined ? "completed" : "failed",
           completed_at: new Date().toISOString(),
+          checkpoint: null,
           ...runStateForStorage(ctx),
           ...(opts.error === undefined ? {} : { error: opts.error }),
         })
@@ -1414,6 +1556,7 @@ async function parkLicenceBlockedRun(
     paused_at: new Date().toISOString(),
     paused_node_id: nodeId ?? null,
     pause_variables: { ...pauseVariablesOf(ctx), ...(nodeId ? { [LICENCE_BLOCKED_KEY]: nodeId } : {}) },
+    checkpoint: null,
     ...runStateForStorage(ctx),
   });
   await flushLogs(supabase, ctx, workflowId, runId);
@@ -1477,6 +1620,7 @@ async function persistPause(
       paused_at: new Date().toISOString(),
       paused_node_id: error.nodeId,
       pause_variables: pauseVariablesOf(ctx),
+      checkpoint: null,
       ...runStateForStorage(ctx),
     });
   }
@@ -1900,6 +2044,55 @@ async function buildMiddlewareResponse(
  * Accepts either a run ID or an event ID to find the paused run.
  * Restores execution state, merges return variables, and continues from the paused node.
  */
+/**
+ * Continue a run whose worker was lost mid-segment (its queue job's lease
+ * expired and the job was retried): replays the segment recorded in
+ * workflow_runs.checkpoint with the same run id — completed steps are not
+ * run again (lib/workflow-checkpoints.ts). Returns null when the run is not
+ * `running` or has no usable checkpoint (the caller then fails it as
+ * interrupted).
+ */
+export async function recoverRunFromCheckpoint(
+  runId: string,
+  scope: { tenantId: string; workflowId?: string },
+  options?: { supabase?: SupabaseClient; onRunCreated?: (runId: string) => void | Promise<void> },
+): Promise<Awaited<ReturnType<typeof executeWorkflow>> | null> {
+  const supabase = options?.supabase ?? createEngineClient();
+  const { data: run, error } = await (supabase.from("workflow_runs") as any)
+    .select("id, workflow_id, tenant_id, status, version_id, trace_id, checkpoint")
+    .eq("id", runId)
+    .eq("tenant_id", scope.tenantId)
+    .maybeSingle();
+  if (error || !run || run.status !== "running") return null;
+  if (scope.workflowId && run.workflow_id !== scope.workflowId) return null;
+  const checkpoint = run.checkpoint as RunCheckpoint | null;
+  if (!checkpoint || checkpoint.v !== 1 || checkpoint.disabled || !checkpoint.base) return null;
+  if (checkpoint.base.kind === "start") {
+    const base = checkpoint.base;
+    return executeWorkflow(
+      run.workflow_id,
+      base.task_id ?? undefined,
+      base.test === true,
+      base.variables,
+      undefined,
+      base.test ? undefined : (run.version_id ?? undefined),
+      run.trace_id ?? null,
+      {
+        supabase,
+        ...(base.initiator ? { initiator: { userId: base.initiator.userId, via: base.initiator.via as RunInitiator["via"] } } : {}),
+        ...(base.test_form_drafts ? { testFormDrafts: true } : {}),
+        recover: { runId, checkpoint },
+      },
+    );
+  }
+  const result = await resumeWorkflow(runId, {}, undefined, {
+    supabase,
+    ...(checkpoint.base.migrated ? { migrated: true } : {}),
+    recover: checkpoint,
+  });
+  return { ...result, run_id: runId };
+}
+
 export async function resumeWorkflow(
   runIdOrEventId: string,
   returnVariables: Record<string, any>,
@@ -1913,6 +2106,8 @@ export async function resumeWorkflow(
      * paused, at its target node, which `_goto_node_id` names.
      */
     migrated?: boolean;
+    /** Continue a resumed segment whose worker was lost (recoverRunFromCheckpoint): replay its checkpoint. */
+    recover?: RunCheckpoint;
   },
 ): Promise<{
   status: string;
@@ -1920,6 +2115,8 @@ export async function resumeWorkflow(
   error?: string;
 }> {
   const supabase = options?.supabase ?? createEngineClient();
+  const recover = options?.recover && options.recover.base.kind === "resume" ? options.recover : undefined;
+  if (recover) returnVariables = { ...(recover.base as Extract<CheckpointBase, { kind: "resume" }>).return_variables };
 
   const isUUID =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -1937,9 +2134,27 @@ export async function resumeWorkflow(
     ? claim.eq("id", runIdOrEventId)
     : claim.eq("event_id", runIdOrEventId);
   if (options?.eventId) claim = claim.eq("event_id", options.eventId);
-  const { data: run } = (await claim
-    .select(RESUME_RUN_COLUMNS)
-    .maybeSingle()) as { data: any };
+  // Recovery: the run is still `running` from the lost worker; its pause
+  // state lives in the checkpoint's base (the pause columns were cleared).
+  const { data: claimed } = recover
+    ? ((await (supabase.from("workflow_runs") as any)
+        .select(RESUME_RUN_COLUMNS)
+        .eq("id", runIdOrEventId)
+        .eq("status", "running")
+        .maybeSingle()) as { data: any })
+    : ((await claim
+        .select(RESUME_RUN_COLUMNS)
+        .maybeSingle()) as { data: any });
+  const recoverBase = recover?.base as Extract<CheckpointBase, { kind: "resume" }> | undefined;
+  const run = claimed && recoverBase
+    ? {
+        ...claimed,
+        paused_node_id: recoverBase.paused_node_id,
+        pause_variables: recoverBase.pause_variables,
+        event_id: recoverBase.event_id,
+        node_results: recoverBase.node_results ?? claimed.node_results,
+      }
+    : claimed;
 
   if (!run) throw new RunNotResumableError();
   const runId = run.id;
@@ -1965,18 +2180,40 @@ export async function resumeWorkflow(
         // collected while the run was paused.
         loadTaskDataObject(supabase, run.task_id, { includeTimeline: true, tenantId: run.tenant_id, attachments: taskAttachmentsLoader(supabase) })
       : Promise.resolve(null),
-    supabase
-      .from("workflow_runs")
-      .update({
-        event_id: null,
-        paused_at: null,
-        paused_node_id: null,
-        pause_variables: null,
-        // A run parked by an expired extension licence carries its reason.
-        error: null,
-      } as any)
-      .eq("id", runId),
+    recover
+      ? Promise.resolve(null)
+      : supabase
+          .from("workflow_runs")
+          .update({
+            event_id: null,
+            paused_at: null,
+            paused_node_id: null,
+            pause_variables: null,
+            // A run parked by an expired extension licence carries its reason.
+            error: null,
+          } as any)
+          .eq("id", runId),
   ]);
+  // The resumed segment's checkpoint: the pause state it continues from
+  // (cleared from the pause columns above), so a lost worker's job can
+  // replay it.
+  const cpMode = checkpointMode();
+  const checkpoint: RunCheckpoint | null = recover
+    ? recover
+    : cpMode === "off"
+      ? null
+      : newCheckpoint({
+          kind: "resume",
+          paused_node_id: run.paused_node_id ?? null,
+          pause_variables: run.pause_variables ?? null,
+          return_variables: returnVariables ?? {},
+          node_results: run.node_results ?? null,
+          event_id: run.event_id ?? null,
+          ...(options?.migrated ? { migrated: true } : {}),
+        });
+  if (checkpoint && !recover) {
+    await updateWorkflowRunCompat(supabase, runId, { checkpoint }).catch(() => undefined);
+  }
   const workflow = workflowRes.data as any;
   const version = versionRes.data as any;
 
@@ -2050,11 +2287,28 @@ export async function resumeWorkflow(
   }
 
   if (task) ctx.task = task;
+  if (checkpoint) {
+    ctx.checkpoint = new CheckpointRuntime(
+      supabase,
+      runId,
+      checkpoint,
+      cpMode,
+      recover ? structuredClone(recover) : null,
+      interruptedStepPolicy(nodes, TRIGGER_TYPES as readonly string[]),
+    );
+  }
   // Parallel joins in progress (frames, open waits) when the run paused.
   ctx.parallel = newParallelRuntime(ctx, readParallelState(savedParallel));
   parallelRuntime(ctx, nodes, edges);
   clearJoinPlaceholders(ctx);
 
+  if (recover) {
+    pushResumeLog({
+      level: "warn",
+      message: "Workflow continued after its worker was lost: completed steps are replayed from the checkpoint, not run again",
+      metadata: { recovered: true, completed_steps: Object.keys(recover.completed ?? {}).length },
+    });
+  }
   pushResumeLog(
     options?.migrated
       ? {
@@ -2507,6 +2761,18 @@ function passesTriggerFilters(
     if (wantedIntegration && ctx.variables.esign_integration_id && ctx.variables.esign_integration_id !== wantedIntegration) return false;
     if (wantedEvents.length && ctx.variables.esign_event && !wantedEvents.includes(ctx.variables.esign_event)) return false;
     return true;
+  }
+
+  if (node.type === "agent_error") {
+    // The dispatcher (lib/agents/error-trigger-dispatch) already matched the
+    // queued failure; a manual / test start without its variables passes.
+    if (!ctx.variables.agent_error_kind) return true;
+    return matchesAgentErrorConfig(normalizeAgentErrorConfig(config), {
+      source: ctx.variables.agent_error_source,
+      code: ctx.variables.agent_error_code,
+      agentId: ctx.variables.agent_error_agent_id ?? null,
+      profileId: ctx.variables.agent_error_profile_id ?? null,
+    });
   }
 
   if (node.type === "data_table_event") {
@@ -3595,6 +3861,8 @@ async function executeNode(
   ctx.executedNodes.add(node.id);
   boundRunMemory(ctx);
   traceNodeVisit(ctx, node, "enter");
+  // USER_NAME / USER_EMAIL: the workspace's people, loaded once per run for the steps that use them.
+  if (usesPeopleFunctions(node.config)) await ensurePeopleDirectory(ctx);
 
   const start = Date.now();
 
@@ -3669,7 +3937,7 @@ async function executeNode(
   }
 
   try {
-    const output = await runNodeAction(node, ctx);
+    const output = await runStep(node, ctx);
     const dur = Date.now() - start;
     const logEntry = {
       node_id: node.id,
@@ -4002,6 +4270,83 @@ async function executeNode(
   }
 }
 
+/**
+ * Runs one step through the segment's checkpoint (lib/workflow-checkpoints.ts):
+ * a step a lost worker already completed is replayed (its output and variable
+ * changes applied, not run again); a non-idempotent step it had started fails
+ * with "outcome unknown"; otherwise the step runs with its idempotency key in
+ * ctx.stepKey and is recorded when it completes or fails.
+ */
+async function runStep(node: WorkflowNode, ctx: ExecutionContext): Promise<any> {
+  const cp = ctx.checkpoint;
+  if (!cp || !ctx.runId) return runNodeAction(node, ctx);
+  const visit = cp.nextVisit(node.id);
+  const previousKey = ctx.stepKey;
+  ctx.stepKey = stepIdempotencyKey(ctx.runId, node.id, visit);
+  try {
+    const decision = cp.decide(node, visit);
+    if (decision.kind === "replay") {
+      applyReplayedStep(ctx.variables, decision.step);
+      ctx.logs.push({
+        node_id: node.id,
+        node_type: node.type,
+        node_label: node.label,
+        level: "info",
+        message: `Replayed from checkpoint: ${node.label} (completed before the worker was lost; not run again)`,
+        metadata: { checkpoint: true, visit },
+      });
+      if (decision.step.e) throw new Error(decision.step.e);
+      return decision.step.o;
+    }
+    // An email / data-table write a lost worker already performed (its effect
+    // was recorded after it happened): applied, not repeated.
+    const recordsEffect = EFFECT_RECORDED_TYPES.has(node.type) && cp.active;
+    if (recordsEffect && cp.recovering) {
+      const effect = await findStepEffect(ctx.supabase, ctx.stepKey);
+      if (effect) {
+        applyReplayedStep(ctx.variables, effect as unknown as CompletedStep);
+        ctx.logs.push({
+          node_id: node.id,
+          node_type: node.type,
+          node_label: node.label,
+          level: "info",
+          message: `Not repeated: ${node.label} already took effect before the worker was lost (idempotency key ${ctx.stepKey})`,
+          metadata: { idempotency_key: ctx.stepKey, deduplicated: true },
+        });
+        return (effect as { o?: unknown }).o ?? null;
+      }
+    }
+    if (decision.kind === "outcome_unknown") throw new OutcomeUnknownError(node.label ?? node.id);
+    await cp.markStarted(node, visit);
+    const before = snapshotVariables(ctx.variables);
+    let output: any;
+    try {
+      output = await runNodeAction(node, ctx);
+    } catch (error) {
+      // Waits / ends are not step results; an error is (replay fails it the same way).
+      if (!(error instanceof PauseError) && !(error instanceof EndWorkflowSignal) && !toErrorMessage(error).startsWith(END_MARKER)) {
+        await cp.recordFailed(node, visit, toErrorMessage(error), variablesDelta(before, ctx.variables));
+      }
+      throw error;
+    }
+    const delta = variablesDelta(before, ctx.variables);
+    if (recordsEffect) {
+      await recordStepEffect(ctx.supabase, {
+        key: ctx.stepKey,
+        tenantId: ctx.tenantId,
+        runId: ctx.runId,
+        nodeId: node.id,
+        kind: node.type,
+        result: { o: output ?? null, d: delta.set, ...(delta.removed.length ? { x: delta.removed } : {}) },
+      });
+    }
+    await cp.recordCompleted(node, visit, output, delta);
+    return output;
+  } finally {
+    ctx.stepKey = previousKey;
+  }
+}
+
 /** A step's variable prefix: `_output_prefix`, else its label as snake_case (≤30), else its id. */
 function nodeVariablePrefix(node: WorkflowNode): string {
   return (
@@ -4185,6 +4530,7 @@ async function runNodeAction(
     case "schedule":
     case "webhook_received":
     case "esign_event":
+    case "agent_error":
     case "manual":
       return { triggered: true, task_id: taskId };
 
@@ -5290,17 +5636,16 @@ async function runNodeAction(
               String(config.notification_template_id),
             )
           : null;
-        const notificationTitle = notificationTemplate
-          ? String(
-              resolveExpression(notificationTemplate.subject, ctx) ?? "",
-            ).trim()
+        const notificationRender = notificationTemplate
+          ? renderEmailTemplate(notificationTemplate, ctx, config.notification_template_variables)
+          : null;
+        const notificationTitle = notificationRender
+          ? notificationRender.subject.trim()
           : groupMode === "claim"
             ? `Task available to claim: ${taskTitle}`
             : `New task: ${taskTitle}`;
-        const notificationBody = notificationTemplate
-          ? String(
-              resolveExpression(notificationTemplate.text_body, ctx) ?? "",
-            ).trim()
+        const notificationBody = notificationRender
+          ? notificationRender.text.trim()
           : taskDescription
             ? htmlToPlainText(taskDescription).slice(0, 200)
             : "You have been assigned a new task.";
@@ -6678,6 +7023,24 @@ async function runNodeAction(
       return result;
     }
 
+    // ─── UserTasks instance (instance admins only; lib/services/instance-admin/workflow-step.ts) ───
+    case "instance_admin": {
+      const step = await runInstanceStep({
+        tenantId, runId: ctx.runId, workflowId: ctx.workflowId, isTest: !!ctx.isTest,
+        config: config as any, resolve: (value) => (typeof value === "string" ? resolveExpression(value, ctx) : value),
+      });
+      if (step.mode === "read") {
+        setVar("instance_rows", step.rows);
+        setVar("instance_record", step.record);
+        setVar("instance_total", step.total);
+        return { mode: "read", dataset: step.dataset, total: step.total, rows: step.rows.length };
+      }
+      setVar("instance_result", step.result);
+      setVar("instance_message", step.result.message);
+      setVar("instance_outcome", step.result.outcome);
+      return { mode: "action", action: step.result.action, outcome: step.result.outcome, message: step.result.message, audit_id: step.result.audit_id };
+    }
+
     // ─── Governance: Remove User from Role ───
     case "remove_user_from_role": {
       const user = await resolveGovernanceUser();
@@ -6940,7 +7303,7 @@ async function runNodeAction(
       }
 
       const { loadAgentForRun } = await import("./agents/prepare");
-      const { runAgent, agentWorkflowVariables, agentNodeOutput } = await import("./agents/run");
+      const { runAgent, agentWorkflowVariables, agentNodeOutput, reportAgentNotConfigured } = await import("./agents/run");
       const { AGENT_WAIT_EVENT_PREFIX, newEventId } = await import("./agents/approval");
       const { agentOutputPrefix } = await import("./agent-knowledge");
 
@@ -6948,7 +7311,20 @@ async function runNodeAction(
       // at the version the published workflow pinned (lib/agents/pins.ts);
       // drafts / Save & Test carry no pin and run the latest version.
       const pinnedVersion = Number(config.agent_version) >= 1 ? Math.floor(Number(config.agent_version)) : null;
-      const loaded = await loadAgentForRun(supabase, tenantId, agentId, { version: pinnedVersion });
+      // The run's loop-guard depth (a run started by an Agent error trigger, or one of its sub-workflows).
+      const agentErrorDepth = Math.max(0, Math.floor(Number(ctx.variables.agent_error_depth) || 0));
+      let loaded: Awaited<ReturnType<typeof loadAgentForRun>>;
+      try {
+        loaded = await loadAgentForRun(supabase, tenantId, agentId, { version: pinnedVersion });
+      } catch (loadError) {
+        // No provider connection / key: a final failure for the Agent error trigger (never for test runs).
+        await reportAgentNotConfigured(supabase, {
+          tenantId, agentId, agentName: typeof config.agent_name === "string" ? config.agent_name : null,
+          workflow: ctx.runId ? { run_id: String(ctx.runId), workflow_id: ctx.workflowId ?? null, event_id: "", node_id: node.id, node_label: node.label, output_variable: "", output_prefix: "", share_context: false, user_message: "", agent_error_depth: agentErrorDepth, test: Boolean(ctx.isTest) } : null,
+          userId: typeof ctx.variables.workflow_initiator_user_id === "string" ? ctx.variables.workflow_initiator_user_id : null,
+        }, loadError);
+        throw loadError;
+      }
       const agentRow = loaded.agent;
       if (!pinnedVersion && ctx.isTest) {
         ctx.onEvent?.({
@@ -6987,7 +7363,26 @@ async function runNodeAction(
         user_message: userMessage,
         branch: ctx.branchLabel ?? null,
         started_at: new Date().toISOString(),
-      };
+        ...(agentErrorDepth ? { agent_error_depth: agentErrorDepth } : {}),
+        ...(ctx.isTest ? { test: true } : {}),
+      } as import("./agents/approval").AgentWorkflowLink;
+
+      // "Use this workflow's data as context": the run's own data (trigger /
+      // form data, variables, earlier steps' outputs, ids, initiator) —
+      // cleaned of secrets and engine keys, capped — before the prompt.
+      let workflowData: { text: string; summary: WorkflowDataSummary } | null = null;
+      {
+        if (includesWorkflowData(config)) {
+          workflowData = await runAgentWorkflowData(ctx, node, config);
+          link.workflow_data = workflowData.summary;
+          const message = describeWorkflowData(workflowData.summary);
+          ctx.logs.push({
+            node_id: node.id, node_type: node.type, node_label: node.label, level: "info",
+            message, metadata: { workflow_data: workflowData.summary },
+          });
+          ctx.onEvent?.({ type: "log", node_id: node.id, data: { level: "info", message } });
+        }
+      }
 
       const filesSpec = typeof config.files === "string" ? config.files.trim() : "";
       const { fileValues } = await import("@/lib/workflow-files");
@@ -7010,6 +7405,7 @@ async function runNodeAction(
             ...(initiatedBy ? { initiated_by: initiatedBy } : {}),
             trace_id: ctx.traceId ?? ctx.runId ?? null,
             ...(fileList.length ? { files: fileList } : {}),
+            ...(workflowData ? { workflow_data: workflowData } : {}),
             ...(config.max_iterations !== undefined ? { max_iterations: config.max_iterations } : {}),
             ...(config.timeout_ms !== undefined ? { timeout_ms: config.timeout_ms } : {}),
           },
@@ -7063,6 +7459,7 @@ async function runNodeAction(
         includeSharedContext: shareContext || Boolean(agentAttachments),
         sharedContext: agentContext,
         attachments: agentAttachments?.attachments,
+        workflowData,
         overrides: { maxIterations: config.max_iterations, maxDurationMs: config.timeout_ms },
         onEvent: (event) => relay.onEvent(event),
       }).finally(() => {
@@ -7143,6 +7540,16 @@ async function runNodeAction(
       for (const h of configHeaders) {
         if (h.key)
           headers[h.key] = String(resolveExpression(h.value, ctx) ?? "");
+      }
+      // "Send an Idempotency-Key header": the same key on every attempt of
+      // this step execution (`<run>:<node>:<visit>`), so a receiver that
+      // supports it de-duplicates a request repeated after a lost worker.
+      if (
+        config.idempotency_header === true &&
+        ctx.stepKey &&
+        !Object.keys(headers).some((h) => h.toLowerCase() === "idempotency-key")
+      ) {
+        headers["Idempotency-Key"] = ctx.stepKey;
       }
 
       // Body
@@ -7281,14 +7688,18 @@ async function runNodeAction(
         : null;
       if (config.email_template_id && !emailTemplate)
         throw new Error("Email template not found");
-      const subject = resolveExpression(
-        emailTemplate?.subject ?? config.subject,
-        ctx,
-      );
-      const body = resolveExpression(
-        emailTemplate?.html_body ?? config.body,
-        ctx,
-      );
+      // A template renders with the step's variable mappings
+      // (template_variables) and the link helpers; unmapped variables read
+      // the run as before (lib/email-editor/render.ts).
+      const renderedTemplate = emailTemplate
+        ? renderEmailTemplate(emailTemplate, ctx, config.template_variables)
+        : null;
+      const subject = renderedTemplate
+        ? renderedTemplate.subject
+        : resolveExpression(config.subject, ctx);
+      const body = renderedTemplate
+        ? renderedTemplate.html
+        : resolveExpression(config.body, ctx);
       const from = config.from
         ? resolveExpression(config.from, ctx)
         : undefined;
@@ -7321,6 +7732,7 @@ async function runNodeAction(
           : String(to),
         subject: String(subject),
         body: String(body ?? ""),
+        ...(renderedTemplate?.text ? { text: renderedTemplate.text } : {}),
         from: from ? String(from) : undefined,
         replyTo: replyTo ? String(replyTo) : undefined,
         ...(emailFiles.length

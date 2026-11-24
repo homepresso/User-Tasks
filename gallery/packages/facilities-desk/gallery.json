@@ -1,0 +1,113 @@
+{
+  "id": "28a09380-00a9-5b72-a1d8-8e70f5485220",
+  "slug": "facilities-desk",
+  "title": "Facilities desk",
+  "category": "workplace",
+  "summary": "A facilities app: report a problem with its location in a side panel, browse open requests as cards, see requests by site and building, and balance technician workload.",
+  "description": "Facilities desk is a ready-made app for a facilities or workplace team. Anyone opens it from the Apps menu and presses New request: the Facilities request form slides in from the right, the location comes from the Locations table (site, building and floor fill in), and people add the exact spot, category, priority, details and photos.\n\nEach request starts the Facilities request workflow. It is logged in the Facilities requests table as Open and the coordinator gets a task to assign a technician and a target date. The job then becomes a task with Done and Cannot fix buttons, and the request’s status follows along.\n\nThe app has four pages: Requests (New request, KPIs and every request as a searchable card with its status badge, priority, category and technician), My requests (your requests and the timeline of the latest one), Locations (requests by site and building, a site by category pivot and the grid grouped by site, no map needed) and Technicians (jobs per technician, requests by status, the open job list, on-time status and requests in versus jobs done). Twelve sample requests across three sites make the charts useful straight after install.",
+  "trigger": "app",
+  "entry_app": "2a4585c9-f3d8-5139-8f9a-8d0c9964bb5a",
+  "entry_workflow": "966e8d86-da44-59b8-9f39-0cf83179c2af",
+  "entry_form": "abd56279-8d33-5bd9-a02d-7de84c403f0f",
+  "start": "Open Facilities desk from the Apps menu and press New request; the form slides in from the right and starts the request workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 10,
+  "tags": [
+    "facilities",
+    "maintenance",
+    "locations",
+    "technicians",
+    "workplace",
+    "app"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "setup": [
+    "Open Apps → Facilities desk → Settings → Audience: add everyone as contributors so they can report problems, and the facilities team as contributors too.",
+    "Replace the Locations rows with your own sites, buildings and floors.",
+    "Assignees: pick the facilities coordinator (\"Assign a technician\") and who receives the jobs (\"Do the job\"), for example a technicians lead.",
+    "Edit the technician names in the \"Assign a technician\" step’s Technician choice."
+  ],
+  "steps": [
+    {
+      "title": "New request",
+      "body": "New request opens the form in a side panel; picking a location fills in the site, building and floor."
+    },
+    {
+      "title": "Logged",
+      "body": "The workflow numbers the request and logs it as Open in the Facilities requests table."
+    },
+    {
+      "title": "Assign a technician",
+      "body": "The coordinator picks a technician and a target date; the request becomes Assigned."
+    },
+    {
+      "title": "Do the job",
+      "body": "The job is a task with Done and Cannot fix; the request’s status follows the outcome."
+    },
+    {
+      "title": "Balance the work",
+      "body": "Locations and Technicians show where requests come from and who has how many jobs."
+    }
+  ],
+  "sample_input": {
+    "requester": "Jordan Rivera",
+    "email": "jordan.rivera@example.com",
+    "location": "DEN-A-2",
+    "site": "Denver HQ",
+    "building": "Building A",
+    "floor": "Floor 2",
+    "spot": "Room Juniper",
+    "category": "Heating & cooling",
+    "priority": "High",
+    "title": "Meeting room is freezing",
+    "details": "The thermostat shows 61°F and does not respond."
+  },
+  "expect": "completed",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Assign",
+        "values": {
+          "technician": "Ben Carter",
+          "target_date": "2026-11-24"
+        }
+      },
+      {
+        "outcome": "Done",
+        "values": {
+          "work_done": "Replaced the thermostat battery and rebalanced the vents."
+        }
+      }
+    ]
+  },
+  "icon": "hard-hat",
+  "screenshots": [
+    {
+      "file": "screenshots/requests.webp",
+      "caption": "Requests: KPIs and every request as a card with its status, priority, category and technician."
+    },
+    {
+      "file": "screenshots/new-request.webp",
+      "caption": "New request in a side panel: picking a location fills in the site, building and floor."
+    },
+    {
+      "file": "screenshots/locations.webp",
+      "caption": "Locations: requests by site and building, and a site by category pivot."
+    },
+    {
+      "file": "screenshots/technicians-dark.webp",
+      "caption": "Technicians in dark mode: jobs per technician, status and the open job list.",
+      "theme": "dark"
+    }
+  ]
+}

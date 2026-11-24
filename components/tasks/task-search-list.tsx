@@ -24,6 +24,7 @@ import { UnreadDot, unreadTitleClass } from "@/components/tasks/unread-dot"
 import { serverQuery } from "@/lib/server-read"
 import { formatDay } from "@/lib/format/date"
 import { cn } from "@/lib/utils"
+import { TaskTags } from "@/components/tasks/task-tags"
 
 export type TaskSearchStatus = "open" | "completed" | "any"
 type Sort = "completed" | "due" | "priority" | "created" | "updated" | "title"
@@ -42,7 +43,7 @@ const SORTS: Array<{ value: Sort; label: string }> = [
 
 interface Row {
   id: string; title: string; status: string; priority: string | null; due_date: string | null; completed_at: string | null; outcome: string | null
-  unread?: boolean; workflow?: { id: string; name: string } | null; assignee?: { display_name: string | null; email: string | null } | null
+  unread?: boolean; tags?: string[] | null; workflow?: { id: string; name: string } | null; assignee?: { display_name: string | null; email: string | null } | null
 }
 interface Page { tasks: Row[]; total: number; capped: boolean; nextCursor: string | null }
 
@@ -123,6 +124,7 @@ export function TaskSearchList({ tab, status, search }: { tab: "mine" | "followi
                     {t.completed_at ? <span data-completed-at>Completed {formatDay(t.completed_at)}{t.outcome ? ` · ${t.outcome.replace(/[_-]+/g, " ")}` : ""}</span>
                       : t.due_date ? <span>Due {formatDay(t.due_date)}</span> : null}
                     {t.priority && <PriorityBadge priority={t.priority} />}
+                    <TaskTags tags={t.tags} max={3} />
                   </div>
                 </div>
                 <StatusPill status={t.status} />

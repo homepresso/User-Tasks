@@ -119,6 +119,7 @@ export const ROUTES: readonly RouteEntry[] = [
   { pattern: '/dev/ui', label: 'UI primitives' },
   { pattern: '/settings', label: 'Settings' },
   { pattern: '/settings/theme', label: 'Theme' },
+  { pattern: '/settings/tags', label: 'Tags' },
   { pattern: '/settings/governance', label: 'Governance' },
   { pattern: '/settings/invitations', label: 'Invitations' },
   { pattern: '/settings/api-keys', label: 'API keys' },

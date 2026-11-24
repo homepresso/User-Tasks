@@ -1,0 +1,262 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "21f3d5fd-7c35-5437-9fd8-cf517721e729",
+  "asset": {
+    "id": "21f3d5fd-7c35-5437-9fd8-cf517721e729",
+    "name": "Submit a contract",
+    "description": "Send a contract for approval: legal reviews every contract, finance reviews contracts over $50,000, then it is signed and added to the register.",
+    "tags": [
+      "contracts",
+      "legal"
+    ],
+    "fields": [
+      {
+        "key": "h_what",
+        "label": "The contract",
+        "type": "heading"
+      },
+      {
+        "key": "title",
+        "label": "Title",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. \"Cloud hosting services\""
+      },
+      {
+        "key": "counterparty",
+        "label": "Counterparty",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "type",
+        "label": "Type",
+        "type": "choice",
+        "options": [
+          "NDA",
+          "Master services agreement",
+          "Statement of work",
+          "Supplier agreement",
+          "Software licence",
+          "Lease"
+        ],
+        "required": true
+      },
+      {
+        "key": "value",
+        "label": "Total value (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "required": true,
+        "help_text": "Over $50,000 also needs finance review."
+      },
+      {
+        "key": "h_term",
+        "label": "Term and renewal",
+        "type": "heading"
+      },
+      {
+        "key": "start_date",
+        "label": "Start date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "end_date",
+        "label": "End date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "renewal_date",
+        "label": "Renewal decision by",
+        "type": "date",
+        "required": true,
+        "help_text": "The last day to renew or give notice. You get a renewal review task then."
+      },
+      {
+        "key": "auto_renew",
+        "label": "Renews automatically unless we give notice",
+        "type": "boolean"
+      },
+      {
+        "key": "h_who",
+        "label": "Ownership",
+        "type": "heading"
+      },
+      {
+        "key": "owner",
+        "label": "Business owner",
+        "type": "user",
+        "required": true
+      },
+      {
+        "key": "summary",
+        "label": "Summary and anything unusual",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "key": "documents",
+        "label": "Contract documents",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 5,
+          "max_file_mb": 10,
+          "types": [
+            "documents",
+            "images",
+            "pdf"
+          ]
+        },
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_what",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "title",
+              "span": 1
+            },
+            {
+              "field_key": "counterparty",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "type",
+              "span": 1
+            },
+            {
+              "field_key": "value",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_term",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "start_date",
+              "span": 1
+            },
+            {
+              "field_key": "end_date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "renewal_date",
+              "span": 1
+            },
+            {
+              "field_key": "auto_renew",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_who",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "owner",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "summary",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "documents",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Submit for approval",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Contract submitted",
+            "text": "\"{{title}}\" with {{counterparty}} is with legal for review. Follow it on the Pipeline page.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another contract"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Submit a contract",
+      "subtitle": "Legal reviews every contract; finance reviews contracts over $50,000.",
+      "align": "left"
+    }
+  }
+}

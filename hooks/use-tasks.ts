@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getCurrentTenantId } from '@/lib/get-user-id'
 import { useDebounced, useRealtime, useRealtimeUserId } from '@/hooks/use-realtime'
 import type { RealtimeFilter } from '@/lib/realtime/topics'
+import { QUEUE_PRIORITIES, type QueuePriority } from '@/lib/tasks/queue-rules'
 
 interface TaskFilters {
   status?: string[]
@@ -48,7 +49,8 @@ export function useTasks(filters: TaskFilters) {
     queryKey: ['tasks', filters],
     queryFn: () => serverQuery('tasks.list', {
       status: filters.status,
-      priority: filters.priority,
+      // Only task_priority values (the read refuses anything else).
+      priority: filters.priority?.filter((p): p is QueuePriority => (QUEUE_PRIORITIES as readonly string[]).includes(p)),
       tenantId: filters.tenantId,
       ...dueCutoff(filters.dueRange),
       assigneeId: filters.assigneeId,

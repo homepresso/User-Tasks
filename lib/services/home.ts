@@ -260,9 +260,11 @@ export interface HomeTask {
   action?: 'accept' | 'claim'
   /** Not opened since it became mine (lib/tasks/unread.ts). */
   unread: boolean
+  /** Free-text tags (coloured chips in the lists). */
+  tags: string[]
 }
 
-export const TASK_COLUMNS = 'id, title, status, priority, due_date, created_at, accepted_at, acceptance_status, workflow_id, workflow_step_id, workflow_run_id, event_id, assigned_team_id, workflow:workflows(id, name)'
+export const TASK_COLUMNS = 'id, title, status, priority, due_date, created_at, accepted_at, acceptance_status, workflow_id, workflow_step_id, workflow_run_id, event_id, assigned_team_id, tags, workflow:workflows(id, name)'
 
 export async function shapeTasks(db: AnySupabaseClient, tenantId: string, rows: any[], unread: ReadonlySet<string> = new Set()): Promise<HomeTask[]> {
   const runIds = rows.map((r) => r.workflow_run_id).filter(Boolean)
@@ -298,6 +300,7 @@ export async function shapeTasks(db: AnySupabaseClient, tenantId: string, rows: 
       team: t.assigned_team_id ? (teams.get(t.assigned_team_id) ?? null) : null,
       run_id: t.workflow_run_id ?? run?.id ?? null,
       unread: unread.has(String(t.id)),
+      tags: Array.isArray(t.tags) ? t.tags.map(String) : [],
     }
   })
 }

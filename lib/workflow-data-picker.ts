@@ -42,6 +42,7 @@ import { ACTION_FIELD_TYPES, type ActionField } from './custom-actions/contract'
 import { projectedKeys } from './forms/data-table'
 import { includedContextSchema } from './forms/form-params'
 import { SUBMISSION_META_FIELDS, SUBMISSION_META_KEY } from './forms/submission-meta'
+import { AGENT_ERROR_FIELDS } from './agents/error-trigger'
 import { fieldValueSchemaType, normalizeTaskFields, TASK_FIELD_TYPE_LABELS, valueFields, type TaskFieldDef } from './task-field-schema'
 import { setVariableAssignments } from './workflow-set-variable'
 import { isSecretField, saveToVariableMap } from './forms/task-outputs'
@@ -182,6 +183,19 @@ export function nodeOutputPrefix(node: PickerNodeLike): string {
 
 function str(type: SchemaNode['type'], description?: string): SchemaNode {
   return description ? { type, description } : { type }
+}
+
+/** The Agent error trigger's run variables (lib/agents/error-trigger.ts): {{agent_error.*}} and the flat {{agent_error_<field>}}. */
+function agentErrorTriggerRoots(): DataRoot[] {
+  const object: DataRoot = {
+    path: 'agent_error', label: 'Agent error (object)', hint: 'agent_error',
+    schema: { type: 'object', description: 'The failure that started the run', fields: AGENT_ERROR_FIELDS.map((f) => ({ name: f.name, type: f.type, description: f.description })) },
+    description: 'Kind, severity, friendly message, technical summary, agent / profile, workflow and run, who and when',
+  }
+  return [
+    object,
+    ...AGENT_ERROR_FIELDS.map((f) => ({ path: `agent_error_${f.name}`, label: f.name, hint: `agent_error_${f.name}`, schema: str(f.type, f.description) })),
+  ]
 }
 
 /** {{submission.*}}: the submission metadata (lib/forms/submission-meta.ts), typed. */
@@ -626,6 +640,8 @@ export function rootsForNode(node: PickerNodeLike, known: DataRoot[] = [], linke
   const c = node.config ?? {}
   const prefix = nodeOutputPrefix(node)
   switch (node.type) {
+    case 'agent_error':
+      return agentErrorTriggerRoots()
     case 'call_reference': {
       const response = nodeResponseModel(node)
       const roots: DataRoot[] = [
@@ -829,7 +845,7 @@ function customActionRoots(c: Record<string, any>): DataRoot[] {
 const TRIGGER_TYPES = new Set([
   'task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected',
   'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted',
-  'middleware_received', 'schedule', 'webhook_received', 'esign_event',
+  'middleware_received', 'schedule', 'webhook_received', 'esign_event', 'agent_error',
 ])
 
 /** Topological-ish order: by graph distance from triggers, then canvas position. */

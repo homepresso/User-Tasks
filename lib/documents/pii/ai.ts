@@ -63,6 +63,27 @@ export async function findWithAgent(supabase: SupabaseClient, tenantId: string, 
     maxIterations: 1,
     tools: [],
   }, `Text:\n"""\n${slice}\n"""`, { _tenantId: tenantId, _agentId: agentId, maxDurationMs: 120_000 })
+  await recordDetectionUsage(supabase, tenantId, agent, cfg, result)
   if (result.status === 'failed') throw new Error(`AI detection failed: ${result.error ?? 'no response'}`)
   return { values: parseAiValues(result.response ?? '', slice), truncated: text.length > slice.length }
+}
+
+/**
+ * The detection's tokens and cost (Agents → Costs & budgets → source
+ * "Redaction AI detection"), through the shared usage recorder. Best effort:
+ * never fails the step. Nothing of the text or the answer is stored.
+ */
+async function recordDetectionUsage(supabase: SupabaseClient, tenantId: string, agent: any, cfg: any, result: import('@/lib/agent-executor').AgentResult): Promise<void> {
+  try {
+    const [{ recordAssistantUsage }, { agentProviderKind }] = await Promise.all([import('@/lib/assistants/limits'), import('@/lib/agents/provider')])
+    const llmCalls = (result.steps ?? []).filter((s) => s.type === 'llm').length || 1
+    await recordAssistantUsage(supabase, {
+      tenantId, userId: null, capability: 'designer', source: 'redact_ai',
+      provider: agentProviderKind(agent.integration?.type, cfg.base_url), model: String(agent.model ?? 'gpt-4o'),
+      status: result.status === 'failed' ? 'failed' : 'completed',
+      usage: result.usage ?? { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+      llmCalls, toolCalls: 0, usageMissing: !result.usage || (result.steps ?? []).some((s) => s.type === 'llm' && !s.error && !s.usage),
+      error: result.status === 'failed' ? 'AI detection failed' : null,
+    })
+  } catch { /* usage is best effort */ }
 }

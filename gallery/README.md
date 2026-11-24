@@ -19,6 +19,7 @@ gallery/
   packages/<slug>/
     gallery.json                   metadata (lib/gallery/types.ts → GalleryMeta)
     README.md                      readme shown by the install wizard
+    screenshots/                   optional WebP / PNG screenshots listed in gallery.json
     assets/                        a config-as-code folder (`usertasks config apply` works on it too)
       workflows/<name>-<id>.json   one envelope per asset: { format_version, asset_type, id, asset }
       integrations/ references/ decision-tables/ data-tables/ email-templates/ agents/ …
@@ -47,7 +48,7 @@ lib/gallery/catalog.json           what the /gallery pages render (generated, co
 - Forms are checked like the designer checks them: field definitions, lookups (the data table is
   in the package and every search / display / value / fill column exists), outcome buttons that
   match the step's outcomes, redirects to app paths only, valid mini-theme references.
-- `gallery.json` has the category, trigger kind (`form`, `api`, `schedule`, `event`), needs,
+- `gallery.json` has the category, trigger kind (`form`, `api`, `schedule`, `event`, `app`), needs,
   setup steps, flow steps, a `sample_input` and what a run with it reaches (`expect`). A
   form-started package starts either from the workflow start form (webhook trigger with
   `start_form: { layout, theme }` on the trigger node) or from a reusable **form page**
@@ -59,6 +60,17 @@ lib/gallery/catalog.json           what the /gallery pages render (generated, co
   `form_controls` by tag), so a source never copies a module. Any other tag must be in the package's
   own `assets/form-controls/`. Saved reports (`assets/reports/`) use workflow-scoped sources
   (`workflow_runs` / `tasks` with `source_inputs.workflow_id`) so their ids remap on install.
+- **App-first packages** (`trigger: "app"`, `entry_app`): the package's main asset is an app in
+  `assets/apps/` (pages, widgets, navigation, rules) with the forms, workflows, data tables and
+  reports it uses. Apps never carry an audience or editors, uploaded icons must be safe SVGs and
+  every page link must resolve. An optional `entry_workflow` (+ `entry_form`) is the process the
+  app's main button starts; verification then installs the app (with pages, no audience) and runs
+  that workflow too. Examples: `expense-desk`, `it-service-desk`, `hr-onboarding-portal`,
+  `facilities-desk`, `contract-hub`, `team-operations-dashboard`.
+- **Screenshots** (optional, recommended for apps): `screenshots: [{ file, caption, theme? }]` in
+  `gallery.json`, files in the package's `screenshots/` folder (WebP or PNG, at most six, 400 KB
+  each, checked by their bytes). The build copies them to `public/gallery/screenshots/<slug>/` and
+  the package page shows them. Real screenshots of demo data only.
 - `systems` names the third-party systems for the chips (`["Workday"]`, `["SAP S/4HANA"]`).
 - **No integrations needed**: a package with no integration, connector, AI agent or MCP server and
   no install-time requirement gets the badge automatically (`isNativeContents`); its install is

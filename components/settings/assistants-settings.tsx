@@ -305,6 +305,21 @@ export function AssistantsSettings() {
       {/* ── The Agent ── */}
       <AgentCard value={agent} disabled={disabled} roleOptions={roleOptions} teamOptions={teamOptions} onChange={patchAgent} />
 
+      {/* ── Importers: the PDF importer's opt-in AI assist ── */}
+      <Card className="p-5" data-testid="assistants-import-ai">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold">Let importers use AI for hard PDFs</h2>
+            <p className="text-xs mt-0.5" style={muted}>
+              The PDF form importer (Forms → Import → PDF form) reads fillable PDFs on its own. With this on, the person importing may also tick &ldquo;Use AI for the hard parts&rdquo;
+              for one import — flat or scanned PDFs, unclear labels, printed &ldquo;go to question …&rdquo; instructions. That PDF&apos;s content is then sent to the provider above with this workspace&apos;s key,
+              after they confirm; usage counts towards the limits below and each send is recorded in the audit log. Off (the default): nothing is ever sent.
+            </p>
+          </div>
+          <Switch checked={agent.import_ai === true} onCheckedChange={(on) => patchAgent({ import_ai: on })} disabled={disabled} aria-label="Let importers use AI for hard PDFs" data-testid="assistants-import-ai-switch" />
+        </div>
+      </Card>
+
       {/* ── Dictation ── */}
       <DictationCard value={agent.dictation} disabled={disabled} integrations={data.transcription_integrations ?? []} agentTranscribes={Boolean(data.agent_transcribes)}
         onChange={(patch) => patchAgent({ dictation: { ...agent.dictation, ...patch } })} />

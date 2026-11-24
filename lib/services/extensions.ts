@@ -33,6 +33,8 @@ import { checkCompatibility, getServerExtension, isExtensionRunnable, extensionP
 import { isSecretField, settingsDefaults, settingsFields, validateSettings } from '@/lib/extensions/settings'
 import { invalidateTenantExtensions, isMissingTable, loadTenantExtensions } from '@/lib/extensions/state'
 import { invalidateExtensionTriggerCache } from '@/lib/extensions/triggers'
+import { EDITIONS, ENTERPRISE_EDITION_ID } from '@/lib/editions/catalog'
+import { runningEdition, type RunningEdition } from '@/lib/editions/running'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- extension tables are not in the generated Database types */
@@ -131,30 +133,56 @@ async function summarize(ctx: ServiceContext, manifest: ExtensionManifest, rows:
 }
 
 /**
- * Editions this build does not include (self-hosted only): a paid extension
- * that ships as its own image (lib/editions/catalog.ts). Settings → Extensions
- * explains how to switch the install to it (`usertasks upgrade --edition …`),
- * with the licence state for its extension (a trial started here counts).
+ * Editions (self-hosted only; lib/editions). `edition` says what this server
+ * runs (the public image, UserTasks Enterprise, the legacy SharePoint
+ * edition) and, for every paid extension the Enterprise edition may contain,
+ * whether THIS build contains it and whether it is licensed — the licence is
+ * what unlocks a compiled-in extension, with no reinstall. `editions` offers
+ * the Enterprise edition when this server is not on it: the extensions it
+ * would add, their licence state (a trial started here counts) and the
+ * switch command (`usertasks upgrade --edition enterprise`, data kept).
  */
-export interface MissingEditionSummary {
+export interface EditionExtensionState {
   id: string
   name: string
-  extension_id: string
   sku: string
-  trial_days: number
+  /** Compiled into the running build. */
+  in_build: boolean
   licence: { state: string; allowed: boolean; trial: boolean; days_left: number | null; expires_at: string | null }
 }
 
-async function missingEditions(ctx: ServiceContext, compiled: Set<string>): Promise<MissingEditionSummary[]> {
-  const [{ isCloud }, { EDITIONS }, { TRIAL_DAYS }] = await Promise.all([import('@/lib/deployment'), import('@/lib/editions/catalog'), import('@/lib/licensing/trial-policy')])
-  if (isCloud()) return []
-  return Promise.all(Object.values(EDITIONS).filter((e) => !compiled.has(e.extensionId)).map(async (e) => {
-    const d = await getEntitlementPort().check({ tenantId: ctx.tenantId, extensionId: e.extensionId }).catch(() => null)
+export interface RunningEditionSummary extends RunningEdition {
+  extensions: EditionExtensionState[]
+}
+
+export interface MissingEditionSummary {
+  id: string
+  name: string
+  extensions: EditionExtensionState[]
+  trial_days: number
+  /** An extension of the edition with a self-serve trial, not licensed here (null: none). */
+  trial_extension: { id: string; name: string } | null
+}
+
+async function editionSummaries(ctx: ServiceContext, compiled: Set<string>): Promise<{ edition: RunningEditionSummary | null; editions: MissingEditionSummary[] }> {
+  const [{ isCloud }, { TRIAL_DAYS, TRIAL_SKUS }] = await Promise.all([import('@/lib/deployment'), import('@/lib/licensing/trial-policy')])
+  if (isCloud()) return { edition: null, editions: [] }
+  const enterprise = EDITIONS[ENTERPRISE_EDITION_ID]
+  const extensions: EditionExtensionState[] = await Promise.all(enterprise.extensions.map(async (x) => {
+    const d = await getEntitlementPort().check({ tenantId: ctx.tenantId, extensionId: x.id }).catch(() => null)
     return {
-      id: e.id, name: e.name, extension_id: e.extensionId, sku: e.sku, trial_days: TRIAL_DAYS,
+      id: x.id, name: x.name, sku: x.sku, in_build: compiled.has(x.id),
       licence: { state: d?.state ?? 'unlicensed', allowed: d?.allowed === true, trial: d?.trial === true, days_left: d?.daysLeft ?? null, expires_at: d?.expiresAt ?? null },
     }
   }))
+  const running = runningEdition([...compiled])
+  const edition: RunningEditionSummary = { ...running, extensions }
+  if (running.id === 'enterprise') return { edition, editions: [] }
+  const trial = extensions.find((x) => !x.licence.allowed && x.licence.state !== 'expired' && TRIAL_SKUS[x.sku])
+  return {
+    edition,
+    editions: [{ id: enterprise.id, name: enterprise.name, extensions, trial_days: TRIAL_DAYS, trial_extension: trial ? { id: trial.id, name: trial.name } : null }],
+  }
 }
 
 export async function listExtensions(ctx: ServiceContext) {
@@ -162,9 +190,10 @@ export async function listExtensions(ctx: ServiceContext) {
   const manifests = getExtensionManifests()
   const { rows, missingTable } = await loadTenantExtensions(ctx.tenantId)
   const extensions = await Promise.all(manifests.map((m) => summarize(ctx, m, rows)))
-  const editions = await missingEditions(ctx, new Set(manifests.map((m) => m.id)))
+  const { edition, editions } = await editionSummaries(ctx, new Set(manifests.map((m) => m.id)))
   return {
     extensions,
+    edition,
     editions,
     total: extensions.length,
     platform_version: PLATFORM_VERSION,

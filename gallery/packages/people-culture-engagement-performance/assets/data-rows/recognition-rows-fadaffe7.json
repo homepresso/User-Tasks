@@ -1,0 +1,3411 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+  "asset": {
+    "id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+    "name": "Recognition rows",
+    "rows": [
+      {
+        "id": "58fdad0c-f012-5610-9e33-382cdd1397da",
+        "data": {
+          "kudos_ref": "K-0001",
+          "from_name": "Clara Haddad",
+          "from_email": "clara.haddad@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Zoe gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-11-22",
+          "headline": "Clara Haddad → Zoe Sato"
+        }
+      },
+      {
+        "id": "bca6bf5a-1d00-50e7-a95b-b6891e935a6b",
+        "data": {
+          "kudos_ref": "K-0004",
+          "from_name": "Oscar Levi",
+          "from_email": "oscar.levi@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Customer obsessed",
+          "message": "Liam gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-11-21",
+          "headline": "Oscar Levi → Liam Mensah"
+        }
+      },
+      {
+        "id": "e2b36476-08e1-5ef4-baf3-fab54859f69b",
+        "data": {
+          "kudos_ref": "K-0003",
+          "from_name": "Rosa Mehta",
+          "from_email": "rosa.mehta@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Ruby Farouk",
+          "to_email": "ruby.farouk@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Better together",
+          "message": "Ruby jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-11-21",
+          "headline": "Rosa Mehta → Ruby Farouk"
+        }
+      },
+      {
+        "id": "efb666c7-ed3d-5da8-9131-501bc4d3a400",
+        "data": {
+          "kudos_ref": "K-0002",
+          "from_name": "Oscar Levi",
+          "from_email": "oscar.levi@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Zoe rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 10,
+          "given_on": "2026-11-21",
+          "headline": "Oscar Levi → Zoe Sato"
+        }
+      },
+      {
+        "id": "4e4997fa-45e3-57c1-968b-508b94ed2a63",
+        "data": {
+          "kudos_ref": "K-0005",
+          "from_name": "Rahul Mori",
+          "from_email": "rahul.mori@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Owen Weber",
+          "to_email": "owen.weber@fernhill.example",
+          "to_department": "Finance",
+          "value": "Better together",
+          "message": "Owen shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 25,
+          "given_on": "2026-11-20",
+          "headline": "Rahul Mori → Owen Weber"
+        }
+      },
+      {
+        "id": "645a2012-88ff-506b-bf9a-03cf9d4fdb19",
+        "data": {
+          "kudos_ref": "K-0011",
+          "from_name": "Marcus Brooks",
+          "from_email": "marcus.brooks@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Sofia Price",
+          "to_email": "sofia.price@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Sofia organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-11-18",
+          "headline": "Marcus Brooks → Sofia Price"
+        }
+      },
+      {
+        "id": "7b7b1e51-7bda-5256-b373-4d9a3946b89f",
+        "data": {
+          "kudos_ref": "K-0009",
+          "from_name": "Arjun Wagner",
+          "from_email": "arjun.wagner@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Andre stayed late to get the mobile demo working for the customer. Legend.",
+          "points": 25,
+          "given_on": "2026-11-18",
+          "headline": "Arjun Wagner → Andre Kim"
+        }
+      },
+      {
+        "id": "f1fbaf7c-e78b-52a4-8682-5381c7b41d68",
+        "data": {
+          "kudos_ref": "K-0007",
+          "from_name": "Victor Grant",
+          "from_email": "victor.grant@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Zoe jumped in to cover the support queue during the outage.",
+          "points": 10,
+          "given_on": "2026-11-18",
+          "headline": "Victor Grant → Zoe Sato"
+        }
+      },
+      {
+        "id": "031e055b-a2e2-5609-b39a-98a081320edf",
+        "data": {
+          "kudos_ref": "K-0006",
+          "from_name": "Fatima Kim",
+          "from_email": "fatima.kim@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Customer obsessed",
+          "message": "Caleb shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 25,
+          "given_on": "2026-11-18",
+          "headline": "Fatima Kim → Caleb Ward"
+        }
+      },
+      {
+        "id": "44af42bd-643f-5619-a199-9707b0a86083",
+        "data": {
+          "kudos_ref": "K-0010",
+          "from_name": "Arjun Rossi",
+          "from_email": "arjun.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Zoe rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-11-17",
+          "headline": "Arjun Rossi → Zoe Sato"
+        }
+      },
+      {
+        "id": "0e06f377-2ef4-5353-9ac4-7f527a520e28",
+        "data": {
+          "kudos_ref": "K-0008",
+          "from_name": "Ruby Farouk",
+          "from_email": "ruby.farouk@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Rahul Mori",
+          "to_email": "rahul.mori@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Rahul closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-11-17",
+          "headline": "Ruby Farouk → Rahul Mori"
+        }
+      },
+      {
+        "id": "a5001de7-16be-53e8-a13a-2ad612e504f3",
+        "data": {
+          "kudos_ref": "K-0016",
+          "from_name": "Maya Patel",
+          "from_email": "maya.patel@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Isla Ortiz",
+          "to_email": "isla.ortiz@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Customer obsessed",
+          "message": "Isla spotted the billing bug before it reached a single customer.",
+          "points": 10,
+          "given_on": "2026-11-16",
+          "headline": "Maya Patel → Isla Ortiz"
+        }
+      },
+      {
+        "id": "4094845a-b6e3-5890-b054-83391a2e262a",
+        "data": {
+          "kudos_ref": "K-0015",
+          "from_name": "Nora Raman",
+          "from_email": "nora.raman@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Zoe gave the clearest all-hands update I have seen.",
+          "points": 50,
+          "given_on": "2026-11-16",
+          "headline": "Nora Raman → Zoe Sato"
+        }
+      },
+      {
+        "id": "2732e20e-5278-5f59-82c9-0ed5660cc7fa",
+        "data": {
+          "kudos_ref": "K-0014",
+          "from_name": "Talia Tanaka",
+          "from_email": "talia.tanaka@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Oscar Levi",
+          "to_email": "oscar.levi@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Oscar made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-11-16",
+          "headline": "Talia Tanaka → Oscar Levi"
+        }
+      },
+      {
+        "id": "3c3a208b-e051-5d64-b92d-e39660be8f71",
+        "data": {
+          "kudos_ref": "K-0013",
+          "from_name": "Clara Bennett",
+          "from_email": "clara.bennett@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Better together",
+          "message": "Liam rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 10,
+          "given_on": "2026-11-16",
+          "headline": "Clara Bennett → Liam Mensah"
+        }
+      },
+      {
+        "id": "6182b5e8-a307-54c1-8f2b-74b2f8a7803c",
+        "data": {
+          "kudos_ref": "K-0012",
+          "from_name": "Jonas Raman",
+          "from_email": "jonas.raman@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Hugo Rossi",
+          "to_email": "hugo.rossi@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Hugo rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-11-16",
+          "headline": "Jonas Raman → Hugo Rossi"
+        }
+      },
+      {
+        "id": "7d00ddea-6c09-5b25-a1dc-f740840dde1f",
+        "data": {
+          "kudos_ref": "K-0020",
+          "from_name": "Nora Larsen",
+          "from_email": "nora.larsen@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Zoe spotted the billing bug before it reached a single customer.",
+          "points": 25,
+          "given_on": "2026-11-14",
+          "headline": "Nora Larsen → Zoe Sato"
+        }
+      },
+      {
+        "id": "b26febe4-398d-581b-8cf7-abc646cc2a59",
+        "data": {
+          "kudos_ref": "K-0019",
+          "from_name": "Ben Berg",
+          "from_email": "ben.berg@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Sam Torres",
+          "to_email": "sam.torres@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Sam closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-11-14",
+          "headline": "Ben Berg → Sam Torres"
+        }
+      },
+      {
+        "id": "2fd71d4d-3b29-56f0-aa26-350f435ab32c",
+        "data": {
+          "kudos_ref": "K-0018",
+          "from_name": "Zoe Sato",
+          "from_email": "zoe.sato@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Marcus Quinn",
+          "to_email": "marcus.quinn@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Raise the bar",
+          "message": "Marcus stayed late to get the analytics demo working for the customer. Legend.",
+          "points": 25,
+          "given_on": "2026-11-14",
+          "headline": "Zoe Sato → Marcus Quinn"
+        }
+      },
+      {
+        "id": "c5456246-5c46-5f7d-93e4-35e5edd8c0da",
+        "data": {
+          "kudos_ref": "K-0022",
+          "from_name": "Maya Bennett",
+          "from_email": "maya.bennett@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Alex Quinn",
+          "to_email": "alex.quinn@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Raise the bar",
+          "message": "Alex mentored our new starters through their first month.",
+          "points": 10,
+          "given_on": "2026-11-13",
+          "headline": "Maya Bennett → Alex Quinn"
+        }
+      },
+      {
+        "id": "0c8f13be-7730-51d3-a42e-e59a62f23757",
+        "data": {
+          "kudos_ref": "K-0017",
+          "from_name": "Arjun Kapoor",
+          "from_email": "arjun.kapoor@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Zoe listened, really listened, in a hard retro.",
+          "points": 25,
+          "given_on": "2026-11-13",
+          "headline": "Arjun Kapoor → Zoe Sato"
+        }
+      },
+      {
+        "id": "739e39e0-8aec-5c41-9d99-247349de2bec",
+        "data": {
+          "kudos_ref": "K-0025",
+          "from_name": "Owen Weber",
+          "from_email": "owen.weber@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Fatima Kim",
+          "to_email": "fatima.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Fatima organised the volunteering day at the food bank.",
+          "points": 50,
+          "given_on": "2026-11-12",
+          "headline": "Owen Weber → Fatima Kim"
+        }
+      },
+      {
+        "id": "e99593f5-b2d8-56b2-8d42-f05fa8c2f58d",
+        "data": {
+          "kudos_ref": "K-0024",
+          "from_name": "Yuki Ward",
+          "from_email": "yuki.ward@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Marcus Quinn",
+          "to_email": "marcus.quinn@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Own it",
+          "message": "Marcus jumped in to cover the support queue during the outage.",
+          "points": 10,
+          "given_on": "2026-11-12",
+          "headline": "Yuki Ward → Marcus Quinn"
+        }
+      },
+      {
+        "id": "0b389cab-e89b-5da7-aad3-e29c056a9164",
+        "data": {
+          "kudos_ref": "K-0021",
+          "from_name": "Clara Bennett",
+          "from_email": "clara.bennett@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Alex Morgan",
+          "to_email": "alex.morgan@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Own it",
+          "message": "Alex gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-11-12",
+          "headline": "Clara Bennett → Alex Morgan"
+        }
+      },
+      {
+        "id": "8012d407-e6c6-58e6-9e25-fdf1a0fe1209",
+        "data": {
+          "kudos_ref": "K-0028",
+          "from_name": "Jamal Alvarez",
+          "from_email": "jamal.alvarez@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Own it",
+          "message": "Caleb spotted the billing bug before it reached a single customer.",
+          "points": 25,
+          "given_on": "2026-11-11",
+          "headline": "Jamal Alvarez → Caleb Ward"
+        }
+      },
+      {
+        "id": "2067808a-e717-53e4-8aab-ffe43e897184",
+        "data": {
+          "kudos_ref": "K-0023",
+          "from_name": "Yuki Sato",
+          "from_email": "yuki.sato@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Fatima Kim",
+          "to_email": "fatima.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Fatima made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-11-11",
+          "headline": "Yuki Sato → Fatima Kim"
+        }
+      },
+      {
+        "id": "0523ec8c-959e-5a6a-beba-92a8f7476ca0",
+        "data": {
+          "kudos_ref": "K-0026",
+          "from_name": "Arjun Rossi",
+          "from_email": "arjun.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Rahul listened, really listened, in a hard retro.",
+          "points": 25,
+          "given_on": "2026-11-10",
+          "headline": "Arjun Rossi → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "cbd71406-976a-5d8e-9940-14438417e15c",
+        "data": {
+          "kudos_ref": "K-0030",
+          "from_name": "Chloe Weber",
+          "from_email": "chloe.weber@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Zoe organised the volunteering day at the food bank.",
+          "points": 25,
+          "given_on": "2026-11-09",
+          "headline": "Chloe Weber → Zoe Sato"
+        }
+      },
+      {
+        "id": "00d43b10-d5e7-534b-956c-faa1912f0395",
+        "data": {
+          "kudos_ref": "K-0029",
+          "from_name": "Zoe Sato",
+          "from_email": "zoe.sato@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Andre listened, really listened, in a hard retro.",
+          "points": 25,
+          "given_on": "2026-11-09",
+          "headline": "Zoe Sato → Andre Kim"
+        }
+      },
+      {
+        "id": "9bdfba7a-f90a-5542-9a85-f0b4fe4b60c1",
+        "data": {
+          "kudos_ref": "K-0027",
+          "from_name": "Owen Ward",
+          "from_email": "owen.ward@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Raise the bar",
+          "message": "Caleb gave the clearest all-hands update I have seen.",
+          "points": 50,
+          "given_on": "2026-11-09",
+          "headline": "Owen Ward → Caleb Ward"
+        }
+      },
+      {
+        "id": "c7f0844e-eac1-5b83-aeaf-954a792d755e",
+        "data": {
+          "kudos_ref": "K-0033",
+          "from_name": "Isla Ortiz",
+          "from_email": "isla.ortiz@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Caleb Iyer",
+          "to_email": "caleb.iyer@fernhill.example",
+          "to_department": "Design",
+          "value": "Own it",
+          "message": "Caleb mentored our new starters through their first month.",
+          "points": 25,
+          "given_on": "2026-11-08",
+          "headline": "Isla Ortiz → Caleb Iyer"
+        }
+      },
+      {
+        "id": "97837d39-069a-564b-b74c-f437d60d91bf",
+        "data": {
+          "kudos_ref": "K-0037",
+          "from_name": "Ruby Farouk",
+          "from_email": "ruby.farouk@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Maya Patel",
+          "to_email": "maya.patel@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Raise the bar",
+          "message": "Maya stayed late to get the analytics demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-11-07",
+          "headline": "Ruby Farouk → Maya Patel"
+        }
+      },
+      {
+        "id": "91454e4d-b0cf-5074-9fde-904cbd0bae89",
+        "data": {
+          "kudos_ref": "K-0036",
+          "from_name": "Lucía Fernández",
+          "from_email": "lucia.fernandez@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Rahul spotted the billing bug before it reached a single customer.",
+          "points": 25,
+          "given_on": "2026-11-07",
+          "headline": "Lucía Fernández → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "692a4bb8-82bb-5e97-b1a8-6705e9b6fd48",
+        "data": {
+          "kudos_ref": "K-0035",
+          "from_name": "Alex Ali",
+          "from_email": "alex.ali@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Rosa Morgan",
+          "to_email": "rosa.morgan@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Rosa mentored our new starters through their first month.",
+          "points": 10,
+          "given_on": "2026-11-07",
+          "headline": "Alex Ali → Rosa Morgan"
+        }
+      },
+      {
+        "id": "5ca6b784-756b-5887-9bda-954370f38a11",
+        "data": {
+          "kudos_ref": "K-0032",
+          "from_name": "Samir Grant",
+          "from_email": "samir.grant@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Zoe shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 10,
+          "given_on": "2026-11-07",
+          "headline": "Samir Grant → Zoe Sato"
+        }
+      },
+      {
+        "id": "ef34e0ff-6d80-5b26-acf6-965ab95225bf",
+        "data": {
+          "kudos_ref": "K-0031",
+          "from_name": "Kwame Okafor",
+          "from_email": "kwame.okafor@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Own it",
+          "message": "Liam gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-11-07",
+          "headline": "Kwame Okafor → Liam Mensah"
+        }
+      },
+      {
+        "id": "24871a3a-0729-59c9-95b3-8faba8a4a42a",
+        "data": {
+          "kudos_ref": "K-0034",
+          "from_name": "Sam Torres",
+          "from_email": "sam.torres@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Zoe rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-11-06",
+          "headline": "Sam Torres → Zoe Sato"
+        }
+      },
+      {
+        "id": "90061392-8c69-54b3-927d-e0fb58f61eda",
+        "data": {
+          "kudos_ref": "K-0041",
+          "from_name": "Grace Kim",
+          "from_email": "grace.kim@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Talia Tanaka",
+          "to_email": "talia.tanaka@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Talia spotted the billing bug before it reached a single customer.",
+          "points": 50,
+          "given_on": "2026-11-05",
+          "headline": "Grace Kim → Talia Tanaka"
+        }
+      },
+      {
+        "id": "4bd576eb-7965-598b-9fb0-e8a017d04f71",
+        "data": {
+          "kudos_ref": "K-0039",
+          "from_name": "Isla Ortiz",
+          "from_email": "isla.ortiz@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Malik Quinn",
+          "to_email": "malik.quinn@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Malik rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-11-05",
+          "headline": "Isla Ortiz → Malik Quinn"
+        }
+      },
+      {
+        "id": "cb0b7ffe-d863-58d0-8f81-7c53d335f8b6",
+        "data": {
+          "kudos_ref": "K-0038",
+          "from_name": "Owen Gallagher",
+          "from_email": "owen.gallagher@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Zoe gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-11-05",
+          "headline": "Owen Gallagher → Zoe Sato"
+        }
+      },
+      {
+        "id": "bc0e0379-9349-5a6d-9703-be261d449529",
+        "data": {
+          "kudos_ref": "K-0043",
+          "from_name": "Lucía Jordan",
+          "from_email": "lucia.jordan@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Yuki Mehta",
+          "to_email": "yuki.mehta@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Own it",
+          "message": "Yuki closed the books two days early.",
+          "points": 50,
+          "given_on": "2026-11-04",
+          "headline": "Lucía Jordan → Yuki Mehta"
+        }
+      },
+      {
+        "id": "4cdcf33c-ef43-57e6-a282-235bf722f288",
+        "data": {
+          "kudos_ref": "K-0040",
+          "from_name": "Rosa Quinn",
+          "from_email": "rosa.quinn@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Andre organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-11-04",
+          "headline": "Rosa Quinn → Andre Kim"
+        }
+      },
+      {
+        "id": "74cf7a4e-45dd-588a-bd0f-c27ca93150e7",
+        "data": {
+          "kudos_ref": "K-0046",
+          "from_name": "Andre Laurent",
+          "from_email": "andre.laurent@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Zoe organised the volunteering day at the food bank.",
+          "points": 50,
+          "given_on": "2026-11-03",
+          "headline": "Andre Laurent → Zoe Sato"
+        }
+      },
+      {
+        "id": "7dcc26bd-603a-5bc8-9468-b026cb913286",
+        "data": {
+          "kudos_ref": "K-0042",
+          "from_name": "Ravi Okafor",
+          "from_email": "ravi.okafor@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Jamal Alvarez",
+          "to_email": "jamal.alvarez@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Jamal shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 10,
+          "given_on": "2026-11-03",
+          "headline": "Ravi Okafor → Jamal Alvarez"
+        }
+      },
+      {
+        "id": "f3bf0515-8686-5f46-9532-0b01ab2b0176",
+        "data": {
+          "kudos_ref": "K-0044",
+          "from_name": "Yuki Ward",
+          "from_email": "yuki.ward@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Zoe rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-11-02",
+          "headline": "Yuki Ward → Zoe Sato"
+        }
+      },
+      {
+        "id": "02a3ad53-5ca0-588a-9e5a-552af4220f8d",
+        "data": {
+          "kudos_ref": "K-0048",
+          "from_name": "Nora Laurent",
+          "from_email": "nora.laurent@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Clara Bennett",
+          "to_email": "clara.bennett@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Do the right thing",
+          "message": "Clara rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 50,
+          "given_on": "2026-11-01",
+          "headline": "Nora Laurent → Clara Bennett"
+        }
+      },
+      {
+        "id": "ff5be006-c0f8-5473-bca5-dcbb816edfb2",
+        "data": {
+          "kudos_ref": "K-0045",
+          "from_name": "Esme Silva",
+          "from_email": "esme.silva@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Owen Rahman",
+          "to_email": "owen.rahman@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Owen spotted the billing bug before it reached a single customer.",
+          "points": 10,
+          "given_on": "2026-11-01",
+          "headline": "Esme Silva → Owen Rahman"
+        }
+      },
+      {
+        "id": "9aa3f774-6522-568d-9e40-8989428396df",
+        "data": {
+          "kudos_ref": "K-0050",
+          "from_name": "Rahul Mori",
+          "from_email": "rahul.mori@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Rosa Morgan",
+          "to_email": "rosa.morgan@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Rosa listened, really listened, in a hard retro.",
+          "points": 25,
+          "given_on": "2026-10-31",
+          "headline": "Rahul Mori → Rosa Morgan"
+        }
+      },
+      {
+        "id": "2718d30d-5ba1-52d8-b5fe-1b6071388467",
+        "data": {
+          "kudos_ref": "K-0047",
+          "from_name": "Owen Gallagher",
+          "from_email": "owen.gallagher@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Raise the bar",
+          "message": "Caleb closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-10-31",
+          "headline": "Owen Gallagher → Caleb Ward"
+        }
+      },
+      {
+        "id": "9e9cefe4-05e2-5db1-8274-045db50b3206",
+        "data": {
+          "kudos_ref": "K-0055",
+          "from_name": "Mateo Rossi",
+          "from_email": "mateo.rossi@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Jonas Berg",
+          "to_email": "jonas.berg@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Better together",
+          "message": "Jonas gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-10-30",
+          "headline": "Mateo Rossi → Jonas Berg"
+        }
+      },
+      {
+        "id": "553278d4-b0ad-5f39-b556-069ecfd3fa63",
+        "data": {
+          "kudos_ref": "K-0053",
+          "from_name": "Ethan Fraser",
+          "from_email": "ethan.fraser@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Aiko Tanaka",
+          "to_email": "aiko.tanaka@fernhill.example",
+          "to_department": "Design",
+          "value": "Better together",
+          "message": "Aiko closed the books two days early.",
+          "points": 25,
+          "given_on": "2026-10-30",
+          "headline": "Ethan Fraser → Aiko Tanaka"
+        }
+      },
+      {
+        "id": "a1b3fece-2927-5cc2-9bfb-ed33f09d4b11",
+        "data": {
+          "kudos_ref": "K-0052",
+          "from_name": "Priya Raman",
+          "from_email": "priya.raman@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Hannah Owens",
+          "to_email": "hannah.owens@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Customer obsessed",
+          "message": "Hannah closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-10-30",
+          "headline": "Priya Raman → Hannah Owens"
+        }
+      },
+      {
+        "id": "a0e20e80-492f-5c7a-ade4-155d9f053b86",
+        "data": {
+          "kudos_ref": "K-0049",
+          "from_name": "Hannah Owens",
+          "from_email": "hannah.owens@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Caleb Iyer",
+          "to_email": "caleb.iyer@fernhill.example",
+          "to_department": "Design",
+          "value": "Do the right thing",
+          "message": "Caleb closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-10-30",
+          "headline": "Hannah Owens → Caleb Iyer"
+        }
+      },
+      {
+        "id": "76e938ef-b498-55ce-8075-80bfa62e43f4",
+        "data": {
+          "kudos_ref": "K-0054",
+          "from_name": "Yuki Mehta",
+          "from_email": "yuki.mehta@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Fatima Kim",
+          "to_email": "fatima.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Fatima stayed late to get the workflow demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-10-29",
+          "headline": "Yuki Mehta → Fatima Kim"
+        }
+      },
+      {
+        "id": "7508d98b-f11e-52d2-ae33-564582539b3d",
+        "data": {
+          "kudos_ref": "K-0051",
+          "from_name": "Alex Schmidt",
+          "from_email": "alex.schmidt@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Customer obsessed",
+          "message": "Caleb closed the books two days early.",
+          "points": 25,
+          "given_on": "2026-10-29",
+          "headline": "Alex Schmidt → Caleb Ward"
+        }
+      },
+      {
+        "id": "f3044952-05a9-5c3c-b3a4-f72bc2057e65",
+        "data": {
+          "kudos_ref": "K-0060",
+          "from_name": "Felix Iyer",
+          "from_email": "felix.iyer@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Andre gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-10-28",
+          "headline": "Felix Iyer → Andre Kim"
+        }
+      },
+      {
+        "id": "257ef815-25c7-5906-bdba-289157780da6",
+        "data": {
+          "kudos_ref": "K-0057",
+          "from_name": "Rahul Fernández",
+          "from_email": "rahul.fernandez@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Jamal Alvarez",
+          "to_email": "jamal.alvarez@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Jamal closed the books two days early.",
+          "points": 25,
+          "given_on": "2026-10-28",
+          "headline": "Rahul Fernández → Jamal Alvarez"
+        }
+      },
+      {
+        "id": "0b2ffdd6-5921-551c-858f-9631a75b75ee",
+        "data": {
+          "kudos_ref": "K-0058",
+          "from_name": "Felix Iyer",
+          "from_email": "felix.iyer@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Rahul made the design review fun and fast.",
+          "points": 25,
+          "given_on": "2026-10-27",
+          "headline": "Felix Iyer → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "565b6695-171f-5e74-b513-dd8ebd102bca",
+        "data": {
+          "kudos_ref": "K-0056",
+          "from_name": "Clara Tanaka",
+          "from_email": "clara.tanaka@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Customer obsessed",
+          "message": "Caleb made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-10-27",
+          "headline": "Clara Tanaka → Caleb Ward"
+        }
+      },
+      {
+        "id": "8a407910-608f-5e60-bbf7-d8c62ef2f280",
+        "data": {
+          "kudos_ref": "K-0064",
+          "from_name": "Owen Gallagher",
+          "from_email": "owen.gallagher@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Alex Morgan",
+          "to_email": "alex.morgan@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Customer obsessed",
+          "message": "Alex turned a tough renewal into a two-year expansion.",
+          "points": 50,
+          "given_on": "2026-10-26",
+          "headline": "Owen Gallagher → Alex Morgan"
+        }
+      },
+      {
+        "id": "8a2c30ac-8dbe-5742-b79f-7253005d6d43",
+        "data": {
+          "kudos_ref": "K-0059",
+          "from_name": "Iris Jordan",
+          "from_email": "iris.jordan@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Arjun Gallagher",
+          "to_email": "arjun.gallagher@fernhill.example",
+          "to_department": "Finance",
+          "value": "Do the right thing",
+          "message": "Arjun rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 50,
+          "given_on": "2026-10-26",
+          "headline": "Iris Jordan → Arjun Gallagher"
+        }
+      },
+      {
+        "id": "3a90386f-e9bb-5825-bb0d-a01cc37bf465",
+        "data": {
+          "kudos_ref": "K-0065",
+          "from_name": "Omar Murphy",
+          "from_email": "omar.murphy@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Fatima Kim",
+          "to_email": "fatima.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Fatima mentored our new starters through their first month.",
+          "points": 10,
+          "given_on": "2026-10-25",
+          "headline": "Omar Murphy → Fatima Kim"
+        }
+      },
+      {
+        "id": "ffd4693d-992a-5fcb-b3a0-f06d9eb3a2e7",
+        "data": {
+          "kudos_ref": "K-0063",
+          "from_name": "Lucas Schmidt",
+          "from_email": "lucas.schmidt@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Zoe rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 10,
+          "given_on": "2026-10-25",
+          "headline": "Lucas Schmidt → Zoe Sato"
+        }
+      },
+      {
+        "id": "7c1df8d9-ca39-5375-ab20-c5ad0a49ff97",
+        "data": {
+          "kudos_ref": "K-0062",
+          "from_name": "Victor Grant",
+          "from_email": "victor.grant@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Do the right thing",
+          "message": "Liam listened, really listened, in a hard retro.",
+          "points": 10,
+          "given_on": "2026-10-25",
+          "headline": "Victor Grant → Liam Mensah"
+        }
+      },
+      {
+        "id": "962cacc7-2f72-532a-9ed3-6187db6b849d",
+        "data": {
+          "kudos_ref": "K-0061",
+          "from_name": "Jonas Park",
+          "from_email": "jonas.park@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Oscar Levi",
+          "to_email": "oscar.levi@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Oscar jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-10-25",
+          "headline": "Jonas Park → Oscar Levi"
+        }
+      },
+      {
+        "id": "dc50d6f1-29f2-58ba-9b77-4530c8697cd6",
+        "data": {
+          "kudos_ref": "K-0069",
+          "from_name": "Marcus Patel",
+          "from_email": "marcus.patel@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Zoe spotted the billing bug before it reached a single customer.",
+          "points": 10,
+          "given_on": "2026-10-23",
+          "headline": "Marcus Patel → Zoe Sato"
+        }
+      },
+      {
+        "id": "16261c37-8da4-5f75-bb88-a94f5203d4ad",
+        "data": {
+          "kudos_ref": "K-0067",
+          "from_name": "Owen Rossi",
+          "from_email": "owen.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Nora Larsen",
+          "to_email": "nora.larsen@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Do the right thing",
+          "message": "Nora rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-10-23",
+          "headline": "Owen Rossi → Nora Larsen"
+        }
+      },
+      {
+        "id": "305c3f81-c018-5ec2-8c3f-ebc040ea4753",
+        "data": {
+          "kudos_ref": "K-0066",
+          "from_name": "Jonas Patel",
+          "from_email": "jonas.patel@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Zoe turned a tough renewal into a two-year expansion.",
+          "points": 10,
+          "given_on": "2026-10-23",
+          "headline": "Jonas Patel → Zoe Sato"
+        }
+      },
+      {
+        "id": "f9cbd5d5-6f72-55b9-9ee6-09d166d4773e",
+        "data": {
+          "kudos_ref": "K-0073",
+          "from_name": "Diego Weber",
+          "from_email": "diego.weber@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Daniel Okafor",
+          "to_email": "daniel.okafor@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Daniel mentored our new starters through their first month.",
+          "points": 25,
+          "given_on": "2026-10-22",
+          "headline": "Diego Weber → Daniel Okafor"
+        }
+      },
+      {
+        "id": "1b366bfa-c135-5845-a4f3-95f66c1c09ba",
+        "data": {
+          "kudos_ref": "K-0071",
+          "from_name": "Isla Ortiz",
+          "from_email": "isla.ortiz@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Customer obsessed",
+          "message": "Caleb organised the volunteering day at the food bank.",
+          "points": 25,
+          "given_on": "2026-10-22",
+          "headline": "Isla Ortiz → Caleb Ward"
+        }
+      },
+      {
+        "id": "7f132713-e5dd-5f7f-b66f-5eef533a53cf",
+        "data": {
+          "kudos_ref": "K-0068",
+          "from_name": "Maya Patel",
+          "from_email": "maya.patel@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Sam Torres",
+          "to_email": "sam.torres@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Sam made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-10-22",
+          "headline": "Maya Patel → Sam Torres"
+        }
+      },
+      {
+        "id": "70281a58-8581-5110-b3f7-8f5a69070629",
+        "data": {
+          "kudos_ref": "K-0070",
+          "from_name": "Marcus Carter",
+          "from_email": "marcus.carter@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Raise the bar",
+          "message": "Liam spotted the billing bug before it reached a single customer.",
+          "points": 10,
+          "given_on": "2026-10-21",
+          "headline": "Marcus Carter → Liam Mensah"
+        }
+      },
+      {
+        "id": "c4a6a592-b925-5957-84b1-880307518c25",
+        "data": {
+          "kudos_ref": "K-0077",
+          "from_name": "Yuki Berg",
+          "from_email": "yuki.berg@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Owen Gallagher",
+          "to_email": "owen.gallagher@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Owen spotted the billing bug before it reached a single customer.",
+          "points": 25,
+          "given_on": "2026-10-20",
+          "headline": "Yuki Berg → Owen Gallagher"
+        }
+      },
+      {
+        "id": "21b9964e-fa80-5ab3-a68f-6d3575f60cf6",
+        "data": {
+          "kudos_ref": "K-0076",
+          "from_name": "Jonas Raman",
+          "from_email": "jonas.raman@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Rosa Farouk",
+          "to_email": "rosa.farouk@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Own it",
+          "message": "Rosa mentored our new starters through their first month.",
+          "points": 10,
+          "given_on": "2026-10-20",
+          "headline": "Jonas Raman → Rosa Farouk"
+        }
+      },
+      {
+        "id": "4ee6436f-26fd-51ea-82dd-8ec3529118ce",
+        "data": {
+          "kudos_ref": "K-0074",
+          "from_name": "Mateo Rossi",
+          "from_email": "mateo.rossi@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Noah Novak",
+          "to_email": "noah.novak@fernhill.example",
+          "to_department": "Finance",
+          "value": "Do the right thing",
+          "message": "Noah shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 50,
+          "given_on": "2026-10-20",
+          "headline": "Mateo Rossi → Noah Novak"
+        }
+      },
+      {
+        "id": "44e44acc-0708-515e-94e3-d80741e7fded",
+        "data": {
+          "kudos_ref": "K-0072",
+          "from_name": "Owen Gallagher",
+          "from_email": "owen.gallagher@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Rosa Farouk",
+          "to_email": "rosa.farouk@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Do the right thing",
+          "message": "Rosa closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-10-20",
+          "headline": "Owen Gallagher → Rosa Farouk"
+        }
+      },
+      {
+        "id": "d5b2a6ad-2b0c-51f8-9a33-0870be9dd725",
+        "data": {
+          "kudos_ref": "K-0078",
+          "from_name": "Aiko Wagner",
+          "from_email": "aiko.wagner@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Better together",
+          "message": "Liam stayed late to get the workflow demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-10-19",
+          "headline": "Aiko Wagner → Liam Mensah"
+        }
+      },
+      {
+        "id": "ce5a51bf-8256-5bdb-a5d2-ac22532cb601",
+        "data": {
+          "kudos_ref": "K-0075",
+          "from_name": "Owen Rossi",
+          "from_email": "owen.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Zoe organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-10-19",
+          "headline": "Owen Rossi → Zoe Sato"
+        }
+      },
+      {
+        "id": "65e040f3-acff-516d-8af9-a21bbdef3ef8",
+        "data": {
+          "kudos_ref": "K-0080",
+          "from_name": "Jonas Park",
+          "from_email": "jonas.park@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Andre turned a tough renewal into a two-year expansion.",
+          "points": 25,
+          "given_on": "2026-10-18",
+          "headline": "Jonas Park → Andre Kim"
+        }
+      },
+      {
+        "id": "70a5aa85-163b-57ea-981a-cf6355947be8",
+        "data": {
+          "kudos_ref": "K-0082",
+          "from_name": "Alex Schmidt",
+          "from_email": "alex.schmidt@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Sam Torres",
+          "to_email": "sam.torres@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Sam mentored our new starters through their first month.",
+          "points": 50,
+          "given_on": "2026-10-17",
+          "headline": "Alex Schmidt → Sam Torres"
+        }
+      },
+      {
+        "id": "a0fb6d4d-b05e-5ccb-9892-89cd3e7db9c3",
+        "data": {
+          "kudos_ref": "K-0081",
+          "from_name": "Lucas Schmidt",
+          "from_email": "lucas.schmidt@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Mei Owens",
+          "to_email": "mei.owens@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Do the right thing",
+          "message": "Mei jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-10-17",
+          "headline": "Lucas Schmidt → Mei Owens"
+        }
+      },
+      {
+        "id": "8bd4f8df-5d45-5914-8461-723f87a541f4",
+        "data": {
+          "kudos_ref": "K-0079",
+          "from_name": "Maya Patel",
+          "from_email": "maya.patel@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Customer obsessed",
+          "message": "Liam gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-10-17",
+          "headline": "Maya Patel → Liam Mensah"
+        }
+      },
+      {
+        "id": "3cd5ca8a-7b7f-5a95-9675-d97b38c9b981",
+        "data": {
+          "kudos_ref": "K-0085",
+          "from_name": "Rosa Morgan",
+          "from_email": "rosa.morgan@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Omar Murphy",
+          "to_email": "omar.murphy@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Omar closed the books two days early.",
+          "points": 50,
+          "given_on": "2026-10-16",
+          "headline": "Rosa Morgan → Omar Murphy"
+        }
+      },
+      {
+        "id": "6dc17346-5abc-5621-b9d0-38a8e894f163",
+        "data": {
+          "kudos_ref": "K-0084",
+          "from_name": "Aiko Wagner",
+          "from_email": "aiko.wagner@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Rahul shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 10,
+          "given_on": "2026-10-16",
+          "headline": "Aiko Wagner → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "29fc8cf2-0b33-5d72-be90-6c9fc8bd8da4",
+        "data": {
+          "kudos_ref": "K-0083",
+          "from_name": "Owen Rossi",
+          "from_email": "owen.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Alex Ward",
+          "to_email": "alex.ward@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Customer obsessed",
+          "message": "Alex shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 50,
+          "given_on": "2026-10-15",
+          "headline": "Owen Rossi → Alex Ward"
+        }
+      },
+      {
+        "id": "f7645b7e-f3ba-5a15-9d7c-96e66a4eb325",
+        "data": {
+          "kudos_ref": "K-0087",
+          "from_name": "Owen Rossi",
+          "from_email": "owen.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Maya Haddad",
+          "to_email": "maya.haddad@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Maya stayed late to get the analytics demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-10-14",
+          "headline": "Owen Rossi → Maya Haddad"
+        }
+      },
+      {
+        "id": "045e10e8-d3f1-53f2-8ef3-b3315744580e",
+        "data": {
+          "kudos_ref": "K-0086",
+          "from_name": "Jonas Okafor",
+          "from_email": "jonas.okafor@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Zoe jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-10-14",
+          "headline": "Jonas Okafor → Zoe Sato"
+        }
+      },
+      {
+        "id": "b8818e58-3035-5d0b-ba8e-38b810aabe36",
+        "data": {
+          "kudos_ref": "K-0091",
+          "from_name": "Owen Rossi",
+          "from_email": "owen.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Grace Kim",
+          "to_email": "grace.kim@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Do the right thing",
+          "message": "Grace made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-10-13",
+          "headline": "Owen Rossi → Grace Kim"
+        }
+      },
+      {
+        "id": "f6c11d81-5b64-5be8-9a7c-787faca70dd9",
+        "data": {
+          "kudos_ref": "K-0089",
+          "from_name": "Rahul Tanaka",
+          "from_email": "rahul.tanaka@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Nora Rahman",
+          "to_email": "nora.rahman@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Customer obsessed",
+          "message": "Nora made the design review fun and fast.",
+          "points": 25,
+          "given_on": "2026-10-13",
+          "headline": "Rahul Tanaka → Nora Rahman"
+        }
+      },
+      {
+        "id": "286233df-fb2b-5bb7-809e-9705b0c41d40",
+        "data": {
+          "kudos_ref": "K-0088",
+          "from_name": "Rosa Chen",
+          "from_email": "rosa.chen@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Yuki Ward",
+          "to_email": "yuki.ward@fernhill.example",
+          "to_department": "Finance",
+          "value": "Customer obsessed",
+          "message": "Yuki closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-10-13",
+          "headline": "Rosa Chen → Yuki Ward"
+        }
+      },
+      {
+        "id": "3c043698-3585-5872-a099-99de5adaa66b",
+        "data": {
+          "kudos_ref": "K-0095",
+          "from_name": "Mateo Rossi",
+          "from_email": "mateo.rossi@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Zoe Levi",
+          "to_email": "zoe.levi@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Customer obsessed",
+          "message": "Zoe jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-10-12",
+          "headline": "Mateo Rossi → Zoe Levi"
+        }
+      },
+      {
+        "id": "610b82a9-5eee-5655-8610-7df28a26e209",
+        "data": {
+          "kudos_ref": "K-0094",
+          "from_name": "Kwame Murphy",
+          "from_email": "kwame.murphy@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Rahul stayed late to get the workflow demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-10-12",
+          "headline": "Kwame Murphy → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "edc892ec-bb6b-5404-b3e9-7264f7d291f6",
+        "data": {
+          "kudos_ref": "K-0090",
+          "from_name": "Noah Novak",
+          "from_email": "noah.novak@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Maya Haddad",
+          "to_email": "maya.haddad@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Maya organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-10-12",
+          "headline": "Noah Novak → Maya Haddad"
+        }
+      },
+      {
+        "id": "5c9a45f4-38eb-5a47-bca6-ab9acaf21222",
+        "data": {
+          "kudos_ref": "K-0098",
+          "from_name": "Daniel Okafor",
+          "from_email": "daniel.okafor@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Lucía Fernández",
+          "to_email": "lucia.fernandez@fernhill.example",
+          "to_department": "Finance",
+          "value": "Own it",
+          "message": "Lucía listened, really listened, in a hard retro.",
+          "points": 25,
+          "given_on": "2026-10-11",
+          "headline": "Daniel Okafor → Lucía Fernández"
+        }
+      },
+      {
+        "id": "31a8c738-de46-5776-a3d0-d70660e2875d",
+        "data": {
+          "kudos_ref": "K-0093",
+          "from_name": "Rosa Tanaka",
+          "from_email": "rosa.tanaka@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Zoe made the design review fun and fast.",
+          "points": 50,
+          "given_on": "2026-10-11",
+          "headline": "Rosa Tanaka → Zoe Sato"
+        }
+      },
+      {
+        "id": "46a7ed75-2bd6-5aa4-bf9c-a007f68ef58d",
+        "data": {
+          "kudos_ref": "K-0092",
+          "from_name": "June Bennett",
+          "from_email": "june.bennett@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Diego Weber",
+          "to_email": "diego.weber@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Diego gave the clearest all-hands update I have seen.",
+          "points": 25,
+          "given_on": "2026-10-11",
+          "headline": "June Bennett → Diego Weber"
+        }
+      },
+      {
+        "id": "ddc27c75-34b3-5cdb-a216-5781ada3c2cc",
+        "data": {
+          "kudos_ref": "K-0099",
+          "from_name": "Rosa Mehta",
+          "from_email": "rosa.mehta@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Maya Bennett",
+          "to_email": "maya.bennett@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Own it",
+          "message": "Maya shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 50,
+          "given_on": "2026-10-10",
+          "headline": "Rosa Mehta → Maya Bennett"
+        }
+      },
+      {
+        "id": "ba711cba-015d-5191-9cd0-4a7e02584184",
+        "data": {
+          "kudos_ref": "K-0097",
+          "from_name": "Priya Price",
+          "from_email": "priya.price@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Lucas Raman",
+          "to_email": "lucas.raman@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Lucas rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 10,
+          "given_on": "2026-10-10",
+          "headline": "Priya Price → Lucas Raman"
+        }
+      },
+      {
+        "id": "ee934813-746e-515a-b7f7-b8389fc88bbe",
+        "data": {
+          "kudos_ref": "K-0096",
+          "from_name": "Aiko Tanaka",
+          "from_email": "aiko.tanaka@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Yuki Sato",
+          "to_email": "yuki.sato@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Do the right thing",
+          "message": "Yuki rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-10-10",
+          "headline": "Aiko Tanaka → Yuki Sato"
+        }
+      },
+      {
+        "id": "122fa0dd-3f60-521d-b6c5-621cc1ff81ed",
+        "data": {
+          "kudos_ref": "K-0105",
+          "from_name": "Lucas Raman",
+          "from_email": "lucas.raman@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Better together",
+          "message": "Caleb organised the volunteering day at the food bank.",
+          "points": 25,
+          "given_on": "2026-10-08",
+          "headline": "Lucas Raman → Caleb Ward"
+        }
+      },
+      {
+        "id": "50a129d0-b0cb-5e64-9ff6-d554897241cb",
+        "data": {
+          "kudos_ref": "K-0102",
+          "from_name": "Arjun Kapoor",
+          "from_email": "arjun.kapoor@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Kenji Dubois",
+          "to_email": "kenji.dubois@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Customer obsessed",
+          "message": "Kenji listened, really listened, in a hard retro.",
+          "points": 25,
+          "given_on": "2026-10-08",
+          "headline": "Arjun Kapoor → Kenji Dubois"
+        }
+      },
+      {
+        "id": "362fa6f6-b0f3-50c5-b3ea-e9a69011c686",
+        "data": {
+          "kudos_ref": "K-0101",
+          "from_name": "Lena Quinn",
+          "from_email": "lena.quinn@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Zoe Levi",
+          "to_email": "zoe.levi@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Zoe jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-10-08",
+          "headline": "Lena Quinn → Zoe Levi"
+        }
+      },
+      {
+        "id": "af75410a-601d-5945-9317-f151147852ed",
+        "data": {
+          "kudos_ref": "K-0100",
+          "from_name": "Tomás Park",
+          "from_email": "tomas.park@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Rahul stayed late to get the mobile demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-10-08",
+          "headline": "Tomás Park → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "1d86d269-c46c-5da1-acea-1800d795ae25",
+        "data": {
+          "kudos_ref": "K-0106",
+          "from_name": "Caleb Berg",
+          "from_email": "caleb.berg@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Lucas Raman",
+          "to_email": "lucas.raman@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Lucas spotted the billing bug before it reached a single customer.",
+          "points": 25,
+          "given_on": "2026-10-07",
+          "headline": "Caleb Berg → Lucas Raman"
+        }
+      },
+      {
+        "id": "43a824fa-bb9b-5736-baac-4111d0d07302",
+        "data": {
+          "kudos_ref": "K-0103",
+          "from_name": "Zoe Mori",
+          "from_email": "zoe.mori@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Ruby Farouk",
+          "to_email": "ruby.farouk@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Better together",
+          "message": "Ruby jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-10-07",
+          "headline": "Zoe Mori → Ruby Farouk"
+        }
+      },
+      {
+        "id": "24284c9b-65f5-528b-8008-da42805cc5ed",
+        "data": {
+          "kudos_ref": "K-0110",
+          "from_name": "Jonas Farouk",
+          "from_email": "jonas.farouk@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Rahul rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 10,
+          "given_on": "2026-10-06",
+          "headline": "Jonas Farouk → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "88ca9d39-df73-526d-925d-58d46fed8070",
+        "data": {
+          "kudos_ref": "K-0109",
+          "from_name": "Nora Torres",
+          "from_email": "nora.torres@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Priya Raman",
+          "to_email": "priya.raman@fernhill.example",
+          "to_department": "Product",
+          "value": "Customer obsessed",
+          "message": "Priya closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-10-06",
+          "headline": "Nora Torres → Priya Raman"
+        }
+      },
+      {
+        "id": "50c73255-538a-5e5f-a702-0a7298e7a251",
+        "data": {
+          "kudos_ref": "K-0104",
+          "from_name": "Alex Schmidt",
+          "from_email": "alex.schmidt@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Customer obsessed",
+          "message": "Liam mentored our new starters through their first month.",
+          "points": 25,
+          "given_on": "2026-10-06",
+          "headline": "Alex Schmidt → Liam Mensah"
+        }
+      },
+      {
+        "id": "4e571370-cb71-5252-bcbc-04af8d9e3820",
+        "data": {
+          "kudos_ref": "K-0111",
+          "from_name": "Nora Torres",
+          "from_email": "nora.torres@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Zoe shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 50,
+          "given_on": "2026-10-05",
+          "headline": "Nora Torres → Zoe Sato"
+        }
+      },
+      {
+        "id": "729605e5-f594-5453-8b74-d741ae9fb423",
+        "data": {
+          "kudos_ref": "K-0108",
+          "from_name": "Maya Patel",
+          "from_email": "maya.patel@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Rosa Farouk",
+          "to_email": "rosa.farouk@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Better together",
+          "message": "Rosa spotted the billing bug before it reached a single customer.",
+          "points": 50,
+          "given_on": "2026-10-05",
+          "headline": "Maya Patel → Rosa Farouk"
+        }
+      },
+      {
+        "id": "4ca16938-fa07-5c2d-ab6f-80b7e94e45bd",
+        "data": {
+          "kudos_ref": "K-0107",
+          "from_name": "Clara Farouk",
+          "from_email": "clara.farouk@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Andre jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-10-05",
+          "headline": "Clara Farouk → Andre Kim"
+        }
+      },
+      {
+        "id": "2c246b42-bf2c-5871-944b-b7e23bb3a68c",
+        "data": {
+          "kudos_ref": "K-0112",
+          "from_name": "Ben Jordan",
+          "from_email": "ben.jordan@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Rahul organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-10-04",
+          "headline": "Ben Jordan → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "fc8c1702-1e8f-53cd-a29b-c3e397bff043",
+        "data": {
+          "kudos_ref": "K-0115",
+          "from_name": "Marcus Quinn",
+          "from_email": "marcus.quinn@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Rahul stayed late to get the mobile demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-10-03",
+          "headline": "Marcus Quinn → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "885c7e82-cd64-5071-aac2-136cc9137f50",
+        "data": {
+          "kudos_ref": "K-0114",
+          "from_name": "Talia Jordan",
+          "from_email": "talia.jordan@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Ava Novak",
+          "to_email": "ava.novak@fernhill.example",
+          "to_department": "Product",
+          "value": "Raise the bar",
+          "message": "Ava jumped in to cover the support queue during the outage.",
+          "points": 10,
+          "given_on": "2026-10-03",
+          "headline": "Talia Jordan → Ava Novak"
+        }
+      },
+      {
+        "id": "6afd14ed-47d2-56da-8127-bd23a0231525",
+        "data": {
+          "kudos_ref": "K-0113",
+          "from_name": "Rahul Tanaka",
+          "from_email": "rahul.tanaka@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Jonas Farouk",
+          "to_email": "jonas.farouk@fernhill.example",
+          "to_department": "Design",
+          "value": "Raise the bar",
+          "message": "Jonas stayed late to get the reporting demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-10-03",
+          "headline": "Rahul Tanaka → Jonas Farouk"
+        }
+      },
+      {
+        "id": "fe14b964-5f6f-5429-a14d-5f87dbbe6f8d",
+        "data": {
+          "kudos_ref": "K-0119",
+          "from_name": "Nadia Hughes",
+          "from_email": "nadia.hughes@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Grace Kim",
+          "to_email": "grace.kim@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Raise the bar",
+          "message": "Grace turned a tough renewal into a two-year expansion.",
+          "points": 10,
+          "given_on": "2026-10-02",
+          "headline": "Nadia Hughes → Grace Kim"
+        }
+      },
+      {
+        "id": "33d2a4b5-7a77-54ec-9e71-7cd4c68a297b",
+        "data": {
+          "kudos_ref": "K-0120",
+          "from_name": "Sofia Price",
+          "from_email": "sofia.price@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Zoe spotted the billing bug before it reached a single customer.",
+          "points": 10,
+          "given_on": "2026-10-01",
+          "headline": "Sofia Price → Zoe Sato"
+        }
+      },
+      {
+        "id": "f1fe9e2d-a68d-5076-85ef-44954d046efd",
+        "data": {
+          "kudos_ref": "K-0118",
+          "from_name": "Talia Costa",
+          "from_email": "talia.costa@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Zoe listened, really listened, in a hard retro.",
+          "points": 10,
+          "given_on": "2026-10-01",
+          "headline": "Talia Costa → Zoe Sato"
+        }
+      },
+      {
+        "id": "7298c639-d8f1-5153-9f2b-4d1d4e3e688d",
+        "data": {
+          "kudos_ref": "K-0116",
+          "from_name": "Alex Quinn",
+          "from_email": "alex.quinn@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Own it",
+          "message": "Liam shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 50,
+          "given_on": "2026-10-01",
+          "headline": "Alex Quinn → Liam Mensah"
+        }
+      },
+      {
+        "id": "1526e0b4-8800-555c-bdd7-a6f6a72d8fd4",
+        "data": {
+          "kudos_ref": "K-0121",
+          "from_name": "Malik Quinn",
+          "from_email": "malik.quinn@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Customer obsessed",
+          "message": "Caleb jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-09-30",
+          "headline": "Malik Quinn → Caleb Ward"
+        }
+      },
+      {
+        "id": "bf097481-083d-5583-a64e-3643aec4e210",
+        "data": {
+          "kudos_ref": "K-0117",
+          "from_name": "Zoe Mori",
+          "from_email": "zoe.mori@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Do the right thing",
+          "message": "Liam shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 25,
+          "given_on": "2026-09-30",
+          "headline": "Zoe Mori → Liam Mensah"
+        }
+      },
+      {
+        "id": "0a365c6f-9f6c-5e35-9ad7-e71b80924bf6",
+        "data": {
+          "kudos_ref": "K-0122",
+          "from_name": "Sofia Torres",
+          "from_email": "sofia.torres@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Mei Owens",
+          "to_email": "mei.owens@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Better together",
+          "message": "Mei rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-09-29",
+          "headline": "Sofia Torres → Mei Owens"
+        }
+      },
+      {
+        "id": "996d4497-a0d2-5de4-8577-3dc19af79403",
+        "data": {
+          "kudos_ref": "K-0128",
+          "from_name": "Priya Raman",
+          "from_email": "priya.raman@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Clara Quinn",
+          "to_email": "clara.quinn@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Clara mentored our new starters through their first month.",
+          "points": 50,
+          "given_on": "2026-09-28",
+          "headline": "Priya Raman → Clara Quinn"
+        }
+      },
+      {
+        "id": "36cefd20-f694-5115-b9d7-f98978b115b0",
+        "data": {
+          "kudos_ref": "K-0127",
+          "from_name": "Clara Haddad",
+          "from_email": "clara.haddad@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Do the right thing",
+          "message": "Liam organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-09-28",
+          "headline": "Clara Haddad → Liam Mensah"
+        }
+      },
+      {
+        "id": "201a0ccb-0188-5131-9b6a-c368e989f51c",
+        "data": {
+          "kudos_ref": "K-0123",
+          "from_name": "Marcus Patel",
+          "from_email": "marcus.patel@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Zoe shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 25,
+          "given_on": "2026-09-28",
+          "headline": "Marcus Patel → Zoe Sato"
+        }
+      },
+      {
+        "id": "1bab1d97-0fa9-5456-a98e-04e1e1db5316",
+        "data": {
+          "kudos_ref": "K-0125",
+          "from_name": "Alex Ali",
+          "from_email": "alex.ali@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Zoe Price",
+          "to_email": "zoe.price@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Zoe gave the clearest all-hands update I have seen.",
+          "points": 25,
+          "given_on": "2026-09-27",
+          "headline": "Alex Ali → Zoe Price"
+        }
+      },
+      {
+        "id": "a453fbb7-c869-5fbe-af68-4359917da050",
+        "data": {
+          "kudos_ref": "K-0124",
+          "from_name": "June Bennett",
+          "from_email": "june.bennett@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Andre turned a tough renewal into a two-year expansion.",
+          "points": 10,
+          "given_on": "2026-09-27",
+          "headline": "June Bennett → Andre Kim"
+        }
+      },
+      {
+        "id": "2bec560a-c06f-52e3-a512-a2d54738d2fd",
+        "data": {
+          "kudos_ref": "K-0129",
+          "from_name": "Ava Ward",
+          "from_email": "ava.ward@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Fatima Kim",
+          "to_email": "fatima.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Fatima listened, really listened, in a hard retro.",
+          "points": 25,
+          "given_on": "2026-09-26",
+          "headline": "Ava Ward → Fatima Kim"
+        }
+      },
+      {
+        "id": "4de9d8aa-448e-5a47-be3a-67932361f745",
+        "data": {
+          "kudos_ref": "K-0126",
+          "from_name": "Arjun Rossi",
+          "from_email": "arjun.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Mei Owens",
+          "to_email": "mei.owens@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Do the right thing",
+          "message": "Mei mentored our new starters through their first month.",
+          "points": 10,
+          "given_on": "2026-09-26",
+          "headline": "Arjun Rossi → Mei Owens"
+        }
+      },
+      {
+        "id": "cc6afd31-76dc-5647-b8dc-d53373e6df17",
+        "data": {
+          "kudos_ref": "K-0133",
+          "from_name": "Jonas Ortiz",
+          "from_email": "jonas.ortiz@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Clara Quinn",
+          "to_email": "clara.quinn@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Clara made the design review fun and fast.",
+          "points": 25,
+          "given_on": "2026-09-25",
+          "headline": "Jonas Ortiz → Clara Quinn"
+        }
+      },
+      {
+        "id": "17e0f7da-c0ba-559b-9d94-aaee54af2b0c",
+        "data": {
+          "kudos_ref": "K-0132",
+          "from_name": "Jonas Okafor",
+          "from_email": "jonas.okafor@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Esme Silva",
+          "to_email": "esme.silva@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Esme made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-09-25",
+          "headline": "Jonas Okafor → Esme Silva"
+        }
+      },
+      {
+        "id": "53ffdcc6-45ab-518f-ae4b-9f525e965840",
+        "data": {
+          "kudos_ref": "K-0131",
+          "from_name": "Yuki Berg",
+          "from_email": "yuki.berg@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Leah Mehta",
+          "to_email": "leah.mehta@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Customer obsessed",
+          "message": "Leah stayed late to get the workflow demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-09-25",
+          "headline": "Yuki Berg → Leah Mehta"
+        }
+      },
+      {
+        "id": "cedfba20-78c9-5df1-bc5c-e5d31e021805",
+        "data": {
+          "kudos_ref": "K-0130",
+          "from_name": "Kwame Murphy",
+          "from_email": "kwame.murphy@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Better together",
+          "message": "Caleb jumped in to cover the support queue during the outage.",
+          "points": 50,
+          "given_on": "2026-09-25",
+          "headline": "Kwame Murphy → Caleb Ward"
+        }
+      },
+      {
+        "id": "17d9754c-bf7a-5661-a92d-d76c5bb6fcff",
+        "data": {
+          "kudos_ref": "K-0137",
+          "from_name": "Chloe Sato",
+          "from_email": "chloe.sato@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Mateo Rossi",
+          "to_email": "mateo.rossi@fernhill.example",
+          "to_department": "Design",
+          "value": "Do the right thing",
+          "message": "Mateo gave the clearest all-hands update I have seen.",
+          "points": 25,
+          "given_on": "2026-09-24",
+          "headline": "Chloe Sato → Mateo Rossi"
+        }
+      },
+      {
+        "id": "4711121d-e6c4-598b-9fea-802ab470d48f",
+        "data": {
+          "kudos_ref": "K-0136",
+          "from_name": "Rahul Fernández",
+          "from_email": "rahul.fernandez@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Daniel Okafor",
+          "to_email": "daniel.okafor@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Daniel mentored our new starters through their first month.",
+          "points": 25,
+          "given_on": "2026-09-24",
+          "headline": "Rahul Fernández → Daniel Okafor"
+        }
+      },
+      {
+        "id": "5997d904-ed88-5051-82b8-3f04c95c2f42",
+        "data": {
+          "kudos_ref": "K-0135",
+          "from_name": "Rahul Mori",
+          "from_email": "rahul.mori@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Alex Ali",
+          "to_email": "alex.ali@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Customer obsessed",
+          "message": "Alex organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-09-24",
+          "headline": "Rahul Mori → Alex Ali"
+        }
+      },
+      {
+        "id": "3d0f48a0-dede-5bee-a3d7-fea68909b085",
+        "data": {
+          "kudos_ref": "K-0134",
+          "from_name": "Theo Mehta",
+          "from_email": "theo.mehta@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Rahul Carter",
+          "to_email": "rahul.carter@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Own it",
+          "message": "Rahul shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 50,
+          "given_on": "2026-09-24",
+          "headline": "Theo Mehta → Rahul Carter"
+        }
+      },
+      {
+        "id": "9e0bf417-094b-5952-9932-2a3fda061357",
+        "data": {
+          "kudos_ref": "K-0139",
+          "from_name": "Oscar Levi",
+          "from_email": "oscar.levi@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Nora Torres",
+          "to_email": "nora.torres@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Nora jumped in to cover the support queue during the outage.",
+          "points": 10,
+          "given_on": "2026-09-23",
+          "headline": "Oscar Levi → Nora Torres"
+        }
+      },
+      {
+        "id": "819b4ca5-5d8e-5544-92bf-afe82b3efe6f",
+        "data": {
+          "kudos_ref": "K-0138",
+          "from_name": "Rosa Chen",
+          "from_email": "rosa.chen@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Mateo Dubois",
+          "to_email": "mateo.dubois@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Raise the bar",
+          "message": "Mateo gave the clearest all-hands update I have seen.",
+          "points": 25,
+          "given_on": "2026-09-23",
+          "headline": "Rosa Chen → Mateo Dubois"
+        }
+      },
+      {
+        "id": "af3f49e9-d994-5155-b2ff-958f2cc5bb01",
+        "data": {
+          "kudos_ref": "K-0140",
+          "from_name": "Ingrid Silva",
+          "from_email": "ingrid.silva@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Raise the bar",
+          "message": "Liam made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-09-21",
+          "headline": "Ingrid Silva → Liam Mensah"
+        }
+      },
+      {
+        "id": "6eccf580-b5ef-5997-af10-978f60493f8c",
+        "data": {
+          "kudos_ref": "K-0146",
+          "from_name": "Ben Jordan",
+          "from_email": "ben.jordan@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Rahul shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 50,
+          "given_on": "2026-09-20",
+          "headline": "Ben Jordan → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "445998f2-24f4-5713-85a1-7c277054304f",
+        "data": {
+          "kudos_ref": "K-0143",
+          "from_name": "Grace Kim",
+          "from_email": "grace.kim@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Zoe closed the books two days early.",
+          "points": 25,
+          "given_on": "2026-09-20",
+          "headline": "Grace Kim → Zoe Sato"
+        }
+      },
+      {
+        "id": "7750dfa8-78a6-5c5f-a7f7-54de53244d09",
+        "data": {
+          "kudos_ref": "K-0141",
+          "from_name": "Kenji Dubois",
+          "from_email": "kenji.dubois@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Arjun Kapoor",
+          "to_email": "arjun.kapoor@fernhill.example",
+          "to_department": "Design",
+          "value": "Better together",
+          "message": "Arjun gave the clearest all-hands update I have seen.",
+          "points": 50,
+          "given_on": "2026-09-20",
+          "headline": "Kenji Dubois → Arjun Kapoor"
+        }
+      },
+      {
+        "id": "3cd20956-ba3e-582a-b50a-fcb8fe050ec7",
+        "data": {
+          "kudos_ref": "K-0148",
+          "from_name": "Jonas Patel",
+          "from_email": "jonas.patel@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Fatima Kim",
+          "to_email": "fatima.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Fatima stayed late to get the reporting demo working for the customer. Legend.",
+          "points": 50,
+          "given_on": "2026-09-19",
+          "headline": "Jonas Patel → Fatima Kim"
+        }
+      },
+      {
+        "id": "5383a821-dbe1-5e41-ad68-14c6022f2eba",
+        "data": {
+          "kudos_ref": "K-0147",
+          "from_name": "Fatima Kim",
+          "from_email": "fatima.kim@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Rosa Morgan",
+          "to_email": "rosa.morgan@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Rosa organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-09-19",
+          "headline": "Fatima Kim → Rosa Morgan"
+        }
+      },
+      {
+        "id": "a4d381ea-7720-507d-a2df-0dffeb661ca3",
+        "data": {
+          "kudos_ref": "K-0145",
+          "from_name": "Clara Tanaka",
+          "from_email": "clara.tanaka@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Sam Torres",
+          "to_email": "sam.torres@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Sam listened, really listened, in a hard retro.",
+          "points": 10,
+          "given_on": "2026-09-19",
+          "headline": "Clara Tanaka → Sam Torres"
+        }
+      },
+      {
+        "id": "71df76b1-71e9-5afd-8785-41c8cf2ef86a",
+        "data": {
+          "kudos_ref": "K-0144",
+          "from_name": "Jonas Farouk",
+          "from_email": "jonas.farouk@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Yuki Ward",
+          "to_email": "yuki.ward@fernhill.example",
+          "to_department": "Finance",
+          "value": "Raise the bar",
+          "message": "Yuki listened, really listened, in a hard retro.",
+          "points": 10,
+          "given_on": "2026-09-19",
+          "headline": "Jonas Farouk → Yuki Ward"
+        }
+      },
+      {
+        "id": "2af49ae7-2c96-5d28-904a-60db5a5212d7",
+        "data": {
+          "kudos_ref": "K-0142",
+          "from_name": "Ben Berg",
+          "from_email": "ben.berg@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Andre turned a tough renewal into a two-year expansion.",
+          "points": 25,
+          "given_on": "2026-09-19",
+          "headline": "Ben Berg → Andre Kim"
+        }
+      },
+      {
+        "id": "df1b2f89-2822-5ab2-9ce3-89766cf63e4e",
+        "data": {
+          "kudos_ref": "K-0155",
+          "from_name": "Ethan Fraser",
+          "from_email": "ethan.fraser@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Isla Raman",
+          "to_email": "isla.raman@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Isla organised the volunteering day at the food bank.",
+          "points": 25,
+          "given_on": "2026-09-16",
+          "headline": "Ethan Fraser → Isla Raman"
+        }
+      },
+      {
+        "id": "7fc221fb-63bf-53fd-a570-668282c89224",
+        "data": {
+          "kudos_ref": "K-0154",
+          "from_name": "Felix Wagner",
+          "from_email": "felix.wagner@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Grace Kim",
+          "to_email": "grace.kim@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Raise the bar",
+          "message": "Grace rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-09-16",
+          "headline": "Felix Wagner → Grace Kim"
+        }
+      },
+      {
+        "id": "e5adf9a6-2827-559e-850c-ada969727cc1",
+        "data": {
+          "kudos_ref": "K-0153",
+          "from_name": "Ingrid Alvarez",
+          "from_email": "ingrid.alvarez@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Jamal Alvarez",
+          "to_email": "jamal.alvarez@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Jamal closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-09-16",
+          "headline": "Ingrid Alvarez → Jamal Alvarez"
+        }
+      },
+      {
+        "id": "af71695e-1272-5c76-aa5a-e1d9dc4634c7",
+        "data": {
+          "kudos_ref": "K-0150",
+          "from_name": "Nora Raman",
+          "from_email": "nora.raman@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Talia Costa",
+          "to_email": "talia.costa@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Talia made the design review fun and fast.",
+          "points": 50,
+          "given_on": "2026-09-16",
+          "headline": "Nora Raman → Talia Costa"
+        }
+      },
+      {
+        "id": "22f73363-034a-5ec8-9e6e-295e1fd9c887",
+        "data": {
+          "kudos_ref": "K-0149",
+          "from_name": "Talia Costa",
+          "from_email": "talia.costa@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Jonas Park",
+          "to_email": "jonas.park@fernhill.example",
+          "to_department": "Sales",
+          "value": "Do the right thing",
+          "message": "Jonas organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-09-16",
+          "headline": "Talia Costa → Jonas Park"
+        }
+      },
+      {
+        "id": "64f445e9-9542-5c86-961d-cc9f00ab28cb",
+        "data": {
+          "kudos_ref": "K-0156",
+          "from_name": "Marcus Quinn",
+          "from_email": "marcus.quinn@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Victor Okafor",
+          "to_email": "victor.okafor@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Raise the bar",
+          "message": "Victor rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 10,
+          "given_on": "2026-09-15",
+          "headline": "Marcus Quinn → Victor Okafor"
+        }
+      },
+      {
+        "id": "2269b8f7-5396-58cd-aead-7d15770a1c0e",
+        "data": {
+          "kudos_ref": "K-0152",
+          "from_name": "Rahul Tanaka",
+          "from_email": "rahul.tanaka@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Zoe stayed late to get the mobile demo working for the customer. Legend.",
+          "points": 25,
+          "given_on": "2026-09-15",
+          "headline": "Rahul Tanaka → Zoe Sato"
+        }
+      },
+      {
+        "id": "aed8934f-733b-5fa3-b542-a8deb6d344f6",
+        "data": {
+          "kudos_ref": "K-0151",
+          "from_name": "Owen Ward",
+          "from_email": "owen.ward@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Zoe gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-09-15",
+          "headline": "Owen Ward → Zoe Sato"
+        }
+      },
+      {
+        "id": "05edb6e2-4803-5e13-9bb3-b247a6b7e7f1",
+        "data": {
+          "kudos_ref": "K-0158",
+          "from_name": "Leah Mehta",
+          "from_email": "leah.mehta@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Felix Iyer",
+          "to_email": "felix.iyer@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Felix rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-09-14",
+          "headline": "Leah Mehta → Felix Iyer"
+        }
+      },
+      {
+        "id": "75371692-84ed-5ac6-8340-45bae7635438",
+        "data": {
+          "kudos_ref": "K-0157",
+          "from_name": "Daniel Okafor",
+          "from_email": "daniel.okafor@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Zoe jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-09-14",
+          "headline": "Daniel Okafor → Zoe Sato"
+        }
+      },
+      {
+        "id": "b03e511f-8e3c-5ab8-9ebd-bda415453409",
+        "data": {
+          "kudos_ref": "K-0161",
+          "from_name": "Rosa Morgan",
+          "from_email": "rosa.morgan@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Andre organised the volunteering day at the food bank.",
+          "points": 25,
+          "given_on": "2026-09-13",
+          "headline": "Rosa Morgan → Andre Kim"
+        }
+      },
+      {
+        "id": "7296a02c-42f7-5988-9cbb-3f7fe0b15aef",
+        "data": {
+          "kudos_ref": "K-0159",
+          "from_name": "Theo Mehta",
+          "from_email": "theo.mehta@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Ava Novak",
+          "to_email": "ava.novak@fernhill.example",
+          "to_department": "Product",
+          "value": "Raise the bar",
+          "message": "Ava gave the clearest all-hands update I have seen.",
+          "points": 25,
+          "given_on": "2026-09-13",
+          "headline": "Theo Mehta → Ava Novak"
+        }
+      },
+      {
+        "id": "391e2a25-9fe5-593e-ada7-65f46ca020fe",
+        "data": {
+          "kudos_ref": "K-0163",
+          "from_name": "Priya Price",
+          "from_email": "priya.price@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Own it",
+          "message": "Caleb stayed late to get the reporting demo working for the customer. Legend.",
+          "points": 10,
+          "given_on": "2026-09-12",
+          "headline": "Priya Price → Caleb Ward"
+        }
+      },
+      {
+        "id": "1b0a4e3d-aa00-5ce4-969e-c88333bc090f",
+        "data": {
+          "kudos_ref": "K-0160",
+          "from_name": "Talia Costa",
+          "from_email": "talia.costa@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Leah Novak",
+          "to_email": "leah.novak@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Better together",
+          "message": "Leah spotted the billing bug before it reached a single customer.",
+          "points": 50,
+          "given_on": "2026-09-12",
+          "headline": "Talia Costa → Leah Novak"
+        }
+      },
+      {
+        "id": "33016b1a-7112-5d60-b3d7-8129b5655bea",
+        "data": {
+          "kudos_ref": "K-0162",
+          "from_name": "Aiko Wagner",
+          "from_email": "aiko.wagner@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Ravi Okafor",
+          "to_email": "ravi.okafor@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Do the right thing",
+          "message": "Ravi closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-09-11",
+          "headline": "Aiko Wagner → Ravi Okafor"
+        }
+      },
+      {
+        "id": "5df960bf-47e4-5edb-9fe4-08c9583d6561",
+        "data": {
+          "kudos_ref": "K-0166",
+          "from_name": "Sofia Price",
+          "from_email": "sofia.price@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Theo Mehta",
+          "to_email": "theo.mehta@fernhill.example",
+          "to_department": "Finance",
+          "value": "Customer obsessed",
+          "message": "Theo shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 10,
+          "given_on": "2026-09-10",
+          "headline": "Sofia Price → Theo Mehta"
+        }
+      },
+      {
+        "id": "bed8aa0c-fc33-5525-8e1b-1bc1982e4ec8",
+        "data": {
+          "kudos_ref": "K-0165",
+          "from_name": "Owen Gallagher",
+          "from_email": "owen.gallagher@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Clara Tanaka",
+          "to_email": "clara.tanaka@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Do the right thing",
+          "message": "Clara spotted the billing bug before it reached a single customer.",
+          "points": 10,
+          "given_on": "2026-09-10",
+          "headline": "Owen Gallagher → Clara Tanaka"
+        }
+      },
+      {
+        "id": "534acbe9-9f7b-5015-9f96-4eaf044a22d2",
+        "data": {
+          "kudos_ref": "K-0164",
+          "from_name": "Maya Bennett",
+          "from_email": "maya.bennett@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Customer obsessed",
+          "message": "Liam shipped the accessibility fixes nobody asked for but everybody needed.",
+          "points": 25,
+          "given_on": "2026-09-10",
+          "headline": "Maya Bennett → Liam Mensah"
+        }
+      },
+      {
+        "id": "58ae9329-2771-59db-b355-7c2c89c7b833",
+        "data": {
+          "kudos_ref": "K-0169",
+          "from_name": "Priya Raman",
+          "from_email": "priya.raman@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Sofia Quinn",
+          "to_email": "sofia.quinn@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Sofia turned a tough renewal into a two-year expansion.",
+          "points": 10,
+          "given_on": "2026-09-09",
+          "headline": "Priya Raman → Sofia Quinn"
+        }
+      },
+      {
+        "id": "cefb11e2-af21-5bba-a357-3272e904c033",
+        "data": {
+          "kudos_ref": "K-0168",
+          "from_name": "Clara Farouk",
+          "from_email": "clara.farouk@fernhill.example",
+          "from_department": "Product",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Own it",
+          "message": "Caleb made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-09-09",
+          "headline": "Clara Farouk → Caleb Ward"
+        }
+      },
+      {
+        "id": "6c16bf45-f6eb-5728-bbb7-61fc3932ed20",
+        "data": {
+          "kudos_ref": "K-0167",
+          "from_name": "Jonas Raman",
+          "from_email": "jonas.raman@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Do the right thing",
+          "message": "Liam closed the books two days early.",
+          "points": 25,
+          "given_on": "2026-09-09",
+          "headline": "Jonas Raman → Liam Mensah"
+        }
+      },
+      {
+        "id": "ce44402d-072a-5e91-b98c-db54b793ecfe",
+        "data": {
+          "kudos_ref": "K-0173",
+          "from_name": "Jamal Alvarez",
+          "from_email": "jamal.alvarez@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Nadia Hughes",
+          "to_email": "nadia.hughes@fernhill.example",
+          "to_department": "Product",
+          "value": "Raise the bar",
+          "message": "Nadia rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 50,
+          "given_on": "2026-09-08",
+          "headline": "Jamal Alvarez → Nadia Hughes"
+        }
+      },
+      {
+        "id": "208ea6d2-5a57-5a9d-9f67-737b236cb5f6",
+        "data": {
+          "kudos_ref": "K-0172",
+          "from_name": "Victor Park",
+          "from_email": "victor.park@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Own it",
+          "message": "Zoe rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 25,
+          "given_on": "2026-09-08",
+          "headline": "Victor Park → Zoe Sato"
+        }
+      },
+      {
+        "id": "0c2e4d80-f29e-53b5-83ff-d0abbd284cae",
+        "data": {
+          "kudos_ref": "K-0171",
+          "from_name": "Jonas Farouk",
+          "from_email": "jonas.farouk@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Zoe rewrote our onboarding guide and cut set-up questions in half.",
+          "points": 10,
+          "given_on": "2026-09-08",
+          "headline": "Jonas Farouk → Zoe Sato"
+        }
+      },
+      {
+        "id": "7946ee00-43fe-5c75-8dc9-9a31acd39eaf",
+        "data": {
+          "kudos_ref": "K-0175",
+          "from_name": "Nora Raman",
+          "from_email": "nora.raman@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Andre Kim",
+          "to_email": "andre.kim@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Own it",
+          "message": "Andre spotted the billing bug before it reached a single customer.",
+          "points": 25,
+          "given_on": "2026-09-07",
+          "headline": "Nora Raman → Andre Kim"
+        }
+      },
+      {
+        "id": "dd0a5717-1465-5f61-b489-3d2afeedabad",
+        "data": {
+          "kudos_ref": "K-0170",
+          "from_name": "Nora Laurent",
+          "from_email": "nora.laurent@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Talia Jordan",
+          "to_email": "talia.jordan@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Talia made the design review fun and fast.",
+          "points": 25,
+          "given_on": "2026-09-07",
+          "headline": "Nora Laurent → Talia Jordan"
+        }
+      },
+      {
+        "id": "dc5ee5a6-f041-5ee1-b9df-6c79f420033d",
+        "data": {
+          "kudos_ref": "K-0174",
+          "from_name": "Aiko Mensah",
+          "from_email": "aiko.mensah@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Customer obsessed",
+          "message": "Liam organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-09-06",
+          "headline": "Aiko Mensah → Liam Mensah"
+        }
+      },
+      {
+        "id": "09b8007d-1a4c-5143-80a1-97c6464c3128",
+        "data": {
+          "kudos_ref": "K-0180",
+          "from_name": "Marcus Quinn",
+          "from_email": "marcus.quinn@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Maya Haddad",
+          "to_email": "maya.haddad@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Maya jumped in to cover the support queue during the outage.",
+          "points": 25,
+          "given_on": "2026-09-05",
+          "headline": "Marcus Quinn → Maya Haddad"
+        }
+      },
+      {
+        "id": "07d1d51b-a721-55a1-b623-d050de6c557d",
+        "data": {
+          "kudos_ref": "K-0179",
+          "from_name": "Ava Ward",
+          "from_email": "ava.ward@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Do the right thing",
+          "message": "Caleb gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-09-05",
+          "headline": "Ava Ward → Caleb Ward"
+        }
+      },
+      {
+        "id": "3faab0a6-f1c0-5ed2-8939-71cb10fd025c",
+        "data": {
+          "kudos_ref": "K-0176",
+          "from_name": "Kenji Dubois",
+          "from_email": "kenji.dubois@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Own it",
+          "message": "Liam listened, really listened, in a hard retro.",
+          "points": 10,
+          "given_on": "2026-09-05",
+          "headline": "Kenji Dubois → Liam Mensah"
+        }
+      },
+      {
+        "id": "2a7aba8f-d4ae-55f3-809c-84b403deb2be",
+        "data": {
+          "kudos_ref": "K-0182",
+          "from_name": "Rahul Fernández",
+          "from_email": "rahul.fernandez@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Raise the bar",
+          "message": "Caleb closed the books two days early.",
+          "points": 10,
+          "given_on": "2026-09-04",
+          "headline": "Rahul Fernández → Caleb Ward"
+        }
+      },
+      {
+        "id": "b6f8fd24-3b72-52bb-b07e-d6ec4f61ecb1",
+        "data": {
+          "kudos_ref": "K-0178",
+          "from_name": "Jonas Patel",
+          "from_email": "jonas.patel@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Iris Kapoor",
+          "to_email": "iris.kapoor@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Better together",
+          "message": "Iris turned a tough renewal into a two-year expansion.",
+          "points": 25,
+          "given_on": "2026-09-04",
+          "headline": "Jonas Patel → Iris Kapoor"
+        }
+      },
+      {
+        "id": "b8da0208-4b0c-5895-b78c-28cd78e2f481",
+        "data": {
+          "kudos_ref": "K-0177",
+          "from_name": "Mateo Dubois",
+          "from_email": "mateo.dubois@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Felix Iyer",
+          "to_email": "felix.iyer@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Felix spotted the billing bug before it reached a single customer.",
+          "points": 50,
+          "given_on": "2026-09-04",
+          "headline": "Mateo Dubois → Felix Iyer"
+        }
+      },
+      {
+        "id": "e46d8e65-32e4-53db-83a6-4ff9058d8edd",
+        "data": {
+          "kudos_ref": "K-0181",
+          "from_name": "Oscar Patel",
+          "from_email": "oscar.patel@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Zoe Sato",
+          "to_email": "zoe.sato@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Zoe organised the volunteering day at the food bank.",
+          "points": 50,
+          "given_on": "2026-09-03",
+          "headline": "Oscar Patel → Zoe Sato"
+        }
+      },
+      {
+        "id": "2cbd6d8d-e325-5e4d-809a-2e1e75152989",
+        "data": {
+          "kudos_ref": "K-0187",
+          "from_name": "Daniel Okafor",
+          "from_email": "daniel.okafor@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Arjun Wagner",
+          "to_email": "arjun.wagner@fernhill.example",
+          "to_department": "Customer Success",
+          "value": "Customer obsessed",
+          "message": "Arjun turned a tough renewal into a two-year expansion.",
+          "points": 25,
+          "given_on": "2026-09-02",
+          "headline": "Daniel Okafor → Arjun Wagner"
+        }
+      },
+      {
+        "id": "cccb8eeb-344a-5689-8e1e-d06777f254e0",
+        "data": {
+          "kudos_ref": "K-0183",
+          "from_name": "Leah Novak",
+          "from_email": "leah.novak@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Priya Raman",
+          "to_email": "priya.raman@fernhill.example",
+          "to_department": "Product",
+          "value": "Better together",
+          "message": "Priya spotted the billing bug before it reached a single customer.",
+          "points": 25,
+          "given_on": "2026-09-02",
+          "headline": "Leah Novak → Priya Raman"
+        }
+      },
+      {
+        "id": "de47422d-7c63-539b-bc21-65d26c4a0053",
+        "data": {
+          "kudos_ref": "K-0189",
+          "from_name": "Arjun Rossi",
+          "from_email": "arjun.rossi@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Kenji Sato",
+          "to_email": "kenji.sato@fernhill.example",
+          "to_department": "Product",
+          "value": "Do the right thing",
+          "message": "Kenji jumped in to cover the support queue during the outage.",
+          "points": 10,
+          "given_on": "2026-09-01",
+          "headline": "Arjun Rossi → Kenji Sato"
+        }
+      },
+      {
+        "id": "daea5427-02b1-5867-a661-5561e08eaaba",
+        "data": {
+          "kudos_ref": "K-0185",
+          "from_name": "Aiko Tanaka",
+          "from_email": "aiko.tanaka@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Owen Weber",
+          "to_email": "owen.weber@fernhill.example",
+          "to_department": "Finance",
+          "value": "Better together",
+          "message": "Owen organised the volunteering day at the food bank.",
+          "points": 25,
+          "given_on": "2026-09-01",
+          "headline": "Aiko Tanaka → Owen Weber"
+        }
+      },
+      {
+        "id": "5c4fe57c-5f9b-5350-8944-cce2120a8dd2",
+        "data": {
+          "kudos_ref": "K-0184",
+          "from_name": "Sam Torres",
+          "from_email": "sam.torres@fernhill.example",
+          "from_department": "Sales",
+          "to_name": "Owen Gallagher",
+          "to_email": "owen.gallagher@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Raise the bar",
+          "message": "Owen organised the volunteering day at the food bank.",
+          "points": 50,
+          "given_on": "2026-09-01",
+          "headline": "Sam Torres → Owen Gallagher"
+        }
+      },
+      {
+        "id": "5c54e313-06a8-53dc-9179-9336f5346262",
+        "data": {
+          "kudos_ref": "K-0191",
+          "from_name": "Marcus Patel",
+          "from_email": "marcus.patel@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Iris Kim",
+          "to_email": "iris.kim@fernhill.example",
+          "to_department": "Marketing",
+          "value": "Raise the bar",
+          "message": "Iris gave the clearest all-hands update I have seen.",
+          "points": 50,
+          "given_on": "2026-08-31",
+          "headline": "Marcus Patel → Iris Kim"
+        }
+      },
+      {
+        "id": "37dd0f25-d42b-5912-82f0-525027fa4b4f",
+        "data": {
+          "kudos_ref": "K-0190",
+          "from_name": "Andre Kim",
+          "from_email": "andre.kim@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Alex Morgan",
+          "to_email": "alex.morgan@fernhill.example",
+          "to_department": "People & Operations",
+          "value": "Raise the bar",
+          "message": "Alex made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-08-31",
+          "headline": "Andre Kim → Alex Morgan"
+        }
+      },
+      {
+        "id": "1aeb9d7e-7085-5550-9c3b-2bfa2787371c",
+        "data": {
+          "kudos_ref": "K-0188",
+          "from_name": "Ravi Okafor",
+          "from_email": "ravi.okafor@fernhill.example",
+          "from_department": "Marketing",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Rahul made the design review fun and fast.",
+          "points": 10,
+          "given_on": "2026-08-31",
+          "headline": "Ravi Okafor → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "326a82b1-5e89-5c0c-afb9-327b94c3f380",
+        "data": {
+          "kudos_ref": "K-0186",
+          "from_name": "Owen Weber",
+          "from_email": "owen.weber@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Rahul organised the volunteering day at the food bank.",
+          "points": 25,
+          "given_on": "2026-08-31",
+          "headline": "Owen Weber → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "5a77e2ba-0b3d-5201-83aa-d5370c32489d",
+        "data": {
+          "kudos_ref": "K-0195",
+          "from_name": "Oscar Patel",
+          "from_email": "oscar.patel@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Ravi Haddad",
+          "to_email": "ravi.haddad@fernhill.example",
+          "to_department": "Product",
+          "value": "Raise the bar",
+          "message": "Ravi listened, really listened, in a hard retro.",
+          "points": 10,
+          "given_on": "2026-08-29",
+          "headline": "Oscar Patel → Ravi Haddad"
+        }
+      },
+      {
+        "id": "74c193ac-b12d-587e-a1fe-3d31549aceca",
+        "data": {
+          "kudos_ref": "K-0192",
+          "from_name": "Aiko Mensah",
+          "from_email": "aiko.mensah@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Ingrid Alvarez",
+          "to_email": "ingrid.alvarez@fernhill.example",
+          "to_department": "Sales",
+          "value": "Better together",
+          "message": "Ingrid made the design review fun and fast.",
+          "points": 50,
+          "given_on": "2026-08-29",
+          "headline": "Aiko Mensah → Ingrid Alvarez"
+        }
+      },
+      {
+        "id": "8d7c1a3e-8f70-55f4-ab18-115ffdd062ae",
+        "data": {
+          "kudos_ref": "K-0194",
+          "from_name": "Chloe Weber",
+          "from_email": "chloe.weber@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Liam Mensah",
+          "to_email": "liam.mensah@fernhill.example",
+          "to_department": "Product",
+          "value": "Customer obsessed",
+          "message": "Liam closed the books two days early.",
+          "points": 25,
+          "given_on": "2026-08-28",
+          "headline": "Chloe Weber → Liam Mensah"
+        }
+      },
+      {
+        "id": "4bcd09bd-3a26-547e-9707-d1d995516e8f",
+        "data": {
+          "kudos_ref": "K-0193",
+          "from_name": "Lucía Jordan",
+          "from_email": "lucia.jordan@fernhill.example",
+          "from_department": "Finance",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Raise the bar",
+          "message": "Rahul organised the volunteering day at the food bank.",
+          "points": 50,
+          "given_on": "2026-08-28",
+          "headline": "Lucía Jordan → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "f2c3364c-6f18-5c41-accb-dc66a93473d1",
+        "data": {
+          "kudos_ref": "K-0198",
+          "from_name": "Alex Schmidt",
+          "from_email": "alex.schmidt@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Own it",
+          "message": "Caleb organised the volunteering day at the food bank.",
+          "points": 10,
+          "given_on": "2026-08-27",
+          "headline": "Alex Schmidt → Caleb Ward"
+        }
+      },
+      {
+        "id": "52e2bb75-61f8-5134-91a4-81eb3d675536",
+        "data": {
+          "kudos_ref": "K-0197",
+          "from_name": "Lucas Schmidt",
+          "from_email": "lucas.schmidt@fernhill.example",
+          "from_department": "Engineering",
+          "to_name": "Rahul Tanaka",
+          "to_email": "rahul.tanaka@fernhill.example",
+          "to_department": "Sales",
+          "value": "Customer obsessed",
+          "message": "Rahul turned a tough renewal into a two-year expansion.",
+          "points": 10,
+          "given_on": "2026-08-27",
+          "headline": "Lucas Schmidt → Rahul Tanaka"
+        }
+      },
+      {
+        "id": "3b508ad9-98ac-52e6-8104-cca6c90673c0",
+        "data": {
+          "kudos_ref": "K-0196",
+          "from_name": "Andre Owens",
+          "from_email": "andre.owens@fernhill.example",
+          "from_department": "People & Operations",
+          "to_name": "Yuki Berg",
+          "to_email": "yuki.berg@fernhill.example",
+          "to_department": "Engineering",
+          "value": "Do the right thing",
+          "message": "Yuki gave the clearest all-hands update I have seen.",
+          "points": 10,
+          "given_on": "2026-08-27",
+          "headline": "Andre Owens → Yuki Berg"
+        }
+      },
+      {
+        "id": "f1e5cca1-bdbc-5676-b483-79d632a866d6",
+        "data": {
+          "kudos_ref": "K-0200",
+          "from_name": "Isla Carter",
+          "from_email": "isla.carter@fernhill.example",
+          "from_department": "Design",
+          "to_name": "Felix Wagner",
+          "to_email": "felix.wagner@fernhill.example",
+          "to_department": "Finance",
+          "value": "Do the right thing",
+          "message": "Felix stayed late to get the mobile demo working for the customer. Legend.",
+          "points": 25,
+          "given_on": "2026-08-25",
+          "headline": "Isla Carter → Felix Wagner"
+        }
+      },
+      {
+        "id": "9b10a4a7-2116-50df-9b82-041fa5ed2020",
+        "data": {
+          "kudos_ref": "K-0199",
+          "from_name": "Arjun Wagner",
+          "from_email": "arjun.wagner@fernhill.example",
+          "from_department": "Customer Success",
+          "to_name": "Caleb Ward",
+          "to_email": "caleb.ward@fernhill.example",
+          "to_department": "Design",
+          "value": "Do the right thing",
+          "message": "Caleb turned a tough renewal into a two-year expansion.",
+          "points": 25,
+          "given_on": "2026-08-25",
+          "headline": "Arjun Wagner → Caleb Ward"
+        }
+      }
+    ]
+  }
+}

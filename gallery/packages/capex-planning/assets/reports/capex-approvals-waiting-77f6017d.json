@@ -1,0 +1,42 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "77f6017d-05a3-5c68-b673-fa807b932392",
+  "asset": {
+    "id": "77f6017d-05a3-5c68-b673-fa807b932392",
+    "name": "CapEx approvals waiting",
+    "description": "Capital approvals not decided yet, oldest due first (the CapEx request approval workflow’s tasks).",
+    "category": "Finance",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "29824ef5-163f-54c1-9c07-124d5a130a3c"
+      },
+      "columns": [
+        "title",
+        "priority",
+        "due_date",
+        "status",
+        "created_at"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 200,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

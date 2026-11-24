@@ -1,10 +1,12 @@
 import { after, NextRequest, NextResponse } from 'next/server'
 import { getCachedUser } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/cron-auth'
-import { fromSession, isServiceError, type ServiceContext } from '@/lib/services/context'
+import { fromSession, hasPerm, isServiceError, type ServiceContext } from '@/lib/services/context'
+import { describeRequestError, describeSimpleFailure, forViewer, retrySummary } from '@/lib/agents/errors'
 import { fromSessionForTask } from '@/lib/actions/task-context'
 import { AssistantRequestError, parseChatRequest, prepareAssistantTurn, runPreparedTurn } from '@/lib/assistants/chat'
 import { DeltaCoalescer } from '@/lib/agents/stream'
+import { reportAgentError } from '@/lib/agents/error-trigger-dispatch'
 import type { AssistantEvent } from '@/lib/assistants/types'
 import type { TurnResult } from '@/lib/assistants/engine'
 import { AgentJob, ProgressTracker, TranscriptRecorder, buildPlanTotal, isUuid, turnSummary } from '@/lib/assistants/background'
@@ -46,21 +48,31 @@ export async function POST(request: NextRequest) {
   let ctx: ServiceContext
   let prepared: Awaited<ReturnType<typeof prepareAssistantTurn>>
   const serviceDb = createServiceClient()
+  let viewerIsAdmin = false
+  let tenantForErrors: string | null = null
   try {
     chat = parseChatRequest(body)
     // A task acts in the task's own workspace (the person must be a member and see it).
     ctx = chat.context?.task_id ? await fromSessionForTask(chat.context.task_id) : await fromSession()
+    viewerIsAdmin = hasPerm(ctx, 'assistants.manage')
+    tenantForErrors = ctx.tenantId
     prepared = await prepareAssistantTurn(ctx, chat, { serviceDb })
   } catch (error) {
     if (error instanceof AssistantRequestError) {
-      return NextResponse.json({ error: error.message, code: error.code }, {
+      const described = describeRequestError(error.code, error.message, error.retryAfterMs)
+      // The Agent isn't set up (no provider / key): a final failure for the Agent error trigger. Limits are not errors.
+      if (described.code === 'not_configured') {
+        if (tenantForErrors) await reportAgentError(serviceDb, { tenantId: tenantForErrors, source: 'system_agent', code: 'not_configured', message: described.message, summary: 'not_configured', userId: user.id })
+      }
+      const failure = forViewer(described, viewerIsAdmin)
+      return NextResponse.json({ error: failure.message, code: error.code, failure }, {
         status: error.status,
         ...(error.retryAfterMs ? { headers: { 'Retry-After': String(Math.ceil(error.retryAfterMs / 1000)) } } : {}),
       })
     }
     if (isServiceError(error)) return NextResponse.json({ error: error.message }, { status: error.status })
     console.error('[assistants] prepare failed', error)
-    return NextResponse.json({ error: 'The Agent could not start' }, { status: 500 })
+    return NextResponse.json({ error: 'The Agent could not start — please try again', failure: describeSimpleFailure('unknown', 'The Agent could not start — please try again') }, { status: 500 })
   }
 
   // The turn runs on its own (lib/assistants/background.ts): the response is a live view of it.
@@ -71,6 +83,7 @@ export async function POST(request: NextRequest) {
     tenantId: ctx.tenantId, userId: ctx.actorId!, turnId, conversationId, summary: turnSummary(chat.messages, chat.decision),
   }).catch(() => null)
 
+  const isAdmin = viewerIsAdmin
   const encoder = new TextEncoder()
   const abort = new AbortController()
   const recorder = new TranscriptRecorder()
@@ -116,27 +129,33 @@ export async function POST(request: NextRequest) {
     recorder.push(event)
     const line = progress.onEvent(event)
     if (line) job?.noteProgress(line)
+    // Automatic retries are quiet: the browser keeps showing "Working…" (admins see them in the turn's Details afterwards; the logs have them).
+    if (event.type === 'retry') return
     sendLive(event)
   }
   const turn = (async () => {
     let result: TurnResult | null = null
     let failure: string | null = null
     try {
-      result = await runPreparedTurn(ctx, prepared, chat, { serviceDb, onEvent, signal: abort.signal })
+      result = await runPreparedTurn(ctx, prepared, chat, { serviceDb, onEvent, signal: abort.signal, conversationId })
       deltas.close()
       sendLive({ type: 'messages', messages: result.newMessages })
-      if (result.status === 'failed' || result.status === 'cancelled') sendLive({ type: 'error', error: result.error ?? 'The Agent failed', code: result.status })
-      else sendLive({ type: 'done', status: result.status })
+      // A provider failure: the friendly view (the provider's own message only for people who manage the Agent).
+      if (result.status === 'failed' || result.status === 'cancelled') sendLive({ type: 'error', error: result.error ?? 'The Agent failed', code: result.status, ...(result.failure ? { failure: forViewer(result.failure, isAdmin) } : {}) })
+      else {
+        const retries = isAdmin ? retrySummary({ retries: result.retries, lastRetry: result.lastRetry, provider: prepared.connection.provider }) : null
+        sendLive({ type: 'done', status: result.status, ...(retries ? { retries } : {}) })
+      }
     } catch (error) {
       deltas.close()
       console.error('[assistants] turn failed', error)
-      failure = 'The Agent failed — try again'
-      sendLive({ type: 'error', error: failure })
+      failure = 'Something went wrong while the Agent was working. Please try again.'
+      sendLive({ type: 'error', error: failure, failure: describeSimpleFailure('unknown', failure) })
     } finally {
       const delivered = !gone
       try { view.controller?.close() } catch { /* closed */ }
       const j = await jobStart
-      if (j) await j.finish(result, recorder.transcript({ turnId, conversationId, result, error: failure }), { delivered }).catch((error) => console.error('[assistants] could not finish the job', error))
+      if (j) await j.finish(result, recorder.transcript({ turnId, conversationId, result: result?.failure ? { ...result, failure: forViewer(result.failure, isAdmin) } : result, error: failure }), { delivered }).catch((error) => console.error('[assistants] could not finish the job', error))
     }
   })()
   // Keep the invocation alive until the turn is done, even when the browser has gone.

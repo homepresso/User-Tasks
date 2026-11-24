@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "1d158257-2a77-57b4-b6df-79f6c20f8748",
+  "asset": {
+    "id": "1d158257-2a77-57b4-b6df-79f6c20f8748",
+    "name": "Goal check-in reminder",
+    "description": "Weekly reminder for goals without a check-in for two weeks.",
+    "subject": "Time for a quick check-in on \"{{item.objective}}\"",
+    "is_default": false,
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#2a211c\">\n  <h2 style=\"margin:0 0 12px;color:#9a3412\">How is your goal going?</h2>\n  <p>Hi {{item.owner_name}},</p>\n  <p>Your goal <strong>{{item.objective}}</strong> was last updated on {{item.last_check_in}} and is {{item.progress}}% done.</p>\n  <p>Open the People &amp; Culture app and press <em>Check in</em> on the Goals page: it takes a minute.</p>\n  <p style=\"color:#7c6f64;font-size:13px\">People &amp; Culture · Fernhill Labs</p>\n</div>",
+    "text_body": "How is your goal going?\n\nHi {{item.owner_name}},\n\nYour goal {{item.objective}} was last updated on {{item.last_check_in}} and is {{item.progress}}% done.\n\nOpen the People &amp; Culture app and press Check in on the Goals page: it takes a minute."
+  }
+}

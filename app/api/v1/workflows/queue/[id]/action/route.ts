@@ -5,7 +5,7 @@ import { workflowQueueActionBody as actionSchema } from '@/lib/api-schemas/workf
 import { fromApiAuth, isServiceError } from '@/lib/services/context'
 import { actOnQueueJob } from '@/lib/services/workflow-queue'
 
-/** POST /api/v1/workflows/queue/{id}/action — cancel (pending/failed jobs) / retry (failed/dead jobs); see lib/services/workflow-queue. */
+/** POST /api/v1/workflows/queue/{id}/action — cancel (pending/failed jobs) / retry (failed/dead jobs); a stuck processing job (lease expired) can be retried or cancelled, a live one force-cancelled (`force: true`); see lib/services/workflow-queue. */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await validateApiKey(request)
   if (!auth.success) return auth.response
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   try {
-    return ok(await actOnQueueJob(fromApiAuth(auth), jobId, body.action))
+    return ok(await actOnQueueJob(fromApiAuth(auth), jobId, body.action, { force: body.force }))
   } catch (e) {
     if (isServiceError(e)) return err(e.message, e.status)
     return err(e instanceof Error ? e.message : 'Request failed', 500)

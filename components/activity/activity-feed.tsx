@@ -22,7 +22,8 @@ import { Tag } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { formatDay, toDate } from '@/lib/format/date'
 import { cn } from '@/lib/utils'
-import { auditActionLabel, auditObjectTypeLabel } from '@/lib/audit-labels'
+import { auditActionLabel, auditActorLabel, auditObjectTypeLabel } from '@/lib/audit-labels'
+import { SUPPORT_AUDIT_VIA } from '@/lib/instance-admin/schema'
 import { RelativeTime } from './relative-time'
 
 export interface ActivityItem {
@@ -185,7 +186,8 @@ export function auditRowToActivityItem(row: any): ActivityItem {
     objectId,
     action: row.action,
     summary: row.summary ?? `${row.action} ${objectType}`,
-    actor: row.actor?.display_name ?? null,
+    // An instance admin acting on the workspace's behalf shows as "UserTasks support (on behalf) · <email>".
+    actor: row.metadata?.via === SUPPORT_AUDIT_VIA ? auditActorLabel(row) : row.actor?.display_name ?? null,
     timestamp: row.created_at,
     href,
   }

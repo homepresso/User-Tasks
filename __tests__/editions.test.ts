@@ -7,8 +7,9 @@ import { createHash, generateKeyPairSync, sign } from 'node:crypto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { DAY_MS, HOUR_MS } from '@/lib/licensing/format'
 import type { LicenceKey } from '@/lib/licensing/keyring'
-import { EDITIONS, editionById, editionInstallPs1, editionInstallSh, editionSwitchSh, editionVersion, parseEditionVersion } from '@/lib/editions/catalog'
-import { editionDigests, parseEditionManifest, verifyEditionSignature } from '@/lib/editions/edition-manifest'
+import { EDITIONS, editionById, editionForExtension, editionInstallPs1, editionInstallSh, editionSources, editionSwitchSh, editionVersion, parseEditionVersion, parseEnterpriseVersion, skuForExtension } from '@/lib/editions/catalog'
+import { runningEdition } from '@/lib/editions/running'
+import { editionDigests, editionManifestExtensions, parseEditionManifest, verifyEditionSignature } from '@/lib/editions/edition-manifest'
 import { checkLicenceForEdition } from '@/lib/editions/licence-gate'
 import { basicPassword, mintPullToken, verifyPullToken } from '@/lib/editions/pull-token'
 import { issuePullToken, releaseTagFor, type PullServiceDeps } from '@/lib/editions/pull-service'
@@ -19,6 +20,7 @@ import type { PullLogEntry } from '@/lib/editions/access-log'
 import { makeLicence, throwawayKey } from './helpers/licence-fixtures'
 
 const SP = EDITIONS.sharepoint
+const ENT = EDITIONS.enterprise
 const MAIN = throwawayKey('lic-test-1')
 const TRIAL = throwawayKey('trial-1')
 const KEYRING: LicenceKey[] = [MAIN.entry, { ...TRIAL.entry, kind: 'trial', trialSkus: ['sharepoint-se'] }]
@@ -48,6 +50,123 @@ function editionFiles(o: Record<string, unknown> = {}) {
   const manifest = Buffer.from(`${JSON.stringify(body, null, 2)}\n`)
   return { manifest, signature: sign(null, manifest, RELEASE.privateKey) }
 }
+
+function enterpriseFiles(o: Record<string, unknown> = {}) {
+  const body = {
+    format: 1, kind: 'usertasks.edition', edition: 'enterprise',
+    edition_version: '0.4.0-ent.2', core_version: '0.4.0', core_commit: 'abcdef1', build: 2,
+    extensions: [
+      { id: 'infrastructure', name: 'Infrastructure', package: '@usertasks-ext/infrastructure', version: '0.1.0', commit: '1111111', ref: 'v0.1.0', sku: 'infrastructure' },
+      { id: 'sharepoint', name: 'SharePoint Server', package: '@usertasks-ext/sharepoint', version: '0.2.0', commit: '2222222', ref: 'v0.2.0', sku: 'sharepoint-se' },
+    ],
+    fingerprint: d('9'), built_at: '2026-11-30T00:00:00Z', index_digest: d('a'),
+    platforms: { 'linux/amd64': { manifest: d('b'), config: d('c') } },
+    ...o,
+  }
+  const manifest = Buffer.from(`${JSON.stringify(body, null, 2)}\n`)
+  return { manifest, signature: sign(null, manifest, RELEASE.privateKey) }
+}
+
+describe('Enterprise edition', () => {
+  it('is one image for every paid extension; SharePoint is an alias it serves', () => {
+    expect(ENT.extensions.map((x) => [x.id, x.sku])).toEqual([['sharepoint', 'sharepoint-se'], ['infrastructure', 'infrastructure'], ['processing', 'processing-tier']])
+    expect(ENT.repository).toBe('editions/enterprise')
+    expect(SP.servedBy).toBe('enterprise')
+    for (const id of ['sharepoint', 'infrastructure', 'processing']) expect(editionForExtension(id)).toBe(ENT)
+    expect(skuForExtension('infrastructure')).toBe('infrastructure')
+    expect(skuForExtension('nope')).toBeNull()
+    expect(editionVersion(ENT, '0.4.0', 3)).toBe('0.4.0-ent.3')
+    expect(parseEnterpriseVersion('0.4.0-ent.3')).toEqual({ core: '0.4.0', build: 3 })
+    expect(parseEnterpriseVersion('0.4.0-rc.1-ent.12')).toEqual({ core: '0.4.0-rc.1', build: 12 })
+    expect(parseEnterpriseVersion('0.4.0-ent.x')).toBeNull()
+    expect(parseEditionVersion(ENT, '0.4.0-ent.3')).toBeNull()
+    expect(editionSources(SP).map((s) => [s.serving.id, s.tagPrefix])).toEqual([['enterprise', 'sharepoint-'], ['sharepoint', '']])
+    expect(editionSources(ENT).map((s) => [s.serving.id, s.tagPrefix])).toEqual([['enterprise', '']])
+    expect(editionInstallSh(ENT)).toBe('curl -fsSL https://usertasks.com/install.sh | sh -s -- --edition enterprise --licence usertasks.licence')
+    expect(editionSwitchSh(ENT)).toBe('usertasks upgrade --edition enterprise')
+  })
+
+  it('knows which edition runs: baked env first, else the compiled paid extensions', () => {
+    expect(runningEdition([], {})).toMatchObject({ id: 'core', version: null })
+    expect(runningEdition(['example-hello'], {})).toMatchObject({ id: 'core' })
+    expect(runningEdition(['sharepoint'], {})).toMatchObject({ id: 'sharepoint' })
+    expect(runningEdition(['sharepoint', 'infrastructure'], {})).toMatchObject({ id: 'custom' })
+    expect(runningEdition(['sharepoint', 'infrastructure'], { USERTASKS_EDITION: 'enterprise', USERTASKS_EDITION_VERSION: '0.4.0-ent.1' })).toEqual({ id: 'enterprise', name: 'UserTasks Enterprise', version: '0.4.0-ent.1' })
+    expect(runningEdition([], { USERTASKS_EDITION: 'bogus' })).toMatchObject({ id: 'core' })
+  })
+
+  it('parses the Enterprise manifest: build number, every extension, shell-readable keys unique', () => {
+    const { manifest, signature } = enterpriseFiles()
+    const m = parseEditionManifest(manifest)
+    expect(verifyEditionSignature(manifest, signature, RELEASE_PUB)).toBe(true)
+    expect(editionManifestExtensions(m)).toEqual([{ id: 'infrastructure', version: '0.1.0' }, { id: 'sharepoint', version: '0.2.0' }])
+    expect(() => parseEditionManifest(enterpriseFiles({ edition_version: '0.4.0-ent.3' }).manifest)).toThrow(/is not build 2/)
+    expect(() => parseEditionManifest(enterpriseFiles({ extensions: [] }).manifest)).toThrow(/needs build and extensions/)
+    const dup = enterpriseFiles({ extensions: [{ id: 'sharepoint', version: '0.2.0', commit: '2222222' }, { id: 'sharepoint', version: '0.2.0', commit: '2222222' }] })
+    expect(() => parseEditionManifest(dup.manifest)).toThrow(/listed twice/)
+    const text = manifest.toString()
+    for (const key of ['kind', 'edition', 'edition_version', 'core_version', 'index_digest']) expect(text.split(`"${key}"`).length - 1, key).toBe(1)
+    // A SharePoint compatibility manifest (same digests, served by Enterprise) is a valid SharePoint manifest.
+    const compat = parseEditionManifest(editionFiles({ served_by: 'enterprise', served_by_version: '0.4.0-ent.2' }).manifest)
+    expect(compat.served_by).toBe('enterprise')
+    expect(editionManifestExtensions(compat)).toEqual([{ id: 'sharepoint', version: '1.2.0' }])
+  })
+
+  it('gates on any licence for an extension the edition may contain', () => {
+    const gate = (lic: unknown, only?: string[]) => checkLicenceForEdition({ raw: JSON.stringify(lic), edition: ENT, now: NOW, keyring: KEYRING, onlyExtensions: only })
+    expect(gate(paid({ extensions: [{ id: 'infrastructure' }], sku: 'infrastructure' }))).toMatchObject({ ok: true, extensions: [{ id: 'infrastructure' }] })
+    expect(gate(paid())).toMatchObject({ ok: true, extensions: [{ id: 'sharepoint' }] })
+    expect(gate(trial())).toMatchObject({ ok: true, trial: true })
+    expect(gate(paid({ extensions: [{ id: 'processing' }], sku: 'processing-tier' }))).toMatchObject({ ok: true })
+    // The build decides: processing is not in it.
+    const notIn = gate(paid({ extensions: [{ id: 'processing' }], sku: 'processing-tier' }), ['sharepoint', 'infrastructure'])
+    expect(notIn).toMatchObject({ ok: false, code: 'licence_not_for_edition' })
+    if (!notIn.ok) expect(notIn.message).toMatch(/does not include Processing add-on yet/)
+    expect(gate(paid({ extensions: [{ id: 'infrastructure' }], sku: 'sharepoint-se' }))).toMatchObject({ ok: false, code: 'licence_not_for_edition' })
+    expect(gate(paid({ extensions: [{ id: 'servicenow' }] }))).toMatchObject({ ok: false, code: 'licence_not_for_edition' })
+    // The SharePoint alias still wants a SharePoint licence.
+    expect(checkLicenceForEdition({ raw: JSON.stringify(paid({ extensions: [{ id: 'infrastructure' }], sku: 'infrastructure' })), edition: SP, now: NOW, keyring: KEYRING })).toMatchObject({ ok: false, code: 'licence_not_for_edition' })
+  })
+
+  it('issues Enterprise pulls for an Infrastructure licence, and refuses a licence the build does not contain', async () => {
+    const logs: PullLogEntry[] = []
+    const f = enterpriseFiles()
+    const deps = (files: Record<string, typeof f>): PullServiceDeps => ({
+      now: () => NOW, keyring: () => KEYRING, log: async (e) => { logs.push(e) },
+      config: () => ({ ok: true, secret: SECRET, registryHost: 'usertasks.com', revoked: [] }),
+      readRelease: async (ref) => files[ref] ?? null,
+    })
+    expect(releaseTagFor(ENT, '0.4.0-ent.2')).toBe('edition-0.4.0-ent.2')
+    expect(releaseTagFor(ENT, '0.4.0')).toBe('edition-0.4.0')
+    const infra = JSON.stringify(paid({ extensions: [{ id: 'infrastructure' }], sku: 'infrastructure', licence_id: 'lic_infra' }))
+    const ok = await issuePullToken(ENT, { licence: infra, version: '0.4.0' }, { ipHash: null, userAgent: null }, deps({ 'edition-0.4.0': f }))
+    expect(ok.status).toBe(200)
+    expect(ok.body).toMatchObject({ repository: 'editions/enterprise', edition: 'enterprise', edition_version: '0.4.0-ent.2', core_version: '0.4.0', included_extensions: 'infrastructure,sharepoint', image: `usertasks.com/editions/enterprise@${d('a')}` })
+    expect(ok.body).not.toHaveProperty('extension_version')
+    expect(verifyPullToken(String(ok.body.password), 'enterprise', NOW, SECRET).ok).toBe(true)
+    expect(Object.values(ok.body).every((v) => typeof v !== 'object' || v === null)).toBe(true)
+
+    const proc = JSON.stringify(paid({ extensions: [{ id: 'processing' }], sku: 'processing-tier', licence_id: 'lic_proc' }))
+    const refused = await issuePullToken(ENT, { licence: proc, version: 'latest' }, { ipHash: null, userAgent: null }, deps({ 'edition-latest': f }))
+    expect(refused).toMatchObject({ status: 403, body: { code: 'licence_not_for_edition' } })
+    expect(logs.at(-1)).toMatchObject({ outcome: 'denied', code: 'licence_not_for_edition', licence_id: 'lic_proc', edition_version: '0.4.0-ent.2' })
+  })
+
+  it('serves the SharePoint alias from the Enterprise repository when the compatibility manifest comes from there', async () => {
+    const compat = { ...editionFiles({ edition_version: '0.4.0-sp1.2.0', core_version: '0.4.0', served_by: 'enterprise', served_by_version: '0.4.0-ent.2' }), source: { edition: 'enterprise', repository: 'editions/enterprise' } }
+    const deps: PullServiceDeps = {
+      now: () => NOW, keyring: () => KEYRING, log: async () => {},
+      config: () => ({ ok: true, secret: SECRET, registryHost: 'usertasks.com', revoked: [] }),
+      readRelease: async (ref) => (ref === 'edition-latest' ? compat : null),
+    }
+    const out = await issuePullToken(SP, { licence: JSON.stringify(paid()) }, { ipHash: null, userAgent: null }, deps)
+    expect(out.status).toBe(200)
+    // What an existing SharePoint edition install checks: a sharepoint manifest, <core>-sp<ext>, the digest it pulls.
+    expect(out.body).toMatchObject({ edition: 'sharepoint', edition_version: '0.4.0-sp1.2.0', extension_version: '1.2.0', repository: 'editions/enterprise', served_by: 'enterprise', image: `usertasks.com/editions/enterprise@${d('a')}` })
+    expect(verifyPullToken(String(out.body.password), 'enterprise', NOW, SECRET).ok).toBe(true)
+    expect(verifyPullToken(String(out.body.password), 'sharepoint', NOW, SECRET)).toMatchObject({ ok: false, reason: 'wrong_edition' })
+  })
+})
 
 describe('catalog', () => {
   it('pairs core and extension versions', () => {
@@ -368,7 +487,7 @@ describe('latest edition info (install.sh picks the release that has a build)', 
     let reads = 0
     const f = editionFiles()
     const deps = { now: () => NOW, config: () => ({ ok: true as const, secret: SECRET, registryHost: 'usertasks.com', revoked: [] }), readRelease: async () => { reads++; return f } }
-    expect(await latestEditionInfo(SP, deps)).toEqual({ edition: 'sharepoint', name: SP.name, available: true, latest_core_version: '0.3.0', latest_edition_version: '0.3.0-sp1.2.0' })
+    expect(await latestEditionInfo(SP, deps)).toEqual({ edition: 'sharepoint', name: SP.name, available: true, latest_core_version: '0.3.0', latest_edition_version: '0.3.0-sp1.2.0', included_extensions: ['sharepoint'] })
     await latestEditionInfo(SP, deps)
     expect(reads).toBe(1)
     clearLatestEditionCache()

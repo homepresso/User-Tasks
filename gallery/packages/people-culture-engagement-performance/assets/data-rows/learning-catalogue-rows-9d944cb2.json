@@ -1,0 +1,227 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "9d944cb2-57c4-5c20-9a6e-1445882a79f2",
+  "asset": {
+    "id": "9d944cb2-57c4-5c20-9a6e-1445882a79f2",
+    "name": "Learning catalogue rows",
+    "rows": [
+      {
+        "id": "4b1cca93-58ca-5ac0-a316-24350cd6ce0c",
+        "data": {
+          "item": "Writing for busy readers",
+          "type": "Course",
+          "skill": "Communication",
+          "provider": "Clearwords Academy",
+          "hours": 4,
+          "cost_usd": 0,
+          "cost_label": "Free"
+        }
+      },
+      {
+        "id": "1db4dc2a-0929-56d2-bb8a-f656dd8f5d0e",
+        "data": {
+          "item": "Customer interviews that work",
+          "type": "Workshop",
+          "skill": "Customer focus",
+          "provider": "Fernhill Learning",
+          "hours": 6,
+          "cost_usd": 0,
+          "cost_label": "Free"
+        }
+      },
+      {
+        "id": "9398692c-01a7-5346-b16c-eade1c15527d",
+        "data": {
+          "item": "Structured problem solving",
+          "type": "Course",
+          "skill": "Problem solving",
+          "provider": "Northgate School",
+          "hours": 8,
+          "cost_usd": 349,
+          "cost_label": "USD 349"
+        }
+      },
+      {
+        "id": "ed13675f-6409-5dec-9554-214d7b8e1ece",
+        "data": {
+          "item": "Advanced SQL for analysts",
+          "type": "Course",
+          "skill": "Data literacy",
+          "provider": "Querywise",
+          "hours": 10,
+          "cost_usd": 199,
+          "cost_label": "USD 199"
+        }
+      },
+      {
+        "id": "94b6bed5-17c5-571a-a9e2-c3c08e3ba327",
+        "data": {
+          "item": "Leading without authority",
+          "type": "Workshop",
+          "skill": "Collaboration",
+          "provider": "Fernhill Learning",
+          "hours": 3,
+          "cost_usd": 0,
+          "cost_label": "Free"
+        }
+      },
+      {
+        "id": "d536d8f0-7d2e-5c40-aa32-4ccddb86550c",
+        "data": {
+          "item": "First-time manager programme",
+          "type": "Programme",
+          "skill": "Coaching",
+          "provider": "Fernhill Learning",
+          "hours": 24,
+          "cost_usd": 0,
+          "cost_label": "Free"
+        }
+      },
+      {
+        "id": "8dd7f7b7-a7bf-527b-906f-5c266d2549cf",
+        "data": {
+          "item": "Coaching conversations",
+          "type": "Workshop",
+          "skill": "Coaching",
+          "provider": "Brightpath Coaching",
+          "hours": 6,
+          "cost_usd": 450,
+          "cost_label": "USD 450"
+        }
+      },
+      {
+        "id": "eaddf461-eb4d-5d4c-a733-61f6fc9a7790",
+        "data": {
+          "item": "Planning with OKRs",
+          "type": "Course",
+          "skill": "Planning and prioritising",
+          "provider": "Northgate School",
+          "hours": 5,
+          "cost_usd": 129,
+          "cost_label": "USD 129"
+        }
+      },
+      {
+        "id": "c056d955-7918-537c-abde-55310263bc77",
+        "data": {
+          "item": "Inclusive meetings",
+          "type": "Micro-course",
+          "skill": "Inclusion",
+          "provider": "Fernhill Learning",
+          "hours": 1,
+          "cost_usd": 0,
+          "cost_label": "Free"
+        }
+      },
+      {
+        "id": "1cc214b3-dbef-5519-bcf0-1818744bd782",
+        "data": {
+          "item": "Systems design fundamentals",
+          "type": "Course",
+          "skill": "Technical depth",
+          "provider": "Stackwise",
+          "hours": 12,
+          "cost_usd": 299,
+          "cost_label": "USD 299"
+        }
+      },
+      {
+        "id": "9fa508df-6148-5b43-b952-eb395554d59b",
+        "data": {
+          "item": "Negotiation essentials",
+          "type": "Workshop",
+          "skill": "Customer focus",
+          "provider": "Dealcraft",
+          "hours": 8,
+          "cost_usd": 650,
+          "cost_label": "USD 650"
+        }
+      },
+      {
+        "id": "9bc9f3f2-ff39-5aa7-9558-16426229adbe",
+        "data": {
+          "item": "Storytelling with data",
+          "type": "Book",
+          "skill": "Data literacy",
+          "provider": "Library",
+          "hours": 6,
+          "cost_usd": 35,
+          "cost_label": "USD 35"
+        }
+      },
+      {
+        "id": "0eb5e1a4-9626-5bef-bfc2-f8792ad75959",
+        "data": {
+          "item": "Mentoring circle",
+          "type": "Mentoring",
+          "skill": "Coaching",
+          "provider": "Fernhill Learning",
+          "hours": 12,
+          "cost_usd": 0,
+          "cost_label": "Free"
+        }
+      },
+      {
+        "id": "abb06f6c-1073-53de-9026-ebc6174ca3ea",
+        "data": {
+          "item": "Public speaking lab",
+          "type": "Workshop",
+          "skill": "Communication",
+          "provider": "Voicebox Studio",
+          "hours": 4,
+          "cost_usd": 280,
+          "cost_label": "USD 280"
+        }
+      },
+      {
+        "id": "7c120e5f-645d-5baa-9d69-12ab0d8684c7",
+        "data": {
+          "item": "Owning outcomes",
+          "type": "Micro-course",
+          "skill": "Ownership",
+          "provider": "Fernhill Learning",
+          "hours": 1,
+          "cost_usd": 0,
+          "cost_label": "Free"
+        }
+      },
+      {
+        "id": "84f492e6-fe02-578b-bf14-26fee4e8ea87",
+        "data": {
+          "item": "Accessibility in practice",
+          "type": "Course",
+          "skill": "Technical depth",
+          "provider": "Openweb Institute",
+          "hours": 6,
+          "cost_usd": 159,
+          "cost_label": "USD 159"
+        }
+      },
+      {
+        "id": "5f9e56a9-e7ba-5818-985c-d97a40b21f70",
+        "data": {
+          "item": "Time and energy management",
+          "type": "Micro-course",
+          "skill": "Planning and prioritising",
+          "provider": "Fernhill Learning",
+          "hours": 2,
+          "cost_usd": 0,
+          "cost_label": "Free"
+        }
+      },
+      {
+        "id": "06e2f01e-da06-5d3b-ba0c-befe4c5c7bc1",
+        "data": {
+          "item": "Allyship at work",
+          "type": "Workshop",
+          "skill": "Inclusion",
+          "provider": "Common Ground",
+          "hours": 3,
+          "cost_usd": 120,
+          "cost_label": "USD 120"
+        }
+      }
+    ]
+  }
+}

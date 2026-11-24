@@ -467,7 +467,7 @@ HTTP when the provider isn't `supabase`.
 Switching moves the objects and rewrites the stored URLs.
 `usertasks-admin switch storage --to <provider>` runs these steps with a
 backup, verification and rollback ([Switching providers](switching-providers.md#storage));
-the building blocks are in `lib/storage/migrate.ts`:
+(the [Infrastructure add-on](infrastructure-add-on.md)); the building blocks ship with the add-on:
 
 1. **Copy objects.** `copyStorageObjects(source, target)` copies every object
    of the three buckets between any two providers, reading each copy back
@@ -812,6 +812,69 @@ housekeeping (production had 138 MB for ~18k rows) stays that size on disk
 until its owner runs `VACUUM FULL`. On Supabase the owner is `supabase_admin`,
 so ask Supabase support; with housekeeping keeping the table small, autovacuum
 reuses the space and inserts stay fast either way.
+
+## Processing tier
+
+Where queued work runs: workflow runs started by forms, tasks, webhooks,
+schedules and the API, resumed runs, agent jobs and media jobs.
+
+**In the web app (default, and the only mode without the processing
+add-on).** After work is queued, the web app calls its own
+`/api/workflows/process` (and `/api/agents/process`) with the processor
+secret and runs the jobs; synchronous API starts, designer test runs and
+request/response webhooks run inside the request; the scheduler's minute
+tick drains whatever is left. Nothing to configure.
+
+**Separate workers (processing add-on).** With the add-on licensed (SKU
+`processing-tier`, per deployment) and its mode set to *workers*, the web
+app only queues: every path that used to run work in the request hands it
+to the queue instead (core's processing hand-off, `lib/processing`), and
+processor processes — `node worker.cjs --processor`, the same image with
+the add-on compiled in — claim and run it, scale out, and stay within a
+memory budget. Requests that need a result (synchronous starts,
+request/response webhooks, run actions, the agent's start-workflow tool)
+wait for the job, up to `PROCESSING_WAIT_TIMEOUT_MS` (default 55 s; then
+504 with the job id while the run carries on). Designer test runs stay in
+the web app unless the add-on's *test runs on workers* option is on. Without
+a valid licence the web app processes again automatically. See the add-on's
+documentation for Compose / Helm (HPA, KEDA) set-up and its settings.
+
+### Reliability (every mode)
+
+- **Leases and stuck-job recovery.** A claimed job holds a lease
+  (`WORKFLOW_LEASE_SECONDS`, default 120 s) that its processor renews every
+  quarter of it. When the process dies (crash, out of memory, a serverless
+  function past its time limit) the lease runs out and the next claim —
+  from the tick, the web app or any worker — puts the job back with the
+  usual back-off (30 s, 2 min, 8 min …) and the error *Worker lost …*, or
+  marks it dead after its last attempt. A worker that lost its lease can't
+  write its result over the recovered job. Plain SQL (migration
+  `20270124090000_queue_leases`), no pg_cron needed.
+- **Workflow queue → Retry / Cancel** of a stuck job (status *Stuck
+  (worker lost)*), and **Force-cancel** of a job whose worker is still
+  alive, after confirmation; audited. Instance-wide on Settings →
+  Infrastructure → **Processing** (instance admins) and
+  `POST /api/v1/admin/processing/jobs/{id}/recover`.
+- **Checkpoints.** A running run records its start and, after every
+  side-effecting step, that step's output and the variables it changed
+  (`WORKFLOW_CHECKPOINTS`: `side_effects` default, `all`, `off`). A run whose
+  worker was lost continues after its last completed step — completed steps
+  are not run again. A step that was interrupted mid-way runs again when that
+  is safe (emails and data-table writes check their idempotency key; HTTP
+  GET/HEAD/OPTIONS/PUT/DELETE; HTTP requests with *Send an Idempotency-Key
+  header*), otherwise it fails as *outcome unknown* and the step's On error
+  decides — or runs again when the trigger step's *If a step is interrupted*
+  is *Run it again*. Idempotency key: `<run id>:<step id>:<visit>`, the same
+  on every attempt.
+
+### Health
+
+Settings → Infrastructure → **Processing** and
+`GET /api/v1/admin/processing` (instance admin token; CLI
+`usertasks admin-processing status`): the mode, the add-on's worker status,
+queue depth, the oldest waiting job, processing and stuck jobs.
+`PATCH /api/v1/admin/processing` (`usertasks admin-processing configure`)
+changes the add-on's mode and test-run option.
 
 ## Email
 
@@ -1336,12 +1399,12 @@ The manual route:
 2. Configure email (`EMAIL_PROVIDER`, `EMAIL_FROM`), `APP_URL`,
    `DATABASE_URL` and, while the data API or realtime stay on Supabase,
    `SUPABASE_JWT_SECRET`.
-3. Copy the users: `npm run auth -- migrate-users --dry-run`, then without
-   `--dry-run`. Accounts keep their ids, emails, passwords and confirmation;
+3. Copy the users with the [Infrastructure add-on](infrastructure-add-on.md):
+   `usertasks-admin switch auth --to builtin --dry-run`, then without
+   `--dry-run` (it also does steps 4–5 for you). Accounts keep their ids, emails, passwords and confirmation;
    Google / Azure identities are copied too — map them to your IdP ids so
    SSO users link by subject (`--map google=oidc:google,azure=oidc:entra`;
-   otherwise they link by verified email). Re-running is safe; run it again
-   right before the switch.
+   otherwise they link by verified email).
 4. For SSO, register the redirect / ACS URLs (`npm run auth -- redirect-uris`)
    and set `AUTH_SSO_PROVIDERS`.
 5. Set `AUTH_PROVIDER=builtin` (or `oidc` / `saml`) and restart. Users sign in

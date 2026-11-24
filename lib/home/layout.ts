@@ -101,7 +101,39 @@ export const HOME_WIDGETS: readonly HomeWidgetDef[] = [
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
 
+/**
+ * What the grid needs to know about one item: its title (handles and
+ * announcements), group, size bounds and default size. Home's widgets are
+ * one catalogue (HOME_WIDGETS); app pages (lib/apps/widgets.ts) pass their own
+ * lookup to the same functions and to components/home/home-grid.tsx.
+ */
+export interface GridItemDef {
+  title: string
+  group: string
+  w: number
+  h: number
+  minW: number
+  maxW: number
+  minH: number
+  maxH: number
+  tabletMinW: number
+  compact?: boolean
+  /** Chromeless (app widgets): no top padding in edit mode; the handle bar shows on hover / focus only. */
+  bleed?: boolean
+  /** App widget style (lib/apps/style.ts styleCss): custom properties and box styles for the card, and its feature flags. */
+  cardStyle?: Record<string, string>
+  cardFlags?: string
+}
+export type GridDefLookup = (id: string) => GridItemDef | undefined
+/** One grid item: an id with its desktop width (columns) and height (rows). */
+export interface GridItem<Id extends string = string> { id: Id; w: number; h: number }
+
 const DEFS = new Map<string, HomeWidgetDef>(HOME_WIDGETS.map((d) => [d.id, d]))
+/** Home's catalogue as a grid lookup (the default everywhere below). */
+export const homeGridDefs: GridDefLookup = (id) => DEFS.get(id)
+/** Bounds for an id the lookup doesn't know (never expected; keeps the math total). */
+const FALLBACK_DEF: GridItemDef = { title: 'Widget', group: 'list', w: 6, h: 6, minW: 1, maxW: DESKTOP_COLS, minH: 1, maxH: MAX_ROWS, tabletMinW: 1 }
+const defOf = (lookup: GridDefLookup, id: string): GridItemDef => lookup(id) ?? FALLBACK_DEF
 const ORDER = new Map<string, number>(HOME_WIDGETS.map((d, i) => [d.id, i]))
 
 export function widgetDef(id: string): HomeWidgetDef | undefined {
@@ -192,8 +224,8 @@ export function toggleExpandedWidget(expanded: readonly HomeWidgetId[], id: Home
 const intOr = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : fallback)
 
 /** One item within its widget's bounds. */
-export function clampItem(id: HomeWidgetId, w: unknown, h: unknown): HomeLayoutItem {
-  const d = DEFS.get(id)!
+export function clampItem<Id extends string = HomeWidgetId>(id: Id, w: unknown, h: unknown, lookup: GridDefLookup = homeGridDefs): GridItem<Id> {
+  const d = defOf(lookup, id)
   return { id, w: clamp(intOr(w, d.w), d.minW, d.maxW), h: clamp(intOr(h, d.h), d.minH, d.maxH) }
 }
 
@@ -302,33 +334,39 @@ export function colsForWidth(width: number): 1 | 6 | 12 {
 }
 
 /** A widget's span on a grid of `cols` columns. */
-export function spanFor(item: HomeLayoutItem, cols: number): number {
+export function spanFor(item: GridItem, cols: number, lookup: GridDefLookup = homeGridDefs): number {
   if (cols >= DESKTOP_COLS) return item.w
   if (cols <= 1) return 1
-  const d = DEFS.get(item.id)!
+  const d = defOf(lookup, item.id)
   return clamp(Math.round((item.w * cols) / DESKTOP_COLS), Math.min(d.tabletMinW, cols), cols)
 }
 
 /** A width in `cols` columns → desktop columns, within the widget's bounds. */
-export function desktopWidth(id: HomeWidgetId, span: number, cols: number): number {
-  const d = DEFS.get(id)!
+export function desktopWidth(id: string, span: number, cols: number, lookup: GridDefLookup = homeGridDefs): number {
+  const d = defOf(lookup, id)
   return clamp(Math.round((span * DESKTOP_COLS) / Math.max(cols, 1)), d.minW, d.maxW)
 }
 
 /* ── Edits ───────────────────────────────────────────────────────────── */
 
-export function moveWidget(layout: HomeLayout, from: number, to: number): HomeLayout {
-  const items = [...layout.items]
-  if (from < 0 || from >= items.length) return layout
+/** Move one item from index `from` to `to` (same array when nothing moves). */
+export function moveItem<T>(items: readonly T[], from: number, to: number): readonly T[] {
+  if (from < 0 || from >= items.length) return items
   const target = clamp(to, 0, items.length - 1)
-  if (target === from) return layout
-  const [moved] = items.splice(from, 1)
-  items.splice(target, 0, moved)
-  return { ...layout, items }
+  if (target === from) return items
+  const next = [...items]
+  const [moved] = next.splice(from, 1)
+  next.splice(target, 0, moved)
+  return next
 }
 
-export function resizeWidget(layout: HomeLayout, id: HomeWidgetId, w: number, h: number): HomeLayout {
-  return { ...layout, items: layout.items.map((item) => (item.id === id ? clampItem(id, w, h) : item)) }
+export function moveWidget<L extends { items: readonly GridItem[] }>(layout: L, from: number, to: number): L {
+  const items = moveItem(layout.items, from, to)
+  return items === layout.items ? layout : { ...layout, items }
+}
+
+export function resizeWidget<L extends { items: readonly GridItem[] }>(layout: L, id: string, w: number, h: number, lookup: GridDefLookup = homeGridDefs): L {
+  return { ...layout, items: layout.items.map((item) => (item.id === id ? { ...item, ...clampItem(id, w, h, lookup) } : item)) }
 }
 
 export function hideWidget(layout: HomeLayout, id: HomeWidgetId): HomeLayout {
@@ -354,31 +392,32 @@ export function showWidget(layout: HomeLayout, id: HomeWidgetId): HomeLayout {
  *    columns); Shift + Up / Down: one row shorter / taller. Not on mobile.
  * Returns null for keys it doesn't handle.
  */
-export function applyLayoutKey(
-  layout: HomeLayout,
-  id: HomeWidgetId,
+export function applyLayoutKey<L extends { items: readonly GridItem[] }>(
+  layout: L,
+  id: string,
   key: { key: string; shiftKey?: boolean },
   cols: number,
-): { layout: HomeLayout; message: string } | null {
+  lookup: GridDefLookup = homeGridDefs,
+): { layout: L; message: string } | null {
   const index = layout.items.findIndex((i) => i.id === id)
   if (index < 0) return null
   const item = layout.items[index]
-  const title = DEFS.get(id)!.title
+  const title = defOf(lookup, id).title
   const n = layout.items.length
   if (key.shiftKey && key.key.startsWith('Arrow')) {
     if (cols <= 1) return { layout, message: 'Resizing isn’t available on a narrow screen; use the arrow keys to reorder.' }
-    const span = spanFor(item, cols)
+    const span = spanFor(item, cols, lookup)
     let w = item.w
     let h = item.h
-    if (key.key === 'ArrowLeft') w = desktopWidth(id, span - 1, cols)
-    else if (key.key === 'ArrowRight') w = desktopWidth(id, span + 1, cols)
+    if (key.key === 'ArrowLeft') w = desktopWidth(id, span - 1, cols, lookup)
+    else if (key.key === 'ArrowRight') w = desktopWidth(id, span + 1, cols, lookup)
     else if (key.key === 'ArrowUp') h = item.h - 1
     else if (key.key === 'ArrowDown') h = item.h + 1
     else return null
-    const next = resizeWidget(layout, id, w, h)
+    const next = resizeWidget(layout, id, w, h, lookup)
     const after = next.items[index]
     const limit = after.w === item.w && after.h === item.h ? ' It can’t go any further that way.' : ''
-    return { layout: next, message: `${title}: ${spanFor(after, cols)} of ${cols} columns wide, ${after.h} rows tall.${limit}` }
+    return { layout: next, message: `${title}: ${spanFor(after, cols, lookup)} of ${cols} columns wide, ${after.h} rows tall.${limit}` }
   }
   let to: number
   switch (key.key) {

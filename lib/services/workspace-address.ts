@@ -192,9 +192,27 @@ export async function isActiveMember(userId: string, tenantId: string): Promise<
   return (data ?? []).length > 0
 }
 
-/** The user's stored current workspace (null = the "All organizations" view) and home workspace. */
+/**
+ * A query that is never served from Next's per-render fetch memoization:
+ * identical GET fetches in one Server Component render share one response
+ * unless they carry their own AbortSignal (node_modules/next/dist/docs/01-app/
+ * 03-api-reference/04-functions/fetch.md, "Memoization"). A client without
+ * abortSignal (a non-PostgREST provider) does not memoize anyway.
+ */
+function unmemoized<Q>(query: Q): Q {
+  const withSignal = (query as { abortSignal?: (signal: AbortSignal) => Q }).abortSignal
+  return typeof withSignal === 'function' ? withSignal.call(query, new AbortController().signal) : query
+}
+
+/**
+ * The user's stored current workspace (null = the "All organizations" view)
+ * and home workspace. Always a fresh read: enforceHostWorkspace reads it,
+ * switches the workspace, then reads it again in the same render, and a
+ * memoized second read used to return the old workspace ("Could not open
+ * workspace …" on the first visit to another workspace's address).
+ */
 export async function storedWorkspaceOf(userId: string): Promise<{ current: string | null; home: string | null }> {
   const db = await addressDeps.serviceClient()
-  const { data } = await (db as any).from('users').select('current_tenant_id, tenant_id').eq('id', userId).maybeSingle()
+  const { data } = await unmemoized((db as any).from('users').select('current_tenant_id, tenant_id').eq('id', userId).maybeSingle())
   return { current: (data?.current_tenant_id ?? null) as string | null, home: (data?.tenant_id ?? null) as string | null }
 }

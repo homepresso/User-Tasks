@@ -1,7 +1,9 @@
 /**
- * Settings → Infrastructure: every area card always shows Change… and
- * Settings. A button that can't be used here is disabled, and the card says
- * why and what to do — per state:
+ * Settings → Infrastructure: every area card always offers Change… — with the
+ * Infrastructure add-on it opens the add-on's page, without it it leads to the
+ * add-on card (never a dead button) — and Settings where it applies (email and
+ * sign-in free; other areas with the add-on). A control that can't be used
+ * here is disabled, and the card says why and what to do — per state:
  *
  *   cloud locked          both disabled, "Locked on this cloud deployment" + Unlock…
  *   cloud unlocked        enabled (and the page offers Lock again…)
@@ -18,6 +20,7 @@ import { PROVIDER_AREAS } from '@/lib/config/schema'
 import { AREA_LABELS } from '@/lib/admin/catalogue'
 import { areaActionStates, switchingGate, type SwitchAccess, type SwitchingGate } from '@/lib/admin/switch-runtime'
 import type { InfrastructureView as View } from '@/lib/admin/infrastructure'
+import type { InfrastructureAddonView } from '@/lib/infrastructure/provider'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }), usePathname: () => '/settings/infrastructure' }))
 vi.mock('@/app/actions/infrastructure', () => ({
@@ -38,7 +41,10 @@ const PROVIDERS: Record<string, [string, string]> = {
   scheduler: ['pg_cron', 'pg_cron'], email: ['resend', 'Resend'], secrets: ['env', 'Environment'], cache: ['memory', 'Memory'], kms: ['env', 'ENCRYPTION_KEY'],
 }
 
-function view(gate: SwitchingGate, access: SwitchAccess): View {
+const READY: InfrastructureAddonView = { state: 'ready', href: '/x/infrastructure', reason: null }
+const MISSING: InfrastructureAddonView = { state: 'missing', href: null, reason: 'needs the add-on' }
+
+function view(gate: SwitchingGate, access: SwitchAccess, addon: InfrastructureAddonView = READY): View {
   return {
     areas: PROVIDER_AREAS.map((area) => ({
       area, name: area, label: AREA_LABELS[area], provider: PROVIDERS[area][0], providerLabel: PROVIDERS[area][1], source: 'default', badges: [],
@@ -47,18 +53,18 @@ function view(gate: SwitchingGate, access: SwitchAccess): View {
     })),
     checkedAt: '2026-10-29T00:00:00.000Z', switches: [], switchLogError: null,
     switching: { gate, runtime: { available: false, reason: 'Vercel functions stop when the request ends' }, access, directError: null, busy: false, recentSwitchArea: null },
-    housekeeping: null, housekeepingError: 'not installed', appVersion: '1.0.0',
+    housekeeping: null, housekeepingError: 'not installed', reportRollups: null, reportRollupsError: null, appVersion: '1.0.0', addon,
   }
 }
 
-/** Each area section's two buttons: [label, disabled]. */
+/** Each area section's controls: [label, disabled]. */
 function buttons(html: string, label: string): Array<[string, boolean]> {
   const section = html.slice(html.indexOf(`aria-label="${label}"`))
   const end = section.indexOf('</section>')
   const body = section.slice(0, end)
-  return [...body.matchAll(/<button[^>]*aria-label="([^"]+)"[^>]*>/g)]
+  return [...body.matchAll(/<(?:a|span|button)[^>]*aria-label="([^"]+)"[^>]*>/g)]
     .filter((m) => /settings$|^Change /.test(m[1]))
-    .map((m) => [m[1], /\sdisabled=""/.test(m[0])])
+    .map((m) => [m[1], /aria-disabled="true"|\sdisabled=""/.test(m[0])])
 }
 
 function sectionOf(html: string, label: string): string {
@@ -105,18 +111,19 @@ describe('area action states', () => {
   })
 })
 
-describe('Settings → Infrastructure page: the buttons are always there', () => {
-  it('cloud locked (production today): every card shows Change… and Settings, disabled, with the reason and Unlock…', () => {
+describe('Settings → Infrastructure page with the Infrastructure add-on', () => {
+  it('cloud locked (production today): every card shows Change… (and Settings where there are any), disabled, with the reason and Unlock…', () => {
     const html = renderToStaticMarkup(createElement(InfrastructureView, { view: view(LOCKED, 'api') }))
     for (const area of PROVIDER_AREAS) {
       const label = AREA_LABELS[area]
-      expect(buttons(html, label)).toEqual([[`${label} settings`, true], [`Change ${label} provider`, true]])
+      expect(buttons(html, label)).toEqual(area === 'kms' ? [[`Change ${label} provider`, true]] : [[`${label} settings`, true], [`Change ${label} provider`, true]])
       const section = sectionOf(html, label)
       expect(section).toMatch(/Locked on this cloud deployment/)
       expect(section).toMatch(/Unlock…/)
     }
     expect(html).toMatch(/data-lock="locked"/)
     expect(html).toMatch(/data-access="api"/)
+    expect(html).not.toMatch(/data-addon-upsell/)
   })
 
   it('unlocked without DATABASE_URL: config-only enabled; data-moving disabled with the DATABASE_URL snippet', () => {
@@ -132,14 +139,47 @@ describe('Settings → Infrastructure page: the buttons are always there', () =>
     expect(html).toMatch(/Lock again…/)
   })
 
-  it('with DATABASE_URL: everything enabled, no notes; a provider without settings says so', () => {
+  it('with DATABASE_URL: everything enabled and linked to the add-on page; email and sign-in settings stay in core', () => {
     const html = renderToStaticMarkup(createElement(InfrastructureView, { view: view(SELF_HOSTED, 'direct') }))
     for (const area of PROVIDER_AREAS.filter((a) => a !== 'kms')) {
       const label = AREA_LABELS[area]
       expect(buttons(html, label)).toEqual([[`${label} settings`, false], [`Change ${label} provider`, false]])
     }
-    expect(buttons(html, AREA_LABELS.kms)).toEqual([[`${AREA_LABELS.kms} settings`, true], [`Change ${AREA_LABELS.kms} provider`, false]])
+    expect(buttons(html, AREA_LABELS.kms)).toEqual([[`Change ${AREA_LABELS.kms} provider`, false]])
     expect(sectionOf(html, AREA_LABELS.kms)).toMatch(/has no settings to edit here/)
+    expect(sectionOf(html, AREA_LABELS.db)).toContain('href="/x/infrastructure?area=db"')
+    expect(sectionOf(html, AREA_LABELS.email)).toContain('href="/settings/setup?step=email"')
     expect(html).not.toMatch(/data-lock=|data-access="api"/)
+  })
+})
+
+describe('Settings → Infrastructure page without the add-on (free edition)', () => {
+  it('shows status, Change… leads to the add-on card (no dead buttons), email / sign-in settings stay free', () => {
+    const html = renderToStaticMarkup(createElement(InfrastructureView, { view: view(SELF_HOSTED, 'direct', MISSING) }))
+    for (const area of PROVIDER_AREAS) {
+      const label = AREA_LABELS[area]
+      const controls = buttons(html, label)
+      expect(controls).toContainEqual([`Change ${label} provider (Infrastructure add-on)`, false])
+      expect(controls.every(([, disabled]) => !disabled)).toBe(true)
+      expect(sectionOf(html, label)).toContain('href="#infrastructure-addon"')
+      expect(sectionOf(html, label)).not.toContain('/x/infrastructure')
+    }
+    expect(buttons(html, AREA_LABELS.email)[0]).toEqual([`${AREA_LABELS.email} settings`, false])
+    expect(buttons(html, AREA_LABELS.db).map(([l]) => l)).toEqual([`Change ${AREA_LABELS.db} provider (Infrastructure add-on)`])
+    // The upsell: what it does, that it is paid (with the price), and how to get / install it.
+    expect(html).toMatch(/id="infrastructure-addon"[^>]*data-addon-upsell="infrastructure"|data-addon-upsell="infrastructure"/)
+    expect(html).toContain('Paid add-on')
+    expect(html).toContain('$9,000 USD per deployment per year')
+    expect(html).toContain('href="/settings/extensions"')
+    expect(html).toContain('href="/settings/licence"')
+    expect(html).toMatch(/keeps running on its current providers/)
+  })
+
+  it('installed but unlicensed (e.g. expired): says why and links to Settings → Licence', () => {
+    const html = renderToStaticMarkup(createElement(InfrastructureView, { view: view(SELF_HOSTED, 'direct', { state: 'unlicensed', href: '/x/infrastructure', reason: 'The licence for infrastructure expired.' }) }))
+    expect(html).toContain('data-addon-state="unlicensed"')
+    expect(html).toContain('The licence for infrastructure expired.')
+    expect(html).toMatch(/Install or renew the licence/)
+    expect(sectionOf(html, AREA_LABELS.db)).toContain('href="#infrastructure-addon"')
   })
 })

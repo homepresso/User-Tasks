@@ -41,7 +41,7 @@ const THEME = {
 export const HOME_FAQS = [
   { question: "What is UserTasks?", answer: "An open-source platform for the work between people and systems: forms that collect requests, workflows that route them, a task list where people approve and complete them, data tables and reports over the results, and an AI Agent on every screen that helps build and work all of it." },
   { question: "Is it really open source?", answer: "Yes. UserTasks is licensed under Apache-2.0. The cloud edition at usertasks.com runs the same code, and config as code lets you move a workspace between the cloud and your own servers." },
-  { question: "Do I have to use AI?", answer: "No. The Agent and AI workflow steps are optional and off until an administrator turns them on with your own provider key: OpenAI, Claude, Gemini, Grok, Azure OpenAI, Mistral, Groq, Ollama or any OpenAI-compatible model. The Agent proposes; people apply and confirm." },
+  { question: "Do I have to use AI?", answer: "No. The Agent and AI workflow steps are optional and off until an administrator turns them on with your own provider key: OpenAI, Claude, Gemini, Grok, Azure OpenAI, Mistral, Groq, Baseten, Ollama or any OpenAI-compatible model. The Agent proposes; people apply and confirm." },
   { question: "Where does our data live?", answer: "In the cloud edition, in an isolated workspace. Self-hosted, wherever you put it: start on Supabase, or run the database, storage, auth, email and secrets on AWS, Azure, Google Cloud, Kubernetes or your own servers, including air-gapped networks." },
   { question: "Can developers drive it from code?", answer: "Every screen is backed by the REST API, described by OpenAPI 3.1. There is an MCP server for AI clients, a TypeScript SDK and the usertasks CLI, with config as code to review and promote changes like any other code." },
   { question: "Is UserTasks ready for production?", answer: "Self-hosted UserTasks is production-ready: install it on your own servers with the one-line installer, Docker, Kubernetes or air-gapped today. UserTasks Cloud, the hosted edition at usertasks.com, is in beta." },
@@ -452,7 +452,8 @@ export function LandingPage() {
                 <div>
                   <Eyebrow light>Open source</Eyebrow>
                   <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-white">Yours to read, run and change.</h2>
-                  <p className="mt-4 text-[17px] leading-8 text-[#D9D0BF]">Apache-2.0, with nothing held back for a paid tier. Read every line, run it on your own servers and keep your processes if you ever leave the cloud.</p>
+                  <p className="mt-4 text-[17px] leading-8 text-[#D9D0BF]">The whole platform is Apache-2.0: forms, workflows, apps, agents and reports. Read every line, run it on your own servers and keep your processes if you ever leave the cloud.</p>
+                  <p className="mt-3 text-sm leading-6 text-[#C9BFAE]">Need more on top? Paid <Link href="/extensions" className="font-semibold text-[#F0C27B] hover:text-white">extensions</Link> add SharePoint Server integration, infrastructure you choose for each service, and processing on separate runners.</p>
                   <div className="mt-7 flex flex-wrap gap-3">
                     <Link href="/open-source" className="mkt-btn-ember inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold">Why open source <ArrowRight size={16} aria-hidden="true" /></Link>
                     {repoUrl && <a href={repoUrl} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-3 font-semibold text-[#F4EFE4] hover:border-white/35"><GitFork size={16} aria-hidden="true" />GitHub</a>}

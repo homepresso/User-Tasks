@@ -1,0 +1,123 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+  "asset": {
+    "id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+    "name": "Survey participation",
+    "description": "Who was invited to a survey and whether they answered (never what they answered). Drives reminders and the participation rate.",
+    "columns": [
+      {
+        "id": "19fa56cc-f120-5f0b-81c3-f20410db03e7",
+        "required": true,
+        "key": "cycle_code",
+        "name": "Cycle code",
+        "type": "text"
+      },
+      {
+        "id": "fd3b1cd0-337c-590e-b8da-91b42be390f7",
+        "required": false,
+        "key": "cycle_name",
+        "name": "Cycle",
+        "type": "text"
+      },
+      {
+        "id": "d1c50ee7-25ca-5c28-9b97-54b3d69113e8",
+        "required": false,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "30f1fc2d-79cf-531c-b8a2-47b32bfa2ade",
+        "required": false,
+        "key": "employee_email",
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "id": "2a85cc07-444a-5d24-80c2-21a86def1bf3",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "45bdfd33-9a12-5443-907f-35f6309e02eb",
+        "required": false,
+        "key": "location",
+        "name": "Location",
+        "type": "select",
+        "options": [
+          "Denver HQ",
+          "Austin",
+          "Chicago",
+          "Remote (US)",
+          "Boise studio"
+        ]
+      },
+      {
+        "id": "50b833a5-71e5-51c2-9abe-701138fe97b6",
+        "required": false,
+        "key": "tenure_band",
+        "name": "Tenure band",
+        "type": "select",
+        "options": [
+          "Less than 1 year",
+          "1-2 years",
+          "2-5 years",
+          "5+ years"
+        ]
+      },
+      {
+        "id": "dfad8348-d657-5ce5-a77b-7a85c068b5e5",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Invited",
+          "Responded"
+        ]
+      },
+      {
+        "id": "6935ba13-36ef-53d2-8a8c-532246450b47",
+        "required": false,
+        "key": "invited_on",
+        "name": "Invited on",
+        "type": "date"
+      },
+      {
+        "id": "e0ced22d-5190-5a42-adb8-307f9a51827d",
+        "required": false,
+        "key": "responded_on",
+        "name": "Responded on",
+        "type": "date"
+      },
+      {
+        "id": "60d27a02-8089-5ec1-bc64-39d1f142ff97",
+        "required": false,
+        "key": "reminders_sent",
+        "name": "Reminders sent",
+        "type": "number"
+      },
+      {
+        "id": "cc295713-3de3-5d71-9cf8-e270fdf8df38",
+        "required": false,
+        "key": "closes_on",
+        "name": "Closes on",
+        "type": "date"
+      }
+    ]
+  }
+}

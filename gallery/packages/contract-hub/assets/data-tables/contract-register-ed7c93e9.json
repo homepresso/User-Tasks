@@ -1,0 +1,105 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+  "asset": {
+    "id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+    "name": "Contract register",
+    "description": "Every contract: counterparty, type, value in USD, owner, term, renewal date and where it is in the approval pipeline.",
+    "columns": [
+      {
+        "id": "96dc1e04-d39e-537c-91ed-dddedd2b5ba8",
+        "required": true,
+        "key": "contract_ref",
+        "name": "Contract",
+        "type": "text"
+      },
+      {
+        "id": "fcacc240-1467-5b62-b8a1-fa656db9b01c",
+        "required": true,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "8406b7ad-404a-5b3e-a63e-608d44866562",
+        "required": false,
+        "key": "counterparty",
+        "name": "Counterparty",
+        "type": "text"
+      },
+      {
+        "id": "bb2df62d-b679-5003-a720-2a22f524d5c5",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "NDA",
+          "Master services agreement",
+          "Statement of work",
+          "Supplier agreement",
+          "Software licence",
+          "Lease"
+        ]
+      },
+      {
+        "id": "0fdd185f-ae33-5cd1-9d45-7a1808c1eed5",
+        "required": false,
+        "key": "value_usd",
+        "name": "Value (USD)",
+        "type": "number"
+      },
+      {
+        "id": "cb64bf7e-fa9a-5160-bf1f-540a3afa95cf",
+        "required": false,
+        "key": "owner",
+        "name": "Business owner",
+        "type": "text"
+      },
+      {
+        "id": "e7405429-130b-5b7f-9633-92b1328a3c11",
+        "required": false,
+        "key": "start_date",
+        "name": "Start",
+        "type": "date"
+      },
+      {
+        "id": "b95a5278-f105-5c00-b135-ee6288746dbc",
+        "required": false,
+        "key": "end_date",
+        "name": "End",
+        "type": "date"
+      },
+      {
+        "id": "7c8c48c9-5d39-592a-b735-3f18b22aeedc",
+        "required": false,
+        "key": "renewal_date",
+        "name": "Renewal decision by",
+        "type": "date"
+      },
+      {
+        "id": "dd084499-e27f-57fa-8c24-e0901e96520e",
+        "required": false,
+        "key": "auto_renew",
+        "name": "Auto-renews",
+        "type": "boolean"
+      },
+      {
+        "id": "fc5f1630-7e3d-5cde-9b85-d91a6b59f428",
+        "required": false,
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "Submitted",
+          "Legal review",
+          "Finance review",
+          "Signature",
+          "Signed",
+          "Rejected"
+        ]
+      }
+    ]
+  }
+}

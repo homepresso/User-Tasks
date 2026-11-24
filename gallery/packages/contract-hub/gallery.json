@@ -1,0 +1,122 @@
+{
+  "id": "06ee1413-add9-50ef-b199-a50d970e7dfa",
+  "slug": "contract-hub",
+  "title": "Contract hub",
+  "category": "operations-compliance",
+  "summary": "A contract app: submit a contract in a side panel, follow the approval pipeline as a funnel, see renewal decisions on a calendar and keep the register in an editable grid.",
+  "description": "Contract hub is a ready-made app for contract approvals and renewals. A business owner opens it from the Apps menu and presses Submit a contract: the form slides in from the right with the title, counterparty, type, value in USD, term, renewal decision date, auto-renewal, owner, summary and the contract documents.\n\nEach submission starts the Contract approval workflow. The contract is added to the Contract register, legal reviews it, finance also reviews it when it is worth more than $50,000, and the business owner collects the signatures. Once it is signed, a renewal review task for the owner falls due on the renewal decision date (with a reminder two weeks before), so no contract renews by accident.\n\nThe app has four pages: Overview (Submit a contract, contract value, contracts and open reviews, the approval pipeline as a funnel and value by type), Renewals (a month calendar of renewal decisions and reviews beside the renewals due soonest), Register (the editable register grouped by type, click a contract to open it in a side panel, and a value by type and stage pivot) and My reviews (your reviews, where contracts wait, reviews on time by reviewer and time per review). Twelve sample contracts make it useful straight after install.",
+  "trigger": "app",
+  "entry_app": "865ab966-f2a6-5726-9aa9-779a4a4a4eb8",
+  "entry_workflow": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+  "entry_form": "21f3d5fd-7c35-5437-9fd8-cf517721e729",
+  "start": "Open Contract hub from the Apps menu and press Submit a contract; the form slides in from the right and starts the approval workflow.",
+  "difficulty": "intermediate",
+  "setup_minutes": 10,
+  "tags": [
+    "contracts",
+    "approvals",
+    "renewals",
+    "legal",
+    "funnel",
+    "app"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "setup": [
+    "Open Apps → Contract hub → Settings → Audience: add business owners, legal and finance as contributors; leadership can be viewers.",
+    "Assignees: pick the legal reviewer and the finance reviewer. Signatures and renewal reviews go to the business owner chosen on each contract.",
+    "Change the $50,000 finance threshold in the \"Over $50,000?\" condition to your delegation of authority.",
+    "Replace the sample contracts in the Contract register, or keep them while you try the app."
+  ],
+  "steps": [
+    {
+      "title": "Submit a contract",
+      "body": "Submit a contract opens the form in a side panel: counterparty, type, value, term, renewal date, owner and documents."
+    },
+    {
+      "title": "Legal review",
+      "body": "The contract is added to the register and legal approves or rejects it."
+    },
+    {
+      "title": "Finance review",
+      "body": "Contracts over $50,000 also go to finance to check the budget line."
+    },
+    {
+      "title": "Signed",
+      "body": "The business owner collects the signatures; the register shows the contract as Signed."
+    },
+    {
+      "title": "Renewal review",
+      "body": "A renewal task for the owner falls due on the renewal decision date, with a reminder two weeks before."
+    }
+  ],
+  "sample_input": {
+    "title": "Customer support platform",
+    "counterparty": "Helpwise Software",
+    "type": "Software licence",
+    "value": 72000,
+    "start_date": "2027-01-01",
+    "end_date": "2027-12-31",
+    "renewal_date": "2027-11-01",
+    "auto_renew": true,
+    "owner": "$owner",
+    "summary": "Three-year price lock, 60-day notice period."
+  },
+  "expect": "waiting",
+  "verify_mocks": {
+    "uploads": {
+      "documents": [
+        "policy-draft.pdf"
+      ]
+    },
+    "tasks": [
+      {
+        "outcome": "Approve",
+        "values": {
+          "legal_notes": "Standard terms, liability cap agreed."
+        }
+      },
+      {
+        "outcome": "Approve",
+        "values": {
+          "budget_line": "IT-OPEX-2027"
+        }
+      },
+      {
+        "outcome": "Signed",
+        "values": {
+          "signed_on": "2026-11-21"
+        }
+      }
+    ]
+  },
+  "icon": "file-signature",
+  "screenshots": [
+    {
+      "file": "screenshots/overview.webp",
+      "caption": "Overview: contract value, open reviews, the approval pipeline as a funnel and value by type."
+    },
+    {
+      "file": "screenshots/renewals.webp",
+      "caption": "Renewals: renewal decisions on a month calendar beside the renewals due soonest."
+    },
+    {
+      "file": "screenshots/register.webp",
+      "caption": "Register: the editable contract register grouped by type."
+    },
+    {
+      "file": "screenshots/reviews-dark.webp",
+      "caption": "My reviews in dark mode: your reviews, where contracts wait and review times.",
+      "theme": "dark"
+    }
+  ]
+}

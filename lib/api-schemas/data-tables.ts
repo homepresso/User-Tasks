@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { defineEndpoint } from './registry'
-import { deletedResponse, idParams, itemResponse, listResponse, looseObject, paginationQuery } from './common'
+import { deletedResponse, idParams, itemResponse, listResponse, looseObject, paginationQuery, tagQueryField, tagsBodyField } from './common'
 
 export const dataColumnSchema = z.looseObject({
   id: z.string().optional().describe('Stable column id (kept when given; matched by key otherwise)'),
@@ -16,12 +16,24 @@ export const dataTableCreateBody = z.object({
   name: z.string().min(1).max(200),
   description: z.string().nullable().optional(),
   columns: z.array(dataColumnSchema).default([]).describe('Custom columns; the system ID and Date Created columns are added automatically'),
+  tags: tagsBodyField,
+})
+
+export const childRelationSchema = z.object({
+  id: z.string().max(40).optional().describe('Stable relation id (kept when given; generated otherwise)'),
+  table_id: z.string().min(1).describe('The child table — another table, or this table itself for a hierarchy'),
+  lookup_column: z.string().min(1).max(200).describe('Key of the child table\'s lookup column whose source is this table'),
+  label: z.string().max(80).optional().describe('Shown on the expander (default the child table\'s name)'),
+  roots_only: z.boolean().optional().describe('Same-table hierarchy only: the grid lists only rows without a parent at the top level'),
 })
 
 export const dataTableUpdateBody = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().nullable().optional(),
   columns: z.array(dataColumnSchema).optional().describe('Full replacement list of custom columns (system columns are kept)'),
+  child_relations: z.array(childRelationSchema).max(5).optional().describe('Full replacement list of child-record relations: rows of table_id whose lookup_column points at a row of this table (at most 5)'),
+  tags: tagsBodyField,
+  audit_changes: z.boolean().optional().describe('Record every field change of every row (who, when, old and new value); the history is on GET /data-tables/{id}/rows/{row_id}/changes. Needs migration 20270128090000'),
 })
 
 export const rowFilterSchema = z.object({
@@ -73,6 +85,24 @@ export const rowBulkDeleteBody = z.object({
   row_ids: z.array(z.string().min(1)).min(1).max(500),
 })
 
+const csvKeys = (description: string) => z.string().max(1000).optional().describe(description)
+  .transform((value) => (value ? value.split(',').map((v) => v.trim()).filter(Boolean) : undefined))
+
+export const rowGroupsQuerySchema = z.object({
+  group_by: z.string().min(1).max(400).describe('One or two column keys, comma-separated (e.g. status or status,region)')
+    .transform((value) => value.split(',').map((v) => v.trim()).filter(Boolean)),
+  search: z.string().optional().describe('Text matched against the row id and every cell'),
+  filters: filtersParam,
+  sum: csvKeys('Number columns to total per group, comma-separated'),
+  group_order: z.enum(['asc', 'desc']).optional().describe('Order of the groups (default asc; the empty group first)'),
+})
+
+export const rowChildrenQuerySchema = z.object({
+  relation: z.string().max(40).optional().describe('Child relation id (omit: the child counts of every relation of the row, or the rows when the table has exactly one relation)'),
+  limit: z.coerce.number().int().min(1).max(200).optional().describe('Child rows per page (default 50, at most 200)'),
+  offset: z.coerce.number().int().min(0).optional().describe('Child rows to skip'),
+})
+
 const rowParams = z.object({ id: z.string().describe('Table id'), rowId: z.string().describe('Row id') })
 const tags = ['Data tables']
 const TRIGGER_NOTE = 'Created and updated rows fire data_table_event workflows.'
@@ -80,7 +110,7 @@ const TRIGGER_NOTE = 'Created and updated rows fire data_table_event workflows.'
 export const listDataTablesEndpoint = defineEndpoint({
   method: 'GET', path: '/data-tables', operationId: 'listDataTables', tags,
   summary: 'List data tables', permission: 'data.view',
-  query: paginationQuery.extend({ search: z.string().optional().describe('Name contains') }),
+  query: paginationQuery.extend({ search: z.string().optional().describe('Name contains'), tag: tagQueryField }),
   response: listResponse('data_tables'), listKey: 'data_tables',
   cli: { resource: 'tables', verb: 'list' },
 })
@@ -101,7 +131,7 @@ export const getDataTableEndpoint = defineEndpoint({
 
 export const updateDataTableEndpoint = defineEndpoint({
   method: 'PATCH', path: '/data-tables/{id}', operationId: 'updateDataTable', tags,
-  summary: 'Rename a data table or replace its custom columns', permission: 'data.edit_schema',
+  summary: 'Rename a data table, change its tags or replace its custom columns', permission: 'data.edit_schema',
   params: idParams, body: dataTableUpdateBody, response: itemResponse('data_table'),
   roundTrip: { unwrap: 'data_table' },
   cli: { resource: 'tables', verb: 'update', positional: ['id'] },
@@ -248,6 +278,7 @@ export const gridViewSchema = z.looseObject({
   allow_delete: z.boolean().optional(),
   page_size: z.number().int().min(10).max(500).optional().describe('Rows per page (default 100)'),
   default: z.boolean().optional().describe('The view the grid opens on'),
+  group_by: z.array(z.string().min(1).max(200)).max(2).optional().describe('Group the rows by these column keys (one or two levels; text, number, date, yes / no, choice and lookup columns)'),
 })
 
 export const tableViewsBody = z.object({ views: z.array(gridViewSchema).max(20).describe('Full replacement list of the table\'s grid views') })
@@ -335,8 +366,47 @@ export const gridOptionsEndpoint = defineEndpoint({
   cli: { resource: 'tables', verb: 'options', positional: ['id', 'viewId'] },
 })
 
+const groupNode = z.looseObject({
+  value: z.string().nullable().describe('The cell value (null: the empty group)'),
+  count: z.number().int(),
+  sums: z.record(z.string(), z.number()),
+  groups: z.array(z.looseObject({ value: z.string().nullable(), count: z.number().int(), sums: z.record(z.string(), z.number()) })).optional().describe('Second-level groups'),
+})
+
+export const groupRowsEndpoint = defineEndpoint({
+  method: 'GET', path: '/data-tables/{id}/rows/groups', operationId: 'groupDataRows', tags,
+  summary: 'Group rows by one or two columns (counts and sums)', permission: 'data.view',
+  description: 'Groups the WHOLE filtered result (search, filters), not a page: per group the value (null for blank cells), the row count, the sums of the `sum` columns and, grouped by two columns, the second-level groups. Read a group\'s rows with GET /data-tables/{id}/rows and filters [{field, operator: "equals", value}] (or is_empty for the empty group). `exact` is false until database migration 20270119090000 is applied (then the newest 2,000 rows are grouped and `truncated` says whether the table holds more).',
+  params: idParams, query: rowGroupsQuerySchema,
+  response: z.looseObject({ table_id: z.string(), group_by: z.array(z.string()), groups: z.array(groupNode), total: z.number().int(), exact: z.boolean(), truncated: z.boolean(), groups_truncated: z.boolean() }),
+  cli: { resource: 'rows', verb: 'groups', positional: ['id'] },
+})
+
+export const rowChildrenEndpoint = defineEndpoint({
+  method: 'GET', path: '/data-tables/{id}/rows/{rowId}/children', operationId: 'getDataRowChildren', tags,
+  summary: 'Child records of a row (a child relation\'s rows, or the counts per relation)', permission: 'data.view',
+  description: 'A table\'s child relations (child_relations on the table) link rows of a child table — or of the same table, for a hierarchy — through a lookup column that points at this table. With `relation`: that relation\'s child rows of the row, oldest first, with the child table\'s columns and `link_value` (the value a new child stores in `lookup_column` to belong to this row). Without it: `relations` with the child count of each.',
+  params: rowParams, query: rowChildrenQuerySchema,
+  response: z.looseObject({ table_id: z.string(), row_id: z.string(), relations: z.array(looseObject).optional(), relation: looseObject.optional(), child_table: looseObject.optional(), link_value: z.string().nullable().optional(), lookup_column: z.string().optional(), rows: z.array(looseObject).optional(), total: z.number().int().optional() }),
+  cli: { resource: 'rows', verb: 'children', positional: ['id', 'rowId'] },
+})
+
+export const rowChangesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).optional().describe('Changes to return, newest first (default 50, at most 200)'),
+})
+
+export const rowChangesEndpoint = defineEndpoint({
+  method: 'GET', path: '/data-tables/{id}/rows/{rowId}/changes', operationId: 'getDataRowChanges', tags,
+  summary: 'Change history of a row (field, old and new value, who, when)', permission: 'data.view',
+  description: 'Tables with `audit_changes` on record every changed field of every row update, whatever made it (grid, form, API, workflow). `changed_by` is null for automation writes. `available` is false until migration 20270128090000 is applied; `audited` says whether the table records changes now (history from earlier stays).',
+  params: rowParams, query: rowChangesQuerySchema,
+  response: z.looseObject({ available: z.boolean(), audited: z.boolean(), changes: z.array(z.looseObject({ field: z.string(), label: z.string(), old_value: z.unknown(), new_value: z.unknown(), changed_by: z.string().nullable(), changed_by_name: z.string().nullable(), changed_at: z.string() })) }),
+  cli: { resource: 'rows', verb: 'changes', positional: ['id', 'rowId'] },
+})
+
 export const dataTableEndpoints = [
   listDataTablesEndpoint, createDataTableEndpoint, getDataTableEndpoint, updateDataTableEndpoint, deleteDataTableEndpoint,
   listRowsEndpoint, upsertRowsEndpoint, getRowEndpoint, updateRowEndpoint, deleteRowEndpoint, bulkDeleteRowsEndpoint, importRowsEndpoint,
   getTableViewsEndpoint, updateTableViewsEndpoint, writeRowCellsEndpoint, writeRowsCellsEndpoint, gridOptionsEndpoint,
+  groupRowsEndpoint, rowChildrenEndpoint, rowChangesEndpoint,
 ]

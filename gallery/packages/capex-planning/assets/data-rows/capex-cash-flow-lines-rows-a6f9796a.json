@@ -1,0 +1,4180 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "a6f9796a-8279-50be-89fe-22a6c3b69017",
+  "asset": {
+    "id": "a6f9796a-8279-50be-89fe-22a6c3b69017",
+    "name": "CapEx cash-flow lines rows",
+    "rows": [
+      {
+        "id": "4dc66739-4c82-5869-9189-c86ab05897e6",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "year": 1,
+          "benefits": 37000,
+          "operating_costs": 5200,
+          "net": 31800,
+          "present_value": 29444
+        }
+      },
+      {
+        "id": "acef8b07-4277-5166-9bcd-b4aa93bf03dc",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "year": 2,
+          "benefits": 53700,
+          "operating_costs": 6900,
+          "net": 46800,
+          "present_value": 40123
+        }
+      },
+      {
+        "id": "6542009f-2160-51ca-8f42-a41f29dd11bb",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "year": 3,
+          "benefits": 55300,
+          "operating_costs": 9500,
+          "net": 45800,
+          "present_value": 36358
+        }
+      },
+      {
+        "id": "82dc4bf1-6429-544f-ae77-401a19b4e590",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "year": 4,
+          "benefits": 56900,
+          "operating_costs": 5900,
+          "net": 51000,
+          "present_value": 37487
+        }
+      },
+      {
+        "id": "16474884-e63b-58aa-a650-ce916ab53781",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "year": 5,
+          "benefits": 58500,
+          "operating_costs": 10300,
+          "net": 48200,
+          "present_value": 32804
+        }
+      },
+      {
+        "id": "a193d28b-eb88-5fad-ac1c-b4ac2400d2f0",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "year": 1,
+          "benefits": 35200,
+          "operating_costs": 5400,
+          "net": 29800,
+          "present_value": 27593
+        }
+      },
+      {
+        "id": "6560b113-0d49-5de9-b311-8fad5547eafa",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "year": 2,
+          "benefits": 54000,
+          "operating_costs": 7100,
+          "net": 46900,
+          "present_value": 40209
+        }
+      },
+      {
+        "id": "fdd1677b-a4fb-54fa-883b-69ef9a63b307",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "year": 3,
+          "benefits": 55600,
+          "operating_costs": 4600,
+          "net": 51000,
+          "present_value": 40485
+        }
+      },
+      {
+        "id": "70a22e5d-9d05-5094-9724-0dac1e53aa38",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "year": 4,
+          "benefits": 57200,
+          "operating_costs": 6100,
+          "net": 51100,
+          "present_value": 37560
+        }
+      },
+      {
+        "id": "d5afcd5f-ed94-5a5c-b1e5-e25adb17494e",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "year": 5,
+          "benefits": 58800,
+          "operating_costs": 10200,
+          "net": 48600,
+          "present_value": 33076
+        }
+      },
+      {
+        "id": "e7b3115b-3dfe-5e74-b9b4-4d6e69ca9ef4",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "year": 1,
+          "benefits": 6700,
+          "operating_costs": 1000,
+          "net": 5700,
+          "present_value": 5278
+        }
+      },
+      {
+        "id": "c387d3d4-1bc5-52f4-8974-d8786ab9ad41",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "year": 2,
+          "benefits": 11000,
+          "operating_costs": 1400,
+          "net": 9600,
+          "present_value": 8230
+        }
+      },
+      {
+        "id": "b45970fd-859c-520c-97e6-1f75740fc0e8",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "year": 3,
+          "benefits": 11400,
+          "operating_costs": 1100,
+          "net": 10300,
+          "present_value": 8176
+        }
+      },
+      {
+        "id": "ee9f022a-e146-5dda-a2dc-dcb6e1af9dab",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "year": 4,
+          "benefits": 11700,
+          "operating_costs": 1900,
+          "net": 9800,
+          "present_value": 7203
+        }
+      },
+      {
+        "id": "e0211f59-8430-58b4-a98f-aa73573de1ef",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "year": 5,
+          "benefits": 12000,
+          "operating_costs": 1600,
+          "net": 10400,
+          "present_value": 7078
+        }
+      },
+      {
+        "id": "9a03ad93-cd75-51b1-b05f-1837e138539a",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "year": 1,
+          "benefits": 24300,
+          "operating_costs": 3900,
+          "net": 20400,
+          "present_value": 18889
+        }
+      },
+      {
+        "id": "e6574fdf-f4b7-5c92-a9cf-32c35bab0df2",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "year": 2,
+          "benefits": 32900,
+          "operating_costs": 5800,
+          "net": 27100,
+          "present_value": 23234
+        }
+      },
+      {
+        "id": "91af752c-2ed3-5f6f-adc4-6d1423f31b33",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "year": 3,
+          "benefits": 33900,
+          "operating_costs": 5100,
+          "net": 28800,
+          "present_value": 22862
+        }
+      },
+      {
+        "id": "c75b6d3a-1038-5421-8a74-28b3b68367e5",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "year": 4,
+          "benefits": 34800,
+          "operating_costs": 5800,
+          "net": 29000,
+          "present_value": 21316
+        }
+      },
+      {
+        "id": "ea47b89c-679d-5117-af98-6ecd66a3e01c",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "year": 1,
+          "benefits": 151600,
+          "operating_costs": 24900,
+          "net": 126700,
+          "present_value": 117315
+        }
+      },
+      {
+        "id": "1137b47f-e230-581f-bdfe-0b4cc37ff473",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "year": 2,
+          "benefits": 273800,
+          "operating_costs": 43900,
+          "net": 229900,
+          "present_value": 197102
+        }
+      },
+      {
+        "id": "825fcbc9-c0fe-528b-8fb3-1cd365d2f34f",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "year": 3,
+          "benefits": 282000,
+          "operating_costs": 40500,
+          "net": 241500,
+          "present_value": 191710
+        }
+      },
+      {
+        "id": "78867b18-da33-54fc-9fd8-cda17457a6cd",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "year": 4,
+          "benefits": 290200,
+          "operating_costs": 47300,
+          "net": 242900,
+          "present_value": 178539
+        }
+      },
+      {
+        "id": "972cde29-0fb7-5f94-8165-e416936e11dc",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "year": 5,
+          "benefits": 298500,
+          "operating_costs": 49100,
+          "net": 249400,
+          "present_value": 169737
+        }
+      },
+      {
+        "id": "382e04c8-a2a5-54af-840a-e0d5adb61f5f",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "year": 1,
+          "benefits": 3600,
+          "operating_costs": 400,
+          "net": 3200,
+          "present_value": 2963
+        }
+      },
+      {
+        "id": "831e8d93-10e8-5ce0-8b8d-ed6b925eba16",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "year": 2,
+          "benefits": 6200,
+          "operating_costs": 1100,
+          "net": 5100,
+          "present_value": 4372
+        }
+      },
+      {
+        "id": "78279eb1-ae33-589a-81ca-6101766e8e46",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "year": 3,
+          "benefits": 6400,
+          "operating_costs": 600,
+          "net": 5800,
+          "present_value": 4604
+        }
+      },
+      {
+        "id": "c4a9ea02-e561-5dea-b641-3d3e132d89ee",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "year": 4,
+          "benefits": 6600,
+          "operating_costs": 500,
+          "net": 6100,
+          "present_value": 4484
+        }
+      },
+      {
+        "id": "d0953e07-105e-5dcc-8463-49d4e6ae8190",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "year": 1,
+          "benefits": 22500,
+          "operating_costs": 3300,
+          "net": 19200,
+          "present_value": 17778
+        }
+      },
+      {
+        "id": "135577db-16e3-5026-bb00-1c11f116f9bd",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "year": 2,
+          "benefits": 35500,
+          "operating_costs": 4400,
+          "net": 31100,
+          "present_value": 26663
+        }
+      },
+      {
+        "id": "52501728-ea06-5821-901b-ff566b90d3ef",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "year": 3,
+          "benefits": 36600,
+          "operating_costs": 4000,
+          "net": 32600,
+          "present_value": 25879
+        }
+      },
+      {
+        "id": "916ed590-7a94-52f7-a94e-448401833043",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "year": 4,
+          "benefits": 37700,
+          "operating_costs": 5800,
+          "net": 31900,
+          "present_value": 23447
+        }
+      },
+      {
+        "id": "53bd8bfa-c7b9-51b7-9e20-99c8d949630a",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "year": 5,
+          "benefits": 38700,
+          "operating_costs": 3900,
+          "net": 34800,
+          "present_value": 23684
+        }
+      },
+      {
+        "id": "d8477e2b-e2fb-5deb-8ebc-fef90e46a8f6",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "year": 1,
+          "benefits": 33700,
+          "operating_costs": 5900,
+          "net": 27800,
+          "present_value": 25741
+        }
+      },
+      {
+        "id": "d366f2d9-34a0-5fde-b187-3f77d809566f",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "year": 2,
+          "benefits": 55800,
+          "operating_costs": 7900,
+          "net": 47900,
+          "present_value": 41067
+        }
+      },
+      {
+        "id": "26fe51d2-b154-547e-9e73-0203c33901ca",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "year": 3,
+          "benefits": 57400,
+          "operating_costs": 8300,
+          "net": 49100,
+          "present_value": 38977
+        }
+      },
+      {
+        "id": "e775cc32-0927-5880-acb1-6b810db49563",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "year": 4,
+          "benefits": 59100,
+          "operating_costs": 10300,
+          "net": 48800,
+          "present_value": 35869
+        }
+      },
+      {
+        "id": "5fd5c8a6-1f23-5c83-ad4e-4a48beb4b36b",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "year": 5,
+          "benefits": 60800,
+          "operating_costs": 5000,
+          "net": 55800,
+          "present_value": 37977
+        }
+      },
+      {
+        "id": "252339fd-2f23-5681-8d10-5dd23c98cf2d",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "year": 1,
+          "benefits": 11600,
+          "operating_costs": 2000,
+          "net": 9600,
+          "present_value": 8889
+        }
+      },
+      {
+        "id": "4351eded-13a3-5044-91c8-ac5608cc5622",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "year": 2,
+          "benefits": 14600,
+          "operating_costs": 2300,
+          "net": 12300,
+          "present_value": 10545
+        }
+      },
+      {
+        "id": "ae4137b0-5358-54e5-83a8-f547aec5b4de",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "year": 3,
+          "benefits": 15000,
+          "operating_costs": 1500,
+          "net": 13500,
+          "present_value": 10717
+        }
+      },
+      {
+        "id": "832363d5-d2fd-5069-9538-0c08ba63b5cb",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "year": 4,
+          "benefits": 15500,
+          "operating_costs": 2300,
+          "net": 13200,
+          "present_value": 9702
+        }
+      },
+      {
+        "id": "3a02a589-5937-5df1-8adb-8e232b086325",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "year": 5,
+          "benefits": 15900,
+          "operating_costs": 2500,
+          "net": 13400,
+          "present_value": 9120
+        }
+      },
+      {
+        "id": "d171e0c3-8502-50b9-b437-7ac0610c0072",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "year": 1,
+          "benefits": 228700,
+          "operating_costs": 30000,
+          "net": 198700,
+          "present_value": 183981
+        }
+      },
+      {
+        "id": "fed0e470-6513-596a-a53b-623eefbd82be",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "year": 2,
+          "benefits": 297500,
+          "operating_costs": 50700,
+          "net": 246800,
+          "present_value": 211591
+        }
+      },
+      {
+        "id": "b8e7a10a-25d6-5ff2-ad5b-64444e7f7c65",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "year": 3,
+          "benefits": 306400,
+          "operating_costs": 53500,
+          "net": 252900,
+          "present_value": 200760
+        }
+      },
+      {
+        "id": "569bbdcb-dce1-5cbc-bee3-5624040c56dc",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "year": 4,
+          "benefits": 315300,
+          "operating_costs": 38400,
+          "net": 276900,
+          "present_value": 203530
+        }
+      },
+      {
+        "id": "5a8058da-4976-5084-9f54-b5f1ab4b660b",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "year": 1,
+          "benefits": 10100,
+          "operating_costs": 1100,
+          "net": 9000,
+          "present_value": 8333
+        }
+      },
+      {
+        "id": "f2b6da89-6397-501f-a8a3-6c42fb81b2a0",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "year": 2,
+          "benefits": 15800,
+          "operating_costs": 1600,
+          "net": 14200,
+          "present_value": 12174
+        }
+      },
+      {
+        "id": "089c0e00-484d-594e-9b23-40f4d6575034",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "year": 3,
+          "benefits": 16300,
+          "operating_costs": 2100,
+          "net": 14200,
+          "present_value": 11272
+        }
+      },
+      {
+        "id": "82b95331-3c8e-58dd-8f50-35b90e7b51b0",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "year": 4,
+          "benefits": 16800,
+          "operating_costs": 1900,
+          "net": 14900,
+          "present_value": 10952
+        }
+      },
+      {
+        "id": "aedeae3a-60d4-5ecd-bcf9-2813c2f08d1f",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "year": 5,
+          "benefits": 17200,
+          "operating_costs": 3000,
+          "net": 14200,
+          "present_value": 9664
+        }
+      },
+      {
+        "id": "2adddb13-b14b-5bb1-8008-0d72cc7ccbbc",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "year": 1,
+          "benefits": 32500,
+          "operating_costs": 3200,
+          "net": 29300,
+          "present_value": 27130
+        }
+      },
+      {
+        "id": "82b25007-bd34-5915-9d36-021e4efff930",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "year": 2,
+          "benefits": 51600,
+          "operating_costs": 6200,
+          "net": 45400,
+          "present_value": 38923
+        }
+      },
+      {
+        "id": "cbf5e8f9-5bee-5a42-bfb9-fedf8208a550",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "year": 3,
+          "benefits": 53200,
+          "operating_costs": 8600,
+          "net": 44600,
+          "present_value": 35405
+        }
+      },
+      {
+        "id": "36def3d8-adc2-57ed-b03a-ba5e8405af08",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "year": 4,
+          "benefits": 54700,
+          "operating_costs": 9700,
+          "net": 45000,
+          "present_value": 33076
+        }
+      },
+      {
+        "id": "0dd2a65d-a2fa-59fe-9007-bdf839ef5beb",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "year": 5,
+          "benefits": 56300,
+          "operating_costs": 5200,
+          "net": 51100,
+          "present_value": 34778
+        }
+      },
+      {
+        "id": "420cf95d-cb9b-586b-802c-b4c742c6267c",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "year": 1,
+          "benefits": 98600,
+          "operating_costs": 16600,
+          "net": 82000,
+          "present_value": 75926
+        }
+      },
+      {
+        "id": "f945d7ff-e50f-5b6d-bdb3-b09b0cce3c27",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "year": 2,
+          "benefits": 142600,
+          "operating_costs": 15500,
+          "net": 127100,
+          "present_value": 108968
+        }
+      },
+      {
+        "id": "cf761649-e404-5a24-bdaa-4700cd01f837",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "year": 3,
+          "benefits": 146900,
+          "operating_costs": 24000,
+          "net": 122900,
+          "present_value": 97562
+        }
+      },
+      {
+        "id": "14d70061-b560-585e-98b2-86384d47abbd",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "year": 4,
+          "benefits": 151200,
+          "operating_costs": 20000,
+          "net": 131200,
+          "present_value": 96436
+        }
+      },
+      {
+        "id": "276d39df-3669-5550-b4a0-cc0cbeef6391",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "year": 5,
+          "benefits": 155500,
+          "operating_costs": 26700,
+          "net": 128800,
+          "present_value": 87659
+        }
+      },
+      {
+        "id": "1387061d-0fc1-52f6-aa52-8d0f333cc2d4",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "year": 1,
+          "benefits": 48600,
+          "operating_costs": 4700,
+          "net": 43900,
+          "present_value": 40648
+        }
+      },
+      {
+        "id": "47b5e83b-66a7-5da2-9109-d5043bbe9b2a",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "year": 2,
+          "benefits": 73800,
+          "operating_costs": 12300,
+          "net": 61500,
+          "present_value": 52726
+        }
+      },
+      {
+        "id": "38efece4-540c-53ca-8252-17f2a1194151",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "year": 3,
+          "benefits": 76000,
+          "operating_costs": 12200,
+          "net": 63800,
+          "present_value": 50646
+        }
+      },
+      {
+        "id": "e3954c2a-7278-525d-adaa-c501352c9950",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "year": 4,
+          "benefits": 78200,
+          "operating_costs": 12800,
+          "net": 65400,
+          "present_value": 48071
+        }
+      },
+      {
+        "id": "7060b93b-4a32-567d-b153-e3bb353816b6",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "year": 5,
+          "benefits": 80400,
+          "operating_costs": 8100,
+          "net": 72300,
+          "present_value": 49206
+        }
+      },
+      {
+        "id": "4b01ff2f-fdfe-582e-92fd-1e7218a6a668",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "year": 1,
+          "benefits": 120400,
+          "operating_costs": 11300,
+          "net": 109100,
+          "present_value": 101019
+        }
+      },
+      {
+        "id": "2cd465a2-1941-544b-9816-ec40503d144d",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "year": 2,
+          "benefits": 150800,
+          "operating_costs": 19900,
+          "net": 130900,
+          "present_value": 112226
+        }
+      },
+      {
+        "id": "017a261a-07a7-5e5d-aee3-56d854948955",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "year": 3,
+          "benefits": 155300,
+          "operating_costs": 13600,
+          "net": 141700,
+          "present_value": 112486
+        }
+      },
+      {
+        "id": "8304f779-0c02-544b-8fbb-9caf5951f95b",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "year": 4,
+          "benefits": 159800,
+          "operating_costs": 24200,
+          "net": 135600,
+          "present_value": 99670
+        }
+      },
+      {
+        "id": "2a82d7ed-1f52-5524-9932-5d661a1f3ee5",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "year": 5,
+          "benefits": 164300,
+          "operating_costs": 26400,
+          "net": 137900,
+          "present_value": 93852
+        }
+      },
+      {
+        "id": "b3acb0bb-9f2b-5ee5-85ee-e2e61a084c83",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "year": 1,
+          "benefits": 65700,
+          "operating_costs": 8300,
+          "net": 57400,
+          "present_value": 53148
+        }
+      },
+      {
+        "id": "290f2697-e450-5fd0-9cb8-08da673b735f",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "year": 2,
+          "benefits": 109200,
+          "operating_costs": 18800,
+          "net": 90400,
+          "present_value": 77503
+        }
+      },
+      {
+        "id": "5904d883-ae4b-5a6a-8516-627320afdaa7",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "year": 3,
+          "benefits": 112500,
+          "operating_costs": 18100,
+          "net": 94400,
+          "present_value": 74938
+        }
+      },
+      {
+        "id": "7b2f4f7b-5191-5369-a912-1e7716f2873e",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "year": 4,
+          "benefits": 115800,
+          "operating_costs": 19800,
+          "net": 96000,
+          "present_value": 70563
+        }
+      },
+      {
+        "id": "9f4c0a11-54ce-5dd4-946c-ec52881e53e7",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "year": 1,
+          "benefits": 17400,
+          "operating_costs": 2400,
+          "net": 15000,
+          "present_value": 13889
+        }
+      },
+      {
+        "id": "d251b28b-1e25-5014-97c6-1f4af5a6f3ed",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "year": 2,
+          "benefits": 24000,
+          "operating_costs": 3700,
+          "net": 20300,
+          "present_value": 17404
+        }
+      },
+      {
+        "id": "e6e3e0f5-369f-5d7e-bc44-bb1378adb8fb",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "year": 3,
+          "benefits": 24700,
+          "operating_costs": 2700,
+          "net": 22000,
+          "present_value": 17464
+        }
+      },
+      {
+        "id": "276196e0-0f21-5ad8-a0f0-edcc886a4506",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "year": 4,
+          "benefits": 25400,
+          "operating_costs": 4500,
+          "net": 20900,
+          "present_value": 15362
+        }
+      },
+      {
+        "id": "2ab9f905-476e-5bb7-b552-1f9857e451db",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "year": 5,
+          "benefits": 26100,
+          "operating_costs": 4200,
+          "net": 21900,
+          "present_value": 14905
+        }
+      },
+      {
+        "id": "a899c178-8161-57ee-84d0-1ec4ad7603e0",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "year": 1,
+          "benefits": 14600,
+          "operating_costs": 1300,
+          "net": 13300,
+          "present_value": 12315
+        }
+      },
+      {
+        "id": "2b22354e-df9e-5029-9c8a-0ab3882ebf62",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "year": 2,
+          "benefits": 25400,
+          "operating_costs": 4200,
+          "net": 21200,
+          "present_value": 18176
+        }
+      },
+      {
+        "id": "f5e0442a-013e-5a76-ad6e-6817b7c6b6a2",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "year": 3,
+          "benefits": 26200,
+          "operating_costs": 4600,
+          "net": 21600,
+          "present_value": 17147
+        }
+      },
+      {
+        "id": "5e4ec7c0-e5b4-597d-bfcc-884bdfcc74cc",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "year": 4,
+          "benefits": 26900,
+          "operating_costs": 3900,
+          "net": 23000,
+          "present_value": 16906
+        }
+      },
+      {
+        "id": "f189bcfe-d6b7-5ddd-8c4d-87700eb7941d",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "year": 1,
+          "benefits": 252600,
+          "operating_costs": 42300,
+          "net": 210300,
+          "present_value": 194722
+        }
+      },
+      {
+        "id": "ae4b07cc-1622-5160-8018-246c420a7d36",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "year": 2,
+          "benefits": 332300,
+          "operating_costs": 47200,
+          "net": 285100,
+          "present_value": 244427
+        }
+      },
+      {
+        "id": "e7b4dccf-86aa-5df9-bd2d-3e634f5c5d52",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "year": 3,
+          "benefits": 342300,
+          "operating_costs": 33700,
+          "net": 308600,
+          "present_value": 244977
+        }
+      },
+      {
+        "id": "0bad54f0-ac9f-5d53-abef-e3c16e0f589a",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "year": 4,
+          "benefits": 352300,
+          "operating_costs": 48700,
+          "net": 303600,
+          "present_value": 223155
+        }
+      },
+      {
+        "id": "ccc719de-cc4b-59f5-bf5b-46d821f3aecf",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "year": 5,
+          "benefits": 362300,
+          "operating_costs": 34500,
+          "net": 327800,
+          "present_value": 223095
+        }
+      },
+      {
+        "id": "be95796a-626b-560e-8ed1-2a01fbc9dfe2",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "year": 1,
+          "benefits": 62100,
+          "operating_costs": 6900,
+          "net": 55200,
+          "present_value": 51111
+        }
+      },
+      {
+        "id": "9c321dc0-567b-575d-9f9d-1b6d91da0f7d",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "year": 2,
+          "benefits": 84100,
+          "operating_costs": 9400,
+          "net": 74700,
+          "present_value": 64043
+        }
+      },
+      {
+        "id": "a46f70f9-518e-524d-b6ae-4d2b45d6d419",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "year": 3,
+          "benefits": 86600,
+          "operating_costs": 9100,
+          "net": 77500,
+          "present_value": 61522
+        }
+      },
+      {
+        "id": "ff244e00-a258-5fcd-83a4-093b5953c197",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "year": 4,
+          "benefits": 89100,
+          "operating_costs": 14700,
+          "net": 74400,
+          "present_value": 54686
+        }
+      },
+      {
+        "id": "caf30311-02b1-5a58-9755-2b692c019f85",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "year": 5,
+          "benefits": 91700,
+          "operating_costs": 10900,
+          "net": 80800,
+          "present_value": 54991
+        }
+      },
+      {
+        "id": "bf03b94e-0afd-58be-a913-4e16d4b6a620",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "year": 1,
+          "benefits": 3100,
+          "operating_costs": 300,
+          "net": 2800,
+          "present_value": 2593
+        }
+      },
+      {
+        "id": "97b0c83c-918e-50db-ba1a-3c45d31f18a9",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "year": 2,
+          "benefits": 5700,
+          "operating_costs": 800,
+          "net": 4900,
+          "present_value": 4201
+        }
+      },
+      {
+        "id": "51e8f153-b3f6-5293-9ad7-d431f4a1a05d",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "year": 3,
+          "benefits": 5900,
+          "operating_costs": 800,
+          "net": 5100,
+          "present_value": 4049
+        }
+      },
+      {
+        "id": "0a9d897c-ffb6-5588-b96c-ba422b41e818",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "year": 4,
+          "benefits": 6000,
+          "operating_costs": 900,
+          "net": 5100,
+          "present_value": 3749
+        }
+      },
+      {
+        "id": "c243758d-6c75-54df-947d-e0ca5d016e18",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "year": 1,
+          "benefits": 11400,
+          "operating_costs": 1300,
+          "net": 10100,
+          "present_value": 9352
+        }
+      },
+      {
+        "id": "cf0fd385-bbc4-59df-992b-776748ff7409",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "year": 2,
+          "benefits": 16200,
+          "operating_costs": 2300,
+          "net": 13900,
+          "present_value": 11917
+        }
+      },
+      {
+        "id": "50b43c3a-5d01-59bf-ac43-83511224e767",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "year": 3,
+          "benefits": 16700,
+          "operating_costs": 1400,
+          "net": 15300,
+          "present_value": 12146
+        }
+      },
+      {
+        "id": "05a86f1a-5465-5c13-9e4f-89576f3f8bb2",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "year": 4,
+          "benefits": 17200,
+          "operating_costs": 1900,
+          "net": 15300,
+          "present_value": 11246
+        }
+      },
+      {
+        "id": "04831e80-5d77-5390-9250-ba78b67d3a97",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "year": 1,
+          "benefits": 258400,
+          "operating_costs": 22000,
+          "net": 236400,
+          "present_value": 218889
+        }
+      },
+      {
+        "id": "92cb29c7-dd48-5d32-846e-74a29abfbe7b",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "year": 2,
+          "benefits": 364400,
+          "operating_costs": 51100,
+          "net": 313300,
+          "present_value": 268604
+        }
+      },
+      {
+        "id": "70e763a7-69f5-52c8-8818-3af8bc8a1011",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "year": 3,
+          "benefits": 375400,
+          "operating_costs": 47200,
+          "net": 328200,
+          "present_value": 260536
+        }
+      },
+      {
+        "id": "62af25e8-d370-5df8-b8bf-5a5dfc1955f0",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "year": 4,
+          "benefits": 386300,
+          "operating_costs": 38900,
+          "net": 347400,
+          "present_value": 255349
+        }
+      },
+      {
+        "id": "938be670-1697-59fd-bd2e-ef0dcd6aeae2",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "year": 5,
+          "benefits": 397200,
+          "operating_costs": 50200,
+          "net": 347000,
+          "present_value": 236162
+        }
+      },
+      {
+        "id": "ef130de1-0fa3-52a1-902c-239d403ded0b",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "year": 1,
+          "benefits": 32500,
+          "operating_costs": 5400,
+          "net": 27100,
+          "present_value": 25093
+        }
+      },
+      {
+        "id": "f134b7c9-04dc-5625-a7ea-9f175c521b19",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "year": 2,
+          "benefits": 58000,
+          "operating_costs": 9900,
+          "net": 48100,
+          "present_value": 41238
+        }
+      },
+      {
+        "id": "d681ec6c-1807-56c1-bd90-607e242753e5",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "year": 3,
+          "benefits": 59800,
+          "operating_costs": 9500,
+          "net": 50300,
+          "present_value": 39930
+        }
+      },
+      {
+        "id": "6873ca1a-642b-51b0-ab1c-3f8c34520697",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "year": 4,
+          "benefits": 61500,
+          "operating_costs": 6100,
+          "net": 55400,
+          "present_value": 40721
+        }
+      },
+      {
+        "id": "7c605060-7b55-5ec5-bce0-4261ef1f52a4",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "year": 1,
+          "benefits": 682200,
+          "operating_costs": 105000,
+          "net": 577200,
+          "present_value": 534444
+        }
+      },
+      {
+        "id": "0d7f1b13-ebcd-5189-b3df-480d0476bc1c",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "year": 2,
+          "benefits": 984400,
+          "operating_costs": 162800,
+          "net": 821600,
+          "present_value": 704390
+        }
+      },
+      {
+        "id": "8c7906b0-d823-5e61-b799-0bb5b72b70cc",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "year": 3,
+          "benefits": 1013900,
+          "operating_costs": 165400,
+          "net": 848500,
+          "present_value": 673567
+        }
+      },
+      {
+        "id": "21e0090d-4baa-5ea5-9224-5feb4b632ca9",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "year": 4,
+          "benefits": 1043500,
+          "operating_costs": 108800,
+          "net": 934700,
+          "present_value": 687032
+        }
+      },
+      {
+        "id": "de53c639-ab6c-51f0-b416-077585707d48",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "year": 5,
+          "benefits": 1073000,
+          "operating_costs": 136200,
+          "net": 936800,
+          "present_value": 637570
+        }
+      },
+      {
+        "id": "eccc37ad-dce0-50a9-aead-8676ed3e845d",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "year": 1,
+          "benefits": 16200,
+          "operating_costs": 2500,
+          "net": 13700,
+          "present_value": 12685
+        }
+      },
+      {
+        "id": "416e2991-99f7-5f45-9056-2fd7f0065d9e",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "year": 2,
+          "benefits": 28000,
+          "operating_costs": 4700,
+          "net": 23300,
+          "present_value": 19976
+        }
+      },
+      {
+        "id": "6bdb8b28-c516-556b-919d-52f4b0361e5e",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "year": 3,
+          "benefits": 28900,
+          "operating_costs": 4300,
+          "net": 24600,
+          "present_value": 19528
+        }
+      },
+      {
+        "id": "3e9c2daf-cc8c-57ff-8b87-0f533d2894db",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "year": 4,
+          "benefits": 29700,
+          "operating_costs": 4900,
+          "net": 24800,
+          "present_value": 18229
+        }
+      },
+      {
+        "id": "6824f753-b960-5d45-a73f-1f79ffe496e8",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "year": 5,
+          "benefits": 30600,
+          "operating_costs": 5300,
+          "net": 25300,
+          "present_value": 17219
+        }
+      },
+      {
+        "id": "2ed94247-18c1-5313-80a1-fc90209ee249",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "year": 1,
+          "benefits": 11000,
+          "operating_costs": 1000,
+          "net": 10000,
+          "present_value": 9259
+        }
+      },
+      {
+        "id": "2746e4fd-1d37-5818-b580-0d553eca71a3",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "year": 2,
+          "benefits": 19700,
+          "operating_costs": 2100,
+          "net": 17600,
+          "present_value": 15089
+        }
+      },
+      {
+        "id": "9ea4ac73-822f-5f92-babb-b3e37e08e6e9",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "year": 3,
+          "benefits": 20300,
+          "operating_costs": 3300,
+          "net": 17000,
+          "present_value": 13495
+        }
+      },
+      {
+        "id": "dd98410d-76c3-5d00-8f93-8ada1cb4dfa6",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "year": 4,
+          "benefits": 20900,
+          "operating_costs": 3700,
+          "net": 17200,
+          "present_value": 12643
+        }
+      },
+      {
+        "id": "f4e5575f-8924-57b6-bc3a-ac37bdce77eb",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "year": 5,
+          "benefits": 21500,
+          "operating_costs": 2300,
+          "net": 19200,
+          "present_value": 13067
+        }
+      },
+      {
+        "id": "e0b984d0-7b7c-5b09-af26-f23851abf64a",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "year": 1,
+          "benefits": 54200,
+          "operating_costs": 7600,
+          "net": 46600,
+          "present_value": 43148
+        }
+      },
+      {
+        "id": "48b6c034-5f6f-530a-8264-8f289545fb66",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "year": 2,
+          "benefits": 88900,
+          "operating_costs": 13300,
+          "net": 75600,
+          "present_value": 64815
+        }
+      },
+      {
+        "id": "edea1dea-77ea-5ca2-9c1a-4b72435f6df9",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "year": 3,
+          "benefits": 91500,
+          "operating_costs": 10200,
+          "net": 81300,
+          "present_value": 64539
+        }
+      },
+      {
+        "id": "36730648-d95d-55f8-84d9-333e131fe5ca",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "year": 4,
+          "benefits": 94200,
+          "operating_costs": 10400,
+          "net": 83800,
+          "present_value": 61596
+        }
+      },
+      {
+        "id": "0a946420-e57d-51ea-989e-bc16549abf7f",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "year": 1,
+          "benefits": 37600,
+          "operating_costs": 5400,
+          "net": 32200,
+          "present_value": 29815
+        }
+      },
+      {
+        "id": "92f08b50-ff7d-5d52-a693-186cc824c1a5",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "year": 2,
+          "benefits": 51300,
+          "operating_costs": 4500,
+          "net": 46800,
+          "present_value": 40123
+        }
+      },
+      {
+        "id": "fa56e755-a538-5e38-ad2b-76d235978370",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "year": 3,
+          "benefits": 52800,
+          "operating_costs": 9500,
+          "net": 43300,
+          "present_value": 34373
+        }
+      },
+      {
+        "id": "4fc9ced7-7fd8-594c-b9d7-d1795baf093a",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "year": 4,
+          "benefits": 54300,
+          "operating_costs": 4800,
+          "net": 49500,
+          "present_value": 36384
+        }
+      },
+      {
+        "id": "4511d16a-43a3-5ef1-8da7-37abfaad087c",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "year": 1,
+          "benefits": 48700,
+          "operating_costs": 4400,
+          "net": 44300,
+          "present_value": 41019
+        }
+      },
+      {
+        "id": "f0ca7f2e-fa11-5e1e-a61f-165e3bfac9c6",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "year": 2,
+          "benefits": 63200,
+          "operating_costs": 7100,
+          "net": 56100,
+          "present_value": 48097
+        }
+      },
+      {
+        "id": "7bc01e4a-6c8a-5dae-95ef-aed2abc88a79",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "year": 3,
+          "benefits": 65100,
+          "operating_costs": 7600,
+          "net": 57500,
+          "present_value": 45645
+        }
+      },
+      {
+        "id": "c51f7c3d-1673-5679-9c6e-4afc3373d713",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "year": 4,
+          "benefits": 67000,
+          "operating_costs": 5400,
+          "net": 61600,
+          "present_value": 45278
+        }
+      },
+      {
+        "id": "b1f55949-95ee-50c9-ae0f-21c5546d384f",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "year": 5,
+          "benefits": 68900,
+          "operating_costs": 8200,
+          "net": 60700,
+          "present_value": 41311
+        }
+      },
+      {
+        "id": "01d700a3-9ac0-5550-9101-ba87d249a85b",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "year": 1,
+          "benefits": 70900,
+          "operating_costs": 12700,
+          "net": 58200,
+          "present_value": 53889
+        }
+      },
+      {
+        "id": "4cf360ad-6c17-57f2-b630-cd5be8b7cbdf",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "year": 2,
+          "benefits": 118400,
+          "operating_costs": 18800,
+          "net": 99600,
+          "present_value": 85391
+        }
+      },
+      {
+        "id": "88ada043-b605-5cad-94ae-d10529812c42",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "year": 3,
+          "benefits": 122000,
+          "operating_costs": 16200,
+          "net": 105800,
+          "present_value": 83987
+        }
+      },
+      {
+        "id": "047a6deb-17de-5009-9584-b76048068eec",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "year": 4,
+          "benefits": 125500,
+          "operating_costs": 21000,
+          "net": 104500,
+          "present_value": 76811
+        }
+      },
+      {
+        "id": "ef715053-ff6c-5787-8b22-d08a78233226",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "year": 5,
+          "benefits": 129100,
+          "operating_costs": 22900,
+          "net": 106200,
+          "present_value": 72278
+        }
+      },
+      {
+        "id": "1cdb61e5-bed0-50b0-8db6-af2b1167819d",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "year": 1,
+          "benefits": 186900,
+          "operating_costs": 25900,
+          "net": 161000,
+          "present_value": 149074
+        }
+      },
+      {
+        "id": "c0a5f219-73b4-5a4c-aa9b-af06024c80c1",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "year": 2,
+          "benefits": 302800,
+          "operating_costs": 31700,
+          "net": 271100,
+          "present_value": 232425
+        }
+      },
+      {
+        "id": "d75ff3e9-3db6-5d87-a74a-cc2522fb822d",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "year": 3,
+          "benefits": 311800,
+          "operating_costs": 26800,
+          "net": 285000,
+          "present_value": 226242
+        }
+      },
+      {
+        "id": "867a9591-3ef1-5a49-b455-3d3592deb36a",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "year": 4,
+          "benefits": 320900,
+          "operating_costs": 43600,
+          "net": 277300,
+          "present_value": 203824
+        }
+      },
+      {
+        "id": "ef948efe-58b9-5d4c-8831-f95c4c3ecf5d",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "year": 5,
+          "benefits": 330000,
+          "operating_costs": 51500,
+          "net": 278500,
+          "present_value": 189542
+        }
+      },
+      {
+        "id": "33194e2e-6810-5d44-8203-86c38b3a5ab8",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "year": 1,
+          "benefits": 241000,
+          "operating_costs": 23500,
+          "net": 217500,
+          "present_value": 201389
+        }
+      },
+      {
+        "id": "102c113e-0f16-59a5-a46f-130442d792b8",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "year": 2,
+          "benefits": 312100,
+          "operating_costs": 49000,
+          "net": 263100,
+          "present_value": 225566
+        }
+      },
+      {
+        "id": "e2474154-ce70-5bd1-b5a5-ae2dc1c8e728",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "year": 3,
+          "benefits": 321400,
+          "operating_costs": 27300,
+          "net": 294100,
+          "present_value": 233466
+        }
+      },
+      {
+        "id": "c5ea2913-4f99-5d2c-a974-40b24d91a5b9",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "year": 4,
+          "benefits": 330800,
+          "operating_costs": 47300,
+          "net": 283500,
+          "present_value": 208381
+        }
+      },
+      {
+        "id": "3bf803f9-1b39-5b68-98ce-0d648a10443f",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "year": 5,
+          "benefits": 340100,
+          "operating_costs": 29700,
+          "net": 310400,
+          "present_value": 211253
+        }
+      },
+      {
+        "id": "5f69ea5f-b0c5-54fe-a25a-544f5725642c",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "year": 1,
+          "benefits": 86400,
+          "operating_costs": 10900,
+          "net": 75500,
+          "present_value": 69907
+        }
+      },
+      {
+        "id": "f584a401-0710-5332-b938-c6255109dc07",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "year": 2,
+          "benefits": 129700,
+          "operating_costs": 16400,
+          "net": 113300,
+          "present_value": 97136
+        }
+      },
+      {
+        "id": "19d84401-0e83-5a57-9cdf-578d13c79c5b",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "year": 3,
+          "benefits": 133600,
+          "operating_costs": 14900,
+          "net": 118700,
+          "present_value": 94228
+        }
+      },
+      {
+        "id": "e2921fa2-5c18-5238-b46a-61e289df0e14",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "year": 4,
+          "benefits": 137500,
+          "operating_costs": 14500,
+          "net": 123000,
+          "present_value": 90409
+        }
+      },
+      {
+        "id": "c5a214ac-b40c-5e35-89a7-6144e29c790c",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "year": 1,
+          "benefits": 154300,
+          "operating_costs": 26700,
+          "net": 127600,
+          "present_value": 118148
+        }
+      },
+      {
+        "id": "12f85e30-9ce2-50d9-8a91-42c686f9068f",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "year": 2,
+          "benefits": 221200,
+          "operating_costs": 28900,
+          "net": 192300,
+          "present_value": 164866
+        }
+      },
+      {
+        "id": "2e968c60-ecec-5229-aad4-10f832119249",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "year": 3,
+          "benefits": 227900,
+          "operating_costs": 30500,
+          "net": 197400,
+          "present_value": 156702
+        }
+      },
+      {
+        "id": "686d36bd-2e32-5536-a76e-fb1e90344732",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "year": 4,
+          "benefits": 234500,
+          "operating_costs": 31400,
+          "net": 203100,
+          "present_value": 149285
+        }
+      },
+      {
+        "id": "44af55cb-062a-559c-aa7f-7cbd94d6fb5d",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "year": 5,
+          "benefits": 241100,
+          "operating_costs": 39800,
+          "net": 201300,
+          "present_value": 137001
+        }
+      },
+      {
+        "id": "2b3c5116-c1af-5d4a-9e53-08d2b1f97916",
+        "data": {
+          "project_ref": "CPX-26-036",
+          "year": 1,
+          "benefits": 12500,
+          "operating_costs": 1500,
+          "net": 11000,
+          "present_value": 10185
+        }
+      },
+      {
+        "id": "036dac72-57db-53a5-8797-2c232d56a085",
+        "data": {
+          "project_ref": "CPX-26-036",
+          "year": 2,
+          "benefits": 15900,
+          "operating_costs": 2400,
+          "net": 13500,
+          "present_value": 11574
+        }
+      },
+      {
+        "id": "e0a93395-cae8-569d-91b0-ca2e47b9e641",
+        "data": {
+          "project_ref": "CPX-26-036",
+          "year": 3,
+          "benefits": 16300,
+          "operating_costs": 2800,
+          "net": 13500,
+          "present_value": 10717
+        }
+      },
+      {
+        "id": "29c9743b-66d2-5a79-b34a-6fe06f1c0f6f",
+        "data": {
+          "project_ref": "CPX-26-036",
+          "year": 4,
+          "benefits": 16800,
+          "operating_costs": 2200,
+          "net": 14600,
+          "present_value": 10731
+        }
+      },
+      {
+        "id": "ac104fb4-2499-5225-9f66-45c777760227",
+        "data": {
+          "project_ref": "CPX-26-037",
+          "year": 1,
+          "benefits": 44200,
+          "operating_costs": 3600,
+          "net": 40600,
+          "present_value": 37593
+        }
+      },
+      {
+        "id": "2651d6ec-43fc-5d68-98e9-9136c8b4a335",
+        "data": {
+          "project_ref": "CPX-26-037",
+          "year": 2,
+          "benefits": 77000,
+          "operating_costs": 8800,
+          "net": 68200,
+          "present_value": 58471
+        }
+      },
+      {
+        "id": "d482e48e-94ec-56fb-a5f4-aad64cc9105a",
+        "data": {
+          "project_ref": "CPX-26-037",
+          "year": 3,
+          "benefits": 79300,
+          "operating_costs": 13500,
+          "net": 65800,
+          "present_value": 52234
+        }
+      },
+      {
+        "id": "89c695d0-24c5-5adf-81e4-b92a564cd9a0",
+        "data": {
+          "project_ref": "CPX-26-037",
+          "year": 4,
+          "benefits": 81600,
+          "operating_costs": 7000,
+          "net": 74600,
+          "present_value": 54833
+        }
+      },
+      {
+        "id": "fe7e7e7f-56e9-559f-a3fe-49a40f028404",
+        "data": {
+          "project_ref": "CPX-26-037",
+          "year": 5,
+          "benefits": 83900,
+          "operating_costs": 13300,
+          "net": 70600,
+          "present_value": 48049
+        }
+      },
+      {
+        "id": "57874b16-44c9-5a6b-9c20-1ea6a645cc15",
+        "data": {
+          "project_ref": "CPX-26-038",
+          "year": 1,
+          "benefits": 29200,
+          "operating_costs": 2400,
+          "net": 26800,
+          "present_value": 24815
+        }
+      },
+      {
+        "id": "a9647b53-766f-5961-9c80-3d804e86e841",
+        "data": {
+          "project_ref": "CPX-26-038",
+          "year": 2,
+          "benefits": 43100,
+          "operating_costs": 7200,
+          "net": 35900,
+          "present_value": 30778
+        }
+      },
+      {
+        "id": "e2d6f002-6fa7-52fe-a621-86f936a0c2e2",
+        "data": {
+          "project_ref": "CPX-26-038",
+          "year": 3,
+          "benefits": 44400,
+          "operating_costs": 6100,
+          "net": 38300,
+          "present_value": 30404
+        }
+      },
+      {
+        "id": "46e8c88d-339b-53da-94d5-1b811d705bee",
+        "data": {
+          "project_ref": "CPX-26-038",
+          "year": 4,
+          "benefits": 45700,
+          "operating_costs": 7900,
+          "net": 37800,
+          "present_value": 27784
+        }
+      },
+      {
+        "id": "eaba0ac9-e56f-584f-bfd4-f64a01542ce9",
+        "data": {
+          "project_ref": "CPX-26-038",
+          "year": 5,
+          "benefits": 47000,
+          "operating_costs": 6600,
+          "net": 40400,
+          "present_value": 27496
+        }
+      },
+      {
+        "id": "55c3896d-7873-52b3-b8ea-a1717d31c45a",
+        "data": {
+          "project_ref": "CPX-26-039",
+          "year": 1,
+          "benefits": 17900,
+          "operating_costs": 2200,
+          "net": 15700,
+          "present_value": 14537
+        }
+      },
+      {
+        "id": "9573f7d3-3bed-5590-b2e2-99105a3e00b3",
+        "data": {
+          "project_ref": "CPX-26-039",
+          "year": 2,
+          "benefits": 28200,
+          "operating_costs": 3600,
+          "net": 24600,
+          "present_value": 21091
+        }
+      },
+      {
+        "id": "9273ea7e-4f87-518f-9f18-78d99a9c2364",
+        "data": {
+          "project_ref": "CPX-26-039",
+          "year": 3,
+          "benefits": 29100,
+          "operating_costs": 2700,
+          "net": 26400,
+          "present_value": 20957
+        }
+      },
+      {
+        "id": "fd8596b0-e97e-51e6-8a29-58a3d8e24fc2",
+        "data": {
+          "project_ref": "CPX-26-039",
+          "year": 4,
+          "benefits": 29900,
+          "operating_costs": 2800,
+          "net": 27100,
+          "present_value": 19919
+        }
+      },
+      {
+        "id": "16934392-0cc2-5a6e-af13-8073edb76ebb",
+        "data": {
+          "project_ref": "CPX-26-039",
+          "year": 5,
+          "benefits": 30800,
+          "operating_costs": 4000,
+          "net": 26800,
+          "present_value": 18240
+        }
+      },
+      {
+        "id": "8bb1a98f-9fc1-5951-8813-d21bdfe88ca3",
+        "data": {
+          "project_ref": "CPX-26-040",
+          "year": 1,
+          "benefits": 23400,
+          "operating_costs": 3300,
+          "net": 20100,
+          "present_value": 18611
+        }
+      },
+      {
+        "id": "ce36f3dc-9fdd-5a20-aead-c43b248112d2",
+        "data": {
+          "project_ref": "CPX-26-040",
+          "year": 2,
+          "benefits": 36500,
+          "operating_costs": 5100,
+          "net": 31400,
+          "present_value": 26920
+        }
+      },
+      {
+        "id": "eaaa21ae-8cd7-55dc-9904-47de01112613",
+        "data": {
+          "project_ref": "CPX-26-040",
+          "year": 3,
+          "benefits": 37600,
+          "operating_costs": 5900,
+          "net": 31700,
+          "present_value": 25164
+        }
+      },
+      {
+        "id": "c1584caf-0549-5e6a-821c-731790e48de1",
+        "data": {
+          "project_ref": "CPX-26-040",
+          "year": 4,
+          "benefits": 38700,
+          "operating_costs": 6300,
+          "net": 32400,
+          "present_value": 23815
+        }
+      },
+      {
+        "id": "0091d84d-bf73-58e8-9b56-a0a25893051c",
+        "data": {
+          "project_ref": "CPX-26-041",
+          "year": 1,
+          "benefits": 198900,
+          "operating_costs": 23300,
+          "net": 175600,
+          "present_value": 162593
+        }
+      },
+      {
+        "id": "4f616164-3d7c-5ed3-9a5d-e9efacf68755",
+        "data": {
+          "project_ref": "CPX-26-041",
+          "year": 2,
+          "benefits": 359700,
+          "operating_costs": 31600,
+          "net": 328100,
+          "present_value": 281293
+        }
+      },
+      {
+        "id": "3918ef87-5661-52dc-a522-b620c9255284",
+        "data": {
+          "project_ref": "CPX-26-041",
+          "year": 3,
+          "benefits": 370500,
+          "operating_costs": 60400,
+          "net": 310100,
+          "present_value": 246167
+        }
+      },
+      {
+        "id": "c4491a08-64e1-54b4-b60c-f09a3855d693",
+        "data": {
+          "project_ref": "CPX-26-041",
+          "year": 4,
+          "benefits": 381300,
+          "operating_costs": 53800,
+          "net": 327500,
+          "present_value": 240722
+        }
+      },
+      {
+        "id": "fc7393d6-6626-51af-977f-2d7abc84da8e",
+        "data": {
+          "project_ref": "CPX-26-041",
+          "year": 5,
+          "benefits": 392100,
+          "operating_costs": 49900,
+          "net": 342200,
+          "present_value": 232896
+        }
+      },
+      {
+        "id": "16caafa9-6106-5da2-807a-4f4b92f977d5",
+        "data": {
+          "project_ref": "CPX-26-042",
+          "year": 1,
+          "benefits": 15300,
+          "operating_costs": 1900,
+          "net": 13400,
+          "present_value": 12407
+        }
+      },
+      {
+        "id": "ce93f5a7-5132-5c17-aef3-998af397dd34",
+        "data": {
+          "project_ref": "CPX-26-042",
+          "year": 2,
+          "benefits": 24400,
+          "operating_costs": 3600,
+          "net": 20800,
+          "present_value": 17833
+        }
+      },
+      {
+        "id": "155d2c40-86e5-5a4c-9b21-d275e5e83573",
+        "data": {
+          "project_ref": "CPX-26-042",
+          "year": 3,
+          "benefits": 25100,
+          "operating_costs": 3900,
+          "net": 21200,
+          "present_value": 16829
+        }
+      },
+      {
+        "id": "c49e086d-2f7f-5745-9a77-d8fa5317a3c7",
+        "data": {
+          "project_ref": "CPX-26-042",
+          "year": 4,
+          "benefits": 25800,
+          "operating_costs": 3300,
+          "net": 22500,
+          "present_value": 16538
+        }
+      },
+      {
+        "id": "1dbc9c77-7b21-5da2-9ea2-1da2435c5834",
+        "data": {
+          "project_ref": "CPX-26-042",
+          "year": 5,
+          "benefits": 26500,
+          "operating_costs": 4000,
+          "net": 22500,
+          "present_value": 15313
+        }
+      },
+      {
+        "id": "22af159d-24da-51fe-8474-5cecd28df284",
+        "data": {
+          "project_ref": "CPX-26-043",
+          "year": 1,
+          "benefits": 157000,
+          "operating_costs": 21100,
+          "net": 135900,
+          "present_value": 125833
+        }
+      },
+      {
+        "id": "10b403a2-d3d3-544c-8507-8566111c43b2",
+        "data": {
+          "project_ref": "CPX-26-043",
+          "year": 2,
+          "benefits": 234000,
+          "operating_costs": 21400,
+          "net": 212600,
+          "present_value": 182270
+        }
+      },
+      {
+        "id": "737af94e-ffbc-5196-a061-118f5d04e67d",
+        "data": {
+          "project_ref": "CPX-26-043",
+          "year": 3,
+          "benefits": 241100,
+          "operating_costs": 27000,
+          "net": 214100,
+          "present_value": 169959
+        }
+      },
+      {
+        "id": "8dd2832d-0259-5468-86d5-4c5887b51d42",
+        "data": {
+          "project_ref": "CPX-26-043",
+          "year": 4,
+          "benefits": 248100,
+          "operating_costs": 35500,
+          "net": 212600,
+          "present_value": 156267
+        }
+      },
+      {
+        "id": "0a380e36-aa68-54cc-aba8-61ad6f7b9cc2",
+        "data": {
+          "project_ref": "CPX-26-043",
+          "year": 5,
+          "benefits": 255100,
+          "operating_costs": 38700,
+          "net": 216400,
+          "present_value": 147278
+        }
+      },
+      {
+        "id": "086f2373-6d37-5fc2-93bd-41cf72fd8c40",
+        "data": {
+          "project_ref": "CPX-26-044",
+          "year": 1,
+          "benefits": 78100,
+          "operating_costs": 11600,
+          "net": 66500,
+          "present_value": 61574
+        }
+      },
+      {
+        "id": "c12c2883-8894-5c07-9b32-51cf49810986",
+        "data": {
+          "project_ref": "CPX-26-044",
+          "year": 2,
+          "benefits": 139700,
+          "operating_costs": 21900,
+          "net": 117800,
+          "present_value": 100995
+        }
+      },
+      {
+        "id": "2a60e4d8-31db-58f6-aa7c-793607a9bf9f",
+        "data": {
+          "project_ref": "CPX-26-044",
+          "year": 3,
+          "benefits": 143900,
+          "operating_costs": 22600,
+          "net": 121300,
+          "present_value": 96292
+        }
+      },
+      {
+        "id": "0b315a1d-e9fd-5a5b-9baa-febfd512421f",
+        "data": {
+          "project_ref": "CPX-26-044",
+          "year": 4,
+          "benefits": 148100,
+          "operating_costs": 12800,
+          "net": 135300,
+          "present_value": 99450
+        }
+      },
+      {
+        "id": "47708ff7-89bb-5356-96e0-c71e6732d2c3",
+        "data": {
+          "project_ref": "CPX-26-044",
+          "year": 5,
+          "benefits": 152300,
+          "operating_costs": 26400,
+          "net": 125900,
+          "present_value": 85685
+        }
+      },
+      {
+        "id": "f76fac22-e723-52a2-8b9c-e096076b47d4",
+        "data": {
+          "project_ref": "CPX-26-045",
+          "year": 1,
+          "benefits": 111500,
+          "operating_costs": 10700,
+          "net": 100800,
+          "present_value": 93333
+        }
+      },
+      {
+        "id": "6936787a-9984-5e57-99b6-33553b7c5a42",
+        "data": {
+          "project_ref": "CPX-26-045",
+          "year": 2,
+          "benefits": 171900,
+          "operating_costs": 14300,
+          "net": 157600,
+          "present_value": 135117
+        }
+      },
+      {
+        "id": "0fff622e-9d5a-54d1-8597-2f0caac8ed2b",
+        "data": {
+          "project_ref": "CPX-26-045",
+          "year": 3,
+          "benefits": 177000,
+          "operating_costs": 22500,
+          "net": 154500,
+          "present_value": 122647
+        }
+      },
+      {
+        "id": "fd48b59f-65fc-5724-8973-b01e755c3e1c",
+        "data": {
+          "project_ref": "CPX-26-045",
+          "year": 4,
+          "benefits": 182200,
+          "operating_costs": 22500,
+          "net": 159700,
+          "present_value": 117384
+        }
+      },
+      {
+        "id": "d8cd80e8-4e63-50cb-96d4-2df256e38032",
+        "data": {
+          "project_ref": "CPX-26-045",
+          "year": 5,
+          "benefits": 187400,
+          "operating_costs": 28700,
+          "net": 158700,
+          "present_value": 108009
+        }
+      },
+      {
+        "id": "682ffa85-bd0b-55ff-9969-7cd6d1af15dc",
+        "data": {
+          "project_ref": "CPX-27-046",
+          "year": 1,
+          "benefits": 29900,
+          "operating_costs": 3200,
+          "net": 26700,
+          "present_value": 24722
+        }
+      },
+      {
+        "id": "372b1a5c-3afa-5753-af0b-34ed124633da",
+        "data": {
+          "project_ref": "CPX-27-046",
+          "year": 2,
+          "benefits": 40500,
+          "operating_costs": 6000,
+          "net": 34500,
+          "present_value": 29578
+        }
+      },
+      {
+        "id": "ac987307-2a6d-5571-b3d0-23b9f537c3e7",
+        "data": {
+          "project_ref": "CPX-27-046",
+          "year": 3,
+          "benefits": 41700,
+          "operating_costs": 7400,
+          "net": 34300,
+          "present_value": 27228
+        }
+      },
+      {
+        "id": "89d87f92-babc-53bc-bc89-9d23a1cb98e3",
+        "data": {
+          "project_ref": "CPX-27-046",
+          "year": 4,
+          "benefits": 42900,
+          "operating_costs": 4600,
+          "net": 38300,
+          "present_value": 28152
+        }
+      },
+      {
+        "id": "6819d00c-5f66-592f-8c67-bca6f775f311",
+        "data": {
+          "project_ref": "CPX-27-047",
+          "year": 1,
+          "benefits": 24500,
+          "operating_costs": 2100,
+          "net": 22400,
+          "present_value": 20741
+        }
+      },
+      {
+        "id": "e75f61ec-09bb-56c1-bd0f-6f892699de37",
+        "data": {
+          "project_ref": "CPX-27-047",
+          "year": 2,
+          "benefits": 32600,
+          "operating_costs": 4300,
+          "net": 28300,
+          "present_value": 24263
+        }
+      },
+      {
+        "id": "7d6b0c5f-314d-565f-9dfb-d49bc65c4c94",
+        "data": {
+          "project_ref": "CPX-27-047",
+          "year": 3,
+          "benefits": 33600,
+          "operating_costs": 4300,
+          "net": 29300,
+          "present_value": 23259
+        }
+      },
+      {
+        "id": "18374077-1589-5ad5-af3f-288bf2f9b619",
+        "data": {
+          "project_ref": "CPX-27-047",
+          "year": 4,
+          "benefits": 34600,
+          "operating_costs": 5100,
+          "net": 29500,
+          "present_value": 21683
+        }
+      },
+      {
+        "id": "f2c0f540-85bd-50bf-a6cf-cf146b5a0efa",
+        "data": {
+          "project_ref": "CPX-27-047",
+          "year": 5,
+          "benefits": 35600,
+          "operating_costs": 4000,
+          "net": 31600,
+          "present_value": 21506
+        }
+      },
+      {
+        "id": "3a16a356-fa4a-517d-aaa7-692b946caa94",
+        "data": {
+          "project_ref": "CPX-27-048",
+          "year": 1,
+          "benefits": 119100,
+          "operating_costs": 10800,
+          "net": 108300,
+          "present_value": 100278
+        }
+      },
+      {
+        "id": "74155fcf-3d6d-567a-aaa3-2ead8d4f6f32",
+        "data": {
+          "project_ref": "CPX-27-048",
+          "year": 2,
+          "benefits": 170600,
+          "operating_costs": 17500,
+          "net": 153100,
+          "present_value": 131259
+        }
+      },
+      {
+        "id": "9ce41dd4-f481-5310-b91f-acb5ddd39dd9",
+        "data": {
+          "project_ref": "CPX-27-048",
+          "year": 3,
+          "benefits": 175700,
+          "operating_costs": 20600,
+          "net": 155100,
+          "present_value": 123123
+        }
+      },
+      {
+        "id": "28dd5b4a-5745-512b-a818-4d9f4c2868f3",
+        "data": {
+          "project_ref": "CPX-27-048",
+          "year": 4,
+          "benefits": 180800,
+          "operating_costs": 32300,
+          "net": 148500,
+          "present_value": 109152
+        }
+      },
+      {
+        "id": "1665498c-b457-59db-9796-96317076b3e7",
+        "data": {
+          "project_ref": "CPX-27-049",
+          "year": 1,
+          "benefits": 28100,
+          "operating_costs": 4500,
+          "net": 23600,
+          "present_value": 21852
+        }
+      },
+      {
+        "id": "ff2e7316-11b3-5d35-b4bd-91025395cd1b",
+        "data": {
+          "project_ref": "CPX-27-049",
+          "year": 2,
+          "benefits": 46600,
+          "operating_costs": 4600,
+          "net": 42000,
+          "present_value": 36008
+        }
+      },
+      {
+        "id": "190415c1-00ca-528c-9da6-641481f6f9fe",
+        "data": {
+          "project_ref": "CPX-27-049",
+          "year": 3,
+          "benefits": 48000,
+          "operating_costs": 6700,
+          "net": 41300,
+          "present_value": 32785
+        }
+      },
+      {
+        "id": "76cf2efc-f2ea-5638-95e2-499f8ff8f86f",
+        "data": {
+          "project_ref": "CPX-27-049",
+          "year": 4,
+          "benefits": 49400,
+          "operating_costs": 5400,
+          "net": 44000,
+          "present_value": 32341
+        }
+      },
+      {
+        "id": "34f1170e-3ae8-5812-b909-0c27be4e4587",
+        "data": {
+          "project_ref": "CPX-27-049",
+          "year": 5,
+          "benefits": 50800,
+          "operating_costs": 6000,
+          "net": 44800,
+          "present_value": 30490
+        }
+      },
+      {
+        "id": "9a9e0f98-ccbd-5c08-9a37-b3ddadfc61a0",
+        "data": {
+          "project_ref": "CPX-27-050",
+          "year": 1,
+          "benefits": 13900,
+          "operating_costs": 1700,
+          "net": 12200,
+          "present_value": 11296
+        }
+      },
+      {
+        "id": "5e5815eb-c0ca-55b1-9102-fdbdd66abacb",
+        "data": {
+          "project_ref": "CPX-27-050",
+          "year": 2,
+          "benefits": 17300,
+          "operating_costs": 1800,
+          "net": 15500,
+          "present_value": 13289
+        }
+      },
+      {
+        "id": "570df4b9-b2ce-542a-8ab9-b08f697d5cd7",
+        "data": {
+          "project_ref": "CPX-27-050",
+          "year": 3,
+          "benefits": 17900,
+          "operating_costs": 2400,
+          "net": 15500,
+          "present_value": 12304
+        }
+      },
+      {
+        "id": "00050c86-1b21-5666-9784-f392b996ea17",
+        "data": {
+          "project_ref": "CPX-27-050",
+          "year": 4,
+          "benefits": 18400,
+          "operating_costs": 1800,
+          "net": 16600,
+          "present_value": 12201
+        }
+      },
+      {
+        "id": "f0dac0f6-afee-568f-b8b1-bd291d1d8755",
+        "data": {
+          "project_ref": "CPX-27-050",
+          "year": 5,
+          "benefits": 18900,
+          "operating_costs": 2300,
+          "net": 16600,
+          "present_value": 11298
+        }
+      },
+      {
+        "id": "f251e475-c0b6-5dd5-9d1f-8c833f57e0c6",
+        "data": {
+          "project_ref": "CPX-27-051",
+          "year": 1,
+          "benefits": 182600,
+          "operating_costs": 24000,
+          "net": 158600,
+          "present_value": 146852
+        }
+      },
+      {
+        "id": "73a9464d-1866-59d3-aaa8-76d65dc21f7a",
+        "data": {
+          "project_ref": "CPX-27-051",
+          "year": 2,
+          "benefits": 331200,
+          "operating_costs": 31100,
+          "net": 300100,
+          "present_value": 257287
+        }
+      },
+      {
+        "id": "e79c5f50-2388-53fd-b703-13a1029ee8c3",
+        "data": {
+          "project_ref": "CPX-27-051",
+          "year": 3,
+          "benefits": 341200,
+          "operating_costs": 53300,
+          "net": 287900,
+          "present_value": 228544
+        }
+      },
+      {
+        "id": "6f66ea71-1cdd-5875-b901-5b3067163cf0",
+        "data": {
+          "project_ref": "CPX-27-051",
+          "year": 4,
+          "benefits": 351100,
+          "operating_costs": 45100,
+          "net": 306000,
+          "present_value": 224919
+        }
+      },
+      {
+        "id": "2be800ae-5334-51ab-bd9d-18e0671cc9ff",
+        "data": {
+          "project_ref": "CPX-27-051",
+          "year": 5,
+          "benefits": 361000,
+          "operating_costs": 56200,
+          "net": 304800,
+          "present_value": 207442
+        }
+      },
+      {
+        "id": "5dcd2f52-b871-5902-a3f0-7bf2ac1149d5",
+        "data": {
+          "project_ref": "CPX-27-052",
+          "year": 1,
+          "benefits": 4500,
+          "operating_costs": 600,
+          "net": 3900,
+          "present_value": 3611
+        }
+      },
+      {
+        "id": "76995c0a-cfa5-5c97-bda1-c18588ba297a",
+        "data": {
+          "project_ref": "CPX-27-052",
+          "year": 2,
+          "benefits": 7900,
+          "operating_costs": 900,
+          "net": 7000,
+          "present_value": 6001
+        }
+      },
+      {
+        "id": "a85d1928-0085-5867-bf07-e0e414aa9db5",
+        "data": {
+          "project_ref": "CPX-27-052",
+          "year": 3,
+          "benefits": 8100,
+          "operating_costs": 1200,
+          "net": 6900,
+          "present_value": 5477
+        }
+      },
+      {
+        "id": "aba289d2-6939-5762-9292-09826e640576",
+        "data": {
+          "project_ref": "CPX-27-052",
+          "year": 4,
+          "benefits": 8400,
+          "operating_costs": 1200,
+          "net": 7200,
+          "present_value": 5292
+        }
+      },
+      {
+        "id": "0bb1e163-d115-5b3a-a5f0-4fe2a5f8940b",
+        "data": {
+          "project_ref": "CPX-27-053",
+          "year": 1,
+          "benefits": 197500,
+          "operating_costs": 27000,
+          "net": 170500,
+          "present_value": 157870
+        }
+      },
+      {
+        "id": "5c3702af-e4f6-5080-860e-3df7307e338a",
+        "data": {
+          "project_ref": "CPX-27-053",
+          "year": 2,
+          "benefits": 252500,
+          "operating_costs": 38400,
+          "net": 214100,
+          "present_value": 183556
+        }
+      },
+      {
+        "id": "556cc882-6b24-51db-8a71-7fa80b9745ce",
+        "data": {
+          "project_ref": "CPX-27-053",
+          "year": 3,
+          "benefits": 260100,
+          "operating_costs": 24900,
+          "net": 235200,
+          "present_value": 186709
+        }
+      },
+      {
+        "id": "b6e3c74a-c284-5437-8e3d-d95e84667cff",
+        "data": {
+          "project_ref": "CPX-27-053",
+          "year": 4,
+          "benefits": 267700,
+          "operating_costs": 42000,
+          "net": 225700,
+          "present_value": 165896
+        }
+      },
+      {
+        "id": "df3189d6-e543-59c3-9a03-ee70d0bd6366",
+        "data": {
+          "project_ref": "CPX-27-053",
+          "year": 5,
+          "benefits": 275300,
+          "operating_costs": 28800,
+          "net": 246500,
+          "present_value": 167764
+        }
+      },
+      {
+        "id": "a6bd570f-1cbc-56be-aff8-e6a2eb69347e",
+        "data": {
+          "project_ref": "CPX-27-054",
+          "year": 1,
+          "benefits": 59500,
+          "operating_costs": 8700,
+          "net": 50800,
+          "present_value": 47037
+        }
+      },
+      {
+        "id": "d5dad016-ba7b-53a1-94dd-e5731b2aed23",
+        "data": {
+          "project_ref": "CPX-27-054",
+          "year": 2,
+          "benefits": 91500,
+          "operating_costs": 12600,
+          "net": 78900,
+          "present_value": 67644
+        }
+      },
+      {
+        "id": "3648c64c-4b00-5a34-84a8-90d3f23d84c2",
+        "data": {
+          "project_ref": "CPX-27-054",
+          "year": 3,
+          "benefits": 94300,
+          "operating_costs": 15400,
+          "net": 78900,
+          "present_value": 62633
+        }
+      },
+      {
+        "id": "59f5d461-c75e-51cf-a238-7a665239a1a7",
+        "data": {
+          "project_ref": "CPX-27-054",
+          "year": 4,
+          "benefits": 97000,
+          "operating_costs": 12100,
+          "net": 84900,
+          "present_value": 62404
+        }
+      },
+      {
+        "id": "54c2a929-1b10-5b42-bd9c-f601d7d4129f",
+        "data": {
+          "project_ref": "CPX-27-055",
+          "year": 1,
+          "benefits": 24500,
+          "operating_costs": 2400,
+          "net": 22100,
+          "present_value": 20463
+        }
+      },
+      {
+        "id": "93ea10ba-e0d8-56eb-9bfd-4bdf2bf6423a",
+        "data": {
+          "project_ref": "CPX-27-055",
+          "year": 2,
+          "benefits": 37900,
+          "operating_costs": 3100,
+          "net": 34800,
+          "present_value": 29835
+        }
+      },
+      {
+        "id": "cc9ba7f3-ec5d-5117-945a-a50645a61511",
+        "data": {
+          "project_ref": "CPX-27-055",
+          "year": 3,
+          "benefits": 39100,
+          "operating_costs": 3900,
+          "net": 35200,
+          "present_value": 27943
+        }
+      },
+      {
+        "id": "43e80bdb-2b24-589d-8c98-0b70661a0a5a",
+        "data": {
+          "project_ref": "CPX-27-055",
+          "year": 4,
+          "benefits": 40200,
+          "operating_costs": 6800,
+          "net": 33400,
+          "present_value": 24550
+        }
+      },
+      {
+        "id": "a46141d0-5a59-5cd3-9159-e47591296bfd",
+        "data": {
+          "project_ref": "CPX-27-055",
+          "year": 5,
+          "benefits": 41400,
+          "operating_costs": 4500,
+          "net": 36900,
+          "present_value": 25114
+        }
+      },
+      {
+        "id": "912a98ea-a86e-5bd1-91f4-ce7ce876ed78",
+        "data": {
+          "project_ref": "CPX-27-056",
+          "year": 1,
+          "benefits": 36200,
+          "operating_costs": 3900,
+          "net": 32300,
+          "present_value": 29907
+        }
+      },
+      {
+        "id": "21841a65-6e2b-57fd-a901-830109e5efc4",
+        "data": {
+          "project_ref": "CPX-27-056",
+          "year": 2,
+          "benefits": 50600,
+          "operating_costs": 5400,
+          "net": 45200,
+          "present_value": 38752
+        }
+      },
+      {
+        "id": "13feb909-8147-568d-8dfc-304c08326824",
+        "data": {
+          "project_ref": "CPX-27-056",
+          "year": 3,
+          "benefits": 52100,
+          "operating_costs": 8700,
+          "net": 43400,
+          "present_value": 34452
+        }
+      },
+      {
+        "id": "94fb976d-e6b4-5331-acd3-904b079a5d1a",
+        "data": {
+          "project_ref": "CPX-27-056",
+          "year": 4,
+          "benefits": 53600,
+          "operating_costs": 7800,
+          "net": 45800,
+          "present_value": 33664
+        }
+      },
+      {
+        "id": "71ee4030-4ad9-5692-8287-a5634264721d",
+        "data": {
+          "project_ref": "CPX-27-056",
+          "year": 5,
+          "benefits": 55200,
+          "operating_costs": 6700,
+          "net": 48500,
+          "present_value": 33008
+        }
+      },
+      {
+        "id": "618eac7b-b41c-5843-bbed-09fadb75bb21",
+        "data": {
+          "project_ref": "CPX-27-057",
+          "year": 1,
+          "benefits": 39900,
+          "operating_costs": 6800,
+          "net": 33100,
+          "present_value": 30648
+        }
+      },
+      {
+        "id": "16858f82-d3bb-5ed4-b604-72e29b6cd3d0",
+        "data": {
+          "project_ref": "CPX-27-057",
+          "year": 2,
+          "benefits": 61700,
+          "operating_costs": 9700,
+          "net": 52000,
+          "present_value": 44582
+        }
+      },
+      {
+        "id": "9e94c6b0-0e46-5eb3-98a2-40887ebef540",
+        "data": {
+          "project_ref": "CPX-27-057",
+          "year": 3,
+          "benefits": 63600,
+          "operating_costs": 10100,
+          "net": 53500,
+          "present_value": 42470
+        }
+      },
+      {
+        "id": "d2d23216-8588-5f82-84ba-84b0564c97d7",
+        "data": {
+          "project_ref": "CPX-27-057",
+          "year": 4,
+          "benefits": 65400,
+          "operating_costs": 10500,
+          "net": 54900,
+          "present_value": 40353
+        }
+      },
+      {
+        "id": "9d3cb60b-62fe-5e7e-a842-e1739281cec9",
+        "data": {
+          "project_ref": "CPX-27-057",
+          "year": 5,
+          "benefits": 67300,
+          "operating_costs": 10900,
+          "net": 56400,
+          "present_value": 38385
+        }
+      },
+      {
+        "id": "310149c4-e245-5f2e-a016-5af75c0bffdf",
+        "data": {
+          "project_ref": "CPX-27-058",
+          "year": 1,
+          "benefits": 49600,
+          "operating_costs": 4100,
+          "net": 45500,
+          "present_value": 42130
+        }
+      },
+      {
+        "id": "2bbf0704-ac42-5597-913f-2c17fce39a1f",
+        "data": {
+          "project_ref": "CPX-27-058",
+          "year": 2,
+          "benefits": 75400,
+          "operating_costs": 8600,
+          "net": 66800,
+          "present_value": 57270
+        }
+      },
+      {
+        "id": "eb69adec-8a18-5ae4-a491-1b2af1963ef1",
+        "data": {
+          "project_ref": "CPX-27-058",
+          "year": 3,
+          "benefits": 77700,
+          "operating_costs": 8100,
+          "net": 69600,
+          "present_value": 55251
+        }
+      },
+      {
+        "id": "019ea451-0034-5f87-bfd6-c408133ae65f",
+        "data": {
+          "project_ref": "CPX-27-058",
+          "year": 4,
+          "benefits": 79900,
+          "operating_costs": 6800,
+          "net": 73100,
+          "present_value": 53731
+        }
+      },
+      {
+        "id": "c637c042-ef92-5250-87bc-9cbe19540da5",
+        "data": {
+          "project_ref": "CPX-27-059",
+          "year": 1,
+          "benefits": 160000,
+          "operating_costs": 20100,
+          "net": 139900,
+          "present_value": 129537
+        }
+      },
+      {
+        "id": "1203549d-b87c-530e-b839-6a0338620069",
+        "data": {
+          "project_ref": "CPX-27-059",
+          "year": 2,
+          "benefits": 285800,
+          "operating_costs": 25800,
+          "net": 260000,
+          "present_value": 222908
+        }
+      },
+      {
+        "id": "a6ae9643-9bc1-59dc-8e80-cf1674a2ea89",
+        "data": {
+          "project_ref": "CPX-27-059",
+          "year": 3,
+          "benefits": 294400,
+          "operating_costs": 46100,
+          "net": 248300,
+          "present_value": 197109
+        }
+      },
+      {
+        "id": "e7dbb50a-b770-5c12-bc83-cd1b1d64f57c",
+        "data": {
+          "project_ref": "CPX-27-059",
+          "year": 4,
+          "benefits": 303000,
+          "operating_costs": 50400,
+          "net": 252600,
+          "present_value": 185669
+        }
+      },
+      {
+        "id": "fa69c85b-c57d-5a3e-8094-d3141f9c558e",
+        "data": {
+          "project_ref": "CPX-27-059",
+          "year": 5,
+          "benefits": 311600,
+          "operating_costs": 53900,
+          "net": 257700,
+          "present_value": 175386
+        }
+      },
+      {
+        "id": "ff82c910-e78b-502b-9c00-4ddd88c985b4",
+        "data": {
+          "project_ref": "CPX-27-060",
+          "year": 1,
+          "benefits": 53500,
+          "operating_costs": 4600,
+          "net": 48900,
+          "present_value": 45278
+        }
+      },
+      {
+        "id": "367e86e4-3307-529d-9d16-d0eca90b2f01",
+        "data": {
+          "project_ref": "CPX-27-060",
+          "year": 2,
+          "benefits": 94700,
+          "operating_costs": 10800,
+          "net": 83900,
+          "present_value": 71931
+        }
+      },
+      {
+        "id": "e9344c32-4ff5-54a8-928a-fe114b2a718a",
+        "data": {
+          "project_ref": "CPX-27-060",
+          "year": 3,
+          "benefits": 97500,
+          "operating_costs": 17200,
+          "net": 80300,
+          "present_value": 63745
+        }
+      },
+      {
+        "id": "8ced2e1d-6a4f-50c0-b1b9-884a2a911940",
+        "data": {
+          "project_ref": "CPX-27-060",
+          "year": 4,
+          "benefits": 100300,
+          "operating_costs": 12900,
+          "net": 87400,
+          "present_value": 64242
+        }
+      },
+      {
+        "id": "2c8ec522-f72e-54c6-9a30-32838207362c",
+        "data": {
+          "project_ref": "CPX-27-060",
+          "year": 5,
+          "benefits": 103200,
+          "operating_costs": 17700,
+          "net": 85500,
+          "present_value": 58190
+        }
+      },
+      {
+        "id": "7b7ac9c0-f703-568f-927c-4ad00e8d5197",
+        "data": {
+          "project_ref": "CPX-27-061",
+          "year": 1,
+          "benefits": 24900,
+          "operating_costs": 3000,
+          "net": 21900,
+          "present_value": 20278
+        }
+      },
+      {
+        "id": "f273ba47-81ad-5e8f-83c1-7cf5f483eefa",
+        "data": {
+          "project_ref": "CPX-27-061",
+          "year": 2,
+          "benefits": 41100,
+          "operating_costs": 6800,
+          "net": 34300,
+          "present_value": 29407
+        }
+      },
+      {
+        "id": "6776d0f8-afbf-5693-96fb-b42591727a74",
+        "data": {
+          "project_ref": "CPX-27-061",
+          "year": 3,
+          "benefits": 42300,
+          "operating_costs": 6300,
+          "net": 36000,
+          "present_value": 28578
+        }
+      },
+      {
+        "id": "599a4b29-3f14-5e87-83be-d1303a641d50",
+        "data": {
+          "project_ref": "CPX-27-061",
+          "year": 4,
+          "benefits": 43600,
+          "operating_costs": 7700,
+          "net": 35900,
+          "present_value": 26388
+        }
+      },
+      {
+        "id": "19b0717d-640b-5855-a317-7d40195663d9",
+        "data": {
+          "project_ref": "CPX-27-061",
+          "year": 5,
+          "benefits": 44800,
+          "operating_costs": 5000,
+          "net": 39800,
+          "present_value": 27087
+        }
+      },
+      {
+        "id": "0b31abc8-be9d-5bcd-9185-a1c753b56b0d",
+        "data": {
+          "project_ref": "CPX-27-062",
+          "year": 1,
+          "benefits": 39400,
+          "operating_costs": 4800,
+          "net": 34600,
+          "present_value": 32037
+        }
+      },
+      {
+        "id": "7815ace4-f9db-56f8-a180-85d3cbb1b221",
+        "data": {
+          "project_ref": "CPX-27-062",
+          "year": 2,
+          "benefits": 56000,
+          "operating_costs": 9100,
+          "net": 46900,
+          "present_value": 40209
+        }
+      },
+      {
+        "id": "2b58d423-086d-5ce4-addb-071914ea2a37",
+        "data": {
+          "project_ref": "CPX-27-062",
+          "year": 3,
+          "benefits": 57600,
+          "operating_costs": 7200,
+          "net": 50400,
+          "present_value": 40009
+        }
+      },
+      {
+        "id": "ee805016-98cd-55e1-acaf-75bf0c4d4849",
+        "data": {
+          "project_ref": "CPX-27-062",
+          "year": 4,
+          "benefits": 59300,
+          "operating_costs": 5800,
+          "net": 53500,
+          "present_value": 39324
+        }
+      },
+      {
+        "id": "2341265c-39ed-5033-8771-ccc4197b3833",
+        "data": {
+          "project_ref": "CPX-27-062",
+          "year": 5,
+          "benefits": 61000,
+          "operating_costs": 5400,
+          "net": 55600,
+          "present_value": 37840
+        }
+      },
+      {
+        "id": "10f070d5-7f43-516c-9d07-9abeb0555104",
+        "data": {
+          "project_ref": "CPX-27-063",
+          "year": 1,
+          "benefits": 66100,
+          "operating_costs": 8400,
+          "net": 57700,
+          "present_value": 53426
+        }
+      },
+      {
+        "id": "2f61a2ea-76c0-5b16-9ab6-368235afb628",
+        "data": {
+          "project_ref": "CPX-27-063",
+          "year": 2,
+          "benefits": 106900,
+          "operating_costs": 15300,
+          "net": 91600,
+          "present_value": 78532
+        }
+      },
+      {
+        "id": "4230fa63-abab-542c-b49a-350904accf11",
+        "data": {
+          "project_ref": "CPX-27-063",
+          "year": 3,
+          "benefits": 110100,
+          "operating_costs": 10500,
+          "net": 99600,
+          "present_value": 79066
+        }
+      },
+      {
+        "id": "b8f13698-d9b2-5f3e-93bc-bf3e790e14f4",
+        "data": {
+          "project_ref": "CPX-27-063",
+          "year": 4,
+          "benefits": 113300,
+          "operating_costs": 19300,
+          "net": 94000,
+          "present_value": 69093
+        }
+      },
+      {
+        "id": "f0154188-79d2-5548-85d8-09bc7aa357e9",
+        "data": {
+          "project_ref": "CPX-27-063",
+          "year": 5,
+          "benefits": 116500,
+          "operating_costs": 9300,
+          "net": 107200,
+          "present_value": 72959
+        }
+      },
+      {
+        "id": "4de78395-85b8-5e9b-a978-4649492b0799",
+        "data": {
+          "project_ref": "CPX-27-064",
+          "year": 1,
+          "benefits": 36200,
+          "operating_costs": 3400,
+          "net": 32800,
+          "present_value": 30370
+        }
+      },
+      {
+        "id": "399f5a9c-ed24-506f-85bf-1fd58d4f3348",
+        "data": {
+          "project_ref": "CPX-27-064",
+          "year": 2,
+          "benefits": 63200,
+          "operating_costs": 5800,
+          "net": 57400,
+          "present_value": 49211
+        }
+      },
+      {
+        "id": "b59cd24c-4d1b-5313-86f4-dd2887d018ac",
+        "data": {
+          "project_ref": "CPX-27-064",
+          "year": 3,
+          "benefits": 65100,
+          "operating_costs": 8200,
+          "net": 56900,
+          "present_value": 45169
+        }
+      },
+      {
+        "id": "e3c336cf-12ec-5023-bfa7-08b41083298d",
+        "data": {
+          "project_ref": "CPX-27-064",
+          "year": 4,
+          "benefits": 67000,
+          "operating_costs": 7000,
+          "net": 60000,
+          "present_value": 44102
+        }
+      },
+      {
+        "id": "bbcfbfee-105c-521c-a173-55e39d01ab7b",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "year": 1,
+          "benefits": 142500,
+          "operating_costs": 17100,
+          "net": 125400,
+          "present_value": 116111
+        }
+      },
+      {
+        "id": "9efecdd8-6ca0-572b-b601-f5b9d493465c",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "year": 2,
+          "benefits": 224700,
+          "operating_costs": 28200,
+          "net": 196500,
+          "present_value": 168467
+        }
+      },
+      {
+        "id": "180a5554-d9b0-5ecb-9262-97a74f77821d",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "year": 3,
+          "benefits": 231400,
+          "operating_costs": 31300,
+          "net": 200100,
+          "present_value": 158846
+        }
+      },
+      {
+        "id": "e1ebfaa6-f3ca-554e-8c5a-4360dc0a19a0",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "year": 4,
+          "benefits": 238200,
+          "operating_costs": 42100,
+          "net": 196100,
+          "present_value": 144139
+        }
+      },
+      {
+        "id": "0bffeea1-4c7b-56a4-8194-47d088762767",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "year": 5,
+          "benefits": 244900,
+          "operating_costs": 36300,
+          "net": 208600,
+          "present_value": 141970
+        }
+      },
+      {
+        "id": "c07287d2-8629-5a8a-b593-6c4f54f3c097",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "year": 1,
+          "benefits": 218700,
+          "operating_costs": 29700,
+          "net": 189000,
+          "present_value": 175000
+        }
+      },
+      {
+        "id": "0aafb174-9659-5f73-93e0-6b68752fe2cc",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "year": 2,
+          "benefits": 342700,
+          "operating_costs": 31800,
+          "net": 310900,
+          "present_value": 266547
+        }
+      },
+      {
+        "id": "911b9e57-cf78-5b5f-bbae-2325d53ffe65",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "year": 3,
+          "benefits": 353000,
+          "operating_costs": 30900,
+          "net": 322100,
+          "present_value": 255693
+        }
+      },
+      {
+        "id": "99d5f5fd-3ed7-56b8-bcf9-d8a459b417b5",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "year": 4,
+          "benefits": 363300,
+          "operating_costs": 56500,
+          "net": 306800,
+          "present_value": 225507
+        }
+      },
+      {
+        "id": "1f6d54db-871c-5b18-bd48-e56ea223a8a8",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "year": 5,
+          "benefits": 373600,
+          "operating_costs": 64000,
+          "net": 309600,
+          "present_value": 210709
+        }
+      },
+      {
+        "id": "7783b104-b71b-5752-acec-be2843e68486",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "year": 1,
+          "benefits": 143200,
+          "operating_costs": 22700,
+          "net": 120500,
+          "present_value": 111574
+        }
+      },
+      {
+        "id": "b69ba000-8614-5618-8d43-792b267718c3",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "year": 2,
+          "benefits": 254000,
+          "operating_costs": 32600,
+          "net": 221400,
+          "present_value": 189815
+        }
+      },
+      {
+        "id": "0820465b-487a-5961-99e2-d672acff7c88",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "year": 3,
+          "benefits": 261700,
+          "operating_costs": 34100,
+          "net": 227600,
+          "present_value": 180676
+        }
+      },
+      {
+        "id": "45a6eb17-a363-5fca-bc9b-7c431d1fbd15",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "year": 4,
+          "benefits": 269300,
+          "operating_costs": 22800,
+          "net": 246500,
+          "present_value": 181185
+        }
+      },
+      {
+        "id": "6ebabfec-5cdb-5ae3-a43b-e28bb4fd7659",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "year": 5,
+          "benefits": 276900,
+          "operating_costs": 48300,
+          "net": 228600,
+          "present_value": 155581
+        }
+      },
+      {
+        "id": "bb84d9ef-c2a8-5aa9-871e-a345f8362eb6",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "year": 1,
+          "benefits": 195900,
+          "operating_costs": 26700,
+          "net": 169200,
+          "present_value": 156667
+        }
+      },
+      {
+        "id": "458a7b5e-aec0-55e5-9526-3154ac208e99",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "year": 2,
+          "benefits": 267300,
+          "operating_costs": 27200,
+          "net": 240100,
+          "present_value": 205847
+        }
+      },
+      {
+        "id": "fc871e15-0aaa-58fa-bed2-e61a2bc487ee",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "year": 3,
+          "benefits": 275300,
+          "operating_costs": 48700,
+          "net": 226600,
+          "present_value": 179882
+        }
+      },
+      {
+        "id": "5e14c2ee-8c43-5d49-8bb5-ad8c6417883b",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "year": 4,
+          "benefits": 283300,
+          "operating_costs": 37200,
+          "net": 246100,
+          "present_value": 180891
+        }
+      },
+      {
+        "id": "736834b4-5208-58ef-8195-fee9922e8606",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "year": 5,
+          "benefits": 291400,
+          "operating_costs": 29900,
+          "net": 261500,
+          "present_value": 177973
+        }
+      },
+      {
+        "id": "ef431efc-44e2-5d26-9972-3f8f423a1461",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "year": 1,
+          "benefits": 155900,
+          "operating_costs": 17400,
+          "net": 138500,
+          "present_value": 128241
+        }
+      },
+      {
+        "id": "6d982164-02d6-5ef2-887f-6ae750c7ad8a",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "year": 2,
+          "benefits": 258200,
+          "operating_costs": 25900,
+          "net": 232300,
+          "present_value": 199160
+        }
+      },
+      {
+        "id": "58d78f27-f8ba-5197-bbff-e7ccc81cdcc2",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "year": 3,
+          "benefits": 266000,
+          "operating_costs": 28600,
+          "net": 237400,
+          "present_value": 188456
+        }
+      },
+      {
+        "id": "7d62e58e-4b90-57c1-8ccc-fc58003e1f6a",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "year": 4,
+          "benefits": 273700,
+          "operating_costs": 40400,
+          "net": 233300,
+          "present_value": 171482
+        }
+      },
+      {
+        "id": "5c436c34-baac-53f5-b0e2-ecfaa454741f",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "year": 5,
+          "benefits": 281500,
+          "operating_costs": 34200,
+          "net": 247300,
+          "present_value": 168308
+        }
+      },
+      {
+        "id": "e58b0042-b4a2-51c7-b425-5afb52d1b80f",
+        "data": {
+          "project_ref": "CPX-27-070",
+          "year": 1,
+          "benefits": 9200,
+          "operating_costs": 1200,
+          "net": 8000,
+          "present_value": 7407
+        }
+      },
+      {
+        "id": "88b8e995-3197-5df9-9b89-2d1f9f409e52",
+        "data": {
+          "project_ref": "CPX-27-070",
+          "year": 2,
+          "benefits": 12700,
+          "operating_costs": 2100,
+          "net": 10600,
+          "present_value": 9088
+        }
+      },
+      {
+        "id": "c41e1c5a-917b-55f4-8eab-02ad452fc4a9",
+        "data": {
+          "project_ref": "CPX-27-070",
+          "year": 3,
+          "benefits": 13100,
+          "operating_costs": 1100,
+          "net": 12000,
+          "present_value": 9526
+        }
+      },
+      {
+        "id": "24719ca3-971d-5c97-a561-4072921900ec",
+        "data": {
+          "project_ref": "CPX-27-070",
+          "year": 4,
+          "benefits": 13400,
+          "operating_costs": 2400,
+          "net": 11000,
+          "present_value": 8085
+        }
+      },
+      {
+        "id": "20f3f92d-b89c-50ee-a18c-8d1c91b4162c",
+        "data": {
+          "project_ref": "CPX-27-071",
+          "year": 1,
+          "benefits": 72200,
+          "operating_costs": 9500,
+          "net": 62700,
+          "present_value": 58056
+        }
+      },
+      {
+        "id": "bf30be7e-7a39-5f8e-9e8c-8d17bb240700",
+        "data": {
+          "project_ref": "CPX-27-071",
+          "year": 2,
+          "benefits": 113200,
+          "operating_costs": 15400,
+          "net": 97800,
+          "present_value": 83848
+        }
+      },
+      {
+        "id": "664a7b4e-23fc-520c-9a8c-432e3da15c19",
+        "data": {
+          "project_ref": "CPX-27-071",
+          "year": 3,
+          "benefits": 116600,
+          "operating_costs": 16600,
+          "net": 100000,
+          "present_value": 79383
+        }
+      },
+      {
+        "id": "fb020128-9b14-5160-bec7-1c77e6856b06",
+        "data": {
+          "project_ref": "CPX-27-071",
+          "year": 4,
+          "benefits": 120000,
+          "operating_costs": 15100,
+          "net": 104900,
+          "present_value": 77105
+        }
+      },
+      {
+        "id": "e9b62895-e594-53f2-bb6f-9d25021fea7e",
+        "data": {
+          "project_ref": "CPX-27-071",
+          "year": 5,
+          "benefits": 123400,
+          "operating_costs": 17400,
+          "net": 106000,
+          "present_value": 72142
+        }
+      },
+      {
+        "id": "6342a499-3366-54fe-95b9-2e4ed1c9f901",
+        "data": {
+          "project_ref": "CPX-27-072",
+          "year": 1,
+          "benefits": 117500,
+          "operating_costs": 20700,
+          "net": 96800,
+          "present_value": 89630
+        }
+      },
+      {
+        "id": "a6ebb7de-7112-5894-8d73-4480317918e7",
+        "data": {
+          "project_ref": "CPX-27-072",
+          "year": 2,
+          "benefits": 211700,
+          "operating_costs": 28500,
+          "net": 183200,
+          "present_value": 157064
+        }
+      },
+      {
+        "id": "1ef22096-a3a1-5cf2-875e-25314a825ca4",
+        "data": {
+          "project_ref": "CPX-27-072",
+          "year": 3,
+          "benefits": 218000,
+          "operating_costs": 26800,
+          "net": 191200,
+          "present_value": 151781
+        }
+      },
+      {
+        "id": "f0d59170-b197-59dc-b282-2dd79ddd2225",
+        "data": {
+          "project_ref": "CPX-27-072",
+          "year": 4,
+          "benefits": 224400,
+          "operating_costs": 40100,
+          "net": 184300,
+          "present_value": 135466
+        }
+      },
+      {
+        "id": "d42a5cb5-d3eb-59b6-8fee-ec6789b3b61d",
+        "data": {
+          "project_ref": "CPX-27-072",
+          "year": 5,
+          "benefits": 230700,
+          "operating_costs": 40300,
+          "net": 190400,
+          "present_value": 129583
+        }
+      },
+      {
+        "id": "2c1fcbc3-4a38-5d31-b07d-84e9391b13a8",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "year": 1,
+          "benefits": 11800,
+          "operating_costs": 2000,
+          "net": 9800,
+          "present_value": 9074
+        }
+      },
+      {
+        "id": "41cb5072-5dfe-5650-ad46-01092a8ab17d",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "year": 2,
+          "benefits": 19000,
+          "operating_costs": 2300,
+          "net": 16700,
+          "present_value": 14318
+        }
+      },
+      {
+        "id": "c02f69cb-d090-56bb-add3-3e1cad4e2648",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "year": 3,
+          "benefits": 19500,
+          "operating_costs": 2400,
+          "net": 17100,
+          "present_value": 13575
+        }
+      },
+      {
+        "id": "d51ee326-ef06-53b9-9cc4-b9b4502ec9b7",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "year": 4,
+          "benefits": 20100,
+          "operating_costs": 2400,
+          "net": 17700,
+          "present_value": 13010
+        }
+      },
+      {
+        "id": "609702b7-6f2b-5d76-8817-9ac3f13621c1",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "year": 5,
+          "benefits": 20700,
+          "operating_costs": 2400,
+          "net": 18300,
+          "present_value": 12455
+        }
+      },
+      {
+        "id": "01e2a795-f1eb-51b7-8aab-82f7481d93b5",
+        "data": {
+          "project_ref": "CPX-27-074",
+          "year": 1,
+          "benefits": 35500,
+          "operating_costs": 5700,
+          "net": 29800,
+          "present_value": 27593
+        }
+      },
+      {
+        "id": "56db7781-e911-51fe-98d3-213bf7818c41",
+        "data": {
+          "project_ref": "CPX-27-074",
+          "year": 2,
+          "benefits": 50400,
+          "operating_costs": 4800,
+          "net": 45600,
+          "present_value": 39095
+        }
+      },
+      {
+        "id": "ff9e3695-e211-5950-88a8-2d6ac21c2135",
+        "data": {
+          "project_ref": "CPX-27-074",
+          "year": 3,
+          "benefits": 51900,
+          "operating_costs": 8500,
+          "net": 43400,
+          "present_value": 34452
+        }
+      },
+      {
+        "id": "64e15b47-f9ff-58b1-9ab3-74e1ba3de9ba",
+        "data": {
+          "project_ref": "CPX-27-074",
+          "year": 4,
+          "benefits": 53400,
+          "operating_costs": 4700,
+          "net": 48700,
+          "present_value": 35796
+        }
+      },
+      {
+        "id": "ab32f001-506e-5cc9-ba1b-dbff2c93bf83",
+        "data": {
+          "project_ref": "CPX-27-074",
+          "year": 5,
+          "benefits": 54900,
+          "operating_costs": 5200,
+          "net": 49700,
+          "present_value": 33825
+        }
+      },
+      {
+        "id": "fa60ffc8-d110-5c9a-bb5d-c7f026c8be81",
+        "data": {
+          "project_ref": "CPX-27-075",
+          "year": 1,
+          "benefits": 26700,
+          "operating_costs": 3600,
+          "net": 23100,
+          "present_value": 21389
+        }
+      },
+      {
+        "id": "ff76968d-08ef-5be1-b92d-dd180979cadb",
+        "data": {
+          "project_ref": "CPX-27-075",
+          "year": 2,
+          "benefits": 37500,
+          "operating_costs": 3400,
+          "net": 34100,
+          "present_value": 29235
+        }
+      },
+      {
+        "id": "96c56dd3-da18-598d-9dfb-8ab5a799e0f2",
+        "data": {
+          "project_ref": "CPX-27-075",
+          "year": 3,
+          "benefits": 38600,
+          "operating_costs": 4200,
+          "net": 34400,
+          "present_value": 27308
+        }
+      },
+      {
+        "id": "6b3000cc-0aff-57ef-876a-56a4eebade0d",
+        "data": {
+          "project_ref": "CPX-27-075",
+          "year": 4,
+          "benefits": 39800,
+          "operating_costs": 4100,
+          "net": 35700,
+          "present_value": 26241
+        }
+      },
+      {
+        "id": "d7a2c4fc-147f-5d0e-9f7c-d6efd512cc2b",
+        "data": {
+          "project_ref": "CPX-27-075",
+          "year": 5,
+          "benefits": 40900,
+          "operating_costs": 7200,
+          "net": 33700,
+          "present_value": 22936
+        }
+      },
+      {
+        "id": "87a99541-3637-593b-ab9c-aad054b5154e",
+        "data": {
+          "project_ref": "CPX-27-076",
+          "year": 1,
+          "benefits": 7800,
+          "operating_costs": 900,
+          "net": 6900,
+          "present_value": 6389
+        }
+      },
+      {
+        "id": "9fe922e9-59db-5679-a5a1-57353a06be83",
+        "data": {
+          "project_ref": "CPX-27-076",
+          "year": 2,
+          "benefits": 9900,
+          "operating_costs": 1100,
+          "net": 8800,
+          "present_value": 7545
+        }
+      },
+      {
+        "id": "a326c283-2a44-58bd-89ec-50e01ff2749e",
+        "data": {
+          "project_ref": "CPX-27-076",
+          "year": 3,
+          "benefits": 10200,
+          "operating_costs": 1800,
+          "net": 8400,
+          "present_value": 6668
+        }
+      },
+      {
+        "id": "9be58543-2937-5de2-b63b-ad85119d6010",
+        "data": {
+          "project_ref": "CPX-27-076",
+          "year": 4,
+          "benefits": 10500,
+          "operating_costs": 1300,
+          "net": 9200,
+          "present_value": 6762
+        }
+      },
+      {
+        "id": "8fe31f68-00bc-5163-9b44-7a5b0a933aa7",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "year": 1,
+          "benefits": 92100,
+          "operating_costs": 16200,
+          "net": 75900,
+          "present_value": 70278
+        }
+      },
+      {
+        "id": "c2aa4d1b-f785-59ec-b8db-a9b0dce4ff50",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "year": 2,
+          "benefits": 163300,
+          "operating_costs": 22400,
+          "net": 140900,
+          "present_value": 120799
+        }
+      },
+      {
+        "id": "e8b9e176-0a7b-5eaa-9690-5513132aa18e",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "year": 3,
+          "benefits": 168200,
+          "operating_costs": 23300,
+          "net": 144900,
+          "present_value": 115026
+        }
+      },
+      {
+        "id": "ee593290-59a6-5646-9c12-2dcefac17476",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "year": 4,
+          "benefits": 173000,
+          "operating_costs": 29800,
+          "net": 143200,
+          "present_value": 105256
+        }
+      },
+      {
+        "id": "c2d94fe7-8333-57f4-9340-4e91b850381f",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "year": 5,
+          "benefits": 177900,
+          "operating_costs": 24900,
+          "net": 153000,
+          "present_value": 104129
+        }
+      },
+      {
+        "id": "b4b55ef8-968d-5aa5-beb1-de8400bd3001",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "year": 1,
+          "benefits": 44400,
+          "operating_costs": 6600,
+          "net": 37800,
+          "present_value": 35000
+        }
+      },
+      {
+        "id": "53bef86a-7926-57bf-bcf4-f8aa69f735de",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "year": 2,
+          "benefits": 66400,
+          "operating_costs": 10600,
+          "net": 55800,
+          "present_value": 47840
+        }
+      },
+      {
+        "id": "0dedfd26-ffce-5a46-9c92-a184179d35f1",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "year": 3,
+          "benefits": 68400,
+          "operating_costs": 8300,
+          "net": 60100,
+          "present_value": 47709
+        }
+      },
+      {
+        "id": "a20a2aa3-afba-5635-be5c-f4bf8783a13b",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "year": 4,
+          "benefits": 70400,
+          "operating_costs": 7300,
+          "net": 63100,
+          "present_value": 46380
+        }
+      },
+      {
+        "id": "23f46a1a-ad91-5ff0-8bfe-526fb5b9d5fd",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "year": 5,
+          "benefits": 72400,
+          "operating_costs": 10300,
+          "net": 62100,
+          "present_value": 42264
+        }
+      },
+      {
+        "id": "0f0df3cc-9572-5024-86dd-725a789d752d",
+        "data": {
+          "project_ref": "CPX-27-079",
+          "year": 1,
+          "benefits": 129000,
+          "operating_costs": 14900,
+          "net": 114100,
+          "present_value": 105648
+        }
+      },
+      {
+        "id": "4b99edb0-653a-5c7e-a7d4-d3fd7947c6d1",
+        "data": {
+          "project_ref": "CPX-27-079",
+          "year": 2,
+          "benefits": 179300,
+          "operating_costs": 16300,
+          "net": 163000,
+          "present_value": 139746
+        }
+      },
+      {
+        "id": "fbb47676-c4aa-5b04-b401-2cac88a4ad98",
+        "data": {
+          "project_ref": "CPX-27-079",
+          "year": 3,
+          "benefits": 184700,
+          "operating_costs": 24100,
+          "net": 160600,
+          "present_value": 127489
+        }
+      },
+      {
+        "id": "58d29c06-811a-5768-91d8-36957f200153",
+        "data": {
+          "project_ref": "CPX-27-079",
+          "year": 4,
+          "benefits": 190100,
+          "operating_costs": 31200,
+          "net": 158900,
+          "present_value": 116796
+        }
+      },
+      {
+        "id": "394cf072-522e-5a9a-af67-d0b27b22320a",
+        "data": {
+          "project_ref": "CPX-27-079",
+          "year": 5,
+          "benefits": 195400,
+          "operating_costs": 23400,
+          "net": 172000,
+          "present_value": 117060
+        }
+      },
+      {
+        "id": "27ec71f6-a248-5318-8264-5e352d150033",
+        "data": {
+          "project_ref": "CPX-27-080",
+          "year": 1,
+          "benefits": 131300,
+          "operating_costs": 16900,
+          "net": 114400,
+          "present_value": 105926
+        }
+      },
+      {
+        "id": "be2ca7ed-fa04-574f-8a24-33b7626ca758",
+        "data": {
+          "project_ref": "CPX-27-080",
+          "year": 2,
+          "benefits": 167000,
+          "operating_costs": 24900,
+          "net": 142100,
+          "present_value": 121828
+        }
+      },
+      {
+        "id": "e5a550e5-d96e-53e9-83c8-f35c3aa2bb58",
+        "data": {
+          "project_ref": "CPX-27-080",
+          "year": 3,
+          "benefits": 172000,
+          "operating_costs": 20200,
+          "net": 151800,
+          "present_value": 120504
+        }
+      },
+      {
+        "id": "df2b7760-8554-50cd-a19b-73b57d8ffd49",
+        "data": {
+          "project_ref": "CPX-27-080",
+          "year": 4,
+          "benefits": 177000,
+          "operating_costs": 28200,
+          "net": 148800,
+          "present_value": 109372
+        }
+      },
+      {
+        "id": "64857882-2ae9-5d1d-9d57-1461b30d6ca5",
+        "data": {
+          "project_ref": "CPX-27-080",
+          "year": 5,
+          "benefits": 182000,
+          "operating_costs": 24300,
+          "net": 157700,
+          "present_value": 107328
+        }
+      }
+    ]
+  }
+}

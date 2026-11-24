@@ -165,9 +165,10 @@ export function registerExtensibilityTools(server: McpToolServer, ctx: McpContex
     search: z.string().optional().describe('Name, tag or description contains'),
     enabled: z.boolean().optional().describe('Only enabled (true) or disabled (false) controls'),
     limit: z.number().optional().describe('Maximum results (default 50, cap 200)'),
+    tagged: z.string().optional().describe('Only controls carrying this tag (a label; not the element tag)'),
   }, async (args) => run(async () => {
     const limit = Math.max(1, Math.min(args.limit ?? 50, 200))
-    const { form_controls: rows, total } = await formControls.listFormControls(readCtx(), { search: args.search, enabled: args.enabled }, { limit, offset: 0 })
+    const { form_controls: rows, total } = await formControls.listFormControls(readCtx(), { search: args.search, enabled: args.enabled, tag: args.tagged }, { limit, offset: 0 })
     return { form_controls: rows, count: rows.length, total }
   }))
 
@@ -201,6 +202,7 @@ export function registerExtensibilityTools(server: McpToolServer, ctx: McpContex
     name: z.string().optional(),
     description: z.string().optional(),
     approved_hosts: z.array(z.string()).optional().describe('Hosts to allow (only ones a manifest asks for); [] revokes'),
+    tags: z.array(z.string()).optional().describe('Replacement tags ([] clears)'),
   }, async (args) => run(async () => {
     const { form_control_id: id, ...fields } = args
     return { updated: true, form_control: await formControls.updateFormControl(writeCtx(), id, fields) }

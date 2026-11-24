@@ -7,6 +7,7 @@ import { useWorkspaceBrand } from '@/components/providers/theme-provider'
 import { barButtonShown, type ButtonEffects, type ButtonPlacement, type FormButton } from '@/lib/forms/buttons'
 import type { FieldButtonIcon } from '@/lib/forms/field-buttons'
 import { FieldButtonIconView } from './field-button'
+import { displayFormTitle } from '@/lib/forms/display-title'
 import { headerImageSrc, resolveHeaderText, withThemeHeaderText, type FormHeader } from '@/lib/forms/header'
 import { formHeaderColors, type FormThemeOverrides } from '@/lib/forms/form-theme'
 import { resolveStorageUrl } from '@/lib/storage/refs'
@@ -44,7 +45,7 @@ export function FormHeaderBlock({ header: own, values, task, overrides, actions 
   if (!header?.enabled) return alone
   const src = headerImageSrc(header, logoUrl)
   const image = src ? resolveStorageUrl(src) ?? src : null
-  const title = resolveHeaderText(header.title, values, task)
+  const title = displayFormTitle(resolveHeaderText(header.title, values, task))
   const subtitle = resolveHeaderText(header.subtitle, values, task)
   // The banner colour comes from the mini theme (made legible by onColor).
   const banner = header.banner ? formHeaderColors(overrides ? { ...overrides, header: { ...overrides.header, enabled: true } } : null) : null
@@ -163,6 +164,7 @@ export function FormButtonBar({ buttons, placement = 'right', sticky = false, va
       className={cn('mt-5 flex flex-wrap gap-2', placement === 'left' && 'justify-start', placement === 'right' && 'justify-end', placement === 'full' && 'flex-col sm:flex-row', sticky && 'sticky bottom-0 z-10 -mx-1 border-t border-border bg-card px-1 py-3')}
       data-form-buttons={placement}
       data-form-buttons-sticky={sticky || undefined}
+      data-agent-bar={sticky ? '' : undefined}
       {...motionAttrs(motion.level)}
     >
       {shown.map((button) => (

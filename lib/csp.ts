@@ -136,8 +136,18 @@ export function frameAncestorsSource(value: string | undefined): string {
   return "'none'"
 }
 
+/** frame-src of app pages (Embed / Video widgets). */
+export const APP_FRAME_SRC = "'self' https:"
+
+/** App page paths whose policy allows https frames. */
+export function isAppPagePath(pathname: string): boolean {
+  return pathname === '/apps' || pathname.startsWith('/apps/') || pathname.startsWith('/embed/apps/')
+}
+
 /** frame-src: `'self'` followed by origins only — anything else is just `'self'`. */
 export function frameSrcSource(value: string | undefined): string {
+  // App pages (/apps, /embed/apps): any https frame — which sites render is the workspace's list, enforced server-side (lib/apps/embed-origins.ts).
+  if (value === APP_FRAME_SRC) return value
   if (value && /^'self'(?: https?:\/\/[a-z0-9.[\]:-]+)+$/i.test(value)) return value
   return "'self'"
 }

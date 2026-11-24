@@ -1,0 +1,187 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "ba5a9692-20ac-5f30-8d7e-9c30fa744239",
+  "asset": {
+    "id": "ba5a9692-20ac-5f30-8d7e-9c30fa744239",
+    "name": "Launch a survey",
+    "description": "Start a survey cycle: who is invited, when it opens and closes, the reminder and the minimum group size for results.",
+    "tags": [
+      "survey",
+      "admin"
+    ],
+    "fields": [
+      {
+        "key": "survey_name",
+        "label": "Name",
+        "type": "text",
+        "required": true,
+        "default": "Q4 2026 engagement survey"
+      },
+      {
+        "key": "cycle_code",
+        "label": "Cycle code",
+        "type": "text",
+        "required": true,
+        "default": "ENG-2026-Q4",
+        "help_text": "Short and unique, e.g. ENG-2026-Q4."
+      },
+      {
+        "key": "type",
+        "label": "Type",
+        "type": "choice",
+        "options": [
+          "Quarterly engagement",
+          "Pulse"
+        ],
+        "required": true,
+        "default": "Quarterly engagement",
+        "display": "radio"
+      },
+      {
+        "key": "departments",
+        "label": "Audience",
+        "type": "multi_choice",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ],
+        "display": "checkboxes",
+        "help_text": "Leave empty to invite everyone."
+      },
+      {
+        "key": "opens_on",
+        "label": "Opens",
+        "type": "date",
+        "required": true,
+        "default": "{{today}}"
+      },
+      {
+        "key": "closes_on",
+        "label": "Closes",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "reminder_days",
+        "label": "Remind non-responders after (days)",
+        "type": "number",
+        "required": true,
+        "default": 5,
+        "min": 1,
+        "max": 30
+      },
+      {
+        "key": "min_group",
+        "label": "Minimum group size for results",
+        "type": "number",
+        "required": true,
+        "default": 5,
+        "min": 3,
+        "max": 50,
+        "help_text": "Results for any department, location or tenure group with fewer responses are hidden."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "survey_name",
+              "span": 1
+            },
+            {
+              "field_key": "cycle_code",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "type",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "departments",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "opens_on",
+              "span": 1
+            },
+            {
+              "field_key": "closes_on",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "reminder_days",
+              "span": 1
+            },
+            {
+              "field_key": "min_group",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Launch survey",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Survey launched",
+            "text": "Invitations are on their way.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Launch a survey",
+      "subtitle": "Invitations, reminders, close and results run by themselves.",
+      "align": "left"
+    }
+  }
+}

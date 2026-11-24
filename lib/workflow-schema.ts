@@ -18,6 +18,7 @@ export type NodeType =
   | 'schedule'
   | 'webhook_received'
   | 'esign_event'
+  | 'agent_error'
   // Logic & Flow
   | 'condition'
   | 'switch_case'
@@ -113,6 +114,8 @@ export type NodeType =
   | 'add_user_to_role'
   | 'remove_user_from_role'
   | 'check_permission'
+  // Instance admins (cloud admin): read UserTasks instance data / act on a workspace's behalf
+  | 'instance_admin'
   // Extension nodes and triggers (lib/extensions/nodes.ts): ext.<extension id>.<key>
   | `ext.${string}`
 
@@ -179,6 +182,7 @@ export const NODE_CATALOG: {
   { type: 'middleware_received', label: 'Middleware', icon: 'Globe', category: 'trigger', color: '#22C55E', description: 'Receive a webhook and return a workflow response synchronously' },
   { type: 'schedule', label: 'Schedule', icon: 'Clock', category: 'trigger', color: '#22C55E', description: 'Run on a schedule' },
   { type: 'webhook_received', label: 'Webhook', icon: 'Globe', category: 'trigger', color: '#22C55E', description: 'Triggered by an incoming webhook' },
+  { type: 'agent_error', label: 'Agent Error', icon: 'BotOff', category: 'trigger', color: '#EF4444', description: 'When an agent fails for good (after its retries): a workflow agent, an agent run started elsewhere, or the in-product Agent' },
   { type: 'esign_event', label: 'E-signature Event', icon: 'Signature', category: 'trigger', color: '#22C55E', description: 'When an envelope is completed, signed by a recipient, declined, voided or expires (DocuSign, Adobe Acrobat Sign, Dropbox Sign …)' },
   // ─── Logic & Flow ───
   { type: 'condition', label: 'Branch by Condition', icon: 'GitBranch', category: 'logic', color: '#F59E0B', description: 'If/else if/else branching' },
@@ -271,6 +275,7 @@ export const NODE_CATALOG: {
   { type: 'run_agent', label: 'Run Agent', icon: 'Bot', category: 'action', color: '#8B5CF6', description: 'Execute an AI agent with tools and instructions' },
   { type: 'add_user_to_role', label: 'Add User to Role', icon: 'UserPlus', category: 'action', color: '#3B82F6', description: 'Assign a governance role to a user' },
   { type: 'remove_user_from_role', label: 'Remove from Role', icon: 'UserMinus', category: 'action', color: '#3B82F6', description: 'Remove a governance role from a user' },
+  { type: 'instance_admin', label: 'UserTasks Instance', icon: 'ServerCog', category: 'action', color: '#0F766E', description: 'Instance admins only: read operational data of every workspace, or act on a workspace’s behalf (audited)' },
   { type: 'check_permission', label: 'Check Permission', icon: 'Shield', category: 'operation', color: '#8B5CF6', description: 'Check if a user has a specific permission' },
   // ─── Tools ───
   { type: 'section_group', label: 'Section', icon: 'FolderOpen', category: 'section', color: '#6366F1', description: 'Group activities into a collapsible section' },
@@ -360,6 +365,9 @@ export function createDefaultNode(type: NodeType, x: number = 250, y: number = 1
     config.height = 300
     config.color = '#6366F1'
   }
+  // New Run Agent steps pass the run's data as context (lib/agents/workflow-data.ts);
+  // saved steps without the property keep running without it.
+  if (type === 'run_agent') config.include_workflow_data = true
   return {
     id: crypto.randomUUID(),
     type,

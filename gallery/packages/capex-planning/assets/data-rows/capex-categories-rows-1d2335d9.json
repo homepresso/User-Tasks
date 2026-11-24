@@ -1,0 +1,61 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "1d2335d9-e227-56be-82a9-65a6ecbc343c",
+  "asset": {
+    "id": "1d2335d9-e227-56be-82a9-65a6ecbc343c",
+    "name": "CapEx categories rows",
+    "rows": [
+      {
+        "id": "7d5d7fdf-6573-5a3d-8a87-3dfe17aa673d",
+        "data": {
+          "category": "Equipment",
+          "default_life": 10,
+          "gl_account": "1610 Plant and machinery",
+          "depreciation_method": "Straight-line",
+          "review_rule": "Safety review over $100,000"
+        }
+      },
+      {
+        "id": "2a975b29-66a5-520b-94ff-ff029ebee662",
+        "data": {
+          "category": "IT",
+          "default_life": 4,
+          "gl_account": "1620 Computer equipment and software",
+          "depreciation_method": "Straight-line",
+          "review_rule": "CIO review"
+        }
+      },
+      {
+        "id": "0ac88800-1453-58b2-97bb-cd9c77dc875d",
+        "data": {
+          "category": "Facilities",
+          "default_life": 20,
+          "gl_account": "1630 Buildings and improvements",
+          "depreciation_method": "Straight-line",
+          "review_rule": "Safety review"
+        }
+      },
+      {
+        "id": "b89b3e4a-077b-5407-8a98-08d4d53ffa70",
+        "data": {
+          "category": "Vehicles",
+          "default_life": 6,
+          "gl_account": "1640 Motor vehicles",
+          "depreciation_method": "Straight-line",
+          "review_rule": "Safety review"
+        }
+      },
+      {
+        "id": "16902c78-212f-567e-b09d-0431dbac73b6",
+        "data": {
+          "category": "R&D",
+          "default_life": 5,
+          "gl_account": "1650 Research equipment",
+          "depreciation_method": "Straight-line",
+          "review_rule": "None beyond the approval tiers"
+        }
+      }
+    ]
+  }
+}

@@ -14,14 +14,21 @@
 #   -Build              build the image locally if it can't be downloaded
 #   -NoBrowser          USERTASKS_NO_BROWSER=1
 #
-# UserTasks for SharePoint Server (a licence-gated image; trial or purchased licence):
-#   -Edition sharepoint USERTASKS_EDITION        install the SharePoint edition
-#   -Licence <file>     USERTASKS_LICENCE_FILE   your .licence file (checked with usertasks.com)
-#   -Bundle <file>      install from an offline bundle (air-gapped hosts)
-#   -BundleDownload     make an offline bundle here instead of installing (with -Edition and
-#                       -Licence; -Platform linux/amd64|linux/arm64, -Out <file>)
+# UserTasks Enterprise (one licence-gated image with every paid extension: SharePoint
+# Server, the Infrastructure add-on…; each unlocked by its own licence):
+#   -Licence <file>     USERTASKS_LICENCE_FILE   your .licence file (checked with usertasks.com):
+#                                                installs UserTasks Enterprise (any paid licence)
+#   -Edition <name>     USERTASKS_EDITION        enterprise (the default with a licence), core (the
+#                                                public image, even with a licence), sharepoint (the
+#                                                older SharePoint edition name: served the Enterprise image)
+#   -Bundle <file>      install from an offline bundle (air-gapped hosts): its .tar, or its
+#                       parts (the .parts.json, or the folder holding them)
+#   -BundleDownload     make an offline bundle here instead of installing (with -Licence;
+#                       -Platform linux/amd64|linux/arm64, -Out <file>)
+#   -BundleDownload -From <url>   download a prebuilt split bundle (<url> of its .parts.json)
+#                       into -Out <folder>, resuming and checking every part
 #
-#   & ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -Edition sharepoint -Licence .\usertasks.licence
+#   & ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -Edition enterprise -Licence .\usertasks.licence
 #
 # It checks the machine and Docker, downloads a pinned release, verifies its
 # signature and checksum before running anything from it, then hands over to
@@ -56,7 +63,8 @@ function Invoke-UserTasksInstall {
     [string]$Bundle,
     [switch]$BundleDownload,
     [string]$Platform,
-    [string]$Out
+    [string]$Out,
+    [string]$From
   )
   $ErrorActionPreference = 'Stop'
   $ProgressPreference = 'SilentlyContinue'
@@ -67,12 +75,30 @@ function Invoke-UserTasksInstall {
   if (-not $releaseBase) { $releaseBase = 'https://github.com/homepresso/User-Tasks/releases' }
   $editionApi = $env:USERTASKS_EDITION_API
   if (-not $editionApi) { $editionApi = 'https://usertasks.com/api/public/extensions' }
-  if ($Edition -eq 'core') { $Edition = '' }
-  if ($Edition -and $Edition -ne 'sharepoint') { throw "unknown edition: $Edition (editions: sharepoint)" }
+  if ($Edition -and $Edition -notin @('core', 'enterprise', 'sharepoint')) { throw "unknown edition: $Edition (editions: enterprise, sharepoint, core)" }
+  # A licence alone means UserTasks Enterprise (the release's installer falls back to the
+  # public image when there is no Enterprise build); -Edition core keeps the public image.
+  $implicit = $false
+  if (-not $Edition -and $Licence) { $Edition = 'enterprise'; $implicit = $true }
+  $coreChosen = ($Edition -eq 'core')
+  if ($coreChosen) { $Edition = '' }
   if ($Licence) { if (-not (Test-Path $Licence)) { throw "licence file not found: $Licence" }; $Licence = (Resolve-Path $Licence).Path }
   if ($Bundle) { if (-not (Test-Path $Bundle)) { throw "bundle not found: $Bundle" }; $Bundle = (Resolve-Path $Bundle).Path }
-  if ($BundleDownload) { if (-not $Edition -or -not $Licence) { throw '-BundleDownload needs -Edition sharepoint and -Licence <file>' } }
-  elseif ($Edition -and -not $Licence -and -not $Bundle) { throw "-Edition $Edition needs your licence: -Licence <file> (start a 30-day trial at https://usertasks.com/sharepoint/trial)" }
+  if ($From) {
+    # A prebuilt, split bundle: download and check its parts, nothing else (no Docker needed).
+    if (-not $BundleDownload) { throw '-From goes with -BundleDownload' }
+    Write-Host ''
+    Write-Host 'UserTasks installer' -ForegroundColor White
+    if (-not $Dir) { $Dir = Join-Path (Get-Location).Path 'usertasks-bundle-work' }
+    New-Item -ItemType Directory -Force -Path (Join-Path $Dir 'releases') | Out-Null
+    $Dir = (Resolve-Path $Dir).Path
+    $key = Set-UtTrustKey $Dir
+    if (-not $Out) { $Out = (Get-Location).Path }
+    Save-UtParts $From $Out $key
+    return
+  }
+  if ($BundleDownload) { if (-not $Edition -or -not $Licence) { throw '-BundleDownload needs -Licence <file> (and optionally -Edition enterprise)' } }
+  elseif ($Edition -and -not $Licence -and -not $Bundle) { throw "-Edition $Edition needs your licence: -Licence <file> (licences: https://usertasks.com/extensions; a 30-day SharePoint trial: https://usertasks.com/sharepoint/trial)" }
 
   Write-Host ''
   Write-Host 'UserTasks installer' -ForegroundColor White
@@ -89,17 +115,21 @@ function Invoke-UserTasksInstall {
   $key = Set-UtTrustKey $Dir
   $bundleDir = ''
   if ($Bundle) {
-    if (Test-Path "$Bundle.sha256") {
-      $want = ((Get-Content -Raw "$Bundle.sha256").Trim() -split '\s+')[0]
-      if ((Get-FileHash -Algorithm SHA256 $Bundle).Hash.ToLowerInvariant() -ne $want) { throw "$Bundle does not match $Bundle.sha256: the bundle is damaged or was changed" }
-      Write-UtOk "bundle checksum ($Bundle.sha256)"
+    $join = Join-Path $Dir 'releases\.bundle-join'
+    $rb = Resolve-UtBundle $Bundle $key $join
+    $bf = $rb.File
+    if (-not $rb.Joined -and (Test-Path -LiteralPath "$bf.sha256")) {
+      $want = ((Get-Content -Raw -LiteralPath "$bf.sha256").Trim() -split '\s+')[0]
+      if ((Get-FileHash -Algorithm SHA256 -LiteralPath $bf).Hash.ToLowerInvariant() -ne $want) { throw "$bf does not match $bf.sha256: the bundle is damaged or was changed" }
+      Write-UtOk "bundle checksum ($bf.sha256)"
     }
     $bo = Join-Path $Dir 'releases\.bundle'
     if (Test-Path $bo) { Remove-Item -Recurse -Force $bo }
     New-Item -ItemType Directory -Force -Path $bo | Out-Null
-    Write-UtStep "Unpacking $(Split-Path -Leaf $Bundle)"
-    & tar -xf $Bundle -C $bo
-    if ($LASTEXITCODE -ne 0) { throw "could not unpack $Bundle (tar)" }
+    Write-UtStep "Unpacking $(Split-Path -Leaf $bf)"
+    & tar -xf $bf -C $bo
+    if ($LASTEXITCODE -ne 0) { throw "could not unpack $bf (tar)" }
+    if ($rb.Joined) { Remove-Item -Recurse -Force $join }
     $bj = Get-ChildItem -Path $bo -Filter 'bundle.json' -Recurse -Depth 1 | Select-Object -First 1
     if (-not $bj) { throw "$Bundle is not a UserTasks offline bundle" }
     $bundleDir = $bj.DirectoryName
@@ -136,7 +166,7 @@ function Invoke-UserTasksInstall {
   }
 
   $a = @('install', '-Dir', $Dir, '-Version', $Version)
-  if ($bundleDir) { $a += @('-Bundle', $bundleDir) } elseif ($Edition) { $a += @('-Edition', $Edition) }
+  if ($bundleDir) { $a += @('-Bundle', $bundleDir) } elseif ($Edition -and -not $implicit) { $a += @('-Edition', $Edition) } elseif ($coreChosen) { $a += @('-Edition', 'core') }
   if ($Licence) { $a += @('-Licence', $Licence) }
   if ($Port) { $a += @('-Port', $Port) }
   if ($Url) { $a += @('-Url', $Url) }
@@ -284,6 +314,141 @@ function Get-UtRelease([string]$Base, [string]$Version, [string]$Dir, [string]$K
   if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
   Move-Item $top $dest
   Remove-Item -Recurse -Force $dl
+}
+
+# ── split bundles (parts; the same format as install.sh) ───────────────────
+# A bundle over GitHub's 2 GiB release-asset limit comes in parts: <name>.tar.part-001 …,
+# <name>.tar.parts.json (size + sha256 of the whole and of each part, in order) and
+# <name>.tar.parts.json.sig (its ed25519 signature by the release key). The signature,
+# then every part, then the joined file are checked before anything is unpacked.
+
+function Read-UtParts([string]$manifest) {
+  $leaf = Split-Path -Leaf $manifest
+  try { $m = Get-Content -Raw -LiteralPath $manifest | ConvertFrom-Json } catch { throw "$leaf is not a bundle parts manifest" }
+  if ([string]$m.name -cnotmatch '^[A-Za-z0-9._-]+\.tar$' -or [string]$m.size -cnotmatch '^\d+$' -or [string]$m.sha256 -cnotmatch '^[0-9a-f]{64}$') { throw "$leaf is not a bundle parts manifest" }
+  $parts = @($m.parts)
+  if ($parts.Count -lt 1) { throw "$leaf lists no parts" }
+  $sum = [int64]0; $i = 0
+  foreach ($p in $parts) {
+    $i++
+    if ([string]$p.name -cne ('{0}.part-{1:D3}' -f $m.name, $i) -or [string]$p.size -cnotmatch '^\d+$' -or [string]$p.sha256 -cnotmatch '^[0-9a-f]{64}$') { throw "$leaf lists an unexpected part (entry $i)" }
+    $sum += [int64]$p.size
+  }
+  if ($sum -ne [int64]$m.size) { throw "the parts in $leaf do not add up to the bundle size" }
+  return $m
+}
+
+# Test-UtPart: 0 intact, 1 missing, 2 wrong size, 3 checksum mismatch.
+function Test-UtPart([string]$file, $size, [string]$sha) {
+  if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { return 1 }
+  if ((Get-Item -LiteralPath $file).Length -ne [int64]$size) { return 2 }
+  if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLowerInvariant() -ne $sha) { return 3 }
+  return 0
+}
+
+# Join-UtParts: verify the signature and every part, join them (streamed) into $work, check the whole. Returns the .tar.
+function Join-UtParts([string]$manifest, [string]$key, [string]$work) {
+  $dir = Split-Path -Parent $manifest; $leaf = Split-Path -Leaf $manifest
+  if (-not (Test-Path -LiteralPath $manifest -PathType Leaf)) { throw "parts manifest not found: $manifest" }
+  if (-not (Test-Path -LiteralPath "$manifest.sig" -PathType Leaf)) { throw "$leaf.sig is missing: copy it next to $leaf (the parts can't be checked without it)" }
+  if (-not (Test-UtSignature $manifest "$manifest.sig" $key)) { throw "signature check FAILED: $leaf was not signed by the UserTasks release key. Nothing was installed." }
+  Write-UtOk "signature of $leaf"
+  $m = Read-UtParts $manifest; $n = @($m.parts).Count
+  Write-UtStep "Checking the $n parts of $($m.name)"
+  $i = 0
+  foreach ($p in $m.parts) {
+    $i++
+    switch (Test-UtPart (Join-Path $dir $p.name) $p.size $p.sha256) {
+      1 { throw "part $i of $n ($($p.name)) is missing: copy it next to $leaf (or download it again)" }
+      2 { throw "part $i of $n ($($p.name)) is incomplete or damaged (wrong size): download it again" }
+      3 { throw "part $i of $n ($($p.name)) is damaged (checksum mismatch): download it again" }
+    }
+  }
+  Write-UtOk "$n parts (sizes and checksums)"
+  New-Item -ItemType Directory -Force -Path $work | Out-Null
+  $out = Join-Path $work $m.name
+  $os = [IO.File]::Create($out)
+  try {
+    foreach ($p in $m.parts) {
+      $is = [IO.File]::OpenRead((Join-Path $dir $p.name))
+      try { $is.CopyTo($os, 1048576) } finally { $is.Dispose() }
+    }
+  } finally { $os.Dispose() }
+  if ((Get-FileHash -Algorithm SHA256 -LiteralPath $out).Hash.ToLowerInvariant() -ne $m.sha256) { Remove-Item -Force -LiteralPath $out; throw "the joined bundle does not match ${leaf} (checksum mismatch): download the parts again" }
+  Write-UtOk "joined $($m.name) (checksum)"
+  return $out
+}
+
+# Resolve-UtBundle: a bundle .tar, or its parts (the .parts.json, one of the parts, or the folder holding them).
+function Resolve-UtBundle([string]$path, [string]$key, [string]$work) {
+  $m = ''
+  if ($path -like '*.parts.json') { $m = $path }
+  elseif ($path -match '\.part-\d{3}$') { $m = ($path -replace '\.part-\d{3}$', '') + '.parts.json' }
+  elseif (Test-Path -LiteralPath $path -PathType Container) {
+    $ms = @(Get-ChildItem -LiteralPath $path -File | Where-Object { $_.Name -like '*.parts.json' })
+    if ($ms.Count -gt 1) { throw "$path holds more than one bundle: name its .parts.json" }
+    if ($ms.Count -eq 1) { $m = $ms[0].FullName }
+    else {
+      $ts = @(Get-ChildItem -LiteralPath $path -File | Where-Object { $_.Name -like '*.tar' })
+      if ($ts.Count -ne 1) { throw "$path has no offline bundle (a .tar, or the .part-NNN files with their .parts.json)" }
+      $path = $ts[0].FullName
+    }
+  }
+  if ($m) { return @{ File = (Join-UtParts $m $key $work); Joined = $true } }
+  if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "bundle not found: $path" }
+  return @{ File = $path; Joined = $false }
+}
+
+# Save-UtParts: download a prebuilt split bundle into $out (resumes; every part checked).
+function Save-UtParts([string]$url, [string]$out, [string]$key) {
+  if ($url -notmatch '^(https?|file)://.+\.parts\.json$') { throw "-From needs the address of a bundle's .parts.json file" }
+  $base = $url.Substring(0, $url.LastIndexOf('/')); $leaf = $url.Substring($url.LastIndexOf('/') + 1)
+  New-Item -ItemType Directory -Force -Path $out | Out-Null
+  $out = (Resolve-Path $out).Path
+  $mf = Join-Path $out $leaf
+  Write-UtStep "Downloading $leaf"
+  try { Invoke-WebRequest -UseBasicParsing $url -OutFile $mf; Invoke-WebRequest -UseBasicParsing "$url.sig" -OutFile "$mf.sig" }
+  catch { throw "could not download $url or its .sig: $($_.Exception.Message)" }
+  if (-not (Test-UtSignature $mf "$mf.sig" $key)) { throw "signature check FAILED: $leaf was not signed by the UserTasks release key" }
+  Write-UtOk "signature of $leaf"
+  $m = Read-UtParts $mf; $n = @($m.parts).Count; $i = 0
+  foreach ($p in $m.parts) {
+    $i++; $f = Join-Path $out $p.name
+    if ((Test-UtPart $f $p.size $p.sha256) -eq 0) { Write-UtOk "part $i of $n already here ($($p.name))"; continue }
+    # A complete part that fails its check (or an over-long one) is downloaded again from the start.
+    if ((Test-Path -LiteralPath $f) -and (Get-Item -LiteralPath $f).Length -ge [int64]$p.size) { Remove-Item -Force -LiteralPath $f }
+    Write-UtStep "Downloading part $i of $n ($($p.name), $([math]::Round([int64]$p.size / 1MB)) MB)"
+    Get-UtResume "$base/$($p.name)" $f "the download of part $i of $n stopped: run the same command again to resume it"
+    if ((Test-UtPart $f $p.size $p.sha256) -ne 0) { Remove-Item -Force -LiteralPath $f; throw "part $i of $n ($($p.name)) arrived damaged (checksum mismatch): run the same command again to download it again" }
+    Write-UtOk "part $i of $n ($($p.name), checksum)"
+  }
+  Write-Host ''
+  Write-Host "Offline bundle ready: $out ($n parts of $($m.name), $([math]::Round([int64]$m.size / 1MB)) MB in all; signature and checksums verified)" -ForegroundColor Green
+  Write-Host "Carry these to the offline host, in one folder: $leaf, $leaf.sig and the $n .part-NNN files,"
+  Write-Host 'with this installer (https://usertasks.com/install.ps1) and your licence file. There:'
+  Write-Host '  & .\install.ps1 -Bundle <folder> -Licence <your .licence file>'
+  Write-Host '(it checks the signature and every part, then joins them). Upgrades: usertasks upgrade -Bundle <folder>'
+}
+
+# Get-UtResume: download $url to $file, continuing a partial $file (curl.exe, else an HTTP range request).
+function Get-UtResume([string]$url, [string]$file, [string]$failure) {
+  $curl = Get-Command curl.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($curl) {
+    & $curl.Source -fL --retry 3 --connect-timeout 20 -C - -o $file $url
+    if ($LASTEXITCODE -ne 0) { throw $failure }
+    return
+  }
+  $have = [int64]0
+  if (Test-Path -LiteralPath $file) { $have = (Get-Item -LiteralPath $file).Length }
+  try {
+    $req = [Net.WebRequest]::Create($url)
+    if ($have -gt 0 -and $req -is [Net.HttpWebRequest]) { $req.AddRange($have) }
+    $res = $req.GetResponse()
+    $mode = [IO.FileMode]::Create
+    if ($have -gt 0 -and $res -is [Net.HttpWebResponse] -and [int]$res.StatusCode -eq 206) { $mode = [IO.FileMode]::Append }
+    $fs = New-Object IO.FileStream($file, $mode)
+    try { $res.GetResponseStream().CopyTo($fs, 1048576) } finally { $fs.Dispose(); $res.Close() }
+  } catch { throw "$failure ($($_.Exception.Message))" }
 }
 
 Invoke-UserTasksInstall @args

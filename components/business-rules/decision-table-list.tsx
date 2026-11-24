@@ -27,6 +27,10 @@ import { InlineNotice } from '@/components/ui/inline-notice'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ExportAssetButton } from '@/components/shared/config-transfer'
 import { buildQueuedDeleteNotice, type DeleteNotice } from '@/lib/queued-delete-feedback'
+import { TagFilterMenu, TagsActionButton, TagsCell, useTagFilter } from '@/components/ui/list-tags'
+import { TagList } from '@/components/ui/tag-chip'
+import { BulkTagsDialog, ObjectTagsDialog, useCanEditTags } from '@/components/ui/object-tags-dialog'
+import { Tag as TagIcon } from 'lucide-react'
 
 type SortField = 'name' | 'inputs' | 'outputs' | 'updated_at'
 type SortDir = 'asc' | 'desc'
@@ -53,6 +57,10 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
   const [bulkDeleteNotice, setBulkDeleteNotice] = useState<DeleteNotice | null>(null)
   const [localTables, setLocalTables] = useState<any[]>(tables)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const tagFilter = useTagFilter(localTables, (t: { tags?: string[] | null }) => t.tags)
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[] }>(null)
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false)
+  const canEditTags = useCanEditTags('business_rules')
   const normalized = search.trim().toLowerCase()
 
   useEffect(() => {
@@ -63,10 +71,11 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
     return localTables.filter((table) => {
       const matchesSearch = !normalized || (
         String(table.name ?? '').toLowerCase().includes(normalized) ||
-        String(table.description ?? '').toLowerCase().includes(normalized)
+        String(table.description ?? '').toLowerCase().includes(normalized) ||
+        (table.tags ?? []).some((t: string) => t.toLowerCase().includes(normalized))
       )
 
-      if (!matchesSearch) return false
+      if (!matchesSearch || !tagFilter.matches(table)) return false
 
       const inputCount = table.inputs?.length ?? 0
       const outputCount = table.outputs?.length ?? 0
@@ -78,7 +87,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
 
       return true
     })
-  }, [filterMode, localTables, normalized])
+  }, [filterMode, localTables, normalized, tagFilter])
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -226,6 +235,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
           <option value="needs_rules">Needs rules</option>
           <option value="needs_structure">Needs inputs/outputs</option>
         </Select>
+        <TagFilterMenu tags={tagFilter.allTags} selected={tagFilter.selected} onChange={tagFilter.setSelected} />
         <div className="flex items-center gap-0.5" role="group" aria-label="Sort by">
           {(['name', 'inputs', 'outputs', 'updated_at'] as SortField[]).map((field) => (
             <Button
@@ -265,6 +275,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
             Clear
           </Button>
           <div className="flex-1" />
+          {canEditTags && <Button size="sm" variant="secondary" leadingIcon={<TagIcon />} onClick={() => setBulkTagsOpen(true)} data-bulk-tags>Tags…</Button>}
           <ExportAssetButton ids={[...selected]} name={plural(selected.size, 'business rule')} />
           <Button
             size="sm"
@@ -286,9 +297,9 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
       {sorted.length === 0 ? (
         <EmptyState
           icon={GitBranch}
-          variant={search || filterMode !== 'all' ? 'no-results' : 'first-run'}
-          title={search || filterMode !== 'all' ? 'No business rules found' : 'No business rules yet'}
-          description={search || filterMode !== 'all' ? 'Try a different search term or filter.' : 'Create your first decision table to model approvals, routing logic, and policy rules.'}
+          variant={search || filterMode !== 'all' || tagFilter.active ? 'no-results' : 'first-run'}
+          title={search || filterMode !== 'all' || tagFilter.active ? 'No business rules found' : 'No business rules yet'}
+          description={search || filterMode !== 'all' || tagFilter.active ? 'Try a different search term or filter.' : 'Create your first decision table to model approvals, routing logic, and policy rules.'}
         />
       ) : viewMode === 'cards' ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -315,8 +326,12 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
                     <p className="mt-1 line-clamp-2 text-xs text-fg-muted">
                       {table.description || 'No description yet.'}
                     </p>
+                    {(table.tags?.length ?? 0) > 0 && (
+                      <span className="mt-1.5 block" data-tags-cell=""><TagList tags={table.tags} max={3} size="xs" onTagClick={tagFilter.toggle} /></span>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-center">
+                    <TagsActionButton onClick={() => setTagsTarget({ id: table.id, name: table.name, tags: table.tags ?? [] })} />
                     <ExportAssetButton ids={[table.id]} name={table.name} iconOnly variant="ghost" size="icon" className="size-7 text-fg-muted" />
                     <IconButton
                       size="sm"
@@ -359,6 +374,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
               <TH numeric className="w-24">Inputs</TH>
               <TH numeric className="w-24">Outputs</TH>
               <TH numeric className="w-24">Rules</TH>
+              <TH col="text" className="w-56" data-tags-column>Tags</TH>
               <TH col="date" className="w-36">Updated</TH>
               <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
@@ -387,6 +403,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
                   <TD numeric>{table.inputs?.length ?? 0}</TD>
                   <TD numeric>{table.outputs?.length ?? 0}</TD>
                   <TD numeric>{table.rules?.length ?? 0}</TD>
+                  <TD className="max-w-56"><TagsCell tags={table.tags} selected={tagFilter.selected} onToggle={tagFilter.toggle} /></TD>
                   <TD className="whitespace-nowrap text-xs text-fg-muted">
                     <UpdatedAt value={table.updated_at ?? table.created_at} />
                   </TD>
@@ -394,6 +411,7 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
                     <Button asChild size="sm" variant="secondary">
                       <Link href={`/automations/rules/${table.id}`}>Open</Link>
                     </Button>
+                    <TagsActionButton onClick={() => setTagsTarget({ id: table.id, name: table.name, tags: table.tags ?? [] })} />
                     <ExportAssetButton ids={[table.id]} name={table.name} iconOnly variant="ghost" size="icon" className="size-7 text-fg-muted" />
                     <IconButton
                       size="sm"
@@ -441,6 +459,13 @@ export function DecisionTableList({ tables }: { tables: any[] }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="business_rules" id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['decision-tables']]} />
+      )}
+      {bulkTagsOpen && (
+        <BulkTagsDialog open onOpenChange={setBulkTagsOpen} type="business_rules" ids={[...selected]} invalidate={[['decision-tables']]} onDone={() => setSelected(new Set())} />
+      )}
     </div>
   )
 }

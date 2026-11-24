@@ -8,7 +8,7 @@ import { formatStorageRef, parseOwnStorageUrl, resolveStorageUrl, toStorageRef }
  * Supabase public URLs it always held (production runs on it, and existing
  * API / MCP clients read those values). With any other provider writers
  * persist `storage://` references, which survive later provider switches;
- * the storage migration (lib/storage/migrate.ts) rewrites legacy URLs when
+ * the storage migration (Infrastructure add-on) rewrites legacy URLs when
  * an install moves off Supabase. Readers resolve either form
  * (resolveStorageUrl), so both coexist.
  */

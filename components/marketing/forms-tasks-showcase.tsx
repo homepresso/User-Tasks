@@ -120,7 +120,7 @@ const CompletedVisual = (
 const SHARE: Card[] = [
   { icon: Code2, title: "Embed a form in any website", body: "Copy an iframe from the form's QR code dialog. An optional script sizes the frame to the form, so there is no scrollbar inside it. Public forms work anywhere; forms that need sign-in offer to open in a new tab.", href: "/docs/tasks/forms#sharing-and-embedding-forms", link: "Sharing and embedding", visual: EmbedVisual },
   { icon: Globe, title: "Your own address, readable links", body: "Each workspace gets an address like acme.usertasks.com, and every reusable form a link named after it. Form links open the form on its own, without the app around it. Rename a form and old links still work.", href: "/docs/governance/workspace-address", link: "Workspace addresses", visual: AddressVisual },
-  { icon: KeyRound, title: "A sign-in page in your brand", body: "Visitors who need to sign in see your form sign-in page: ten designs, your logo and wording, password and single sign-on, then straight back to the form. Or let it follow the workspace theme.", href: "/docs/tasks/forms#form-sign-in-page", link: "Form sign-in page", visual: SignInVisual },
+  { icon: KeyRound, title: "A sign-in page in your brand", body: "Visitors who need to sign in see your form sign-in page: ten designs, your logo and wording, password and single sign-on, then straight back to the form. Or let it follow the workspace theme.", href: "/docs/tasks/forms#sign-in-page-for-forms-and-apps", link: "Sign-in page for forms and apps", visual: SignInVisual },
 ]
 
 const BUILD: Card[] = [

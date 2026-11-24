@@ -1,0 +1,193 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+  "asset": {
+    "id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+    "name": "CRM leads",
+    "description": "Inbound and outbound leads with their source, score, grade, territory and status.",
+    "columns": [
+      {
+        "id": "7ebac977-e91b-5d11-8715-d6a835ba4762",
+        "required": true,
+        "key": "lead_id",
+        "name": "Lead ID",
+        "type": "text"
+      },
+      {
+        "id": "b5229374-43c7-56ca-b9eb-e304211a07d4",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "4cc6dbaf-b974-5525-8f3a-613fc615e1b1",
+        "required": false,
+        "key": "company",
+        "name": "Company",
+        "type": "text"
+      },
+      {
+        "id": "d950eee9-a2c9-5142-a08b-a1a013755d7b",
+        "required": false,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "af6d96fa-ed8e-5bf8-8abf-ef5133e8f33e",
+        "required": false,
+        "key": "email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "be0ac847-a48e-58f1-9d1a-cc58714c9ace",
+        "required": false,
+        "key": "source",
+        "name": "Source",
+        "type": "select",
+        "options": [
+          "Website",
+          "Webinar",
+          "Referral",
+          "Trade show",
+          "Partner",
+          "Outbound",
+          "Paid search"
+        ]
+      },
+      {
+        "id": "3489a674-c605-59cc-acc3-979d6ad2bf30",
+        "required": false,
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      },
+      {
+        "id": "7e88ebd0-158a-5651-bc5a-70cabd8d6e5e",
+        "required": false,
+        "key": "grade",
+        "name": "Grade",
+        "type": "select",
+        "options": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ]
+      },
+      {
+        "id": "463e29eb-2c9e-54cf-9a9c-9852025d0c6b",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "New",
+          "Working",
+          "Nurture",
+          "Qualified",
+          "Converted",
+          "Disqualified"
+        ]
+      },
+      {
+        "id": "41d10e3f-ea04-5e68-8341-2008abd29a71",
+        "required": false,
+        "key": "region",
+        "name": "Region",
+        "type": "select",
+        "options": [
+          "West",
+          "Central",
+          "East",
+          "EMEA",
+          "APAC"
+        ]
+      },
+      {
+        "id": "ec12c443-e5cd-5ef8-872e-7c3d0682b551",
+        "required": false,
+        "key": "territory",
+        "name": "Territory",
+        "type": "text"
+      },
+      {
+        "id": "93178db5-6056-5273-b515-43df8d20dfcb",
+        "required": false,
+        "key": "owner",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "cd9034ef-9877-5838-8400-ddf04487900a",
+        "required": false,
+        "key": "industry",
+        "name": "Industry",
+        "type": "select",
+        "options": [
+          "Manufacturing",
+          "Healthcare",
+          "Financial services",
+          "Retail",
+          "Software",
+          "Energy",
+          "Education",
+          "Logistics",
+          "Public sector"
+        ]
+      },
+      {
+        "id": "560f69f0-a926-5661-9663-e2d834684c1e",
+        "required": false,
+        "key": "employees",
+        "name": "Employees",
+        "type": "number"
+      },
+      {
+        "id": "6c1a1f18-a85c-5104-af62-0a666a380f0f",
+        "required": false,
+        "key": "created_on",
+        "name": "Created",
+        "type": "date"
+      },
+      {
+        "id": "324bc3af-8f47-53f8-beda-e844dae8f5cc",
+        "required": false,
+        "key": "interest",
+        "name": "Interest",
+        "type": "text"
+      },
+      {
+        "id": "e1ac0bf0-dc04-5f5a-8ee2-f08b0055d9af",
+        "required": false,
+        "key": "touches",
+        "name": "Touches",
+        "type": "number"
+      },
+      {
+        "id": "8a98d160-68ff-58cb-b89c-b41fefdeadb5",
+        "required": false,
+        "key": "last_touch",
+        "name": "Last touch",
+        "type": "date"
+      },
+      {
+        "id": "aadaa66d-3cac-5cad-a1a7-da3e9b8bc474",
+        "required": false,
+        "key": "possible_duplicate",
+        "name": "Possible duplicate of",
+        "type": "text"
+      },
+      {
+        "id": "8f2ee5b9-8473-5bab-93a8-8d7057599036",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

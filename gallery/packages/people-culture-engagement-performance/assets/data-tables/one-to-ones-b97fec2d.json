@@ -1,0 +1,124 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b97fec2d-1c06-5195-80a7-f7346019f621",
+  "asset": {
+    "id": "b97fec2d-1c06-5195-80a7-f7346019f621",
+    "name": "One-to-ones",
+    "description": "One-to-ones, goal check-ins and career conversations: agenda, notes, agreed actions and the next date.",
+    "columns": [
+      {
+        "id": "25c41704-91a8-5b92-bfba-9df161b0847c",
+        "required": true,
+        "key": "meeting_ref",
+        "name": "Meeting",
+        "type": "text"
+      },
+      {
+        "id": "8bdd08bd-d15c-5137-ac67-363911908fe4",
+        "required": false,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "2035655d-f140-5e48-91be-ed78764f3df9",
+        "required": false,
+        "key": "employee_email",
+        "name": "Employee email",
+        "type": "email"
+      },
+      {
+        "id": "99f604a2-9db2-51f6-a0f6-190293fdafa0",
+        "required": false,
+        "key": "manager_name",
+        "name": "Manager",
+        "type": "text"
+      },
+      {
+        "id": "a8290804-7cc2-520d-9d9d-26eacb733219",
+        "required": false,
+        "key": "manager_email",
+        "name": "Manager email",
+        "type": "email"
+      },
+      {
+        "id": "9d67cae0-0bdc-5633-bfc3-ae907068528a",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "bdc1a6a3-c61b-57a2-b23c-0e99d0e63ca4",
+        "required": false,
+        "key": "met_on",
+        "name": "Met on",
+        "type": "date"
+      },
+      {
+        "id": "f3fdf2e5-f604-5a13-b09d-a03d303d416c",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "One-to-one",
+          "Goal check-in",
+          "Career conversation"
+        ]
+      },
+      {
+        "id": "f8146943-5ffa-5fca-aefb-66b18c061533",
+        "required": false,
+        "key": "agenda",
+        "name": "Agenda",
+        "type": "text"
+      },
+      {
+        "id": "ae4b21be-0466-5e69-b2ad-104189eb26ff",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      },
+      {
+        "id": "8b2b2f4f-706d-5e4a-8b5b-f53fcf66b4d7",
+        "required": false,
+        "key": "actions",
+        "name": "Actions",
+        "type": "text"
+      },
+      {
+        "id": "1b54ead4-0f82-52cf-b6da-26cd9a2a6413",
+        "required": false,
+        "key": "mood",
+        "name": "Mood",
+        "type": "select",
+        "options": [
+          "Great",
+          "Good",
+          "Okay",
+          "Low"
+        ]
+      },
+      {
+        "id": "4945d0d5-c8cc-530d-8881-621e11462e36",
+        "required": false,
+        "key": "next_on",
+        "name": "Next on",
+        "type": "date"
+      }
+    ]
+  }
+}

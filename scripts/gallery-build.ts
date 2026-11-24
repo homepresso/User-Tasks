@@ -12,6 +12,10 @@
  *   npm run gallery:build -- --validate expense-claims   # validate one package, no output
  *   npm run gallery:build -- --out /tmp/g expense-claims  # build a subset elsewhere (for gallery:verify --dir)
  *
+ * Screenshots a package lists in gallery.json (`screenshots/<name>.webp|png`
+ * in its folder) are copied to public/gallery/screenshots/<slug>/ and listed
+ * in the catalog.
+ *
  * Official form controls (gallery/controls/<slug>: manifest, the committed
  * module in dist/, gallery.json, README, optional assets/) and control
  * bundles (gallery/controls/bundles/<slug>) are built the same way, signed
@@ -34,7 +38,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { basename, join, relative, resolve } from 'node:path'
 import { unpackPackage } from '@/lib/packages/format'
 import { buildGalleryPackage, isNativeContents, parseGallerySigningKey, releaseDate, type BuiltGalleryPackage } from '@/lib/gallery/build'
 import { catalogEntry, type GalleryCatalog } from '@/lib/gallery/catalog'
@@ -246,6 +250,12 @@ async function main() {
       }
       for (const slug of bySlugCommitted.keys()) if (!allBuilt.has(slug)) problems.push(`${slug}: in index.json but has no source`)
     }
+    for (const { source } of built) {
+      for (const shot of source.screenshots) {
+        const file = join(GALLERY_OUTPUT_DIR, 'screenshots', source.slug, basename(shot.file))
+        if (!existsSync(file) || !Buffer.from(readFileSync(file)).equals(Buffer.from(shot.bytes))) problems.push(`${source.slug}: ${relative(process.cwd(), file)} is missing or stale`)
+      }
+    }
     const catalogText = existsSync(GALLERY_CATALOG_FILE) ? readFileSync(GALLERY_CATALOG_FILE, 'utf8') : ''
     if (catalogText !== stable(catalog)) problems.push('lib/gallery/catalog.json is stale')
     if (problems.length) {
@@ -264,6 +274,14 @@ async function main() {
     return
   }
   mkdirSync(GALLERY_OUTPUT_DIR, { recursive: true })
+  // Screenshots (gallery.json `screenshots`): public/gallery/screenshots/<slug>/<file>, rewritten each build.
+  rmSync(join(GALLERY_OUTPUT_DIR, 'screenshots'), { recursive: true, force: true })
+  for (const { source } of built) {
+    for (const shot of source.screenshots) {
+      mkdirSync(join(GALLERY_OUTPUT_DIR, 'screenshots', source.slug), { recursive: true })
+      writeFileSync(join(GALLERY_OUTPUT_DIR, 'screenshots', source.slug, basename(shot.file)), shot.bytes)
+    }
+  }
   const keep = new Set([...fileNames, 'index.json'])
   for (const name of readdirSync(GALLERY_OUTPUT_DIR)) if (!keep.has(name) && name.endsWith('.utpkg')) rmSync(join(GALLERY_OUTPUT_DIR, name))
   for (const pkg of allBuilt.values()) writeFileSync(join(GALLERY_OUTPUT_DIR, pkg.fileName), pkg.bytes)

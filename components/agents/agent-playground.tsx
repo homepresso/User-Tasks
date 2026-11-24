@@ -11,6 +11,9 @@ import { Send, Loader2, Bot, User, Wrench, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { formatCost } from '@/lib/agents/pricing'
+import { describeSimpleFailure, type AgentFailureView } from '@/lib/agents/errors'
+import type { AgentActivity } from '@/lib/assistants/activity'
+import { FailureNotice, WorkingBubble } from '@/components/assistants/agent-status'
 
 interface Message {
   role: 'user' | 'assistant' | 'tool_call' | 'error' | 'info'
@@ -20,6 +23,9 @@ interface Message {
   runId?: string | null
   meta?: string
   outputs?: Record<string, unknown> | null
+  /** role 'error': the friendly failure view (Details) and the message Retry sends again. */
+  failure?: AgentFailureView | null
+  retryText?: string
 }
 
 interface AgentPlaygroundProps {
@@ -32,7 +38,10 @@ interface AgentPlaygroundProps {
 /**
  * Test console: a multi-turn conversation with the SAVED agent (earlier
  * turns are sent as history), streaming tool calls; shows outputs, tokens
- * and a link to the run's trace.
+ * and a link to the run's trace. Automatic provider retries follow the
+ * Agent panel's rule — nothing live (the bubble keeps saying it is
+ * working); the finished run's line says how many retries it needed and
+ * the trace has each attempt.
  */
 export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlaygroundProps) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -42,6 +51,8 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
   const sendGuard = useSubmitGuard()
   /** The reply being streamed (current model call). */
   const [live, setLive] = useState('')
+  /** What the working bubble says (lib/assistants/activity.ts). */
+  const [activity, setActivity] = useState<AgentActivity | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -50,14 +61,18 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, live])
 
-  async function handleSend() {
+  async function handleSend(retryText?: string) {
     await sendGuard.run(async () => {
-      const msg = input.trim()
+      const phase = (a: Omit<AgentActivity, 'since'> | null) => setActivity(a ? { ...a, since: Date.now() } : null)
+      const msg = (retryText ?? input).trim()
       if (!msg || running) return
-      setInput('')
-      setMessages(prev => [...prev, { role: 'user', content: msg, timestamp: new Date().toISOString() }])
+      if (retryText === undefined) setInput('')
+      // Retry: the failed exchange (the message and its error) is replaced by the new attempt.
+      const prior = retryText !== undefined ? withoutFailedTail(messages, msg) : messages
+      setMessages([...prior, { role: 'user', content: msg, timestamp: new Date().toISOString() }])
       setRunning(true)
       setLive('')
+      phase({ phase: 'working' })
       const abort = new AbortController()
       abortRef.current = abort
       // Text streamed by the current model call; a call that ends in tool calls keeps it as an interim note.
@@ -79,14 +94,15 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
           headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
           body: JSON.stringify({
             agent_id: agentId, message: msg,
-            history: messages.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content })),
+            history: prior.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content })),
           }),
         })
 
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({ error: 'Request failed' }))
-          setMessages(prev => [...prev, { role: 'error', content: err.error ?? 'Failed to run agent', timestamp: new Date().toISOString() }])
+          setMessages(prev => [...prev, { role: 'error', content: err.error ?? 'Failed to run agent', timestamp: new Date().toISOString(), failure: err.failure ?? null, ...(resp.status === 429 || resp.status >= 500 ? { retryText: msg } : {}) }])
           setRunning(false)
+          setActivity(null)
           return
         }
 
@@ -110,16 +126,18 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
               const event = JSON.parse(line.slice(6))
 
               if (event.type === 'delta' && typeof event.text === 'string') {
+                setActivity((a) => (a?.phase === 'writing' ? a : { phase: 'writing', since: Date.now() }))
                 if (event.iteration !== liveIteration) { settleLive(true); liveIteration = event.iteration }
                 liveText += event.text
                 setLive(liveText)
                 continue
               }
-              if (event.type === 'delta_reset') { liveText = ''; setLive(''); continue }
+              if (event.type === 'delta_reset') { liveText = ''; setLive(''); phase({ phase: 'thinking' }); continue }
               if (event.type === 'tool_call_delta') continue
               if (event.type === 'tool_call' || event.type === 'approval_required') settleLive(true)
 
               if (event.type === 'tool_call' && event.toolCall) {
+                phase({ phase: 'tool', label: `Using ${event.toolCall.toolName}` })
                 setMessages(prev => [...prev, {
                   role: 'tool_call',
                   content: `Calling ${event.toolCall.toolName}(${JSON.stringify(event.toolCall.arguments)})`,
@@ -127,14 +145,15 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
                   timestamp: new Date().toISOString(),
                 }])
               } else if (event.type === 'tool_result' && event.toolCall) {
+                phase({ phase: 'thinking' })
                 setMessages(prev => [...prev, {
                   role: 'tool_call',
                   content: `${event.toolCall.toolName} → ${JSON.stringify(event.toolCall.result).slice(0, 200)}`,
                   toolName: event.toolCall.toolName,
                   timestamp: new Date().toISOString(),
                 }])
-              } else if (event.type === 'retry' && event.message) {
-                setMessages(prev => [...prev, { role: 'info', content: event.message, timestamp: new Date().toISOString() }])
+              } else if (event.type === 'retry') {
+                // Automatic retries are quiet (the route doesn't send them; an older server might): keep showing the working state.
               } else if (event.type === 'done' && event.result) {
                 const r = event.result
                 settleLive(false)
@@ -145,7 +164,7 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
                   timestamp: new Date().toISOString(),
                   runId: event.run_id ?? null,
                   outputs: r.outputs ?? null,
-                  meta: `${r.usage?.total_tokens ?? 0} tokens${cost ? ` · ${cost}` : ''} · ${r.iterations} iteration${r.iterations === 1 ? '' : 's'} · ${((r.duration_ms ?? 0) / 1000).toFixed(1)}s${r.streamed ? ' · streamed' : ''}${r.parse_warning ? ` · ${r.parse_warning}` : ''}`,
+                  meta: `${r.usage?.total_tokens ?? 0} tokens${cost ? ` · ${cost}` : ''} · ${r.iterations} iteration${r.iterations === 1 ? '' : 's'} · ${((r.duration_ms ?? 0) / 1000).toFixed(1)}s${r.streamed ? ' · streamed' : ''}${r.retries > 0 ? ` · ${r.retries} automatic ${r.retries === 1 ? 'retry' : 'retries'}` : ''}${r.parse_warning ? ` · ${r.parse_warning}` : ''}`,
                 }])
               } else if (event.type === 'awaiting_approval') {
                 setMessages(prev => [...prev, {
@@ -161,6 +180,8 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
                   content: event.error ?? 'Unknown error',
                   timestamp: new Date().toISOString(),
                   runId: event.run_id ?? null,
+                  failure: event.failure ?? null,
+                  ...(event.failure?.retryable !== false ? { retryText: msg } : {}),
                 }])
               }
             } catch {}
@@ -169,9 +190,13 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
       } catch (err: any) {
         settleLive(true)
         if (err?.name === 'AbortError') setMessages(prev => [...prev, { role: 'info', content: 'Stopped — the run was cancelled.', timestamp: new Date().toISOString() }])
-        else setMessages(prev => [...prev, { role: 'error', content: err.message ?? 'Network error', timestamp: new Date().toISOString() }])
+        else {
+          const text = 'I couldn\'t reach UserTasks — check your connection and try again.'
+          setMessages(prev => [...prev, { role: 'error', content: text, timestamp: new Date().toISOString(), failure: describeSimpleFailure('network', text), retryText: msg }])
+        }
       }
       abortRef.current = null
+      setActivity(null)
       setLive('')
       setRunning(false)
       inputRef.current?.focus()
@@ -198,14 +223,22 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
         {messages.length === 0 && (
           <EmptyState size="sm" icon={Bot} title="Send a message to test your agent" />
         )}
-        {messages.map((msg, i) => (
+        {messages.map((msg, i) => msg.role === 'error' ? (
+          <div key={i} className="flex gap-2">
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-danger-wash text-danger"><AlertCircle size={14} /></div>
+            <div className="max-w-[80%] min-w-0 flex-1">
+              <FailureNotice message={msg.content} failure={msg.failure} onRetry={msg.retryText && i === messages.length - 1 ? () => handleSend(msg.retryText) : null} retryDisabled={running} />
+              {msg.runId && <Link href={`/agents/${agentId}/runs/${msg.runId}`} className="mt-1 inline-block text-2xs text-fg-muted underline hover:text-fg">View trace</Link>}
+            </div>
+          </div>
+        ) : (
           <div key={i} className={cn('flex gap-2', msg.role === 'user' && 'justify-end')}>
             {msg.role !== 'user' && (
               <div className={cn(
                 'flex size-6 shrink-0 items-center justify-center rounded-full',
-                msg.role === 'error' ? 'bg-danger-wash text-danger' : msg.role === 'tool_call' ? 'bg-subtle text-fg-muted' : 'bg-primary-wash text-primary-text',
+                msg.role === 'tool_call' ? 'bg-subtle text-fg-muted' : 'bg-primary-wash text-primary-text',
               )}>
-                {msg.role === 'error' ? <AlertCircle size={14} /> : msg.role === 'tool_call' ? <Wrench size={12} /> : <Bot size={14} />}
+                {msg.role === 'tool_call' ? <Wrench size={12} /> : <Bot size={14} />}
               </div>
             )}
             <div className={cn(
@@ -213,7 +246,6 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
               msg.role === 'user' && 'ml-auto bg-primary text-primary-fg',
               msg.role === 'assistant' && 'border border-border bg-panel text-fg',
               msg.role === 'tool_call' && 'bg-subtle text-fg-muted',
-              msg.role === 'error' && 'bg-danger-wash text-danger',
               msg.role === 'info' && 'bg-subtle text-fg',
             )}>
               {msg.role === 'tool_call' && <span className="break-all font-mono text-2xs">{msg.content}</span>}
@@ -245,11 +277,11 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
                 {live}<span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-primary align-middle" />
               </div>
             ) : (
-              <div className="rounded-lg bg-subtle px-3 py-2 text-ui text-fg-muted">
-                Thinking…
-              </div>
+              activity && activity.phase !== 'writing'
+                ? <WorkingBubble activity={activity} live className="text-ui" />
+                : <div className="rounded-lg bg-subtle px-3 py-2 text-ui text-fg-muted" role="status" aria-live="polite">Thinking…</div>
             )}
-            <Button type="button" size="sm" variant="ghost" onClick={() => abortRef.current?.abort()} className="self-start">Stop</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => abortRef.current?.abort()} className="self-start" data-testid="playground-stop">Stop</Button>
           </div>
         )}
       </div>
@@ -261,13 +293,21 @@ export function AgentPlayground({ agentId, agentName, dirty = false }: AgentPlay
           aria-label="Message"
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend() } }}
           placeholder="Type a message…"
           disabled={running}
           className="flex-1"
         />
-        <IconButton variant="primary" label="Send" onClick={handleSend} disabled={!input.trim() || running} loading={running} icon={<Send />} />
+        <IconButton variant="primary" label="Send" onClick={() => handleSend()} disabled={!input.trim() || running} loading={running} icon={<Send />} />
       </div>
     </Card>
   )
+}
+
+/** The conversation without its failed last exchange (the message being retried and what followed it). */
+function withoutFailedTail(messages: Message[], text: string): Message[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') return messages[i].content === text ? messages.slice(0, i) : messages
+  }
+  return messages
 }

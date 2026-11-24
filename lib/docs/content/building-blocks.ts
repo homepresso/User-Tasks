@@ -44,16 +44,61 @@ An email template has a name, a **subject**, an **HTML body** and an optional pl
 
 ::image email-template | The email template editor with a live preview | Template editor with preview.
 
+## The editor
+
+**Automations → Email templates → New email template** (or a template's **Edit**) opens a full-screen editor: the editor on the left, a live preview on the right.
+
+- **HTML** — a code editor with syntax highlighting, line numbers, auto-closing tags, find and replace (⌘F / Ctrl+F), **Format**, and problems underlined as you type: unclosed or stray tags, markup common email clients drop (flexbox, grid, external stylesheets, scripts, forms, video, SVG), unknown variables and images without alt text. Type \`{{\` for variable suggestions.
+- **Design** — build the email from blocks: header / logo, heading, text (bold, italic, underline, links, lists), button, image, two columns, divider, spacer and footer, with accent, background and text colours and the content width. Blocks produce email-safe HTML (table layout, inline styles, a button that works in Outlook, columns that stack on phones). The design is kept inside the HTML: once you edit the HTML by hand beyond what blocks can show, the Design tab becomes read-only and the HTML is what is saved (you can restore the last design or start a new one).
+- **Plain text** — the text part, with **Generate from HTML** (headings, paragraphs, lists, links as "text (url)"). Left blank, it is generated when you save. User Task notifications use it.
+- **Preview** — updates as you type, in a sandboxed frame (no scripts, no requests except images, which you can block). Switch **Desktop / Mobile**, **Light / Dark** (dark mode is simulated: the template's \`prefers-color-scheme: dark\` rules apply, or the colours are inverted the way Gmail and Outlook apps do), zoom, and show the inbox **subject and preheader**. Sample data comes from built-in examples or the fields of a form you pick.
+- **Subject and preheader** sit above the editor; the preheader is the hidden inbox preview text.
+- **Starters** — notification, approval request, digest and welcome templates, branded with your workspace's logo, accent colour and name.
+- **Send test** — sends the current draft, with the preview's sample values, to your own address only (subject starts with *[Test]*). Needs workflow create or edit permission; limited to a few per 10 minutes; recorded in the activity log. If email is not set up — or the provider refuses, for example because the sending domain is not verified yet — the editor says why in plain words, with the provider's own message.
+- **Save** (⌘S / Ctrl+S) — \`<style>\` rules are inlined onto the elements (turn this off under Settings); dark-mode and responsive \`@media\` rules stay in \`<style>\`. The editor warns before you close with unsaved changes. The size check warns when the HTML nears Gmail's 102 KB clipping limit.
+
+## Variables
+
+The **Variables** panel lists what a template can use; click one to insert it at the cursor (HTML, Design text, subject or plain text) or drag it into the editor.
+
+| Group | Examples | Filled by |
+|-------|----------|-----------|
+| Task | \`{{user_task_title}}\`, \`{{user_task_description_html}}\`, \`{{outcome}}\` | the engine |
+| Workflow | \`{{workflow_name}}\`, \`{{run_id}}\`, \`{{_title}}\` | the engine |
+| Form | \`{{form_name}}\`, \`{{submitted_at}}\`, \`{{form.<field>}}\` | the run |
+| Person | \`{{submitted_by_name}}\`, \`{{completed_by_email}}\` | the engine |
+| Links | \`{{task_url}}\` (the task in UserTasks), \`{{app_url}}\` | the engine |
+| Workspace | \`{{current_year}}\` | the engine |
+
+Anything else — \`{{customer_name}}\`, \`{{amount}}\` — is the template's **own variable**. The editor flags undeclared ones; give each a label, type, sample value, description and *required* flag under **This template** (saved with the template). Workflows see every variable the template uses — the names are detected from the subject, HTML and text — with these details.
+
+## Using a template in a workflow
+
+- **Send Email** step: choose the template; recipients, sender and reply-to stay on the step.
+- **User Task** step: **Assignment notification template** uses the template's subject and plain-text body for the in-app notification.
+
+When a step uses a template, its variables appear in the step's settings as a **mapping table**: each of the template's own variables gets a value or expression from the data picker (form fields, task values, workflow variables, earlier steps' outputs, system values). Variables are **auto-mapped** to a same-named form field or variable when there is one. Built-in variables show as *filled automatically*. **Preview** renders the email with the mapped values.
+
+- A variable the template marks **required** must be mapped before the workflow can be published.
+- An unmapped variable reads a run value of the same name, as before (existing workflows keep working); the designer warns when nothing before the step sets it.
+
+\`\`\`json
+{ "type": "send_email", "config": {
+  "to": "{{form.manager_email}}",
+  "email_template_id": "<template id>",
+  "template_variables": { "request_title": "{{form.title}}", "amount": "{{form.amount}}" }
+} }
+\`\`\`
+
+A User Task maps its notification template with \`notification_template_variables\`.
+
 \`\`\`bash
 usertasks email-templates create --set name="Invoice approved" \\
   --set subject="Invoice {{invoice_number}} approved" --set html_body=@approved.html
-usertasks email-templates preview <id> --set variables:='{"invoice_number":"INV-1042"}'
+usertasks email-templates preview <id> --set variables:='{"invoice_number":"INV-1042","amount":"$2,400.00"}'
 \`\`\`
 
-## Where templates are used
-
-- **Send Email** nodes: pick a template with \`email_template_id\`; recipients, sender and reply-to stay on the node.
-- **User Task notifications**: \`notification_template_id\` on the User Task node, or the workspace default (\`is_default\`).
+The API and CLI take and return \`variables\` (the declarations) on email templates. Templates are also a [config as code](/docs/config-as-code) asset.
 
 Sending needs an email provider: set \`RESEND_API_KEY\` and \`EMAIL_FROM\` when self-hosting.
 `,
@@ -202,6 +247,42 @@ The same column engine powers the **Data table** control on forms: in the form d
 
 **API, CLI and MCP.** \`GET\` / \`PUT /api/v1/data-tables/{id}/views\` (\`usertasks tables views\` / \`tables set-views\`, MCP \`data_views_get\` / \`data_views_update\`); inline cell writes \`PATCH /api/v1/data-tables/{id}/rows/{rowId}/cells\` with \`view_id\`, \`cells\` and optionally \`expected_updated_at\` (409 when the row changed; \`usertasks rows cells\`, MCP \`data_rows_write_cells\`); a bound column's options \`POST /api/v1/data-tables/{id}/views/{viewId}/options\` (\`usertasks tables options\`, MCP \`data_views_options\`).
 
+## Group rows
+
+Group the grid's rows by a column to see them in sections, for example orders by **Status** and then by **Region**:
+
+1. In the **Rows** toolbar pick **Group by** and a column. A second picker, **Then by**, adds a second level. Text, number, date, yes / no, choice and lookup columns can be grouped.
+2. Each group header shows the value, the number of rows and the totals of the view's number and currency columns (for example **Amount: $12,480.00**). Rows with a blank cell are in the **(empty)** group.
+3. Click a header to open or close the group. **Expand all** opens up to 50 groups at once and **Collapse all** closes them. A large group shows its first rows with **Show more**.
+
+Groups are counted on the server over **every row that matches the search**, not only the rows on screen, so the counts and totals hold for the whole table. Sorting by the grouping column reverses the order of the groups, and any other sort orders the rows inside each group. Inline editing and **Edit all** work inside open groups. If you change the grouping column of a row, it moves to its new group when you save.
+
+The grouping you pick applies straight away for you. To keep it, press **Save to view** (needs Edit schema), or set **Group rows by** / **Then by** in **View settings**. Which groups are open is remembered per person and view in your browser.
+
+## Child records
+
+A row can show related rows from another table underneath it, expandable in the grid, such as the order lines under each order.
+
+1. In the child table, add a **Lookup** column whose source is the parent table. For example, **Order lines** gets an **Order** column that looks up **Orders** → **Order No**.
+2. In the parent table's **Schema** tab, under **Child records**, press **Add child records** and pick the child table and the lookup column (**Order lines**, *linked by Order*). Give it an optional label, then **Save child records**. A table can have up to five relations.
+3. In the **Rows** grid, each row now has an expander with its number of child rows. Expanding it loads the child rows inline, with the child table's own columns. You can edit a cell in place (double-click, or Enter), and **Add child** adds a row to the child table that is already linked to this row.
+
+**Hierarchies.** Pick the table itself as the child table to nest rows under rows. For example, a **Tasks** table with a **Parent** lookup to Tasks → Title shows each task's sub-tasks, and their sub-tasks below them, indented. Tick **Only list top-level rows** to list only rows without a parent at the top of the grid. A row whose parent no longer exists still shows there. Rows that point at each other in a loop (A's parent is B and B's parent is A) don't appear at the top level, so clear one of the two parents to list them again. A row that is already shown higher up the same branch is not repeated (a loop is marked with ↺), and nesting stops after six levels.
+
+A child belongs to a parent when its lookup cell holds the parent's value of the lookup's source column. Child rows are read with your own access, as any other read, and they load only when you expand a row. Which rows are expanded is remembered per person and view in your browser.
+
+**API, CLI and MCP.**
+
+- \`GET /api/v1/data-tables/{id}/rows/groups?group_by=status,region&sum=amount\` (also \`search\`, \`filters\` and \`group_order\`) returns the groups with their counts, totals and second-level groups. From the CLI it's \`usertasks rows groups <table-id> --group-by status\`, and over MCP it's \`data_rows_groups\`. To read a group's rows, call \`GET …/rows\` with an \`equals\` filter, or \`is_empty\` for the empty group.
+- \`GET /api/v1/data-tables/{id}/rows/{rowId}/children?relation=<relation-id>\` returns the child rows with \`link_value\`, the value a new child stores in \`lookup_column\`. Without \`relation\` it returns the child count per relation. From the CLI it's \`usertasks rows children\`, and over MCP it's \`data_rows_children\`.
+- Relations are saved as \`child_relations\` on \`PATCH /api/v1/data-tables/{id}\` (and MCP \`data_tables_update_schema\`), and a view's grouping as \`group_by\` on \`PUT …/views\`.
+
+\`\`\`bash
+usertasks rows groups <table-id> --group-by status,region --sum amount -o json
+\`\`\`
+
+Exact group counts need database migration \`20270119090000_data_table_grouping\`. Until it is applied, the grid counts groups from the newest 2,000 rows (and says so), and child records can't be saved.
+
 ## Using tables
 
 - **Workflows** — the **Data** node inserts, gets, updates, deletes and lists rows; **Data Table Event** triggers start a run when rows change (\`row\`, \`row_id\` and one variable per column).
@@ -247,6 +328,8 @@ usertasks reports export <id> > report.json
 
 Aggregations run in the database, and exports are produced on the server, so large reports stay fast.
 
+The workflow reports (hub, process overview, compare), app dashboard widgets and extension page stats read **per-day rollup tables** kept current as runs, tasks and submissions change — or real-time queries, per service, in **Settings → Query** ([Query settings](/docs/self-hosting/query-settings)). Counts are exact; percentiles are within 9.1%.
+
 ## Summary charts
 
 A report can also have up to **8 summary charts**: a row of number cards and a grid of chart cards above its table (or main chart). Each one counts or totals the report's own rows — the same source, filters, joins and date range, and the same permissions — so "Total responses", "Responses over time" or "Average score by status" always agree with the table. In the builder, open **Charts**, pick a starting point (*Count of rows by day*, *by day of the week*, *by hour of the day*, a day × hour heatmap, *Count of rows by <column>*, *Average of <column>*), then change what it shows:
@@ -279,6 +362,14 @@ Charts can be reordered and removed; one that no longer fits the report (a remov
 Built-in sources (generated from the report registry), plus one source per data table and per reference with outputs:
 
 ::report-sources
+
+### Agents & AI usage
+
+The **Agents & AI usage** source has one row per AI call of the workspace: every agent run (workflow Run Agent steps, the API, MCP, tests, apps) and every request of the in-product Agent, **PDF import AI assist** and **Redact Document** AI detection. Columns: when (\`occurred_at\`, plus \`day\`, \`week\` and \`month\` to group by), source, provider, model, agent, Agent profile, help group, workflow and workflow run, status, outcome (\`success\` / \`error\` / \`pending\`), error, \`error_percent\` (average it for an error rate), calls, model calls, input / output / cached / total tokens, cost, currency, **cost status** and duration (agent runs). Cost is the cost stored with the call (the price when it was made); a call recorded without one is costed at today's price when its model has one — cost status \`estimated\` — else it stays \`unknown\`.
+
+It needs **View agents** (\`agents.view\`), like Agents → Costs & budgets. The person and team columns need **Manage the Agent** (\`assistants.manage\`); a report that uses them fails for anyone without it, even when shared. A report reads the newest 10,000 agent runs and 10,000 Agent requests; a date range or an \`occurred_at\` filter narrows what is read. Sums add amounts as they are — keep to one currency (filter on \`cost_currency\`) when prices use several.
+
+**Reports → AI usage reports** offers ready-made reports — *AI spend by model*, *AI spend by profile*, *Agent usage over time*, *Top agents by cost*, *Token usage by source*, *AI errors* and *Cost per workflow run for AI steps* — each with summary charts. **Add report** saves one as your own report: edit it, share it, export it or show it in an app's report widget like any other. MCP \`reports_source_get\` lists the same configs as recipes.
 
 ## Workflow variables
 
@@ -325,7 +416,9 @@ Agents are optional. An agent is a model, instructions and a set of **granted to
 
 ## Models
 
-Connect a provider as an AI [connector](/docs/integrations/connectors) — **OpenAI**, **Claude (Anthropic)**, **Azure OpenAI**, **Google Gemini**, **xAI Grok**, **Mistral AI**, **DeepSeek**, **Groq**, **Together AI**, **Perplexity AI**, **Ollama (Local)** — or an integration whose base URL is any OpenAI-compatible Chat Completions server (vLLM, LM Studio, Amazon Bedrock's \`bedrock-runtime.<region>.amazonaws.com/openai/v1\`, a proxy). Agents call each provider's OpenAI-compatible endpoint with the right path and auth (Azure takes an \`api-key\` header; a local server needs no key). Pick the model (the provider's models are suggested), temperature — or the provider's default, which newer Claude and OpenAI reasoning models require — token and iteration limits (1–50).
+Connect a provider as an AI [connector](/docs/integrations/connectors) — **OpenAI**, **Claude (Anthropic)**, **Azure OpenAI**, **Google Gemini**, **xAI Grok**, **Mistral AI**, **DeepSeek**, **Groq**, **Together AI**, **Baseten**, **Perplexity AI**, **Ollama (Local)** — or an integration whose base URL is any OpenAI-compatible Chat Completions server (vLLM, LM Studio, Amazon Bedrock's \`bedrock-runtime.<region>.amazonaws.com/openai/v1\`, a proxy). Agents call each provider's OpenAI-compatible endpoint with the right path and auth (Azure takes an \`api-key\` header; a local server needs no key). Pick the model (the provider's models are suggested), temperature — or the provider's default, which newer Claude and OpenAI reasoning models require — token and iteration limits (1–50).
+
+**Baseten** connects either to **Model APIs** (Baseten-hosted open models such as DeepSeek, Kimi, GLM and GPT OSS at \`https://inference.baseten.co/v1\`: pick a model from the list or type any slug) or to a **dedicated deployment** of your own model (paste its deployment URL or model ID; UserTasks uses its OpenAI-compatible \`…/sync/v1\` route, and you enter the model name it serves). A dedicated deployment can also run on Baseten Self-hosted, in your own cloud account and VPC. Baseten is a cloud service, so it is not available on air-gapped installs. You use your own Baseten account and API key, and Baseten bills that usage to you. The key is stored encrypted and is never shown again or logged.
 
 Each model call is retried on rate limits (429, honouring \`Retry-After\`), provider errors (5xx) and timeouts with backoff, inside the run's time budget (default 5 minutes, at most 15). A run that runs out of iterations while still calling tools **fails** rather than completing with an empty answer.
 
@@ -374,9 +467,24 @@ Per agent: tokens per run and tool calls per run, and **budgets** per day (the l
 
 1. the workspace's prices (Agents → Costs & budgets; \`PUT /api/v1/agents/cost-settings\`, MCP \`agents_cost_settings_update\`),
 2. the instance's prices (Settings → Infrastructure → AI model prices, instance administrators; the \`instance.ai_model_prices\` instance setting),
-3. the built-in price list: the current chat models of OpenAI (GPT-4o to GPT-5.6), Azure OpenAI (the OpenAI prices, matched on a deployment named after its model), Anthropic (Claude Fable 5.1 to Haiku 4.5, with cache reads and writes), xAI Grok 4.3 to 4.7, Google Gemini (2.5 to 4, including announced price rises from their date), Mistral, Groq, DeepSeek, Together AI, Perplexity Sonar and Amazon Bedrock Claude (global and geographic profiles). Each row names its source: the vendor's pricing page (OpenAI, Anthropic, xAI, Gemini) or the LiteLLM price list (the others), checked 2026-11-07.
+3. the built-in price list: the current chat models of OpenAI (GPT-4o to GPT-5.6), Azure OpenAI (the OpenAI prices, matched on a deployment named after its model), Anthropic (Claude Fable 5.1 to Haiku 4.5, with cache reads and writes), xAI Grok 4.3 to 4.7, Google Gemini (2.5 to 4, including announced price rises from their date), Mistral, Groq, DeepSeek, Together AI, Baseten Model APIs (with cached input), Perplexity Sonar and Amazon Bedrock Claude (global and geographic profiles). Each row names its source: the vendor's pricing page (OpenAI, Anthropic, xAI, Gemini, Baseten, checked 2026-11-21) or the LiteLLM price list (the others), checked 2026-11-07.
 
-Each price is per provider and model (or any provider) with the date it applies from. Dated model ids match their model (\`claude-haiku-4-5-20251001\`, \`gpt-4.1-2025-04-14\`, Bedrock's \`…-v1:0\`). The built-in prices are list prices only — no discounts, batch or priority tiers, long-context surcharges (noted per row where a vendor has one), per-request or search fees, or taxes; replace them with your contract prices. A model with no price — other Azure deployment names, local models, retired models — shows **cost unknown**, never a guessed or zero cost, and isn't counted in cost budgets (the usage view says how many runs that is); a provider that doesn't report token usage makes the run's cost unknown too.
+Each price is per provider and model (or any provider) with the date it applies from. Dated model ids match their model (\`claude-haiku-4-5-20251001\`, \`gpt-4.1-2025-04-14\`, Bedrock's \`…-v1:0\`). The built-in prices are list prices only — no discounts, batch or priority tiers, long-context surcharges (noted per row where a vendor has one), per-request or search fees, or taxes; replace them with your contract prices. A model with no price — other Azure deployment names, local models, Baseten dedicated deployments (billed per GPU minute, not per token), retired models — shows **cost unknown**, never a guessed or zero cost, and isn't counted in cost budgets (the usage view says how many runs that is); a provider that doesn't report token usage makes the run's cost unknown too.
+
+### Cost breakdowns
+
+**Agents → Costs & budgets → AI cost breakdown** shows every AI call of the workspace for a period — the last 7, 30 or 90 days, this month, last month or a custom range (UTC days, at most 366) — not only agent runs: the in-product Agent, PDF import AI assist and Redact Document AI detection too.
+
+- **Totals**: cost (in the workspace budget currency, USD by default), calls, input / output / cached tokens and calls whose cost is unknown.
+- **Charts**: cost per day stacked by model or by Agent profile, and each model's share of cost.
+- **Tables** (sortable): **by model** (provider, calls, tokens, cost, share, cost per 1,000 tokens and a trend line; a model without a price says *cost unknown — add a price*, which adds a row for it to this workspace's prices), **by profile** (the Agent profile that chose the model, or *Default*, with the models used, calls per help group and the profile's monthly cap), **by source** (in-product Agent, workflow agents, other agent runs, PDF import, redaction AI), **by agent**, and **by person** for admins of the Agent (\`assistants.manage\`) only.
+- Click a row or a chart mark to filter the whole breakdown by it (click again to remove it); **Export CSV** downloads the table shown.
+
+Each call counts the cost stored when it was made. A call recorded without a cost (its model had no price then) is costed at today's price when there is one now and marked *estimated*; one with no price at all stays *cost unknown* — never guessed. The workspace budgets still count agent runs only; the in-product Agent has its own monthly cap (Settings → Agent; per profile in Settings → Agent → Profiles).
+
+\`GET /api/v1/agents/usage\` (\`usertasks agents workspace-usage\`, MCP \`agents_workspace_usage_get\`) returns the same as \`breakdown\` with any of: \`group_by\` (comma-separated \`day\`, \`agent\`, \`model\`, \`profile\`, \`source\`, \`user\`), \`period\` (\`7d\`, \`30d\`, \`90d\`, \`this_month\`, \`last_month\`) or \`from\` / \`to\` (YYYY-MM-DD), and the filters \`provider\`, \`model\`, \`agent_profile\` (\`default\` = no profile matched), \`agent\`, \`source\` and \`user\` (\`user\` needs \`assistants.manage\`). Each group has calls, tokens, \`cost\` and \`estimated_cost\` per currency, \`unknown_calls\`, \`share\`, \`cost_per_1k\` and a per-day \`trend\`. With database migration \`20270126130000_ai_cost_breakdown\` the totals are grouped in the database; before it, from the newest 50,000 records per table (the answer says \`truncated\` when it had more).
+
+The Reports section has the same data as the **Agents & AI usage** report source (Reports → Sources).
 
 ### Fetch latest pricing
 
@@ -396,6 +504,7 @@ Every save is a new version (the **History** tab, \`GET /api/v1/agents/{id}/vers
 ## Running agents
 
 - In a workflow with **Run Agent** — in the step (the run waits), or on the **agent queue** (the run pauses and resumes when the agent finishes; suited to long agents).
+- **Use this workflow's data as context** (Run Agent, on for new steps): the agent gets the run's own data before the prompt — the workflow and run, the trigger and its data (the submitted form or the data-table row that started it), the variables, earlier steps' results, the related task / row / submission ids and who started it — and is told that this is the item to work on, so an "approve the claim" agent reviews *that* claim instead of querying the table for one. Secrets (credential-like keys, tokens, encrypted values), internal \`_\` keys and resume tokens are left out, files go as references, and the block is capped at about 20 KB (long values are cut with a \`… [truncated …]\` marker). **Which data → Only the fields I pick** passes just the variables you name (\`claim_id, form.amount\`). The run log, the step's output and the agent run page show that it was passed and its size. Steps saved before this option keep running without it until you tick the box.
 - On demand: \`usertasks agents execute <id> --set message="Classify INV-1042"\` (add \`--set async:=true\` to queue it; poll \`usertasks agents job <job-id>\`), \`POST /api/v1/agents/{id}/execute\` (\`"stream": true\` streams Server-Sent Events: the reply as \`delta\` events, then \`done\`), or MCP \`agents_execute\` (queued).
 - **Published workflows** run the agent version pinned when they were published (see Run Agent); drafts and Save & Test run the latest.
 - **Streaming**: the test console, Save & Test (on the Run Agent step) and REST \`stream\` show the reply as the model writes it. Providers are streamed through their OpenAI-compatible Server-Sent Events (OpenAI, Azure, Claude's and Gemini's OpenAI compatibility, Mistral, DeepSeek, Groq, Together, Perplexity, Ollama, Bedrock's OpenAI endpoint), with Anthropic Messages events understood too; tool-call arguments are assembled from their pieces. A provider, model or gateway that refuses streaming gets a normal request instead; an error mid-stream retries the call (the partial reply is discarded). Workflows on the server get the final result as before.

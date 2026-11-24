@@ -426,6 +426,14 @@ describe('validateNode', () => {
         user_message: 'Summarize {{ticket_title}}',
       }))).toEqual([])
     })
+
+    it('checks "Use this workflow\'s data as context" and its field list', () => {
+      const base = { agent_id: 'agent-1', user_message: 'Review the claim' }
+      expect(validateNode(makeNode('run_agent', { ...base, include_workflow_data: true }))).toEqual([])
+      expect(validateNode(makeNode('run_agent', { ...base, include_workflow_data: true, workflow_data_scope: 'fields', workflow_data_fields: 'claim_id, amount' }))).toEqual([])
+      expect(validateNode(makeNode('run_agent', { ...base, include_workflow_data: 1 }))).toContain('Use this workflow\'s data must be true or false')
+      expect(validateNode(makeNode('run_agent', { ...base, include_workflow_data: true, workflow_data_scope: 'fields', workflow_data_fields: [] }))).toContain('Pick at least one field to pass, or pass all of the workflow\'s data')
+    })
   })
 
   describe('string operation nodes', () => {

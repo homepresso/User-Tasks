@@ -5,7 +5,7 @@ import { resolvePage } from '@/lib/services/_shared'
 
 /** GET /api/v1/decision-tables */
 export const GET = apiRoute(listDecisionTablesEndpoint, async ({ ctx, query }) =>
-  listDecisionTables(ctx, { search: query.search }, resolvePage(query)))
+  listDecisionTables(ctx, { search: query.search, tag: query.tag }, resolvePage(query)))
 
 /** POST /api/v1/decision-tables */
 export const POST = apiRoute(createDecisionTableEndpoint, async ({ ctx, body }) => ({ decision_table: await createDecisionTable(ctx, body) }))

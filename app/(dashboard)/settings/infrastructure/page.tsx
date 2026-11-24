@@ -4,6 +4,7 @@ import { loadInfrastructureView, viewerCanSeeInfrastructure } from '@/lib/admin/
 import { InfrastructureView } from '@/components/settings/infrastructure-view'
 import { instancePrices } from '@/lib/agents/costs'
 import { loadEgressPolicy, summariseEgressPolicy } from '@/lib/egress-policy'
+import { loadProcessingStatus } from '@/lib/admin/processing-status'
 
 /**
  * Settings → Infrastructure: the provider per area, health from the doctor
@@ -21,5 +22,6 @@ export default async function InfrastructurePage({ searchParams }: { searchParam
   const view = await loadInfrastructureView({ refresh })
   const aiPrices = await instancePrices()
   const egress = summariseEgressPolicy(await loadEgressPolicy())
-  return <InfrastructureView view={view} aiPrices={aiPrices} egress={egress} />
+  const processing = await loadProcessingStatus().catch(() => undefined)
+  return <InfrastructureView view={view} aiPrices={aiPrices} egress={egress} processing={processing} />
 }

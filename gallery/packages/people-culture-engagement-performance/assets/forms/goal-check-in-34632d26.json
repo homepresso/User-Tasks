@@ -1,0 +1,186 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "34632d26-8b59-5918-988c-c788cbda0f7c",
+  "asset": {
+    "id": "34632d26-8b59-5918-988c-c788cbda0f7c",
+    "name": "Goal check-in",
+    "description": "A quick update on a goal: progress, status and a note.",
+    "tags": [
+      "goals",
+      "okr"
+    ],
+    "fields": [
+      {
+        "key": "goal",
+        "label": "Goal",
+        "type": "lookup",
+        "required": true,
+        "default": "{{param.goal}}",
+        "lookup": {
+          "source": "table",
+          "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+          "search_columns": [
+            "objective",
+            "goal_ref",
+            "owner_name"
+          ],
+          "display_columns": [
+            "objective",
+            "goal_ref",
+            "owner_name"
+          ],
+          "value_column": "goal_ref",
+          "fill": [
+            {
+              "from": "objective",
+              "to": "objective"
+            },
+            {
+              "from": "progress",
+              "to": "progress"
+            },
+            {
+              "from": "status",
+              "to": "status"
+            }
+          ],
+          "filters": [],
+          "sort": {
+            "column": "goal_ref",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "objective",
+        "label": "Objective",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "progress",
+        "label": "Progress",
+        "type": "slider",
+        "required": true,
+        "min": 0,
+        "max": 100,
+        "survey": {
+          "step": 5,
+          "unit": "%"
+        }
+      },
+      {
+        "key": "status",
+        "label": "Status",
+        "type": "choice",
+        "options": [
+          "On track",
+          "At risk",
+          "Off track",
+          "Done"
+        ],
+        "required": true,
+        "display": "radio"
+      },
+      {
+        "key": "note",
+        "label": "What changed?",
+        "type": "textarea",
+        "placeholder": "Wins, blockers, help needed",
+        "max_length": 800
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "goal",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "objective",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "progress",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "status",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "note",
+              "span": 2
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "goal",
+          "label": "Goal",
+          "type": "text",
+          "source": "context"
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Save check-in",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Checked in",
+            "text": "Thanks: the goal is up to date.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Goal check-in",
+      "subtitle": "One minute to keep your goal current.",
+      "align": "left"
+    }
+  }
+}

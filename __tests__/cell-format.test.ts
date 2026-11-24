@@ -27,6 +27,8 @@ describe('cell formats: numbers', () => {
 
   it('currency: code, symbol vs code, decimals, locale', () => {
     expect(f({ kind: 'currency', currency: 'USD' }, 1499).text).toBe('$1,499.00')
+    expect(f({ kind: 'currency', currency: 'USD' }, 1499, 'en-GB').text).toBe('$1,499.00')
+    expect(f({ kind: 'currency', currency: 'AUD' }, 1499, 'en-GB').text).toBe('A$1,499.00')
     expect(f({ kind: 'currency', currency: 'EUR', currency_display: 'code', decimals: 0 }, 1499).text.replace(/\s/g, ' ')).toBe('EUR 1,499')
     expect(f({ kind: 'currency', currency: 'EUR' }, 1499.5, 'de-DE').text.replace(/\s/g, ' ')).toBe('1.499,50 €')
     expect(normalizeCellFormat({ kind: 'currency', currency: 'bad!' }).currency).toBe('USD')

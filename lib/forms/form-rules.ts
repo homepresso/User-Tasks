@@ -1103,6 +1103,7 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
         break
       case 'call_reference':
         if (!a.reference_id) return 'Call an API reference: choose the reference'
+        if (a.each_item && !['list', 'repeating_section'].includes(known.fieldTypes.get(a.each_item) ?? '')) return `Call an API reference: "${a.each_item}" is not a repeating section or List of this form`
         { const bad = outputTargetProblem(a, known); if (bad) return `${RULE_ACTION_LABELS[a.type]}: ${bad}` }
         if (a.wait === false && (a.outputs?.length || a.on_success?.length || Object.keys(a.results ?? {}).length)) return `${RULE_ACTION_LABELS[a.type]}: a call that doesn't wait has no response to map — turn waiting on, or remove the outputs / on-success steps`
         for (const key of Object.values(a.results ?? {})) {
@@ -1130,6 +1131,7 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
         if ((a.type === 'table_create' || a.type === 'table_update') && !Object.keys(a.column_values ?? {}).length) return `${label}: set at least one column`
         if ((a.type === 'table_read' || a.type === 'table_update') && !a.row_id && !a.filter) return `${label}: give a row id or a filter`
         if (a.type === 'table_delete' && !a.row_id) return `${label}: give the row id (e.g. {{row.row_id}})`
+        if (a.each_item && !['list', 'repeating_section'].includes(known.fieldTypes.get(a.each_item) ?? '')) return `${label}: "${a.each_item}" is not a repeating section or List of this form`
         const bad = outputTargetProblem(a, known)
         if (bad) return `${label}: ${bad}`
         break
@@ -1505,7 +1507,7 @@ function describeOneAction(def: RulesDefinition, a: FieldButtonAction, sample?: 
     case 'table_read': case 'table_list': case 'table_create': case 'table_update': case 'table_delete': {
       const verb = { table_read: 'Read a row of', table_list: 'List rows of', table_create: 'Add a row to', table_update: 'Update rows of', table_delete: 'Delete a row of' }[a.type]
       const outs = (a.outputs ?? []).map((o) => (o.as === 'options' ? `options of ${fieldName(def, o.to)}` : o.to.startsWith('var.') ? `{{${o.to}}}` : fieldName(def, o.to)))
-      return `${verb} ${a.table_name ?? 'a table'}${a.each_selected ? ` for each selected row of ${fieldName(def, a.each_selected)}` : ''}${outs.length ? ` → ${outs.join(', ')}` : ''} (server)${branchSummary(def, a, sample)}`
+      return `${verb} ${a.table_name ?? 'a table'}${a.each_selected ? ` for each selected row of ${fieldName(def, a.each_selected)}` : a.each_item ? ` for each item of ${fieldName(def, a.each_item)}` : ''}${outs.length ? ` → ${outs.join(', ')}` : ''} (server)${branchSummary(def, a, sample)}`
     }
     case 'set_state': return `${a.state_value === 'toggle' ? 'Toggle' : 'Set'} state.${a.flag || '?'}${a.state_value === 'toggle' ? '' : ` = ${a.state_value}`}`
     case 'set_variable': return a.variable_mode === 'clear' ? `Clear var.${a.variable ?? '?'}` : a.variable_mode === 'reset' ? `Reset var.${a.variable ?? '?'}` : `Set var.${a.variable ?? '?'} = ${shown(a.value ?? '')}`
@@ -1518,7 +1520,7 @@ function describeOneAction(def: RulesDefinition, a: FieldButtonAction, sample?: 
     case 'run_lookup': return `Run lookup ${a.field ? fieldName(def, a.field) : '…'}${a.query ? ` for ${a.query}` : ''}`
     case 'call_reference': {
       const outs = [...Object.values(a.results ?? {}).map((k) => fieldName(def, k)), ...(a.outputs ?? []).map((o) => (o.as === 'options' ? `options of ${fieldName(def, o.to)}` : o.to.startsWith('var.') ? `{{${o.to}}}` : fieldName(def, o.to)))]
-      return `Call API reference${outs.length ? ` → ${outs.join(', ')}` : ''} (server${a.wait === false ? ', without waiting' : ''})${branchSummary(def, a, sample)}`
+      return `Call API reference${a.each_item ? ` for each item of ${fieldName(def, a.each_item)}` : ''}${outs.length ? ` → ${outs.join(', ')}` : ''} (server${a.wait === false ? ', without waiting' : ''})${branchSummary(def, a, sample)}`
     }
     case 'start_workflow': return `Start workflow ${a.workflow_name ?? ''} (server)`.replace(/\s+/g, ' ')
     case 'apply_table_changes': return `For each changed row of ${a.table_changes?.field ? fieldName(def, a.table_changes.field) : '…'} (server)`

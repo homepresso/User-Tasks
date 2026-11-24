@@ -12,8 +12,8 @@ import {
   CalendarPlus, Regex, Hash, ListTree, Filter, ArrowUpDown, Fingerprint, Merge,
   CircleStop, Inbox, Search, Users, MessageSquareDashed, Radio, CornerDownRight, XCircle, AlertTriangle, Presentation,
   GitFork, FileUp, FileDown, Download, Tag, Braces, Brackets, FileSpreadsheet, Sheet,
-  Star, Scale, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
-  Puzzle, Briefcase, FilePen, Milestone, Link, Gauge, FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan, Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard, ChevronRight, ChevronsDownUp, ChevronsUpDown, PanelLeftClose, Shuffle, BadgeCheck, KeyRound, CalendarDays, Signature, FileSignature, Hourglass, FileCheck } from 'lucide-react'
+  Star, Scale, Bot, ServerCog, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
+  Puzzle, Briefcase, FilePen, Milestone, Link, Gauge, FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan, Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard, ChevronRight, ChevronsDownUp, ChevronsUpDown, PanelLeftClose, Shuffle, BadgeCheck, KeyRound, CalendarDays, Signature, FileSignature, Hourglass, FileCheck, BotOff } from 'lucide-react'
 import {
   allCollapsed, allExpanded, initialPaletteCollapse, isGroupCollapsed, loadCollapseMap, paletteCollapseReducer, safeLocalStorage, saveCollapseMap,
 } from "@/lib/palette-collapse"
@@ -40,13 +40,13 @@ const iconMap: Record<string, any> = {
   CircleStop, Inbox, Users, MessageSquareDashed, Radio, CornerDownRight, GitFork,
   FileUp, FileDown, Download, Tag, Braces, Brackets, FileSpreadsheet, Sheet, XCircle, AlertTriangle, Presentation, Scale,
   CalendarClock: CalendarPlus, FileInput: FileText,
-  Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
+  Puzzle, Bot, ServerCog, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
   Gauge,
   Briefcase, FilePen, Milestone, Link, Search,
   FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
   Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard,
   Shuffle, BadgeCheck, KeyRound, CalendarDays,
-  Signature, FileSignature, Hourglass, FileCheck,
+  Signature, FileSignature, Hourglass, FileCheck, BotOff,
 }
 
 interface NodePaletteProps {

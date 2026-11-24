@@ -85,6 +85,24 @@ export const SURVEY_OPTION_ICONS = [
   'leaf', 'tree', 'flower', 'dog', 'cat', 'zap', 'shield', 'lock', 'wrench', 'lightbulb', 'rocket', 'palette', 'check', 'x',
 ] as const
 export type SurveyOptionIcon = (typeof SURVEY_OPTION_ICONS)[number]
+/** The icon an option shows when its icon name isn't one of SURVEY_OPTION_ICONS (never a blank card). */
+export const DEFAULT_OPTION_ICON: SurveyOptionIcon = 'star'
+
+/** Common spellings of the icons (lucide's own names, words people use). */
+const OPTION_ICON_ALIASES: Record<string, SurveyOptionIcon> = {
+  house: 'home', 'tree-pine': 'tree', 'gamepad-2': 'gamepad', 'gamepad2': 'gamepad', 'thumbsup': 'thumbs-up', 'thumbsdown': 'thumbs-down', like: 'thumbs-up', dislike: 'thumbs-down',
+  happy: 'smile', sad: 'frown', neutral: 'meh', love: 'heart', email: 'mail', chat: 'message-circle', message: 'message-circle', team: 'users', people: 'users', person: 'user',
+  location: 'map-pin', pin: 'map-pin', time: 'clock', idea: 'lightbulb', bulb: 'lightbulb', bolt: 'zap', lightning: 'zap', energy: 'zap', security: 'shield', tool: 'wrench',
+  award: 'trophy', cart: 'shopping-cart', food: 'utensils', graduation: 'graduation-cap', education: 'graduation-cap', work: 'briefcase', office: 'building', computer: 'laptop',
+  mobile: 'smartphone', tick: 'check', yes: 'check', no: 'x', close: 'x', cross: 'x',
+}
+
+/** An icon name → the known icon it means (case, spaces and _ ignored; common aliases), or null. */
+export function optionIconName(raw: string): SurveyOptionIcon | null {
+  const s = raw.trim().toLowerCase().replace(/[\s_]+/g, '-')
+  if ((SURVEY_OPTION_ICONS as readonly string[]).includes(s)) return s as SurveyOptionIcon
+  return OPTION_ICON_ALIASES[s] ?? OPTION_ICON_ALIASES[s.replace(/-/g, '')] ?? null
+}
 
 export interface MatrixRow { key: string; label: string }
 
@@ -140,7 +158,13 @@ export function cleanOptionImage(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const s = value.trim()
   if (!s || s.length > 2000) return undefined
-  if (s.startsWith('icon:')) return (SURVEY_OPTION_ICONS as readonly string[]).includes(s.slice(5)) ? s : undefined
+  if (s.startsWith('icon:')) {
+    const known = optionIconName(s.slice(5))
+    if (known) return `icon:${known}`
+    // An unknown name is kept (plain characters only) so the field's check can name it; it shows the default icon.
+    const name = s.slice(5).trim().toLowerCase()
+    return /^[a-z0-9][a-z0-9 _-]{0,39}$/.test(name) ? `icon:${name}` : undefined
+  }
   if (/^\/(?!\/)[^\s"'<>\\]*$/.test(s)) return s
   try {
     const url = new URL(s)
@@ -486,6 +510,10 @@ export function surveyConfigProblem(field: TaskFieldDef): string | null {
     return field.type === 'matrix' ? 'Add at least two columns (the scale)' : 'Add at least two options'
   }
   if (field.type === 'matrix' && !matrixRows(field).length) return 'Add at least one row (statement)'
+  if (field.type === 'image_choice') {
+    const unknown = Object.entries(field.survey?.images ?? {}).find(([, img]) => img.startsWith('icon:') && !optionIconName(img.slice(5)))
+    if (unknown) return `“${unknown[0]}” uses an unknown icon “${unknown[1].slice(5)}” — use one of ${SURVEY_OPTION_ICONS.join(', ')}`
+  }
   if (field.type === 'yes_no_maybe' && options.length > 3) return 'Yes / No / Maybe has at most three answers'
   if (field.type === 'likert' && options.length > 11) return 'An agreement scale has at most 11 points'
   if (field.type === 'slider') {

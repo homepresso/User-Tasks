@@ -1,0 +1,2458 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "29824ef5-163f-54c1-9c07-124d5a130a3c",
+  "asset": {
+    "id": "29824ef5-163f-54c1-9c07-124d5a130a3c",
+    "name": "CapEx request approval",
+    "description": "A capital request from the CapEx request form: thresholds and category rules (decision tables) choose the approvers, the budget line is checked, specialist reviews run in parallel, finance and executives approve by amount, then the budget is committed, the planned spend phased, an approval summary PDF filed and procurement raises the purchase order.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Request submitted",
+        "config": {
+          "form_id": "78995f6f-dfb2-55d7-9298-eade394cd04e",
+          "form_name": "CapEx request"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Project reference",
+        "config": {
+          "name": "project_ref",
+          "expression": "CPX-{{=RIGHT(FORMAT_DATE(NOW(), \"YYYY\"), 2)}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{project_ref}} · {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "centre",
+        "type": "update_data_table",
+        "label": "Read the cost centre",
+        "config": {
+          "table_id": "1382c5aa-50a0-53c9-948f-0e1fbe441a4f",
+          "table_name": "CapEx cost centres",
+          "operation": "get",
+          "match_column": "cost_centre",
+          "match_value": "{{form.cost_centre}}",
+          "output_row_var": "centre"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "tier",
+        "type": "decision_table",
+        "label": "Approval thresholds",
+        "config": {
+          "decision_table_id": "27d156db-4c0c-51fc-9be4-a690408786de",
+          "decision_table_name": "CapEx approval thresholds",
+          "input_mappings": {
+            "amount": "{{form.investment}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "reviews",
+        "type": "decision_table",
+        "label": "Category reviews",
+        "config": {
+          "decision_table_id": "0ac1896c-b750-5e09-bfb3-ad81e4f1bd6d",
+          "decision_table_name": "CapEx category reviews",
+          "input_mappings": {
+            "category": "{{form.category}}",
+            "amount": "{{form.investment}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "key",
+        "type": "set_variable",
+        "label": "Budget line",
+        "config": {
+          "name": "budget_key",
+          "expression": "{{form.fiscal_year}}-{{centre.bu_code}}-{{form.category}}-{{form.spend_quarter}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "budget",
+        "type": "update_data_table",
+        "label": "Read the budget line",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "get",
+          "match_column": "budget_key",
+          "match_value": "{{budget_key}}",
+          "output_row_var": "budget_line"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "available",
+        "type": "set_variable",
+        "label": "Available on the line",
+        "config": {
+          "name": "budget_available",
+          "expression": "{{=COALESCE(budget_line.available, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "check",
+        "type": "condition",
+        "label": "Within budget?",
+        "config": {
+          "branches": [
+            {
+              "label": "Over budget",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.investment}}",
+                  "operator": "gt",
+                  "value": "{{budget_available}}"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "over",
+        "type": "set_variable",
+        "label": "Flag: over budget",
+        "config": {
+          "name": "budget_status",
+          "expression": "Over budget"
+        },
+        "position": {
+          "x": 80,
+          "y": 1460
+        }
+      },
+      {
+        "id": "within",
+        "type": "set_variable",
+        "label": "Flag: within budget",
+        "config": {
+          "name": "budget_status",
+          "expression": "Within budget"
+        },
+        "position": {
+          "x": 720,
+          "y": 1320
+        }
+      },
+      {
+        "id": "log_project",
+        "type": "update_data_table",
+        "label": "Add to CapEx projects",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "title": "{{form.title}}",
+            "business_unit": "{{centre.business_unit}}",
+            "bu_code": "{{centre.bu_code}}",
+            "cost_centre": "{{form.cost_centre}}",
+            "category": "{{form.category}}",
+            "fiscal_year": "{{form.fiscal_year}}",
+            "spend_quarter": "{{form.spend_quarter}}",
+            "budget_key": "{{budget_key}}",
+            "requester": "{{submitted_by_name}}",
+            "owner_id": "{{submitted_by}}",
+            "amount": "{{form.investment}}",
+            "approved_amount": "0",
+            "spent": "0",
+            "utilisation_pct": "0",
+            "npv": "{{form.npv}}",
+            "irr_pct": "{{form.irr_pct}}",
+            "payback_years": "{{form.payback_years}}",
+            "roi_pct": "{{form.roi_pct}}",
+            "payback_band": "{{=IF(IS_EMPTY(form.payback_years), \"Not within the projection\", IF(form.payback_years < 2, \"Under 2 years\", IF(form.payback_years < 3, \"2 to 3 years\", IF(form.payback_years < 4, \"3 to 4 years\", \"4 years or more\"))))}}",
+            "useful_life": "{{form.useful_life}}",
+            "strategic_alignment": "{{form.strategic_alignment}}",
+            "risk_rating": "{{form.risk_rating}}",
+            "status": "In approval",
+            "stage": "Department head",
+            "approval_tier": "{{approval_tier}}",
+            "budget_check": "{{budget_status}}",
+            "submitted_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "cash",
+        "type": "loop",
+        "label": "Each cash-flow year",
+        "config": {
+          "items": "{{form.cash_flows}}",
+          "item_var": "line"
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "cash_row",
+        "type": "update_data_table",
+        "label": "Add the cash-flow line",
+        "config": {
+          "table_id": "a6f9796a-8279-50be-89fe-22a6c3b69017",
+          "table_name": "CapEx cash-flow lines",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "year": "{{line.year}}",
+            "benefits": "{{line.benefits}}",
+            "operating_costs": "{{=COALESCE(line.operating_costs, 0)}}",
+            "net": "{{line.net}}",
+            "present_value": "{{=ROUND(line.net / POWER(1 + form.discount_rate / 100, line.year), 0)}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1740
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Approval SLA",
+        "config": {
+          "sla_label": "Capital approval",
+          "mode": "exact",
+          "due_at": "{{=ADD_DAYS(NOW(), sla_days)}}",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      },
+      {
+        "id": "head",
+        "type": "user_task",
+        "label": "Department head approval",
+        "config": {
+          "task_title": "Approve capital request: {{project_ref}} {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}",
+          "task_description": "<p>You are the first approver of this capital request for your department.</p><p><strong>{{form.title}}</strong> ({{project_ref}}) · {{centre.business_unit}} · {{form.category}} · FY{{form.fiscal_year}} {{form.spend_quarter}}<br>Requested by {{submitted_by_name}}: <strong>${{form.investment}}</strong> · {{approval_tier}} ({{route_label}})</p><ul><li>NPV at {{form.discount_rate}}%: <strong>${{form.npv}}</strong> · IRR <strong>{{form.irr_pct}}%</strong> · payback <strong>{{form.payback_years}} years</strong> · ROI {{form.roi_pct}}%</li><li>Budget line {{budget_key}}: ${{budget_available}} available before this request — <strong>{{budget_status}}</strong></li><li>Strategic alignment: {{form.strategic_alignment}} · delivery risk {{form.risk_rating}}</li></ul><h4>Business case</h4>{{form.business_case}}<p>Risks: {{form.risk_notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Request changes",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.department_head}}",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea",
+              "placeholder": "Shown in the approvals log and to the requester"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "request_changes",
+              "label": "Request changes",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Request changes"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital approval",
+            "align": "left",
+            "subtitle": "{{project_ref}} · {{approval_tier}} · {{budget_status}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 400,
+          "y": 2020
+        }
+      },
+      {
+        "id": "log_head",
+        "type": "update_data_table",
+        "label": "Log: Department head approved",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "Department head",
+            "approver": "{{actioned_by_name}}",
+            "decision": "Approved",
+            "comment": "{{task_data.comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2160
+        }
+      },
+      {
+        "id": "stage_spec",
+        "type": "update_data_table",
+        "label": "Stage: specialist review",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project_ref}}",
+          "column_values": {
+            "stage": "Specialist review"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2300
+        }
+      },
+      {
+        "id": "spec_reset",
+        "type": "set_variable",
+        "label": "No specialist rejection yet",
+        "config": {
+          "name": "specialist_rejected",
+          "expression": ""
+        },
+        "position": {
+          "x": 400,
+          "y": 2440
+        }
+      },
+      {
+        "id": "par",
+        "type": "parallel",
+        "label": "Specialist reviews",
+        "config": {
+          "mode": "parallel",
+          "branches": [
+            {
+              "label": "CIO review"
+            },
+            {
+              "label": "Safety review"
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 2580
+        }
+      },
+      {
+        "id": "need_cio",
+        "type": "condition",
+        "label": "IT request?",
+        "config": {
+          "branches": [
+            {
+              "label": "CIO review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_cio}}",
+                  "operator": "is_true"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 80,
+          "y": 2720
+        }
+      },
+      {
+        "id": "cio",
+        "type": "user_task",
+        "label": "CIO review",
+        "config": {
+          "task_title": "CIO review: {{project_ref}} {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}",
+          "task_description": "<p>IT capital request: check {{review_focus}}.</p><p><strong>{{form.title}}</strong> ({{project_ref}}) · {{centre.business_unit}} · {{form.category}} · FY{{form.fiscal_year}} {{form.spend_quarter}}<br>Requested by {{submitted_by_name}}: <strong>${{form.investment}}</strong> · {{approval_tier}} ({{route_label}})</p><ul><li>NPV at {{form.discount_rate}}%: <strong>${{form.npv}}</strong> · IRR <strong>{{form.irr_pct}}%</strong> · payback <strong>{{form.payback_years}} years</strong> · ROI {{form.roi_pct}}%</li><li>Budget line {{budget_key}}: ${{budget_available}} available before this request — <strong>{{budget_status}}</strong></li><li>Strategic alignment: {{form.strategic_alignment}} · delivery risk {{form.risk_rating}}</li></ul><h4>Business case</h4>{{form.business_case}}<p>Risks: {{form.risk_notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "b784f4ae-2a96-5123-9c4e-f0e44663e835",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea",
+              "placeholder": "Shown in the approvals log and to the requester"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital approval",
+            "align": "left",
+            "subtitle": "{{project_ref}} · {{approval_tier}} · {{budget_status}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 80,
+          "y": 2860
+        }
+      },
+      {
+        "id": "log_cio",
+        "type": "update_data_table",
+        "label": "Log: CIO review approved",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "CIO review",
+            "approver": "{{actioned_by_name}}",
+            "decision": "Approved",
+            "comment": "{{task_data.comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 80,
+          "y": 3000
+        }
+      },
+      {
+        "id": "cio_no",
+        "type": "set_variable",
+        "label": "CIO rejected",
+        "config": {
+          "name": "specialist_rejected",
+          "expression": "CIO review"
+        },
+        "position": {
+          "x": -240,
+          "y": 3140
+        }
+      },
+      {
+        "id": "cio_skip",
+        "type": "set_variable",
+        "label": "No CIO review",
+        "config": {
+          "name": "cio_review",
+          "expression": "Not needed"
+        },
+        "position": {
+          "x": 400,
+          "y": 3280
+        }
+      },
+      {
+        "id": "need_safety",
+        "type": "condition",
+        "label": "Safety review needed?",
+        "config": {
+          "branches": [
+            {
+              "label": "Safety review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_safety}}",
+                  "operator": "is_true"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 720,
+          "y": 3420
+        }
+      },
+      {
+        "id": "safety",
+        "type": "user_task",
+        "label": "Safety review",
+        "config": {
+          "task_title": "Safety review: {{project_ref}} {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}",
+          "task_description": "<p>Health and safety review: check {{review_focus}}.</p><p><strong>{{form.title}}</strong> ({{project_ref}}) · {{centre.business_unit}} · {{form.category}} · FY{{form.fiscal_year}} {{form.spend_quarter}}<br>Requested by {{submitted_by_name}}: <strong>${{form.investment}}</strong> · {{approval_tier}} ({{route_label}})</p><ul><li>NPV at {{form.discount_rate}}%: <strong>${{form.npv}}</strong> · IRR <strong>{{form.irr_pct}}%</strong> · payback <strong>{{form.payback_years}} years</strong> · ROI {{form.roi_pct}}%</li><li>Budget line {{budget_key}}: ${{budget_available}} available before this request — <strong>{{budget_status}}</strong></li><li>Strategic alignment: {{form.strategic_alignment}} · delivery risk {{form.risk_rating}}</li></ul><h4>Business case</h4>{{form.business_case}}<p>Risks: {{form.risk_notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "a4224550-dd31-50c5-b842-38cb80804031",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea",
+              "placeholder": "Shown in the approvals log and to the requester"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital approval",
+            "align": "left",
+            "subtitle": "{{project_ref}} · {{approval_tier}} · {{budget_status}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 720,
+          "y": 3560
+        }
+      },
+      {
+        "id": "log_safety",
+        "type": "update_data_table",
+        "label": "Log: Safety review approved",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "Safety review",
+            "approver": "{{actioned_by_name}}",
+            "decision": "Approved",
+            "comment": "{{task_data.comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 3700
+        }
+      },
+      {
+        "id": "safety_no",
+        "type": "set_variable",
+        "label": "Safety rejected",
+        "config": {
+          "name": "specialist_rejected",
+          "expression": "Safety review"
+        },
+        "position": {
+          "x": 1040,
+          "y": 3840
+        }
+      },
+      {
+        "id": "safety_skip",
+        "type": "set_variable",
+        "label": "No safety review",
+        "config": {
+          "name": "safety_review",
+          "expression": "Not needed"
+        },
+        "position": {
+          "x": 1040,
+          "y": 3980
+        }
+      },
+      {
+        "id": "spec_ok",
+        "type": "condition",
+        "label": "Specialists agreed?",
+        "config": {
+          "branches": [
+            {
+              "label": "A specialist rejected",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{specialist_rejected}}",
+                  "operator": "is_not_empty"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 4120
+        }
+      },
+      {
+        "id": "rj_spec",
+        "type": "set_variable",
+        "label": "Rejected at specialist review",
+        "config": {
+          "name": "rejected_by_step",
+          "expression": "{{specialist_rejected}}"
+        },
+        "position": {
+          "x": 1040,
+          "y": 4260
+        }
+      },
+      {
+        "id": "need_ctrl",
+        "type": "condition",
+        "label": "Finance controller needed?",
+        "config": {
+          "branches": [
+            {
+              "label": "Tier 2 or 3",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_controller}}",
+                  "operator": "is_true"
+                }
+              ]
+            },
+            {
+              "label": "Over budget",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{budget_status}}",
+                  "operator": "equals",
+                  "value": "Over budget"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 4400
+        }
+      },
+      {
+        "id": "ctrl",
+        "type": "user_task",
+        "label": "Finance controller approval",
+        "config": {
+          "task_title": "Finance controller: {{project_ref}} {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}",
+          "task_description": "<p>Check the budget line, the phasing and the financials. Requests over budget need your approval at every tier.</p><p><strong>{{form.title}}</strong> ({{project_ref}}) · {{centre.business_unit}} · {{form.category}} · FY{{form.fiscal_year}} {{form.spend_quarter}}<br>Requested by {{submitted_by_name}}: <strong>${{form.investment}}</strong> · {{approval_tier}} ({{route_label}})</p><ul><li>NPV at {{form.discount_rate}}%: <strong>${{form.npv}}</strong> · IRR <strong>{{form.irr_pct}}%</strong> · payback <strong>{{form.payback_years}} years</strong> · ROI {{form.roi_pct}}%</li><li>Budget line {{budget_key}}: ${{budget_available}} available before this request — <strong>{{budget_status}}</strong></li><li>Strategic alignment: {{form.strategic_alignment}} · delivery risk {{form.risk_rating}}</li></ul><h4>Business case</h4>{{form.business_case}}<p>Risks: {{form.risk_notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "5d05f1da-6a2f-5844-9759-02c01134fe10",
+          "fields": [
+            {
+              "key": "budget_confirmed",
+              "label": "Funding confirmed (budget line or transfer agreed)",
+              "type": "boolean"
+            },
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea",
+              "placeholder": "Shown in the approvals log and to the requester"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "budget_confirmed",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital approval",
+            "align": "left",
+            "subtitle": "{{project_ref}} · {{approval_tier}} · {{budget_status}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 400,
+          "y": 4540
+        }
+      },
+      {
+        "id": "log_ctrl",
+        "type": "update_data_table",
+        "label": "Log: Finance controller approved",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "Finance controller",
+            "approver": "{{actioned_by_name}}",
+            "decision": "Approved",
+            "comment": "{{task_data.comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 4680
+        }
+      },
+      {
+        "id": "need_cfo",
+        "type": "condition",
+        "label": "CFO needed?",
+        "config": {
+          "branches": [
+            {
+              "label": "Tier 2 or 3",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_cfo}}",
+                  "operator": "is_true"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 4820
+        }
+      },
+      {
+        "id": "cfo",
+        "type": "user_task",
+        "label": "CFO approval",
+        "config": {
+          "task_title": "CFO approval: {{project_ref}} {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}",
+          "task_description": "<p>Capital request within your delegated authority (or on its way to the CEO).</p><p><strong>{{form.title}}</strong> ({{project_ref}}) · {{centre.business_unit}} · {{form.category}} · FY{{form.fiscal_year}} {{form.spend_quarter}}<br>Requested by {{submitted_by_name}}: <strong>${{form.investment}}</strong> · {{approval_tier}} ({{route_label}})</p><ul><li>NPV at {{form.discount_rate}}%: <strong>${{form.npv}}</strong> · IRR <strong>{{form.irr_pct}}%</strong> · payback <strong>{{form.payback_years}} years</strong> · ROI {{form.roi_pct}}%</li><li>Budget line {{budget_key}}: ${{budget_available}} available before this request — <strong>{{budget_status}}</strong></li><li>Strategic alignment: {{form.strategic_alignment}} · delivery risk {{form.risk_rating}}</li></ul><h4>Business case</h4>{{form.business_case}}<p>Risks: {{form.risk_notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "a1078bf4-6ef6-5909-9236-a9f01d33cba6",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea",
+              "placeholder": "Shown in the approvals log and to the requester"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital approval",
+            "align": "left",
+            "subtitle": "{{project_ref}} · {{approval_tier}} · {{budget_status}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 4,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 5760
+        },
+        "position": {
+          "x": 400,
+          "y": 4960
+        }
+      },
+      {
+        "id": "log_cfo",
+        "type": "update_data_table",
+        "label": "Log: CFO approved",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "CFO",
+            "approver": "{{actioned_by_name}}",
+            "decision": "Approved",
+            "comment": "{{task_data.comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 5100
+        }
+      },
+      {
+        "id": "need_ceo",
+        "type": "condition",
+        "label": "CEO needed?",
+        "config": {
+          "branches": [
+            {
+              "label": "Over $250,000",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_ceo}}",
+                  "operator": "is_true"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 5240
+        }
+      },
+      {
+        "id": "ceo",
+        "type": "user_task",
+        "label": "CEO approval",
+        "config": {
+          "task_title": "CEO approval: {{project_ref}} {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}",
+          "task_description": "<p>Tier 3 capital request: after you, the capital committee decides.</p><p><strong>{{form.title}}</strong> ({{project_ref}}) · {{centre.business_unit}} · {{form.category}} · FY{{form.fiscal_year}} {{form.spend_quarter}}<br>Requested by {{submitted_by_name}}: <strong>${{form.investment}}</strong> · {{approval_tier}} ({{route_label}})</p><ul><li>NPV at {{form.discount_rate}}%: <strong>${{form.npv}}</strong> · IRR <strong>{{form.irr_pct}}%</strong> · payback <strong>{{form.payback_years}} years</strong> · ROI {{form.roi_pct}}%</li><li>Budget line {{budget_key}}: ${{budget_available}} available before this request — <strong>{{budget_status}}</strong></li><li>Strategic alignment: {{form.strategic_alignment}} · delivery risk {{form.risk_rating}}</li></ul><h4>Business case</h4>{{form.business_case}}<p>Risks: {{form.risk_notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "e1d1aab3-9e44-5582-870d-833af670617a",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea",
+              "placeholder": "Shown in the approvals log and to the requester"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital approval",
+            "align": "left",
+            "subtitle": "{{project_ref}} · {{approval_tier}} · {{budget_status}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 7200
+        },
+        "position": {
+          "x": 400,
+          "y": 5380
+        }
+      },
+      {
+        "id": "log_ceo",
+        "type": "update_data_table",
+        "label": "Log: CEO approved",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "CEO",
+            "approver": "{{actioned_by_name}}",
+            "decision": "Approved",
+            "comment": "{{task_data.comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 5520
+        }
+      },
+      {
+        "id": "committee",
+        "type": "user_task",
+        "label": "Capital committee decision",
+        "config": {
+          "task_title": "Capital committee: {{project_ref}} {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}",
+          "task_description": "<p>Record the capital committee’s decision on this Tier 3 request.</p><p><strong>{{form.title}}</strong> ({{project_ref}}) · {{centre.business_unit}} · {{form.category}} · FY{{form.fiscal_year}} {{form.spend_quarter}}<br>Requested by {{submitted_by_name}}: <strong>${{form.investment}}</strong> · {{approval_tier}} ({{route_label}})</p><ul><li>NPV at {{form.discount_rate}}%: <strong>${{form.npv}}</strong> · IRR <strong>{{form.irr_pct}}%</strong> · payback <strong>{{form.payback_years}} years</strong> · ROI {{form.roi_pct}}%</li><li>Budget line {{budget_key}}: ${{budget_available}} available before this request — <strong>{{budget_status}}</strong></li><li>Strategic alignment: {{form.strategic_alignment}} · delivery risk {{form.risk_rating}}</li></ul><h4>Business case</h4>{{form.business_case}}<p>Risks: {{form.risk_notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "7a87bbd3-01ba-5015-aeea-309ee2c1ce0e",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea",
+              "placeholder": "Shown in the approvals log and to the requester"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital approval",
+            "align": "left",
+            "subtitle": "{{project_ref}} · {{approval_tier}} · {{budget_status}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 10,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 14400
+        },
+        "position": {
+          "x": 400,
+          "y": 5660
+        }
+      },
+      {
+        "id": "log_cmt",
+        "type": "update_data_table",
+        "label": "Log: Capital committee approved",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "Capital committee",
+            "approver": "{{actioned_by_name}}",
+            "decision": "Approved",
+            "comment": "{{task_data.comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 5800
+        }
+      },
+      {
+        "id": "approved",
+        "type": "update_data_table",
+        "label": "Mark approved",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project_ref}}",
+          "column_values": {
+            "status": "Approved",
+            "stage": "Approved",
+            "approved_amount": "{{form.investment}}",
+            "approved_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "cycle_days": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 5940
+        }
+      },
+      {
+        "id": "commit_line",
+        "type": "update_data_table",
+        "label": "Commit the budget line",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "update",
+          "match_column": "budget_key",
+          "match_value": "{{budget_key}}",
+          "column_values": {
+            "committed": "{{=COALESCE(budget_line.committed, 0) + form.investment}}",
+            "available": "{{=COALESCE(budget_line.budget, 0) - COALESCE(budget_line.committed, 0) - form.investment}}",
+            "committed_pct": "{{=IF(COALESCE(budget_line.budget, 0) > 0, ROUND((COALESCE(budget_line.committed, 0) + form.investment) / budget_line.budget * 100, 1), 0)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 6080
+        }
+      },
+      {
+        "id": "bu",
+        "type": "update_data_table",
+        "label": "Read the business unit",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "get",
+          "match_column": "bu_key",
+          "match_value": "{{centre.bu_code}}-{{form.fiscal_year}}",
+          "output_row_var": "bu_row"
+        },
+        "position": {
+          "x": 400,
+          "y": 6220
+        }
+      },
+      {
+        "id": "commit_bu",
+        "type": "update_data_table",
+        "label": "Commit at business unit level",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "update",
+          "match_column": "bu_key",
+          "match_value": "{{centre.bu_code}}-{{form.fiscal_year}}",
+          "column_values": {
+            "committed": "{{=COALESCE(bu_row.committed, 0) + form.investment}}",
+            "available": "{{=COALESCE(bu_row.budget, 0) - COALESCE(bu_row.committed, 0) - form.investment}}",
+            "committed_pct": "{{=IF(COALESCE(bu_row.budget, 0) > 0, ROUND((COALESCE(bu_row.committed, 0) + form.investment) / bu_row.budget * 100, 1), 0)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 6360
+        }
+      },
+      {
+        "id": "phase",
+        "type": "loop_n_times",
+        "label": "Phase over the quarter",
+        "config": {
+          "count": "3"
+        },
+        "position": {
+          "x": 400,
+          "y": 6500
+        }
+      },
+      {
+        "id": "plan_month",
+        "type": "set_variable",
+        "label": "Month of the quarter",
+        "config": {
+          "name": "plan_month",
+          "expression": "{{=(TO_NUMBER(RIGHT(form.spend_quarter, 1)) - 1) * 3 + i + 1}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 6640
+        }
+      },
+      {
+        "id": "plan_row",
+        "type": "update_data_table",
+        "label": "Planned spend for the month",
+        "config": {
+          "table_id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+          "table_name": "CapEx spend",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "title": "{{form.title}}",
+            "business_unit": "{{centre.business_unit}}",
+            "category": "{{form.category}}",
+            "fiscal_year": "{{form.fiscal_year}}",
+            "period": "{{form.fiscal_year}}-{{=PAD_LEFT(plan_month, 2, \"0\")}}",
+            "entry_type": "Planned",
+            "amount": "{{=ROUND(form.investment / 3, 2)}}",
+            "description": "Approved phasing"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 6780
+        }
+      },
+      {
+        "id": "summary",
+        "type": "text_template",
+        "label": "Approval summary",
+        "config": {
+          "output_var": "summary_html",
+          "template": "<h1>Capital approval {{project_ref}}</h1><p><strong>{{form.title}}</strong><br>{{centre.business_unit}} · {{form.cost_centre}} · {{form.category}} · FY{{form.fiscal_year}} {{form.spend_quarter}}</p><table border=\"1\" cellpadding=\"6\" cellspacing=\"0\"><tr><th align=\"left\">Approved amount</th><td>${{form.investment}}</td></tr><tr><th align=\"left\">Approval route</th><td>{{approval_tier}}: {{route_label}}</td></tr><tr><th align=\"left\">Budget line</th><td>{{budget_key}} ({{budget_status}})</td></tr><tr><th align=\"left\">NPV at {{form.discount_rate}}%</th><td>${{form.npv}}</td></tr><tr><th align=\"left\">IRR</th><td>{{form.irr_pct}}%</td></tr><tr><th align=\"left\">Payback</th><td>{{form.payback_years}} years</td></tr><tr><th align=\"left\">ROI</th><td>{{form.roi_pct}}%</td></tr><tr><th align=\"left\">Requested by</th><td>{{submitted_by_name}}</td></tr><tr><th align=\"left\">Approved on</th><td>{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}</td></tr></table><h2>Business case</h2>{{form.business_case}}<p>Every decision and comment is in the CapEx approvals log under {{project_ref}}.</p>"
+        },
+        "position": {
+          "x": 400,
+          "y": 6920
+        }
+      },
+      {
+        "id": "pdf",
+        "type": "doc_convert",
+        "label": "Approval summary PDF",
+        "config": {
+          "source": "{{summary_html}}",
+          "target": "pdf",
+          "title": "Capital approval {{project_ref}}",
+          "output_name": "{{project_ref}}-approval-summary",
+          "output_var": "approval_pdf",
+          "page_size": "Letter"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 7060
+        }
+      },
+      {
+        "id": "file_pdf",
+        "type": "update_data_table",
+        "label": "File the PDF on the project",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project_ref}}",
+          "column_values": {
+            "approval_summary": "{{approval_pdf}}"
+          }
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 7200
+        }
+      },
+      {
+        "id": "mail_ok",
+        "type": "send_email",
+        "label": "Tell the requester",
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "b1a9f7f9-4d5c-5302-bae8-77f5b88287ae"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 7340
+        }
+      },
+      {
+        "id": "po",
+        "type": "user_task",
+        "label": "Raise the purchase order",
+        "config": {
+          "task_title": "Raise PO: {{project_ref}} {{form.title}} · {{=REPLACE(FORMAT_CURRENCY(form.investment, \"USD\"), \".00\", \"\")}}",
+          "task_description": "<p>Approved capital project <strong>{{project_ref}} {{form.title}}</strong> for {{centre.business_unit}} ({{form.cost_centre}}), ${{form.investment}}, GL {{centre.cost_centre}}.</p><p>Raise the purchase order with the chosen supplier and record it here.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "PO raised"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "7e0e5255-4248-5df0-841c-1cd4ec98254b",
+          "fields": [
+            {
+              "key": "po_number",
+              "label": "PO number",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "vendor",
+              "label": "Supplier",
+              "type": "lookup",
+              "required": true,
+              "lookup": {
+                "source": "table",
+                "table_id": "54166558-8ae2-5d41-a80a-ec0f1ee93f45",
+                "search_columns": [
+                  "vendor",
+                  "category"
+                ],
+                "display_columns": [
+                  "vendor",
+                  "category"
+                ],
+                "value_column": "vendor",
+                "fill": [],
+                "sort": {
+                  "column": "vendor",
+                  "direction": "asc"
+                }
+              }
+            },
+            {
+              "key": "po_amount",
+              "label": "PO amount (USD)",
+              "type": "currency",
+              "currency": "USD",
+              "min": 0,
+              "required": true,
+              "default": "{{form.investment}}"
+            },
+            {
+              "key": "expected_delivery",
+              "label": "Expected delivery",
+              "type": "date",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "po_number",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "vendor",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "po_amount",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "expected_delivery",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "po_raised",
+              "label": "PO raised",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "PO raised"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Procurement",
+            "align": "left",
+            "subtitle": "{{project_ref}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 7480
+        }
+      },
+      {
+        "id": "po_done",
+        "type": "update_data_table",
+        "label": "Record the PO",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project_ref}}",
+          "column_values": {
+            "status": "In progress",
+            "stage": "PO raised",
+            "po_number": "{{task_data.po_number}}",
+            "vendor": "{{task_data.vendor}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 7620
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Approved and ordered",
+        "config": {
+          "reason": "{{project_ref}} approved for ${{form.investment}}, {{task_data.po_number}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 7760
+        }
+      },
+      {
+        "id": "chg",
+        "type": "update_data_table",
+        "label": "Stage: changes requested",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project_ref}}",
+          "column_values": {
+            "status": "Changes requested",
+            "stage": "Changes requested"
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 2440
+        }
+      },
+      {
+        "id": "log_chg",
+        "type": "update_data_table",
+        "label": "Log: Department head changes requested",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "Department head",
+            "approver": "{{actioned_by_name}}",
+            "decision": "Changes requested",
+            "comment": "{{task_data.comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 2580
+        }
+      },
+      {
+        "id": "rework",
+        "type": "user_task",
+        "label": "Respond to the requested changes",
+        "config": {
+          "task_title": "Changes requested: {{project_ref}} {{form.title}}",
+          "task_description": "<p>Your department head asked for changes to <strong>{{form.title}}</strong>:</p><blockquote>{{task_data.comment}}</blockquote><p>Update the attachments or explain, then send it back, or withdraw the request.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Send back for approval",
+            "Withdraw"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "fields": [
+            {
+              "key": "response",
+              "label": "What changed",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "revised_quotes",
+              "label": "Revised quotes",
+              "type": "attachments",
+              "attachments": {
+                "max_files": 5,
+                "max_file_mb": 10,
+                "types": [
+                  "documents",
+                  "images",
+                  "pdf"
+                ]
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "response",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "revised_quotes",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "send_back_for_approval",
+              "label": "Send back for approval",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Send back for approval"
+            },
+            {
+              "id": "withdraw",
+              "label": "Withdraw",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Withdraw"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Your capital request",
+            "align": "left",
+            "subtitle": "{{project_ref}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 7,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 1040,
+          "y": 2720
+        }
+      },
+      {
+        "id": "resubmitted",
+        "type": "update_data_table",
+        "label": "Back in approval",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project_ref}}",
+          "column_values": {
+            "status": "In approval",
+            "stage": "Department head"
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 2860
+        }
+      },
+      {
+        "id": "back_head",
+        "type": "goto_activity",
+        "label": "Back to the department head",
+        "config": {
+          "target_node_id": "head",
+          "target_node_label": "Department head approval"
+        },
+        "position": {
+          "x": 1040,
+          "y": 3000
+        }
+      },
+      {
+        "id": "withdrawn",
+        "type": "update_data_table",
+        "label": "Mark withdrawn",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project_ref}}",
+          "column_values": {
+            "status": "Withdrawn",
+            "stage": "Withdrawn"
+          }
+        },
+        "position": {
+          "x": 1360,
+          "y": 3140
+        }
+      },
+      {
+        "id": "end_withdrawn",
+        "type": "end_workflow",
+        "label": "Withdrawn",
+        "config": {
+          "reason": "{{project_ref}} withdrawn by the requester"
+        },
+        "position": {
+          "x": 1360,
+          "y": 3280
+        }
+      },
+      {
+        "id": "rj_head",
+        "type": "set_variable",
+        "label": "Rejected by the department head",
+        "config": {
+          "name": "rejected_by_step",
+          "expression": "Department head"
+        },
+        "position": {
+          "x": 1360,
+          "y": 2440
+        }
+      },
+      {
+        "id": "rj_ctrl",
+        "type": "set_variable",
+        "label": "Rejected by the finance controller",
+        "config": {
+          "name": "rejected_by_step",
+          "expression": "Finance controller"
+        },
+        "position": {
+          "x": 1360,
+          "y": 2580
+        }
+      },
+      {
+        "id": "rj_cfo",
+        "type": "set_variable",
+        "label": "Rejected by the CFO",
+        "config": {
+          "name": "rejected_by_step",
+          "expression": "CFO"
+        },
+        "position": {
+          "x": 1360,
+          "y": 2720
+        }
+      },
+      {
+        "id": "rj_ceo",
+        "type": "set_variable",
+        "label": "Rejected by the CEO",
+        "config": {
+          "name": "rejected_by_step",
+          "expression": "CEO"
+        },
+        "position": {
+          "x": 1360,
+          "y": 2860
+        }
+      },
+      {
+        "id": "rj_cmt",
+        "type": "set_variable",
+        "label": "Rejected by the capital committee",
+        "config": {
+          "name": "rejected_by_step",
+          "expression": "Capital committee"
+        },
+        "position": {
+          "x": 1360,
+          "y": 3000
+        }
+      },
+      {
+        "id": "rj_comment",
+        "type": "set_variable",
+        "label": "Rejection comment",
+        "config": {
+          "name": "rejection_comment",
+          "expression": "{{=COALESCE(task_data.comment, \"No comment\")}}"
+        },
+        "position": {
+          "x": 1680,
+          "y": 3140
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "update_data_table",
+        "label": "Mark rejected",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{project_ref}}",
+          "column_values": {
+            "status": "Rejected",
+            "stage": "Rejected"
+          }
+        },
+        "position": {
+          "x": 1680,
+          "y": 3280
+        }
+      },
+      {
+        "id": "log_rej",
+        "type": "update_data_table",
+        "label": "Log the rejection",
+        "config": {
+          "table_id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+          "table_name": "CapEx approvals log",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{project_ref}}",
+            "step": "{{rejected_by_step}}",
+            "approver": "{{=COALESCE(actioned_by_name, \"Reviewer\")}}",
+            "decision": "Rejected",
+            "comment": "{{rejection_comment}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "days_taken": "{{=ROUND(DATE_DIFF(started_at, NOW(), \"hours\") / 24, 1)}}",
+            "tier": "{{approval_tier}}"
+          }
+        },
+        "position": {
+          "x": 1680,
+          "y": 3420
+        }
+      },
+      {
+        "id": "mail_no",
+        "type": "send_email",
+        "label": "Tell the requester",
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "0d4e0394-9e28-58d1-99a9-9fc507f01020"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 1680,
+          "y": 3560
+        }
+      },
+      {
+        "id": "end_rejected",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "config": {
+          "reason": "{{project_ref}} rejected at {{rejected_by_step}}"
+        },
+        "position": {
+          "x": 1680,
+          "y": 3700
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-centre",
+        "source": "title",
+        "target": "centre"
+      },
+      {
+        "id": "e-centre-tier",
+        "source": "centre",
+        "target": "tier"
+      },
+      {
+        "id": "e-tier-reviews",
+        "source": "tier",
+        "target": "reviews"
+      },
+      {
+        "id": "e-reviews-key",
+        "source": "reviews",
+        "target": "key"
+      },
+      {
+        "id": "e-key-budget",
+        "source": "key",
+        "target": "budget"
+      },
+      {
+        "id": "e-budget-available",
+        "source": "budget",
+        "target": "available"
+      },
+      {
+        "id": "e-available-check",
+        "source": "available",
+        "target": "check"
+      },
+      {
+        "id": "e-check-over-over_budget",
+        "source": "check",
+        "target": "over",
+        "label": "Over budget"
+      },
+      {
+        "id": "e-check-within-else",
+        "source": "check",
+        "target": "within",
+        "label": "Else"
+      },
+      {
+        "id": "e-over-log_project",
+        "source": "over",
+        "target": "log_project"
+      },
+      {
+        "id": "e-within-log_project",
+        "source": "within",
+        "target": "log_project"
+      },
+      {
+        "id": "e-log_project-cash",
+        "source": "log_project",
+        "target": "cash"
+      },
+      {
+        "id": "e-cash-cash_row-each_item",
+        "source": "cash",
+        "target": "cash_row",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-cash-sla-done",
+        "source": "cash",
+        "target": "sla",
+        "label": "Done"
+      },
+      {
+        "id": "e-sla-head",
+        "source": "sla",
+        "target": "head"
+      },
+      {
+        "id": "e-head-log_head-approve",
+        "source": "head",
+        "target": "log_head",
+        "label": "Approve"
+      },
+      {
+        "id": "e-head-chg-request_changes",
+        "source": "head",
+        "target": "chg",
+        "label": "Request changes"
+      },
+      {
+        "id": "e-head-rj_head-reject",
+        "source": "head",
+        "target": "rj_head",
+        "label": "Reject"
+      },
+      {
+        "id": "e-log_head-stage_spec",
+        "source": "log_head",
+        "target": "stage_spec"
+      },
+      {
+        "id": "e-stage_spec-spec_reset",
+        "source": "stage_spec",
+        "target": "spec_reset"
+      },
+      {
+        "id": "e-spec_reset-par",
+        "source": "spec_reset",
+        "target": "par"
+      },
+      {
+        "id": "e-par-need_cio-cio_review",
+        "source": "par",
+        "target": "need_cio",
+        "label": "CIO review"
+      },
+      {
+        "id": "e-need_cio-cio-cio_review",
+        "source": "need_cio",
+        "target": "cio",
+        "label": "CIO review"
+      },
+      {
+        "id": "e-need_cio-cio_skip-else",
+        "source": "need_cio",
+        "target": "cio_skip",
+        "label": "Else"
+      },
+      {
+        "id": "e-cio-log_cio-approve",
+        "source": "cio",
+        "target": "log_cio",
+        "label": "Approve"
+      },
+      {
+        "id": "e-cio-cio_no-reject",
+        "source": "cio",
+        "target": "cio_no",
+        "label": "Reject"
+      },
+      {
+        "id": "e-par-need_safety-safety_review",
+        "source": "par",
+        "target": "need_safety",
+        "label": "Safety review"
+      },
+      {
+        "id": "e-need_safety-safety-safety_review",
+        "source": "need_safety",
+        "target": "safety",
+        "label": "Safety review"
+      },
+      {
+        "id": "e-need_safety-safety_skip-else",
+        "source": "need_safety",
+        "target": "safety_skip",
+        "label": "Else"
+      },
+      {
+        "id": "e-safety-log_safety-approve",
+        "source": "safety",
+        "target": "log_safety",
+        "label": "Approve"
+      },
+      {
+        "id": "e-safety-safety_no-reject",
+        "source": "safety",
+        "target": "safety_no",
+        "label": "Reject"
+      },
+      {
+        "id": "e-par-spec_ok-done",
+        "source": "par",
+        "target": "spec_ok",
+        "label": "Done"
+      },
+      {
+        "id": "e-spec_ok-rj_spec-a_specialist_rejected",
+        "source": "spec_ok",
+        "target": "rj_spec",
+        "label": "A specialist rejected"
+      },
+      {
+        "id": "e-spec_ok-need_ctrl-else",
+        "source": "spec_ok",
+        "target": "need_ctrl",
+        "label": "Else"
+      },
+      {
+        "id": "e-rj_spec-rj_comment",
+        "source": "rj_spec",
+        "target": "rj_comment"
+      },
+      {
+        "id": "e-need_ctrl-ctrl-tier_2_or_3",
+        "source": "need_ctrl",
+        "target": "ctrl",
+        "label": "Tier 2 or 3"
+      },
+      {
+        "id": "e-need_ctrl-ctrl-over_budget",
+        "source": "need_ctrl",
+        "target": "ctrl",
+        "label": "Over budget"
+      },
+      {
+        "id": "e-need_ctrl-need_cfo-else",
+        "source": "need_ctrl",
+        "target": "need_cfo",
+        "label": "Else"
+      },
+      {
+        "id": "e-ctrl-log_ctrl-approve",
+        "source": "ctrl",
+        "target": "log_ctrl",
+        "label": "Approve"
+      },
+      {
+        "id": "e-ctrl-rj_ctrl-reject",
+        "source": "ctrl",
+        "target": "rj_ctrl",
+        "label": "Reject"
+      },
+      {
+        "id": "e-log_ctrl-need_cfo",
+        "source": "log_ctrl",
+        "target": "need_cfo"
+      },
+      {
+        "id": "e-need_cfo-cfo-tier_2_or_3",
+        "source": "need_cfo",
+        "target": "cfo",
+        "label": "Tier 2 or 3"
+      },
+      {
+        "id": "e-need_cfo-approved-else",
+        "source": "need_cfo",
+        "target": "approved",
+        "label": "Else"
+      },
+      {
+        "id": "e-cfo-log_cfo-approve",
+        "source": "cfo",
+        "target": "log_cfo",
+        "label": "Approve"
+      },
+      {
+        "id": "e-cfo-rj_cfo-reject",
+        "source": "cfo",
+        "target": "rj_cfo",
+        "label": "Reject"
+      },
+      {
+        "id": "e-log_cfo-need_ceo",
+        "source": "log_cfo",
+        "target": "need_ceo"
+      },
+      {
+        "id": "e-need_ceo-ceo-over_250_000",
+        "source": "need_ceo",
+        "target": "ceo",
+        "label": "Over $250,000"
+      },
+      {
+        "id": "e-need_ceo-approved-else",
+        "source": "need_ceo",
+        "target": "approved",
+        "label": "Else"
+      },
+      {
+        "id": "e-ceo-log_ceo-approve",
+        "source": "ceo",
+        "target": "log_ceo",
+        "label": "Approve"
+      },
+      {
+        "id": "e-ceo-rj_ceo-reject",
+        "source": "ceo",
+        "target": "rj_ceo",
+        "label": "Reject"
+      },
+      {
+        "id": "e-log_ceo-committee",
+        "source": "log_ceo",
+        "target": "committee"
+      },
+      {
+        "id": "e-committee-log_cmt-approve",
+        "source": "committee",
+        "target": "log_cmt",
+        "label": "Approve"
+      },
+      {
+        "id": "e-committee-rj_cmt-reject",
+        "source": "committee",
+        "target": "rj_cmt",
+        "label": "Reject"
+      },
+      {
+        "id": "e-log_cmt-approved",
+        "source": "log_cmt",
+        "target": "approved"
+      },
+      {
+        "id": "e-approved-commit_line",
+        "source": "approved",
+        "target": "commit_line"
+      },
+      {
+        "id": "e-commit_line-bu",
+        "source": "commit_line",
+        "target": "bu"
+      },
+      {
+        "id": "e-bu-commit_bu",
+        "source": "bu",
+        "target": "commit_bu"
+      },
+      {
+        "id": "e-commit_bu-phase",
+        "source": "commit_bu",
+        "target": "phase"
+      },
+      {
+        "id": "e-phase-plan_month-each_item",
+        "source": "phase",
+        "target": "plan_month",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-plan_month-plan_row",
+        "source": "plan_month",
+        "target": "plan_row"
+      },
+      {
+        "id": "e-phase-summary-done",
+        "source": "phase",
+        "target": "summary",
+        "label": "Done"
+      },
+      {
+        "id": "e-summary-pdf",
+        "source": "summary",
+        "target": "pdf"
+      },
+      {
+        "id": "e-pdf-file_pdf",
+        "source": "pdf",
+        "target": "file_pdf"
+      },
+      {
+        "id": "e-file_pdf-mail_ok",
+        "source": "file_pdf",
+        "target": "mail_ok"
+      },
+      {
+        "id": "e-mail_ok-po",
+        "source": "mail_ok",
+        "target": "po"
+      },
+      {
+        "id": "e-po-po_done-po_raised",
+        "source": "po",
+        "target": "po_done",
+        "label": "PO raised"
+      },
+      {
+        "id": "e-po_done-end_ok",
+        "source": "po_done",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-chg-log_chg",
+        "source": "chg",
+        "target": "log_chg"
+      },
+      {
+        "id": "e-log_chg-rework",
+        "source": "log_chg",
+        "target": "rework"
+      },
+      {
+        "id": "e-rework-resubmitted-send_back_for_approval",
+        "source": "rework",
+        "target": "resubmitted",
+        "label": "Send back for approval"
+      },
+      {
+        "id": "e-rework-withdrawn-withdraw",
+        "source": "rework",
+        "target": "withdrawn",
+        "label": "Withdraw"
+      },
+      {
+        "id": "e-resubmitted-back_head",
+        "source": "resubmitted",
+        "target": "back_head"
+      },
+      {
+        "id": "e-withdrawn-end_withdrawn",
+        "source": "withdrawn",
+        "target": "end_withdrawn"
+      },
+      {
+        "id": "e-rj_head-rj_comment",
+        "source": "rj_head",
+        "target": "rj_comment"
+      },
+      {
+        "id": "e-rj_ctrl-rj_comment",
+        "source": "rj_ctrl",
+        "target": "rj_comment"
+      },
+      {
+        "id": "e-rj_cfo-rj_comment",
+        "source": "rj_cfo",
+        "target": "rj_comment"
+      },
+      {
+        "id": "e-rj_ceo-rj_comment",
+        "source": "rj_ceo",
+        "target": "rj_comment"
+      },
+      {
+        "id": "e-rj_cmt-rj_comment",
+        "source": "rj_cmt",
+        "target": "rj_comment"
+      },
+      {
+        "id": "e-rj_comment-rejected",
+        "source": "rj_comment",
+        "target": "rejected"
+      },
+      {
+        "id": "e-rejected-log_rej",
+        "source": "rejected",
+        "target": "log_rej"
+      },
+      {
+        "id": "e-log_rej-mail_no",
+        "source": "log_rej",
+        "target": "mail_no"
+      },
+      {
+        "id": "e-mail_no-end_rejected",
+        "source": "mail_no",
+        "target": "end_rejected"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

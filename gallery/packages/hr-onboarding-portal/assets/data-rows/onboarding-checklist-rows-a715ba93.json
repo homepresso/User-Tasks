@@ -1,0 +1,275 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+  "asset": {
+    "id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+    "name": "Onboarding checklist rows",
+    "rows": [
+      {
+        "id": "62e98f62-5201-526c-a8fd-cffb09ad57fb",
+        "data": {
+          "item_ref": "NS-2611-01-IT",
+          "starter": "Elena Morales",
+          "item": "Laptop, accounts and access",
+          "team": "IT",
+          "due_date": "2026-11-30",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "6a351680-dfd6-5e0c-a1e4-c3759c77effe",
+        "data": {
+          "item_ref": "NS-2611-01-FAC",
+          "starter": "Elena Morales",
+          "item": "Desk, badge and parking",
+          "team": "Facilities",
+          "due_date": "2026-11-30",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "94e37ba0-be66-5ea0-94ce-1d48128dbb6d",
+        "data": {
+          "item_ref": "NS-2611-01-PPL",
+          "starter": "Elena Morales",
+          "item": "Contract, payroll and induction",
+          "team": "People team",
+          "due_date": "2026-11-30",
+          "status": "In progress"
+        }
+      },
+      {
+        "id": "43443fd0-6ca1-56cb-b509-f1ca7317156d",
+        "data": {
+          "item_ref": "NS-2611-01-MGR",
+          "starter": "Elena Morales",
+          "item": "First-week plan and buddy",
+          "team": "Manager",
+          "due_date": "2026-11-30",
+          "status": "To do"
+        }
+      },
+      {
+        "id": "81980e25-b56b-546c-98ab-4b6c97b2fd73",
+        "data": {
+          "item_ref": "NS-2611-02-IT",
+          "starter": "Kwame Asante",
+          "item": "Laptop, accounts and access",
+          "team": "IT",
+          "due_date": "2026-12-01",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "1d09dc84-e2a6-5641-8946-34fc3fb1204b",
+        "data": {
+          "item_ref": "NS-2611-02-FAC",
+          "starter": "Kwame Asante",
+          "item": "Desk, badge and parking",
+          "team": "Facilities",
+          "due_date": "2026-12-01",
+          "status": "In progress"
+        }
+      },
+      {
+        "id": "82f8da21-0776-502b-a7e0-230051cd9bf3",
+        "data": {
+          "item_ref": "NS-2611-02-PPL",
+          "starter": "Kwame Asante",
+          "item": "Contract, payroll and induction",
+          "team": "People team",
+          "due_date": "2026-12-01",
+          "status": "To do"
+        }
+      },
+      {
+        "id": "9a279155-040f-5245-b144-79f6bff2f6b6",
+        "data": {
+          "item_ref": "NS-2611-02-MGR",
+          "starter": "Kwame Asante",
+          "item": "First-week plan and buddy",
+          "team": "Manager",
+          "due_date": "2026-12-01",
+          "status": "To do"
+        }
+      },
+      {
+        "id": "d7b78e4c-13c0-59db-8294-f64f7d31e08b",
+        "data": {
+          "item_ref": "NS-2611-03-IT",
+          "starter": "Hannah Becker",
+          "item": "Laptop, accounts and access",
+          "team": "IT",
+          "due_date": "2026-12-07",
+          "status": "In progress"
+        }
+      },
+      {
+        "id": "606e8a95-f008-5286-85ba-1225ac3523d5",
+        "data": {
+          "item_ref": "NS-2611-03-FAC",
+          "starter": "Hannah Becker",
+          "item": "Desk, badge and parking",
+          "team": "Facilities",
+          "due_date": "2026-12-07",
+          "status": "To do"
+        }
+      },
+      {
+        "id": "81488199-f3de-5b98-983f-254afc9e3cba",
+        "data": {
+          "item_ref": "NS-2611-03-PPL",
+          "starter": "Hannah Becker",
+          "item": "Contract, payroll and induction",
+          "team": "People team",
+          "due_date": "2026-12-07",
+          "status": "To do"
+        }
+      },
+      {
+        "id": "fdf67020-c0fd-5f38-8934-95efe24de5d6",
+        "data": {
+          "item_ref": "NS-2611-03-MGR",
+          "starter": "Hannah Becker",
+          "item": "First-week plan and buddy",
+          "team": "Manager",
+          "due_date": "2026-12-07",
+          "status": "To do"
+        }
+      },
+      {
+        "id": "cd8bde07-9607-5f24-bfac-c2bf4fe19012",
+        "data": {
+          "item_ref": "NS-2611-04-IT",
+          "starter": "Ravi Menon",
+          "item": "Laptop, accounts and access",
+          "team": "IT",
+          "due_date": "2026-12-07",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "929b0ef3-2e9e-53fd-b11b-7515afee6c4b",
+        "data": {
+          "item_ref": "NS-2611-04-FAC",
+          "starter": "Ravi Menon",
+          "item": "Desk, badge and parking",
+          "team": "Facilities",
+          "due_date": "2026-12-07",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "0ac31080-e56a-5ade-9ea6-9a86892aaa44",
+        "data": {
+          "item_ref": "NS-2611-04-PPL",
+          "starter": "Ravi Menon",
+          "item": "Contract, payroll and induction",
+          "team": "People team",
+          "due_date": "2026-12-07",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "2c3ad549-ef45-59db-98ee-27dee4301a02",
+        "data": {
+          "item_ref": "NS-2611-04-MGR",
+          "starter": "Ravi Menon",
+          "item": "First-week plan and buddy",
+          "team": "Manager",
+          "due_date": "2026-12-07",
+          "status": "In progress"
+        }
+      },
+      {
+        "id": "85dfc390-3306-528e-9b2f-d69f153dbcea",
+        "data": {
+          "item_ref": "NS-2611-05-IT",
+          "starter": "Chloe Dubois",
+          "item": "Laptop, accounts and access",
+          "team": "IT",
+          "due_date": "2026-11-23",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "60a2ce9b-927a-559f-b27e-6a9ee4596eab",
+        "data": {
+          "item_ref": "NS-2611-05-FAC",
+          "starter": "Chloe Dubois",
+          "item": "Desk, badge and parking",
+          "team": "Facilities",
+          "due_date": "2026-11-23",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "7d661d47-8a08-5402-b145-417823c8d594",
+        "data": {
+          "item_ref": "NS-2611-05-PPL",
+          "starter": "Chloe Dubois",
+          "item": "Contract, payroll and induction",
+          "team": "People team",
+          "due_date": "2026-11-23",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "dca2317f-ba23-531a-b9b9-d08c4d834805",
+        "data": {
+          "item_ref": "NS-2611-05-MGR",
+          "starter": "Chloe Dubois",
+          "item": "First-week plan and buddy",
+          "team": "Manager",
+          "due_date": "2026-11-23",
+          "status": "Done"
+        }
+      },
+      {
+        "id": "ca163dbc-328a-57a3-8751-6b7478b90b6f",
+        "data": {
+          "item_ref": "NS-2611-06-IT",
+          "starter": "Tomás Silva",
+          "item": "Laptop, accounts and access",
+          "team": "IT",
+          "due_date": "2026-12-14",
+          "status": "In progress"
+        }
+      },
+      {
+        "id": "9256761a-e7d7-56d2-9432-281afaa7b366",
+        "data": {
+          "item_ref": "NS-2611-06-FAC",
+          "starter": "Tomás Silva",
+          "item": "Desk, badge and parking",
+          "team": "Facilities",
+          "due_date": "2026-12-14",
+          "status": "To do"
+        }
+      },
+      {
+        "id": "5e5651d1-f391-5306-95d4-ffe8967f2c88",
+        "data": {
+          "item_ref": "NS-2611-06-PPL",
+          "starter": "Tomás Silva",
+          "item": "Contract, payroll and induction",
+          "team": "People team",
+          "due_date": "2026-12-14",
+          "status": "To do"
+        }
+      },
+      {
+        "id": "95b43048-6a2a-5188-842a-4495eb5972c6",
+        "data": {
+          "item_ref": "NS-2611-06-MGR",
+          "starter": "Tomás Silva",
+          "item": "First-week plan and buddy",
+          "team": "Manager",
+          "due_date": "2026-12-14",
+          "status": "To do"
+        }
+      }
+    ]
+  }
+}

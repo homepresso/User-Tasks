@@ -29,7 +29,8 @@ const HEADERS: Record<SettingsTab, { title: string; description: string }> = {
   profile: { title: "Profile", description: "How you appear to the rest of the workspace." },
   preferences: { title: "Preferences", description: "Defaults for your tasks and the hours you're available." },
   general: { title: "General", description: "The workspace address, logo and the theme everyone sees." },
-  forms: { title: "Forms", description: "Workspace rules for accessibility checks, public links and the form sign-in page." },
+  forms: { title: "Forms", description: "Workspace rules for accessibility checks, public links and the sign-in page." },
+  "sign-in": { title: "Sign-in page", description: "The branded page people see when a form link or an app needs them to sign in." },
   "task-completion": { title: "Task completion", description: "What people see after they action a task." },
   organizations: { title: "Organizations", description: "The workspaces you're a member of." },
 }
@@ -43,7 +44,7 @@ export function SettingsTabs({ profile, tenantId, logoUrl }: SettingsTabsProps) 
   const { can } = usePermissions()
   // Workspace tabs need View settings; everyone else lands on their profile.
   const requested = settingsTabFrom(params.get("tab"))
-  const workspaceTab = requested === "general" || requested === "forms" || requested === "task-completion"
+  const workspaceTab = requested === "general" || requested === "forms" || requested === "sign-in" || requested === "task-completion"
   const tab: SettingsTab = workspaceTab && !can("settings.view") ? "profile" : requested
   const header = HEADERS[tab]
 
@@ -88,7 +89,15 @@ export function SettingsTabs({ profile, tenantId, logoUrl }: SettingsTabsProps) 
           <SettingsSection title="Anonymous forms" description="Let people fill in forms through a public link, without signing in.">
             <AnonymousFormsCard readOnly={!can("settings.edit")} />
           </SettingsSection>
-          <SettingsSection title="Form sign-in page" description="What people see when a form link needs them to sign in: your logo, one of ten designs and your own wording.">
+          <SettingsSection title="Sign-in page for forms and apps" description="What people see when a form link or an app needs them to sign in: your logo, one of ten designs and your own wording. The same page as Settings → Sign-in page.">
+            <FormSignInCard tenantId={tenantId} readOnly={!can("settings.edit")} />
+          </SettingsSection>
+        </SettingsSections>
+      )}
+
+      {tab === "sign-in" && (
+        <SettingsSections>
+          <SettingsSection title="Sign-in page for forms and apps" description="One branded page for form links (/f/…, /form/…) and apps (/app/…, /apps/…): your logo, one of ten designs and your own wording. Turn it off for either to use the standard UserTasks sign-in; an app can override it in its settings (Share & sign-in).">
             <FormSignInCard tenantId={tenantId} readOnly={!can("settings.edit")} />
           </SettingsSection>
         </SettingsSections>

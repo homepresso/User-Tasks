@@ -21,7 +21,7 @@ import { DIRECTORY_SOURCE_KINDS } from '@/lib/teams/origin'
 
 export const EXTENSION_MANIFEST_VERSION = 1
 /** The extension SDK contract core implements (engines.extension_sdk is checked against it). */
-export const EXTENSION_SDK_VERSION = '1.0.0'
+export const EXTENSION_SDK_VERSION = '1.2.0'
 
 /** Extension ids: lower-case slug, 2–41 chars, no double / trailing hyphen. `ut-` is reserved for first-party extensions. */
 export const EXTENSION_ID_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/

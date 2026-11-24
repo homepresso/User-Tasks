@@ -645,6 +645,28 @@ export const THEMES: Theme[] = [
       warning: "#A16207",
       danger: "#DC2626",
     },
+    // Dark (Follow device / Always dark): the navy sidebar becomes the canvas, teal lifts a step to read on it.
+    dark: {
+      primary: "#2DD4BF",
+      primaryHover: "#5EEAD4",
+      primaryLight: "rgba(45,212,191,0.14)",
+      onPrimary: "#0B1724",
+      accent: "#14B8A6",
+      sidebar: "#08121D",
+      sidebarText: "#CBD5E1",
+      sidebarActive: "rgba(45,212,191,0.18)",
+      sidebarBorder: "rgba(255,255,255,0.06)",
+      topbar: "#0B1724",
+      topbarText: "#F1F5F9",
+      surface: "#0B1724",
+      surfaceBorder: "rgba(255,255,255,0.09)",
+      cardBg: "#132235",
+      cardText: "#F1F5F9",
+      mutedText: "#94A3B8",
+      success: "#4ADE80",
+      warning: "#FBBF24",
+      danger: "#F87171",
+    },
   },
 
   // ─── Lagoon Minimal — clean teal without the floating illustrations ───
@@ -672,6 +694,28 @@ export const THEMES: Theme[] = [
       success: "#16A34A",
       warning: "#A16207",
       danger: "#DC2626",
+    },
+    // Dark (Follow device / Always dark): the navy sidebar becomes the canvas, teal lifts a step to read on it.
+    dark: {
+      primary: "#2DD4BF",
+      primaryHover: "#5EEAD4",
+      primaryLight: "rgba(45,212,191,0.14)",
+      onPrimary: "#0B1724",
+      accent: "#14B8A6",
+      sidebar: "#08121D",
+      sidebarText: "#CBD5E1",
+      sidebarActive: "rgba(45,212,191,0.18)",
+      sidebarBorder: "rgba(255,255,255,0.06)",
+      topbar: "#0B1724",
+      topbarText: "#F1F5F9",
+      surface: "#0B1724",
+      surfaceBorder: "rgba(255,255,255,0.09)",
+      cardBg: "#132235",
+      cardText: "#F1F5F9",
+      mutedText: "#94A3B8",
+      success: "#4ADE80",
+      warning: "#FBBF24",
+      danger: "#F87171",
     },
   },
 
@@ -813,6 +857,21 @@ export const THEMES: Theme[] = [
       warning: "#A16207",
       danger: "#DC2626",
     },
+    dark: {
+      primary: "#D4D4D8",
+      primaryHover: "#F4F4F5",
+      sidebar: "#000000",
+      sidebarText: "#D4D4D8",
+      sidebarActive: "rgba(212,212,216,0.14)",
+      sidebarBorder: "rgba(255,255,255,0.08)",
+      topbar: "#0A0A0A",
+      topbarText: "#E4E4E7",
+      surface: "#0A0A0A",
+      surfaceBorder: "#27272A",
+      cardBg: "#171717",
+      cardText: "#E4E4E7",
+      mutedText: "#A1A1AA",
+    },
   },
 
   // ─── Onyx Minimal — same black/grey palette without floating illustrations ───
@@ -840,6 +899,21 @@ export const THEMES: Theme[] = [
       success: "#16A34A",
       warning: "#A16207",
       danger: "#DC2626",
+    },
+    dark: {
+      primary: "#D4D4D8",
+      primaryHover: "#F4F4F5",
+      sidebar: "#000000",
+      sidebarText: "#D4D4D8",
+      sidebarActive: "rgba(212,212,216,0.14)",
+      sidebarBorder: "rgba(255,255,255,0.08)",
+      topbar: "#0A0A0A",
+      topbarText: "#E4E4E7",
+      surface: "#0A0A0A",
+      surfaceBorder: "#27272A",
+      cardBg: "#171717",
+      cardText: "#E4E4E7",
+      mutedText: "#A1A1AA",
     },
   },
 
@@ -1432,5 +1506,5 @@ export const THEME_PRESETS: { name: string; description: string; category: strin
   },
 ]
 
-/** Platform default theme id (Gallery) — new workspaces start from it. */
+/** Platform default theme id (Gallery): the base CSS and the fallback when a workspace has no theme. New workspaces are seeded with Onyx (seed_workspace_theme). */
 export const PLATFORM_DEFAULT_THEME_ID = "basecamp"

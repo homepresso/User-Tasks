@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { selectWithTags } from '../tags-column'
 import { getDb, hasPerm, type ServiceContext } from '../context'
 import * as analytics from '../report-analytics'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
@@ -149,10 +150,10 @@ export const reads = {
     args: NO_ARGS,
     perm: PERM,
     run: async (ctx) => {
-      const { data } = await (getDb(ctx) as any).from('reports')
-        .select('id, name, description, category, is_favorite, is_shared, config, updated_at, created_by')
+      const { data } = await selectWithTags('id, name, description, category, is_favorite, is_shared, config, updated_at, created_by', (columns) => (getDb(ctx) as any).from('reports')
+        .select(columns)
         .or(visibleTo(ctx))
-        .order('updated_at', { ascending: false })
+        .order('updated_at', { ascending: false }))
       return (data ?? []) as any[]
     },
   }),

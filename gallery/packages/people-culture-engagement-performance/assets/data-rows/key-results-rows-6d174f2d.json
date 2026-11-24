@@ -1,0 +1,1755 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "6d174f2d-1916-589a-ac03-91b5f271812d",
+  "asset": {
+    "id": "6d174f2d-1916-589a-ac03-91b5f271812d",
+    "name": "Key results rows",
+    "rows": [
+      {
+        "id": "fb111355-c5eb-5e24-b782-5b68d6dc220a",
+        "data": {
+          "kr_ref": "G-001-KR1",
+          "goal": "G-001",
+          "key_result": "Cut median onboarding time to 10 days",
+          "start_value": 21,
+          "target_value": 10,
+          "current_value": 14,
+          "unit": "days",
+          "progress": 64,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 64%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "0f10c697-fbdb-5282-aeb3-113773efd571",
+        "data": {
+          "kr_ref": "G-001-KR2",
+          "goal": "G-001",
+          "key_result": "Reach 120 new logos",
+          "start_value": 60,
+          "target_value": 120,
+          "current_value": 97,
+          "unit": "customers",
+          "progress": 62,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 62%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "ad486068-6d40-5c04-a4dc-6e63436dfc65",
+        "data": {
+          "kr_ref": "G-001-KR3",
+          "goal": "G-001",
+          "key_result": "Lift onboarding CSAT to 4.6",
+          "start_value": 4.1,
+          "target_value": 4.6,
+          "current_value": 4.4,
+          "unit": "score",
+          "progress": 60,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 60%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "772e1e20-77e8-5e4e-8f8e-cc6c829d36de",
+        "data": {
+          "kr_ref": "G-002-KR1",
+          "goal": "G-002",
+          "key_result": "Engagement score of 75 or more",
+          "start_value": 70,
+          "target_value": 75,
+          "current_value": 74,
+          "unit": "points",
+          "progress": 80,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 80%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "f7764ca3-2be9-576c-8b4c-9ec40dae0409",
+        "data": {
+          "kr_ref": "G-002-KR2",
+          "goal": "G-002",
+          "key_result": "Every employee has a development plan",
+          "start_value": 40,
+          "target_value": 100,
+          "current_value": 71,
+          "unit": "%",
+          "progress": 52,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 52%",
+          "status": "At risk",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "166da205-c276-5154-881b-92732741af77",
+        "data": {
+          "kr_ref": "G-002-KR3",
+          "goal": "G-002",
+          "key_result": "Regretted attrition under 6%",
+          "start_value": 9,
+          "target_value": 6,
+          "current_value": 7,
+          "unit": "%",
+          "progress": 67,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 67%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "c6339951-7735-59ed-ab03-79654a8e5d3e",
+        "data": {
+          "kr_ref": "G-003-KR1",
+          "goal": "G-003",
+          "key_result": "ARR of USD 18M",
+          "start_value": 14,
+          "target_value": 18,
+          "current_value": 16.6,
+          "unit": "USD M",
+          "progress": 65,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 65%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "5a2f5086-1aff-5de7-97bd-372eb7cea9d0",
+        "data": {
+          "kr_ref": "G-003-KR2",
+          "goal": "G-003",
+          "key_result": "Gross margin of 78%",
+          "start_value": 74,
+          "target_value": 78,
+          "current_value": 76.5,
+          "unit": "%",
+          "progress": 63,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 63%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "bd9f11a8-a37e-55a6-8327-1efd254a5045",
+        "data": {
+          "kr_ref": "G-004-KR1",
+          "goal": "G-004",
+          "key_result": "99.95% uptime every month",
+          "start_value": 99.9,
+          "target_value": 99.95,
+          "current_value": 99.95,
+          "unit": "%",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "106b907f-e7bf-5b9b-9bdd-5b0e0f13b869",
+        "data": {
+          "kr_ref": "G-004-KR2",
+          "goal": "G-004",
+          "key_result": "Ship the new reporting suite",
+          "start_value": 0,
+          "target_value": 100,
+          "current_value": 80,
+          "unit": "%",
+          "progress": 80,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 80%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "5d8fe8b1-2e2a-5aaf-a9de-ec8703dbdd2c",
+        "data": {
+          "kr_ref": "G-004-KR3",
+          "goal": "G-004",
+          "key_result": "Halve P1 incidents",
+          "start_value": 12,
+          "target_value": 6,
+          "current_value": 8,
+          "unit": "incidents",
+          "progress": 67,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 67%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "dc0bc82c-207c-5f00-b3f1-d7946dc02876",
+        "data": {
+          "kr_ref": "G-005-KR1",
+          "goal": "G-005",
+          "key_result": "Deploy frequency of 20 per week",
+          "start_value": 8,
+          "target_value": 20,
+          "current_value": 17,
+          "unit": "deploys",
+          "progress": 75,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 75%",
+          "status": "On track",
+          "owner_email": "daniel.okafor@fernhill.example"
+        }
+      },
+      {
+        "id": "94fa8812-d190-5abc-b57d-3109bb588467",
+        "data": {
+          "kr_ref": "G-005-KR2",
+          "goal": "G-005",
+          "key_result": "Change failure rate under 5%",
+          "start_value": 12,
+          "target_value": 5,
+          "current_value": 6,
+          "unit": "%",
+          "progress": 86,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 86%",
+          "status": "On track",
+          "owner_email": "daniel.okafor@fernhill.example"
+        }
+      },
+      {
+        "id": "5e066f4f-0629-52c2-ad8e-3599fc09b739",
+        "data": {
+          "kr_ref": "G-005-KR3",
+          "goal": "G-005",
+          "key_result": "Migrate 3 services to the new platform",
+          "start_value": 0,
+          "target_value": 3,
+          "current_value": 2,
+          "unit": "services",
+          "progress": 67,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 67%",
+          "status": "On track",
+          "owner_email": "daniel.okafor@fernhill.example"
+        }
+      },
+      {
+        "id": "f4b6673c-da65-553a-8c9d-221d1cf79c58",
+        "data": {
+          "kr_ref": "G-006-KR1",
+          "goal": "G-006",
+          "key_result": "Guided setup used by 80% of trials",
+          "start_value": 35,
+          "target_value": 80,
+          "current_value": 62,
+          "unit": "%",
+          "progress": 60,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 60%",
+          "status": "On track",
+          "owner_email": "priya.raman@fernhill.example"
+        }
+      },
+      {
+        "id": "d07c2cd9-8a8d-540c-aca3-3dbd70a0de42",
+        "data": {
+          "kr_ref": "G-006-KR2",
+          "goal": "G-006",
+          "key_result": "Time to first workflow under 1 day",
+          "start_value": 3,
+          "target_value": 1,
+          "current_value": 1.4,
+          "unit": "days",
+          "progress": 80,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 80%",
+          "status": "On track",
+          "owner_email": "priya.raman@fernhill.example"
+        }
+      },
+      {
+        "id": "f8d50a4d-d7ea-55b0-875a-7655e9dbbae2",
+        "data": {
+          "kr_ref": "G-007-KR1",
+          "goal": "G-007",
+          "key_result": "80% of screens on the new design system",
+          "start_value": 45,
+          "target_value": 80,
+          "current_value": 71,
+          "unit": "%",
+          "progress": 74,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 74%",
+          "status": "On track",
+          "owner_email": "aiko.tanaka@fernhill.example"
+        }
+      },
+      {
+        "id": "8c789734-f398-5bbc-90cb-b041bf1ac1aa",
+        "data": {
+          "kr_ref": "G-007-KR2",
+          "goal": "G-007",
+          "key_result": "Accessibility audit with no critical issues",
+          "start_value": 14,
+          "target_value": 0,
+          "current_value": 3,
+          "unit": "issues",
+          "progress": 79,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 79%",
+          "status": "On track",
+          "owner_email": "aiko.tanaka@fernhill.example"
+        }
+      },
+      {
+        "id": "20a4ebe2-bbe5-52e1-93d7-40d6b2213f16",
+        "data": {
+          "kr_ref": "G-008-KR1",
+          "goal": "G-008",
+          "key_result": "USD 2.4M new ARR",
+          "start_value": 0,
+          "target_value": 2.4,
+          "current_value": 1.5,
+          "unit": "USD M",
+          "progress": 63,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 63%",
+          "status": "On track",
+          "owner_email": "sam.torres@fernhill.example"
+        }
+      },
+      {
+        "id": "439bdb4c-122f-5a07-98bd-7b3b55ca8d67",
+        "data": {
+          "kr_ref": "G-008-KR2",
+          "goal": "G-008",
+          "key_result": "Win rate of 28%",
+          "start_value": 21,
+          "target_value": 28,
+          "current_value": 24,
+          "unit": "%",
+          "progress": 43,
+          "progress_bar": "▰▰▰▰▱▱▱▱▱▱ 43%",
+          "status": "At risk",
+          "owner_email": "sam.torres@fernhill.example"
+        }
+      },
+      {
+        "id": "d7bbcd4c-24ed-553c-8a3e-10cd58ee4377",
+        "data": {
+          "kr_ref": "G-008-KR3",
+          "goal": "G-008",
+          "key_result": "40 qualified opportunities from partners",
+          "start_value": 0,
+          "target_value": 40,
+          "current_value": 18,
+          "unit": "opportunities",
+          "progress": 45,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 45%",
+          "status": "At risk",
+          "owner_email": "sam.torres@fernhill.example"
+        }
+      },
+      {
+        "id": "d529628f-8d9b-5583-abd1-3b15ead72aec",
+        "data": {
+          "kr_ref": "G-009-KR1",
+          "goal": "G-009",
+          "key_result": "Median go-live of 14 days",
+          "start_value": 26,
+          "target_value": 14,
+          "current_value": 19,
+          "unit": "days",
+          "progress": 58,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 58%",
+          "status": "On track",
+          "owner_email": "grace.kim@fernhill.example"
+        }
+      },
+      {
+        "id": "f119931a-d55d-5a78-b1af-1f4a9750cb24",
+        "data": {
+          "kr_ref": "G-009-KR2",
+          "goal": "G-009",
+          "key_result": "Net retention of 112%",
+          "start_value": 104,
+          "target_value": 112,
+          "current_value": 107,
+          "unit": "%",
+          "progress": 38,
+          "progress_bar": "▰▰▰▰▱▱▱▱▱▱ 38%",
+          "status": "At risk",
+          "owner_email": "grace.kim@fernhill.example"
+        }
+      },
+      {
+        "id": "10346034-31ca-549f-be6c-355695a5a35e",
+        "data": {
+          "kr_ref": "G-009-KR3",
+          "goal": "G-009",
+          "key_result": "First reply under 2 hours",
+          "start_value": 5,
+          "target_value": 2,
+          "current_value": 3.1,
+          "unit": "hours",
+          "progress": 63,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 63%",
+          "status": "On track",
+          "owner_email": "grace.kim@fernhill.example"
+        }
+      },
+      {
+        "id": "1ca02c15-f6bd-5b69-8f99-2fdf4ad943db",
+        "data": {
+          "kr_ref": "G-010-KR1",
+          "goal": "G-010",
+          "key_result": "USD 6M marketing-sourced pipeline",
+          "start_value": 0,
+          "target_value": 6,
+          "current_value": 4.2,
+          "unit": "USD M",
+          "progress": 70,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 70%",
+          "status": "On track",
+          "owner_email": "jonas.berg@fernhill.example"
+        }
+      },
+      {
+        "id": "fb773e41-2e97-51f7-8187-cb34724d35d4",
+        "data": {
+          "kr_ref": "G-010-KR2",
+          "goal": "G-010",
+          "key_result": "Two customer stories a month",
+          "start_value": 0,
+          "target_value": 6,
+          "current_value": 4,
+          "unit": "stories",
+          "progress": 67,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 67%",
+          "status": "On track",
+          "owner_email": "jonas.berg@fernhill.example"
+        }
+      },
+      {
+        "id": "fd4a4bc4-f26e-5146-9370-9c6e5d51631a",
+        "data": {
+          "kr_ref": "G-011-KR1",
+          "goal": "G-011",
+          "key_result": "Month-end close in 5 working days",
+          "start_value": 9,
+          "target_value": 5,
+          "current_value": 6,
+          "unit": "days",
+          "progress": 75,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 75%",
+          "status": "On track",
+          "owner_email": "felix.wagner@fernhill.example"
+        }
+      },
+      {
+        "id": "f31cfbf2-360b-5219-964d-fc1423fd28ed",
+        "data": {
+          "kr_ref": "G-011-KR2",
+          "goal": "G-011",
+          "key_result": "Automate 70% of supplier invoices",
+          "start_value": 30,
+          "target_value": 70,
+          "current_value": 58,
+          "unit": "%",
+          "progress": 70,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 70%",
+          "status": "On track",
+          "owner_email": "felix.wagner@fernhill.example"
+        }
+      },
+      {
+        "id": "646aff7f-f0c4-54e6-99a0-cea8ee89b30f",
+        "data": {
+          "kr_ref": "G-012-KR1",
+          "goal": "G-012",
+          "key_result": "Every manager trained in career conversations",
+          "start_value": 0,
+          "target_value": 100,
+          "current_value": 85,
+          "unit": "%",
+          "progress": 85,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 85%",
+          "status": "On track",
+          "owner_email": "alex.morgan@fernhill.example"
+        }
+      },
+      {
+        "id": "fdb18dcf-8463-5f83-b623-48ff1bf22905",
+        "data": {
+          "kr_ref": "G-012-KR2",
+          "goal": "G-012",
+          "key_result": "Development plans for 100% of staff",
+          "start_value": 40,
+          "target_value": 100,
+          "current_value": 71,
+          "unit": "%",
+          "progress": 52,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 52%",
+          "status": "At risk",
+          "owner_email": "alex.morgan@fernhill.example"
+        }
+      },
+      {
+        "id": "da282835-2cbc-5ccc-bdb8-ca1cd811606d",
+        "data": {
+          "kr_ref": "G-012-KR3",
+          "goal": "G-012",
+          "key_result": "Time to hire under 35 days",
+          "start_value": 48,
+          "target_value": 35,
+          "current_value": 39,
+          "unit": "days",
+          "progress": 69,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 69%",
+          "status": "On track",
+          "owner_email": "alex.morgan@fernhill.example"
+        }
+      },
+      {
+        "id": "7f32188d-bf88-5333-9a62-9673305b5e41",
+        "data": {
+          "kr_ref": "G-013-KR1",
+          "goal": "G-013",
+          "key_result": "Publish 4 self-serve dashboards",
+          "start_value": 0,
+          "target_value": 4,
+          "current_value": 2.3,
+          "unit": "dashboards",
+          "progress": 57,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 57%",
+          "status": "On track",
+          "owner_email": "maya.patel@fernhill.example"
+        }
+      },
+      {
+        "id": "91060919-de3b-5475-8d0f-857f7c4644d1",
+        "data": {
+          "kr_ref": "G-013-KR2",
+          "goal": "G-013",
+          "key_result": "Train 12 colleagues",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 6.9,
+          "unit": "people",
+          "progress": 58,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 58%",
+          "status": "On track",
+          "owner_email": "maya.patel@fernhill.example"
+        }
+      },
+      {
+        "id": "f884d969-0427-5a80-a209-66e151797e36",
+        "data": {
+          "kr_ref": "G-014-KR1",
+          "goal": "G-014",
+          "key_result": "Weekly mentoring sessions",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 8,
+          "unit": "sessions",
+          "progress": 67,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 67%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "44248044-ce7a-5b03-9e61-e008d1a52266",
+        "data": {
+          "kr_ref": "G-014-KR2",
+          "goal": "G-014",
+          "key_result": "Mentee onboarding plan complete",
+          "start_value": 0,
+          "target_value": 100,
+          "current_value": 81,
+          "unit": "%",
+          "progress": 81,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 81%",
+          "status": "On track",
+          "owner_email": "rosa.ortiz@fernhill.example"
+        }
+      },
+      {
+        "id": "a09afe5c-17ed-5ba1-9764-c40d8c411fdc",
+        "data": {
+          "kr_ref": "G-015-KR1",
+          "goal": "G-015",
+          "key_result": "Error budget burn under 50%",
+          "start_value": 100,
+          "target_value": 50,
+          "current_value": 50.1,
+          "unit": "%",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "jamal.alvarez@fernhill.example"
+        }
+      },
+      {
+        "id": "6cd13721-0439-572e-bdaf-007d5d5dd31a",
+        "data": {
+          "kr_ref": "G-015-KR2",
+          "goal": "G-015",
+          "key_result": "Add 30 integration tests",
+          "start_value": 0,
+          "target_value": 30,
+          "current_value": 24.3,
+          "unit": "tests",
+          "progress": 81,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 81%",
+          "status": "On track",
+          "owner_email": "jamal.alvarez@fernhill.example"
+        }
+      },
+      {
+        "id": "ae83fbd5-c53a-5eed-8314-a7ad90740638",
+        "data": {
+          "kr_ref": "G-016-KR1",
+          "goal": "G-016",
+          "key_result": "20 discovery calls",
+          "start_value": 0,
+          "target_value": 20,
+          "current_value": 4.2,
+          "unit": "calls",
+          "progress": 21,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 21%",
+          "status": "Off track",
+          "owner_email": "iris.kapoor@fernhill.example"
+        }
+      },
+      {
+        "id": "588777b4-91fe-5a1d-bde8-d4d8b4caaffb",
+        "data": {
+          "kr_ref": "G-016-KR2",
+          "goal": "G-016",
+          "key_result": "USD 400K of new pipeline",
+          "start_value": 0,
+          "target_value": 400,
+          "current_value": 96.8,
+          "unit": "USD K",
+          "progress": 24,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 24%",
+          "status": "Off track",
+          "owner_email": "iris.kapoor@fernhill.example"
+        }
+      },
+      {
+        "id": "d2b06e3a-f27d-5498-8e22-e92cb6293354",
+        "data": {
+          "kr_ref": "G-017-KR1",
+          "goal": "G-017",
+          "key_result": "Submit two talk proposals",
+          "start_value": 0,
+          "target_value": 2,
+          "current_value": 0.5,
+          "unit": "proposals",
+          "progress": 25,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 25%",
+          "status": "Off track",
+          "owner_email": "rahul.mori@fernhill.example"
+        }
+      },
+      {
+        "id": "2c12f412-bb4d-524a-bfa1-662b856ea5b2",
+        "data": {
+          "kr_ref": "G-017-KR2",
+          "goal": "G-017",
+          "key_result": "Deliver one talk",
+          "start_value": 0,
+          "target_value": 1,
+          "current_value": 0.3,
+          "unit": "talks",
+          "progress": 30,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 30%",
+          "status": "At risk",
+          "owner_email": "rahul.mori@fernhill.example"
+        }
+      },
+      {
+        "id": "8ca25fb3-1174-50e7-986b-9db30163cfed",
+        "data": {
+          "kr_ref": "G-018-KR1",
+          "goal": "G-018",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 6.7,
+          "unit": "QBRs",
+          "progress": 84,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 84%",
+          "status": "On track",
+          "owner_email": "chloe.sato@fernhill.example"
+        }
+      },
+      {
+        "id": "11a90d38-a4dc-59eb-bf1b-a585128e9c18",
+        "data": {
+          "kr_ref": "G-018-KR2",
+          "goal": "G-018",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 82.7,
+          "unit": "%",
+          "progress": 64,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 64%",
+          "status": "On track",
+          "owner_email": "chloe.sato@fernhill.example"
+        }
+      },
+      {
+        "id": "9e270680-1054-562d-a6e1-88d582bc0bc4",
+        "data": {
+          "kr_ref": "G-019-KR1",
+          "goal": "G-019",
+          "key_result": "20 discovery calls",
+          "start_value": 0,
+          "target_value": 20,
+          "current_value": 2.8,
+          "unit": "calls",
+          "progress": 14,
+          "progress_bar": "▰▱▱▱▱▱▱▱▱▱ 14%",
+          "status": "Off track",
+          "owner_email": "hugo.rossi@fernhill.example"
+        }
+      },
+      {
+        "id": "9d42dbbf-3108-5a2e-9d43-57291069466e",
+        "data": {
+          "kr_ref": "G-019-KR2",
+          "goal": "G-019",
+          "key_result": "USD 400K of new pipeline",
+          "start_value": 0,
+          "target_value": 400,
+          "current_value": 137.3,
+          "unit": "USD K",
+          "progress": 34,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 34%",
+          "status": "At risk",
+          "owner_email": "hugo.rossi@fernhill.example"
+        }
+      },
+      {
+        "id": "6cad2e16-5265-56ee-97b5-ef89fad40b5c",
+        "data": {
+          "kr_ref": "G-020-KR1",
+          "goal": "G-020",
+          "key_result": "Run 6 customer interviews",
+          "start_value": 0,
+          "target_value": 6,
+          "current_value": 5.5,
+          "unit": "interviews",
+          "progress": 92,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 92%",
+          "status": "On track",
+          "owner_email": "rosa.morgan@fernhill.example"
+        }
+      },
+      {
+        "id": "3af5fb69-ff35-5eac-96ae-6b5a591987c8",
+        "data": {
+          "kr_ref": "G-020-KR2",
+          "goal": "G-020",
+          "key_result": "Present a discovery read-out",
+          "start_value": 0,
+          "target_value": 1,
+          "current_value": 0.6,
+          "unit": "read-outs",
+          "progress": 60,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 60%",
+          "status": "On track",
+          "owner_email": "rosa.morgan@fernhill.example"
+        }
+      },
+      {
+        "id": "2c5756b4-cced-51ff-adb2-63810ad4e3ed",
+        "data": {
+          "kr_ref": "G-021-KR1",
+          "goal": "G-021",
+          "key_result": "Error budget burn under 50%",
+          "start_value": 100,
+          "target_value": 50,
+          "current_value": 50,
+          "unit": "%",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "clara.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "37722520-00e2-5bdb-a997-6711ac8cd3fc",
+        "data": {
+          "kr_ref": "G-021-KR2",
+          "goal": "G-021",
+          "key_result": "Add 30 integration tests",
+          "start_value": 0,
+          "target_value": 30,
+          "current_value": 30,
+          "unit": "tests",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "clara.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "380ed80a-6806-5b4b-9df1-cf15c3f546c4",
+        "data": {
+          "kr_ref": "G-022-KR1",
+          "goal": "G-022",
+          "key_result": "Run 6 customer interviews",
+          "start_value": 0,
+          "target_value": 6,
+          "current_value": 5.7,
+          "unit": "interviews",
+          "progress": 95,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 95%",
+          "status": "On track",
+          "owner_email": "andre.laurent@fernhill.example"
+        }
+      },
+      {
+        "id": "c70055af-a971-530b-91a1-be31bab82905",
+        "data": {
+          "kr_ref": "G-022-KR2",
+          "goal": "G-022",
+          "key_result": "Present a discovery read-out",
+          "start_value": 0,
+          "target_value": 1,
+          "current_value": 0.9,
+          "unit": "read-outs",
+          "progress": 90,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 90%",
+          "status": "On track",
+          "owner_email": "andre.laurent@fernhill.example"
+        }
+      },
+      {
+        "id": "fda21eb2-2928-583e-b08d-35962b470653",
+        "data": {
+          "kr_ref": "G-023-KR1",
+          "goal": "G-023",
+          "key_result": "Backlog under 25 tickets",
+          "start_value": 80,
+          "target_value": 25,
+          "current_value": 25,
+          "unit": "tickets",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "yuki.berg@fernhill.example"
+        }
+      },
+      {
+        "id": "16feb17b-ce96-5671-924d-e4f81fe95124",
+        "data": {
+          "kr_ref": "G-023-KR2",
+          "goal": "G-023",
+          "key_result": "CSAT of 95%",
+          "start_value": 88,
+          "target_value": 95,
+          "current_value": 95,
+          "unit": "%",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "yuki.berg@fernhill.example"
+        }
+      },
+      {
+        "id": "e942aabd-598b-55bc-972e-623758325688",
+        "data": {
+          "kr_ref": "G-024-KR1",
+          "goal": "G-024",
+          "key_result": "20 discovery calls",
+          "start_value": 0,
+          "target_value": 20,
+          "current_value": 7,
+          "unit": "calls",
+          "progress": 35,
+          "progress_bar": "▰▰▰▰▱▱▱▱▱▱ 35%",
+          "status": "At risk",
+          "owner_email": "jonas.patel@fernhill.example"
+        }
+      },
+      {
+        "id": "050a02bb-3a90-5477-b73e-8b723f2d074f",
+        "data": {
+          "kr_ref": "G-024-KR2",
+          "goal": "G-024",
+          "key_result": "USD 400K of new pipeline",
+          "start_value": 0,
+          "target_value": 400,
+          "current_value": 57.9,
+          "unit": "USD K",
+          "progress": 14,
+          "progress_bar": "▰▱▱▱▱▱▱▱▱▱ 14%",
+          "status": "Off track",
+          "owner_email": "jonas.patel@fernhill.example"
+        }
+      },
+      {
+        "id": "e888c118-80f1-52d4-9a53-e097c46ec67a",
+        "data": {
+          "kr_ref": "G-025-KR1",
+          "goal": "G-025",
+          "key_result": "Submit two talk proposals",
+          "start_value": 0,
+          "target_value": 2,
+          "current_value": 2,
+          "unit": "proposals",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "kenji.sato@fernhill.example"
+        }
+      },
+      {
+        "id": "7baaae08-dd32-563e-8894-3e2cd4f6d247",
+        "data": {
+          "kr_ref": "G-025-KR2",
+          "goal": "G-025",
+          "key_result": "Deliver one talk",
+          "start_value": 0,
+          "target_value": 1,
+          "current_value": 0.9,
+          "unit": "talks",
+          "progress": 90,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 90%",
+          "status": "On track",
+          "owner_email": "kenji.sato@fernhill.example"
+        }
+      },
+      {
+        "id": "f0b88fa9-189d-5787-99e3-e64dac5d59dd",
+        "data": {
+          "kr_ref": "G-026-KR1",
+          "goal": "G-026",
+          "key_result": "20 discovery calls",
+          "start_value": 0,
+          "target_value": 20,
+          "current_value": 19.7,
+          "unit": "calls",
+          "progress": 99,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 99%",
+          "status": "On track",
+          "owner_email": "marcus.brooks@fernhill.example"
+        }
+      },
+      {
+        "id": "61e308e1-7d07-533e-ba80-1955afb5db01",
+        "data": {
+          "kr_ref": "G-026-KR2",
+          "goal": "G-026",
+          "key_result": "USD 400K of new pipeline",
+          "start_value": 0,
+          "target_value": 400,
+          "current_value": 388,
+          "unit": "USD K",
+          "progress": 97,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 97%",
+          "status": "On track",
+          "owner_email": "marcus.brooks@fernhill.example"
+        }
+      },
+      {
+        "id": "faeb6779-8900-57eb-be00-d3d71ebce2e6",
+        "data": {
+          "kr_ref": "G-027-KR1",
+          "goal": "G-027",
+          "key_result": "Error budget burn under 50%",
+          "start_value": 100,
+          "target_value": 50,
+          "current_value": 80.3,
+          "unit": "%",
+          "progress": 39,
+          "progress_bar": "▰▰▰▰▱▱▱▱▱▱ 39%",
+          "status": "At risk",
+          "owner_email": "ava.novak@fernhill.example"
+        }
+      },
+      {
+        "id": "6f5a7f49-6f9f-58c9-9fb3-c6fbce06d30e",
+        "data": {
+          "kr_ref": "G-027-KR2",
+          "goal": "G-027",
+          "key_result": "Add 30 integration tests",
+          "start_value": 0,
+          "target_value": 30,
+          "current_value": 7.4,
+          "unit": "tests",
+          "progress": 25,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 25%",
+          "status": "Off track",
+          "owner_email": "ava.novak@fernhill.example"
+        }
+      },
+      {
+        "id": "13a4ad25-36f3-5971-b0ce-3a7ae51a5fb1",
+        "data": {
+          "kr_ref": "G-028-KR1",
+          "goal": "G-028",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 6.7,
+          "unit": "QBRs",
+          "progress": 84,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 84%",
+          "status": "On track",
+          "owner_email": "ethan.fraser@fernhill.example"
+        }
+      },
+      {
+        "id": "32801b67-66de-50ce-a2fe-254974d04fcd",
+        "data": {
+          "kr_ref": "G-028-KR2",
+          "goal": "G-028",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 90,
+          "unit": "%",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "ethan.fraser@fernhill.example"
+        }
+      },
+      {
+        "id": "f720da42-d512-5d72-82e1-75a652e41a7d",
+        "data": {
+          "kr_ref": "G-029-KR1",
+          "goal": "G-029",
+          "key_result": "Publish 4 self-serve dashboards",
+          "start_value": 0,
+          "target_value": 4,
+          "current_value": 4,
+          "unit": "dashboards",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "caleb.ward@fernhill.example"
+        }
+      },
+      {
+        "id": "28021e5c-75bd-5201-961d-f3da6cabac1b",
+        "data": {
+          "kr_ref": "G-029-KR2",
+          "goal": "G-029",
+          "key_result": "Train 12 colleagues",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 12,
+          "unit": "people",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "caleb.ward@fernhill.example"
+        }
+      },
+      {
+        "id": "7f71ff5d-7129-56a7-b4da-c261acafd055",
+        "data": {
+          "kr_ref": "G-030-KR1",
+          "goal": "G-030",
+          "key_result": "Weekly mentoring sessions",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 4.6,
+          "unit": "sessions",
+          "progress": 38,
+          "progress_bar": "▰▰▰▰▱▱▱▱▱▱ 38%",
+          "status": "At risk",
+          "owner_email": "caleb.iyer@fernhill.example"
+        }
+      },
+      {
+        "id": "b1840752-d63b-57f0-8be8-8e40e0694eac",
+        "data": {
+          "kr_ref": "G-030-KR2",
+          "goal": "G-030",
+          "key_result": "Mentee onboarding plan complete",
+          "start_value": 0,
+          "target_value": 100,
+          "current_value": 49.1,
+          "unit": "%",
+          "progress": 49,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 49%",
+          "status": "At risk",
+          "owner_email": "caleb.iyer@fernhill.example"
+        }
+      },
+      {
+        "id": "2533b98d-9ae2-5c28-b194-ce0ffc502899",
+        "data": {
+          "kr_ref": "G-031-KR1",
+          "goal": "G-031",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 5.4,
+          "unit": "QBRs",
+          "progress": 68,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 68%",
+          "status": "On track",
+          "owner_email": "samir.grant@fernhill.example"
+        }
+      },
+      {
+        "id": "2ac966aa-b81c-52e6-a250-3dcd4d2a1435",
+        "data": {
+          "kr_ref": "G-031-KR2",
+          "goal": "G-031",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 85.2,
+          "unit": "%",
+          "progress": 76,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 76%",
+          "status": "On track",
+          "owner_email": "samir.grant@fernhill.example"
+        }
+      },
+      {
+        "id": "ace4da95-920e-5eb0-8b3c-102b4382c64f",
+        "data": {
+          "kr_ref": "G-032-KR1",
+          "goal": "G-032",
+          "key_result": "Weekly mentoring sessions",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 7.8,
+          "unit": "sessions",
+          "progress": 65,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 65%",
+          "status": "On track",
+          "owner_email": "kwame.okafor@fernhill.example"
+        }
+      },
+      {
+        "id": "e2d34d8e-d115-59f8-9f02-fd1a94c4ebbc",
+        "data": {
+          "kr_ref": "G-032-KR2",
+          "goal": "G-032",
+          "key_result": "Mentee onboarding plan complete",
+          "start_value": 0,
+          "target_value": 100,
+          "current_value": 83.8,
+          "unit": "%",
+          "progress": 84,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 84%",
+          "status": "On track",
+          "owner_email": "kwame.okafor@fernhill.example"
+        }
+      },
+      {
+        "id": "0cb99e56-61e7-5dcb-ada1-e4ab82a3e53b",
+        "data": {
+          "kr_ref": "G-033-KR1",
+          "goal": "G-033",
+          "key_result": "20 discovery calls",
+          "start_value": 0,
+          "target_value": 20,
+          "current_value": 14.6,
+          "unit": "calls",
+          "progress": 73,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 73%",
+          "status": "On track",
+          "owner_email": "ava.ward@fernhill.example"
+        }
+      },
+      {
+        "id": "c256e76b-2988-50c1-845e-40cf62d012ba",
+        "data": {
+          "kr_ref": "G-033-KR2",
+          "goal": "G-033",
+          "key_result": "USD 400K of new pipeline",
+          "start_value": 0,
+          "target_value": 400,
+          "current_value": 344.9,
+          "unit": "USD K",
+          "progress": 86,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 86%",
+          "status": "On track",
+          "owner_email": "ava.ward@fernhill.example"
+        }
+      },
+      {
+        "id": "a72cba46-5bf8-571f-b2b9-89cfc71a3a7a",
+        "data": {
+          "kr_ref": "G-034-KR1",
+          "goal": "G-034",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 4.5,
+          "unit": "QBRs",
+          "progress": 56,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 56%",
+          "status": "On track",
+          "owner_email": "caleb.berg@fernhill.example"
+        }
+      },
+      {
+        "id": "05f8f90a-1523-5d47-b94f-c932a6021ce1",
+        "data": {
+          "kr_ref": "G-034-KR2",
+          "goal": "G-034",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 79.4,
+          "unit": "%",
+          "progress": 47,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 47%",
+          "status": "At risk",
+          "owner_email": "caleb.berg@fernhill.example"
+        }
+      },
+      {
+        "id": "3343882f-fdb2-54f7-ab34-a444996651c3",
+        "data": {
+          "kr_ref": "G-035-KR1",
+          "goal": "G-035",
+          "key_result": "Weekly mentoring sessions",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 1.5,
+          "unit": "sessions",
+          "progress": 13,
+          "progress_bar": "▰▱▱▱▱▱▱▱▱▱ 13%",
+          "status": "Off track",
+          "owner_email": "nora.torres@fernhill.example"
+        }
+      },
+      {
+        "id": "a0b86b3e-e29e-5e2e-bde2-9c3dcbce1111",
+        "data": {
+          "kr_ref": "G-035-KR2",
+          "goal": "G-035",
+          "key_result": "Mentee onboarding plan complete",
+          "start_value": 0,
+          "target_value": 100,
+          "current_value": 27.4,
+          "unit": "%",
+          "progress": 27,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 27%",
+          "status": "Off track",
+          "owner_email": "nora.torres@fernhill.example"
+        }
+      },
+      {
+        "id": "4fa98a1a-f14f-5344-9f2f-b7681b61a082",
+        "data": {
+          "kr_ref": "G-036-KR1",
+          "goal": "G-036",
+          "key_result": "Weekly mentoring sessions",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 3.6,
+          "unit": "sessions",
+          "progress": 30,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 30%",
+          "status": "At risk",
+          "owner_email": "zoe.sato@fernhill.example"
+        }
+      },
+      {
+        "id": "9f88b59f-7790-5d6e-89f2-e8c70f434d8f",
+        "data": {
+          "kr_ref": "G-036-KR2",
+          "goal": "G-036",
+          "key_result": "Mentee onboarding plan complete",
+          "start_value": 0,
+          "target_value": 100,
+          "current_value": 31,
+          "unit": "%",
+          "progress": 31,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 31%",
+          "status": "At risk",
+          "owner_email": "zoe.sato@fernhill.example"
+        }
+      },
+      {
+        "id": "c839e2be-e0b0-5109-a244-b7c13573c5f1",
+        "data": {
+          "kr_ref": "G-037-KR1",
+          "goal": "G-037",
+          "key_result": "Error budget burn under 50%",
+          "start_value": 100,
+          "target_value": 50,
+          "current_value": 68.2,
+          "unit": "%",
+          "progress": 64,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 64%",
+          "status": "On track",
+          "owner_email": "malik.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "e29c65c5-4428-5087-b64c-4433305d015d",
+        "data": {
+          "kr_ref": "G-037-KR2",
+          "goal": "G-037",
+          "key_result": "Add 30 integration tests",
+          "start_value": 0,
+          "target_value": 30,
+          "current_value": 27.6,
+          "unit": "tests",
+          "progress": 92,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 92%",
+          "status": "On track",
+          "owner_email": "malik.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "d8c5ac77-efbb-5295-84b5-2a0a3b564b2f",
+        "data": {
+          "kr_ref": "G-038-KR1",
+          "goal": "G-038",
+          "key_result": "Publish 4 self-serve dashboards",
+          "start_value": 0,
+          "target_value": 4,
+          "current_value": 2.7,
+          "unit": "dashboards",
+          "progress": 68,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 68%",
+          "status": "On track",
+          "owner_email": "oscar.fernandez@fernhill.example"
+        }
+      },
+      {
+        "id": "7f624451-df88-5ac7-a611-8a5c9ba1c53f",
+        "data": {
+          "kr_ref": "G-038-KR2",
+          "goal": "G-038",
+          "key_result": "Train 12 colleagues",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 8.3,
+          "unit": "people",
+          "progress": 69,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 69%",
+          "status": "On track",
+          "owner_email": "oscar.fernandez@fernhill.example"
+        }
+      },
+      {
+        "id": "b2155b9e-cbc5-5b43-ae7f-f7c95fbc8cc9",
+        "data": {
+          "kr_ref": "G-039-KR1",
+          "goal": "G-039",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 7,
+          "unit": "QBRs",
+          "progress": 88,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 88%",
+          "status": "On track",
+          "owner_email": "omar.murphy@fernhill.example"
+        }
+      },
+      {
+        "id": "88fd4ae2-7cfe-5512-9ee9-6a921670929c",
+        "data": {
+          "kr_ref": "G-039-KR2",
+          "goal": "G-039",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 90,
+          "unit": "%",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "owner_email": "omar.murphy@fernhill.example"
+        }
+      },
+      {
+        "id": "b3bbce49-63ce-5060-b58d-e1930d1f6fa2",
+        "data": {
+          "kr_ref": "G-040-KR1",
+          "goal": "G-040",
+          "key_result": "Weekly mentoring sessions",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 8.3,
+          "unit": "sessions",
+          "progress": 69,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 69%",
+          "status": "On track",
+          "owner_email": "arjun.wagner@fernhill.example"
+        }
+      },
+      {
+        "id": "075c5efc-76d0-5c0d-879b-6cbe2ef77f1e",
+        "data": {
+          "kr_ref": "G-040-KR2",
+          "goal": "G-040",
+          "key_result": "Mentee onboarding plan complete",
+          "start_value": 0,
+          "target_value": 100,
+          "current_value": 57.8,
+          "unit": "%",
+          "progress": 58,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 58%",
+          "status": "On track",
+          "owner_email": "arjun.wagner@fernhill.example"
+        }
+      },
+      {
+        "id": "74c68154-3a69-5c1d-b95e-309b986e8fcf",
+        "data": {
+          "kr_ref": "G-041-KR1",
+          "goal": "G-041",
+          "key_result": "Backlog under 25 tickets",
+          "start_value": 80,
+          "target_value": 25,
+          "current_value": 48.5,
+          "unit": "tickets",
+          "progress": 57,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 57%",
+          "status": "On track",
+          "owner_email": "priya.price@fernhill.example"
+        }
+      },
+      {
+        "id": "dbfeb8e4-0210-5d14-b3b6-5db7aea6b3a6",
+        "data": {
+          "kr_ref": "G-041-KR2",
+          "goal": "G-041",
+          "key_result": "CSAT of 95%",
+          "start_value": 88,
+          "target_value": 95,
+          "current_value": 92.5,
+          "unit": "%",
+          "progress": 64,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 64%",
+          "status": "On track",
+          "owner_email": "priya.price@fernhill.example"
+        }
+      },
+      {
+        "id": "c340d587-ff72-58f9-8644-ab97b943bbfe",
+        "data": {
+          "kr_ref": "G-042-KR1",
+          "goal": "G-042",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 2.2,
+          "unit": "QBRs",
+          "progress": 28,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 28%",
+          "status": "Off track",
+          "owner_email": "lena.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "aab42cef-17eb-50b9-9f5c-33a6f143264f",
+        "data": {
+          "kr_ref": "G-042-KR2",
+          "goal": "G-042",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 75.3,
+          "unit": "%",
+          "progress": 26,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 26%",
+          "status": "Off track",
+          "owner_email": "lena.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "419db2d7-af78-5000-ac64-2547f18daea8",
+        "data": {
+          "kr_ref": "G-043-KR1",
+          "goal": "G-043",
+          "key_result": "Submit two talk proposals",
+          "start_value": 0,
+          "target_value": 2,
+          "current_value": 1.3,
+          "unit": "proposals",
+          "progress": 65,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 65%",
+          "status": "On track",
+          "owner_email": "ethan.larsen@fernhill.example"
+        }
+      },
+      {
+        "id": "74ed032d-2dcf-5a8b-8cbb-f99679dd3946",
+        "data": {
+          "kr_ref": "G-043-KR2",
+          "goal": "G-043",
+          "key_result": "Deliver one talk",
+          "start_value": 0,
+          "target_value": 1,
+          "current_value": 0.6,
+          "unit": "talks",
+          "progress": 60,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 60%",
+          "status": "On track",
+          "owner_email": "ethan.larsen@fernhill.example"
+        }
+      },
+      {
+        "id": "c36f7c3a-5548-5361-92d8-719548856a6b",
+        "data": {
+          "kr_ref": "G-044-KR1",
+          "goal": "G-044",
+          "key_result": "Publish 4 self-serve dashboards",
+          "start_value": 0,
+          "target_value": 4,
+          "current_value": 3.5,
+          "unit": "dashboards",
+          "progress": 88,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 88%",
+          "status": "On track",
+          "owner_email": "marcus.carter@fernhill.example"
+        }
+      },
+      {
+        "id": "31f07897-059f-5319-bcdd-0bf023ef2cba",
+        "data": {
+          "kr_ref": "G-044-KR2",
+          "goal": "G-044",
+          "key_result": "Train 12 colleagues",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 9.8,
+          "unit": "people",
+          "progress": 82,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 82%",
+          "status": "On track",
+          "owner_email": "marcus.carter@fernhill.example"
+        }
+      },
+      {
+        "id": "75a14d82-30de-5301-8f51-06d82e61b03f",
+        "data": {
+          "kr_ref": "G-045-KR1",
+          "goal": "G-045",
+          "key_result": "Run 6 customer interviews",
+          "start_value": 0,
+          "target_value": 6,
+          "current_value": 3,
+          "unit": "interviews",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "status": "At risk",
+          "owner_email": "ben.berg@fernhill.example"
+        }
+      },
+      {
+        "id": "0481fdad-ed3f-515a-95c1-df70ee6dec78",
+        "data": {
+          "kr_ref": "G-045-KR2",
+          "goal": "G-045",
+          "key_result": "Present a discovery read-out",
+          "start_value": 0,
+          "target_value": 1,
+          "current_value": 0.7,
+          "unit": "read-outs",
+          "progress": 70,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 70%",
+          "status": "On track",
+          "owner_email": "ben.berg@fernhill.example"
+        }
+      },
+      {
+        "id": "87c7e9d5-b1d3-5277-8cef-9f7c3daf8897",
+        "data": {
+          "kr_ref": "G-046-KR1",
+          "goal": "G-046",
+          "key_result": "Backlog under 25 tickets",
+          "start_value": 80,
+          "target_value": 25,
+          "current_value": 70.7,
+          "unit": "tickets",
+          "progress": 17,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 17%",
+          "status": "Off track",
+          "owner_email": "elena.larsen@fernhill.example"
+        }
+      },
+      {
+        "id": "3f73bd53-28d6-5895-b2db-6557a10155ae",
+        "data": {
+          "kr_ref": "G-046-KR2",
+          "goal": "G-046",
+          "key_result": "CSAT of 95%",
+          "start_value": 88,
+          "target_value": 95,
+          "current_value": 88.7,
+          "unit": "%",
+          "progress": 10,
+          "progress_bar": "▰▱▱▱▱▱▱▱▱▱ 10%",
+          "status": "Off track",
+          "owner_email": "elena.larsen@fernhill.example"
+        }
+      },
+      {
+        "id": "87efa14f-8be5-530e-9b5f-1f483a4154be",
+        "data": {
+          "kr_ref": "G-047-KR1",
+          "goal": "G-047",
+          "key_result": "Publish 4 self-serve dashboards",
+          "start_value": 0,
+          "target_value": 4,
+          "current_value": 2,
+          "unit": "dashboards",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "status": "At risk",
+          "owner_email": "marcus.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "2762f0f8-e08d-54f8-bc6d-23367974938f",
+        "data": {
+          "kr_ref": "G-047-KR2",
+          "goal": "G-047",
+          "key_result": "Train 12 colleagues",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 5.7,
+          "unit": "people",
+          "progress": 48,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 48%",
+          "status": "At risk",
+          "owner_email": "marcus.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "b35b3751-b3bd-5d97-8cb3-099babc73751",
+        "data": {
+          "kr_ref": "G-048-KR1",
+          "goal": "G-048",
+          "key_result": "Publish 4 self-serve dashboards",
+          "start_value": 0,
+          "target_value": 4,
+          "current_value": 1.8,
+          "unit": "dashboards",
+          "progress": 45,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 45%",
+          "status": "At risk",
+          "owner_email": "owen.ward@fernhill.example"
+        }
+      },
+      {
+        "id": "c84a1d96-5f9f-5eac-bc9c-4563eab2aad5",
+        "data": {
+          "kr_ref": "G-048-KR2",
+          "goal": "G-048",
+          "key_result": "Train 12 colleagues",
+          "start_value": 0,
+          "target_value": 12,
+          "current_value": 5.1,
+          "unit": "people",
+          "progress": 43,
+          "progress_bar": "▰▰▰▰▱▱▱▱▱▱ 43%",
+          "status": "At risk",
+          "owner_email": "owen.ward@fernhill.example"
+        }
+      },
+      {
+        "id": "5d19d360-b843-5548-8379-e3f5d74bf9f9",
+        "data": {
+          "kr_ref": "G-049-KR1",
+          "goal": "G-049",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 1.8,
+          "unit": "QBRs",
+          "progress": 23,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 23%",
+          "status": "Off track",
+          "owner_email": "clara.bennett@fernhill.example"
+        }
+      },
+      {
+        "id": "6aba69ed-0fda-5039-9e5d-f6630d8ba7a3",
+        "data": {
+          "kr_ref": "G-049-KR2",
+          "goal": "G-049",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 74.2,
+          "unit": "%",
+          "progress": 21,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 21%",
+          "status": "Off track",
+          "owner_email": "clara.bennett@fernhill.example"
+        }
+      },
+      {
+        "id": "37693a7a-7dee-5279-bcc3-40baa3710f3c",
+        "data": {
+          "kr_ref": "G-050-KR1",
+          "goal": "G-050",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 5,
+          "unit": "QBRs",
+          "progress": 63,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 63%",
+          "status": "On track",
+          "owner_email": "rosa.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "50f7703f-632f-594b-86f2-620c42aa916d",
+        "data": {
+          "kr_ref": "G-050-KR2",
+          "goal": "G-050",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 80.6,
+          "unit": "%",
+          "progress": 53,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 53%",
+          "status": "At risk",
+          "owner_email": "rosa.quinn@fernhill.example"
+        }
+      },
+      {
+        "id": "866bad7e-86ba-5783-98c3-b06afdbd873d",
+        "data": {
+          "kr_ref": "G-051-KR1",
+          "goal": "G-051",
+          "key_result": "QBRs held with 8 accounts",
+          "start_value": 0,
+          "target_value": 8,
+          "current_value": 5,
+          "unit": "QBRs",
+          "progress": 63,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 63%",
+          "status": "On track",
+          "owner_email": "lucia.fernandez@fernhill.example"
+        }
+      },
+      {
+        "id": "4cdd1068-1b97-5a46-9c95-859256201a7a",
+        "data": {
+          "kr_ref": "G-051-KR2",
+          "goal": "G-051",
+          "key_result": "Renewal forecast accuracy of 90%",
+          "start_value": 70,
+          "target_value": 90,
+          "current_value": 79.1,
+          "unit": "%",
+          "progress": 45,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 45%",
+          "status": "At risk",
+          "owner_email": "lucia.fernandez@fernhill.example"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+  "asset": {
+    "id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+    "name": "CapEx spend",
+    "description": "Planned phasing and actual spend entries by project and month (USD): entry type Planned or Actual.",
+    "columns": [
+      {
+        "id": "e6e4dc8c-3e75-57e7-a5b2-88e5e4516e72",
+        "required": true,
+        "key": "project_ref",
+        "name": "Project",
+        "type": "text"
+      },
+      {
+        "id": "7276fdd6-0da6-5ca5-a858-e5ee06c59bdc",
+        "required": false,
+        "key": "title",
+        "name": "Project title",
+        "type": "text"
+      },
+      {
+        "id": "8ecbaf64-671d-5832-ab31-208bebe5eb42",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Production",
+          "Logistics",
+          "Engineering & R&D",
+          "IT",
+          "Facilities & EHS",
+          "Commercial"
+        ]
+      },
+      {
+        "id": "8be2e5a2-3e85-5beb-ba51-1b25b5f6dd03",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Equipment",
+          "IT",
+          "Facilities",
+          "Vehicles",
+          "R&D"
+        ]
+      },
+      {
+        "id": "8ca3c75d-ec2a-5b80-8166-d39d712eed99",
+        "required": false,
+        "key": "fiscal_year",
+        "name": "Fiscal year",
+        "type": "select",
+        "options": [
+          "2026",
+          "2027",
+          "2028"
+        ]
+      },
+      {
+        "id": "80c2f7c4-f609-5f79-94cb-cf4a0a47482d",
+        "required": false,
+        "key": "period",
+        "name": "Month",
+        "type": "text"
+      },
+      {
+        "id": "9832e6d0-dcc7-5d22-be65-03457998e28a",
+        "required": false,
+        "key": "entry_type",
+        "name": "Entry type",
+        "type": "select",
+        "options": [
+          "Planned",
+          "Actual"
+        ]
+      },
+      {
+        "id": "13ec6f15-b2d8-505f-ab8f-a4290702d62f",
+        "required": false,
+        "key": "amount",
+        "name": "Amount (USD)",
+        "type": "number"
+      },
+      {
+        "id": "a3c74070-7511-5466-a01a-7c48338fd809",
+        "required": false,
+        "key": "vendor",
+        "name": "Vendor",
+        "type": "text"
+      },
+      {
+        "id": "7224006d-6d74-5b5f-aa61-81fa66d5f850",
+        "required": false,
+        "key": "invoice_ref",
+        "name": "Invoice",
+        "type": "text"
+      },
+      {
+        "id": "218b8fac-bbad-5f02-b015-0779079fb015",
+        "required": false,
+        "key": "description",
+        "name": "Description",
+        "type": "text"
+      }
+    ]
+  }
+}

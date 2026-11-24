@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname } from 'next/navigation'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,9 @@ import { Sparkles } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { serverQuery } from '@/lib/server-read'
 import { cn } from '@/lib/utils'
+import { IconButton } from '@/components/ui/icon-button'
+import { dialogDockMode } from '@/lib/assistants/launcher-geometry'
+import { useLauncherAvoidance } from './use-launcher-avoidance'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { routeLabel } from '@/lib/page-title'
 import { useCurrentSurface, useRegisteredDesignerContext } from '@/lib/assistants/client-registry'
@@ -67,6 +70,8 @@ export function designerAreaForPath(pathname: string): DesignerContext | null {
   if (p === '/reports' || p.startsWith('/reports/')) return { area: 'report' }
   if ((m = p.match(new RegExp(`^/agents/(${ID})$`, 'i')))) return { area: 'agent', item_id: m[1] }
   if (p === '/agents' || p.startsWith('/agents/')) return { area: 'agent' }
+  // An app page (the builder registers the app's id, name and open page): its slug is the open item.
+  if ((m = p.match(/^\/apps\/([a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)(?:\/[a-z0-9-]+)?$/))) return { area: 'app', item_id: m[1] }
   if ((m = p.match(new RegExp(`^/integrations/(${ID})$`, 'i')))) return { area: 'integration', item_id: m[1] }
   if (p === '/integrations' || p.startsWith('/integrations/')) return { area: 'integration' }
   return null
@@ -75,7 +80,7 @@ export function designerAreaForPath(pathname: string): DesignerContext | null {
 /**
  * The admin page of a path (admin help's starters and context), or null.
  * `search` (the query string, read when a message is sent) picks the
- * Settings tab: ?tab=forms is the form sign-in page, governance ?tab=retention
+ * Settings tab: ?tab=forms / ?tab=sign-in is the sign-in page for forms and apps, governance ?tab=retention
  * the retention policies.
  */
 export function adminAreaForPath(pathname: string, search = ''): AdminArea | null {
@@ -90,14 +95,14 @@ export function adminAreaForPath(pathname: string, search = ''): AdminArea | nul
   if (p === '/settings/invitations') return 'invitations'
   if (p === '/settings/assistants') return 'usage'
   if (/^\/settings\/(log-export|sso|webhooks|api-keys|oauth-apps|workspace-dns|mcp|document-ocr|github-sync|logs)(\/|$)/.test(p)) return 'integrations'
-  if (p === '/settings') return tab === 'forms' ? 'sign_in_page' : 'settings'
+  if (p === '/settings') return tab === 'forms' || tab === 'sign-in' ? 'sign_in_page' : 'settings'
   if (p.startsWith('/settings/')) return 'settings'
   return null
 }
 
 const AREA_NOUN: Record<DesignerContext['area'], string> = {
   workflow: 'Workflow', form: 'Form', data: 'Data table', decision_table: 'Business rule', extensibility: 'Extensibility', general: 'Workflows',
-  report: 'Report', agent: 'Agent', integration: 'Integration', email_template: 'Email templates', page: 'This page',
+  report: 'Report', agent: 'Agent', integration: 'Integration', email_template: 'Email templates', page: 'This page', app: 'App',
 }
 
 /** The "Looking at" chip text for the current screen. */
@@ -117,32 +122,209 @@ export function screenLabel(params: {
 /**
  * The open modal dialog that should host the Agent (a modal makes the rest of
  * the page inert): the topmost open Radix dialog that is big enough to work
- * in (an editor, not a small confirmation), else null. The form designer and
+ * in (an editor, not a small confirmation), else null. On phones a dialog is
+ * a full-width bottom sheet, so only its height counts. The form designer and
  * the test runner host the panel themselves (registerAgentDock). A dialog
  * marked data-agent-no-host (a settings sheet with its own footer, e.g.
  * Settings → Agent's profile editor) never hosts it.
  */
-export function hostDialog(doc: Document = document): HTMLElement | null {
-  const open = Array.from(doc.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"]'))
+export function hostDialog(doc: Document = document, mobile = false): HTMLElement | null {
+  // Radix dialogs (data-state) and custom modal panels (aria-modal, e.g. an app's panels and modals).
+  const open = Array.from(doc.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"], [role="dialog"][aria-modal="true"]'))
     .filter((el) => !el.closest('[data-assistant-panel]') && !el.hasAttribute('data-assistant-panel') && el.getAttribute('role') !== 'alertdialog' && !el.hasAttribute('data-agent-no-host'))
   const top = open[open.length - 1]
   if (!top) return null
   const rect = top.getBoundingClientRect()
-  return rect.width >= 560 && rect.height >= 360 ? top : null
+  return (mobile ? rect.height >= 300 : rect.width >= 560 && rect.height >= 360) ? top : null
 }
 
-function useHostDialog(enabled: boolean): HTMLElement | null {
+function useHostDialog(enabled: boolean, mobile: boolean): HTMLElement | null {
   const [el, setEl] = useState<HTMLElement | null>(null)
   useEffect(() => {
     if (!enabled) { setEl(null); return }
     let frame = 0
-    const check = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => setEl(hostDialog())) }
+    const check = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => setEl(hostDialog(document, mobile))) }
     const observer = new MutationObserver(check)
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state'] })
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state', 'aria-modal'] })
     check()
     return () => { observer.disconnect(); cancelAnimationFrame(frame) }
-  }, [enabled])
+  }, [enabled, mobile])
   return el
+}
+
+/** The dialog's own Agent slot (DialogAgentSlot); null when it has none. */
+export function dialogSlot(dialog: ParentNode): HTMLElement | null {
+  const slots = Array.from(dialog.querySelectorAll<HTMLElement>('[data-agent-header-slot]')).filter((el) => !el.closest('[data-assistant-panel]'))
+  // A header row's slot beats the slim bar (a DialogContent without a title whose children render their own header).
+  return slots.find((el) => el.getAttribute('data-agent-header-slot') !== 'bar') ?? slots[0] ?? null
+}
+
+/**
+ * The header slot to put the Agent button in: the dialog's DialogAgentSlot, or
+ * (a custom dialog without one) a slim right-aligned bar added as its first
+ * row, so the button never sits on the dialog's content or actions.
+ */
+function useDialogSlot(dialog: HTMLElement): HTMLElement | null {
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    const own = dialogSlot(dialog)
+    if (own) { setSlot(own); return }
+    const bar = document.createElement('div')
+    bar.setAttribute('data-agent-header-slot', '')
+    bar.setAttribute('data-agent-injected', '')
+    bar.className = 'flex shrink-0 justify-end px-3 pt-2'
+    dialog.insertBefore(bar, dialog.firstChild)
+    setSlot(bar)
+    return () => { bar.remove() }
+  }, [dialog])
+  return slot
+}
+
+const DIALOG_PANEL_WIDTH = 400
+
+/**
+ * The Agent open inside a modal dialog (desktop): a side panel at the
+ * dialog's right edge. `split` widens the dialog by up to one panel and pads
+ * its right side, so the form (and its footer buttons) shrinks beside the
+ * panel instead of being covered; a dialog too narrow to split gets the panel
+ * over it, full width (its close returns to the form). The panel follows the
+ * dialog's own scroll, so it stays put in dialogs that scroll as a whole.
+ */
+function DialogDock({ dialog, onClose, returnFocus }: { dialog: HTMLElement; onClose: () => void; returnFocus: () => void }) {
+  const [layout, setLayout] = useState<{ mode: 'split' | 'overlay'; top: number; height: number } | null>(null)
+  useLayoutEffect(() => {
+    const prev = { width: dialog.style.width, maxWidth: dialog.style.maxWidth, paddingRight: dialog.style.paddingRight }
+    const restore = () => { Object.assign(dialog.style, prev) }
+    const place = () => setLayout((l) => ({ mode: l?.mode ?? 'overlay', top: dialog.scrollTop, height: dialog.clientHeight }))
+    const apply = () => {
+      restore()
+      const basePad = parseFloat(getComputedStyle(dialog).paddingRight) || 0
+      const plan = dialogDockMode({ dialogWidth: dialog.getBoundingClientRect().width, viewportWidth: window.innerWidth, panelWidth: DIALOG_PANEL_WIDTH })
+      let mode = plan.mode
+      if (plan.mode === 'split') {
+        dialog.style.width = `${plan.width}px`
+        dialog.style.maxWidth = 'none'
+        // A dialog anchored by left / right (not centred) grows one way: pull it back inside the viewport.
+        const r = dialog.getBoundingClientRect()
+        const overflow = Math.max(0, r.right - (window.innerWidth - 8)) + Math.max(0, 8 - r.left)
+        if (overflow > 0) dialog.style.width = `${plan.width - overflow}px`
+        if (plan.width - overflow - plan.panel < 360) { restore(); mode = 'overlay' }
+        else dialog.style.paddingRight = `${basePad + plan.panel}px`
+      }
+      setLayout({ mode, top: dialog.scrollTop, height: dialog.clientHeight })
+    }
+    apply()
+    const resize = new ResizeObserver(place)
+    resize.observe(dialog)
+    dialog.addEventListener('scroll', place, { passive: true })
+    window.addEventListener('resize', apply)
+    return () => {
+      resize.disconnect()
+      dialog.removeEventListener('scroll', place)
+      window.removeEventListener('resize', apply)
+      restore()
+    }
+  }, [dialog])
+  if (!layout) return null
+  return createPortal(
+    <div
+      className="absolute right-0 z-[60] m-0 flex"
+      style={{ top: layout.top, height: layout.height, width: layout.mode === 'split' ? DIALOG_PANEL_WIDTH : '100%' }}
+      data-agent-dialog-dock={layout.mode}
+    >
+      <AgentPanel variant="dialog" open onClose={onClose} returnFocus={returnFocus} />
+    </div>,
+    dialog,
+  )
+}
+
+/** The Agent in a pop-up: an icon button in its header row (left of ×) and, open, the docked panel. */
+function DialogAgent({ dialog, open, isMobile }: { dialog: HTMLElement; open: boolean; isMobile: boolean }) {
+  const slot = useDialogSlot(dialog)
+  const ref = useRef<HTMLButtonElement>(null)
+  const close = useCallback(() => setAgentOpen(false), [])
+  const returnFocus = useCallback(() => { requestAnimationFrame(() => ref.current?.focus()) }, [])
+  return (
+    <>
+      {slot && createPortal(
+        <IconButton
+          ref={ref}
+          size="sm"
+          label={open ? `Hide the ${AGENT_NAME}` : AGENT_NAME}
+          icon={<Sparkles />}
+          onClick={() => setAgentOpen(!open)}
+          aria-pressed={open}
+          tooltipSide="bottom"
+          data-testid="assistant-launcher-dialog"
+        />,
+        slot,
+      )}
+      {open && (isMobile
+        ? <AgentPanel variant="sheet" open onClose={close} returnFocus={returnFocus} />
+        : <DialogDock dialog={dialog} onClose={close} returnFocus={returnFocus} />)}
+    </>
+  )
+}
+
+/** The CSS variables the page launcher publishes on <html> while it shows: the room shared layouts keep clear for it. */
+export function launcherReserveVars(rect: { width: number; height: number; right: number; bottom: number } | null): Record<string, string> {
+  if (!rect) return {}
+  return { '--agent-launcher-w': `${Math.ceil(rect.width + rect.right + 8)}px`, '--agent-launcher-reserve': `${Math.ceil(rect.height + rect.bottom + 8)}px` }
+}
+
+function useLauncherReserve(ref: RefObject<HTMLElement | null>, shown: boolean) {
+  useEffect(() => {
+    const root = document.documentElement
+    const el = ref.current
+    const clear = () => { root.style.removeProperty('--agent-launcher-w'); root.style.removeProperty('--agent-launcher-reserve'); root.removeAttribute('data-agent-launcher') }
+    if (!shown || !el) { clear(); return }
+    const update = () => {
+      const cs = getComputedStyle(el)
+      const vars = launcherReserveVars({ width: el.offsetWidth, height: el.offsetHeight, right: parseFloat(cs.right) || 0, bottom: parseFloat(cs.bottom) || 0 })
+      for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v)
+      root.setAttribute('data-agent-launcher', '')
+    }
+    update()
+    const resize = new ResizeObserver(update)
+    resize.observe(el)
+    window.addEventListener('resize', update)
+
+    // Scroll room: a page that already scrolls gets the launcher's height of
+    // extra bottom padding (globals.css, main[data-agent-scroll-room]), so its
+    // last row can scroll clear of the button. Pages that fit exactly (the
+    // full-height builders) get none: they'd only grow a scrollbar.
+    let frame = 0
+    let main: HTMLElement | null = null
+    const room = () => {
+      frame = 0
+      const now = document.querySelector<HTMLElement>('main#main')
+      if (main && main !== now) main.removeAttribute('data-agent-scroll-room')
+      main = now
+      if (!main) return
+      const on = main.hasAttribute('data-agent-scroll-room')
+      const extra = on ? (parseFloat(getComputedStyle(main).paddingBottom) || 0) - (parseFloat(main.dataset.agentBasePad ?? '0') || 0) : 0
+      if (!on) main.dataset.agentBasePad = String(parseFloat(getComputedStyle(main).paddingBottom) || 0)
+      const want = needsScrollRoom({ scrollHeight: main.scrollHeight, clientHeight: main.clientHeight, extra })
+      if (want !== on) main.toggleAttribute('data-agent-scroll-room', want)
+    }
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(room) }
+    const mutations = new MutationObserver(schedule)
+    mutations.observe(document.body, { childList: true, subtree: true })
+    window.addEventListener('resize', schedule)
+    schedule()
+    return () => {
+      resize.disconnect(); mutations.disconnect()
+      window.removeEventListener('resize', update); window.removeEventListener('resize', schedule)
+      if (frame) cancelAnimationFrame(frame)
+      main?.removeAttribute('data-agent-scroll-room')
+      clear()
+    }
+  }, [ref, shown])
+}
+
+/** Does a scroll area (measured with `extra` px of launcher room already added) scroll without that room? */
+export function needsScrollRoom({ scrollHeight, clientHeight, extra }: { scrollHeight: number; clientHeight: number; extra: number }): boolean {
+  return scrollHeight - extra > clientHeight + 1
 }
 
 export function AssistantHost({ standalone = false }: { standalone?: boolean }) {
@@ -204,26 +386,13 @@ export function AssistantHost({ standalone = false }: { standalone?: boolean }) 
   }, [])
 
   const returnFocus = useCallback(() => { requestAnimationFrame(() => buttonRef.current?.focus()) }, [])
-  // A modal editor is open: the Agent moves inside it (button and panel), so it stays reachable and interactive.
-  const dialog = useHostDialog(available && agent.docks === 0)
+  // A modal pop-up is open: the Agent moves inside it (a header icon button and a docked panel), so it stays reachable and interactive.
+  const dialog = useHostDialog(available && agent.docks === 0, isMobile)
+  const pageLauncher = available && agent.docks === 0 && !dialog && !(agent.open && !isMobile)
+  const placement = useLauncherAvoidance(buttonRef, pageLauncher)
+  useLauncherReserve(buttonRef, pageLauncher)
   if (!available || agent.docks > 0) return null
-  if (dialog) {
-    return createPortal(
-      <div data-agent-in-dialog="">
-        {!agent.open && (
-          <button type="button" onClick={() => setAgentOpen(true)} aria-label={`Open the ${AGENT_NAME}`} title={AGENT_NAME}
-            className="absolute bottom-3 right-3 z-[60] inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-medium text-primary-fg shadow-elev-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            data-testid="assistant-launcher-dialog">
-            <Sparkles className="size-3.5" aria-hidden="true" />{AGENT_NAME}
-          </button>
-        )}
-        {agent.open && (isMobile
-          ? <AgentPanel variant="sheet" open onClose={() => setAgentOpen(false)} />
-          : <div className="absolute inset-y-0 right-0 z-[60] flex w-[380px] max-w-full shadow-elev-3"><AgentPanel variant="inline" open onClose={() => setAgentOpen(false)} /></div>)}
-      </div>,
-      dialog,
-    )
-  }
+  if (dialog) return <DialogAgent dialog={dialog} open={agent.open} isMobile={isMobile} />
   const open = agent.open
   const docked = !standalone && !isMobile
 
@@ -238,6 +407,8 @@ export function AssistantHost({ standalone = false }: { standalone?: boolean }) 
           aria-expanded={open}
           aria-label={`Open the ${AGENT_NAME}`}
           title={AGENT_NAME}
+          style={placement.transform ? { transform: placement.transform } : undefined}
+          data-agent-placement={placement.plan.side === 'right' && !placement.plan.lift && !placement.plan.compact ? 'home' : `${placement.plan.side}${placement.plan.compact ? '-compact' : ''}`}
           className={cn(
             'fixed right-4 z-40 inline-flex items-center gap-2 rounded-full bg-primary px-3.5 py-2.5 text-sm font-medium text-primary-fg shadow-elev-3 transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:right-6 md:bottom-6',
             standalone
@@ -251,7 +422,7 @@ export function AssistantHost({ standalone = false }: { standalone?: boolean }) 
           data-tour="agent-button"
         >
           <Sparkles className="size-4" aria-hidden="true" />
-          <span className="max-md:sr-only">{AGENT_NAME}</span>
+          <span className={placement.plan.compact ? 'sr-only' : 'max-md:sr-only'}>{AGENT_NAME}</span>
         </button>
       )}
       <AgentPanel variant={isMobile ? 'sheet' : docked ? 'docked' : 'floating'} open={open} onClose={() => setAgentOpen(false)} returnFocus={returnFocus} />

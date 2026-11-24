@@ -1,0 +1,293 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "c332f88e-e0dd-5ad7-9354-bb56d78c0ea4",
+  "asset": {
+    "id": "c332f88e-e0dd-5ad7-9354-bb56d78c0ea4",
+    "name": "Peer feedback",
+    "description": "One reviewer's feedback on a colleague: a task with strengths, one thing to improve and a rating, saved in the Feedback table (and counted on the review).",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Feedback requested",
+        "config": {},
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Feedback on {{about_name}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "give",
+        "type": "user_task",
+        "label": "Give feedback",
+        "config": {
+          "task_title": "Feedback on {{about_name}}",
+          "task_description": "<p>{{requested_by}} asked for your feedback on <strong>{{about_name}}</strong>.</p><p>{{context}}</p><p>Be specific and kind: what they do well and one thing that would help them grow.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Send feedback",
+            "Decline"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{reviewer_id}}",
+          "fields": [
+            {
+              "key": "strengths",
+              "label": "What do they do well?",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "improve",
+              "label": "One thing that would help them grow",
+              "type": "textarea",
+              "required": true
+            },
+            {
+              "key": "rating",
+              "label": "Overall",
+              "type": "rating",
+              "required": true,
+              "max": 5,
+              "survey": {
+                "icon": "star"
+              }
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "strengths",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "improve",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "rating",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "send_feedback",
+              "label": "Send feedback",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Send feedback"
+            },
+            {
+              "id": "decline",
+              "label": "Decline",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Decline"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Peer feedback",
+            "align": "left",
+            "subtitle": "{{about_name}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{=IF(IS_EMPTY(due_date), ADD_DAYS(NOW(), 7), due_date)}}",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "save",
+        "type": "update_data_table",
+        "label": "Save the feedback",
+        "config": {
+          "table_id": "b36f331b-dcc0-5eec-b95e-8b1e855ef17e",
+          "table_name": "Feedback",
+          "operation": "insert",
+          "column_values": {
+            "feedback_ref": "FB-{{=FORMAT_DATE(NOW(), \"YYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}",
+            "type": "{{=IF(IS_EMPTY(review_ref), \"Continuous\", \"Peer review\")}}",
+            "about_name": "{{about_name}}",
+            "about_email": "{{about_email}}",
+            "from_name": "{{task_assignee_name}}",
+            "from_email": "{{task_assignee_email}}",
+            "department": "{{about_department}}",
+            "strengths": "{{task_data.strengths}}",
+            "improve": "{{task_data.improve}}",
+            "rating": "{{task_data.rating}}",
+            "review_ref": "{{review_ref}}",
+            "given_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "visibility": "Employee and manager"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Feedback given",
+        "config": {
+          "reason": "Feedback on {{about_name}} saved"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "declined",
+        "type": "end_workflow",
+        "label": "Declined",
+        "config": {
+          "reason": "{{about_name}}: reviewer declined"
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-give",
+        "source": "title",
+        "target": "give"
+      },
+      {
+        "id": "e-give-save-send_feedback",
+        "source": "give",
+        "target": "save",
+        "label": "Send feedback"
+      },
+      {
+        "id": "e-give-declined-decline",
+        "source": "give",
+        "target": "declined",
+        "label": "Decline"
+      },
+      {
+        "id": "e-save-end",
+        "source": "save",
+        "target": "end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-about_name",
+        "name": "about_name",
+        "type": "string",
+        "label": "about name",
+        "description": "",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-about_email",
+        "name": "about_email",
+        "type": "string",
+        "label": "about email",
+        "description": "",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-about_department",
+        "name": "about_department",
+        "type": "string",
+        "label": "about department",
+        "description": "",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-reviewer_id",
+        "name": "reviewer_id",
+        "type": "string",
+        "label": "reviewer id",
+        "description": "",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-requested_by",
+        "name": "requested_by",
+        "type": "string",
+        "label": "requested by",
+        "description": "",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-context",
+        "name": "context",
+        "type": "string",
+        "label": "context",
+        "description": "",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-due_date",
+        "name": "due_date",
+        "type": "string",
+        "label": "due date",
+        "description": "",
+        "defaultValue": ""
+      },
+      {
+        "id": "v-review_ref",
+        "name": "review_ref",
+        "type": "string",
+        "label": "review ref",
+        "description": "",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -5,8 +5,11 @@
  * /api/webhooks/create-key route. Every operation needs settings.manage_webhooks.
  *
  * The secret is the bearer key callers send to /api/webhooks/inbound?hook=…
- * (unchanged). It is generated server-side, stored only as a bcrypt hash plus
- * an 8-character prefix, and returned once — on create and on rotate.
+ * (unchanged). It is generated server-side and returned once — on create and
+ * on rotate. Stored: a SHA-256 (api_key_sha256, what /api/webhooks/inbound
+ * checks — see lib/webhook-secret), a bcrypt hash (api_key_hash, so a release
+ * from before the SHA-256 column still verifies it after a rollback) and an
+ * 8-character prefix. Never the secret itself.
  */
 
 import bcrypt from 'bcryptjs'
@@ -14,6 +17,7 @@ import { randomBytes } from 'crypto'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { audit, dbError } from './_shared'
 import { appUrlOrLocalhost } from '@/lib/config/bootstrap'
+import { hashWebhookSecret, isMissingSha256Column } from '@/lib/webhook-secret'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow_webhooks rows */
 
@@ -36,12 +40,32 @@ function inboundUrl(slug: string) {
 function present(raw: Record<string, any>): Record<string, any> {
   const row = { ...raw }
   delete row.api_key_hash
+  delete row.api_key_sha256
   return { ...row, url: inboundUrl(row.slug) }
 }
 
 function newSecret() {
   const secret = randomBytes(32).toString('hex')
   return { secret, prefix: secret.slice(0, 8) }
+}
+
+/** The stored forms of a new secret (see the header). */
+async function secretColumns(secret: string, prefix: string) {
+  return { api_key_hash: await bcrypt.hash(secret, 10), api_key_sha256: hashWebhookSecret(secret), api_key_prefix: prefix }
+}
+
+/**
+ * Run a write that sets api_key_sha256; until migration
+ * 20270125090000_webhook_secret_sha256 is applied the column is missing, so
+ * retry without it (the bcrypt hash alone, verified as before).
+ */
+type WriteResult = { data: any; error: any }
+async function withSha256Fallback(columns: Record<string, unknown>, write: (columns: Record<string, unknown>) => PromiseLike<WriteResult>): Promise<WriteResult> {
+  const result = await write(columns)
+  if (!isMissingSha256Column(result.error)) return result
+  const rest = { ...columns }
+  delete rest.api_key_sha256
+  return write(rest)
 }
 
 async function loadWorkflow(ctx: ServiceContext, workflowId: string) {
@@ -83,15 +107,14 @@ export async function createWorkflowWebhook(ctx: ServiceContext, workflowId: str
   if (taken) throw ServiceError.conflict('That webhook slug is already in use')
 
   const { secret, prefix } = newSecret()
-  const { data, error } = await (ctx.supabase as any).from('workflow_webhooks').insert({
+  const { data, error } = await withSha256Fallback({
     workflow_id: workflowId,
     tenant_id: ctx.tenantId,
     slug,
-    api_key_hash: await bcrypt.hash(secret, 10),
-    api_key_prefix: prefix,
+    ...await secretColumns(secret, prefix),
     is_active: input.is_active ?? true,
     payload_mapping: input.payload_mapping ?? [],
-  }).select(COLUMNS).single()
+  }, (row) => (ctx.supabase as any).from('workflow_webhooks').insert(row).select(COLUMNS).single())
   if (error?.code === '23505') throw ServiceError.conflict('That webhook slug is already in use')
   if (error || !data) throw dbError(error, 'Failed to create webhook')
   await audit(ctx, {
@@ -156,9 +179,11 @@ export async function rotateWebhookSecret(ctx: ServiceContext, webhookId: string
   requirePerm(ctx, 'settings.manage_webhooks')
   await loadWebhook(ctx, webhookId)
   const { secret, prefix } = newSecret()
-  const { data, error } = await (ctx.supabase as any).from('workflow_webhooks')
-    .update({ api_key_hash: await bcrypt.hash(secret, 10), api_key_prefix: prefix })
-    .eq('id', webhookId).eq('tenant_id', ctx.tenantId).select(COLUMNS).single()
+  // api_key_sha256 is always overwritten: the old secret must stop verifying.
+  const { data, error } = await withSha256Fallback(await secretColumns(secret, prefix), (update) =>
+    (ctx.supabase as any).from('workflow_webhooks')
+      .update(update)
+      .eq('id', webhookId).eq('tenant_id', ctx.tenantId).select(COLUMNS).single())
   if (error || !data) throw dbError(error, 'Failed to rotate webhook secret')
   await audit(ctx, { objectType: 'webhook', objectId: webhookId, action: 'update', summary: `Rotated the secret of webhook "${data.slug}"`, metadata: { workflow_id: data.workflow_id } })
   return { webhook: present(data), secret }

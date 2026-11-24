@@ -12,7 +12,7 @@ import { urlConfigProblem } from '@/lib/forms/link-field'
 import { isRowsField, rowCommitKit } from './row-rules'
 import { isSurveyType, surveyFieldDefaults } from '@/lib/forms/survey/controls'
 import {
-  DISPLAY_FIELD_TYPES, TASK_FIELD_TYPE_LABELS, fieldDefinitionProblems, fieldKeyFromLabel, fieldKeyProblem, normalizeTaskFields, uniqueFieldKey,
+  DISPLAY_FIELD_TYPES, TASK_FIELD_TYPE_LABELS, fieldDefinitionProblems, fieldKeyFromLabel, fieldKeyProblem, itemScopeKeyProblem, normalizeTaskFields, reservedFieldKeyProblems, uniqueFieldKey,
   type TaskFieldDef, type TaskFieldType,
 } from '@/lib/task-field-schema'
 import {
@@ -26,7 +26,7 @@ import { normalizeFormButtons, type FormButton } from './buttons'
 import { defaultFormHeader, normalizeFormHeader, type FormHeader } from './header'
 import { lookupConfigProblem, lookupItemKey } from './lookup'
 import { ATTACHMENT_DEFAULTS, attachmentsConfigProblem, attachmentsCountKey } from './attachments'
-import { REPEATING_EXCLUDED_TYPES, repeatingConfigProblem, repeatingListConfig } from './repeating-section'
+import { ITEM_SCOPE_NAMES, REPEATING_EXCLUDED_TYPES, repeatingConfigProblem, repeatingListConfig } from './repeating-section'
 import { DEFAULT_LIST_CONFIG, childListPaths, listConfigProblem, listDerivedKeys, listEntryKit, normalizeListConfig } from './list-field'
 import type { FormThemeRef } from './form-theme'
 import { takePendingCustomControl } from './custom-controls/palette'
@@ -101,7 +101,8 @@ function stripDesignerProps(field: TaskFieldDef): TaskFieldDef {
 
 /** Every key in the state: its fields, their repeating sections' inner fields (any level), and the outer form's (a section view). */
 export function takenKeys(state: { fields: TaskFieldDef[]; outerKeys?: string[] }): string[] {
-  const out: string[] = [...(state.outerKeys ?? [])]
+  // A section view: the item scope's names (item, row, parent, index, form) are taken too, so auto keys avoid them.
+  const out: string[] = [...(state.outerKeys ?? []), ...(state.outerKeys !== undefined ? ITEM_SCOPE_NAMES : [])]
   const walk = (fields: TaskFieldDef[]) => { for (const f of fields) { out.push(f.key); if (f.type === 'repeating_section') walk(f.repeating_section?.fields ?? []) } }
   walk(state.fields)
   return out
@@ -577,6 +578,8 @@ export function updateField(state: DesignerState, id: string, patch: Partial<Tas
 export function keyProblemFor(state: DesignerState, id: string): string | null {
   const field = state.fields.find((f) => f._id === id)
   if (!field) return null
+  // A repeating section's inner form (sectionView sets outerKeys): the item scope's names are taken.
+  if (state.outerKeys !== undefined && itemScopeKeyProblem(field.key)) return itemScopeKeyProblem(field.key)
   return fieldKeyProblem(field.key, [...state.fields.filter((f) => f._id !== id).map((f) => f.key), ...(state.outerKeys ?? [])])
 }
 
@@ -662,7 +665,8 @@ export function designerProblems(state: DesignerState): Record<string, string> {
       // Its config, derived keys, and its inner controls' first problem (keys unique over the whole form).
       const outer = [...takenKeys({ ...state, fields: state.fields.filter((f) => f._id !== field._id) })]
       const config = normalizeTaskFields([{ ...field, key: field.key || 'section' }])[0]?.repeating_section
-      const problem = repeatingConfigProblem(config, outer) ?? fieldDefinitionProblems(normalizeTaskFields(state.fields.map(stripDesignerProps)))[field.key]
+      const reserved = Object.values(reservedFieldKeyProblems([stripDesignerProps(field)]))[0]
+      const problem = reserved ?? repeatingConfigProblem(config, outer) ?? fieldDefinitionProblems(normalizeTaskFields(state.fields.map(stripDesignerProps)))[field.key]
       if (problem) out[field._id] = problem
     }
     if (field.type === 'label' && field.label_config?.expression) {

@@ -69,7 +69,7 @@ export function importReportMarkdown(report: ImportReport): string {
   }
   if (report.items.length) {
     lines.push('', '## Items', '', '| Status | Kind | Source | Becomes | Notes |', '|---|---|---|---|---|')
-    for (const i of report.items) lines.push(`| ${STATUS_LABEL[i.status]} | ${cell(i.kind)} | ${cell(i.name)}${i.location ? ` (${cell(i.location)})` : ''} | ${cell(i.mappedTo ?? '')} | ${cell(i.detail ?? '')} |`)
+    for (const i of report.items) lines.push(`| ${i.origin === 'ai' ? 'AI — review' : STATUS_LABEL[i.status]} | ${cell(i.kind)} | ${cell(i.name)}${i.location ? ` (${cell(i.location)})` : ''} | ${cell(i.mappedTo ?? '')} | ${cell(i.detail ?? '')} |`)
   }
   return lines.join('\n') + '\n'
 }

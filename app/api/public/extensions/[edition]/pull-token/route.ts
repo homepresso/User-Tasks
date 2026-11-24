@@ -8,7 +8,9 @@ import { defaultPullServiceDeps, requestIpHash } from '@/lib/editions/server'
 
 /**
  * Licence-gated edition downloads (usertasks.com):
- *   POST /api/public/extensions/sharepoint/pull-token
+ *   POST /api/public/extensions/enterprise/pull-token   (any licence for an extension the build contains)
+ *   POST /api/public/extensions/sharepoint/pull-token   (the SharePoint edition alias: served the
+ *                                                        Enterprise image once it is configured)
  *   { licence, version?, purpose?, instance_id? } → a 30-minute, read-only
  *   credential for the usertasks.com registry front and the signed edition
  *   manifest (lib/editions/pull-service.ts has the full contract).

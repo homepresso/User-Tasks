@@ -1,0 +1,123 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+  "asset": {
+    "id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+    "name": "Recognition",
+    "description": "The kudos wall: who recognised whom, for which company value, with a message and points.",
+    "columns": [
+      {
+        "id": "ff0cbf0a-bf16-5922-b028-2226b67106f4",
+        "required": true,
+        "key": "kudos_ref",
+        "name": "Kudos",
+        "type": "text"
+      },
+      {
+        "id": "b6b5c2c1-6171-523d-bbd3-07886ad3e1a5",
+        "required": false,
+        "key": "headline",
+        "name": "Headline",
+        "type": "text"
+      },
+      {
+        "id": "9e8de03e-0e7c-5461-8eac-db3368f00a5a",
+        "required": false,
+        "key": "from_name",
+        "name": "From",
+        "type": "text"
+      },
+      {
+        "id": "118581f5-c6ea-5955-99c0-4d36cd58d75a",
+        "required": false,
+        "key": "from_email",
+        "name": "From (email)",
+        "type": "email"
+      },
+      {
+        "id": "4c17a331-382a-5bc2-9380-a57e6e0efe85",
+        "required": false,
+        "key": "from_department",
+        "name": "From department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "0c0fdd57-1e17-5390-811c-caff4dfb37b5",
+        "required": false,
+        "key": "to_name",
+        "name": "To",
+        "type": "text"
+      },
+      {
+        "id": "38fec0a0-088c-5643-b9e6-ac153b4c5a61",
+        "required": false,
+        "key": "to_email",
+        "name": "To (email)",
+        "type": "email"
+      },
+      {
+        "id": "848d3a3c-25bc-5423-b888-0065923141d6",
+        "required": false,
+        "key": "to_department",
+        "name": "To department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "b66931ca-0635-5d7c-9f96-c1e00f16ecaf",
+        "required": false,
+        "key": "value",
+        "name": "Value",
+        "type": "select",
+        "options": [
+          "Customer obsessed",
+          "Own it",
+          "Better together",
+          "Raise the bar",
+          "Do the right thing"
+        ]
+      },
+      {
+        "id": "26cda586-373e-5684-aff0-45e79666959b",
+        "required": false,
+        "key": "message",
+        "name": "Message",
+        "type": "text"
+      },
+      {
+        "id": "8f7e42da-2e37-5431-8dd7-e7e65508a35f",
+        "required": false,
+        "key": "points",
+        "name": "Points",
+        "type": "number"
+      },
+      {
+        "id": "31bdda2b-a87d-56e7-b209-c2ee5b6d7507",
+        "required": false,
+        "key": "given_on",
+        "name": "Given on",
+        "type": "date"
+      }
+    ]
+  }
+}

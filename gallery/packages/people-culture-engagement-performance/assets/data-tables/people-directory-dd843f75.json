@@ -1,0 +1,133 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "dd843f75-566b-550e-a932-995223d44564",
+  "asset": {
+    "id": "dd843f75-566b-550e-a932-995223d44564",
+    "name": "People directory",
+    "description": "The employee directory the surveys, reviews, goals and recognition read: department, manager, location and tenure band. Replace the sample with your own (import a CSV or sync your HR system).",
+    "columns": [
+      {
+        "id": "86da25c7-adde-557f-ac74-daa57418f49f",
+        "required": true,
+        "key": "employee_id",
+        "name": "Employee ID",
+        "type": "text"
+      },
+      {
+        "id": "a3aef2a6-20a8-5d44-af40-ce53b5c232b3",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "33fc28d3-406b-511e-8805-db6dd6ac4dca",
+        "required": true,
+        "key": "email",
+        "name": "Email",
+        "type": "email"
+      },
+      {
+        "id": "b8374556-9945-55b4-99a7-b084f4fc56a4",
+        "required": false,
+        "key": "job_title",
+        "name": "Job title",
+        "type": "text"
+      },
+      {
+        "id": "44f356b2-0f69-5722-bea8-1a88f9252653",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "ea6907fd-4898-53d1-9545-8b1723776f96",
+        "required": false,
+        "key": "manager_name",
+        "name": "Manager",
+        "type": "text"
+      },
+      {
+        "id": "d510c547-7edd-5068-8f93-a83eb0777ca9",
+        "required": false,
+        "key": "manager_email",
+        "name": "Manager email",
+        "type": "email"
+      },
+      {
+        "id": "caaf3d5a-296c-56c0-b39b-ae94d198129a",
+        "required": false,
+        "key": "location",
+        "name": "Location",
+        "type": "select",
+        "options": [
+          "Denver HQ",
+          "Austin",
+          "Chicago",
+          "Remote (US)",
+          "Boise studio"
+        ]
+      },
+      {
+        "id": "5d98070f-6711-573e-b2b0-3b5eebb81a18",
+        "required": false,
+        "key": "tenure_band",
+        "name": "Tenure band",
+        "type": "select",
+        "options": [
+          "Less than 1 year",
+          "1-2 years",
+          "2-5 years",
+          "5+ years"
+        ]
+      },
+      {
+        "id": "47cbbada-2f71-5a75-9c18-84453dd32fca",
+        "required": false,
+        "key": "start_date",
+        "name": "Start date",
+        "type": "date"
+      },
+      {
+        "id": "cac723de-699b-5a04-afe2-ef070dfa2ecd",
+        "required": false,
+        "key": "level",
+        "name": "Level",
+        "type": "select",
+        "options": [
+          "Associate",
+          "Mid",
+          "Senior",
+          "Lead",
+          "Manager",
+          "Director",
+          "Executive"
+        ]
+      },
+      {
+        "id": "b1fbfc0c-e7fc-5b65-8343-7bb3d7c28740",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Active",
+          "On leave",
+          "Left"
+        ]
+      }
+    ]
+  }
+}

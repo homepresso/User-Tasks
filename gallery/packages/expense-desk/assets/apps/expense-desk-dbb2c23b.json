@@ -1,0 +1,609 @@
+{
+  "format_version": 3,
+  "asset_type": "apps",
+  "id": "dbb2c23b-042f-59ce-b62d-a47c6409996a",
+  "asset": {
+    "id": "dbb2c23b-042f-59ce-b62d-a47c6409996a",
+    "name": "Expense desk",
+    "slug": "expense-desk",
+    "subtitle": "Claims, approvals and spend in USD",
+    "description": "Submit an expense claim, follow it to payment, approve your team’s claims and see where the money goes.",
+    "icon": "Receipt",
+    "color": "#0f766e",
+    "menu": [],
+    "settings": {
+      "nav": {
+        "style": "sidebar",
+        "header_style": "plain",
+        "density": "comfortable"
+      },
+      "rules": [
+        {
+          "id": "claim_sent",
+          "name": "Confirm a new claim",
+          "when": {
+            "type": "form_submitted",
+            "form_id": "c654788a-0c51-533a-90df-f1ce5dd41129"
+          },
+          "then": [
+            {
+              "type": "message",
+              "text": "Claim submitted. It is now with your manager.",
+              "tone": "success"
+            },
+            {
+              "type": "refresh",
+              "widgets": []
+            }
+          ]
+        }
+      ],
+      "style": {
+        "default": {
+          "radius": "lg",
+          "shadow": "sm"
+        },
+        "presets": [
+          {
+            "name": "Callout",
+            "style": {
+              "colors": {
+                "background": "token:subtle",
+                "border": "token:border"
+              },
+              "shadow": "none"
+            }
+          }
+        ]
+      }
+    },
+    "pages": [
+      {
+        "id": "990e207c-e79b-5867-97aa-e9520edba59d",
+        "slug": "home",
+        "title": "Home",
+        "icon": "House",
+        "position": 0,
+        "layout": {
+          "widgets": [
+            {
+              "id": "welcome",
+              "w": 12,
+              "h": 2,
+              "type": "announcement",
+              "config": {
+                "html": "<p><strong>Payment run:</strong> claims approved by the 25th are paid at the end of the month. Keep your receipts until the claim is paid.</p>",
+                "tone": "info"
+              }
+            },
+            {
+              "id": "actions",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "New claim",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "lg",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "New expense claim"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "c654788a-0c51-533a-90df-f1ce5dd41129",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "My claims",
+                    "icon": "ListChecks",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "my-claims"
+                    }
+                  },
+                  {
+                    "label": "Approvals",
+                    "icon": "ClipboardCheck",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "badge": "my_tasks",
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "approvals"
+                    }
+                  },
+                  {
+                    "label": "Expense policy",
+                    "icon": "BookOpen",
+                    "icon_position": "left",
+                    "style": "ghost",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "open_url",
+                      "url": "https://intranet.example.com/policies/expenses",
+                      "new_tab": true
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "spend",
+              "title": "Claimed (USD)",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "amount",
+                "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+                "format": "currency",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "DollarSign",
+                "accent": "teal"
+              }
+            },
+            {
+              "id": "avg",
+              "title": "Average claim (USD)",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "amount",
+                "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+                "format": "currency",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "Calculator",
+                "accent": "blue"
+              }
+            },
+            {
+              "id": "month",
+              "title": "Claims this month",
+              "w": 3,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "submissions",
+                "aggregate": "count",
+                "form_id": "c654788a-0c51-533a-90df-f1ce5dd41129",
+                "date_range": {
+                  "preset": "this_month"
+                },
+                "compare_previous": true,
+                "icon": "FileText",
+                "accent": "violet",
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "waiting",
+              "title": "Waiting for approval",
+              "w": 3,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "workflow_id": "defbf102-7c16-5305-a94e-dc58cda7d996",
+                "status": "open",
+                "compare_previous": false,
+                "icon": "Hourglass",
+                "accent": "amber",
+                "click": {
+                  "page": "approvals"
+                },
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "by_category",
+              "title": "Spend by category (USD)",
+              "w": 6,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "category",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "amount",
+                "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "mine",
+              "title": "My recent claims",
+              "w": 6,
+              "h": 8,
+              "type": "my_submissions",
+              "config": {
+                "form_id": "c654788a-0c51-533a-90df-f1ce5dd41129",
+                "limit": 8
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "f8124338-8656-5339-a053-89c375f910d8",
+        "slug": "my-claims",
+        "title": "My claims",
+        "icon": "ListChecks",
+        "position": 1,
+        "layout": {
+          "widgets": [
+            {
+              "id": "actions",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "New claim",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "lg",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "New expense claim"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "c654788a-0c51-533a-90df-f1ce5dd41129",
+                      "open": "drawer"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "mine",
+              "title": "My claims",
+              "w": 7,
+              "h": 9,
+              "type": "my_submissions",
+              "config": {
+                "form_id": "c654788a-0c51-533a-90df-f1ce5dd41129",
+                "limit": 25
+              }
+            },
+            {
+              "id": "latest",
+              "title": "Where is my latest claim?",
+              "w": 5,
+              "h": 9,
+              "type": "run_timeline",
+              "config": {
+                "workflow_id": "defbf102-7c16-5305-a94e-dc58cda7d996"
+              }
+            },
+            {
+              "id": "how",
+              "title": "How claims are approved",
+              "style": {
+                "preset": "Callout"
+              },
+              "w": 12,
+              "h": 3,
+              "type": "text",
+              "config": {
+                "html": "<ol><li>Your manager approves or rejects the claim (they can adjust the amount).</li><li>Finance pays approved claims in the next payment run.</li><li>Claims over the category limit are flagged for your manager.</li></ol>"
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "ac7d5d78-c6d2-5e3f-8b31-ef1ac90acf0a",
+        "slug": "approvals",
+        "title": "Approvals",
+        "icon": "ClipboardCheck",
+        "position": 2,
+        "layout": {
+          "widgets": [
+            {
+              "id": "queue",
+              "title": "Waiting for my approval",
+              "w": 7,
+              "h": 9,
+              "type": "task_list",
+              "config": {
+                "scope": "mine",
+                "workflow_id": "defbf102-7c16-5305-a94e-dc58cda7d996",
+                "status": "open",
+                "limit": 10,
+                "show_claim": true,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "sla",
+              "title": "Approval SLA",
+              "w": 5,
+              "h": 5,
+              "type": "sla",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "defbf102-7c16-5305-a94e-dc58cda7d996",
+                "status": "open",
+                "at_risk_hours": 24
+              }
+            },
+            {
+              "id": "export",
+              "w": 5,
+              "h": 4,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Download open approvals",
+                    "icon": "Download",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "description": "Every open approval and payment as a spreadsheet.",
+                    "action": {
+                      "kind": "download_report",
+                      "report_id": "b646f73f-23ef-5319-9865-8307dd58d882"
+                    }
+                  },
+                  {
+                    "label": "Claim the next one",
+                    "icon": "Hand",
+                    "icon_position": "left",
+                    "style": "ghost",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "claim_next",
+                      "team": "my_teams"
+                    }
+                  }
+                ],
+                "layout": "column",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "trend",
+              "title": "Approved on time",
+              "w": 6,
+              "h": 7,
+              "type": "sla_trend",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "defbf102-7c16-5305-a94e-dc58cda7d996",
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "week"
+              }
+            },
+            {
+              "id": "cycle",
+              "title": "Time to approve",
+              "w": 6,
+              "h": 7,
+              "type": "cycle_time",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "defbf102-7c16-5305-a94e-dc58cda7d996",
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "week"
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "period",
+            "kind": "date_range",
+            "label": "Period",
+            "default": {
+              "preset": "90d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "bd3441d4-7c7e-5256-a0c0-e0cddad2bba4",
+        "slug": "insights",
+        "title": "Insights",
+        "icon": "ChartPie",
+        "position": 3,
+        "layout": {
+          "widgets": [
+            {
+              "id": "dept",
+              "title": "Spend by department (USD)",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "department",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "amount",
+                "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "status",
+              "title": "Claims by status",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "pie",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "status",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "pivot",
+              "title": "Category by status (USD)",
+              "w": 12,
+              "h": 6,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+                "rows": "field",
+                "row_field": "category",
+                "columns": "field",
+                "column_field": "status",
+                "interval": "month",
+                "aggregate": "sum",
+                "value_field": "amount"
+              }
+            },
+            {
+              "id": "register",
+              "title": "All claims",
+              "w": 12,
+              "h": 10,
+              "type": "data_grid",
+              "config": {
+                "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+                "columns": [
+                  "claim_ref",
+                  "claimant",
+                  "department",
+                  "category",
+                  "merchant",
+                  "amount",
+                  "expense_date",
+                  "status",
+                  "policy"
+                ],
+                "editable": false,
+                "group_by": "status",
+                "page_size": 25
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          },
+          "rules": [
+            {
+              "id": "open_claim",
+              "name": "Open a claim in a side panel",
+              "enabled": true,
+              "when": {
+                "type": "row_click",
+                "widget": "register"
+              },
+              "then": [
+                {
+                  "type": "open_target",
+                  "target": {
+                    "kind": "record",
+                    "table_id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+                    "row_id": "{{event.row.id}}"
+                  },
+                  "open_mode": {
+                    "mode": "panel_right",
+                    "width": "md",
+                    "motion": "slide",
+                    "resizable": true
+                  },
+                  "title": "{{event.row.claim_ref}}"
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": []
+      }
+    ]
+  }
+}

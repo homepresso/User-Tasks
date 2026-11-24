@@ -1,0 +1,2561 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "dd843f75-566b-550e-a932-995223d44564",
+  "asset": {
+    "id": "dd843f75-566b-550e-a932-995223d44564",
+    "name": "People directory rows",
+    "rows": [
+      {
+        "id": "bdc0aaf5-afd7-53ec-8c65-354fad98e47a",
+        "data": {
+          "employee_id": "FH-0001",
+          "name": "Rosa Ortiz",
+          "email": "rosa.ortiz@fernhill.example",
+          "job_title": "Chief Executive Officer",
+          "department": "People & Operations",
+          "manager_name": "",
+          "manager_email": "",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2018-04-03",
+          "level": "Executive",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "c9b9414e-7084-5f48-b300-71a3f8c8a285",
+        "data": {
+          "employee_id": "FH-0002",
+          "name": "Daniel Okafor",
+          "email": "daniel.okafor@fernhill.example",
+          "job_title": "VP of Engineering",
+          "department": "Engineering",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2018-09-17",
+          "level": "Director",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "582375b2-81fe-5b6c-b27a-855a87e2e74e",
+        "data": {
+          "employee_id": "FH-0003",
+          "name": "Owen Gallagher",
+          "email": "owen.gallagher@fernhill.example",
+          "job_title": "Engineering manager",
+          "department": "Engineering",
+          "manager_name": "Daniel Okafor",
+          "manager_email": "daniel.okafor@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-09-22",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "8e538a26-d95b-51ea-8e88-ab7631000963",
+        "data": {
+          "employee_id": "FH-0004",
+          "name": "Alex Ward",
+          "email": "alex.ward@fernhill.example",
+          "job_title": "Engineering manager",
+          "department": "Engineering",
+          "manager_name": "Daniel Okafor",
+          "manager_email": "daniel.okafor@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-05-03",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "a05abe90-28c2-5d86-aae6-753f564664b4",
+        "data": {
+          "employee_id": "FH-0005",
+          "name": "Jamal Alvarez",
+          "email": "jamal.alvarez@fernhill.example",
+          "job_title": "Engineering manager",
+          "department": "Engineering",
+          "manager_name": "Daniel Okafor",
+          "manager_email": "daniel.okafor@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2024-12-28",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "07ce4044-c24d-555d-8f71-1a819f22b76c",
+        "data": {
+          "employee_id": "FH-0006",
+          "name": "Hannah Owens",
+          "email": "hannah.owens@fernhill.example",
+          "job_title": "Site reliability engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-03-29",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "3905d711-0dd0-5466-856e-83d5ecd86b43",
+        "data": {
+          "employee_id": "FH-0007",
+          "name": "Sofia Price",
+          "email": "sofia.price@fernhill.example",
+          "job_title": "QA engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-04-16",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "18f34b05-8c9d-5ea1-a5a0-94d1fb8eef38",
+        "data": {
+          "employee_id": "FH-0008",
+          "name": "Iris Kapoor",
+          "email": "iris.kapoor@fernhill.example",
+          "job_title": "Engineering manager",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-03-27",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "14b11a91-0d28-5c92-a31c-4ac98b2e3af0",
+        "data": {
+          "employee_id": "FH-0009",
+          "name": "Esme Silva",
+          "email": "esme.silva@fernhill.example",
+          "job_title": "Software engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-07-26",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "74dbe603-7d05-5123-95b7-274f8ce01df4",
+        "data": {
+          "employee_id": "FH-0010",
+          "name": "Diego Weber",
+          "email": "diego.weber@fernhill.example",
+          "job_title": "Senior software engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "5+ years",
+          "start_date": "2019-05-09",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "8c6d6bbd-98cd-5360-98e1-7196c7dc27f6",
+        "data": {
+          "employee_id": "FH-0011",
+          "name": "Rahul Mori",
+          "email": "rahul.mori@fernhill.example",
+          "job_title": "Staff engineer",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "5+ years",
+          "start_date": "2018-11-16",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d39b6c63-e7f5-5d51-9fe7-f6340a18563d",
+        "data": {
+          "employee_id": "FH-0012",
+          "name": "Lucía Laurent",
+          "email": "lucia.laurent@fernhill.example",
+          "job_title": "Site reliability engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2020-08-11",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "558955f7-9180-5ccc-a888-36f95d353d0f",
+        "data": {
+          "employee_id": "FH-0013",
+          "name": "Ingrid Silva",
+          "email": "ingrid.silva@fernhill.example",
+          "job_title": "QA engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-09-10",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "4decde4a-b7a1-555d-8c5e-3c49ad3ecd6e",
+        "data": {
+          "employee_id": "FH-0014",
+          "name": "Chloe Sato",
+          "email": "chloe.sato@fernhill.example",
+          "job_title": "Engineering manager",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-03-23",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "a5ff5daa-1363-5ed6-848b-7a4418cb6519",
+        "data": {
+          "employee_id": "FH-0015",
+          "name": "Felix Iyer",
+          "email": "felix.iyer@fernhill.example",
+          "job_title": "Software engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-08-25",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "6656688b-67ca-5eb5-bd9b-aa96ce86c1e7",
+        "data": {
+          "employee_id": "FH-0016",
+          "name": "Fatima Kim",
+          "email": "fatima.kim@fernhill.example",
+          "job_title": "Senior software engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-01-24",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d658e3ce-0a7b-52a0-a16a-f4f4f4d42ea2",
+        "data": {
+          "employee_id": "FH-0017",
+          "name": "Hugo Rossi",
+          "email": "hugo.rossi@fernhill.example",
+          "job_title": "Staff engineer",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-10-07",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "5ab746bb-24fc-540e-af2e-2f4b4bf1eece",
+        "data": {
+          "employee_id": "FH-0018",
+          "name": "Lucas Schmidt",
+          "email": "lucas.schmidt@fernhill.example",
+          "job_title": "Site reliability engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-07-11",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "37c59ec7-c0c9-5889-841b-22a7eec72ed6",
+        "data": {
+          "employee_id": "FH-0019",
+          "name": "Talia Tanaka",
+          "email": "talia.tanaka@fernhill.example",
+          "job_title": "QA engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-08-28",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "fe77a141-3663-5ec8-a9ca-3b3b35265219",
+        "data": {
+          "employee_id": "FH-0020",
+          "name": "Rosa Morgan",
+          "email": "rosa.morgan@fernhill.example",
+          "job_title": "Engineering manager",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-02-14",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "3bc841db-ec14-521f-b2f7-1da7bb4f6760",
+        "data": {
+          "employee_id": "FH-0021",
+          "name": "Zoe Levi",
+          "email": "zoe.levi@fernhill.example",
+          "job_title": "Software engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "5+ years",
+          "start_date": "2017-02-27",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "0b59e909-85fb-5a89-a681-cce7bb09f7a6",
+        "data": {
+          "employee_id": "FH-0022",
+          "name": "Talia Jordan",
+          "email": "talia.jordan@fernhill.example",
+          "job_title": "Senior software engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2021-09-07",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "c9c5fa46-a9a3-5498-b32e-41f4660b7086",
+        "data": {
+          "employee_id": "FH-0023",
+          "name": "Clara Quinn",
+          "email": "clara.quinn@fernhill.example",
+          "job_title": "Staff engineer",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-04-29",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "cdb8edf8-957f-5384-adcd-69617514dbd5",
+        "data": {
+          "employee_id": "FH-0024",
+          "name": "Zoe Price",
+          "email": "zoe.price@fernhill.example",
+          "job_title": "Site reliability engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-09-26",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "2c7fa52c-b11f-5b41-b53d-c161f6b94c8d",
+        "data": {
+          "employee_id": "FH-0025",
+          "name": "Ben Murphy",
+          "email": "ben.murphy@fernhill.example",
+          "job_title": "QA engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-04-22",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "9f196372-a45b-5e26-b44f-54134aec8bc8",
+        "data": {
+          "employee_id": "FH-0026",
+          "name": "Andre Laurent",
+          "email": "andre.laurent@fernhill.example",
+          "job_title": "Engineering manager",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-04-04",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "b88a1f1c-2165-57e3-82b7-90a2eb61ae1e",
+        "data": {
+          "employee_id": "FH-0027",
+          "name": "Andre Kim",
+          "email": "andre.kim@fernhill.example",
+          "job_title": "Software engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-09-03",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "ef0ac420-a64a-527c-908b-e273b3bb3da5",
+        "data": {
+          "employee_id": "FH-0028",
+          "name": "Talia Costa",
+          "email": "talia.costa@fernhill.example",
+          "job_title": "Senior software engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-05-02",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "183cc4e7-8e90-5331-a3a1-8e72a5f3aee6",
+        "data": {
+          "employee_id": "FH-0029",
+          "name": "Yuki Berg",
+          "email": "yuki.berg@fernhill.example",
+          "job_title": "Staff engineer",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-09-03",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d3cd9bb9-5b01-559b-a1b3-04ec027bb3ba",
+        "data": {
+          "employee_id": "FH-0030",
+          "name": "Alex Schmidt",
+          "email": "alex.schmidt@fernhill.example",
+          "job_title": "Site reliability engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-08-26",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "9ccb2d20-6bad-53e8-9809-c381c553d72d",
+        "data": {
+          "employee_id": "FH-0031",
+          "name": "Malik Kim",
+          "email": "malik.kim@fernhill.example",
+          "job_title": "QA engineer",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-02-07",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "01146b88-d25d-5902-891a-c7b41905a919",
+        "data": {
+          "employee_id": "FH-0032",
+          "name": "Jonas Patel",
+          "email": "jonas.patel@fernhill.example",
+          "job_title": "Engineering manager",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2020-02-05",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "58988629-ca7d-5e4e-ab5e-e280ba8d457a",
+        "data": {
+          "employee_id": "FH-0033",
+          "name": "Clara Haddad",
+          "email": "clara.haddad@fernhill.example",
+          "job_title": "Software engineer",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-10-23",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "1122433d-c2c0-59cc-9f6e-ff1b2205d013",
+        "data": {
+          "employee_id": "FH-0034",
+          "name": "Priya Raman",
+          "email": "priya.raman@fernhill.example",
+          "job_title": "Head of Product",
+          "department": "Product",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2021-02-09",
+          "level": "Director",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "2378eb2f-47a6-5707-9b2c-15717f1320cf",
+        "data": {
+          "employee_id": "FH-0035",
+          "name": "Rosa Chen",
+          "email": "rosa.chen@fernhill.example",
+          "job_title": "Product manager (team lead)",
+          "department": "Product",
+          "manager_name": "Priya Raman",
+          "manager_email": "priya.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2021-02-16",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "05456a91-14ba-5217-a993-98e744e1d50c",
+        "data": {
+          "employee_id": "FH-0036",
+          "name": "Kenji Sato",
+          "email": "kenji.sato@fernhill.example",
+          "job_title": "Product manager",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2020-09-28",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "67fefbe0-19ba-53c0-9e84-28aacb2424e8",
+        "data": {
+          "employee_id": "FH-0037",
+          "name": "Grace Larsen",
+          "email": "grace.larsen@fernhill.example",
+          "job_title": "Senior product manager",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2020-04-02",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "1badfc2d-01cd-50be-ac26-d3887597fb62",
+        "data": {
+          "employee_id": "FH-0038",
+          "name": "Liam Mensah",
+          "email": "liam.mensah@fernhill.example",
+          "job_title": "Product analyst",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-03-16",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "f56f0ac1-bcc9-59db-9ad7-fadae25d4423",
+        "data": {
+          "employee_id": "FH-0039",
+          "name": "Marcus Brooks",
+          "email": "marcus.brooks@fernhill.example",
+          "job_title": "Product manager",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-02-03",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "a616b59a-8090-557b-9de0-be57304b09c4",
+        "data": {
+          "employee_id": "FH-0040",
+          "name": "Victor Grant",
+          "email": "victor.grant@fernhill.example",
+          "job_title": "Senior product manager",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-08-29",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "52cf68ba-2725-590c-a808-77b3e78a5da6",
+        "data": {
+          "employee_id": "FH-0041",
+          "name": "Nadia Hughes",
+          "email": "nadia.hughes@fernhill.example",
+          "job_title": "Product analyst",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-02-16",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "21e6f29d-8e94-5bf9-b500-af60e750a58e",
+        "data": {
+          "employee_id": "FH-0042",
+          "name": "Ava Novak",
+          "email": "ava.novak@fernhill.example",
+          "job_title": "Product manager",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-08-26",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "ca96914c-06e7-5a97-858b-4f6a2a7b02d0",
+        "data": {
+          "employee_id": "FH-0043",
+          "name": "Clara Farouk",
+          "email": "clara.farouk@fernhill.example",
+          "job_title": "Senior product manager",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-02-17",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "b8553918-3d70-58bd-be82-3a5140e0dfc1",
+        "data": {
+          "employee_id": "FH-0044",
+          "name": "Ravi Haddad",
+          "email": "ravi.haddad@fernhill.example",
+          "job_title": "Product analyst",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-09-07",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "f87c6b7b-de49-5b85-a7a8-1b14ca31ac6b",
+        "data": {
+          "employee_id": "FH-0045",
+          "name": "Ethan Fraser",
+          "email": "ethan.fraser@fernhill.example",
+          "job_title": "Product manager",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-02-09",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "9b598830-d96c-5b2b-8a53-179a06334b55",
+        "data": {
+          "employee_id": "FH-0046",
+          "name": "Aiko Tanaka",
+          "email": "aiko.tanaka@fernhill.example",
+          "job_title": "Head of Design",
+          "department": "Design",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2021-08-06",
+          "level": "Director",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "178489ad-5e16-539f-8948-b5d01372669a",
+        "data": {
+          "employee_id": "FH-0047",
+          "name": "Marcus Patel",
+          "email": "marcus.patel@fernhill.example",
+          "job_title": "Product designer (team lead)",
+          "department": "Design",
+          "manager_name": "Aiko Tanaka",
+          "manager_email": "aiko.tanaka@fernhill.example",
+          "location": "Boise studio",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-03-26",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "277e6bf3-a4a3-5b2b-a622-73c84f0c9815",
+        "data": {
+          "employee_id": "FH-0048",
+          "name": "Jonas Farouk",
+          "email": "jonas.farouk@fernhill.example",
+          "job_title": "UX researcher",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "location": "Boise studio",
+          "tenure_band": "5+ years",
+          "start_date": "2020-12-27",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "5652500e-9935-57e2-8197-0e4874849871",
+        "data": {
+          "employee_id": "FH-0049",
+          "name": "Caleb Ward",
+          "email": "caleb.ward@fernhill.example",
+          "job_title": "Product designer",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "location": "Boise studio",
+          "tenure_band": "5+ years",
+          "start_date": "2018-01-03",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "7f2d937d-1b86-5d3c-ae64-9c90f7a0fe4d",
+        "data": {
+          "employee_id": "FH-0050",
+          "name": "Arjun Kapoor",
+          "email": "arjun.kapoor@fernhill.example",
+          "job_title": "Senior product designer",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "location": "Boise studio",
+          "tenure_band": "5+ years",
+          "start_date": "2021-10-23",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "95c65a3a-7e0b-5e8e-91a1-16e7ec68d1a2",
+        "data": {
+          "employee_id": "FH-0051",
+          "name": "Isla Carter",
+          "email": "isla.carter@fernhill.example",
+          "job_title": "UX researcher",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "location": "Boise studio",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-07-03",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "1c4862e8-b60b-5232-82d4-25876c2348c4",
+        "data": {
+          "employee_id": "FH-0052",
+          "name": "Caleb Iyer",
+          "email": "caleb.iyer@fernhill.example",
+          "job_title": "Product designer",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-08-07",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "3bb68138-a965-544e-a693-761690245188",
+        "data": {
+          "employee_id": "FH-0053",
+          "name": "Mateo Rossi",
+          "email": "mateo.rossi@fernhill.example",
+          "job_title": "Senior product designer",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-01-23",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "6b8bfdeb-96ff-5aef-b6ac-16a5f3887024",
+        "data": {
+          "employee_id": "FH-0054",
+          "name": "Iris Jordan",
+          "email": "iris.jordan@fernhill.example",
+          "job_title": "UX researcher",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-01-13",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "5759deb9-f8f5-511d-8b85-d01697136ae4",
+        "data": {
+          "employee_id": "FH-0055",
+          "name": "Samir Grant",
+          "email": "samir.grant@fernhill.example",
+          "job_title": "Product designer",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-06-18",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "c89f7edd-6220-5357-b83f-1896a0a36a0b",
+        "data": {
+          "employee_id": "FH-0056",
+          "name": "Sam Torres",
+          "email": "sam.torres@fernhill.example",
+          "job_title": "VP of Sales",
+          "department": "Sales",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2020-07-05",
+          "level": "Director",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "cc3d1b50-a019-5be4-9e17-0a258a0df704",
+        "data": {
+          "employee_id": "FH-0057",
+          "name": "Nora Raman",
+          "email": "nora.raman@fernhill.example",
+          "job_title": "Sales manager",
+          "department": "Sales",
+          "manager_name": "Sam Torres",
+          "manager_email": "sam.torres@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-02-14",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "e143abe1-449c-540e-90d7-e1ed9b1d4797",
+        "data": {
+          "employee_id": "FH-0058",
+          "name": "Lucas Raman",
+          "email": "lucas.raman@fernhill.example",
+          "job_title": "Sales manager",
+          "department": "Sales",
+          "manager_name": "Sam Torres",
+          "manager_email": "sam.torres@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-01-14",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "ce95490c-7b4f-5497-8a93-bc5d8871c206",
+        "data": {
+          "employee_id": "FH-0059",
+          "name": "Kwame Okafor",
+          "email": "kwame.okafor@fernhill.example",
+          "job_title": "Sales engineer",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2019-10-13",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "dae9cb28-f952-5d4b-b58e-e9fcd46969a9",
+        "data": {
+          "employee_id": "FH-0060",
+          "name": "Rahul Tanaka",
+          "email": "rahul.tanaka@fernhill.example",
+          "job_title": "Sales manager",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2019-06-29",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "edf7245e-a587-5d89-93b7-ebafb39bb75b",
+        "data": {
+          "employee_id": "FH-0061",
+          "name": "June Bennett",
+          "email": "june.bennett@fernhill.example",
+          "job_title": "Account executive",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2018-08-27",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "2295f9ed-0454-51c2-84e9-0106a4079bae",
+        "data": {
+          "employee_id": "FH-0062",
+          "name": "Ava Ward",
+          "email": "ava.ward@fernhill.example",
+          "job_title": "Sales development rep",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-01-18",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "acf99ac1-9863-503a-ad2c-9685291581f9",
+        "data": {
+          "employee_id": "FH-0063",
+          "name": "Chloe Grant",
+          "email": "chloe.grant@fernhill.example",
+          "job_title": "Senior account executive",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-01-25",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "53dd5e35-9a91-581f-a010-008f96e9d1ac",
+        "data": {
+          "employee_id": "FH-0064",
+          "name": "Elena Tanaka",
+          "email": "elena.tanaka@fernhill.example",
+          "job_title": "Sales engineer",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-06-24",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "58be1900-5738-54bf-aacf-85567e8651c1",
+        "data": {
+          "employee_id": "FH-0065",
+          "name": "Caleb Berg",
+          "email": "caleb.berg@fernhill.example",
+          "job_title": "Sales manager",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2024-12-10",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "8ca70b4c-eb44-5058-8c1c-42dbbab78b28",
+        "data": {
+          "employee_id": "FH-0066",
+          "name": "Ava Okafor",
+          "email": "ava.okafor@fernhill.example",
+          "job_title": "Account executive",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-04-10",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "c00a5541-5fb3-5e3f-b5c2-67f38236643c",
+        "data": {
+          "employee_id": "FH-0067",
+          "name": "Jonas Park",
+          "email": "jonas.park@fernhill.example",
+          "job_title": "Sales development rep",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-01-27",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "f2878811-2dab-5276-a8f8-f978ac622808",
+        "data": {
+          "employee_id": "FH-0068",
+          "name": "Nora Torres",
+          "email": "nora.torres@fernhill.example",
+          "job_title": "Senior account executive",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-03-15",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "75c91d6d-a5d9-52c4-ae49-97afe3ed45cf",
+        "data": {
+          "employee_id": "FH-0069",
+          "name": "Sofia Quinn",
+          "email": "sofia.quinn@fernhill.example",
+          "job_title": "Sales engineer",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-04-29",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "78e12eb8-a5f1-5072-83dd-53503a9f246d",
+        "data": {
+          "employee_id": "FH-0070",
+          "name": "Nora Laurent",
+          "email": "nora.laurent@fernhill.example",
+          "job_title": "Sales manager",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2021-05-13",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "80703b40-5b42-54e6-b9c1-30007e68cee9",
+        "data": {
+          "employee_id": "FH-0071",
+          "name": "Zoe Sato",
+          "email": "zoe.sato@fernhill.example",
+          "job_title": "Account executive",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2018-03-09",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "33b1e923-b5ef-54a2-a9b5-94cbf4a41dbb",
+        "data": {
+          "employee_id": "FH-0072",
+          "name": "Tomás Park",
+          "email": "tomas.park@fernhill.example",
+          "job_title": "Sales development rep",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "5+ years",
+          "start_date": "2017-05-23",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "b4a32f3f-83fb-504e-a279-77cbb3d9a740",
+        "data": {
+          "employee_id": "FH-0073",
+          "name": "Maya Haddad",
+          "email": "maya.haddad@fernhill.example",
+          "job_title": "Senior account executive",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-09-02",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "6a36817b-5755-580f-a2c5-7162d0148bfc",
+        "data": {
+          "employee_id": "FH-0074",
+          "name": "Malik Quinn",
+          "email": "malik.quinn@fernhill.example",
+          "job_title": "Sales engineer",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-08-20",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "01e09b53-a670-5c98-937f-e8be0537807e",
+        "data": {
+          "employee_id": "FH-0075",
+          "name": "June Silva",
+          "email": "june.silva@fernhill.example",
+          "job_title": "Sales manager",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-08-17",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "952034cc-1109-51dc-9ebf-c3d5df1c554a",
+        "data": {
+          "employee_id": "FH-0076",
+          "name": "Ingrid Alvarez",
+          "email": "ingrid.alvarez@fernhill.example",
+          "job_title": "Account executive",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2024-12-26",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d7eeb4f9-a1e4-5860-93cd-603375be7a15",
+        "data": {
+          "employee_id": "FH-0077",
+          "name": "Oscar Fernández",
+          "email": "oscar.fernandez@fernhill.example",
+          "job_title": "Sales development rep",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-05-10",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "ead35a3f-ca20-5445-91cd-06c3f4fd7cfe",
+        "data": {
+          "employee_id": "FH-0078",
+          "name": "Oscar Levi",
+          "email": "oscar.levi@fernhill.example",
+          "job_title": "Senior account executive",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2021-12-24",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "173ae2dd-deb1-5657-8bba-99ece96261cf",
+        "data": {
+          "employee_id": "FH-0079",
+          "name": "Isla Raman",
+          "email": "isla.raman@fernhill.example",
+          "job_title": "Sales engineer",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-10-10",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "f1ea7c17-d082-5f1e-b4e5-dab0940c14fb",
+        "data": {
+          "employee_id": "FH-0080",
+          "name": "Omar Murphy",
+          "email": "omar.murphy@fernhill.example",
+          "job_title": "Sales manager",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-01-07",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "7efff136-e096-5158-b0d5-c14ae5e6ef5c",
+        "data": {
+          "employee_id": "FH-0081",
+          "name": "Owen Rahman",
+          "email": "owen.rahman@fernhill.example",
+          "job_title": "Account executive",
+          "department": "Sales",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2018-04-16",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "573b4fff-cbc1-50b5-859a-baf23564794c",
+        "data": {
+          "employee_id": "FH-0082",
+          "name": "Grace Kim",
+          "email": "grace.kim@fernhill.example",
+          "job_title": "Head of Customer Success",
+          "department": "Customer Success",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2021-02-22",
+          "level": "Director",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "73552c75-8d19-5431-9b82-e82c803621c4",
+        "data": {
+          "employee_id": "FH-0083",
+          "name": "Yuki Sato",
+          "email": "yuki.sato@fernhill.example",
+          "job_title": "Support team lead",
+          "department": "Customer Success",
+          "manager_name": "Grace Kim",
+          "manager_email": "grace.kim@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-07-26",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d1349059-c9c4-50a8-88d2-363666c6c643",
+        "data": {
+          "employee_id": "FH-0084",
+          "name": "Arjun Wagner",
+          "email": "arjun.wagner@fernhill.example",
+          "job_title": "Support team lead",
+          "department": "Customer Success",
+          "manager_name": "Grace Kim",
+          "manager_email": "grace.kim@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-06-24",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "05917caf-2f14-5a7b-af9f-bc1f5843bb77",
+        "data": {
+          "employee_id": "FH-0085",
+          "name": "June Laurent",
+          "email": "june.laurent@fernhill.example",
+          "job_title": "Support team lead",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-06-18",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "1d303515-9b71-5171-b668-39884e325078",
+        "data": {
+          "employee_id": "FH-0086",
+          "name": "Victor Okafor",
+          "email": "victor.okafor@fernhill.example",
+          "job_title": "Customer success manager",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2018-02-07",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "694945f5-cec6-5da7-b277-006a7872f3bb",
+        "data": {
+          "employee_id": "FH-0087",
+          "name": "Priya Price",
+          "email": "priya.price@fernhill.example",
+          "job_title": "Support specialist",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2018-04-21",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "79b6120e-2977-5978-8f25-cead918172ab",
+        "data": {
+          "employee_id": "FH-0088",
+          "name": "Maya Bennett",
+          "email": "maya.bennett@fernhill.example",
+          "job_title": "Implementation consultant",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-09-10",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "c8347523-f4e2-517e-bcd4-eba8ac01c834",
+        "data": {
+          "employee_id": "FH-0089",
+          "name": "Nora Rahman",
+          "email": "nora.rahman@fernhill.example",
+          "job_title": "Support team lead",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-03-15",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "de3e3e68-0b1b-54d7-b91b-8c32f16530fd",
+        "data": {
+          "employee_id": "FH-0090",
+          "name": "Lena Quinn",
+          "email": "lena.quinn@fernhill.example",
+          "job_title": "Customer success manager",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-11-07",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "1a6fef31-a83a-579f-8dd9-bc228b12da52",
+        "data": {
+          "employee_id": "FH-0091",
+          "name": "Kenji Park",
+          "email": "kenji.park@fernhill.example",
+          "job_title": "Support specialist",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-09-28",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "197d2b4b-3e62-5de0-a275-4ee159ca55db",
+        "data": {
+          "employee_id": "FH-0092",
+          "name": "Aiko Mensah",
+          "email": "aiko.mensah@fernhill.example",
+          "job_title": "Implementation consultant",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-06-06",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "ac5cb9c6-9b38-5ecb-a8db-8a2bed5196dc",
+        "data": {
+          "employee_id": "FH-0093",
+          "name": "Ethan Larsen",
+          "email": "ethan.larsen@fernhill.example",
+          "job_title": "Support team lead",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-05-29",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "48783905-fce3-5b58-a00c-c8dc82fe6f54",
+        "data": {
+          "employee_id": "FH-0094",
+          "name": "Jonas Raman",
+          "email": "jonas.raman@fernhill.example",
+          "job_title": "Customer success manager",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-05-19",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "dc988161-b95f-59cc-b729-0e33f740a474",
+        "data": {
+          "employee_id": "FH-0095",
+          "name": "Leah Mehta",
+          "email": "leah.mehta@fernhill.example",
+          "job_title": "Support specialist",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-07-15",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "57f562a4-8670-5975-b2e4-cd3ea787af3c",
+        "data": {
+          "employee_id": "FH-0096",
+          "name": "Marcus Carter",
+          "email": "marcus.carter@fernhill.example",
+          "job_title": "Implementation consultant",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2021-02-27",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d239e2cd-1f0b-5272-b7d9-4b4cb5ae9d9e",
+        "data": {
+          "employee_id": "FH-0097",
+          "name": "Yuki Mehta",
+          "email": "yuki.mehta@fernhill.example",
+          "job_title": "Support team lead",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "5+ years",
+          "start_date": "2017-10-20",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "3fb39002-4024-5911-9161-1eb5e740a2b9",
+        "data": {
+          "employee_id": "FH-0098",
+          "name": "Clara Tanaka",
+          "email": "clara.tanaka@fernhill.example",
+          "job_title": "Customer success manager",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "5+ years",
+          "start_date": "2019-01-14",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "45542679-629d-5f48-b4db-3193f15aa933",
+        "data": {
+          "employee_id": "FH-0099",
+          "name": "Ben Berg",
+          "email": "ben.berg@fernhill.example",
+          "job_title": "Support specialist",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-07-27",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "cb7a4c18-32b6-5ee4-959a-1db7af975f5c",
+        "data": {
+          "employee_id": "FH-0100",
+          "name": "Ruby Farouk",
+          "email": "ruby.farouk@fernhill.example",
+          "job_title": "Implementation consultant",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-05-07",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "32848486-0757-572a-88ac-dc2f9aa0be45",
+        "data": {
+          "employee_id": "FH-0101",
+          "name": "Rosa Mehta",
+          "email": "rosa.mehta@fernhill.example",
+          "job_title": "Support team lead",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-10-29",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "345b27fb-3fef-57d6-9417-5639462d8326",
+        "data": {
+          "employee_id": "FH-0102",
+          "name": "Elena Larsen",
+          "email": "elena.larsen@fernhill.example",
+          "job_title": "Customer success manager",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-08-13",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "efbf3872-641b-50be-980f-561b0ed66527",
+        "data": {
+          "employee_id": "FH-0103",
+          "name": "Chloe Weber",
+          "email": "chloe.weber@fernhill.example",
+          "job_title": "Support specialist",
+          "department": "Customer Success",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-09-03",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d4a0a2db-a46a-5f28-9316-f5afe2db1dc8",
+        "data": {
+          "employee_id": "FH-0104",
+          "name": "Jonas Berg",
+          "email": "jonas.berg@fernhill.example",
+          "job_title": "Head of Marketing",
+          "department": "Marketing",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2018-05-27",
+          "level": "Director",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "6260bd24-64e6-5509-a85f-2ca4fcc40613",
+        "data": {
+          "employee_id": "FH-0105",
+          "name": "Sofia Torres",
+          "email": "sofia.torres@fernhill.example",
+          "job_title": "Marketing manager (team lead)",
+          "department": "Marketing",
+          "manager_name": "Jonas Berg",
+          "manager_email": "jonas.berg@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-11-17",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "0cbf5a8b-995e-5bf5-81bc-a3f8d15f26df",
+        "data": {
+          "employee_id": "FH-0106",
+          "name": "Marcus Quinn",
+          "email": "marcus.quinn@fernhill.example",
+          "job_title": "Brand designer",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-10-19",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "b488f4bb-e42b-5da0-83d1-40d5d12e2884",
+        "data": {
+          "employee_id": "FH-0107",
+          "name": "Alex Ali",
+          "email": "alex.ali@fernhill.example",
+          "job_title": "Marketing manager",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-05-16",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "befe4180-b9c6-5a2b-9cb5-eb0371a7fa72",
+        "data": {
+          "employee_id": "FH-0108",
+          "name": "Leah Novak",
+          "email": "leah.novak@fernhill.example",
+          "job_title": "Content strategist",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "start_date": "2024-12-20",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "074d45c2-21d6-5305-898a-a865e61d76a1",
+        "data": {
+          "employee_id": "FH-0109",
+          "name": "Owen Ward",
+          "email": "owen.ward@fernhill.example",
+          "job_title": "Growth marketer",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-10-04",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "adf0d092-d256-5f09-acf6-74f182f12b31",
+        "data": {
+          "employee_id": "FH-0110",
+          "name": "Iris Kim",
+          "email": "iris.kim@fernhill.example",
+          "job_title": "Brand designer",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-02-21",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "7dce2ca4-8522-5980-9103-ff213d22acab",
+        "data": {
+          "employee_id": "FH-0111",
+          "name": "Kwame Murphy",
+          "email": "kwame.murphy@fernhill.example",
+          "job_title": "Marketing manager",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-05-06",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "fc9ce658-7793-5dfc-8024-617edb2a183f",
+        "data": {
+          "employee_id": "FH-0112",
+          "name": "Clara Bennett",
+          "email": "clara.bennett@fernhill.example",
+          "job_title": "Content strategist",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-02-12",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "7eb3f40f-d9da-500c-bcd6-71f7259d0415",
+        "data": {
+          "employee_id": "FH-0113",
+          "name": "Rahul Fernández",
+          "email": "rahul.fernandez@fernhill.example",
+          "job_title": "Growth marketer",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-06-01",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "96bada96-fd8e-5ad0-b5d0-5ae72815faa2",
+        "data": {
+          "employee_id": "FH-0114",
+          "name": "Mei Owens",
+          "email": "mei.owens@fernhill.example",
+          "job_title": "Brand designer",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2018-09-01",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "16809dd9-de32-50d5-9fcd-4422605ba626",
+        "data": {
+          "employee_id": "FH-0115",
+          "name": "Rosa Quinn",
+          "email": "rosa.quinn@fernhill.example",
+          "job_title": "Marketing manager",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2018-02-19",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "2695ceba-ebe4-524b-a2b5-6460c3e93bf4",
+        "data": {
+          "employee_id": "FH-0116",
+          "name": "Ravi Okafor",
+          "email": "ravi.okafor@fernhill.example",
+          "job_title": "Content strategist",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2018-12-08",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "980b6d2d-24f2-5417-8e54-d168710689bf",
+        "data": {
+          "employee_id": "FH-0117",
+          "name": "Mateo Dubois",
+          "email": "mateo.dubois@fernhill.example",
+          "job_title": "Growth marketer",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-01-31",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "a538c39f-204f-5419-a7ed-629f7af156da",
+        "data": {
+          "employee_id": "FH-0118",
+          "name": "Felix Wagner",
+          "email": "felix.wagner@fernhill.example",
+          "job_title": "Head of Finance",
+          "department": "Finance",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2020-03-12",
+          "level": "Director",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "9a6f3c9f-2df9-5a10-a2b6-31eb0bba76b9",
+        "data": {
+          "employee_id": "FH-0119",
+          "name": "Lucía Fernández",
+          "email": "lucia.fernandez@fernhill.example",
+          "job_title": "Financial analyst (team lead)",
+          "department": "Finance",
+          "manager_name": "Felix Wagner",
+          "manager_email": "felix.wagner@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2018-12-02",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "0d2e989f-0e29-5b6d-8a98-1352efb3554c",
+        "data": {
+          "employee_id": "FH-0120",
+          "name": "Arjun Gallagher",
+          "email": "arjun.gallagher@fernhill.example",
+          "job_title": "Accountant",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-08-27",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "8c5215fe-1311-564a-b045-9b082c2e96f6",
+        "data": {
+          "employee_id": "FH-0121",
+          "name": "Aiko Wagner",
+          "email": "aiko.wagner@fernhill.example",
+          "job_title": "Payroll specialist",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-11-23",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "dac25f19-c3d0-5ef9-9af3-84e0824b3623",
+        "data": {
+          "employee_id": "FH-0122",
+          "name": "Owen Weber",
+          "email": "owen.weber@fernhill.example",
+          "job_title": "Finance manager",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-05-25",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "8539b2f1-962e-5b0d-bc7e-3f0bb3d5b562",
+        "data": {
+          "employee_id": "FH-0123",
+          "name": "Victor Park",
+          "email": "victor.park@fernhill.example",
+          "job_title": "Financial analyst",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-03-01",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "5ab5f7a7-254f-5a68-9675-b8de7d04e865",
+        "data": {
+          "employee_id": "FH-0124",
+          "name": "Nadia Weber",
+          "email": "nadia.weber@fernhill.example",
+          "job_title": "Accountant",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-08-09",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "cff12d33-d134-5ac2-88a4-8b82aa241fee",
+        "data": {
+          "employee_id": "FH-0125",
+          "name": "Yuki Ward",
+          "email": "yuki.ward@fernhill.example",
+          "job_title": "Payroll specialist",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-02-13",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "bcf46643-3b42-599c-a918-dc9e837ad68e",
+        "data": {
+          "employee_id": "FH-0126",
+          "name": "Theo Mehta",
+          "email": "theo.mehta@fernhill.example",
+          "job_title": "Finance manager",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-01-28",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "85020790-286d-5dad-a033-e0113314c0c2",
+        "data": {
+          "employee_id": "FH-0127",
+          "name": "Noah Novak",
+          "email": "noah.novak@fernhill.example",
+          "job_title": "Financial analyst",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-03-21",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "ca1103b9-13ed-5069-a889-ee092622be3e",
+        "data": {
+          "employee_id": "FH-0128",
+          "name": "Jonas Ortiz",
+          "email": "jonas.ortiz@fernhill.example",
+          "job_title": "Accountant",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-05-16",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "c23793ed-de52-5906-903d-c0db3ced9a77",
+        "data": {
+          "employee_id": "FH-0129",
+          "name": "Lucía Jordan",
+          "email": "lucia.jordan@fernhill.example",
+          "job_title": "Payroll specialist",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-04-24",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "445f4e6b-a493-519e-841c-423a7fd1b2d0",
+        "data": {
+          "employee_id": "FH-0130",
+          "name": "Alex Morgan",
+          "email": "alex.morgan@fernhill.example",
+          "job_title": "Head of People",
+          "department": "People & Operations",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2018-09-01",
+          "level": "Director",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "4dfc6e7c-2f9f-5494-a797-6ef832577654",
+        "data": {
+          "employee_id": "FH-0131",
+          "name": "Maya Patel",
+          "email": "maya.patel@fernhill.example",
+          "job_title": "Senior people partner",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-04-16",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "5b471322-70aa-50c1-813b-245976bbb70f",
+        "data": {
+          "employee_id": "FH-0132",
+          "name": "Alex Quinn",
+          "email": "alex.quinn@fernhill.example",
+          "job_title": "People partner (team lead)",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-04-17",
+          "level": "Manager",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d345160c-4eec-5be9-88b3-f7a20748fee5",
+        "data": {
+          "employee_id": "FH-0133",
+          "name": "Kenji Dubois",
+          "email": "kenji.dubois@fernhill.example",
+          "job_title": "IT specialist",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-10-18",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "7789f93f-b525-5062-a8cd-6aa94fda310e",
+        "data": {
+          "employee_id": "FH-0134",
+          "name": "Oscar Patel",
+          "email": "oscar.patel@fernhill.example",
+          "job_title": "People operations specialist",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-09-24",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "421085e4-ae15-559d-8849-5944a4ff701f",
+        "data": {
+          "employee_id": "FH-0135",
+          "name": "Andre Owens",
+          "email": "andre.owens@fernhill.example",
+          "job_title": "People partner",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-08-08",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "bbf4a0e2-b304-5910-84f2-4bdf68477229",
+        "data": {
+          "employee_id": "FH-0136",
+          "name": "Lena Fernández",
+          "email": "lena.fernandez@fernhill.example",
+          "job_title": "Recruiter",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-04-16",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "eca2f1b2-b1a6-5756-b3d8-d9729bfda681",
+        "data": {
+          "employee_id": "FH-0137",
+          "name": "Hugo Sato",
+          "email": "hugo.sato@fernhill.example",
+          "job_title": "Workplace coordinator",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-07-26",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "3661858d-0aa7-52bb-9767-3d9d1cfc660f",
+        "data": {
+          "employee_id": "FH-0138",
+          "name": "Ben Jordan",
+          "email": "ben.jordan@fernhill.example",
+          "job_title": "Learning & development lead",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-02-18",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "c7e84869-7be6-56ae-aebb-c4945e34b5b0",
+        "data": {
+          "employee_id": "FH-0139",
+          "name": "Nora Larsen",
+          "email": "nora.larsen@fernhill.example",
+          "job_title": "IT specialist",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-12-17",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "08fddf97-65e6-5d17-98ed-7de3d28f0181",
+        "data": {
+          "employee_id": "FH-0140",
+          "name": "Nadia Ward",
+          "email": "nadia.ward@fernhill.example",
+          "job_title": "People operations specialist",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2024-03-28",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "4efa7a13-2f19-5352-9476-210e8362391e",
+        "data": {
+          "employee_id": "FH-0141",
+          "name": "Owen Rossi",
+          "email": "owen.rossi@fernhill.example",
+          "job_title": "People partner",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2019-01-16",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "31f6a36f-52bf-5962-97ab-fffccc582da2",
+        "data": {
+          "employee_id": "FH-0142",
+          "name": "Rosa Farouk",
+          "email": "rosa.farouk@fernhill.example",
+          "job_title": "Recruiter",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2021-06-01",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "850d469d-cef9-595a-9d63-2dd347488697",
+        "data": {
+          "employee_id": "FH-0143",
+          "name": "Jonas Okafor",
+          "email": "jonas.okafor@fernhill.example",
+          "job_title": "Workplace coordinator",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "5+ years",
+          "start_date": "2017-05-01",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "d4a50971-1916-5e55-8ab2-b037e3cc691a",
+        "data": {
+          "employee_id": "FH-0144",
+          "name": "Zoe Mori",
+          "email": "zoe.mori@fernhill.example",
+          "job_title": "Learning & development lead",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-06-28",
+          "level": "Lead",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "596052fd-42aa-58c5-9363-12efb3290555",
+        "data": {
+          "employee_id": "FH-0145",
+          "name": "Victor Berg",
+          "email": "victor.berg@fernhill.example",
+          "job_title": "IT specialist",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Austin",
+          "tenure_band": "Less than 1 year",
+          "start_date": "2026-07-17",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "32e11eaa-65ec-5822-ac35-6d329d6cfcad",
+        "data": {
+          "employee_id": "FH-0146",
+          "name": "Alex Novak",
+          "email": "alex.novak@fernhill.example",
+          "job_title": "People operations specialist",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-02-20",
+          "level": "Associate",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "f2b5f7a7-582c-57d2-a538-9b14d19a575a",
+        "data": {
+          "employee_id": "FH-0147",
+          "name": "Arjun Rossi",
+          "email": "arjun.rossi@fernhill.example",
+          "job_title": "People partner",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Remote (US)",
+          "tenure_band": "1-2 years",
+          "start_date": "2025-04-30",
+          "level": "Mid",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "8b78f666-64c0-5bef-9229-f6471fe243a3",
+        "data": {
+          "employee_id": "FH-0148",
+          "name": "Rosa Tanaka",
+          "email": "rosa.tanaka@fernhill.example",
+          "job_title": "Recruiter",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "1-2 years",
+          "start_date": "2024-12-02",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "90127883-5c16-5b88-b81f-539cb5647624",
+        "data": {
+          "employee_id": "FH-0149",
+          "name": "Isla Ortiz",
+          "email": "isla.ortiz@fernhill.example",
+          "job_title": "Workplace coordinator",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "location": "Chicago",
+          "tenure_band": "2-5 years",
+          "start_date": "2022-01-18",
+          "level": "Senior",
+          "status": "Active"
+        }
+      },
+      {
+        "id": "70775ad4-c061-5976-a936-a2bde28a1b80",
+        "data": {
+          "employee_id": "FH-0150",
+          "name": "Rahul Carter",
+          "email": "rahul.carter@fernhill.example",
+          "job_title": "Learning & development lead",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "location": "Denver HQ",
+          "tenure_band": "2-5 years",
+          "start_date": "2023-05-16",
+          "level": "Senior",
+          "status": "Active"
+        }
+      }
+    ]
+  }
+}

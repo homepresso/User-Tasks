@@ -9,7 +9,7 @@ import { getSeoPage } from '@/lib/seo-pages'
 import { DOCS_UPDATED } from '@/lib/seo/site'
 import { parseMarkdown } from '@/lib/docs/markdown'
 import { resolveBaseDomain, classifyHost, canShareCookies } from '@/lib/workspace-address'
-import { STORAGE_URL_COLUMNS } from '@/lib/storage/migrate'
+import { STORAGE_URL_COLUMNS } from '@/lib/storage/url-columns'
 
 /** The step-by-step self-hosting guide (lib/docs/content/self-hosting-guide.ts). */
 const GUIDE = [
@@ -180,7 +180,6 @@ describe('self-hosting guide', () => {
     const migrations = readFileSync('scripts/scheduler.ts', 'utf8')
     expect(migrations).toContain("install-pg-cron [--base-url URL]")
     expect(readFileSync('scripts/setup-local.ts', 'utf8')).toContain("const CRON_BASE_URL = 'http://host.docker.internal:3000'")
-    expect(readFileSync('lib/admin/switch/database.ts', 'utf8')).toContain('Moving to another Supabase project is a Supabase dump / restore.')
     expect(readFileSync('supabase/migrations/20261023000000_oauth_first_party_cli.sql', 'utf8')).toMatch(/INSERT INTO public\.oauth_clients/)
     expect(readFileSync('supabase/migrations/20261105000000_realtime_notify.sql', 'utf8')).toContain('INSERT INTO app_realtime.listener_state')
     expect(readFileSync('supabase/migrations/20261109500000_instance_housekeeping.sql', 'utf8')).toContain('INSERT INTO app_cron.housekeeping_runs')

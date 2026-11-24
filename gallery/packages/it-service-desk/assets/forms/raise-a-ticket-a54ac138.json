@@ -1,0 +1,186 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "a54ac138-74a6-58e2-bd1e-8c8e2b99bf13",
+  "asset": {
+    "id": "a54ac138-74a6-58e2-bd1e-8c8e2b99bf13",
+    "name": "Raise a ticket",
+    "description": "Tell the service desk what is wrong or what you need. You can follow the ticket under My tickets.",
+    "tags": [
+      "it",
+      "service desk"
+    ],
+    "fields": [
+      {
+        "key": "requester",
+        "label": "Your name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "email",
+        "label": "Work email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "category",
+        "label": "What is it about?",
+        "type": "choice",
+        "options": [
+          "Hardware",
+          "Software",
+          "Access & accounts",
+          "Network & VPN",
+          "Email & calendar",
+          "Printing",
+          "Other"
+        ],
+        "required": true
+      },
+      {
+        "key": "priority",
+        "label": "How urgent is it?",
+        "type": "choice",
+        "options": [
+          "P1 · Critical",
+          "P2 · High",
+          "P3 · Normal",
+          "P4 · Low"
+        ],
+        "required": true,
+        "default": "P3 · Normal",
+        "help_text": "P1 only when many people cannot work."
+      },
+      {
+        "key": "title",
+        "label": "Summary",
+        "type": "text",
+        "required": true,
+        "placeholder": "One line, e.g. \"Cannot connect to the VPN\""
+      },
+      {
+        "key": "details",
+        "label": "Details",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "What happened, since when, and what you already tried"
+      },
+      {
+        "key": "asset_tag",
+        "label": "Device asset tag",
+        "type": "text",
+        "placeholder": "On the sticker, e.g. LT-1043"
+      },
+      {
+        "key": "screenshots",
+        "label": "Screenshots or files",
+        "type": "attachments",
+        "attachments": {
+          "max_files": 5,
+          "max_file_mb": 10,
+          "types": [
+            "documents",
+            "images",
+            "pdf"
+          ]
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "requester",
+              "span": 1
+            },
+            {
+              "field_key": "email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "category",
+              "span": 1
+            },
+            {
+              "field_key": "priority",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "title",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "details",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "asset_tag",
+              "span": 1
+            },
+            {
+              "field_key": "screenshots",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Raise ticket",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Ticket raised",
+            "text": "Thanks {{requester}}. The service desk has your ticket \"{{title}}\". Follow it under My tickets.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Raise another ticket"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Raise a ticket",
+      "subtitle": "Check the knowledge base first: many fixes take a minute.",
+      "align": "left"
+    }
+  }
+}

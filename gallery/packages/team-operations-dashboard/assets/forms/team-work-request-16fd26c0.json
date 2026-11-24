@@ -1,0 +1,153 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "16fd26c0-2440-5566-8e16-f73761f45f32",
+  "asset": {
+    "id": "16fd26c0-2440-5566-8e16-f73761f45f32",
+    "name": "Team work request",
+    "description": "Ask one of the operations teams for help. The team triages it, does the work and you can follow it here.",
+    "tags": [
+      "operations",
+      "requests"
+    ],
+    "fields": [
+      {
+        "key": "title",
+        "label": "What do you need?",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "team",
+        "label": "Team",
+        "type": "choice",
+        "options": [
+          "Platform",
+          "Customer success",
+          "Finance ops",
+          "Marketing ops"
+        ],
+        "required": true
+      },
+      {
+        "key": "type",
+        "label": "Type",
+        "type": "choice",
+        "options": [
+          "Request",
+          "Change",
+          "Report",
+          "Fix",
+          "Project task"
+        ],
+        "required": true
+      },
+      {
+        "key": "priority",
+        "label": "Priority",
+        "type": "choice",
+        "options": [
+          "High",
+          "Normal",
+          "Low"
+        ],
+        "required": true,
+        "default": "Normal",
+        "display": "radio"
+      },
+      {
+        "key": "needed_by",
+        "label": "Needed by",
+        "type": "date"
+      },
+      {
+        "key": "details",
+        "label": "Details",
+        "type": "textarea",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "title",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "team",
+              "span": 1
+            },
+            {
+              "field_key": "type",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "priority",
+              "span": 1
+            },
+            {
+              "field_key": "needed_by",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "details",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send request",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Request sent",
+            "text": "The {{team}} team will triage \"{{title}}\" shortly.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Send another request"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Team work request",
+      "subtitle": "One request per piece of work, please.",
+      "align": "left"
+    }
+  }
+}

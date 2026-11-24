@@ -1,0 +1,107 @@
+{
+  "id": "e7712469-b071-5807-b2d4-f90039b4de50",
+  "slug": "team-operations-dashboard",
+  "title": "Team operations dashboard",
+  "category": "workplace",
+  "summary": "A dashboard app for team leads: KPIs, throughput, bottlenecks, cycle time, overdue work and announcements, with team, period and person filters and click-to-filter charts.",
+  "description": "Team operations dashboard is a ready-made app for team leads and operations managers. It opens from the Apps menu on an Overview of the work in your workspace: open and completed tasks, requests started, the average cycle time, throughput (created versus completed), on-time status, bottlenecks (where work waits, by workflow step) and cycle time, under an announcement you keep up to date.\n\nEvery page is driven by page filters: Team, Period and Person. On the Team page the charts filter each other: click a person in the open-tasks-per-person chart to filter the task list and the overdue list to them, or click a slice of the status chart to show only those tasks; Show everyone clears the person again.\n\nThe Delivery page reads two data tables the team leads keep: Work items (team, type, priority, status, cycle time) and Weekly delivery (planned and delivered per team per week), with delivered per team, per team and week, delivered against plan, work by type and cycle time by team. A Team work request form and workflow (triage, deliver, close with its cycle time) come with it, so the dashboard fills up with your own work as soon as people use it.",
+  "trigger": "app",
+  "entry_app": "bfa8530f-0e4c-52f0-a99f-781b5c6a3c14",
+  "entry_workflow": "3dbab949-b28a-54c8-810e-b962f5ca59bc",
+  "entry_form": "16fd26c0-2440-5566-8e16-f73761f45f32",
+  "start": "Open Team operations from the Apps menu; New request on the Team page starts the Team work item workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 5,
+  "tags": [
+    "dashboard",
+    "kpi",
+    "throughput",
+    "bottlenecks",
+    "cycle time",
+    "app"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "setup": [
+    "Open Apps → Team operations → Settings → Audience: add team leads as viewers (or contributors if they should send requests and claim tasks).",
+    "Create teams in Settings → Teams so the Team filter has something to choose; it narrows the task widgets to work routed to the chosen team.",
+    "Assignees: pick who triages new requests and who delivers them (change them to team queues later).",
+    "Replace the Work items and Weekly delivery sample rows with your own, and edit the announcement on the Overview."
+  ],
+  "steps": [
+    {
+      "title": "Overview",
+      "body": "KPIs, throughput, on-time status, bottlenecks and cycle time for the chosen team, period and person."
+    },
+    {
+      "title": "Click to filter",
+      "body": "On the Team page, clicking a person or a status slice filters the task and overdue lists."
+    },
+    {
+      "title": "Delivery",
+      "body": "Planned versus delivered per team and week, work by type and cycle time by team from two data tables."
+    },
+    {
+      "title": "Requests",
+      "body": "New request sends a Team work request: the workflow logs it, the lead triages it and the team delivers it."
+    },
+    {
+      "title": "Cycle time recorded",
+      "body": "Closing a work item records its cycle time in days in the Work items table."
+    }
+  ],
+  "sample_input": {
+    "title": "Dashboard for renewal pipeline",
+    "team": "Customer success",
+    "type": "Report",
+    "priority": "Normal",
+    "needed_by": "2026-12-04",
+    "details": "A weekly view of renewals due in the next 90 days by account manager."
+  },
+  "expect": "completed",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Accept",
+        "values": {
+          "plan": "Build it on the existing renewals table."
+        }
+      },
+      {
+        "outcome": "Done",
+        "values": {
+          "outcome": "Dashboard shared with the team."
+        }
+      }
+    ]
+  },
+  "icon": "gauge",
+  "screenshots": [
+    {
+      "file": "screenshots/overview.webp",
+      "caption": "Overview: KPIs, throughput, on-time status, bottlenecks and cycle time under the team, period and person filters."
+    },
+    {
+      "file": "screenshots/team.webp",
+      "caption": "Team: open tasks per person and tasks by status filter the task and overdue lists when clicked."
+    },
+    {
+      "file": "screenshots/delivery.webp",
+      "caption": "Delivery: delivered per team, per team and week, against plan, by type and cycle time by team."
+    },
+    {
+      "file": "screenshots/overview-dark.webp",
+      "caption": "The Overview in dark mode.",
+      "theme": "dark"
+    }
+  ]
+}

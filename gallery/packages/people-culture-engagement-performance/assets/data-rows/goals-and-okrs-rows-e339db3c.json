@@ -1,0 +1,1031 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "e339db3c-8a2e-5997-9060-6633bb357429",
+  "asset": {
+    "id": "e339db3c-8a2e-5997-9060-6633bb357429",
+    "name": "Goals and OKRs rows",
+    "rows": [
+      {
+        "id": "aa8fad07-2fa0-5376-a1dd-a2723d79460b",
+        "data": {
+          "goal_ref": "G-001",
+          "owner_name": "Rosa Ortiz",
+          "owner_email": "rosa.ortiz@fernhill.example",
+          "manager_email": "",
+          "department": "Company",
+          "level": "Company",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "",
+          "last_check_in": "2026-11-16",
+          "objective": "Make Fernhill Labs the easiest platform to switch to",
+          "progress": 62,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 62%",
+          "status": "On track",
+          "key_results": 3
+        }
+      },
+      {
+        "id": "e40f66ca-0246-59b9-b3de-be656cad6032",
+        "data": {
+          "goal_ref": "G-002",
+          "owner_name": "Rosa Ortiz",
+          "owner_email": "rosa.ortiz@fernhill.example",
+          "manager_email": "",
+          "department": "Company",
+          "level": "Company",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "",
+          "last_check_in": "2026-11-16",
+          "objective": "Build a place people grow and stay",
+          "progress": 66,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 66%",
+          "status": "On track",
+          "key_results": 3
+        }
+      },
+      {
+        "id": "ba1d368f-5b88-5abd-a609-2f7df91090f3",
+        "data": {
+          "goal_ref": "G-003",
+          "owner_name": "Rosa Ortiz",
+          "owner_email": "rosa.ortiz@fernhill.example",
+          "manager_email": "",
+          "department": "Company",
+          "level": "Company",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "",
+          "last_check_in": "2026-11-16",
+          "objective": "Grow revenue efficiently",
+          "progress": 64,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 64%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "a407102f-a356-50a5-8100-cf161cfb484d",
+        "data": {
+          "goal_ref": "G-004",
+          "owner_name": "Rosa Ortiz",
+          "owner_email": "rosa.ortiz@fernhill.example",
+          "manager_email": "",
+          "department": "Company",
+          "level": "Company",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "",
+          "last_check_in": "2026-11-16",
+          "objective": "Ship a reliable, delightful product",
+          "progress": 82,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 82%",
+          "status": "On track",
+          "key_results": 3
+        }
+      },
+      {
+        "id": "7a82a474-5f13-53c7-8b6a-4b1d5205f0f6",
+        "data": {
+          "goal_ref": "G-005",
+          "objective": "Make every release boring",
+          "owner_name": "Daniel Okafor",
+          "owner_email": "daniel.okafor@fernhill.example",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "department": "Engineering",
+          "level": "Department",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-004",
+          "last_check_in": "2026-11-14",
+          "progress": 76,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 76%",
+          "status": "On track",
+          "key_results": 3
+        }
+      },
+      {
+        "id": "82567068-06f9-57a2-be46-1fa5272644e2",
+        "data": {
+          "goal_ref": "G-006",
+          "objective": "Simplify the first week for new customers",
+          "owner_name": "Priya Raman",
+          "owner_email": "priya.raman@fernhill.example",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "department": "Product",
+          "level": "Department",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-001",
+          "last_check_in": "2026-11-17",
+          "progress": 70,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 70%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "775c3a8a-7f5f-5637-b699-9d3d77bae9ca",
+        "data": {
+          "goal_ref": "G-007",
+          "objective": "One design language across the product",
+          "owner_name": "Aiko Tanaka",
+          "owner_email": "aiko.tanaka@fernhill.example",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "department": "Design",
+          "level": "Department",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-004",
+          "last_check_in": "2026-11-10",
+          "progress": 77,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 77%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "dbb93304-6e4e-5a54-9e9e-e37d21ee2fba",
+        "data": {
+          "goal_ref": "G-008",
+          "objective": "Hit the Q4 new business number",
+          "owner_name": "Sam Torres",
+          "owner_email": "sam.torres@fernhill.example",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "department": "Sales",
+          "level": "Department",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-003",
+          "last_check_in": "2026-11-15",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "status": "At risk",
+          "key_results": 3
+        }
+      },
+      {
+        "id": "eea1c55a-c16d-5651-916c-9bc08c4e9f4a",
+        "data": {
+          "goal_ref": "G-009",
+          "objective": "Customers live in two weeks",
+          "owner_name": "Grace Kim",
+          "owner_email": "grace.kim@fernhill.example",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "department": "Customer Success",
+          "level": "Department",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-001",
+          "last_check_in": "2026-11-13",
+          "progress": 53,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 53%",
+          "status": "At risk",
+          "key_results": 3
+        }
+      },
+      {
+        "id": "7a8a7854-3963-5341-92ac-2fd66f90f1a1",
+        "data": {
+          "goal_ref": "G-010",
+          "objective": "Pipeline that sales loves",
+          "owner_name": "Jonas Berg",
+          "owner_email": "jonas.berg@fernhill.example",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "department": "Marketing",
+          "level": "Department",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-003",
+          "last_check_in": "2026-11-17",
+          "progress": 69,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 69%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "bd6b4848-d23d-5094-ace8-eb4b2f52c747",
+        "data": {
+          "goal_ref": "G-011",
+          "objective": "Close the books in five days",
+          "owner_name": "Felix Wagner",
+          "owner_email": "felix.wagner@fernhill.example",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "department": "Finance",
+          "level": "Department",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-003",
+          "last_check_in": "2026-11-18",
+          "progress": 73,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 73%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "76e42374-c673-50cb-ac80-3ae5346e29ad",
+        "data": {
+          "goal_ref": "G-012",
+          "objective": "Growth conversations for everyone",
+          "owner_name": "Alex Morgan",
+          "owner_email": "alex.morgan@fernhill.example",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "department": "People & Operations",
+          "level": "Department",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-002",
+          "last_check_in": "2026-11-16",
+          "progress": 69,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 69%",
+          "status": "On track",
+          "key_results": 3
+        }
+      },
+      {
+        "id": "bb570e66-cad4-5373-b9ac-82ef5f6cd66b",
+        "data": {
+          "goal_ref": "G-013",
+          "objective": "Become the go-to person for our reporting",
+          "owner_name": "Maya Patel",
+          "owner_email": "maya.patel@fernhill.example",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-012",
+          "last_check_in": "2026-11-04",
+          "progress": 58,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 58%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "a638c865-bee7-5f89-8568-ac9d582e511d",
+        "data": {
+          "goal_ref": "G-014",
+          "objective": "Mentor a new starter through their first 90 days",
+          "owner_name": "Rosa Ortiz",
+          "owner_email": "rosa.ortiz@fernhill.example",
+          "manager_email": "",
+          "department": "People & Operations",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-012",
+          "last_check_in": "2026-10-23",
+          "progress": 74,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 74%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "01c42efb-1782-5555-bbb8-40f0922c4857",
+        "data": {
+          "goal_ref": "G-015",
+          "objective": "Improve the reliability of the billing service",
+          "owner_name": "Jamal Alvarez",
+          "owner_email": "jamal.alvarez@fernhill.example",
+          "manager_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-15",
+          "progress": 91,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 91%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "d0c3320c-23fe-5e03-b0e2-c9ee5b5e6da1",
+        "data": {
+          "goal_ref": "G-016",
+          "objective": "Build my pipeline for next quarter",
+          "owner_name": "Iris Kapoor",
+          "owner_email": "iris.kapoor@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-15",
+          "progress": 23,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 23%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "808b4359-7028-5852-90a7-d6719b2313ba",
+        "data": {
+          "goal_ref": "G-017",
+          "objective": "Speak at an industry event",
+          "owner_name": "Rahul Mori",
+          "owner_email": "rahul.mori@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-16",
+          "progress": 28,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 28%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "8478a45d-a9f0-5f68-8a42-3a0a690d2395",
+        "data": {
+          "goal_ref": "G-018",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Chloe Sato",
+          "owner_email": "chloe.sato@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-07",
+          "progress": 74,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 74%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "668f8fbc-0354-533d-8351-72464ef77555",
+        "data": {
+          "goal_ref": "G-019",
+          "objective": "Build my pipeline for next quarter",
+          "owner_name": "Hugo Rossi",
+          "owner_email": "hugo.rossi@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-10-27",
+          "progress": 24,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 24%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "4e39795e-9ba6-51f8-bcba-a8f34999c588",
+        "data": {
+          "goal_ref": "G-020",
+          "objective": "Grow my product discovery skills",
+          "owner_name": "Rosa Morgan",
+          "owner_email": "rosa.morgan@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-12",
+          "progress": 76,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 76%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "47c19c1c-be50-5053-89e6-219c79bd0657",
+        "data": {
+          "goal_ref": "G-021",
+          "objective": "Improve the reliability of the billing service",
+          "owner_name": "Clara Quinn",
+          "owner_email": "clara.quinn@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-18",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "1b4ba8e2-462c-54d5-aac0-9f2644e06487",
+        "data": {
+          "goal_ref": "G-022",
+          "objective": "Grow my product discovery skills",
+          "owner_name": "Andre Laurent",
+          "owner_email": "andre.laurent@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-07",
+          "progress": 93,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 93%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "fa9137ef-5cb7-5150-8a2e-af6440815600",
+        "data": {
+          "goal_ref": "G-023",
+          "objective": "Reduce ticket backlog in my queue",
+          "owner_name": "Yuki Berg",
+          "owner_email": "yuki.berg@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-15",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "993cecba-3a8f-54ba-a139-031a93bf2fd1",
+        "data": {
+          "goal_ref": "G-024",
+          "objective": "Build my pipeline for next quarter",
+          "owner_name": "Jonas Patel",
+          "owner_email": "jonas.patel@fernhill.example",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-005",
+          "last_check_in": "2026-11-11",
+          "progress": 25,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 25%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "612f2d85-2c76-56c6-9adf-87b2525cab9f",
+        "data": {
+          "goal_ref": "G-025",
+          "objective": "Speak at an industry event",
+          "owner_name": "Kenji Sato",
+          "owner_email": "kenji.sato@fernhill.example",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-006",
+          "last_check_in": "2026-11-01",
+          "progress": 95,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 95%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "8d44aabd-4797-551d-ab94-11e3db196c0c",
+        "data": {
+          "goal_ref": "G-026",
+          "objective": "Build my pipeline for next quarter",
+          "owner_name": "Marcus Brooks",
+          "owner_email": "marcus.brooks@fernhill.example",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-006",
+          "last_check_in": "2026-10-27",
+          "progress": 98,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 98%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "b532d270-8f31-54da-8130-8c9af0038e41",
+        "data": {
+          "goal_ref": "G-027",
+          "objective": "Improve the reliability of the billing service",
+          "owner_name": "Ava Novak",
+          "owner_email": "ava.novak@fernhill.example",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-006",
+          "last_check_in": "2026-10-29",
+          "progress": 32,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 32%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "58e31803-bde5-5d66-b372-6ed1e2eb50d8",
+        "data": {
+          "goal_ref": "G-028",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Ethan Fraser",
+          "owner_email": "ethan.fraser@fernhill.example",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-006",
+          "last_check_in": "2026-10-23",
+          "progress": 92,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 92%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "290f6ec9-2b5d-530f-a3b3-584aaff82611",
+        "data": {
+          "goal_ref": "G-029",
+          "objective": "Become the go-to person for our reporting",
+          "owner_name": "Caleb Ward",
+          "owner_email": "caleb.ward@fernhill.example",
+          "manager_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-007",
+          "last_check_in": "2026-11-01",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "status": "Done",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "53870814-5cc2-5703-809d-92c290ded263",
+        "data": {
+          "goal_ref": "G-030",
+          "objective": "Mentor a new starter through their first 90 days",
+          "owner_name": "Caleb Iyer",
+          "owner_email": "caleb.iyer@fernhill.example",
+          "manager_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-007",
+          "last_check_in": "2026-10-28",
+          "progress": 44,
+          "progress_bar": "▰▰▰▰▱▱▱▱▱▱ 44%",
+          "status": "At risk",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "dc6abdc3-56ad-5ba1-b8aa-ef38df5d04df",
+        "data": {
+          "goal_ref": "G-031",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Samir Grant",
+          "owner_email": "samir.grant@fernhill.example",
+          "manager_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-007",
+          "last_check_in": "2026-10-30",
+          "progress": 72,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 72%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "02e89247-07e1-59c2-b907-ca45c25bcc52",
+        "data": {
+          "goal_ref": "G-032",
+          "objective": "Mentor a new starter through their first 90 days",
+          "owner_name": "Kwame Okafor",
+          "owner_email": "kwame.okafor@fernhill.example",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-008",
+          "last_check_in": "2026-11-09",
+          "progress": 75,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 75%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "54764403-40c4-5ab0-91e5-f1c6b0edf38d",
+        "data": {
+          "goal_ref": "G-033",
+          "objective": "Build my pipeline for next quarter",
+          "owner_name": "Ava Ward",
+          "owner_email": "ava.ward@fernhill.example",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-008",
+          "last_check_in": "2026-11-20",
+          "progress": 80,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 80%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "89cc4f66-3f47-5962-afae-ff10f6db5217",
+        "data": {
+          "goal_ref": "G-034",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Caleb Berg",
+          "owner_email": "caleb.berg@fernhill.example",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-008",
+          "last_check_in": "2026-11-05",
+          "progress": 52,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 52%",
+          "status": "At risk",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "e6968738-c1cf-581a-9eba-edb57784732b",
+        "data": {
+          "goal_ref": "G-035",
+          "objective": "Mentor a new starter through their first 90 days",
+          "owner_name": "Nora Torres",
+          "owner_email": "nora.torres@fernhill.example",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-008",
+          "last_check_in": "2026-11-02",
+          "progress": 20,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 20%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "3dcfabed-e04f-521f-9d2f-e98db88ca388",
+        "data": {
+          "goal_ref": "G-036",
+          "objective": "Mentor a new starter through their first 90 days",
+          "owner_name": "Zoe Sato",
+          "owner_email": "zoe.sato@fernhill.example",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-008",
+          "last_check_in": "2026-10-31",
+          "progress": 31,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 31%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "439e101e-5fac-59c2-b94f-1bbc95f7cf4c",
+        "data": {
+          "goal_ref": "G-037",
+          "objective": "Improve the reliability of the billing service",
+          "owner_name": "Malik Quinn",
+          "owner_email": "malik.quinn@fernhill.example",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-008",
+          "last_check_in": "2026-11-06",
+          "progress": 78,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 78%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "70ab0733-aade-5715-92c0-77abacebda3c",
+        "data": {
+          "goal_ref": "G-038",
+          "objective": "Become the go-to person for our reporting",
+          "owner_name": "Oscar Fernández",
+          "owner_email": "oscar.fernandez@fernhill.example",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-008",
+          "last_check_in": "2026-10-30",
+          "progress": 69,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 69%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "fd00e583-4055-5fe2-9af2-92ef3c77c93d",
+        "data": {
+          "goal_ref": "G-039",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Omar Murphy",
+          "owner_email": "omar.murphy@fernhill.example",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-008",
+          "last_check_in": "2026-11-14",
+          "progress": 94,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 94%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "54bf613d-dcd4-55cd-9902-56858e8484ef",
+        "data": {
+          "goal_ref": "G-040",
+          "objective": "Mentor a new starter through their first 90 days",
+          "owner_name": "Arjun Wagner",
+          "owner_email": "arjun.wagner@fernhill.example",
+          "manager_email": "grace.kim@fernhill.example",
+          "department": "Customer Success",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-009",
+          "last_check_in": "2026-10-26",
+          "progress": 64,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 64%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "440206e4-ddaf-53cc-9a86-ab49d8f3a473",
+        "data": {
+          "goal_ref": "G-041",
+          "objective": "Reduce ticket backlog in my queue",
+          "owner_name": "Priya Price",
+          "owner_email": "priya.price@fernhill.example",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-009",
+          "last_check_in": "2026-11-16",
+          "progress": 61,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 61%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "623a7df2-b064-5594-9d48-471269646003",
+        "data": {
+          "goal_ref": "G-042",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Lena Quinn",
+          "owner_email": "lena.quinn@fernhill.example",
+          "manager_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-009",
+          "last_check_in": "2026-11-10",
+          "progress": 27,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 27%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "cce3890e-4297-5187-9ac9-10dfec57989a",
+        "data": {
+          "goal_ref": "G-043",
+          "objective": "Speak at an industry event",
+          "owner_name": "Ethan Larsen",
+          "owner_email": "ethan.larsen@fernhill.example",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-009",
+          "last_check_in": "2026-11-18",
+          "progress": 63,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 63%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "4c2427fd-c39c-5c1a-a65c-3e3c82f35f6b",
+        "data": {
+          "goal_ref": "G-044",
+          "objective": "Become the go-to person for our reporting",
+          "owner_name": "Marcus Carter",
+          "owner_email": "marcus.carter@fernhill.example",
+          "manager_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-009",
+          "last_check_in": "2026-11-18",
+          "progress": 85,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▱ 85%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "b8764b83-9502-56e6-aac8-b73a2eab1335",
+        "data": {
+          "goal_ref": "G-045",
+          "objective": "Grow my product discovery skills",
+          "owner_name": "Ben Berg",
+          "owner_email": "ben.berg@fernhill.example",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-009",
+          "last_check_in": "2026-11-20",
+          "progress": 60,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 60%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "f9d03bee-4a4a-540d-97dc-93a0d0d91704",
+        "data": {
+          "goal_ref": "G-046",
+          "objective": "Reduce ticket backlog in my queue",
+          "owner_name": "Elena Larsen",
+          "owner_email": "elena.larsen@fernhill.example",
+          "manager_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-009",
+          "last_check_in": "2026-10-25",
+          "progress": 14,
+          "progress_bar": "▰▱▱▱▱▱▱▱▱▱ 14%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "5c89ee9f-a4f1-5977-85ae-03d759603b0d",
+        "data": {
+          "goal_ref": "G-047",
+          "objective": "Become the go-to person for our reporting",
+          "owner_name": "Marcus Quinn",
+          "owner_email": "marcus.quinn@fernhill.example",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-010",
+          "last_check_in": "2026-11-14",
+          "progress": 49,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 49%",
+          "status": "At risk",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "a4893b8b-00e8-518a-98d8-173e1bf684c8",
+        "data": {
+          "goal_ref": "G-048",
+          "objective": "Become the go-to person for our reporting",
+          "owner_name": "Owen Ward",
+          "owner_email": "owen.ward@fernhill.example",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-010",
+          "last_check_in": "2026-11-03",
+          "progress": 44,
+          "progress_bar": "▰▰▰▰▱▱▱▱▱▱ 44%",
+          "status": "At risk",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "de0d1979-6394-5dba-b7c3-21cf28161617",
+        "data": {
+          "goal_ref": "G-049",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Clara Bennett",
+          "owner_email": "clara.bennett@fernhill.example",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-010",
+          "last_check_in": "2026-10-28",
+          "progress": 22,
+          "progress_bar": "▰▰▱▱▱▱▱▱▱▱ 22%",
+          "status": "Off track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "def74608-b149-513c-97a1-b5d9df8d1927",
+        "data": {
+          "goal_ref": "G-050",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Rosa Quinn",
+          "owner_email": "rosa.quinn@fernhill.example",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-010",
+          "last_check_in": "2026-11-01",
+          "progress": 58,
+          "progress_bar": "▰▰▰▰▰▰▱▱▱▱ 58%",
+          "status": "On track",
+          "key_results": 2
+        }
+      },
+      {
+        "id": "9dcb1c52-66ba-56fc-bd7b-53669d018909",
+        "data": {
+          "goal_ref": "G-051",
+          "objective": "Own the quarterly business reviews for my accounts",
+          "owner_name": "Lucía Fernández",
+          "owner_email": "lucia.fernandez@fernhill.example",
+          "manager_email": "felix.wagner@fernhill.example",
+          "department": "Finance",
+          "level": "Individual",
+          "quarter": "Q4 2026",
+          "due_date": "2026-12-31",
+          "aligned_to": "G-011",
+          "last_check_in": "2026-11-13",
+          "progress": 54,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 54%",
+          "status": "At risk",
+          "key_results": 2
+        }
+      }
+    ]
+  }
+}

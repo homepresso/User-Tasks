@@ -13,6 +13,7 @@ import { clearGridOptionCache } from '@/components/grid/grid-context'
 import {
   GRID_LIMITS, defaultGridColumns, gridViewProblem, newViewId, type GridViewConfig, type TableSchemaColumn,
 } from '@/lib/grid/column-model'
+import { GROUPABLE_TYPES } from '@/lib/grid/grouping'
 import { saveGridViews } from '@/app/actions/data-grid'
 
 /**
@@ -112,6 +113,27 @@ export function GridViewSettings({ open, onOpenChange, tableId, tableColumns, vi
                   <Switch checked={view.allow_delete === true} onCheckedChange={(v) => patch({ allow_delete: v || undefined })} label="Delete rows" />
                   <Switch checked={view.default === true} onCheckedChange={(v) => setDraft((d) => d.map((x) => ({ ...x, default: x.id === view.id ? (v || undefined) : undefined })))} label="Open on this view" />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2" data-testid="grid-view-group-by">
+                {[0, 1].map((level) => {
+                  const groupBy = view.group_by ?? []
+                  const groupable = tableColumns.filter((c) => GROUPABLE_TYPES.has(c.type) && (level === 0 || c.key !== groupBy[0]))
+                  return (
+                    <label key={level} className="text-xs"><span className="mb-1 block font-medium text-fg-muted">{level === 0 ? 'Group rows by' : 'Then by'}</span>
+                      <select className="h-8 w-full rounded border border-border bg-panel px-2 text-sm disabled:opacity-50" value={groupBy[level] ?? ''} disabled={level === 1 && !groupBy[0]}
+                        onChange={(e) => {
+                          const next = [...groupBy]
+                          if (e.target.value) next[level] = e.target.value
+                          else next.splice(level)
+                          const clean = next.filter(Boolean).filter((k, i, a) => a.indexOf(k) === i)
+                          patch({ group_by: clean.length ? clean : undefined })
+                        }}>
+                        <option value="">{level === 0 ? 'No grouping' : 'None'}</option>
+                        {groupable.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+                      </select>
+                    </label>
+                  )
+                })}
               </div>
               <div>
                 <h3 className="mb-1 text-xs font-semibold text-fg">Columns</h3>

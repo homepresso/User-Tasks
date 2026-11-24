@@ -1,0 +1,118 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "d94fcb41-7ceb-565a-bfdd-d46824060a9b",
+  "asset": {
+    "id": "d94fcb41-7ceb-565a-bfdd-d46824060a9b",
+    "name": "CRM activities",
+    "description": "Calls, emails, meetings, demos and notes, linked to an account, a deal and a contact.",
+    "columns": [
+      {
+        "id": "feb67f56-8feb-5834-8fcf-468c8cd71b17",
+        "required": true,
+        "key": "activity_id",
+        "name": "Activity ID",
+        "type": "text"
+      },
+      {
+        "id": "3add53a6-3e8b-5a3e-ace3-4e94fc51e11a",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Call",
+          "Email",
+          "Meeting",
+          "Demo",
+          "Note"
+        ]
+      },
+      {
+        "id": "1bbac6a5-0a4b-5496-b126-b57b01b194c2",
+        "required": false,
+        "key": "subject",
+        "name": "Subject",
+        "type": "text"
+      },
+      {
+        "id": "0ee505c1-43d5-51bb-b60c-dcd525584d7c",
+        "required": false,
+        "key": "account",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "3211172d-601e-5828-b21e-32a5abcdb8c4",
+        "required": false,
+        "key": "account_id",
+        "name": "Account ID",
+        "type": "text"
+      },
+      {
+        "id": "bd75b612-2f22-5984-a4c9-b5397c6f4ea8",
+        "required": false,
+        "key": "deal_id",
+        "name": "Deal ID",
+        "type": "text"
+      },
+      {
+        "id": "d1756e08-7885-552c-83b6-d49e6d242016",
+        "required": false,
+        "key": "contact",
+        "name": "Contact",
+        "type": "text"
+      },
+      {
+        "id": "3219e43f-b798-500f-a0d5-658dec560736",
+        "required": false,
+        "key": "owner",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "2f3b6d5f-44eb-57bd-b105-a52c2e9dbd84",
+        "required": false,
+        "key": "date",
+        "name": "Date",
+        "type": "date"
+      },
+      {
+        "id": "d21a13e9-e65b-5750-b208-80b84463c224",
+        "required": false,
+        "key": "duration_min",
+        "name": "Minutes",
+        "type": "number"
+      },
+      {
+        "id": "c1f3ef93-05bb-5541-ae32-24260267f400",
+        "required": false,
+        "key": "outcome",
+        "name": "Outcome",
+        "type": "select",
+        "options": [
+          "Connected",
+          "Left voicemail",
+          "Positive",
+          "Neutral",
+          "Needs follow-up",
+          "No show"
+        ]
+      },
+      {
+        "id": "13d84d72-bfd8-5285-aafe-9526fd8b680f",
+        "required": false,
+        "key": "follow_up",
+        "name": "Follow up on",
+        "type": "date"
+      },
+      {
+        "id": "e5fe223d-5f11-5c68-b7d9-938ffed3ae26",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

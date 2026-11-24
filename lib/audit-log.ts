@@ -51,6 +51,8 @@ export type AuditObjectType =
   | 'extension'
   | 'licence'
   | 'team_request'
+  | 'app'
+  | 'tag'
 
 export type AuditAction =
   | 'create'

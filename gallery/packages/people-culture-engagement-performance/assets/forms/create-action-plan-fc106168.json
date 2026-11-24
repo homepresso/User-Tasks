@@ -1,0 +1,199 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "fc106168-4888-59da-86c0-34e7660955d4",
+  "asset": {
+    "id": "fc106168-4888-59da-86c0-34e7660955d4",
+    "name": "Create action plan",
+    "description": "What a team will change after a survey: the driver to improve, the focus, the actions, the owner and a due date. The owner gets a 30-day check-in.",
+    "tags": [
+      "survey",
+      "action plan"
+    ],
+    "fields": [
+      {
+        "key": "cycle",
+        "label": "Survey",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+          "search_columns": [
+            "name",
+            "cycle_code"
+          ],
+          "display_columns": [
+            "name",
+            "status"
+          ],
+          "value_column": "cycle_code",
+          "fill": [],
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Published"
+            }
+          ],
+          "sort": {
+            "column": "cycle_order",
+            "direction": "desc"
+          }
+        }
+      },
+      {
+        "key": "department",
+        "label": "Team",
+        "type": "choice",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ],
+        "required": true
+      },
+      {
+        "key": "driver",
+        "label": "Driver to improve",
+        "type": "choice",
+        "options": [
+          "Leadership",
+          "Growth",
+          "Wellbeing",
+          "Belonging",
+          "Recognition"
+        ],
+        "required": true,
+        "display": "radio"
+      },
+      {
+        "key": "focus",
+        "label": "Focus",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Make workload predictable"
+      },
+      {
+        "key": "actions",
+        "label": "Actions",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "What will change, one per line"
+      },
+      {
+        "key": "owner",
+        "label": "Owner",
+        "type": "user",
+        "required": true,
+        "user_config": {
+          "multiple": true,
+          "max": 1
+        },
+        "help_text": "One person: they get a check-in after 30 days."
+      },
+      {
+        "key": "due_date",
+        "label": "Due date",
+        "type": "date",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "cycle",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "department",
+              "span": 1
+            },
+            {
+              "field_key": "driver",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "focus",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "actions",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "owner",
+              "span": 1
+            },
+            {
+              "field_key": "due_date",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Create plan",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Plan created",
+            "text": "The owner will be asked for an update in 30 days.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Create an action plan",
+      "subtitle": "Turn results into change.",
+      "align": "left"
+    }
+  }
+}

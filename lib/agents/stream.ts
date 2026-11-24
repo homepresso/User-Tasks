@@ -24,7 +24,7 @@
  */
 
 export class StreamProviderError extends Error {
-  constructor(message: string, readonly retryable = true) {
+  constructor(message: string, readonly retryable = true, readonly errorType: string | null = null) {
     super(message)
     this.name = 'StreamProviderError'
   }
@@ -139,7 +139,7 @@ export class ChatStreamAssembler {
       const message = typeof e === 'string' ? e : String(e?.message ?? e?.type ?? 'stream error')
       const kind = String(e?.type ?? e?.code ?? '')
       const retryable = /overloaded|rate|timeout|unavailable|server|internal|5\d\d/i.test(`${kind} ${message}`)
-      throw new StreamProviderError(`Provider error mid-stream: ${message.slice(0, 300)}`, retryable)
+      throw new StreamProviderError(`Provider error mid-stream: ${message.slice(0, 300)}`, retryable, /^[A-Za-z0-9_.-]{1,64}$/.test(kind) ? kind : null)
     }
     if (typeof json.type === 'string' && /^(message_|content_block_|ping)/.test(json.type)) return this.anthropic(json)
     return this.openai(json)

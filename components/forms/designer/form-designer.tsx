@@ -877,7 +877,7 @@ export function FormDesigner({ chrome = 'dialog', page, onClose, title, subtitle
                   />
                 ) : tab === 'rules' ? (
                   <DesignerPreviewValuesProvider value={shownValues}>
-                    <RulesPanel state={state} onChange={(next, tag) => change(next, tag)} />
+                    <RulesPanel state={state} onChange={(next, tag) => change(next, tag)} offerDataEvent={!readOnly} formId={formId} formName={title} />
                   </DesignerPreviewValuesProvider>
                 ) : tab === 'data' ? (
                   <div className="space-y-3">

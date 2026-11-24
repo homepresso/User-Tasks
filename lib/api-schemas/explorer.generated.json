@@ -1797,6 +1797,11 @@
        "cancel",
        "retry"
       ]
+     },
+     {
+      "name": "force",
+      "type": "body",
+      "placeholder": "false"
      }
     ],
     "permission": "workflows.activate"
@@ -2495,13 +2500,79 @@
    {
     "method": "GET",
     "path": "/api/v1/agents/usage",
-    "label": "Workspace agent usage: tokens and cost per day and per agent, workspace budgets, and the price table in effect",
-    "description": "Workspace agent usage: tokens and cost per day and per agent, workspace budgets, and the price table in effect Requires agents.view.",
+    "label": "Workspace agent usage: tokens and cost per day and per agent, workspace budgets, the price table in effect, and AI cost breakdowns by model, profile, agent, source or person",
+    "description": "With group_by, period, from / to or a filter the answer also has `breakdown`: every AI call of the workspace in the period (agent runs, the in-product Agent, PDF import AI assist, redaction AI detection) rolled up per group — calls, input / output / cached tokens, stored cost per currency, `estimated_cost` (calls recorded without a cost, at today's price), `unknown_calls` (no price), share, cost per 1k tokens and a per-day trend — plus totals and per-day series by model and by profile. Grouping or filtering by user needs assistants.manage. Requires agents.view.",
     "params": [
      {
       "name": "days",
       "type": "query",
       "placeholder": "1"
+     },
+     {
+      "name": "group_by",
+      "type": "query",
+      "description": "Comma-separated: day | model | profile | agent | source | user (default day,model,profile,agent,source; user needs assistants.manage)"
+     },
+     {
+      "name": "period",
+      "type": "query",
+      "placeholder": "7d",
+      "description": "Breakdown period preset (default 30d); from / to win",
+      "options": [
+       "7d",
+       "30d",
+       "90d",
+       "this_month",
+       "last_month"
+      ]
+     },
+     {
+      "name": "from",
+      "type": "query",
+      "description": "First day (UTC, YYYY-MM-DD, inclusive)"
+     },
+     {
+      "name": "to",
+      "type": "query",
+      "description": "Last day (UTC, YYYY-MM-DD, inclusive; at most 366 days after from)"
+     },
+     {
+      "name": "provider",
+      "type": "query",
+      "description": "Only calls to this provider (openai, anthropic, … or unknown)"
+     },
+     {
+      "name": "model",
+      "type": "query",
+      "description": "Only calls to this model"
+     },
+     {
+      "name": "agent_profile",
+      "type": "query",
+      "description": "Only the in-product Agent's calls under this Agent profile id (default = no profile matched)"
+     },
+     {
+      "name": "agent",
+      "type": "query",
+      "description": "Only this agent's runs (agent id)"
+     },
+     {
+      "name": "source",
+      "type": "query",
+      "placeholder": "assistant",
+      "description": "Only calls from this source",
+      "options": [
+       "assistant",
+       "workflow_agent",
+       "agent",
+       "pdf_import",
+       "redact_ai"
+      ]
+     },
+     {
+      "name": "user",
+      "type": "query",
+      "description": "Only this person's in-product Agent calls (user id; needs assistants.manage)"
      }
     ],
     "permission": "agents.view"
@@ -2758,6 +2829,11 @@
       "name": "search",
       "type": "query",
       "description": "Name or description contains"
+     },
+     {
+      "name": "tag",
+      "type": "query",
+      "description": "Only items carrying this tag"
      }
     ],
     "permission": "workflows.view"
@@ -2792,6 +2868,12 @@
       "type": "body",
       "placeholder": "[]",
       "description": "Ordered; the first enabled matching rule wins"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "workflows.edit"
@@ -2848,6 +2930,12 @@
       "type": "body",
       "placeholder": "[]",
       "description": "Replaces all rules"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "workflows.edit"
@@ -2889,6 +2977,12 @@
       "type": "body",
       "placeholder": "[]",
       "description": "Replaces all rules"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "workflows.edit"
@@ -3000,6 +3094,11 @@
       "name": "search",
       "type": "query",
       "description": "Name contains"
+     },
+     {
+      "name": "tag",
+      "type": "query",
+      "description": "Only items carrying this tag"
      }
     ],
     "permission": "data.view"
@@ -3024,6 +3123,12 @@
       "type": "body",
       "placeholder": "[]",
       "description": "Custom columns; the system ID and Date Created columns are added automatically"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "data.create"
@@ -3046,8 +3151,8 @@
    {
     "method": "PATCH",
     "path": "/api/v1/data-tables/{id}",
-    "label": "Rename a data table or replace its custom columns",
-    "description": "Rename a data table or replace its custom columns Requires data.edit_schema.",
+    "label": "Rename a data table, change its tags or replace its custom columns",
+    "description": "Rename a data table, change its tags or replace its custom columns Requires data.edit_schema.",
     "params": [
      {
       "name": "id",
@@ -3068,6 +3173,24 @@
       "type": "body",
       "placeholder": "[]",
       "description": "Full replacement list of custom columns (system columns are kept)"
+     },
+     {
+      "name": "child_relations",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Full replacement list of child-record relations: rows of table_id whose lookup_column points at a row of this table (at most 5)"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
+     },
+     {
+      "name": "audit_changes",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Record every field change of every row (who, when, old and new value); the history is on GET /data-tables/{id}/rows/{row_id}/changes. Needs migration 20270128090000"
      }
     ],
     "permission": "data.edit_schema"
@@ -3531,6 +3654,117 @@
       "type": "body",
       "placeholder": "{}",
       "description": "The row being edited, for {{row.<column>}} in the binding (cascading)"
+     }
+    ],
+    "permission": "data.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/data-tables/{id}/rows/groups",
+    "label": "Group rows by one or two columns (counts and sums)",
+    "description": "Groups the WHOLE filtered result (search, filters), not a page: per group the value (null for blank cells), the row count, the sums of the `sum` columns and, grouped by two columns, the second-level groups. Read a group's rows with GET /data-tables/{id}/rows and filters [{field, operator: \"equals\", value}] (or is_empty for the empty group). `exact` is false until database migration 20270119090000 is applied (then the newest 2,000 rows are grouped and `truncated` says whether the table holds more). Requires data.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Resource id"
+     },
+     {
+      "name": "group_by",
+      "type": "query",
+      "required": true,
+      "description": "One or two column keys, comma-separated (e.g. status or status,region)"
+     },
+     {
+      "name": "search",
+      "type": "query",
+      "description": "Text matched against the row id and every cell"
+     },
+     {
+      "name": "filters",
+      "type": "query",
+      "description": "JSON array of {field, operator, value}, e.g. [{\"field\":\"status\",\"operator\":\"equals\",\"value\":\"open\"}]"
+     },
+     {
+      "name": "sum",
+      "type": "query",
+      "description": "Number columns to total per group, comma-separated"
+     },
+     {
+      "name": "group_order",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Order of the groups (default asc; the empty group first)",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     }
+    ],
+    "permission": "data.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/data-tables/{id}/rows/{rowId}/children",
+    "label": "Child records of a row (a child relation's rows, or the counts per relation)",
+    "description": "A table's child relations (child_relations on the table) link rows of a child table — or of the same table, for a hierarchy — through a lookup column that points at this table. With `relation`: that relation's child rows of the row, oldest first, with the child table's columns and `link_value` (the value a new child stores in `lookup_column` to belong to this row). Without it: `relations` with the child count of each. Requires data.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Table id"
+     },
+     {
+      "name": "rowId",
+      "type": "path",
+      "required": true,
+      "description": "Row id"
+     },
+     {
+      "name": "relation",
+      "type": "query",
+      "description": "Child relation id (omit: the child counts of every relation of the row, or the rows when the table has exactly one relation)"
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Child rows per page (default 50, at most 200)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Child rows to skip"
+     }
+    ],
+    "permission": "data.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/data-tables/{id}/rows/{rowId}/changes",
+    "label": "Change history of a row (field, old and new value, who, when)",
+    "description": "Tables with `audit_changes` on record every changed field of every row update, whatever made it (grid, form, API, workflow). `changed_by` is null for automation writes. `available` is false until migration 20270128090000 is applied; `audited` says whether the table records changes now (history from earlier stays). Requires data.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Table id"
+     },
+     {
+      "name": "rowId",
+      "type": "path",
+      "required": true,
+      "description": "Row id"
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Changes to return, newest first (default 50, at most 200)"
      }
     ],
     "permission": "data.view"
@@ -4380,6 +4614,11 @@
       "name": "search",
       "type": "query",
       "description": "Name contains"
+     },
+     {
+      "name": "tag",
+      "type": "query",
+      "description": "Only items carrying this tag"
      }
     ],
     "permission": "workflows.view"
@@ -4421,6 +4660,18 @@
       "type": "body",
       "placeholder": "false",
       "description": "Make this the workspace default template"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
+     },
+     {
+      "name": "variables",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Declared variables (label, type, description, sample, required) for the custom {{variables}} the template uses; workflow steps show them as a mapping table. The variables a template uses are always detected from its subject and bodies; declarations add the details."
      }
     ],
     "permission": "workflows.create"
@@ -4478,6 +4729,18 @@
       "type": "body",
       "placeholder": "false",
       "description": "true makes this the workspace default (clearing the previous one)"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
+     },
+     {
+      "name": "variables",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Declared variables (label, type, description, sample, required) for the custom {{variables}} the template uses; workflow steps show them as a mapping table. The variables a template uses are always detected from its subject and bodies; declarations add the details."
      }
     ],
     "permission": "workflows.edit"
@@ -4520,6 +4783,12 @@
       "type": "body",
       "placeholder": "{}",
       "description": "Sample task record for {{task.*}} references"
+     },
+     {
+      "name": "mappings",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "A workflow step's template_variables: variable name → value or {{expression}} over `variables`"
      }
     ],
     "permission": "workflows.view"
@@ -5316,16 +5585,16 @@
    },
    {
     "method": "GET",
-    "path": "/api/v1/workspace/form-sign-in-page",
-    "label": "Get the form sign-in page settings (any member)",
-    "description": "The workspace's sign-in page for form links: design (1–10), logo, wording, support link, accent colour and whether it uses the workspace theme.",
+    "path": "/api/v1/workspace/sign-in-page",
+    "label": "Get the sign-in page settings for forms and apps (any member)",
+    "description": "The workspace's sign-in page for form links and apps: design (1–10), logo, wording, support link, accent colour, whether it uses the workspace theme, and whether form links (use_for_forms) and apps (use_for_apps) use it.",
     "params": [],
     "permission": null
    },
    {
     "method": "PATCH",
-    "path": "/api/v1/workspace/form-sign-in-page",
-    "label": "Change the form sign-in page settings",
+    "path": "/api/v1/workspace/sign-in-page",
+    "label": "Change the sign-in page settings for forms and apps",
     "description": "Send only the settings to change; the rest are kept. An empty string clears logo_url, support_link_url and accent_color. heading and button_label can't be empty. Audited. Requires settings.edit.",
     "params": [
      {
@@ -5379,6 +5648,111 @@
       "type": "body",
       "placeholder": "false",
       "description": "Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false"
+     },
+     {
+      "name": "use_for_forms",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Form links (/f/…, /form/…) use this page; false sends them to the standard UserTasks sign-in. Default true"
+     },
+     {
+      "name": "use_for_apps",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Apps (/app/…, /apps/…, /embed/apps/…) use this page; false sends them to the standard sign-in. An app can override it (its sign_in_page setting). Default true"
+     },
+     {
+      "name": "use_app_color",
+      "type": "body",
+      "placeholder": "false",
+      "description": "On an app's sign-in page, use the app's colour as the accent (when it has one; not with use_workspace_theme). Default false"
+     }
+    ],
+    "permission": "settings.edit"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/workspace/form-sign-in-page",
+    "label": "Get the sign-in page settings (earlier name of GET /workspace/sign-in-page)",
+    "description": "The workspace's sign-in page for form links and apps: design (1–10), logo, wording, support link, accent colour, whether it uses the workspace theme, and whether form links (use_for_forms) and apps (use_for_apps) use it. The same resource as /workspace/sign-in-page.",
+    "params": [],
+    "permission": null
+   },
+   {
+    "method": "PATCH",
+    "path": "/api/v1/workspace/form-sign-in-page",
+    "label": "Change the sign-in page settings (earlier name of PATCH /workspace/sign-in-page)",
+    "description": "Send only the settings to change; the rest are kept. An empty string clears logo_url, support_link_url and accent_color. heading and button_label can't be empty. Audited. The same resource as /workspace/sign-in-page. Requires settings.edit.",
+    "params": [
+     {
+      "name": "design",
+      "type": "body",
+      "placeholder": "1",
+      "description": "The design, 1–10: 1 UserTasks, 2 Split screen, 3 Minimal, 4 Gradient, 5 Brand rail, 6 Glass, 7 Top banner, 8 Dark elegant, 9 Soft shapes, 10 Compact. Embedded in another site the page always uses 10 (Compact)."
+     },
+     {
+      "name": "logo_url",
+      "type": "body",
+      "description": "The logo: an image uploaded to this workspace's logos (variant form-sign-in, Settings → Forms); null shows the workspace name"
+     },
+     {
+      "name": "heading",
+      "type": "body",
+      "description": "Heading (default \"Sign in to continue\")"
+     },
+     {
+      "name": "subheading",
+      "type": "body",
+      "description": "Welcome message under the heading; may be empty"
+     },
+     {
+      "name": "button_label",
+      "type": "body",
+      "description": "The sign-in button label (default \"Sign in\")"
+     },
+     {
+      "name": "footer_text",
+      "type": "body",
+      "description": "Small print under the form; empty for none"
+     },
+     {
+      "name": "support_link_label",
+      "type": "body",
+      "description": "Support link text (blank: \"Get help\")"
+     },
+     {
+      "name": "support_link_url",
+      "type": "body",
+      "description": "Support link: https:// or mailto:; null for none"
+     },
+     {
+      "name": "accent_color",
+      "type": "body",
+      "description": "#rrggbb for buttons and coloured panels; null is the UserTasks default (ink). Ignored while use_workspace_theme is on"
+     },
+     {
+      "name": "use_workspace_theme",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false"
+     },
+     {
+      "name": "use_for_forms",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Form links (/f/…, /form/…) use this page; false sends them to the standard UserTasks sign-in. Default true"
+     },
+     {
+      "name": "use_for_apps",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Apps (/app/…, /apps/…, /embed/apps/…) use this page; false sends them to the standard sign-in. An app can override it (its sign_in_page setting). Default true"
+     },
+     {
+      "name": "use_app_color",
+      "type": "body",
+      "placeholder": "false",
+      "description": "On an app's sign-in page, use the app's colour as the accent (when it has one; not with use_workspace_theme). Default false"
      }
     ],
     "permission": "settings.edit"
@@ -5872,6 +6246,11 @@
        "true",
        "false"
       ]
+     },
+     {
+      "name": "tagged",
+      "type": "query",
+      "description": "Only controls carrying this tag (a label; not the element tag)"
      }
     ],
     "permission": "extensibility.view"
@@ -6010,6 +6389,12 @@
       "type": "body",
       "placeholder": "[]",
       "description": "Network hosts to allow (only hosts a version's manifest asks for)"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "extensibility.edit"
@@ -6599,6 +6984,11 @@
      {
       "name": "category",
       "type": "query"
+     },
+     {
+      "name": "tag",
+      "type": "query",
+      "description": "Only items carrying this tag"
      }
     ],
     "permission": "reports.view"
@@ -6632,6 +7022,12 @@
       "type": "body",
       "placeholder": "{}",
       "description": "Report configuration (data_source, columns, filters, ..., charts)"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "reports.create"
@@ -6685,6 +7081,12 @@
       "type": "body",
       "placeholder": "{}",
       "description": "Report configuration (data_source, columns, filters, ..., charts)"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "reports.edit_own"
@@ -6723,6 +7125,12 @@
       "type": "body",
       "placeholder": "{}",
       "description": "Report configuration (data_source, columns, filters, ..., charts)"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "reports.edit_own"
@@ -6821,6 +7229,1304 @@
      }
     ],
     "permission": "reports.create"
+   }
+  ]
+ },
+ {
+  "label": "Apps",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/apps",
+    "label": "List the apps you can open (or edit), by name",
+    "description": "List the apps you can open (or edit), by name Requires apps.view.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Name or description contains"
+     },
+     {
+      "name": "editable",
+      "type": "query",
+      "placeholder": "true",
+      "description": "Only apps you can edit",
+      "options": [
+       "true",
+       "false"
+      ]
+     },
+     {
+      "name": "tag",
+      "type": "query",
+      "description": "Only apps carrying this tag"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps",
+    "label": "Create an app (starts with one empty page, Home; you become an editor)",
+    "description": "Create an app (starts with one empty page, Home; you become an editor) Requires apps.manage.",
+    "params": [
+     {
+      "name": "name",
+      "type": "body",
+      "required": true,
+      "description": "App name"
+     },
+     {
+      "name": "slug",
+      "type": "body",
+      "description": "URL slug (/apps/<slug>); derived from the name when omitted; spec, rule-types, widget-types, new and search are reserved"
+     },
+     {
+      "name": "subtitle",
+      "type": "body",
+      "description": "One line under the name (Apps page cards)"
+     },
+     {
+      "name": "description",
+      "type": "body",
+      "description": "Short description (shown in the Apps menu and searched)"
+     },
+     {
+      "name": "icon",
+      "type": "body",
+      "description": "Icon name (lucide, e.g. LayoutGrid, Briefcase)"
+     },
+     {
+      "name": "color",
+      "type": "body",
+      "description": "Accent colour #rrggbb, layered on the workspace theme"
+     },
+     {
+      "name": "menu",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Extra menu entries beside the pages"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively"
+     },
+     {
+      "name": "audience",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Who may open the app: users, teams and roles"
+     },
+     {
+      "name": "editors",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "User ids who may edit this app"
+     },
+     {
+      "name": "nav",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Navigation style and header options: { style: top | sidebar | drawer | tabs | bottom | mega | none, header_style, density, shell, … }"
+     },
+     {
+      "name": "params",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "App parameters [{ name, type: text | number | boolean | date | list | record, default?, required? }], filled from ?p.<name>= on any page, the opener or the embed URL"
+     },
+     {
+      "name": "variables",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "App variables [{ name, type, default? }]: kept for the session across pages; set by rules and widgets"
+     },
+     {
+      "name": "style",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Widget styling: { default: <widget style every widget inherits>, presets: [{ name, style }] } — see lib/apps/style.ts and /docs/tasks/apps “Styling widgets”"
+     },
+     {
+      "name": "rules",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "App rules (run on every page): [{ id, name?, when: { type, … }, if?: { match, conditions }, then: [actions] }] — see lib/apps/rules.ts and /docs/tasks/apps"
+     },
+     {
+      "name": "sign_in_page",
+      "type": "body",
+      "placeholder": "workspace",
+      "description": "Where people who are not signed in sign in: workspace (the workspace sign-in page), standard (the standard UserTasks sign-in) or null (follow the workspace setting use_for_apps, the default). Live at once: not part of the draft",
+      "options": [
+       "workspace",
+       "standard"
+      ]
+     }
+    ],
+    "permission": "apps.manage"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/widget-types",
+    "label": "The widget catalogue: each widget type with its sizes and config JSON schema",
+    "description": "The widget catalogue: each widget type with its sizes and config JSON schema Requires apps.view.",
+    "params": [],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/{id}",
+    "label": "An app with its pages and menu (audience, editors and publish state for its builders)",
+    "description": "content says which version: draft, published or live. Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "version",
+      "type": "query",
+      "placeholder": "draft",
+      "description": "Editors: draft (default for editors) or published. Everyone else always gets the published version.",
+      "options": [
+       "draft",
+       "published"
+      ]
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "PATCH",
+    "path": "/api/v1/apps/{id}",
+    "label": "Update an app: name, slug, description, icon, colour, menu, audience (replaced) and editors (replaced)",
+    "description": "Edit access: an editor of the app or apps.manage. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "name",
+      "type": "body",
+      "description": "App name"
+     },
+     {
+      "name": "slug",
+      "type": "body",
+      "description": "URL slug (/apps/<slug>); derived from the name when omitted; spec, rule-types, widget-types, new and search are reserved"
+     },
+     {
+      "name": "subtitle",
+      "type": "body",
+      "description": "One line under the name (Apps page cards)"
+     },
+     {
+      "name": "description",
+      "type": "body",
+      "description": "Short description (shown in the Apps menu and searched)"
+     },
+     {
+      "name": "icon",
+      "type": "body",
+      "description": "Icon name (lucide, e.g. LayoutGrid, Briefcase)"
+     },
+     {
+      "name": "color",
+      "type": "body",
+      "description": "Accent colour #rrggbb, layered on the workspace theme"
+     },
+     {
+      "name": "menu",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Extra menu entries beside the pages"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively"
+     },
+     {
+      "name": "audience",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Who may open the app: users, teams and roles"
+     },
+     {
+      "name": "editors",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "User ids who may edit this app"
+     },
+     {
+      "name": "nav",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Navigation style and header options: { style: top | sidebar | drawer | tabs | bottom | mega | none, header_style, density, shell, … }"
+     },
+     {
+      "name": "params",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "App parameters [{ name, type: text | number | boolean | date | list | record, default?, required? }], filled from ?p.<name>= on any page, the opener or the embed URL"
+     },
+     {
+      "name": "variables",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "App variables [{ name, type, default? }]: kept for the session across pages; set by rules and widgets"
+     },
+     {
+      "name": "style",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Widget styling: { default: <widget style every widget inherits>, presets: [{ name, style }] } — see lib/apps/style.ts and /docs/tasks/apps “Styling widgets”"
+     },
+     {
+      "name": "rules",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "App rules (run on every page): [{ id, name?, when: { type, … }, if?: { match, conditions }, then: [actions] }] — see lib/apps/rules.ts and /docs/tasks/apps"
+     },
+     {
+      "name": "sign_in_page",
+      "type": "body",
+      "placeholder": "workspace",
+      "description": "Where people who are not signed in sign in: workspace (the workspace sign-in page), standard (the standard UserTasks sign-in) or null (follow the workspace setting use_for_apps, the default). Live at once: not part of the draft",
+      "options": [
+       "workspace",
+       "standard"
+      ]
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "DELETE",
+    "path": "/api/v1/apps/{id}",
+    "label": "Delete an app with its pages, audience and editors",
+    "description": "Delete an app with its pages, audience and editors Requires apps.manage.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     }
+    ],
+    "permission": "apps.manage"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/{id}/pages",
+    "label": "The pages of an app in menu order, with their widgets and filters",
+    "description": "Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "version",
+      "type": "query",
+      "placeholder": "draft",
+      "description": "Editors: draft (default for editors) or published. Everyone else always gets the published version.",
+      "options": [
+       "draft",
+       "published"
+      ]
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/{id}/pages",
+    "label": "Add a page to an app (edit access)",
+    "description": "Add a page to an app (edit access) Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "title",
+      "type": "body",
+      "required": true,
+      "description": "Page title (menu label)"
+     },
+     {
+      "name": "slug",
+      "type": "body",
+      "description": "URL slug (/apps/<app>/<slug>); derived from the title when omitted"
+     },
+     {
+      "name": "icon",
+      "type": "body",
+      "description": "Icon name"
+     },
+     {
+      "name": "position",
+      "type": "body",
+      "placeholder": "0",
+      "description": "Menu order (0 first); appended when omitted"
+     },
+     {
+      "name": "layout",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Widgets in reading order: { widgets: [{ id, type, w, h, title?, config }], params?: [page parameters], variables?: [page variables], rules?: [page rules] }"
+     },
+     {
+      "name": "filters",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Page filters widgets can bind to with { filter: \"<id>\" }"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/{id}/pages/reorder",
+    "label": "Put the app's pages in this order (edit access)",
+    "description": "Put the app's pages in this order (edit access) Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "order",
+      "type": "body",
+      "required": true,
+      "placeholder": "[]",
+      "description": "Page ids or slugs, first to last"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/{id}/pages/{pageId}",
+    "label": "One page of an app: its widgets (layout.widgets) and page filters",
+    "description": "Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "pageId",
+      "type": "path",
+      "required": true,
+      "description": "Page id or slug"
+     },
+     {
+      "name": "version",
+      "type": "query",
+      "placeholder": "draft",
+      "description": "Editors: draft (default for editors) or published. Everyone else always gets the published version.",
+      "options": [
+       "draft",
+       "published"
+      ]
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "PATCH",
+    "path": "/api/v1/apps/{id}/pages/{pageId}",
+    "label": "Update a page: title, slug, icon, position, widgets (layout, replaced) and filters (replaced) (edit access)",
+    "description": "Update a page: title, slug, icon, position, widgets (layout, replaced) and filters (replaced) (edit access) Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "pageId",
+      "type": "path",
+      "required": true,
+      "description": "Page id or slug"
+     },
+     {
+      "name": "title",
+      "type": "body",
+      "description": "Page title (menu label)"
+     },
+     {
+      "name": "slug",
+      "type": "body",
+      "description": "URL slug (/apps/<app>/<slug>); derived from the title when omitted"
+     },
+     {
+      "name": "icon",
+      "type": "body",
+      "description": "Icon name"
+     },
+     {
+      "name": "position",
+      "type": "body",
+      "placeholder": "0",
+      "description": "Menu order (0 first); appended when omitted"
+     },
+     {
+      "name": "layout",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Widgets in reading order: { widgets: [{ id, type, w, h, title?, config }], params?: [page parameters], variables?: [page variables], rules?: [page rules] }"
+     },
+     {
+      "name": "filters",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Page filters widgets can bind to with { filter: \"<id>\" }"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "DELETE",
+    "path": "/api/v1/apps/{id}/pages/{pageId}",
+    "label": "Delete a page of an app (edit access)",
+    "description": "Delete a page of an app (edit access) Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "pageId",
+      "type": "path",
+      "required": true,
+      "description": "Page id or slug"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/{id}/access",
+    "label": "Access issues: who in the audience can't use what the app shows them, and how to fix it (edit access)",
+    "description": "For each audience entry × form, workflow, data table or report the app uses: viewers need to see it, contributors also to submit / start it. Each gap has a fix: a form grant the caller can give (Manage roles) or whom to ask. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/{id}/access/grant",
+    "label": "Fix access issues with form grants (View + Submit) through the object permissions service (edit access and team.change_roles)",
+    "description": "Fix access issues with form grants (View + Submit) through the object permissions service (edit access and team.change_roles) Requires team.change_roles.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "keys",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Gap keys from GET /apps/{id}/access; omitted = every gap you can fix"
+     }
+    ],
+    "permission": "team.change_roles"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/{id}/package/preview",
+    "label": "What packaging the app would include: dependencies (and why), install requirements, embed sites (edit access)",
+    "description": "The app with its pages, the uploaded icons it uses and everything it references — forms, workflows, data tables (with views), reports, API references with their integration (definitions only, never credentials), agents, other apps it links to — plus what those need. Audience, editors, the embed allow-list and usage data are never exported. Requires packages.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "excluded",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Dependencies to leave out (they must exist where the package is installed); default: the choices kept from the last package"
+     },
+     {
+      "name": "data_modes",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Per data table id: \"schema\" (default) or \"rows\" (sample data)"
+     },
+     {
+      "name": "content",
+      "type": "body",
+      "placeholder": "published",
+      "description": "published (default): the app's published version (its draft while never published); draft: the working draft (\"Export draft\")",
+      "options": [
+       "published",
+       "draft"
+      ]
+     }
+    ],
+    "permission": "packages.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/{id}/package",
+    "label": "Package / Export an app: build the next signed version of its package and return the .utpkg (edit access and packages.manage)",
+    "description": "Creates the app's package on first use (root: the app) or updates its choices, builds a signed version and returns it base64-encoded. Install it anywhere with POST /package-installs (preview with /package-installs/plan). Audited on the app and the package. Requires packages.manage.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "excluded",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Dependencies to leave out (they must exist where the package is installed); default: the choices kept from the last package"
+     },
+     {
+      "name": "data_modes",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Per data table id: \"schema\" (default) or \"rows\" (sample data)"
+     },
+     {
+      "name": "content",
+      "type": "body",
+      "placeholder": "published",
+      "description": "published (default): the app's published version (its draft while never published); draft: the working draft (\"Export draft\")",
+      "options": [
+       "published",
+       "draft"
+      ]
+     },
+     {
+      "name": "version",
+      "type": "body",
+      "description": "Exact semver; default: the next patch (1.0.0 first)"
+     },
+     {
+      "name": "notes",
+      "type": "body",
+      "description": "Release notes for this version"
+     },
+     {
+      "name": "description",
+      "type": "body"
+     },
+     {
+      "name": "readme",
+      "type": "body",
+      "description": "Markdown shown before install"
+     }
+    ],
+    "permission": "packages.manage"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/rule-types",
+    "label": "App rules reference: triggers (with their {{event.*}} payload), actions, system variables and the JSON schemas of a rule, parameters and variables",
+    "description": "App rules reference: triggers (with their {{event.*}} payload), actions, system variables and the JSON schemas of a rule, parameters and variables Requires apps.view.",
+    "params": [],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/{id}/actions",
+    "label": "Run an app rule's server action (call an API reference, look up / create / update data table rows, start a workflow) as the caller",
+    "description": "The action is read from the SAVED app by rule id and path; only the values of its declared template slots are taken from the request. Governance is re-checked per action (app role, object permissions, data table RLS, API reference gate), rate limited and audited. A repeated idempotency_key replays the result. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "page",
+      "type": "body",
+      "description": "Page id or slug (page rules); omit for app rules"
+     },
+     {
+      "name": "rule_id",
+      "type": "body",
+      "required": true,
+      "description": "Rule id"
+     },
+     {
+      "name": "path",
+      "type": "body",
+      "required": true,
+      "description": "Action path in the rule, e.g. then.2, then.1.then.0, on_error.0"
+     },
+     {
+      "name": "values",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Values of the action's template slots: inputs.<name>, values.<column>, row_id, filter.<i>[.<j>]"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "required": true,
+      "description": "A key per run (a retry replays the result)"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/spec/search",
+    "label": "Find objects to put in an app (forms, workflows, data tables, reports, teams, people, roles, agents, API references, table columns / views, pages): id, name, hint",
+    "description": "Lists only what you may see. Without app it needs apps.manage; with app, edit access to that app (kind page needs it). Requires apps.view.",
+    "params": [
+     {
+      "name": "kind",
+      "type": "query",
+      "required": true,
+      "placeholder": "workflow",
+      "description": "What to find",
+      "options": [
+       "workflow",
+       "form",
+       "table",
+       "report",
+       "team",
+       "user",
+       "role",
+       "agent",
+       "reference",
+       "page",
+       "column",
+       "view"
+      ]
+     },
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Name contains"
+     },
+     {
+      "name": "app",
+      "type": "query",
+      "description": "The app being edited (id or slug)"
+     },
+     {
+      "name": "table",
+      "type": "query",
+      "description": "kind column / view: the data table id"
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/spec/object",
+    "label": "What an app binds to: a form's fields and parameters, a data table's columns and views, a workflow's trigger and start form",
+    "description": "What an app binds to: a form's fields and parameters, a data table's columns and views, a workflow's trigger and start form Requires apps.view.",
+    "params": [
+     {
+      "name": "kind",
+      "type": "query",
+      "required": true,
+      "placeholder": "form",
+      "options": [
+       "form",
+       "table",
+       "workflow"
+      ]
+     },
+     {
+      "name": "id",
+      "type": "query",
+      "required": true,
+      "description": "Id from /apps/spec/search"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/spec/reference",
+    "label": "The app spec format (JSON schema), design guidance, starter templates, the widget catalogue in one line each and a worked example",
+    "description": "The app spec format (JSON schema), design guidance, starter templates, the widget catalogue in one line each and a worked example Requires apps.view.",
+    "params": [
+     {
+      "name": "widget_types",
+      "type": "query",
+      "description": "Comma-separated widget types whose full config schemas to include"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/spec/plan",
+    "label": "Check an app spec without changing anything: plain-language errors to fix, design warnings and a summary of what would be built",
+    "description": "A new app ({ app: { name, … }, pages }) or a change to one ({ app_id, pages: [{ page, add_widgets / update_widgets / remove_widgets }] }). Validates every widget config against the widget catalogue, page filters, page links, the objects you bind (they must exist and be visible to you) and the permissions some bindings need. Always 200: `valid` says whether it can be applied. Requires apps.view.",
+    "params": [
+     {
+      "name": "app_id",
+      "type": "body",
+      "description": "An existing app (id or slug) to change. Omit to create a new app (then app.name is required)."
+     },
+     {
+      "name": "app",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "App settings: { name, slug?, subtitle?, description?, icon? (lucide name), color? (#rrggbb, only when asked), nav? { style: tabs | top | sidebar | drawer | bottom | mega | none, header_style?, density? }, menu? [entries], params?, variables?, rules?, style? }. For an existing app: only what changes."
+     },
+     {
+      "name": "pages",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Pages in menu order. New page: { title, icon?, slug?, hidden?, min_role? viewer | contributor | editor, template? (starter template id), filters? [{ id, kind: user | team | form | workflow | table | date_range | status | text, label, default? }], widgets: [{ type, title?, w? 1–12, h?, config?, style?, id? }], params?, variables?, rules? }. Existing page: { page: \"<slug or id>\", title?, filters?, widgets? (replaces all) OR add_widgets [{ …widget, after? | before? | at? start | end }], update_widgets [{ id, config? (merged; null removes a key), replace_config?, w?, h?, title?, style?, move? { after | before | at } }], remove_widgets [\"<id>\"] } (applied in that order: remove, then update / move, then add). The first page of a new app is its home page. Widget config schemas: apps_spec_reference { widget_types } or apps_widget_types."
+     },
+     {
+      "name": "delete_pages",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Existing pages (slugs or ids) to delete"
+     },
+     {
+      "name": "page_order",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Page slugs in menu order, first to last"
+     },
+     {
+      "name": "audience",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Who may open the app (replaced): [{ type: user | team | role, id, role: viewer (read-only) | contributor (may use submit / start / claim buttons) }]"
+     },
+     {
+      "name": "editors",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "User ids who may edit the app (replaced)"
+     },
+     {
+      "name": "publish",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Changes are saved to the app's DRAFT (its audience keeps seeing the published version until someone publishes). true: publish straight after applying — only when the person explicitly asked to make it live now."
+     },
+     {
+      "name": "publish_note",
+      "type": "body",
+      "description": "With publish: the version note (what changed)"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/spec/apply",
+    "label": "Build or change an app in one step from an app spec (checked again first; applied whole or not at all)",
+    "description": "A new app needs apps.manage; a change needs edit access. If a step fails nothing is kept: a new app is removed again, changes to an existing app are undone. Every change is audited as you. The result is saved to the app's draft (saved_as: draft — publish with POST /apps/{id}/publish); publish: true publishes right after. Returns the app, its links (preview_href: the draft as its audience would see it), the pages and the number of access issues (GET /apps/{id}/access). Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "app_id",
+      "type": "body",
+      "description": "An existing app (id or slug) to change. Omit to create a new app (then app.name is required)."
+     },
+     {
+      "name": "app",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "App settings: { name, slug?, subtitle?, description?, icon? (lucide name), color? (#rrggbb, only when asked), nav? { style: tabs | top | sidebar | drawer | bottom | mega | none, header_style?, density? }, menu? [entries], params?, variables?, rules?, style? }. For an existing app: only what changes."
+     },
+     {
+      "name": "pages",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Pages in menu order. New page: { title, icon?, slug?, hidden?, min_role? viewer | contributor | editor, template? (starter template id), filters? [{ id, kind: user | team | form | workflow | table | date_range | status | text, label, default? }], widgets: [{ type, title?, w? 1–12, h?, config?, style?, id? }], params?, variables?, rules? }. Existing page: { page: \"<slug or id>\", title?, filters?, widgets? (replaces all) OR add_widgets [{ …widget, after? | before? | at? start | end }], update_widgets [{ id, config? (merged; null removes a key), replace_config?, w?, h?, title?, style?, move? { after | before | at } }], remove_widgets [\"<id>\"] } (applied in that order: remove, then update / move, then add). The first page of a new app is its home page. Widget config schemas: apps_spec_reference { widget_types } or apps_widget_types."
+     },
+     {
+      "name": "delete_pages",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Existing pages (slugs or ids) to delete"
+     },
+     {
+      "name": "page_order",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Page slugs in menu order, first to last"
+     },
+     {
+      "name": "audience",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Who may open the app (replaced): [{ type: user | team | role, id, role: viewer (read-only) | contributor (may use submit / start / claim buttons) }]"
+     },
+     {
+      "name": "editors",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "User ids who may edit the app (replaced)"
+     },
+     {
+      "name": "publish",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Changes are saved to the app's DRAFT (its audience keeps seeing the published version until someone publishes). true: publish straight after applying — only when the person explicitly asked to make it live now."
+     },
+     {
+      "name": "publish_note",
+      "type": "body",
+      "description": "With publish: the version note (what changed)"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/{id}/publish",
+    "label": "Publish the app's draft as its next version (edit access): its audience sees it from now on",
+    "description": "Refused (422) with the problems when the draft can't be published (no pages, invalid widgets); 409 when it matches the published version. Returns the version, what changed against the previous one (diff) and access issues as warnings. Audited. Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "note",
+      "type": "body",
+      "description": "Version note: what changed"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "DELETE",
+    "path": "/api/v1/apps/{id}/draft",
+    "label": "Discard the app's draft: back to its published version (edit access)",
+    "description": "409 for an app that was never published. Audited. Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/{id}/versions",
+    "label": "The published versions of an app, newest first: number, note, publisher, date, which one is live (edit access)",
+    "description": "Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/{id}/versions/{version}",
+    "label": "One published version of an app: its immutable snapshot (header, menu, settings, pages with layouts and filters) (edit access)",
+    "description": "One published version of an app: its immutable snapshot (header, menu, settings, pages with layouts and filters) (edit access) Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "version",
+      "type": "path",
+      "required": true,
+      "description": "Version number"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/apps/{id}/compare",
+    "label": "Compare two versions of an app: pages, widgets, rules, menu, navigation and style changes with readable lines (edit access)",
+    "description": "from / to are draft, published or a version number; default published → draft (what publishing would change). publish_problems lists what would block publishing the draft. Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "from",
+      "type": "query",
+      "description": "draft, published (default) or a version number"
+     },
+     {
+      "name": "to",
+      "type": "query",
+      "description": "draft (default), published or a version number"
+     }
+    ],
+    "permission": "apps.view"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/apps/{id}/versions/{version}/restore",
+    "label": "Restore a published version into the app's draft (edit access): nothing changes for its audience until it is published",
+    "description": "Replaces the draft. Audited. Drafts: an app's rows are its working DRAFT — every write (PATCH /apps/{id}, the page endpoints, POST /apps/spec/apply, package upgrades of an app with unpublished changes) changes the draft. Its audience sees only the latest PUBLISHED version (POST /apps/{id}/publish) — pages, widgets, menu, rules and rule actions; an app never published is visible to its editors only. Not versioned (effective at once): the slug, the audience and the editors. Before the drafts migration (20270123090000) is applied the draft endpoints answer 409 and every save is live. Requires apps.view.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "App id or slug"
+     },
+     {
+      "name": "version",
+      "type": "path",
+      "required": true,
+      "description": "Version number"
+     }
+    ],
+    "permission": "apps.view"
+   }
+  ]
+ },
+ {
+  "label": "Tags",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/tags",
+    "label": "List the tags in use with their colours, descriptions and usage per object type",
+    "description": "Every tag on the workspace's tasks, workflows, forms, integrations, references, agents, workflow activities, data tables, reports, business rules, email templates, form controls, apps and packages (usage counts only the object types — and objects — you may view), plus styled tags not in use. Sorted by total use. Also returns the auto-colour setting.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Tag name or description contains"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/tags/suggest",
+    "label": "Autocomplete: workspace tags matching some text, ranked, with colours and usage",
+    "description": "Exact match first, then names starting with the text, then names or descriptions containing it; ties by usage. Case- and space-insensitive. `exact` is the existing tag matching the text (use its spelling); `can_create` says whether you may add a brand-new tag.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "What was typed"
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "At most this many (default 10)"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/tags/objects",
+    "label": "The objects of one type that carry a tag, by name, paged",
+    "description": "Each with its id, name and app link. Needs the type's view permission, and lists only objects you may see.",
+    "params": [
+     {
+      "name": "name",
+      "type": "query",
+      "required": true,
+      "description": "The tag (any case)"
+     },
+     {
+      "name": "type",
+      "type": "query",
+      "required": true,
+      "placeholder": "tasks",
+      "description": "Object type",
+      "options": [
+       "tasks",
+       "workflows",
+       "forms",
+       "integrations",
+       "references",
+       "agents",
+       "activities",
+       "data_tables",
+       "reports",
+       "business_rules",
+       "email_templates",
+       "form_controls",
+       "apps",
+       "packages"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (default 20)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "PUT",
+    "path": "/api/v1/tags/style",
+    "label": "Set a tag's colour and / or description",
+    "description": "Send only what changes. color is a palette token (gray, red, orange, amber, yellow, lime, green, teal, cyan, blue, indigo, violet, purple, pink, rose) or \"auto\" (the colour the name gets by itself); description \"\" clears it. Names match case-insensitively. A tag left with neither is removed from the registry. Audited. Requires tags.manage.",
+    "params": [
+     {
+      "name": "name",
+      "type": "body",
+      "required": true,
+      "description": "The tag"
+     },
+     {
+      "name": "color",
+      "type": "body",
+      "placeholder": "gray",
+      "description": "gray, red, orange, amber, yellow, lime, green, teal, cyan, blue, indigo, violet, purple, pink, rose or auto",
+      "options": [
+       "gray",
+       "red",
+       "orange",
+       "amber",
+       "yellow",
+       "lime",
+       "green",
+       "teal",
+       "cyan",
+       "blue",
+       "indigo",
+       "violet",
+       "purple",
+       "pink",
+       "rose",
+       "auto"
+      ]
+     },
+     {
+      "name": "description",
+      "type": "body",
+      "description": "Shown when hovering over the tag; \"\" clears it"
+     },
+     {
+      "name": "keep",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Keep the tag in the registry even with no colour or description (create a tag ahead of use)"
+     }
+    ],
+    "permission": "tags.manage"
+   },
+   {
+    "method": "DELETE",
+    "path": "/api/v1/tags/style",
+    "label": "Reset a tag to its automatic colour (removes its colour and description)",
+    "description": "The tag stays on its objects. Audited. Requires tags.manage.",
+    "params": [
+     {
+      "name": "name",
+      "type": "query",
+      "required": true,
+      "description": "The tag"
+     }
+    ],
+    "permission": "tags.manage"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/tags/rename",
+    "label": "Rename a tag on every object, or merge it into another tag",
+    "description": "Changes the tag on every tagged object of the workspace (tasks, workflows, forms, integrations, references, agents, workflow activities, data tables, reports, business rules, email templates, form controls, apps and packages) in one transaction; its colour and description move with it. When `to` is already a tag the two merge (objects keep one; the target keeps its own style, taking the source's where it has none). Audited. Requires tags.manage.",
+    "params": [
+     {
+      "name": "from",
+      "type": "body",
+      "required": true,
+      "description": "The tag to rename (any case)"
+     },
+     {
+      "name": "to",
+      "type": "body",
+      "required": true,
+      "description": "The new name, or an existing tag to merge into"
+     }
+    ],
+    "permission": "tags.manage"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/tags/remove",
+    "label": "Remove a tag from every object and delete its colour and description",
+    "description": "Every tagged object of the workspace (tasks, workflows, forms, integrations, references, agents, workflow activities, data tables, reports, business rules, email templates, form controls, apps and packages), in one transaction. Audited. Requires tags.manage.",
+    "params": [
+     {
+      "name": "name",
+      "type": "body",
+      "required": true,
+      "description": "The tag (any case)"
+     }
+    ],
+    "permission": "tags.manage"
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/tags/apply",
+    "label": "Add or remove tags on objects (or replace one object's tags)",
+    "description": "Each object is saved through its own update, so it needs that object's edit permission (tasks.complete, workflows.edit, forms.edit, integrations.edit, integrations.manage_references, agents.edit, extensibility.edit, data.edit_schema, reports.edit_own and the report's creator, apps.manage or the app's editors, packages.manage). An existing tag's spelling wins over the typed case. With allow_new off, brand-new tags need tags.manage. Several objects: per-object failures are reported, the rest are saved.",
+    "params": [
+     {
+      "name": "type",
+      "type": "body",
+      "required": true,
+      "placeholder": "tasks",
+      "description": "Object type",
+      "options": [
+       "tasks",
+       "workflows",
+       "forms",
+       "integrations",
+       "references",
+       "agents",
+       "activities",
+       "data_tables",
+       "reports",
+       "business_rules",
+       "email_templates",
+       "form_controls",
+       "apps",
+       "packages"
+      ]
+     },
+     {
+      "name": "ids",
+      "type": "body",
+      "required": true,
+      "placeholder": "[]",
+      "description": "Object ids"
+     },
+     {
+      "name": "add",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags to add"
+     },
+     {
+      "name": "remove",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags to remove (any case)"
+     },
+     {
+      "name": "set",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Replace the tags (one object only)"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/tags/settings",
+    "label": "Get the tag settings (automatic colours on or off)",
+    "description": "Get the tag settings (automatic colours on or off)",
+    "params": [],
+    "permission": null
+   },
+   {
+    "method": "PATCH",
+    "path": "/api/v1/tags/settings",
+    "label": "Change the tag settings (automatic colours, who may add new tags)",
+    "description": "auto_color off: tags without a chosen colour show in neutral grey. allow_new off: only people with tags.manage may add brand-new tags. Audited. Requires tags.manage.",
+    "params": [
+     {
+      "name": "auto_color",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Uncoloured tags get a colour from their name (true, default) or show in neutral grey (false)"
+     },
+     {
+      "name": "allow_new",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Anyone who can edit an object may add a brand-new tag to it (true, default); false: only people with tags.manage, everyone else picks existing tags"
+     }
+    ],
+    "permission": "tags.manage"
    }
   ]
  },
@@ -9149,6 +10855,88 @@
   ]
  },
  {
+  "label": "Query settings",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/settings/query",
+    "label": "Get the query settings and status",
+    "description": "Per service: the setting, the effective mode and what reads use right now, the rollup coverage and recent read times. auto = the rollups when they cover the window and nothing is queued for the workspace, else real time; rollup = \"Flat table\" (the rollups whenever they cover the window); live = \"Real time\" (raw rows). Real time is always the fallback. Self-hosted: per workspace — reading needs settings.view, changes settings.edit. Cloud edition: one configuration for every workspace, instance admins only (404 for anyone else).",
+    "params": [],
+    "permission": null
+   },
+   {
+    "method": "PATCH",
+    "path": "/api/v1/settings/query",
+    "label": "Change the query settings",
+    "description": "Send only what changes; services and apps are merged per key (null removes an override). Audited. Self-hosted: per workspace — reading needs settings.view, changes settings.edit. Cloud edition: one configuration for every workspace, instance admins only (404 for anyone else).",
+    "params": [
+     {
+      "name": "default_mode",
+      "type": "body",
+      "placeholder": "auto",
+      "description": "Workspace default: auto = the rollups when they cover the window and nothing is queued for the workspace, else real time; rollup = \"Flat table\" (the rollups whenever they cover the window); live = \"Real time\" (raw rows). Real time is always the fallback.",
+      "options": [
+       "auto",
+       "rollup",
+       "live"
+      ]
+     },
+     {
+      "name": "default_cache_ttl_seconds",
+      "type": "body",
+      "placeholder": "0",
+      "description": "Default cache TTL (seconds, 0 = off; default 20)"
+     },
+     {
+      "name": "allow_widget_override",
+      "type": "body",
+      "placeholder": "false",
+      "description": "Let app editors set a data source per widget (Inherit / Flat table / Real time)"
+     },
+     {
+      "name": "services",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Per service (reports_hub, report_charts, home_stats, app_widgets, extension_stats, task_sla, form_submission_stats, api_reports); null removes the override"
+     },
+     {
+      "name": "apps",
+      "type": "body",
+      "placeholder": "{}",
+      "description": "Per app id: a mode, or inherit / null to remove"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/settings/query/rollups",
+    "label": "Run a report rollups action for the workspace",
+    "description": "backfill: continue the history backfill (up to ~20 s here, then the scheduler); rebuild: restart it from today (reads use real time until covered again); reconcile: rebuild today and yesterday. Audited. Self-hosted: per workspace — reading needs settings.view, changes settings.edit. Cloud edition: one configuration for every workspace, instance admins only (404 for anyone else).",
+    "params": [
+     {
+      "name": "action",
+      "type": "body",
+      "required": true,
+      "placeholder": "backfill",
+      "options": [
+       "backfill",
+       "rebuild",
+       "reconcile"
+      ]
+     },
+     {
+      "name": "tenant_id",
+      "type": "body",
+      "description": "Cloud edition (instance admins): a workspace id, or \"all\" (default) for every workspace. Self-hosted: this workspace only"
+     }
+    ],
+    "permission": null
+   }
+  ]
+ },
+ {
   "label": "API keys",
   "endpoints": [
    {
@@ -10039,7 +11827,7 @@
      {
       "name": "types",
       "type": "query",
-      "description": "Sections to export (default all): workflows, decision_tables, workflow_activities, data_tables, integrations (with their references and objects), agents, reports, retention_policies, roles, mcp_servers, email_templates, connectors (non-secret config only), log_destinations (no credentials or shipper state), form_themes, forms (fields, layout and theme; versions stay per workspace), workspace_theme (one workspace-theme.json; uploaded fonts by file name, logos by URL — images from another workspace are dropped on apply) (comma-separated)"
+      "description": "Sections to export (default all): workflows, decision_tables, workflow_activities, data_tables, integrations (with their references and objects), agents, reports, retention_policies, roles, mcp_servers, email_templates, connectors (non-secret config only), log_destinations (no credentials or shipper state), form_themes, forms (fields, layout and theme; versions stay per workspace), apps (pages, menu, settings and the uploaded icons they use; audience and editors stay per workspace), workspace_theme (one workspace-theme.json; uploaded fonts by file name, logos by URL — images from another workspace are dropped on apply) (comma-separated)"
      },
      {
       "name": "ids",
@@ -10150,6 +11938,11 @@
       "type": "query",
       "placeholder": "0",
       "description": "Rows to skip (default 0)"
+     },
+     {
+      "name": "tag",
+      "type": "query",
+      "description": "Only items carrying this tag"
      }
     ],
     "permission": "packages.view"
@@ -10216,6 +12009,12 @@
       "name": "package_uid",
       "type": "body",
       "description": "Re-create a package with an existing identity (another workspace)"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "packages.manage"
@@ -10293,7 +12092,7 @@
      {
       "name": "type",
       "type": "query",
-      "description": "Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme, form_control (default every type you may view) (comma-separated)"
+      "description": "Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme, form_control, app (default every type you may view) (comma-separated)"
      },
      {
       "name": "tag",
@@ -10422,6 +12221,12 @@
       "type": "body",
       "placeholder": "{}",
       "description": "Merged over the stored modes"
+     },
+     {
+      "name": "tags",
+      "type": "body",
+      "placeholder": "[]",
+      "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
      }
     ],
     "permission": "packages.manage"
@@ -11944,6 +13749,1300 @@
      }
     ],
     "permission": "settings.edit"
+   }
+  ]
+ },
+ {
+  "label": "Instance admin (cloud)",
+  "endpoints": [
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/overview",
+    "label": "Instance KPIs: workspaces, active people, signups, trials ending, failed runs, AI spend, storage, queue (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/alerts",
+    "label": "Alerts: locked accounts, trials ending, lapsed licences, failing workspaces, AI spend spikes (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/workspaces",
+    "label": "Workspaces with members, activity, runs, failures, AI spend and storage (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/workspaces/{id}",
+    "label": "One workspace: owners, members, usage, health, licences (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/workspaces/{id}/audit",
+    "label": "A workspace's audit log: when, object type, action, actor — no summaries or changes (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/users",
+    "label": "People across workspaces (search by email or name; status=Locked) (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/users/{id}",
+    "label": "One person: sign-in state, lockout, MFA and sign-in methods, workspaces (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/memberships",
+    "label": "Memberships of a workspace or a person, with roles (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/invitations",
+    "label": "Invitations across workspaces (status=pending|expired|accepted; tokens never returned) (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/usage",
+    "label": "Usage per workspace: runs, failures, tasks, AI requests and spend, API keys, storage (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/ai-usage",
+    "label": "AI usage per day, workspace, source and model, with tokens and cost (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/assets",
+    "label": "Asset counts (forms, workflows, apps, tables, reports, agents, …) of a workspace or the instance (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/health",
+    "label": "Health per workspace: failed runs, agent errors, queue backlog, dead jobs, licence-paused runs (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/queue",
+    "label": "Queue health of the instance (workflow, agent, background jobs, deletion) (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/sign-ins",
+    "label": "Recent sign-in activity (last seen) (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/licences",
+    "label": "Licences and trials of workspaces (status=expiring|expired|trial|…) (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "GET",
+    "path": "/api/v1/instance/audit",
+    "label": "The instance admin audit trail (every on-behalf action) (instance admin)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only.",
+    "params": [
+     {
+      "name": "q",
+      "type": "query",
+      "description": "Search (names, emails, slugs)"
+     },
+     {
+      "name": "workspace_id",
+      "type": "query",
+      "description": "Only this workspace"
+     },
+     {
+      "name": "user_id",
+      "type": "query",
+      "description": "Only this person"
+     },
+     {
+      "name": "status",
+      "type": "query",
+      "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)"
+     },
+     {
+      "name": "plan",
+      "type": "query",
+      "description": "Workspace plan"
+     },
+     {
+      "name": "days",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Look-back window in days (usage, AI usage, sign-ins, audit)"
+     },
+     {
+      "name": "sort",
+      "type": "query",
+      "description": "Column key to sort by"
+     },
+     {
+      "name": "dir",
+      "type": "query",
+      "placeholder": "asc",
+      "description": "Sort direction",
+      "options": [
+       "asc",
+       "desc"
+      ]
+     },
+     {
+      "name": "limit",
+      "type": "query",
+      "placeholder": "1",
+      "description": "Page size (1-200, default 25)"
+     },
+     {
+      "name": "offset",
+      "type": "query",
+      "placeholder": "0",
+      "description": "Rows to skip"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/users/{id}/unlock",
+    "label": "Unlock an account (clear a failed sign-in lockout / suspension) (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/users/{id}/password-reset",
+    "label": "Send the normal password reset email (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/users/{id}/sign-out",
+    "label": "Sign a person out everywhere (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/invitations",
+    "label": "Invite a person to a workspace with a role (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "workspace_id",
+      "type": "body",
+      "required": true,
+      "description": "Workspace id"
+     },
+     {
+      "name": "email",
+      "type": "body",
+      "required": true
+     },
+     {
+      "name": "role",
+      "type": "body",
+      "placeholder": "owner",
+      "description": "Default member",
+      "options": [
+       "owner",
+       "admin",
+       "manager",
+       "member",
+       "viewer"
+      ]
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/invitations/{id}/resend",
+    "label": "Resend an invitation (new link, 7 more days) (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/invitations/{id}/revoke",
+    "label": "Revoke a pending invitation (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/workspaces/{id}/members/{user_id}/role",
+    "label": "Change a member's role (the last owner is guarded) (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Workspace id"
+     },
+     {
+      "name": "user_id",
+      "type": "path",
+      "required": true,
+      "description": "Person id"
+     },
+     {
+      "name": "role",
+      "type": "body",
+      "required": true,
+      "placeholder": "owner",
+      "options": [
+       "owner",
+       "admin",
+       "manager",
+       "member",
+       "viewer"
+      ]
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/workspaces/{id}/members/{user_id}/deactivate",
+    "label": "Deactivate a member (the last owner is guarded) (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Workspace id"
+     },
+     {
+      "name": "user_id",
+      "type": "path",
+      "required": true,
+      "description": "Person id"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/workspaces/{id}/members/{user_id}/reactivate",
+    "label": "Reactivate a deactivated member (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Workspace id"
+     },
+     {
+      "name": "user_id",
+      "type": "path",
+      "required": true,
+      "description": "Person id"
+     },
+     {
+      "name": "role",
+      "type": "body",
+      "placeholder": "owner",
+      "description": "Role when they have none (default member)",
+      "options": [
+       "owner",
+       "admin",
+       "manager",
+       "member",
+       "viewer"
+      ]
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/workspaces/{id}/licences/{extension_id}/extend",
+    "label": "Extend a trial or licence of a workspace (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Workspace id"
+     },
+     {
+      "name": "extension_id",
+      "type": "path",
+      "required": true,
+      "description": "Extension id"
+     },
+     {
+      "name": "days",
+      "type": "body",
+      "placeholder": "1",
+      "description": "Days to add (from the current end, or today)"
+     },
+     {
+      "name": "ends_at",
+      "type": "body",
+      "description": "Or the new end"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/workspaces/{id}/licences/{extension_id}/reactivate",
+    "label": "Reactivate a suspended licence of a workspace (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Workspace id"
+     },
+     {
+      "name": "extension_id",
+      "type": "path",
+      "required": true,
+      "description": "Extension id"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
+   },
+   {
+    "method": "POST",
+    "path": "/api/v1/instance/workspaces/{id}/resume-paused-runs",
+    "label": "Resume workflow runs paused by a lapsed licence (instance admin, on behalf)",
+    "description": "Instance admins only (a user API key or OAuth token of a person whose verified email is on INSTANCE_ADMIN_EMAILS / instance.admin_emails); everyone else gets 404. Tenant-wide API keys are refused. Operational data only. Needs a reason; audited in the instance admin trail and in the workspace's own audit log as \"UserTasks support (on behalf)\". 503 until migration 20270129090000_instance_admin.sql is applied. Rate-limited (30 actions a minute). Send idempotency_key to make a retry return the first result.",
+    "params": [
+     {
+      "name": "id",
+      "type": "path",
+      "required": true,
+      "description": "Id"
+     },
+     {
+      "name": "extension_id",
+      "type": "body"
+     },
+     {
+      "name": "reason",
+      "type": "body",
+      "required": true,
+      "description": "Why (recorded in both audit logs)"
+     },
+     {
+      "name": "idempotency_key",
+      "type": "body",
+      "description": "Retry key: a repeat returns the first result"
+     }
+    ],
+    "permission": null
    }
   ]
  },

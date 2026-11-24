@@ -1,0 +1,239 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "3e5096a6-4681-5f60-913a-5206c496b484",
+  "asset": {
+    "id": "3e5096a6-4681-5f60-913a-5206c496b484",
+    "name": "CapEx register asset",
+    "description": "Adds a fixed asset to the CapEx asset register and writes its straight-line depreciation schedule (one row per year of useful life, at most 10). Called by asset registration and project close-out.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Asset to register",
+        "config": {},
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "annual",
+        "type": "set_variable",
+        "label": "Annual depreciation",
+        "config": {
+          "name": "annual_depreciation",
+          "expression": "{{=ROUND((TO_NUMBER(cost) - TO_NUMBER(COALESCE(salvage_value, 0))) / TO_NUMBER(useful_life), 2)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "asset",
+        "type": "update_data_table",
+        "label": "Add to the register",
+        "config": {
+          "table_id": "ad9362e6-3e50-573a-a9ed-3fd2dbf4ff58",
+          "table_name": "CapEx asset register",
+          "operation": "insert",
+          "column_values": {
+            "asset_tag": "{{asset_tag}}",
+            "description": "{{description}}",
+            "project_ref": "{{project_ref}}",
+            "category": "{{category}}",
+            "business_unit": "{{business_unit}}",
+            "location": "{{location}}",
+            "in_service_date": "{{in_service_date}}",
+            "cost": "{{cost}}",
+            "useful_life_years": "{{useful_life}}",
+            "salvage_value": "{{=COALESCE(salvage_value, 0)}}",
+            "method": "Straight-line",
+            "annual_depreciation": "{{annual_depreciation}}",
+            "accumulated_depreciation": "0",
+            "net_book_value": "{{cost}}",
+            "status": "In service"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "years",
+        "type": "loop_n_times",
+        "label": "Each year of life",
+        "config": {
+          "count": "{{=MIN(TO_NUMBER(useful_life), 10)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "year_row",
+        "type": "update_data_table",
+        "label": "Depreciation for the year",
+        "config": {
+          "table_id": "2f7b30a2-32b6-56ad-88c1-f17b990829fc",
+          "table_name": "CapEx depreciation schedule",
+          "operation": "insert",
+          "column_values": {
+            "asset_tag": "{{asset_tag}}",
+            "category": "{{category}}",
+            "business_unit": "{{business_unit}}",
+            "fiscal_year": "{{=YEAR(in_service_date) + i}}",
+            "year_no": "{{=i + 1}}",
+            "opening_nbv": "{{=ROUND(TO_NUMBER(cost) - annual_depreciation * i, 0)}}",
+            "depreciation": "{{=ROUND(annual_depreciation, 0)}}",
+            "closing_nbv": "{{=ROUND(TO_NUMBER(cost) - annual_depreciation * (i + 1), 0)}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 620
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Registered",
+        "config": {
+          "reason": "{{asset_tag}} registered: ${{annual_depreciation}} a year"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-annual",
+        "source": "trigger",
+        "target": "annual"
+      },
+      {
+        "id": "e-annual-asset",
+        "source": "annual",
+        "target": "asset"
+      },
+      {
+        "id": "e-asset-years",
+        "source": "asset",
+        "target": "years"
+      },
+      {
+        "id": "e-years-year_row-each_item",
+        "source": "years",
+        "target": "year_row",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-years-done-done",
+        "source": "years",
+        "target": "done",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-asset_tag",
+        "name": "asset_tag",
+        "type": "string",
+        "description": "Asset tag",
+        "label": "Asset tag",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-description",
+        "name": "description",
+        "type": "string",
+        "description": "Description",
+        "label": "Description",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-project_ref",
+        "name": "project_ref",
+        "type": "string",
+        "description": "Project",
+        "label": "Project",
+        "defaultValue": "",
+        "required": false
+      },
+      {
+        "id": "v-category",
+        "name": "category",
+        "type": "string",
+        "description": "Category",
+        "label": "Category",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-business_unit",
+        "name": "business_unit",
+        "type": "string",
+        "description": "Business unit",
+        "label": "Business unit",
+        "defaultValue": "",
+        "required": false
+      },
+      {
+        "id": "v-location",
+        "name": "location",
+        "type": "string",
+        "description": "Location",
+        "label": "Location",
+        "defaultValue": "",
+        "required": false
+      },
+      {
+        "id": "v-in_service_date",
+        "name": "in_service_date",
+        "type": "string",
+        "description": "In service from (YYYY-MM-DD)",
+        "label": "In service from (YYYY-MM-DD)",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-cost",
+        "name": "cost",
+        "type": "number",
+        "description": "Cost (USD)",
+        "label": "Cost (USD)",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-useful_life",
+        "name": "useful_life",
+        "type": "number",
+        "description": "Useful life (years)",
+        "label": "Useful life (years)",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-salvage_value",
+        "name": "salvage_value",
+        "type": "number",
+        "description": "Salvage value (USD)",
+        "label": "Salvage value (USD)",
+        "defaultValue": "",
+        "required": false
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err } from '@/lib/api-auth'
-import { resumeWorkflow } from '@/lib/workflow-engine'
+import { QueuedRunTimeoutError, resumeRun } from '@/lib/processing/dispatch'
 import { z } from 'zod'
 import { findOpenWorkflowTaskForEvent, USER_TASK_EVENT_MESSAGE } from '@/lib/task-authz'
 import { workflowEventCompleteBody as completeSchema } from '@/lib/api-schemas/workflows'
@@ -47,7 +47,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (userTaskId) return err(USER_TASK_EVENT_MESSAGE, 409)
 
   try {
-    const result = await resumeWorkflow(run.id, body.return_variables ?? {})
+    // Here, or on a processing worker while this request waits (lib/processing/dispatch).
+    const result = await resumeRun({ runId: run.id, tenantId, workflowId: run.workflow_id, variables: body.return_variables ?? {} })
     return ok({
       run_id: run.id,
       workflow_id: run.workflow_id,
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       variables_received: Object.keys(body.return_variables ?? {}),
     })
   } catch (e: any) {
+    if (e instanceof QueuedRunTimeoutError) return err(e.message, 504)
     return err(`Failed to resume workflow: ${e.message}`, 500)
   }
 }

@@ -1,0 +1,118 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "cbb9b0e6-f433-595d-a55f-5c62000a58ff",
+  "asset": {
+    "id": "cbb9b0e6-f433-595d-a55f-5c62000a58ff",
+    "name": "CRM discount authority",
+    "description": "Who approves a quote: over 20% discount or over $100,000 net needs the sales manager and the VP of sales; over 10% the sales manager; the rest is auto-approved.",
+    "inputs": [
+      {
+        "id": "2ef61210-b478-57bc-bab5-fc80870934d2",
+        "key": "discount_pct",
+        "label": "Discount %",
+        "type": "number"
+      },
+      {
+        "id": "305f3719-a8ca-53b9-b354-3eb1d531d377",
+        "key": "amount",
+        "label": "Net total (USD)",
+        "type": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "48a78f24-09d7-5a67-abbf-1a5cbc09bb05",
+        "key": "approval_path",
+        "label": "Approval path",
+        "type": "text"
+      },
+      {
+        "id": "b7846c76-fa11-5ee0-ae2d-c5d1af67a7f5",
+        "key": "needs_manager",
+        "label": "Sales manager",
+        "type": "boolean"
+      },
+      {
+        "id": "eac4ab14-ba14-5590-b516-e564a96e7f92",
+        "key": "needs_vp",
+        "label": "VP of sales",
+        "type": "boolean"
+      }
+    ],
+    "rules": [
+      {
+        "id": "e53c6e67-c999-5766-b0bf-ecd693d78418",
+        "label": "Over 20%: manager and VP",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Sales manager → VP sales",
+          "needs_manager": true,
+          "needs_vp": true
+        },
+        "conditions": [
+          {
+            "id": "364b9de5-45c5-5f03-9908-703c1144de70",
+            "inputKey": "discount_pct",
+            "operator": "greater_than",
+            "value": "20"
+          }
+        ]
+      },
+      {
+        "id": "2d63d7e3-ed81-5ec6-8da8-902b2b2a7cc5",
+        "label": "Over $100k: manager and VP",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Sales manager → VP sales",
+          "needs_manager": true,
+          "needs_vp": true
+        },
+        "conditions": [
+          {
+            "id": "31e5ebb6-a17d-5bb8-87e9-0e26b67c256f",
+            "inputKey": "amount",
+            "operator": "greater_than",
+            "value": "100000"
+          }
+        ]
+      },
+      {
+        "id": "a2e88588-2d72-51f2-a2b9-8a5ac93d1f84",
+        "label": "Over 10%: sales manager",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Sales manager",
+          "needs_manager": true,
+          "needs_vp": false
+        },
+        "conditions": [
+          {
+            "id": "6f6a8867-25bc-55c6-ba91-8b83ddd1a9dd",
+            "inputKey": "discount_pct",
+            "operator": "greater_than",
+            "value": "10"
+          }
+        ]
+      },
+      {
+        "id": "b13c11d4-ed21-5a8d-aa19-b2bfd66f665e",
+        "label": "Up to 10%: auto-approved",
+        "enabled": true,
+        "outputs": {
+          "approval_path": "Auto-approved",
+          "needs_manager": false,
+          "needs_vp": false
+        },
+        "conditions": [
+          {
+            "id": "d2df803f-a63d-58c8-8584-8e9a9cb545c9",
+            "inputKey": "discount_pct",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

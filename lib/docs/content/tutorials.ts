@@ -156,7 +156,7 @@ To let people fill the form **without signing in** (and to embed it on a public 
 
 The embed code is an \`<iframe>\` that points at the link with \`?embed=1\`. A form that needs sign-in cannot be filled inside a frame, so embed the public link.
 
-To put the form in people's **Forms** menu, tick **Available forms** in the **Form** tab and grant access in the **Access** tab. People who must sign in see your **form sign-in page**; brand it at **Settings → Forms → Form sign-in page**. See [Sharing and embedding forms](/docs/tasks/forms#sharing-and-embedding-forms) and [Form sign-in page](/docs/tasks/forms#form-sign-in-page).
+To put the form in people's **Forms** menu, tick **Available forms** in the **Form** tab and grant access in the **Access** tab. People who must sign in see your workspace **sign-in page** (shared by forms and apps); brand it at **Settings → Sign-in page**. See [Sharing and embedding forms](/docs/tasks/forms#sharing-and-embedding-forms) and [Sign-in page for forms and apps](/docs/tasks/forms#sign-in-page-for-forms-and-apps).
 
 ## What you built
 
@@ -435,7 +435,7 @@ Some failures have no safe fix in the workflow, such as an email service that is
 Agents use a provider connection from Integrations.
 
 1. Go to **Build › Integrations** and open the **Connectors** tab. Filter by **AI**.
-2. Pick your provider: **OpenAI**, **Claude (Anthropic)**, **Google Gemini**, **xAI Grok**, **Azure OpenAI**, **Mistral AI**, **Groq**, **DeepSeek**, **Together AI**, **Perplexity AI** or **Ollama (Local)**.
+2. Pick your provider: **OpenAI**, **Claude (Anthropic)**, **Google Gemini**, **xAI Grok**, **Azure OpenAI**, **Mistral AI**, **Groq**, **DeepSeek**, **Together AI**, **Baseten**, **Perplexity AI** or **Ollama (Local)**.
 3. Paste the API key, select **Continue**, then **Test Connection**, then **Enable Connector**.
 
 See [Connect an integration](/docs/tutorials/integration) for more on connectors.

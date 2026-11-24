@@ -1,0 +1,98 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+  "asset": {
+    "id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+    "name": "Work items",
+    "description": "Work the teams took on: team, type, priority, status and how many days it took (cycle time).",
+    "columns": [
+      {
+        "id": "12982aeb-ea4b-5dd9-addb-21b73251d755",
+        "required": true,
+        "key": "item_ref",
+        "name": "Item",
+        "type": "text"
+      },
+      {
+        "id": "45ec8f82-27f9-5284-aed6-dd770e7a064e",
+        "required": true,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "9172f4ed-cb57-571e-9b15-07c3a240f69d",
+        "required": false,
+        "key": "team",
+        "name": "Team",
+        "type": "select",
+        "options": [
+          "Platform",
+          "Customer success",
+          "Finance ops",
+          "Marketing ops"
+        ]
+      },
+      {
+        "id": "fbdb23e5-632e-5cc0-b282-9c0a9b735d32",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Request",
+          "Change",
+          "Report",
+          "Fix",
+          "Project task"
+        ]
+      },
+      {
+        "id": "a5f213e4-056e-5646-865e-0dfcbda5d77e",
+        "required": false,
+        "key": "priority",
+        "name": "Priority",
+        "type": "select",
+        "options": [
+          "High",
+          "Normal",
+          "Low"
+        ]
+      },
+      {
+        "id": "68809359-4ee3-5743-a0b2-c589ef4ac418",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Open",
+          "In progress",
+          "Done"
+        ]
+      },
+      {
+        "id": "1b57a93f-ae88-570a-b4fd-960a674909b7",
+        "required": false,
+        "key": "opened_on",
+        "name": "Opened",
+        "type": "date"
+      },
+      {
+        "id": "4d45560f-9d6a-527a-8533-4fb181ff43d5",
+        "required": false,
+        "key": "closed_on",
+        "name": "Closed",
+        "type": "date"
+      },
+      {
+        "id": "00b8ee32-2308-5742-92e4-6a879c781fb0",
+        "required": false,
+        "key": "cycle_days",
+        "name": "Cycle time (days)",
+        "type": "number"
+      }
+    ]
+  }
+}

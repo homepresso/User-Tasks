@@ -1,0 +1,3833 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "2f7b30a2-32b6-56ad-88c1-f17b990829fc",
+  "asset": {
+    "id": "2f7b30a2-32b6-56ad-88c1-f17b990829fc",
+    "name": "CapEx depreciation schedule rows",
+    "rows": [
+      {
+        "id": "604806ab-ab09-540a-ba14-f7aa08e0158b",
+        "data": {
+          "asset_tag": "BW-FA-0001",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 54890,
+          "depreciation": 2608,
+          "closing_nbv": 52283
+        }
+      },
+      {
+        "id": "2d6039fb-3f52-51ce-b9ab-c6bfbc629f86",
+        "data": {
+          "asset_tag": "BW-FA-0001",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 52283,
+          "depreciation": 2608,
+          "closing_nbv": 49675
+        }
+      },
+      {
+        "id": "8ce45735-3b40-574e-a2c4-6b9cc0f17be5",
+        "data": {
+          "asset_tag": "BW-FA-0001",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 49675,
+          "depreciation": 2608,
+          "closing_nbv": 47068
+        }
+      },
+      {
+        "id": "a3278de4-5874-53e6-af53-51423dd63bf8",
+        "data": {
+          "asset_tag": "BW-FA-0001",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 47068,
+          "depreciation": 2608,
+          "closing_nbv": 44460
+        }
+      },
+      {
+        "id": "530379a6-d8c1-5cdb-8a39-57d23990dbe2",
+        "data": {
+          "asset_tag": "BW-FA-0001",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 44460,
+          "depreciation": 2608,
+          "closing_nbv": 41853
+        }
+      },
+      {
+        "id": "86f9b93f-ac42-5fc7-923a-7c6b0d11d1d5",
+        "data": {
+          "asset_tag": "BW-FA-0001",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 41853,
+          "depreciation": 2608,
+          "closing_nbv": 39245
+        }
+      },
+      {
+        "id": "c683f619-3b18-5ede-9342-19e6932133e5",
+        "data": {
+          "asset_tag": "BW-FA-0002",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 54890,
+          "depreciation": 2608,
+          "closing_nbv": 52283
+        }
+      },
+      {
+        "id": "564b2214-2755-5075-81cb-0eb2475eb590",
+        "data": {
+          "asset_tag": "BW-FA-0002",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 52283,
+          "depreciation": 2608,
+          "closing_nbv": 49675
+        }
+      },
+      {
+        "id": "ac78620d-ae0b-54c0-af31-db48b3e1b7e5",
+        "data": {
+          "asset_tag": "BW-FA-0002",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 49675,
+          "depreciation": 2608,
+          "closing_nbv": 47068
+        }
+      },
+      {
+        "id": "c3828dd9-7ffb-5d2c-b1ba-5cdae39a0e84",
+        "data": {
+          "asset_tag": "BW-FA-0002",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 47068,
+          "depreciation": 2608,
+          "closing_nbv": 44460
+        }
+      },
+      {
+        "id": "b1d07b02-5e45-5e33-96e8-dd1a9be93bc0",
+        "data": {
+          "asset_tag": "BW-FA-0002",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 44460,
+          "depreciation": 2608,
+          "closing_nbv": 41853
+        }
+      },
+      {
+        "id": "1132ea20-54d4-5274-800d-663be2b55c9c",
+        "data": {
+          "asset_tag": "BW-FA-0002",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 41853,
+          "depreciation": 2608,
+          "closing_nbv": 39245
+        }
+      },
+      {
+        "id": "9b076eb0-6bf1-56f3-a46f-429c9c392f33",
+        "data": {
+          "asset_tag": "BW-VH-0003",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 29350,
+          "depreciation": 4158,
+          "closing_nbv": 25192
+        }
+      },
+      {
+        "id": "30a02a19-2f33-5bc8-b618-834ba582601e",
+        "data": {
+          "asset_tag": "BW-VH-0003",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 25192,
+          "depreciation": 4158,
+          "closing_nbv": 21033
+        }
+      },
+      {
+        "id": "c65ca594-8b1c-5782-a79e-9c1cbf0efaeb",
+        "data": {
+          "asset_tag": "BW-VH-0003",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 21033,
+          "depreciation": 4158,
+          "closing_nbv": 16875
+        }
+      },
+      {
+        "id": "ad8935b2-bd6c-571c-a89d-d01c5dc2ec3a",
+        "data": {
+          "asset_tag": "BW-VH-0003",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 16875,
+          "depreciation": 4158,
+          "closing_nbv": 12717
+        }
+      },
+      {
+        "id": "c656a1d9-1031-5036-8f4e-6173f6ec0132",
+        "data": {
+          "asset_tag": "BW-VH-0003",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 12717,
+          "depreciation": 4158,
+          "closing_nbv": 8558
+        }
+      },
+      {
+        "id": "577af8c5-97b8-568d-8fc7-3b2d7d41ce20",
+        "data": {
+          "asset_tag": "BW-VH-0003",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 8558,
+          "depreciation": 4158,
+          "closing_nbv": 4400
+        }
+      },
+      {
+        "id": "ca60f766-6c08-5413-848a-74fb40cc27da",
+        "data": {
+          "asset_tag": "BW-VH-0004",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 29350,
+          "depreciation": 4158,
+          "closing_nbv": 25192
+        }
+      },
+      {
+        "id": "08301344-c034-5cfc-a3f7-a3f2618f9d91",
+        "data": {
+          "asset_tag": "BW-VH-0004",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 25192,
+          "depreciation": 4158,
+          "closing_nbv": 21033
+        }
+      },
+      {
+        "id": "e2bae844-d712-59a1-8aed-21d727a52835",
+        "data": {
+          "asset_tag": "BW-VH-0004",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 21033,
+          "depreciation": 4158,
+          "closing_nbv": 16875
+        }
+      },
+      {
+        "id": "cb6d3804-862b-5f2c-913d-71a1147e9d4f",
+        "data": {
+          "asset_tag": "BW-VH-0004",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 16875,
+          "depreciation": 4158,
+          "closing_nbv": 12717
+        }
+      },
+      {
+        "id": "e59e59ce-c11e-5480-a75a-85dc7c754c05",
+        "data": {
+          "asset_tag": "BW-VH-0004",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 12717,
+          "depreciation": 4158,
+          "closing_nbv": 8558
+        }
+      },
+      {
+        "id": "f90d6656-8613-52db-be7e-14083a4e2cd5",
+        "data": {
+          "asset_tag": "BW-VH-0004",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 8558,
+          "depreciation": 4158,
+          "closing_nbv": 4400
+        }
+      },
+      {
+        "id": "81c946fb-c8cb-5822-9cf4-506804678bd0",
+        "data": {
+          "asset_tag": "BW-VH-0005",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 29350,
+          "depreciation": 4158,
+          "closing_nbv": 25192
+        }
+      },
+      {
+        "id": "6fd50e42-cfa4-5800-b754-812f830edf20",
+        "data": {
+          "asset_tag": "BW-VH-0005",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 25192,
+          "depreciation": 4158,
+          "closing_nbv": 21033
+        }
+      },
+      {
+        "id": "a5710c54-e926-59b6-a0aa-04d944785f5a",
+        "data": {
+          "asset_tag": "BW-VH-0005",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 21033,
+          "depreciation": 4158,
+          "closing_nbv": 16875
+        }
+      },
+      {
+        "id": "3e75acf2-04c7-5803-aca9-de5f9043ea8a",
+        "data": {
+          "asset_tag": "BW-VH-0005",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 16875,
+          "depreciation": 4158,
+          "closing_nbv": 12717
+        }
+      },
+      {
+        "id": "7c1881fa-af72-5b92-a7ba-32e30d071e51",
+        "data": {
+          "asset_tag": "BW-VH-0005",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 12717,
+          "depreciation": 4158,
+          "closing_nbv": 8558
+        }
+      },
+      {
+        "id": "551e2615-ace3-5e94-8933-b0bf8ce4e682",
+        "data": {
+          "asset_tag": "BW-VH-0005",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 8558,
+          "depreciation": 4158,
+          "closing_nbv": 4400
+        }
+      },
+      {
+        "id": "3721bdf8-7145-591f-8b77-cb80d5d99ce1",
+        "data": {
+          "asset_tag": "BW-VH-0006",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 29350,
+          "depreciation": 4158,
+          "closing_nbv": 25192
+        }
+      },
+      {
+        "id": "366e05e1-bd07-5956-a0b4-3f17093998c6",
+        "data": {
+          "asset_tag": "BW-VH-0006",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 25192,
+          "depreciation": 4158,
+          "closing_nbv": 21033
+        }
+      },
+      {
+        "id": "9792f515-3c72-5ee5-9569-a3f5b38e3b20",
+        "data": {
+          "asset_tag": "BW-VH-0006",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 21033,
+          "depreciation": 4158,
+          "closing_nbv": 16875
+        }
+      },
+      {
+        "id": "3933390c-4466-5f31-8799-af43bb4b1b63",
+        "data": {
+          "asset_tag": "BW-VH-0006",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 16875,
+          "depreciation": 4158,
+          "closing_nbv": 12717
+        }
+      },
+      {
+        "id": "3a7910e6-a83a-5bc7-b5bb-af06280001df",
+        "data": {
+          "asset_tag": "BW-VH-0006",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 12717,
+          "depreciation": 4158,
+          "closing_nbv": 8558
+        }
+      },
+      {
+        "id": "c4ff06f3-cc9c-5b02-8a57-71fb4908449f",
+        "data": {
+          "asset_tag": "BW-VH-0006",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 8558,
+          "depreciation": 4158,
+          "closing_nbv": 4400
+        }
+      },
+      {
+        "id": "b0c223f4-fce4-56f0-a155-2ceb5302e925",
+        "data": {
+          "asset_tag": "BW-RD-0007",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 14950,
+          "depreciation": 2840,
+          "closing_nbv": 12110
+        }
+      },
+      {
+        "id": "3a5e5887-800b-5df5-bcd4-a3cd6af2aa35",
+        "data": {
+          "asset_tag": "BW-RD-0007",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 12110,
+          "depreciation": 2840,
+          "closing_nbv": 9270
+        }
+      },
+      {
+        "id": "902f0872-8ca5-5427-94e7-e353824498cf",
+        "data": {
+          "asset_tag": "BW-RD-0007",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 9270,
+          "depreciation": 2840,
+          "closing_nbv": 6430
+        }
+      },
+      {
+        "id": "76920c02-9cf7-501c-ad79-2f6a398a5dd9",
+        "data": {
+          "asset_tag": "BW-RD-0007",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 6430,
+          "depreciation": 2840,
+          "closing_nbv": 3590
+        }
+      },
+      {
+        "id": "252042ce-51cf-521a-ae22-a92fa82bac17",
+        "data": {
+          "asset_tag": "BW-RD-0007",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 3590,
+          "depreciation": 2840,
+          "closing_nbv": 750
+        }
+      },
+      {
+        "id": "78b21cd4-199b-51ce-b076-ad0ebee92c3f",
+        "data": {
+          "asset_tag": "BW-RD-0008",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 14950,
+          "depreciation": 2840,
+          "closing_nbv": 12110
+        }
+      },
+      {
+        "id": "b40961a2-c849-5676-ae38-56283a2ef22d",
+        "data": {
+          "asset_tag": "BW-RD-0008",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 12110,
+          "depreciation": 2840,
+          "closing_nbv": 9270
+        }
+      },
+      {
+        "id": "f00ee790-08e9-59b5-ae55-14648d4d5457",
+        "data": {
+          "asset_tag": "BW-RD-0008",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 9270,
+          "depreciation": 2840,
+          "closing_nbv": 6430
+        }
+      },
+      {
+        "id": "2e2865f4-0194-52c2-bd03-c44861f66933",
+        "data": {
+          "asset_tag": "BW-RD-0008",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 6430,
+          "depreciation": 2840,
+          "closing_nbv": 3590
+        }
+      },
+      {
+        "id": "3f05ff0a-8f85-5b11-b3ef-bd41816d9d76",
+        "data": {
+          "asset_tag": "BW-RD-0008",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 3590,
+          "depreciation": 2840,
+          "closing_nbv": 750
+        }
+      },
+      {
+        "id": "34fc9bbd-eb30-57bb-a044-66e4af410920",
+        "data": {
+          "asset_tag": "BW-IT-0009",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 22590,
+          "depreciation": 5365,
+          "closing_nbv": 17225
+        }
+      },
+      {
+        "id": "0c928833-cc82-5b33-af76-7ed6d33a55b1",
+        "data": {
+          "asset_tag": "BW-IT-0009",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 17225,
+          "depreciation": 5365,
+          "closing_nbv": 11860
+        }
+      },
+      {
+        "id": "79770e7c-0883-55f8-9c02-b033129c6dbc",
+        "data": {
+          "asset_tag": "BW-IT-0009",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 11860,
+          "depreciation": 5365,
+          "closing_nbv": 6495
+        }
+      },
+      {
+        "id": "27463aaf-1e01-53a5-83a2-aa7e732748cc",
+        "data": {
+          "asset_tag": "BW-IT-0009",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 6495,
+          "depreciation": 5365,
+          "closing_nbv": 1130
+        }
+      },
+      {
+        "id": "2982ddf8-b9d2-58b9-acfa-3cb2311aaa34",
+        "data": {
+          "asset_tag": "BW-IT-0010",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 22590,
+          "depreciation": 5365,
+          "closing_nbv": 17225
+        }
+      },
+      {
+        "id": "142cc9e2-2c34-591d-9f1d-ee409114ab8f",
+        "data": {
+          "asset_tag": "BW-IT-0010",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 17225,
+          "depreciation": 5365,
+          "closing_nbv": 11860
+        }
+      },
+      {
+        "id": "bcd1af87-b768-5a12-a0dd-29cc09e0f6ee",
+        "data": {
+          "asset_tag": "BW-IT-0010",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 11860,
+          "depreciation": 5365,
+          "closing_nbv": 6495
+        }
+      },
+      {
+        "id": "9012487e-0556-5b9c-89bc-e2de9d22710f",
+        "data": {
+          "asset_tag": "BW-IT-0010",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 6495,
+          "depreciation": 5365,
+          "closing_nbv": 1130
+        }
+      },
+      {
+        "id": "5d857e66-0c12-5ecb-9def-219763222c00",
+        "data": {
+          "asset_tag": "BW-IT-0011",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 22590,
+          "depreciation": 5365,
+          "closing_nbv": 17225
+        }
+      },
+      {
+        "id": "247a8e1b-f67f-5d6e-8042-c410e2fea72a",
+        "data": {
+          "asset_tag": "BW-IT-0011",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 17225,
+          "depreciation": 5365,
+          "closing_nbv": 11860
+        }
+      },
+      {
+        "id": "f51e0dfa-fc9e-5a6c-a101-8896b961f84c",
+        "data": {
+          "asset_tag": "BW-IT-0011",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 11860,
+          "depreciation": 5365,
+          "closing_nbv": 6495
+        }
+      },
+      {
+        "id": "0869f371-f0e5-555d-b40b-a2c14b909df5",
+        "data": {
+          "asset_tag": "BW-IT-0011",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 6495,
+          "depreciation": 5365,
+          "closing_nbv": 1130
+        }
+      },
+      {
+        "id": "7c5c4e9b-15f8-5198-8429-b1c6f96f5fd7",
+        "data": {
+          "asset_tag": "BW-IT-0012",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 22590,
+          "depreciation": 5365,
+          "closing_nbv": 17225
+        }
+      },
+      {
+        "id": "9585d580-4c2e-56a3-b2a3-ae44801ca74e",
+        "data": {
+          "asset_tag": "BW-IT-0012",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 17225,
+          "depreciation": 5365,
+          "closing_nbv": 11860
+        }
+      },
+      {
+        "id": "d6ab7e2c-868a-5ec4-b183-26566bca5c52",
+        "data": {
+          "asset_tag": "BW-IT-0012",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 11860,
+          "depreciation": 5365,
+          "closing_nbv": 6495
+        }
+      },
+      {
+        "id": "3d2293ed-a3f4-5bb7-a70d-5ef426591945",
+        "data": {
+          "asset_tag": "BW-IT-0012",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 6495,
+          "depreciation": 5365,
+          "closing_nbv": 1130
+        }
+      },
+      {
+        "id": "8b07ef9b-9569-57fe-b38e-773e5131c1a8",
+        "data": {
+          "asset_tag": "BW-FA-0013",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 294930,
+          "depreciation": 14009,
+          "closing_nbv": 280921
+        }
+      },
+      {
+        "id": "58b0f999-9d88-5693-9da7-acb05958dfb9",
+        "data": {
+          "asset_tag": "BW-FA-0013",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 280921,
+          "depreciation": 14009,
+          "closing_nbv": 266912
+        }
+      },
+      {
+        "id": "bb5e9f4c-3a19-5f13-8de4-fa9b1678f996",
+        "data": {
+          "asset_tag": "BW-FA-0013",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 266912,
+          "depreciation": 14009,
+          "closing_nbv": 252903
+        }
+      },
+      {
+        "id": "ace7936e-6847-5d9d-a5d6-cd0cb74462ed",
+        "data": {
+          "asset_tag": "BW-FA-0013",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 252903,
+          "depreciation": 14009,
+          "closing_nbv": 238894
+        }
+      },
+      {
+        "id": "eff6a044-560b-55ed-a788-7cb91519de2a",
+        "data": {
+          "asset_tag": "BW-FA-0013",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 238894,
+          "depreciation": 14009,
+          "closing_nbv": 224885
+        }
+      },
+      {
+        "id": "cc4e3a3b-d4a4-5637-a583-add44d7bc0ed",
+        "data": {
+          "asset_tag": "BW-FA-0013",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 224885,
+          "depreciation": 14009,
+          "closing_nbv": 210876
+        }
+      },
+      {
+        "id": "b74e2f32-ad29-5e71-8e2f-0cb5f1c82218",
+        "data": {
+          "asset_tag": "BW-FA-0014",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 294930,
+          "depreciation": 14009,
+          "closing_nbv": 280921
+        }
+      },
+      {
+        "id": "933db33d-f66c-5648-ad47-ad607c116162",
+        "data": {
+          "asset_tag": "BW-FA-0014",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 280921,
+          "depreciation": 14009,
+          "closing_nbv": 266912
+        }
+      },
+      {
+        "id": "85c402d6-03a7-5d0e-89ea-3e003847fcce",
+        "data": {
+          "asset_tag": "BW-FA-0014",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 266912,
+          "depreciation": 14009,
+          "closing_nbv": 252903
+        }
+      },
+      {
+        "id": "6b4e800e-bb87-5963-a3e3-868dcac9f69e",
+        "data": {
+          "asset_tag": "BW-FA-0014",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 252903,
+          "depreciation": 14009,
+          "closing_nbv": 238894
+        }
+      },
+      {
+        "id": "f3aedda1-ac8f-5785-8ca4-ff7ef6c7267f",
+        "data": {
+          "asset_tag": "BW-FA-0014",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 238894,
+          "depreciation": 14009,
+          "closing_nbv": 224885
+        }
+      },
+      {
+        "id": "8b8cb215-4608-540e-990a-8263b667c5b1",
+        "data": {
+          "asset_tag": "BW-FA-0014",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 224885,
+          "depreciation": 14009,
+          "closing_nbv": 210876
+        }
+      },
+      {
+        "id": "4d2a6c06-0211-5cb3-94cc-04bb7fb381ec",
+        "data": {
+          "asset_tag": "BW-IT-0015",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 3040,
+          "depreciation": 723,
+          "closing_nbv": 2318
+        }
+      },
+      {
+        "id": "166d81c4-d9da-5127-98de-98bec8f3c488",
+        "data": {
+          "asset_tag": "BW-IT-0015",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 2318,
+          "depreciation": 723,
+          "closing_nbv": 1595
+        }
+      },
+      {
+        "id": "1aa563b7-5bba-51f4-b80b-a0f1f7ad8e76",
+        "data": {
+          "asset_tag": "BW-IT-0015",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 1595,
+          "depreciation": 723,
+          "closing_nbv": 873
+        }
+      },
+      {
+        "id": "1bd297ab-242d-5fae-938a-6cfdc926ee18",
+        "data": {
+          "asset_tag": "BW-IT-0015",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 873,
+          "depreciation": 723,
+          "closing_nbv": 150
+        }
+      },
+      {
+        "id": "f989a02d-b4c6-55fa-8d9a-c1dfa5f920f0",
+        "data": {
+          "asset_tag": "BW-IT-0016",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 3040,
+          "depreciation": 723,
+          "closing_nbv": 2318
+        }
+      },
+      {
+        "id": "79fb3643-c329-5172-ad6c-4fdd63875d21",
+        "data": {
+          "asset_tag": "BW-IT-0016",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 2318,
+          "depreciation": 723,
+          "closing_nbv": 1595
+        }
+      },
+      {
+        "id": "55e28127-6e83-5701-ba3c-b52eded29c67",
+        "data": {
+          "asset_tag": "BW-IT-0016",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 1595,
+          "depreciation": 723,
+          "closing_nbv": 873
+        }
+      },
+      {
+        "id": "1ede1646-53af-54fc-981d-e59ff229a820",
+        "data": {
+          "asset_tag": "BW-IT-0016",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 873,
+          "depreciation": 723,
+          "closing_nbv": 150
+        }
+      },
+      {
+        "id": "2ee0a25e-f366-569f-a090-d37a90728cce",
+        "data": {
+          "asset_tag": "BW-IT-0017",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 3040,
+          "depreciation": 723,
+          "closing_nbv": 2318
+        }
+      },
+      {
+        "id": "30c95a5e-7c37-5a1b-b2b2-71273831a1e5",
+        "data": {
+          "asset_tag": "BW-IT-0017",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 2318,
+          "depreciation": 723,
+          "closing_nbv": 1595
+        }
+      },
+      {
+        "id": "07582e69-cbf4-5ca0-9612-55b69128036e",
+        "data": {
+          "asset_tag": "BW-IT-0017",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 1595,
+          "depreciation": 723,
+          "closing_nbv": 873
+        }
+      },
+      {
+        "id": "83074531-e18d-59ee-9d7a-e70c1bf751ff",
+        "data": {
+          "asset_tag": "BW-IT-0017",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 873,
+          "depreciation": 723,
+          "closing_nbv": 150
+        }
+      },
+      {
+        "id": "fa040d9c-3fb6-5f55-89a6-eb2dfce68e46",
+        "data": {
+          "asset_tag": "BW-IT-0018",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 3040,
+          "depreciation": 723,
+          "closing_nbv": 2318
+        }
+      },
+      {
+        "id": "ac8485a1-d097-5abc-942d-f385c7269631",
+        "data": {
+          "asset_tag": "BW-IT-0018",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 2318,
+          "depreciation": 723,
+          "closing_nbv": 1595
+        }
+      },
+      {
+        "id": "74e5f218-6694-5617-a313-e8cf99adf201",
+        "data": {
+          "asset_tag": "BW-IT-0018",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 1595,
+          "depreciation": 723,
+          "closing_nbv": 873
+        }
+      },
+      {
+        "id": "16dd96d7-eb07-5bc2-a6c9-ad75939fccab",
+        "data": {
+          "asset_tag": "BW-IT-0018",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 873,
+          "depreciation": 723,
+          "closing_nbv": 150
+        }
+      },
+      {
+        "id": "69700445-1f3e-530a-84c2-61cc503bb920",
+        "data": {
+          "asset_tag": "BW-EQ-0019",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 53400,
+          "depreciation": 5073,
+          "closing_nbv": 48327
+        }
+      },
+      {
+        "id": "cc416f66-4fdf-57af-9d4f-691a2281de45",
+        "data": {
+          "asset_tag": "BW-EQ-0019",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 48327,
+          "depreciation": 5073,
+          "closing_nbv": 43254
+        }
+      },
+      {
+        "id": "9546f967-b115-5631-8f19-6928c800b4c6",
+        "data": {
+          "asset_tag": "BW-EQ-0019",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 43254,
+          "depreciation": 5073,
+          "closing_nbv": 38181
+        }
+      },
+      {
+        "id": "d4d5722f-fa89-5d65-98a9-ad6051c13e7b",
+        "data": {
+          "asset_tag": "BW-EQ-0019",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 38181,
+          "depreciation": 5073,
+          "closing_nbv": 33108
+        }
+      },
+      {
+        "id": "1dec4178-b060-5cbe-b043-89ef494af6f5",
+        "data": {
+          "asset_tag": "BW-EQ-0019",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 33108,
+          "depreciation": 5073,
+          "closing_nbv": 28035
+        }
+      },
+      {
+        "id": "dd6687c7-cdda-5ab2-a2ea-bf8fa5ada9ff",
+        "data": {
+          "asset_tag": "BW-EQ-0019",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 28035,
+          "depreciation": 5073,
+          "closing_nbv": 22962
+        }
+      },
+      {
+        "id": "f5ea953e-e340-5a08-ac35-e99c253d0257",
+        "data": {
+          "asset_tag": "BW-EQ-0020",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 53400,
+          "depreciation": 5073,
+          "closing_nbv": 48327
+        }
+      },
+      {
+        "id": "dfc840bb-1b05-536f-b095-1812024911de",
+        "data": {
+          "asset_tag": "BW-EQ-0020",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 48327,
+          "depreciation": 5073,
+          "closing_nbv": 43254
+        }
+      },
+      {
+        "id": "65b0b786-0b71-5cd9-b827-9082fc98c922",
+        "data": {
+          "asset_tag": "BW-EQ-0020",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 43254,
+          "depreciation": 5073,
+          "closing_nbv": 38181
+        }
+      },
+      {
+        "id": "578d0a77-98e5-5cbe-ba38-6a562e1e2966",
+        "data": {
+          "asset_tag": "BW-EQ-0020",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 38181,
+          "depreciation": 5073,
+          "closing_nbv": 33108
+        }
+      },
+      {
+        "id": "98fe415d-89a4-523f-872e-e725f0132c38",
+        "data": {
+          "asset_tag": "BW-EQ-0020",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 33108,
+          "depreciation": 5073,
+          "closing_nbv": 28035
+        }
+      },
+      {
+        "id": "1cf74330-3b21-5d7a-aaee-b5eac7191024",
+        "data": {
+          "asset_tag": "BW-EQ-0020",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 28035,
+          "depreciation": 5073,
+          "closing_nbv": 22962
+        }
+      },
+      {
+        "id": "32f4461c-4829-5487-99ca-d984aa349570",
+        "data": {
+          "asset_tag": "BW-VH-0021",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 37820,
+          "depreciation": 5358,
+          "closing_nbv": 32462
+        }
+      },
+      {
+        "id": "422a0a9e-bff9-5d68-be8a-75f0080fcab5",
+        "data": {
+          "asset_tag": "BW-VH-0021",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 32462,
+          "depreciation": 5358,
+          "closing_nbv": 27103
+        }
+      },
+      {
+        "id": "3b79308c-beb4-53ce-b16b-275098f0db02",
+        "data": {
+          "asset_tag": "BW-VH-0021",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 27103,
+          "depreciation": 5358,
+          "closing_nbv": 21745
+        }
+      },
+      {
+        "id": "f21d60f0-b8d3-53a4-a89f-91e2fb7572f7",
+        "data": {
+          "asset_tag": "BW-VH-0021",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 21745,
+          "depreciation": 5358,
+          "closing_nbv": 16387
+        }
+      },
+      {
+        "id": "678a8b2f-c0a7-5e91-a63b-e6142396dde6",
+        "data": {
+          "asset_tag": "BW-VH-0021",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 16387,
+          "depreciation": 5358,
+          "closing_nbv": 11028
+        }
+      },
+      {
+        "id": "72bc4b04-934c-53b2-832c-dea3e18f842f",
+        "data": {
+          "asset_tag": "BW-VH-0021",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 11028,
+          "depreciation": 5358,
+          "closing_nbv": 5670
+        }
+      },
+      {
+        "id": "6505b437-5b23-5d2d-b3d0-5c6b4e708d24",
+        "data": {
+          "asset_tag": "BW-VH-0022",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 37820,
+          "depreciation": 5358,
+          "closing_nbv": 32462
+        }
+      },
+      {
+        "id": "42b9c35d-b04e-503c-a556-f46712b1e302",
+        "data": {
+          "asset_tag": "BW-VH-0022",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 32462,
+          "depreciation": 5358,
+          "closing_nbv": 27103
+        }
+      },
+      {
+        "id": "78aee646-a32d-5bfb-baf2-4907519c6636",
+        "data": {
+          "asset_tag": "BW-VH-0022",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 27103,
+          "depreciation": 5358,
+          "closing_nbv": 21745
+        }
+      },
+      {
+        "id": "8eca7ed5-2f0a-5d48-92fb-fe3db0f958d2",
+        "data": {
+          "asset_tag": "BW-VH-0022",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 21745,
+          "depreciation": 5358,
+          "closing_nbv": 16387
+        }
+      },
+      {
+        "id": "4dee771f-7199-55ae-92f6-287563645dc9",
+        "data": {
+          "asset_tag": "BW-VH-0022",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 16387,
+          "depreciation": 5358,
+          "closing_nbv": 11028
+        }
+      },
+      {
+        "id": "2e81e085-b329-5a74-8347-d6dbfa4e732c",
+        "data": {
+          "asset_tag": "BW-VH-0022",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 11028,
+          "depreciation": 5358,
+          "closing_nbv": 5670
+        }
+      },
+      {
+        "id": "d297d05f-32b2-57f3-a472-a2857179ef9f",
+        "data": {
+          "asset_tag": "BW-VH-0023",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 37820,
+          "depreciation": 5358,
+          "closing_nbv": 32462
+        }
+      },
+      {
+        "id": "ec075662-8c44-5179-b198-1ebfffe29f51",
+        "data": {
+          "asset_tag": "BW-VH-0023",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 32462,
+          "depreciation": 5358,
+          "closing_nbv": 27103
+        }
+      },
+      {
+        "id": "a44f1e54-9deb-5592-9ae0-ad0a337ff0be",
+        "data": {
+          "asset_tag": "BW-VH-0023",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 27103,
+          "depreciation": 5358,
+          "closing_nbv": 21745
+        }
+      },
+      {
+        "id": "58b91df8-dc3d-512c-b5f5-544a57fd664e",
+        "data": {
+          "asset_tag": "BW-VH-0023",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 21745,
+          "depreciation": 5358,
+          "closing_nbv": 16387
+        }
+      },
+      {
+        "id": "bd0de954-018e-5010-95b0-56ce62765390",
+        "data": {
+          "asset_tag": "BW-VH-0023",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 16387,
+          "depreciation": 5358,
+          "closing_nbv": 11028
+        }
+      },
+      {
+        "id": "72328169-ca65-5513-a472-375366018d58",
+        "data": {
+          "asset_tag": "BW-VH-0023",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 11028,
+          "depreciation": 5358,
+          "closing_nbv": 5670
+        }
+      },
+      {
+        "id": "91f17612-e4ea-584b-b8eb-4e33b7fdd345",
+        "data": {
+          "asset_tag": "BW-VH-0024",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 37820,
+          "depreciation": 5358,
+          "closing_nbv": 32462
+        }
+      },
+      {
+        "id": "7f7e55e4-ebd4-5e42-9e86-234917b719db",
+        "data": {
+          "asset_tag": "BW-VH-0024",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 32462,
+          "depreciation": 5358,
+          "closing_nbv": 27103
+        }
+      },
+      {
+        "id": "3e618f2f-4d73-5e53-b934-e31ece00fcc3",
+        "data": {
+          "asset_tag": "BW-VH-0024",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 27103,
+          "depreciation": 5358,
+          "closing_nbv": 21745
+        }
+      },
+      {
+        "id": "284bffbb-f9bf-55bd-a86b-e434bb8c96f6",
+        "data": {
+          "asset_tag": "BW-VH-0024",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 21745,
+          "depreciation": 5358,
+          "closing_nbv": 16387
+        }
+      },
+      {
+        "id": "2f1e2ee0-16e7-5d3c-b873-c1c5f88bcd21",
+        "data": {
+          "asset_tag": "BW-VH-0024",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 16387,
+          "depreciation": 5358,
+          "closing_nbv": 11028
+        }
+      },
+      {
+        "id": "d8e1e738-afa5-5ddf-b499-e34f15db8702",
+        "data": {
+          "asset_tag": "BW-VH-0024",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 11028,
+          "depreciation": 5358,
+          "closing_nbv": 5670
+        }
+      },
+      {
+        "id": "6d53eaf5-7757-5420-97c7-7cef6537088e",
+        "data": {
+          "asset_tag": "BW-EQ-0025",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 25640,
+          "depreciation": 2436,
+          "closing_nbv": 23204
+        }
+      },
+      {
+        "id": "bbd13e0e-34e0-57aa-8371-bdf0678e5467",
+        "data": {
+          "asset_tag": "BW-EQ-0025",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 23204,
+          "depreciation": 2436,
+          "closing_nbv": 20768
+        }
+      },
+      {
+        "id": "fa625ad9-8d16-5a48-92dc-c89672f378b5",
+        "data": {
+          "asset_tag": "BW-EQ-0025",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 20768,
+          "depreciation": 2436,
+          "closing_nbv": 18332
+        }
+      },
+      {
+        "id": "ebd39a35-205b-5527-8aeb-6715c0bbc1c8",
+        "data": {
+          "asset_tag": "BW-EQ-0025",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 18332,
+          "depreciation": 2436,
+          "closing_nbv": 15896
+        }
+      },
+      {
+        "id": "31e49631-f549-5906-b694-8b5892029e96",
+        "data": {
+          "asset_tag": "BW-EQ-0025",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 15896,
+          "depreciation": 2436,
+          "closing_nbv": 13460
+        }
+      },
+      {
+        "id": "19dff980-f825-5e05-8c9e-c18eb650eae2",
+        "data": {
+          "asset_tag": "BW-EQ-0025",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 13460,
+          "depreciation": 2436,
+          "closing_nbv": 11024
+        }
+      },
+      {
+        "id": "b758bda9-c6f7-50b8-aea6-6103321b5618",
+        "data": {
+          "asset_tag": "BW-EQ-0026",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 25640,
+          "depreciation": 2436,
+          "closing_nbv": 23204
+        }
+      },
+      {
+        "id": "96e8a727-b365-5e3d-aaf2-5620c29f8eb3",
+        "data": {
+          "asset_tag": "BW-EQ-0026",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 23204,
+          "depreciation": 2436,
+          "closing_nbv": 20768
+        }
+      },
+      {
+        "id": "422fcc2e-b7aa-5ed5-a5da-39c889dcf5fd",
+        "data": {
+          "asset_tag": "BW-EQ-0026",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 20768,
+          "depreciation": 2436,
+          "closing_nbv": 18332
+        }
+      },
+      {
+        "id": "8cfb6f50-69c6-5654-b124-eca6c69e102c",
+        "data": {
+          "asset_tag": "BW-EQ-0026",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 18332,
+          "depreciation": 2436,
+          "closing_nbv": 15896
+        }
+      },
+      {
+        "id": "ff5e268e-3da1-58fc-b596-19b94d2ac3d1",
+        "data": {
+          "asset_tag": "BW-EQ-0026",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 15896,
+          "depreciation": 2436,
+          "closing_nbv": 13460
+        }
+      },
+      {
+        "id": "cc1669ed-b307-5f3b-9b13-f2df4de9fae8",
+        "data": {
+          "asset_tag": "BW-EQ-0026",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 13460,
+          "depreciation": 2436,
+          "closing_nbv": 11024
+        }
+      },
+      {
+        "id": "7a18c6d5-a010-520a-abb7-d7ed444167e6",
+        "data": {
+          "asset_tag": "BW-IT-0027",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 309550,
+          "depreciation": 73518,
+          "closing_nbv": 236033
+        }
+      },
+      {
+        "id": "5b277921-aaca-5281-9676-7fcf4c9275f0",
+        "data": {
+          "asset_tag": "BW-IT-0027",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 236033,
+          "depreciation": 73518,
+          "closing_nbv": 162515
+        }
+      },
+      {
+        "id": "9ec49ef3-7fbe-5001-81c4-19cc93a336e1",
+        "data": {
+          "asset_tag": "BW-IT-0027",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 162515,
+          "depreciation": 73518,
+          "closing_nbv": 88998
+        }
+      },
+      {
+        "id": "0ff039f2-8405-592b-bb0e-71edae5a2b05",
+        "data": {
+          "asset_tag": "BW-IT-0027",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 88998,
+          "depreciation": 73518,
+          "closing_nbv": 15480
+        }
+      },
+      {
+        "id": "f3668bc9-6d6c-581d-bcd0-b25e86425aba",
+        "data": {
+          "asset_tag": "BW-FA-0028",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 28780,
+          "depreciation": 1367,
+          "closing_nbv": 27413
+        }
+      },
+      {
+        "id": "004b3c64-97ce-5a0d-8eb5-5948f93fb538",
+        "data": {
+          "asset_tag": "BW-FA-0028",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 27413,
+          "depreciation": 1367,
+          "closing_nbv": 26046
+        }
+      },
+      {
+        "id": "da0ddff8-e0f1-5492-ae57-b23ea343dbdd",
+        "data": {
+          "asset_tag": "BW-FA-0028",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 26046,
+          "depreciation": 1367,
+          "closing_nbv": 24679
+        }
+      },
+      {
+        "id": "b65e7b1d-1aa4-51d6-89d0-bdd43112060c",
+        "data": {
+          "asset_tag": "BW-FA-0028",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 24679,
+          "depreciation": 1367,
+          "closing_nbv": 23312
+        }
+      },
+      {
+        "id": "e5987316-2c4c-55da-9e23-ff7694d6a0f6",
+        "data": {
+          "asset_tag": "BW-FA-0028",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 23312,
+          "depreciation": 1367,
+          "closing_nbv": 21945
+        }
+      },
+      {
+        "id": "c1825e23-75af-5932-b9f2-56412a8eef18",
+        "data": {
+          "asset_tag": "BW-FA-0028",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 21945,
+          "depreciation": 1367,
+          "closing_nbv": 20578
+        }
+      },
+      {
+        "id": "9e491722-cd9f-558b-8fb3-49407a0f9404",
+        "data": {
+          "asset_tag": "BW-VH-0029",
+          "category": "Vehicles",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 47340,
+          "depreciation": 6707,
+          "closing_nbv": 40633
+        }
+      },
+      {
+        "id": "34dccf43-bd73-5c51-a0b6-0f98fe685ee5",
+        "data": {
+          "asset_tag": "BW-VH-0029",
+          "category": "Vehicles",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 40633,
+          "depreciation": 6707,
+          "closing_nbv": 33927
+        }
+      },
+      {
+        "id": "36fde981-730e-5c2e-87b8-da031ccf4d29",
+        "data": {
+          "asset_tag": "BW-VH-0029",
+          "category": "Vehicles",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 33927,
+          "depreciation": 6707,
+          "closing_nbv": 27220
+        }
+      },
+      {
+        "id": "696ae90d-db25-514e-b7ba-d7f26403d7ae",
+        "data": {
+          "asset_tag": "BW-VH-0029",
+          "category": "Vehicles",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 27220,
+          "depreciation": 6707,
+          "closing_nbv": 20513
+        }
+      },
+      {
+        "id": "0ebf0f09-2fba-580c-90e5-41390cc22ef9",
+        "data": {
+          "asset_tag": "BW-VH-0029",
+          "category": "Vehicles",
+          "business_unit": "Commercial",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 20513,
+          "depreciation": 6707,
+          "closing_nbv": 13807
+        }
+      },
+      {
+        "id": "ce924521-08ad-5f44-94f1-1efa809914e3",
+        "data": {
+          "asset_tag": "BW-VH-0029",
+          "category": "Vehicles",
+          "business_unit": "Commercial",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 13807,
+          "depreciation": 6707,
+          "closing_nbv": 7100
+        }
+      },
+      {
+        "id": "375525d6-6b58-5910-81af-9ce2e45054f2",
+        "data": {
+          "asset_tag": "BW-VH-0030",
+          "category": "Vehicles",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 405250,
+          "depreciation": 57410,
+          "closing_nbv": 347840
+        }
+      },
+      {
+        "id": "6f17bbd5-9dc3-56a7-98d7-b82f7ee73067",
+        "data": {
+          "asset_tag": "BW-VH-0030",
+          "category": "Vehicles",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 347840,
+          "depreciation": 57410,
+          "closing_nbv": 290430
+        }
+      },
+      {
+        "id": "7ff60aa5-3fec-585e-b32e-1364991bd810",
+        "data": {
+          "asset_tag": "BW-VH-0030",
+          "category": "Vehicles",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 290430,
+          "depreciation": 57410,
+          "closing_nbv": 233020
+        }
+      },
+      {
+        "id": "a6f081c3-f2fd-5f66-9b0c-d4efe18f96f1",
+        "data": {
+          "asset_tag": "BW-VH-0030",
+          "category": "Vehicles",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 233020,
+          "depreciation": 57410,
+          "closing_nbv": 175610
+        }
+      },
+      {
+        "id": "b708d8e8-7fe6-5f39-8753-b18de180c0dd",
+        "data": {
+          "asset_tag": "BW-VH-0030",
+          "category": "Vehicles",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 175610,
+          "depreciation": 57410,
+          "closing_nbv": 118200
+        }
+      },
+      {
+        "id": "ba4deb94-2a03-58b3-b905-351c68a1390c",
+        "data": {
+          "asset_tag": "BW-VH-0030",
+          "category": "Vehicles",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 118200,
+          "depreciation": 57410,
+          "closing_nbv": 60790
+        }
+      },
+      {
+        "id": "f0abb670-54e7-5f5d-9fb9-c3368de583e3",
+        "data": {
+          "asset_tag": "BW-VH-0031",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 249910,
+          "depreciation": 35403,
+          "closing_nbv": 214507
+        }
+      },
+      {
+        "id": "0d7a0ce4-0ffb-547f-92ad-1aa17eba6c7b",
+        "data": {
+          "asset_tag": "BW-VH-0031",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 214507,
+          "depreciation": 35403,
+          "closing_nbv": 179103
+        }
+      },
+      {
+        "id": "6904f56d-abf2-5478-a39c-8e3aff5361c8",
+        "data": {
+          "asset_tag": "BW-VH-0031",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 179103,
+          "depreciation": 35403,
+          "closing_nbv": 143700
+        }
+      },
+      {
+        "id": "89728a9c-18b7-5e04-9d6c-e00db1dffb21",
+        "data": {
+          "asset_tag": "BW-VH-0031",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 143700,
+          "depreciation": 35403,
+          "closing_nbv": 108297
+        }
+      },
+      {
+        "id": "6db7a9f4-03a7-546f-9090-6b39301d6c55",
+        "data": {
+          "asset_tag": "BW-VH-0031",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 108297,
+          "depreciation": 35403,
+          "closing_nbv": 72893
+        }
+      },
+      {
+        "id": "8efa6907-9ced-55a3-b477-92547f714c9f",
+        "data": {
+          "asset_tag": "BW-VH-0031",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 72893,
+          "depreciation": 35403,
+          "closing_nbv": 37490
+        }
+      },
+      {
+        "id": "5bfac76c-bcca-59e4-876f-886117fd3d87",
+        "data": {
+          "asset_tag": "BW-RD-0032",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 222140,
+          "depreciation": 42206,
+          "closing_nbv": 179934
+        }
+      },
+      {
+        "id": "53df85e3-54e7-5d2b-a1d2-ba47328f3af1",
+        "data": {
+          "asset_tag": "BW-RD-0032",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 179934,
+          "depreciation": 42206,
+          "closing_nbv": 137728
+        }
+      },
+      {
+        "id": "d345cd58-6b05-5d48-bbba-d8db35cfc7a8",
+        "data": {
+          "asset_tag": "BW-RD-0032",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 137728,
+          "depreciation": 42206,
+          "closing_nbv": 95522
+        }
+      },
+      {
+        "id": "0f551872-4884-59bb-b5d6-dd32c6b4759f",
+        "data": {
+          "asset_tag": "BW-RD-0032",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 95522,
+          "depreciation": 42206,
+          "closing_nbv": 53316
+        }
+      },
+      {
+        "id": "3ad073e0-967f-5b80-92c9-45c558e8ff00",
+        "data": {
+          "asset_tag": "BW-RD-0032",
+          "category": "R&D",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 53316,
+          "depreciation": 42206,
+          "closing_nbv": 11110
+        }
+      },
+      {
+        "id": "2ed9ac1b-8ea4-5a4f-b7e0-297e6897408c",
+        "data": {
+          "asset_tag": "BW-IT-0033",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 191910,
+          "depreciation": 45578,
+          "closing_nbv": 146333
+        }
+      },
+      {
+        "id": "3b78abaf-bf16-5b27-8f05-df20e5dc5f92",
+        "data": {
+          "asset_tag": "BW-IT-0033",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 146333,
+          "depreciation": 45578,
+          "closing_nbv": 100755
+        }
+      },
+      {
+        "id": "58687a92-f6a0-57dd-b5e1-c27f35149765",
+        "data": {
+          "asset_tag": "BW-IT-0033",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 100755,
+          "depreciation": 45578,
+          "closing_nbv": 55178
+        }
+      },
+      {
+        "id": "413e5a2e-f45b-544b-b5db-3f738bc8d969",
+        "data": {
+          "asset_tag": "BW-IT-0033",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 55178,
+          "depreciation": 45578,
+          "closing_nbv": 9600
+        }
+      },
+      {
+        "id": "710aa65b-7f0c-57c3-9316-a1334d03cfb6",
+        "data": {
+          "asset_tag": "BW-EQ-0034",
+          "category": "Equipment",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 37330,
+          "depreciation": 3546,
+          "closing_nbv": 33784
+        }
+      },
+      {
+        "id": "b93f1b74-fa45-5db0-b61b-789e1748c40e",
+        "data": {
+          "asset_tag": "BW-EQ-0034",
+          "category": "Equipment",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 33784,
+          "depreciation": 3546,
+          "closing_nbv": 30238
+        }
+      },
+      {
+        "id": "7daa188f-7bd9-5b3c-a10e-4db461918fd8",
+        "data": {
+          "asset_tag": "BW-EQ-0034",
+          "category": "Equipment",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 30238,
+          "depreciation": 3546,
+          "closing_nbv": 26692
+        }
+      },
+      {
+        "id": "e89efb8d-639e-5b30-897b-b2a5fa4d77f5",
+        "data": {
+          "asset_tag": "BW-EQ-0034",
+          "category": "Equipment",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 26692,
+          "depreciation": 3546,
+          "closing_nbv": 23146
+        }
+      },
+      {
+        "id": "402b5223-98f7-53e7-938f-909306d8a7bf",
+        "data": {
+          "asset_tag": "BW-EQ-0034",
+          "category": "Equipment",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 23146,
+          "depreciation": 3546,
+          "closing_nbv": 19600
+        }
+      },
+      {
+        "id": "8c60aa5f-48ce-53fa-b19e-a01fd702ecbe",
+        "data": {
+          "asset_tag": "BW-EQ-0034",
+          "category": "Equipment",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 19600,
+          "depreciation": 3546,
+          "closing_nbv": 16054
+        }
+      },
+      {
+        "id": "b9c653c5-820e-5edb-80bf-134951c58882",
+        "data": {
+          "asset_tag": "BW-IT-0035",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 24840,
+          "depreciation": 5900,
+          "closing_nbv": 18940
+        }
+      },
+      {
+        "id": "76f4ca1e-a412-56e3-95c1-5e5020efad21",
+        "data": {
+          "asset_tag": "BW-IT-0035",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 18940,
+          "depreciation": 5900,
+          "closing_nbv": 13040
+        }
+      },
+      {
+        "id": "c96d22f7-2dc8-5c86-91db-3a631c748e95",
+        "data": {
+          "asset_tag": "BW-IT-0035",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 13040,
+          "depreciation": 5900,
+          "closing_nbv": 7140
+        }
+      },
+      {
+        "id": "5c592faf-fe5d-51ae-93ef-2a76e0d3db2a",
+        "data": {
+          "asset_tag": "BW-IT-0035",
+          "category": "IT",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 7140,
+          "depreciation": 5900,
+          "closing_nbv": 1240
+        }
+      },
+      {
+        "id": "cb8a4cf9-faac-54a2-b939-899f1b1347ce",
+        "data": {
+          "asset_tag": "BW-EQ-0036",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 233650,
+          "depreciation": 22197,
+          "closing_nbv": 211453
+        }
+      },
+      {
+        "id": "9cd737e3-d3a5-5973-af1c-8b980a5a680e",
+        "data": {
+          "asset_tag": "BW-EQ-0036",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 211453,
+          "depreciation": 22197,
+          "closing_nbv": 189256
+        }
+      },
+      {
+        "id": "433440d6-9ac2-5f72-8807-e68d1e50f97b",
+        "data": {
+          "asset_tag": "BW-EQ-0036",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 189256,
+          "depreciation": 22197,
+          "closing_nbv": 167059
+        }
+      },
+      {
+        "id": "0edd9174-46c5-54f2-8826-ee279816e006",
+        "data": {
+          "asset_tag": "BW-EQ-0036",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 167059,
+          "depreciation": 22197,
+          "closing_nbv": 144862
+        }
+      },
+      {
+        "id": "de7cdad0-c6dc-50c1-9801-7e3c573ed8ea",
+        "data": {
+          "asset_tag": "BW-EQ-0036",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 144862,
+          "depreciation": 22197,
+          "closing_nbv": 122665
+        }
+      },
+      {
+        "id": "e1aef48b-aea5-5260-a6a6-b1a5f6c98e5a",
+        "data": {
+          "asset_tag": "BW-EQ-0036",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 122665,
+          "depreciation": 22197,
+          "closing_nbv": 100468
+        }
+      },
+      {
+        "id": "d9fe4cdf-2449-50ed-a869-15c33793bbfd",
+        "data": {
+          "asset_tag": "BW-VH-0037",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 91040,
+          "depreciation": 12897,
+          "closing_nbv": 78143
+        }
+      },
+      {
+        "id": "f6040c1b-ad65-5398-9c8c-c962c2de6ae3",
+        "data": {
+          "asset_tag": "BW-VH-0037",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 78143,
+          "depreciation": 12897,
+          "closing_nbv": 65247
+        }
+      },
+      {
+        "id": "196c9832-c4fc-5101-a5a3-c2934e3278a2",
+        "data": {
+          "asset_tag": "BW-VH-0037",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 65247,
+          "depreciation": 12897,
+          "closing_nbv": 52350
+        }
+      },
+      {
+        "id": "4f637fe4-3d04-5aac-87b2-6d1f20127524",
+        "data": {
+          "asset_tag": "BW-VH-0037",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 52350,
+          "depreciation": 12897,
+          "closing_nbv": 39453
+        }
+      },
+      {
+        "id": "9c2dcf1d-aa04-56fa-8b9c-a76832ffa4db",
+        "data": {
+          "asset_tag": "BW-VH-0037",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 39453,
+          "depreciation": 12897,
+          "closing_nbv": 26557
+        }
+      },
+      {
+        "id": "173af702-48b9-5f70-bda7-bec1b8f472e0",
+        "data": {
+          "asset_tag": "BW-VH-0037",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 26557,
+          "depreciation": 12897,
+          "closing_nbv": 13660
+        }
+      },
+      {
+        "id": "5ba0894e-1072-5037-882b-43fa3bda9c82",
+        "data": {
+          "asset_tag": "BW-IT-0038",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 11960,
+          "depreciation": 2840,
+          "closing_nbv": 9120
+        }
+      },
+      {
+        "id": "d4fd7fc2-f903-52c5-a4ad-b490a43a57ad",
+        "data": {
+          "asset_tag": "BW-IT-0038",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 9120,
+          "depreciation": 2840,
+          "closing_nbv": 6280
+        }
+      },
+      {
+        "id": "ba0ed7e6-fdf5-57b2-ad91-2d62b9c7f961",
+        "data": {
+          "asset_tag": "BW-IT-0038",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 6280,
+          "depreciation": 2840,
+          "closing_nbv": 3440
+        }
+      },
+      {
+        "id": "c332691a-30f1-5ba2-abe0-303c674ef215",
+        "data": {
+          "asset_tag": "BW-IT-0038",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 3440,
+          "depreciation": 2840,
+          "closing_nbv": 600
+        }
+      },
+      {
+        "id": "084dfb59-a19f-5feb-ad05-b3ffe6861856",
+        "data": {
+          "asset_tag": "BW-IT-0039",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 37440,
+          "depreciation": 8893,
+          "closing_nbv": 28548
+        }
+      },
+      {
+        "id": "80fdc4f0-02b8-5edf-98d0-f746a29714a9",
+        "data": {
+          "asset_tag": "BW-IT-0039",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 28548,
+          "depreciation": 8893,
+          "closing_nbv": 19655
+        }
+      },
+      {
+        "id": "cfac0727-f4ad-5c7c-ba18-e5b21da28e2e",
+        "data": {
+          "asset_tag": "BW-IT-0039",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 19655,
+          "depreciation": 8893,
+          "closing_nbv": 10763
+        }
+      },
+      {
+        "id": "8d9b6c2f-c0d3-55b6-bff0-f41bb67639ac",
+        "data": {
+          "asset_tag": "BW-IT-0039",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 10763,
+          "depreciation": 8893,
+          "closing_nbv": 1870
+        }
+      },
+      {
+        "id": "9adc64af-863f-50a4-9348-c258ad8ffac7",
+        "data": {
+          "asset_tag": "BW-FA-0040",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "year_no": 1,
+          "opening_nbv": 627340,
+          "depreciation": 29799,
+          "closing_nbv": 597542
+        }
+      },
+      {
+        "id": "392d2798-a2d7-5b1b-904c-27f6bc525163",
+        "data": {
+          "asset_tag": "BW-FA-0040",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "year_no": 2,
+          "opening_nbv": 597542,
+          "depreciation": 29799,
+          "closing_nbv": 567743
+        }
+      },
+      {
+        "id": "c387266e-f8a1-55df-bf82-ccfe92fe37cc",
+        "data": {
+          "asset_tag": "BW-FA-0040",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2028",
+          "year_no": 3,
+          "opening_nbv": 567743,
+          "depreciation": 29799,
+          "closing_nbv": 537945
+        }
+      },
+      {
+        "id": "4cc38fe6-1c55-5399-8fb6-8b142d659fd9",
+        "data": {
+          "asset_tag": "BW-FA-0040",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2029",
+          "year_no": 4,
+          "opening_nbv": 537945,
+          "depreciation": 29799,
+          "closing_nbv": 508146
+        }
+      },
+      {
+        "id": "1d57340c-1337-5e75-9809-b18bf06a030e",
+        "data": {
+          "asset_tag": "BW-FA-0040",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2030",
+          "year_no": 5,
+          "opening_nbv": 508146,
+          "depreciation": 29799,
+          "closing_nbv": 478348
+        }
+      },
+      {
+        "id": "0d8e0309-09b8-5d9e-a989-9fd00910a624",
+        "data": {
+          "asset_tag": "BW-FA-0040",
+          "category": "Facilities",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2031",
+          "year_no": 6,
+          "opening_nbv": 478348,
+          "depreciation": 29799,
+          "closing_nbv": 448549
+        }
+      },
+      {
+        "id": "3313b90b-96a1-5b8d-9139-66fac0e395b7",
+        "data": {
+          "asset_tag": "BW-EQ-0041",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 4,
+          "opening_nbv": 72644,
+          "depreciation": 9652,
+          "closing_nbv": 62992
+        }
+      },
+      {
+        "id": "e0b87012-f5a2-52e3-a6ed-99cec702097e",
+        "data": {
+          "asset_tag": "BW-EQ-0041",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 5,
+          "opening_nbv": 62992,
+          "depreciation": 9652,
+          "closing_nbv": 53340
+        }
+      },
+      {
+        "id": "6a6d0e30-b681-531b-807e-31624a88ad99",
+        "data": {
+          "asset_tag": "BW-EQ-0041",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 6,
+          "opening_nbv": 53340,
+          "depreciation": 9652,
+          "closing_nbv": 43688
+        }
+      },
+      {
+        "id": "6ecd326b-52c3-5320-87d3-014da2d55a27",
+        "data": {
+          "asset_tag": "BW-EQ-0041",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 7,
+          "opening_nbv": 43688,
+          "depreciation": 9652,
+          "closing_nbv": 34036
+        }
+      },
+      {
+        "id": "30c7224b-fdc1-5c1c-a86b-d71cf0f8198e",
+        "data": {
+          "asset_tag": "BW-EQ-0041",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 8,
+          "opening_nbv": 34036,
+          "depreciation": 9652,
+          "closing_nbv": 24384
+        }
+      },
+      {
+        "id": "d4cb385a-a496-5391-a779-0a66beca6f51",
+        "data": {
+          "asset_tag": "BW-EQ-0041",
+          "category": "Equipment",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 9,
+          "opening_nbv": 24384,
+          "depreciation": 9652,
+          "closing_nbv": 14732
+        }
+      },
+      {
+        "id": "30428e25-bda3-5c7e-b9ea-c4e154e0c3d9",
+        "data": {
+          "asset_tag": "BW-EQ-0042",
+          "category": "Equipment",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 3,
+          "opening_nbv": 320518,
+          "depreciation": 37591,
+          "closing_nbv": 282927
+        }
+      },
+      {
+        "id": "2aec9c22-e35b-5f04-9b90-f140c1101078",
+        "data": {
+          "asset_tag": "BW-EQ-0042",
+          "category": "Equipment",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 4,
+          "opening_nbv": 282927,
+          "depreciation": 37591,
+          "closing_nbv": 245336
+        }
+      },
+      {
+        "id": "74e0d151-3125-529c-9fea-d59cb0d9e795",
+        "data": {
+          "asset_tag": "BW-EQ-0042",
+          "category": "Equipment",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 5,
+          "opening_nbv": 245336,
+          "depreciation": 37591,
+          "closing_nbv": 207745
+        }
+      },
+      {
+        "id": "fcd6a777-224e-51b3-b682-e5ee14d90dae",
+        "data": {
+          "asset_tag": "BW-EQ-0042",
+          "category": "Equipment",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 6,
+          "opening_nbv": 207745,
+          "depreciation": 37591,
+          "closing_nbv": 170154
+        }
+      },
+      {
+        "id": "4a21eb84-a9c6-5c74-92c6-05667dfff586",
+        "data": {
+          "asset_tag": "BW-EQ-0042",
+          "category": "Equipment",
+          "business_unit": "Logistics",
+          "fiscal_year": "2030",
+          "year_no": 7,
+          "opening_nbv": 170154,
+          "depreciation": 37591,
+          "closing_nbv": 132563
+        }
+      },
+      {
+        "id": "4f63b821-2fd7-5383-8001-d5006da6090e",
+        "data": {
+          "asset_tag": "BW-EQ-0042",
+          "category": "Equipment",
+          "business_unit": "Logistics",
+          "fiscal_year": "2031",
+          "year_no": 8,
+          "opening_nbv": 132563,
+          "depreciation": 37591,
+          "closing_nbv": 94972
+        }
+      },
+      {
+        "id": "daf7c3ac-00d5-544a-985c-d76198d263b4",
+        "data": {
+          "asset_tag": "BW-IT-0043",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 2,
+          "opening_nbv": 166608,
+          "depreciation": 51893,
+          "closing_nbv": 114715
+        }
+      },
+      {
+        "id": "4c8e2f4f-6b96-55e2-b343-257b105bafd2",
+        "data": {
+          "asset_tag": "BW-IT-0043",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 3,
+          "opening_nbv": 114715,
+          "depreciation": 51893,
+          "closing_nbv": 62823
+        }
+      },
+      {
+        "id": "1c3a7dbe-f991-5524-86a5-b1419faa433c",
+        "data": {
+          "asset_tag": "BW-IT-0043",
+          "category": "IT",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 4,
+          "opening_nbv": 62823,
+          "depreciation": 51893,
+          "closing_nbv": 10930
+        }
+      },
+      {
+        "id": "2fffac9b-c311-5532-8c42-76c43f68dfb8",
+        "data": {
+          "asset_tag": "BW-FA-0044",
+          "category": "Facilities",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 4,
+          "opening_nbv": 53680,
+          "depreciation": 2974,
+          "closing_nbv": 50706
+        }
+      },
+      {
+        "id": "1ddb6d0c-7a0a-597a-b443-c508665623f3",
+        "data": {
+          "asset_tag": "BW-FA-0044",
+          "category": "Facilities",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 5,
+          "opening_nbv": 50706,
+          "depreciation": 2974,
+          "closing_nbv": 47733
+        }
+      },
+      {
+        "id": "a47da8ec-91f5-591b-8e47-e8c1ec3f946f",
+        "data": {
+          "asset_tag": "BW-FA-0044",
+          "category": "Facilities",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 6,
+          "opening_nbv": 47733,
+          "depreciation": 2974,
+          "closing_nbv": 44759
+        }
+      },
+      {
+        "id": "0fdbfdb9-ca11-5ffe-a524-8ad78c43e03a",
+        "data": {
+          "asset_tag": "BW-FA-0044",
+          "category": "Facilities",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 7,
+          "opening_nbv": 44759,
+          "depreciation": 2974,
+          "closing_nbv": 41786
+        }
+      },
+      {
+        "id": "8deb93a6-de9d-592e-bd48-fd92345fc56a",
+        "data": {
+          "asset_tag": "BW-FA-0044",
+          "category": "Facilities",
+          "business_unit": "IT",
+          "fiscal_year": "2030",
+          "year_no": 8,
+          "opening_nbv": 41786,
+          "depreciation": 2974,
+          "closing_nbv": 38812
+        }
+      },
+      {
+        "id": "27541416-249b-5f95-86f8-16f67a0057af",
+        "data": {
+          "asset_tag": "BW-FA-0044",
+          "category": "Facilities",
+          "business_unit": "IT",
+          "fiscal_year": "2031",
+          "year_no": 9,
+          "opening_nbv": 38812,
+          "depreciation": 2974,
+          "closing_nbv": 35839
+        }
+      },
+      {
+        "id": "3c861e12-8944-58c2-9bd9-da99d30e8d0e",
+        "data": {
+          "asset_tag": "BW-VH-0045",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "year_no": 3,
+          "opening_nbv": 202267,
+          "depreciation": 46867,
+          "closing_nbv": 155400
+        }
+      },
+      {
+        "id": "2ebdc199-4979-5e5d-b208-121fa450b6e5",
+        "data": {
+          "asset_tag": "BW-VH-0045",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "year_no": 4,
+          "opening_nbv": 155400,
+          "depreciation": 46867,
+          "closing_nbv": 108533
+        }
+      },
+      {
+        "id": "8f2f0c3a-8f46-57f4-ad73-5fb432b7c0a0",
+        "data": {
+          "asset_tag": "BW-VH-0045",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2028",
+          "year_no": 5,
+          "opening_nbv": 108533,
+          "depreciation": 46867,
+          "closing_nbv": 61667
+        }
+      },
+      {
+        "id": "41b8d51f-517f-5ca9-8ed8-1f8adfcd2772",
+        "data": {
+          "asset_tag": "BW-VH-0045",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2029",
+          "year_no": 6,
+          "opening_nbv": 61667,
+          "depreciation": 46867,
+          "closing_nbv": 14800
+        }
+      },
+      {
+        "id": "b75a1aa7-b38b-5ffc-914d-e382db03d20a",
+        "data": {
+          "asset_tag": "BW-RD-0046",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 2,
+          "opening_nbv": 302050,
+          "depreciation": 70850,
+          "closing_nbv": 231200
+        }
+      },
+      {
+        "id": "80464bf7-c24f-5e9c-8c59-8223a78ca857",
+        "data": {
+          "asset_tag": "BW-RD-0046",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 3,
+          "opening_nbv": 231200,
+          "depreciation": 70850,
+          "closing_nbv": 160350
+        }
+      },
+      {
+        "id": "84e6150c-839a-5903-a766-4bc8ea3edfe7",
+        "data": {
+          "asset_tag": "BW-RD-0046",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 4,
+          "opening_nbv": 160350,
+          "depreciation": 70850,
+          "closing_nbv": 89500
+        }
+      },
+      {
+        "id": "c3b643b2-d7c1-56c4-817a-371b487c575f",
+        "data": {
+          "asset_tag": "BW-RD-0046",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 5,
+          "opening_nbv": 89500,
+          "depreciation": 70850,
+          "closing_nbv": 18650
+        }
+      },
+      {
+        "id": "8acdf65e-40f6-5f08-8d7a-0da560708a96",
+        "data": {
+          "asset_tag": "BW-FA-0047",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 4,
+          "opening_nbv": 173901,
+          "depreciation": 9633,
+          "closing_nbv": 164268
+        }
+      },
+      {
+        "id": "1a474b96-356d-59e4-a79a-19428a8ff31b",
+        "data": {
+          "asset_tag": "BW-FA-0047",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 5,
+          "opening_nbv": 164268,
+          "depreciation": 9633,
+          "closing_nbv": 154635
+        }
+      },
+      {
+        "id": "3c1a368d-d460-5728-994f-573c90344a43",
+        "data": {
+          "asset_tag": "BW-FA-0047",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 6,
+          "opening_nbv": 154635,
+          "depreciation": 9633,
+          "closing_nbv": 145002
+        }
+      },
+      {
+        "id": "0372f66a-a5f7-5211-9cac-84e478884a06",
+        "data": {
+          "asset_tag": "BW-FA-0047",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 7,
+          "opening_nbv": 145002,
+          "depreciation": 9633,
+          "closing_nbv": 135369
+        }
+      },
+      {
+        "id": "76b0ca61-21fe-5574-9802-e51801307736",
+        "data": {
+          "asset_tag": "BW-FA-0047",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 8,
+          "opening_nbv": 135369,
+          "depreciation": 9633,
+          "closing_nbv": 125736
+        }
+      },
+      {
+        "id": "502bad78-4f19-5086-9e4d-02530a3d1502",
+        "data": {
+          "asset_tag": "BW-FA-0047",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 9,
+          "opening_nbv": 125736,
+          "depreciation": 9633,
+          "closing_nbv": 116103
+        }
+      },
+      {
+        "id": "86a9fbba-0ef0-581f-8c88-4b626066c602",
+        "data": {
+          "asset_tag": "BW-VH-0048",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 3,
+          "opening_nbv": 69360,
+          "depreciation": 16070,
+          "closing_nbv": 53290
+        }
+      },
+      {
+        "id": "e52abf7c-a34d-5265-9f02-d19d21784b8f",
+        "data": {
+          "asset_tag": "BW-VH-0048",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 4,
+          "opening_nbv": 53290,
+          "depreciation": 16070,
+          "closing_nbv": 37220
+        }
+      },
+      {
+        "id": "ae47b1de-75e3-558c-b5be-eda96e805e77",
+        "data": {
+          "asset_tag": "BW-VH-0048",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2028",
+          "year_no": 5,
+          "opening_nbv": 37220,
+          "depreciation": 16070,
+          "closing_nbv": 21150
+        }
+      },
+      {
+        "id": "11044441-8438-51cf-91bb-d573756d56eb",
+        "data": {
+          "asset_tag": "BW-VH-0048",
+          "category": "Vehicles",
+          "business_unit": "Logistics",
+          "fiscal_year": "2029",
+          "year_no": 6,
+          "opening_nbv": 21150,
+          "depreciation": 16070,
+          "closing_nbv": 5080
+        }
+      },
+      {
+        "id": "33e8ff5c-14dc-5624-b1f2-94c663f28fd9",
+        "data": {
+          "asset_tag": "BW-EQ-0049",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 2,
+          "opening_nbv": 49051,
+          "depreciation": 5149,
+          "closing_nbv": 43902
+        }
+      },
+      {
+        "id": "8aa18536-7eab-5077-a425-c9bd8bf8f730",
+        "data": {
+          "asset_tag": "BW-EQ-0049",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 3,
+          "opening_nbv": 43902,
+          "depreciation": 5149,
+          "closing_nbv": 38753
+        }
+      },
+      {
+        "id": "ca4ceebb-6b4a-511a-8553-3d7335101d37",
+        "data": {
+          "asset_tag": "BW-EQ-0049",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 4,
+          "opening_nbv": 38753,
+          "depreciation": 5149,
+          "closing_nbv": 33604
+        }
+      },
+      {
+        "id": "86973da1-8952-56ba-b7ae-f9e7d985c43f",
+        "data": {
+          "asset_tag": "BW-EQ-0049",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2029",
+          "year_no": 5,
+          "opening_nbv": 33604,
+          "depreciation": 5149,
+          "closing_nbv": 28455
+        }
+      },
+      {
+        "id": "86c1b557-bbd5-524c-b75b-12a10562f784",
+        "data": {
+          "asset_tag": "BW-EQ-0049",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2030",
+          "year_no": 6,
+          "opening_nbv": 28455,
+          "depreciation": 5149,
+          "closing_nbv": 23306
+        }
+      },
+      {
+        "id": "dfb7c793-c594-5ef2-84dc-ca36258fca0e",
+        "data": {
+          "asset_tag": "BW-EQ-0049",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2031",
+          "year_no": 7,
+          "opening_nbv": 23306,
+          "depreciation": 5149,
+          "closing_nbv": 18157
+        }
+      },
+      {
+        "id": "9c2a3c29-a361-5fe6-80ea-a9051c37c86c",
+        "data": {
+          "asset_tag": "BW-IT-0050",
+          "category": "IT",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 4,
+          "opening_nbv": 72368,
+          "depreciation": 59778,
+          "closing_nbv": 12590
+        }
+      },
+      {
+        "id": "fa775e72-523c-5e63-b084-e46826712cd0",
+        "data": {
+          "asset_tag": "BW-RD-0051",
+          "category": "R&D",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "year_no": 3,
+          "opening_nbv": 81160,
+          "depreciation": 24870,
+          "closing_nbv": 56290
+        }
+      },
+      {
+        "id": "157dc3d4-0e2f-5387-adad-564eccf37f4d",
+        "data": {
+          "asset_tag": "BW-RD-0051",
+          "category": "R&D",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "year_no": 4,
+          "opening_nbv": 56290,
+          "depreciation": 24870,
+          "closing_nbv": 31420
+        }
+      },
+      {
+        "id": "924789b0-9c71-5304-9569-5c2f54d7d809",
+        "data": {
+          "asset_tag": "BW-RD-0051",
+          "category": "R&D",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2028",
+          "year_no": 5,
+          "opening_nbv": 31420,
+          "depreciation": 24870,
+          "closing_nbv": 6550
+        }
+      },
+      {
+        "id": "807f7c66-ed6d-5bfa-adbc-179f2501b391",
+        "data": {
+          "asset_tag": "BW-FA-0052",
+          "category": "Facilities",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 2,
+          "opening_nbv": 153258,
+          "depreciation": 7643,
+          "closing_nbv": 145615
+        }
+      },
+      {
+        "id": "fc7786a9-9fc3-55e2-b467-91a63375c3fc",
+        "data": {
+          "asset_tag": "BW-FA-0052",
+          "category": "Facilities",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 3,
+          "opening_nbv": 145615,
+          "depreciation": 7643,
+          "closing_nbv": 137973
+        }
+      },
+      {
+        "id": "1ec234b0-f19f-57a6-9e8f-809e8869df19",
+        "data": {
+          "asset_tag": "BW-FA-0052",
+          "category": "Facilities",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 4,
+          "opening_nbv": 137973,
+          "depreciation": 7643,
+          "closing_nbv": 130330
+        }
+      },
+      {
+        "id": "9b4c81f4-65ae-536a-9d21-7f19091640a4",
+        "data": {
+          "asset_tag": "BW-FA-0052",
+          "category": "Facilities",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 5,
+          "opening_nbv": 130330,
+          "depreciation": 7643,
+          "closing_nbv": 122688
+        }
+      },
+      {
+        "id": "176768d2-8f2d-52c7-b4c5-4c37cda942ca",
+        "data": {
+          "asset_tag": "BW-FA-0052",
+          "category": "Facilities",
+          "business_unit": "Commercial",
+          "fiscal_year": "2030",
+          "year_no": 6,
+          "opening_nbv": 122688,
+          "depreciation": 7643,
+          "closing_nbv": 115045
+        }
+      },
+      {
+        "id": "548473ab-5f78-5c39-806a-03cfbd091a65",
+        "data": {
+          "asset_tag": "BW-FA-0052",
+          "category": "Facilities",
+          "business_unit": "Commercial",
+          "fiscal_year": "2031",
+          "year_no": 7,
+          "opening_nbv": 115045,
+          "depreciation": 7643,
+          "closing_nbv": 107403
+        }
+      },
+      {
+        "id": "b3d440be-b6b1-54a6-8bb5-8a8073fe6664",
+        "data": {
+          "asset_tag": "BW-FA-0053",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2026",
+          "year_no": 4,
+          "opening_nbv": 133942,
+          "depreciation": 7420,
+          "closing_nbv": 126522
+        }
+      },
+      {
+        "id": "6bdfddd9-f00b-5ae5-a830-5c8c06ae001b",
+        "data": {
+          "asset_tag": "BW-FA-0053",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2027",
+          "year_no": 5,
+          "opening_nbv": 126522,
+          "depreciation": 7420,
+          "closing_nbv": 119103
+        }
+      },
+      {
+        "id": "74ce6868-0202-5488-a81f-bea2ffa2edeb",
+        "data": {
+          "asset_tag": "BW-FA-0053",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2028",
+          "year_no": 6,
+          "opening_nbv": 119103,
+          "depreciation": 7420,
+          "closing_nbv": 111683
+        }
+      },
+      {
+        "id": "a0d47ab1-051b-5c35-8ad7-01871669e222",
+        "data": {
+          "asset_tag": "BW-FA-0053",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2029",
+          "year_no": 7,
+          "opening_nbv": 111683,
+          "depreciation": 7420,
+          "closing_nbv": 104264
+        }
+      },
+      {
+        "id": "e6dd2806-408f-574c-bee0-0701008d0b0b",
+        "data": {
+          "asset_tag": "BW-FA-0053",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2030",
+          "year_no": 8,
+          "opening_nbv": 104264,
+          "depreciation": 7420,
+          "closing_nbv": 96844
+        }
+      },
+      {
+        "id": "30dd923b-13c7-5259-a670-71b22056a69a",
+        "data": {
+          "asset_tag": "BW-FA-0053",
+          "category": "Facilities",
+          "business_unit": "Production",
+          "fiscal_year": "2031",
+          "year_no": 9,
+          "opening_nbv": 96844,
+          "depreciation": 7420,
+          "closing_nbv": 89425
+        }
+      },
+      {
+        "id": "5eca51c8-873b-5f0f-a68b-09481eef9c06",
+        "data": {
+          "asset_tag": "BW-IT-0054",
+          "category": "IT",
+          "business_unit": "Logistics",
+          "fiscal_year": "2026",
+          "year_no": 3,
+          "opening_nbv": 218875,
+          "depreciation": 99013,
+          "closing_nbv": 119863
+        }
+      },
+      {
+        "id": "420d4f0b-ebf6-51a7-9cbb-58700e87d060",
+        "data": {
+          "asset_tag": "BW-IT-0054",
+          "category": "IT",
+          "business_unit": "Logistics",
+          "fiscal_year": "2027",
+          "year_no": 4,
+          "opening_nbv": 119863,
+          "depreciation": 99013,
+          "closing_nbv": 20850
+        }
+      },
+      {
+        "id": "66fd21c6-7185-541f-8e20-172ee23bfab1",
+        "data": {
+          "asset_tag": "BW-EQ-0055",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2026",
+          "year_no": 2,
+          "opening_nbv": 137741,
+          "depreciation": 14459,
+          "closing_nbv": 123282
+        }
+      },
+      {
+        "id": "fdb47395-3a57-5324-817b-2f57a3853854",
+        "data": {
+          "asset_tag": "BW-EQ-0055",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2027",
+          "year_no": 3,
+          "opening_nbv": 123282,
+          "depreciation": 14459,
+          "closing_nbv": 108823
+        }
+      },
+      {
+        "id": "4a510479-8988-5e9b-ac33-e90abdea3a88",
+        "data": {
+          "asset_tag": "BW-EQ-0055",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2028",
+          "year_no": 4,
+          "opening_nbv": 108823,
+          "depreciation": 14459,
+          "closing_nbv": 94364
+        }
+      },
+      {
+        "id": "c7a50e27-7a12-5b57-9520-b82b67bb9f6e",
+        "data": {
+          "asset_tag": "BW-EQ-0055",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2029",
+          "year_no": 5,
+          "opening_nbv": 94364,
+          "depreciation": 14459,
+          "closing_nbv": 79905
+        }
+      },
+      {
+        "id": "dc5ff9c9-04aa-5240-9518-5167cbc56605",
+        "data": {
+          "asset_tag": "BW-EQ-0055",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2030",
+          "year_no": 6,
+          "opening_nbv": 79905,
+          "depreciation": 14459,
+          "closing_nbv": 65446
+        }
+      },
+      {
+        "id": "9521db6b-5309-5536-9760-4a9c79d45a0a",
+        "data": {
+          "asset_tag": "BW-EQ-0055",
+          "category": "Equipment",
+          "business_unit": "Engineering & R&D",
+          "fiscal_year": "2031",
+          "year_no": 7,
+          "opening_nbv": 65446,
+          "depreciation": 14459,
+          "closing_nbv": 50987
+        }
+      },
+      {
+        "id": "4948ec76-e1ca-5fdf-8a74-69fb35e9efc8",
+        "data": {
+          "asset_tag": "BW-EQ-0056",
+          "category": "Equipment",
+          "business_unit": "IT",
+          "fiscal_year": "2026",
+          "year_no": 4,
+          "opening_nbv": 298943,
+          "depreciation": 39719,
+          "closing_nbv": 259224
+        }
+      },
+      {
+        "id": "78caedd8-dd66-555c-b911-e4da0cc9afda",
+        "data": {
+          "asset_tag": "BW-EQ-0056",
+          "category": "Equipment",
+          "business_unit": "IT",
+          "fiscal_year": "2027",
+          "year_no": 5,
+          "opening_nbv": 259224,
+          "depreciation": 39719,
+          "closing_nbv": 219505
+        }
+      },
+      {
+        "id": "992ec6e9-d337-5b0d-aa6d-9205ea249fa5",
+        "data": {
+          "asset_tag": "BW-EQ-0056",
+          "category": "Equipment",
+          "business_unit": "IT",
+          "fiscal_year": "2028",
+          "year_no": 6,
+          "opening_nbv": 219505,
+          "depreciation": 39719,
+          "closing_nbv": 179786
+        }
+      },
+      {
+        "id": "b85e458a-43e2-5bd1-bbfc-c6e8215066e9",
+        "data": {
+          "asset_tag": "BW-EQ-0056",
+          "category": "Equipment",
+          "business_unit": "IT",
+          "fiscal_year": "2029",
+          "year_no": 7,
+          "opening_nbv": 179786,
+          "depreciation": 39719,
+          "closing_nbv": 140067
+        }
+      },
+      {
+        "id": "0bbb8186-1677-5932-882b-a9aee9f71c94",
+        "data": {
+          "asset_tag": "BW-EQ-0056",
+          "category": "Equipment",
+          "business_unit": "IT",
+          "fiscal_year": "2030",
+          "year_no": 8,
+          "opening_nbv": 140067,
+          "depreciation": 39719,
+          "closing_nbv": 100348
+        }
+      },
+      {
+        "id": "b28a74fd-8633-5cd1-9fa7-b8858e737573",
+        "data": {
+          "asset_tag": "BW-EQ-0056",
+          "category": "Equipment",
+          "business_unit": "IT",
+          "fiscal_year": "2031",
+          "year_no": 9,
+          "opening_nbv": 100348,
+          "depreciation": 39719,
+          "closing_nbv": 60629
+        }
+      },
+      {
+        "id": "6d523ab1-84a5-576c-afc5-0b157045de6f",
+        "data": {
+          "asset_tag": "BW-VH-0057",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2026",
+          "year_no": 3,
+          "opening_nbv": 50157,
+          "depreciation": 11622,
+          "closing_nbv": 38535
+        }
+      },
+      {
+        "id": "a9ae665f-8f79-56c7-96e1-08fe7d57dff1",
+        "data": {
+          "asset_tag": "BW-VH-0057",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2027",
+          "year_no": 4,
+          "opening_nbv": 38535,
+          "depreciation": 11622,
+          "closing_nbv": 26913
+        }
+      },
+      {
+        "id": "b0ddc6e3-1240-5318-8213-800b8a6c19ab",
+        "data": {
+          "asset_tag": "BW-VH-0057",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2028",
+          "year_no": 5,
+          "opening_nbv": 26913,
+          "depreciation": 11622,
+          "closing_nbv": 15292
+        }
+      },
+      {
+        "id": "6300a4f4-8ff0-5154-8099-ef9355830508",
+        "data": {
+          "asset_tag": "BW-VH-0057",
+          "category": "Vehicles",
+          "business_unit": "Facilities & EHS",
+          "fiscal_year": "2029",
+          "year_no": 6,
+          "opening_nbv": 15292,
+          "depreciation": 11622,
+          "closing_nbv": 3670
+        }
+      },
+      {
+        "id": "55b86568-9465-5313-9dab-1abbebdab3c2",
+        "data": {
+          "asset_tag": "BW-RD-0058",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "fiscal_year": "2026",
+          "year_no": 2,
+          "opening_nbv": 296298,
+          "depreciation": 69502,
+          "closing_nbv": 226796
+        }
+      },
+      {
+        "id": "5b12e311-697d-523b-94dc-7bad826596f8",
+        "data": {
+          "asset_tag": "BW-RD-0058",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "fiscal_year": "2027",
+          "year_no": 3,
+          "opening_nbv": 226796,
+          "depreciation": 69502,
+          "closing_nbv": 157294
+        }
+      },
+      {
+        "id": "8c415416-8ba3-529c-ba42-32e64aba0279",
+        "data": {
+          "asset_tag": "BW-RD-0058",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "fiscal_year": "2028",
+          "year_no": 4,
+          "opening_nbv": 157294,
+          "depreciation": 69502,
+          "closing_nbv": 87792
+        }
+      },
+      {
+        "id": "21ab1d3b-2c18-5371-a370-e4b5e9e322de",
+        "data": {
+          "asset_tag": "BW-RD-0058",
+          "category": "R&D",
+          "business_unit": "Commercial",
+          "fiscal_year": "2029",
+          "year_no": 5,
+          "opening_nbv": 87792,
+          "depreciation": 69502,
+          "closing_nbv": 18290
+        }
+      }
+    ]
+  }
+}

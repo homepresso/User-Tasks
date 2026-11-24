@@ -1,0 +1,118 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "f42c2507-74a9-5c13-9d20-02eafc8567a5",
+  "asset": {
+    "id": "f42c2507-74a9-5c13-9d20-02eafc8567a5",
+    "name": "CapEx asset registration",
+    "description": "An asset from the CapEx asset registration form goes into the register with its straight-line depreciation schedule.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Asset submitted",
+        "config": {
+          "form_id": "b4dbd989-8622-5350-80d4-b1c41131d035",
+          "form_name": "CapEx asset registration"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "project",
+        "type": "update_data_table",
+        "label": "Read the project",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "get",
+          "match_column": "project_ref",
+          "match_value": "{{form.project_ref}}",
+          "output_row_var": "proj"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Asset {{form.asset_tag}} · {{form.description}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "register_it",
+        "type": "call_sub_workflow",
+        "label": "Register the asset",
+        "config": {
+          "sub_workflow_id": "3e5096a6-4681-5f60-913a-5206c496b484",
+          "sub_workflow_name": "CapEx register asset",
+          "input_mappings": {
+            "asset_tag": "{{form.asset_tag}}",
+            "description": "{{form.description}}",
+            "project_ref": "{{form.project_ref}}",
+            "category": "{{proj.category}}",
+            "business_unit": "{{proj.business_unit}}",
+            "location": "{{form.location}}",
+            "in_service_date": "{{form.in_service_date}}",
+            "cost": "{{form.cost}}",
+            "useful_life": "{{form.useful_life}}",
+            "salvage_value": "{{=COALESCE(form.salvage_value, 0)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Registered",
+        "config": {
+          "reason": "{{form.asset_tag}} registered"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-project",
+        "source": "trigger",
+        "target": "project"
+      },
+      {
+        "id": "e-project-title",
+        "source": "project",
+        "target": "title"
+      },
+      {
+        "id": "e-title-register_it",
+        "source": "title",
+        "target": "register_it"
+      },
+      {
+        "id": "e-register_it-done",
+        "source": "register_it",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

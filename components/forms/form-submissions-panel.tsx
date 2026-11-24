@@ -5,6 +5,7 @@ import { ListValueView } from './list-field'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import * as Dialog from '@radix-ui/react-dialog'
+import { DialogAgentSlot } from '@/components/ui/dialog'
 import { ArrowLeft, Download, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select'
@@ -99,6 +100,7 @@ export function FormSubmissionsPanel({ form, onClose }: { form: { id: string; na
                 }}><Download size={12} /> Export CSV</Button>
               </>
             )}
+            <DialogAgentSlot className="mt-0" />
             <Dialog.Close aria-label="Close" className="rounded p-1"><X size={14} /></Dialog.Close>
           </div>
           {exportError && <p className="px-4 pt-2 text-xs text-danger" role="alert">{exportError}</p>}

@@ -116,6 +116,7 @@ export const ASSET_SOURCES: Record<DependencyAssetType, Source> = {
   form: { table: 'forms', name: 'name', description: true, tags: true, owner: true },
   form_theme: { table: 'form_themes', name: 'name', description: true, owner: true },
   form_control: { table: 'form_controls', name: 'name', description: true, owner: true },
+  app: { table: 'apps', name: 'name', description: true, owner: true },
 }
 
 export const ASSET_SEARCH_MAX_LIMIT = 100

@@ -1,0 +1,6073 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "a6eb6ba9-2f7e-5f76-8ffa-f6379178705a",
+  "asset": {
+    "id": "a6eb6ba9-2f7e-5f76-8ffa-f6379178705a",
+    "name": "CRM deal line items rows",
+    "rows": [
+      {
+        "id": "d3602484-e7e8-5798-a223-7b888c6c56c3",
+        "data": {
+          "line_id": "DL-3001-1",
+          "deal_id": "DL-3001",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 145,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 62640
+        }
+      },
+      {
+        "id": "9e21caaf-e6fe-5cdc-87d7-b1b30fbf416c",
+        "data": {
+          "line_id": "DL-3001-2",
+          "deal_id": "DL-3001",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 7,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 15120
+        }
+      },
+      {
+        "id": "b89caafd-822c-5e57-b044-089b981e1aec",
+        "data": {
+          "line_id": "DL-3001-3",
+          "deal_id": "DL-3001",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "46c61fb1-6f32-5223-b7d5-0d23eaaa7b7f",
+        "data": {
+          "line_id": "DL-3001-4",
+          "deal_id": "DL-3001",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "478fe3b3-f572-583b-b068-0a984de35712",
+        "data": {
+          "line_id": "DL-3002-1",
+          "deal_id": "DL-3002",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 55,
+          "unit_price": 1080,
+          "discount_pct": 10,
+          "line_total": 53460
+        }
+      },
+      {
+        "id": "f627f549-5d0d-508d-bb74-c6dfbbf189f4",
+        "data": {
+          "line_id": "DL-3002-2",
+          "deal_id": "DL-3002",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "cd701e12-19fc-5e36-a3e8-fb2056c9781d",
+        "data": {
+          "line_id": "DL-3002-3",
+          "deal_id": "DL-3002",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "67cfac88-1b4a-547a-8b4b-b4c6dddc8b79",
+        "data": {
+          "line_id": "DL-3003-1",
+          "deal_id": "DL-3003",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 60,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 28800
+        }
+      },
+      {
+        "id": "d18d8a1f-5495-54f6-8e9e-c74a31103834",
+        "data": {
+          "line_id": "DL-3003-2",
+          "deal_id": "DL-3003",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 14400
+        }
+      },
+      {
+        "id": "e8aeb74c-9698-5572-9113-1771db2a4d59",
+        "data": {
+          "line_id": "DL-3003-3",
+          "deal_id": "DL-3003",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "c0ea823d-54c1-5f31-8a1e-4380459722a1",
+        "data": {
+          "line_id": "DL-3003-4",
+          "deal_id": "DL-3003",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "5bd62252-e17f-5b88-8762-eb364652a92e",
+        "data": {
+          "line_id": "DL-3003-5",
+          "deal_id": "DL-3003",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "a930199b-07ba-500c-828c-512d3a339170",
+        "data": {
+          "line_id": "DL-3004-1",
+          "deal_id": "DL-3004",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 17280
+        }
+      },
+      {
+        "id": "7985b1da-e4db-5481-954e-77795d8fe413",
+        "data": {
+          "line_id": "DL-3004-2",
+          "deal_id": "DL-3004",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 17280
+        }
+      },
+      {
+        "id": "840bff18-c17e-558d-ae35-fea3a774a9ad",
+        "data": {
+          "line_id": "DL-3004-3",
+          "deal_id": "DL-3004",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "0d3cb016-81a8-513a-983d-62e307dbea85",
+        "data": {
+          "line_id": "DL-3005-1",
+          "deal_id": "DL-3005",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 19200
+        }
+      },
+      {
+        "id": "49ebe53f-22c6-51c6-bb95-fb8a45165dbd",
+        "data": {
+          "line_id": "DL-3005-2",
+          "deal_id": "DL-3005",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "756f4e0b-f52b-5a53-997d-92f54a82f854",
+        "data": {
+          "line_id": "DL-3005-3",
+          "deal_id": "DL-3005",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "2044a209-1a11-5494-bb2e-a5cb34070549",
+        "data": {
+          "line_id": "DL-3006-1",
+          "deal_id": "DL-3006",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 95,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 102600
+        }
+      },
+      {
+        "id": "a8a26917-2f32-5b34-bea0-a05ac5fdc9a4",
+        "data": {
+          "line_id": "DL-3006-2",
+          "deal_id": "DL-3006",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 24,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 57600
+        }
+      },
+      {
+        "id": "cbddc557-379c-57e6-b681-a3b37c563ce0",
+        "data": {
+          "line_id": "DL-3006-3",
+          "deal_id": "DL-3006",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "82962d6e-196e-5fbe-a320-61ca97111db9",
+        "data": {
+          "line_id": "DL-3007-1",
+          "deal_id": "DL-3007",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 20520
+        }
+      },
+      {
+        "id": "ec9f286e-b9d8-56b0-a7f3-fba1e89fc5db",
+        "data": {
+          "line_id": "DL-3007-2",
+          "deal_id": "DL-3007",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "cea246eb-d2ca-5279-8a1a-9ce14a70fddc",
+        "data": {
+          "line_id": "DL-3008-1",
+          "deal_id": "DL-3008",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 95,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 102600
+        }
+      },
+      {
+        "id": "2cfee0e6-fa31-56b5-8a79-d0bbc341ed5d",
+        "data": {
+          "line_id": "DL-3008-2",
+          "deal_id": "DL-3008",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 29,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 69600
+        }
+      },
+      {
+        "id": "10e9fb28-ac29-5ef4-8133-49fcf4629d74",
+        "data": {
+          "line_id": "DL-3008-3",
+          "deal_id": "DL-3008",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "6f8e2820-23c7-50c0-9072-28bdefabd453",
+        "data": {
+          "line_id": "DL-3008-4",
+          "deal_id": "DL-3008",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "17149138-b862-55e6-9153-347d11921f1d",
+        "data": {
+          "line_id": "DL-3009-1",
+          "deal_id": "DL-3009",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 110,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 79200
+        }
+      },
+      {
+        "id": "f9e36766-12ba-52c6-9e2b-69c0e1a680c6",
+        "data": {
+          "line_id": "DL-3009-2",
+          "deal_id": "DL-3009",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 15,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 36000
+        }
+      },
+      {
+        "id": "593e7866-f697-554a-aaa9-2cfc522464c6",
+        "data": {
+          "line_id": "DL-3009-3",
+          "deal_id": "DL-3009",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "511dea56-5ee3-583d-814f-f558937309de",
+        "data": {
+          "line_id": "DL-3010-1",
+          "deal_id": "DL-3010",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 9720
+        }
+      },
+      {
+        "id": "1f698569-b854-519a-be4e-b8f737bbe231",
+        "data": {
+          "line_id": "DL-3010-2",
+          "deal_id": "DL-3010",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "39408e6f-0f8d-5f7a-8a3e-d6df157f2713",
+        "data": {
+          "line_id": "DL-3011-1",
+          "deal_id": "DL-3011",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 50,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 34200
+        }
+      },
+      {
+        "id": "3853274f-dcf3-57c8-b3bf-cc62b80f6c11",
+        "data": {
+          "line_id": "DL-3012-1",
+          "deal_id": "DL-3012",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 85,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 36720
+        }
+      },
+      {
+        "id": "cee2ebce-84f5-5ae4-bcc3-ff1613129e5e",
+        "data": {
+          "line_id": "DL-3012-2",
+          "deal_id": "DL-3012",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 13,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 28080
+        }
+      },
+      {
+        "id": "3cc53305-54b8-5cc8-8d75-b65922a30368",
+        "data": {
+          "line_id": "DL-3013-1",
+          "deal_id": "DL-3013",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 60,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 41040
+        }
+      },
+      {
+        "id": "a67f3535-411a-5986-b2c8-21237dbdb613",
+        "data": {
+          "line_id": "DL-3013-2",
+          "deal_id": "DL-3013",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 9120
+        }
+      },
+      {
+        "id": "44adb5b9-33cc-551c-9f9b-793eaeb475ae",
+        "data": {
+          "line_id": "DL-3013-3",
+          "deal_id": "DL-3013",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "b0a17894-7cc1-5918-9975-221e5cbf22db",
+        "data": {
+          "line_id": "DL-3014-1",
+          "deal_id": "DL-3014",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 110,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 79200
+        }
+      },
+      {
+        "id": "4c65b7ee-5524-5031-b56a-cb924d7490ea",
+        "data": {
+          "line_id": "DL-3014-2",
+          "deal_id": "DL-3014",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "76b5f8a6-12fd-518b-b034-ec75796dd603",
+        "data": {
+          "line_id": "DL-3014-3",
+          "deal_id": "DL-3014",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "60960973-339e-5a2f-83c7-708e86a97b72",
+        "data": {
+          "line_id": "DL-3015-1",
+          "deal_id": "DL-3015",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "5e825f56-909f-5043-bd88-50025d791a71",
+        "data": {
+          "line_id": "DL-3015-2",
+          "deal_id": "DL-3015",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "bf515c4d-9c69-5766-844f-4b31ee5ddc32",
+        "data": {
+          "line_id": "DL-3016-1",
+          "deal_id": "DL-3016",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 35,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 23940
+        }
+      },
+      {
+        "id": "952e7dee-8016-532a-bc01-39453570cdf3",
+        "data": {
+          "line_id": "DL-3016-2",
+          "deal_id": "DL-3016",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 6840
+        }
+      },
+      {
+        "id": "65455fc9-50fe-5c88-93a9-8330e24a8fdf",
+        "data": {
+          "line_id": "DL-3016-3",
+          "deal_id": "DL-3016",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "c424ecaf-0528-553b-a036-0d9d88a80e0d",
+        "data": {
+          "line_id": "DL-3017-1",
+          "deal_id": "DL-3017",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 20,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 8640
+        }
+      },
+      {
+        "id": "a3a75a0c-1ed0-5ecf-8bce-3b8b79e40a8e",
+        "data": {
+          "line_id": "DL-3017-2",
+          "deal_id": "DL-3017",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 15,
+          "line_total": 4080
+        }
+      },
+      {
+        "id": "e06d29fa-b4e3-5597-9255-d59890f955f0",
+        "data": {
+          "line_id": "DL-3018-1",
+          "deal_id": "DL-3018",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 70,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 50400
+        }
+      },
+      {
+        "id": "5c5273ff-67f8-511c-be72-c9cd9a3dd86f",
+        "data": {
+          "line_id": "DL-3018-2",
+          "deal_id": "DL-3018",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 19200
+        }
+      },
+      {
+        "id": "d0ef2b4a-8b40-552e-a5b4-3d298ef6a28c",
+        "data": {
+          "line_id": "DL-3019-1",
+          "deal_id": "DL-3019",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "461caa02-cb49-5266-85d9-92127579f8d3",
+        "data": {
+          "line_id": "DL-3019-2",
+          "deal_id": "DL-3019",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 4800
+        }
+      },
+      {
+        "id": "6327212f-7762-5c99-8fd3-f7846f85d9ca",
+        "data": {
+          "line_id": "DL-3019-3",
+          "deal_id": "DL-3019",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "5026245b-4ca6-5d44-b596-4ebace4f1f0c",
+        "data": {
+          "line_id": "DL-3020-1",
+          "deal_id": "DL-3020",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 110,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 118800
+        }
+      },
+      {
+        "id": "a0caf8e6-4b7e-5a9a-b739-bd2728b0fcee",
+        "data": {
+          "line_id": "DL-3020-2",
+          "deal_id": "DL-3020",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 10,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 24000
+        }
+      },
+      {
+        "id": "c525b7ec-465c-5ffb-8c28-1fa4bc59ab28",
+        "data": {
+          "line_id": "DL-3020-3",
+          "deal_id": "DL-3020",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "ba7df269-b4fd-5cd3-b2fd-013c7490903c",
+        "data": {
+          "line_id": "DL-3021-1",
+          "deal_id": "DL-3021",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "cca7b5da-889e-5c6c-b3e4-d4f92c951166",
+        "data": {
+          "line_id": "DL-3021-2",
+          "deal_id": "DL-3021",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 5,
+          "unit_price": 2400,
+          "discount_pct": 15,
+          "line_total": 10200
+        }
+      },
+      {
+        "id": "5220b6b1-df28-561e-bfdb-06e65e7b9dc7",
+        "data": {
+          "line_id": "DL-3022-1",
+          "deal_id": "DL-3022",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 285,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 307800
+        }
+      },
+      {
+        "id": "f3319f99-4bab-5d51-ac75-afdf188b2b5c",
+        "data": {
+          "line_id": "DL-3022-2",
+          "deal_id": "DL-3022",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 19,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 45600
+        }
+      },
+      {
+        "id": "4103e10b-e3c2-5c1e-bcca-f43f5b756fb0",
+        "data": {
+          "line_id": "DL-3022-3",
+          "deal_id": "DL-3022",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "6804832d-0a87-5776-99c8-3fbed5f67ae6",
+        "data": {
+          "line_id": "DL-3022-4",
+          "deal_id": "DL-3022",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "406aa6a7-0210-58e2-93bb-b7306c3d93fb",
+        "data": {
+          "line_id": "DL-3023-1",
+          "deal_id": "DL-3023",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 27360
+        }
+      },
+      {
+        "id": "6f86f87a-d52d-5a9f-ace0-8f3ad8776b6f",
+        "data": {
+          "line_id": "DL-3023-2",
+          "deal_id": "DL-3023",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 2280
+        }
+      },
+      {
+        "id": "7400fb00-c3f3-5d15-8a1d-1ac1bd5b17b6",
+        "data": {
+          "line_id": "DL-3023-3",
+          "deal_id": "DL-3023",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "6d28bcef-8bf3-547d-b492-2b7b66c0b30f",
+        "data": {
+          "line_id": "DL-3023-4",
+          "deal_id": "DL-3023",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "23dce513-df82-5d87-8d11-c63c7b103384",
+        "data": {
+          "line_id": "DL-3024-1",
+          "deal_id": "DL-3024",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 45,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 48600
+        }
+      },
+      {
+        "id": "01525952-2eef-5293-908d-d8ef9c1153e9",
+        "data": {
+          "line_id": "DL-3024-2",
+          "deal_id": "DL-3024",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 7200
+        }
+      },
+      {
+        "id": "4f3ee708-6350-5c81-bbfb-c2852d78785c",
+        "data": {
+          "line_id": "DL-3024-3",
+          "deal_id": "DL-3024",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "78708ae3-8ab2-5398-9600-74ddd800c03b",
+        "data": {
+          "line_id": "DL-3024-4",
+          "deal_id": "DL-3024",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "1c7ccb81-351c-5b8a-9109-d10c4a1ddc72",
+        "data": {
+          "line_id": "DL-3025-1",
+          "deal_id": "DL-3025",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 6840
+        }
+      },
+      {
+        "id": "66dacd1d-7f95-5799-aaaa-5dc4892f95f7",
+        "data": {
+          "line_id": "DL-3025-2",
+          "deal_id": "DL-3025",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "d43d6a13-0d2e-5481-9b01-a39a82c4fe2f",
+        "data": {
+          "line_id": "DL-3026-1",
+          "deal_id": "DL-3026",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 85,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 36720
+        }
+      },
+      {
+        "id": "d9b2bb84-e0db-56bb-9c0b-e90bcaf83f3b",
+        "data": {
+          "line_id": "DL-3027-1",
+          "deal_id": "DL-3027",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 90,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 58320
+        }
+      },
+      {
+        "id": "47698a47-eb88-56fe-b5a3-b048856dd041",
+        "data": {
+          "line_id": "DL-3027-2",
+          "deal_id": "DL-3027",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "ea8a3855-9302-5237-8f89-235c38e56767",
+        "data": {
+          "line_id": "DL-3027-3",
+          "deal_id": "DL-3027",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "e585e486-5f7a-5d54-86b8-4ea56a242060",
+        "data": {
+          "line_id": "DL-3028-1",
+          "deal_id": "DL-3028",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 35,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 15120
+        }
+      },
+      {
+        "id": "08e7da52-5dc4-57cd-a911-93ef6b2c42a4",
+        "data": {
+          "line_id": "DL-3029-1",
+          "deal_id": "DL-3029",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 18240
+        }
+      },
+      {
+        "id": "16cbb5dd-649c-5856-a176-b23f5228dc76",
+        "data": {
+          "line_id": "DL-3029-2",
+          "deal_id": "DL-3029",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 4560
+        }
+      },
+      {
+        "id": "eb3765e8-562b-5746-bc2a-52b1baa7d23f",
+        "data": {
+          "line_id": "DL-3029-3",
+          "deal_id": "DL-3029",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "3d2da092-afbe-5731-b42e-b703486afb9e",
+        "data": {
+          "line_id": "DL-3029-4",
+          "deal_id": "DL-3029",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "059d2592-ec59-5f0c-8784-177e558f4f3c",
+        "data": {
+          "line_id": "DL-3029-5",
+          "deal_id": "DL-3029",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "0200bcc3-90b7-578e-8dc2-f1b160a6398b",
+        "data": {
+          "line_id": "DL-3030-1",
+          "deal_id": "DL-3030",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "6a62c360-454e-53a7-9a72-e7225f70cb56",
+        "data": {
+          "line_id": "DL-3030-2",
+          "deal_id": "DL-3030",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 15,
+          "line_total": 15300
+        }
+      },
+      {
+        "id": "a8d0ea67-5ace-54ae-8b13-f720f15d7292",
+        "data": {
+          "line_id": "DL-3031-1",
+          "deal_id": "DL-3031",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 195,
+          "unit_price": 1080,
+          "discount_pct": 22,
+          "line_total": 164268
+        }
+      },
+      {
+        "id": "8ccad8dc-c3d2-52ad-96d2-c6decf99a6e2",
+        "data": {
+          "line_id": "DL-3031-2",
+          "deal_id": "DL-3031",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 22,
+          "line_total": 14040
+        }
+      },
+      {
+        "id": "4aa777c5-540a-5a1a-a4d5-8276fa1519c9",
+        "data": {
+          "line_id": "DL-3032-1",
+          "deal_id": "DL-3032",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 14400
+        }
+      },
+      {
+        "id": "678c8ec0-2ded-581a-a5b0-b0e7a7cf6551",
+        "data": {
+          "line_id": "DL-3032-2",
+          "deal_id": "DL-3032",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 4800
+        }
+      },
+      {
+        "id": "fb7e0368-f672-591e-ac77-bf3400ac4974",
+        "data": {
+          "line_id": "DL-3032-3",
+          "deal_id": "DL-3032",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "921de43e-0146-59f2-8ca8-9324866d2245",
+        "data": {
+          "line_id": "DL-3033-1",
+          "deal_id": "DL-3033",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 95,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 64980
+        }
+      },
+      {
+        "id": "8016bc26-9581-531a-9cc9-1134ee08088e",
+        "data": {
+          "line_id": "DL-3033-2",
+          "deal_id": "DL-3033",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 7,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 15960
+        }
+      },
+      {
+        "id": "88260239-eab9-5f84-afd5-e32b4ea1edf8",
+        "data": {
+          "line_id": "DL-3033-3",
+          "deal_id": "DL-3033",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "bc16d2f2-fe60-5378-ba5d-993845205670",
+        "data": {
+          "line_id": "DL-3034-1",
+          "deal_id": "DL-3034",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 32400
+        }
+      },
+      {
+        "id": "b38d8e66-f72e-5fec-8b9f-114783b2fc35",
+        "data": {
+          "line_id": "DL-3034-2",
+          "deal_id": "DL-3034",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 7,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 16800
+        }
+      },
+      {
+        "id": "8ac1b9f0-eec1-59e4-9dfd-4b921f1d0ea1",
+        "data": {
+          "line_id": "DL-3035-1",
+          "deal_id": "DL-3035",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 95,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 102600
+        }
+      },
+      {
+        "id": "b5eff28e-b451-5d04-9aec-e71ba0713e2f",
+        "data": {
+          "line_id": "DL-3035-2",
+          "deal_id": "DL-3035",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 7,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 16800
+        }
+      },
+      {
+        "id": "3a8e5099-8c09-5216-83f7-81b430646266",
+        "data": {
+          "line_id": "DL-3035-3",
+          "deal_id": "DL-3035",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "1d4a747a-3364-5694-955e-1f7b61641b39",
+        "data": {
+          "line_id": "DL-3035-4",
+          "deal_id": "DL-3035",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "73f50e64-a735-5027-890a-66fc8ad501ce",
+        "data": {
+          "line_id": "DL-3036-1",
+          "deal_id": "DL-3036",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 20,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 8640
+        }
+      },
+      {
+        "id": "58105916-9330-59e5-b349-4edf79d2ded4",
+        "data": {
+          "line_id": "DL-3036-2",
+          "deal_id": "DL-3036",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 4320
+        }
+      },
+      {
+        "id": "71a4d273-4bb9-5b64-9709-404a0f3125ab",
+        "data": {
+          "line_id": "DL-3036-3",
+          "deal_id": "DL-3036",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "32ceec94-afcb-589d-8031-67604edc28e2",
+        "data": {
+          "line_id": "DL-3037-1",
+          "deal_id": "DL-3037",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 35,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 25200
+        }
+      },
+      {
+        "id": "a0a91390-5007-55b7-a8af-1b6977d2b431",
+        "data": {
+          "line_id": "DL-3037-2",
+          "deal_id": "DL-3037",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 14400
+        }
+      },
+      {
+        "id": "16e9c386-e7cd-5eb5-8062-dc69cbbdec78",
+        "data": {
+          "line_id": "DL-3038-1",
+          "deal_id": "DL-3038",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 6840
+        }
+      },
+      {
+        "id": "7969811f-4049-5e78-ab35-dfc963a0b665",
+        "data": {
+          "line_id": "DL-3038-2",
+          "deal_id": "DL-3038",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 6840
+        }
+      },
+      {
+        "id": "d247d063-5e2a-50c4-bfd2-a0ef15ff03fe",
+        "data": {
+          "line_id": "DL-3038-3",
+          "deal_id": "DL-3038",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "d8d65e8e-8bb0-55f0-9134-43a14be6d23f",
+        "data": {
+          "line_id": "DL-3039-1",
+          "deal_id": "DL-3039",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 75,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 51300
+        }
+      },
+      {
+        "id": "20a6e4d2-a9c2-5ed4-8089-f8b475848106",
+        "data": {
+          "line_id": "DL-3039-2",
+          "deal_id": "DL-3039",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "30ee902f-3160-5d0b-8c14-e2dd63aeb539",
+        "data": {
+          "line_id": "DL-3040-1",
+          "deal_id": "DL-3040",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 75,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 54000
+        }
+      },
+      {
+        "id": "c8b94c26-f02d-5086-9a01-fd7d14bf00a3",
+        "data": {
+          "line_id": "DL-3040-2",
+          "deal_id": "DL-3040",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 9600
+        }
+      },
+      {
+        "id": "66f889c2-bf77-553c-9b88-6a586ad7d005",
+        "data": {
+          "line_id": "DL-3041-1",
+          "deal_id": "DL-3041",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "24e35010-fa71-50d8-bdd1-ced79ac2ef34",
+        "data": {
+          "line_id": "DL-3041-2",
+          "deal_id": "DL-3041",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 7,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 16800
+        }
+      },
+      {
+        "id": "4b72a0a2-5469-530b-9958-b8038eb46df0",
+        "data": {
+          "line_id": "DL-3042-1",
+          "deal_id": "DL-3042",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 85,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 91800
+        }
+      },
+      {
+        "id": "e4bd7f16-ec45-556b-aedc-4140cc31e087",
+        "data": {
+          "line_id": "DL-3042-2",
+          "deal_id": "DL-3042",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "3f9a7fd3-adfa-51be-b120-01fd08c80733",
+        "data": {
+          "line_id": "DL-3043-1",
+          "deal_id": "DL-3043",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 50,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 24000
+        }
+      },
+      {
+        "id": "28ee1317-0b33-582a-a6ed-532bbaf08df0",
+        "data": {
+          "line_id": "DL-3043-2",
+          "deal_id": "DL-3043",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 14400
+        }
+      },
+      {
+        "id": "20dca5c7-4935-592e-822d-49e33581be5c",
+        "data": {
+          "line_id": "DL-3043-3",
+          "deal_id": "DL-3043",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "bdee7fd1-1bbc-52f2-8595-b1d61ae231cc",
+        "data": {
+          "line_id": "DL-3044-1",
+          "deal_id": "DL-3044",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 10,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 7200
+        }
+      },
+      {
+        "id": "cfb4f158-4d90-539a-bfb3-278e9444e2db",
+        "data": {
+          "line_id": "DL-3044-2",
+          "deal_id": "DL-3044",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 2400
+        }
+      },
+      {
+        "id": "12b74516-0543-50ca-9784-026b84f63df9",
+        "data": {
+          "line_id": "DL-3044-3",
+          "deal_id": "DL-3044",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "0656f599-cf49-5829-bd5a-060ac5c064de",
+        "data": {
+          "line_id": "DL-3044-4",
+          "deal_id": "DL-3044",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "5e89bca1-f8da-50cb-9c72-5dbab30780de",
+        "data": {
+          "line_id": "DL-3044-5",
+          "deal_id": "DL-3044",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "a922e9ac-11d4-51ee-9591-d1b9c1fd37dd",
+        "data": {
+          "line_id": "DL-3045-1",
+          "deal_id": "DL-3045",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 20520
+        }
+      },
+      {
+        "id": "02b9335a-24b2-5c9c-9adc-ab5425c6bcf1",
+        "data": {
+          "line_id": "DL-3045-2",
+          "deal_id": "DL-3045",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "8be92a58-0399-50f2-adc0-e0c88a98ca89",
+        "data": {
+          "line_id": "DL-3046-1",
+          "deal_id": "DL-3046",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 21600
+        }
+      },
+      {
+        "id": "3636144f-aaac-52f9-abd4-5c373f28a706",
+        "data": {
+          "line_id": "DL-3046-2",
+          "deal_id": "DL-3046",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 2400
+        }
+      },
+      {
+        "id": "49cab096-1435-5324-85aa-c24d8f43692f",
+        "data": {
+          "line_id": "DL-3047-1",
+          "deal_id": "DL-3047",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "062e49cc-f86d-5ea6-b405-9b78455aa5f5",
+        "data": {
+          "line_id": "DL-3047-2",
+          "deal_id": "DL-3047",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 4320
+        }
+      },
+      {
+        "id": "f8d6e5f7-79e0-5df2-a888-e5bcd0ef11cd",
+        "data": {
+          "line_id": "DL-3047-3",
+          "deal_id": "DL-3047",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "cc4c7707-b794-55fc-9242-56ea682769e4",
+        "data": {
+          "line_id": "DL-3048-1",
+          "deal_id": "DL-3048",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 25920
+        }
+      },
+      {
+        "id": "989a5106-a75f-5b81-8cc9-b636c52ddfbd",
+        "data": {
+          "line_id": "DL-3048-2",
+          "deal_id": "DL-3048",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "58ca33ac-bd50-581a-ade5-cba29dcb5470",
+        "data": {
+          "line_id": "DL-3049-1",
+          "deal_id": "DL-3049",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 75,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 48600
+        }
+      },
+      {
+        "id": "44a878d5-17a1-523b-874a-6dbed80c19b9",
+        "data": {
+          "line_id": "DL-3049-2",
+          "deal_id": "DL-3049",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 12960
+        }
+      },
+      {
+        "id": "62450a6e-b72b-5bcf-afc2-29c0e86ffb31",
+        "data": {
+          "line_id": "DL-3049-3",
+          "deal_id": "DL-3049",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "aa9cb62b-b101-5ac4-9f18-e7e31afbfe8a",
+        "data": {
+          "line_id": "DL-3050-1",
+          "deal_id": "DL-3050",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 50,
+          "unit_price": 720,
+          "discount_pct": 22,
+          "line_total": 28080
+        }
+      },
+      {
+        "id": "1d4a592d-d3f1-5c64-acf0-870022dc9266",
+        "data": {
+          "line_id": "DL-3050-2",
+          "deal_id": "DL-3050",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 22,
+          "line_total": 7488
+        }
+      },
+      {
+        "id": "e6ad8a76-6df4-5e30-a41e-7bee6c74d356",
+        "data": {
+          "line_id": "DL-3050-3",
+          "deal_id": "DL-3050",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 20,
+          "line_total": 9600
+        }
+      },
+      {
+        "id": "b91c23e9-7a14-5bf8-b898-43288675bbf6",
+        "data": {
+          "line_id": "DL-3051-1",
+          "deal_id": "DL-3051",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 55,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 59400
+        }
+      },
+      {
+        "id": "6b2ac9a5-c647-5552-9651-2f1bc7813dbf",
+        "data": {
+          "line_id": "DL-3051-2",
+          "deal_id": "DL-3051",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 14400
+        }
+      },
+      {
+        "id": "bd0f0143-5ea2-5ac0-9ffe-bef2928b7aef",
+        "data": {
+          "line_id": "DL-3051-3",
+          "deal_id": "DL-3051",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "c8c9b1f6-c4a3-59ef-8e7a-12421aa56121",
+        "data": {
+          "line_id": "DL-3052-1",
+          "deal_id": "DL-3052",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 105,
+          "unit_price": 1080,
+          "discount_pct": 5,
+          "line_total": 107730
+        }
+      },
+      {
+        "id": "fcb560c4-807f-5056-99b0-da697d6b7d02",
+        "data": {
+          "line_id": "DL-3052-2",
+          "deal_id": "DL-3052",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "4b41301f-f08a-5350-a33a-d358100e6d54",
+        "data": {
+          "line_id": "DL-3053-1",
+          "deal_id": "DL-3053",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 21600
+        }
+      },
+      {
+        "id": "37aadce5-eb7f-568e-8746-5fd2a741b829",
+        "data": {
+          "line_id": "DL-3053-2",
+          "deal_id": "DL-3053",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "9d80f0a5-4eff-53cd-a353-e16d5f6f57dd",
+        "data": {
+          "line_id": "DL-3054-1",
+          "deal_id": "DL-3054",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 75,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 48600
+        }
+      },
+      {
+        "id": "89422907-71b8-5316-afad-a9046c6ce287",
+        "data": {
+          "line_id": "DL-3054-2",
+          "deal_id": "DL-3054",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "5facb824-588f-5358-9d68-8a9d5a1773e8",
+        "data": {
+          "line_id": "DL-3054-3",
+          "deal_id": "DL-3054",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "792902e0-32c6-5eb6-856f-e9049abcf445",
+        "data": {
+          "line_id": "DL-3055-1",
+          "deal_id": "DL-3055",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 70,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 30240
+        }
+      },
+      {
+        "id": "7c3de9d4-1182-537f-9069-e10d7d8fd724",
+        "data": {
+          "line_id": "DL-3055-2",
+          "deal_id": "DL-3055",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "5f957c40-871e-5efd-9057-3780b90337c9",
+        "data": {
+          "line_id": "DL-3056-1",
+          "deal_id": "DL-3056",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 185,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 119880
+        }
+      },
+      {
+        "id": "b0fe6765-2768-5ebe-82ea-ab9264bd1afd",
+        "data": {
+          "line_id": "DL-3056-2",
+          "deal_id": "DL-3056",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 17,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 36720
+        }
+      },
+      {
+        "id": "ba227676-bd1a-5355-b30e-58dc83d64a96",
+        "data": {
+          "line_id": "DL-3056-3",
+          "deal_id": "DL-3056",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "df44a17c-054f-566c-9fff-8617b79b6ed5",
+        "data": {
+          "line_id": "DL-3057-1",
+          "deal_id": "DL-3057",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 20,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 12960
+        }
+      },
+      {
+        "id": "89cd095a-e01a-574c-a443-f2d4bab5ef52",
+        "data": {
+          "line_id": "DL-3057-2",
+          "deal_id": "DL-3057",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "5d1efdcd-cb88-5326-911a-1aba2c782284",
+        "data": {
+          "line_id": "DL-3058-1",
+          "deal_id": "DL-3058",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 35,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 25200
+        }
+      },
+      {
+        "id": "9f87414c-b02b-5436-be95-d51d5cc316f7",
+        "data": {
+          "line_id": "DL-3059-1",
+          "deal_id": "DL-3059",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 135,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 64800
+        }
+      },
+      {
+        "id": "cccae612-a81f-5ed7-a535-02f04a30806f",
+        "data": {
+          "line_id": "DL-3060-1",
+          "deal_id": "DL-3060",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 190,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 123120
+        }
+      },
+      {
+        "id": "f8554e3e-f730-5aad-a392-cc89d357c79c",
+        "data": {
+          "line_id": "DL-3060-2",
+          "deal_id": "DL-3060",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 13,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 28080
+        }
+      },
+      {
+        "id": "cf8345ca-21b1-5522-aa79-62d5c9253b79",
+        "data": {
+          "line_id": "DL-3061-1",
+          "deal_id": "DL-3061",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 235,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 107160
+        }
+      },
+      {
+        "id": "6a42c772-c66b-5895-9023-56f8de2beb36",
+        "data": {
+          "line_id": "DL-3061-2",
+          "deal_id": "DL-3061",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 5,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "032000a5-bf29-5c2f-be75-80176d5d674e",
+        "data": {
+          "line_id": "DL-3061-3",
+          "deal_id": "DL-3061",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "16b8c5d1-89c4-5a4b-8644-df8b722fe5b9",
+        "data": {
+          "line_id": "DL-3061-4",
+          "deal_id": "DL-3061",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "d7810cca-6819-5d8e-ba58-668f7ae455d5",
+        "data": {
+          "line_id": "DL-3061-5",
+          "deal_id": "DL-3061",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "1136ea0b-d635-55e7-93fa-e6cbf1b91000",
+        "data": {
+          "line_id": "DL-3062-1",
+          "deal_id": "DL-3062",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 20,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 9600
+        }
+      },
+      {
+        "id": "18c52063-ffd2-58b0-8bb2-9c4389e89cd2",
+        "data": {
+          "line_id": "DL-3062-2",
+          "deal_id": "DL-3062",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 4800
+        }
+      },
+      {
+        "id": "af81a4d6-d9d7-527e-af87-37ee67538e7b",
+        "data": {
+          "line_id": "DL-3063-1",
+          "deal_id": "DL-3063",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 480,
+          "discount_pct": 20,
+          "line_total": 11520
+        }
+      },
+      {
+        "id": "06e45efa-df64-5600-a7b6-4e5e7f824ee7",
+        "data": {
+          "line_id": "DL-3063-2",
+          "deal_id": "DL-3063",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 20,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "66032dc5-9a35-5b3e-b536-2316005455d6",
+        "data": {
+          "line_id": "DL-3063-3",
+          "deal_id": "DL-3063",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 20,
+          "line_total": 9600
+        }
+      },
+      {
+        "id": "1e0d3ed1-bc45-5bed-8fdb-db3cae45c811",
+        "data": {
+          "line_id": "DL-3064-1",
+          "deal_id": "DL-3064",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 50,
+          "unit_price": 720,
+          "discount_pct": 15,
+          "line_total": 30600
+        }
+      },
+      {
+        "id": "278aceab-99c4-510a-babc-92233b7f0411",
+        "data": {
+          "line_id": "DL-3064-2",
+          "deal_id": "DL-3064",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 15,
+          "line_total": 15300
+        }
+      },
+      {
+        "id": "24c3cd05-ac48-5f9f-8d80-24df4c681ed3",
+        "data": {
+          "line_id": "DL-3064-3",
+          "deal_id": "DL-3064",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "c358ccfd-518b-5bf7-aa6d-3230d9cd8886",
+        "data": {
+          "line_id": "DL-3065-1",
+          "deal_id": "DL-3065",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "963bc7d3-e85f-5284-adc9-10210f5e3286",
+        "data": {
+          "line_id": "DL-3065-2",
+          "deal_id": "DL-3065",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "e0b908e7-501c-5fe9-9ba7-ec90053291ba",
+        "data": {
+          "line_id": "DL-3066-1",
+          "deal_id": "DL-3066",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 165,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 75240
+        }
+      },
+      {
+        "id": "a7f83b8b-349b-5442-bb64-433609152550",
+        "data": {
+          "line_id": "DL-3066-2",
+          "deal_id": "DL-3066",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 17,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 38760
+        }
+      },
+      {
+        "id": "b2167b62-354a-58ef-a81a-31e04f052255",
+        "data": {
+          "line_id": "DL-3066-3",
+          "deal_id": "DL-3066",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "fb000dfd-a396-59db-ba98-744ec6728f64",
+        "data": {
+          "line_id": "DL-3066-4",
+          "deal_id": "DL-3066",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "3a64cd5b-7198-5840-bb76-9acb440c0a49",
+        "data": {
+          "line_id": "DL-3067-1",
+          "deal_id": "DL-3067",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 145,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 93960
+        }
+      },
+      {
+        "id": "4027e9e5-5f4c-5ba3-a143-7a3381ec03f7",
+        "data": {
+          "line_id": "DL-3067-2",
+          "deal_id": "DL-3067",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "f6ccddfe-56e0-5294-bd99-505499cd5e45",
+        "data": {
+          "line_id": "DL-3068-1",
+          "deal_id": "DL-3068",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 25920
+        }
+      },
+      {
+        "id": "8018a587-4378-57b4-9094-e4d55aeb5844",
+        "data": {
+          "line_id": "DL-3068-2",
+          "deal_id": "DL-3068",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "4b0d57cc-0058-5b92-ba37-af970b1a4206",
+        "data": {
+          "line_id": "DL-3069-1",
+          "deal_id": "DL-3069",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 110,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 50160
+        }
+      },
+      {
+        "id": "cee71d59-dffb-55f4-baaa-6073f7352c1d",
+        "data": {
+          "line_id": "DL-3070-1",
+          "deal_id": "DL-3070",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 130,
+          "unit_price": 1080,
+          "discount_pct": 5,
+          "line_total": 133380
+        }
+      },
+      {
+        "id": "73d9cd74-e495-59e0-bfa7-68d2fc8db442",
+        "data": {
+          "line_id": "DL-3070-2",
+          "deal_id": "DL-3070",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "795234e7-c6bd-5901-b065-2b7dd4b7ecbb",
+        "data": {
+          "line_id": "DL-3071-1",
+          "deal_id": "DL-3071",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 21600
+        }
+      },
+      {
+        "id": "11be5931-4247-58d8-ac19-de48432c1397",
+        "data": {
+          "line_id": "DL-3072-1",
+          "deal_id": "DL-3072",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 65,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 70200
+        }
+      },
+      {
+        "id": "95237de1-1fe5-5098-a8b1-e9e038710fce",
+        "data": {
+          "line_id": "DL-3072-2",
+          "deal_id": "DL-3072",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "b3e93154-0b4d-51bc-9df1-59f00dff4b01",
+        "data": {
+          "line_id": "DL-3073-1",
+          "deal_id": "DL-3073",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 21600
+        }
+      },
+      {
+        "id": "768d5326-1f93-5fe9-a340-385403afa247",
+        "data": {
+          "line_id": "DL-3073-2",
+          "deal_id": "DL-3073",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 4800
+        }
+      },
+      {
+        "id": "faec6c51-4a31-5ce0-ae3f-92a481be8a19",
+        "data": {
+          "line_id": "DL-3073-3",
+          "deal_id": "DL-3073",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "287c9b1d-6744-5aaf-beb1-9d3c6a449e89",
+        "data": {
+          "line_id": "DL-3073-4",
+          "deal_id": "DL-3073",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "78be6c86-589c-582f-b54c-9088851617b8",
+        "data": {
+          "line_id": "DL-3074-1",
+          "deal_id": "DL-3074",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "05085e5e-64d5-58f0-939f-7c93e6aab318",
+        "data": {
+          "line_id": "DL-3074-2",
+          "deal_id": "DL-3074",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "0051da30-e35b-5750-b4ba-f79162c6334b",
+        "data": {
+          "line_id": "DL-3074-3",
+          "deal_id": "DL-3074",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "ef9ef312-c1f5-5156-990f-976e8b2c1cad",
+        "data": {
+          "line_id": "DL-3075-1",
+          "deal_id": "DL-3075",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 320,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 345600
+        }
+      },
+      {
+        "id": "67a5af81-094e-5547-b4ea-e714e8211364",
+        "data": {
+          "line_id": "DL-3076-1",
+          "deal_id": "DL-3076",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 35,
+          "unit_price": 720,
+          "discount_pct": 15,
+          "line_total": 21420
+        }
+      },
+      {
+        "id": "67cddc69-1956-5ea1-9c5b-727c90c1c58f",
+        "data": {
+          "line_id": "DL-3076-2",
+          "deal_id": "DL-3076",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 15,
+          "line_total": 8160
+        }
+      },
+      {
+        "id": "7ded706e-0b10-594b-84d8-9b26c0c9a6f9",
+        "data": {
+          "line_id": "DL-3077-1",
+          "deal_id": "DL-3077",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 215,
+          "unit_price": 1080,
+          "discount_pct": 22,
+          "line_total": 181116
+        }
+      },
+      {
+        "id": "10180e35-2e2e-5198-b368-2882fbedcc17",
+        "data": {
+          "line_id": "DL-3077-2",
+          "deal_id": "DL-3077",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 12,
+          "unit_price": 2400,
+          "discount_pct": 22,
+          "line_total": 22464
+        }
+      },
+      {
+        "id": "b79569c9-b1da-56cf-ac64-9d743e073d36",
+        "data": {
+          "line_id": "DL-3077-3",
+          "deal_id": "DL-3077",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 20,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "07ee80f0-78c7-5ab8-978d-c71c64426dc8",
+        "data": {
+          "line_id": "DL-3078-1",
+          "deal_id": "DL-3078",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 85,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 40800
+        }
+      },
+      {
+        "id": "60bd68f6-1dd5-53c3-8ad3-f2309ce94f9c",
+        "data": {
+          "line_id": "DL-3079-1",
+          "deal_id": "DL-3079",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 70,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 30240
+        }
+      },
+      {
+        "id": "ca9ca003-353f-5eec-a037-38b1cd815bb2",
+        "data": {
+          "line_id": "DL-3079-2",
+          "deal_id": "DL-3079",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "178a1057-b472-5033-92cd-f5cd5706e052",
+        "data": {
+          "line_id": "DL-3079-3",
+          "deal_id": "DL-3079",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "c428ee27-f97f-5313-ab9d-b50731aa09eb",
+        "data": {
+          "line_id": "DL-3080-1",
+          "deal_id": "DL-3080",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 60,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 38880
+        }
+      },
+      {
+        "id": "e1878173-92b6-5dac-8b4a-a216c4e01e41",
+        "data": {
+          "line_id": "DL-3080-2",
+          "deal_id": "DL-3080",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 17280
+        }
+      },
+      {
+        "id": "cf22e482-31f7-5e18-9de9-f3cf82f116f5",
+        "data": {
+          "line_id": "DL-3080-3",
+          "deal_id": "DL-3080",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "480ac086-8fc6-5502-a0ae-b9d9e875b3c6",
+        "data": {
+          "line_id": "DL-3081-1",
+          "deal_id": "DL-3081",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 225,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 108000
+        }
+      },
+      {
+        "id": "8d9a4f18-cd5f-5fd2-9b1c-805e1adca54e",
+        "data": {
+          "line_id": "DL-3081-2",
+          "deal_id": "DL-3081",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "0d171af1-cc5f-5dcf-a43f-367988eba573",
+        "data": {
+          "line_id": "DL-3082-1",
+          "deal_id": "DL-3082",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "69a9d7af-bad4-580c-8eb2-db424987a521",
+        "data": {
+          "line_id": "DL-3083-1",
+          "deal_id": "DL-3083",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 75,
+          "unit_price": 720,
+          "discount_pct": 15,
+          "line_total": 45900
+        }
+      },
+      {
+        "id": "d1d105ce-bd4f-545f-8e1a-3166e532661b",
+        "data": {
+          "line_id": "DL-3083-2",
+          "deal_id": "DL-3083",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 15,
+          "line_total": 16320
+        }
+      },
+      {
+        "id": "301d79f6-6c95-5d57-aaa0-2796a648c2c0",
+        "data": {
+          "line_id": "DL-3083-3",
+          "deal_id": "DL-3083",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "7be4f9e0-9d2b-58a1-9bb0-91717d3d15c1",
+        "data": {
+          "line_id": "DL-3084-1",
+          "deal_id": "DL-3084",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 80,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 86400
+        }
+      },
+      {
+        "id": "0fab9eed-ade1-56ac-aee8-a9d340360231",
+        "data": {
+          "line_id": "DL-3084-2",
+          "deal_id": "DL-3084",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 19200
+        }
+      },
+      {
+        "id": "f8ccca8c-05e4-5690-9150-90388a47f354",
+        "data": {
+          "line_id": "DL-3085-1",
+          "deal_id": "DL-3085",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 18240
+        }
+      },
+      {
+        "id": "4accc627-d6f6-5b8b-a797-0d341dbdd5cb",
+        "data": {
+          "line_id": "DL-3085-2",
+          "deal_id": "DL-3085",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 2280
+        }
+      },
+      {
+        "id": "eda47c99-2de8-55cf-81a5-58c66fb2babe",
+        "data": {
+          "line_id": "DL-3086-1",
+          "deal_id": "DL-3086",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 110,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 52800
+        }
+      },
+      {
+        "id": "cc89caf4-51cf-51cf-a073-acbf1bc682c4",
+        "data": {
+          "line_id": "DL-3086-2",
+          "deal_id": "DL-3086",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 7200
+        }
+      },
+      {
+        "id": "d2508330-61fb-5d48-b272-a1d873e04919",
+        "data": {
+          "line_id": "DL-3086-3",
+          "deal_id": "DL-3086",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "ca2107db-bdf5-5492-a84c-b8ea6eba3b7c",
+        "data": {
+          "line_id": "DL-3087-1",
+          "deal_id": "DL-3087",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 27360
+        }
+      },
+      {
+        "id": "a01cd798-7302-5d4f-bf6b-6c944e449774",
+        "data": {
+          "line_id": "DL-3087-2",
+          "deal_id": "DL-3087",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 6840
+        }
+      },
+      {
+        "id": "29e7ee81-1e78-5a12-9b4f-acbbed515c8c",
+        "data": {
+          "line_id": "DL-3087-3",
+          "deal_id": "DL-3087",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "4a8d5fde-4575-5f10-8f2c-48bb0f24f1c1",
+        "data": {
+          "line_id": "DL-3088-1",
+          "deal_id": "DL-3088",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 45,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 30780
+        }
+      },
+      {
+        "id": "bb5d3761-8b05-56db-9b5a-8e62c8c2f39b",
+        "data": {
+          "line_id": "DL-3089-1",
+          "deal_id": "DL-3089",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 55,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 35640
+        }
+      },
+      {
+        "id": "e5c7227f-8529-5c40-b758-602befeff378",
+        "data": {
+          "line_id": "DL-3089-2",
+          "deal_id": "DL-3089",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "4a66f453-23ea-571f-bd22-659244c0a76b",
+        "data": {
+          "line_id": "DL-3090-1",
+          "deal_id": "DL-3090",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 210,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 226800
+        }
+      },
+      {
+        "id": "933760cd-09ba-5772-a645-adb94d7d6f07",
+        "data": {
+          "line_id": "DL-3090-2",
+          "deal_id": "DL-3090",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 12,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 28800
+        }
+      },
+      {
+        "id": "ebb51ced-44e6-5a18-8823-e681d914b83c",
+        "data": {
+          "line_id": "DL-3090-3",
+          "deal_id": "DL-3090",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "d06ae1b7-3294-526a-86ef-b3fa958be1b6",
+        "data": {
+          "line_id": "DL-3091-1",
+          "deal_id": "DL-3091",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 140,
+          "unit_price": 1080,
+          "discount_pct": 10,
+          "line_total": 136080
+        }
+      },
+      {
+        "id": "39a237f6-2a40-52fd-91c4-385b6979d94b",
+        "data": {
+          "line_id": "DL-3091-2",
+          "deal_id": "DL-3091",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "70f97d4c-3953-552f-abf8-0fc236cc540f",
+        "data": {
+          "line_id": "DL-3091-3",
+          "deal_id": "DL-3091",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "2ad879ee-fe4a-5737-b70a-bdf95acfc6c9",
+        "data": {
+          "line_id": "DL-3092-1",
+          "deal_id": "DL-3092",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 55,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 37620
+        }
+      },
+      {
+        "id": "301c0ac7-3802-5b88-89c3-12d7be859292",
+        "data": {
+          "line_id": "DL-3092-2",
+          "deal_id": "DL-3092",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 9120
+        }
+      },
+      {
+        "id": "ea3ad105-48ab-5faa-98fa-3e78f92fa058",
+        "data": {
+          "line_id": "DL-3092-3",
+          "deal_id": "DL-3092",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "719da355-de85-541c-af92-9bcc10525e28",
+        "data": {
+          "line_id": "DL-3093-1",
+          "deal_id": "DL-3093",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 85,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 38760
+        }
+      },
+      {
+        "id": "b99978d2-4bf2-5f5e-bc5e-eef1a5960b9a",
+        "data": {
+          "line_id": "DL-3093-2",
+          "deal_id": "DL-3093",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "e2c3bbcd-b948-5091-a4ac-2199c207baf5",
+        "data": {
+          "line_id": "DL-3093-3",
+          "deal_id": "DL-3093",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "0e7a8c84-f290-51cb-996b-5644c4301156",
+        "data": {
+          "line_id": "DL-3094-1",
+          "deal_id": "DL-3094",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 85,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 40800
+        }
+      },
+      {
+        "id": "5d93207e-0f12-56f4-97b5-818b83339c4a",
+        "data": {
+          "line_id": "DL-3094-2",
+          "deal_id": "DL-3094",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 14400
+        }
+      },
+      {
+        "id": "818b0ec4-8af8-58db-aadc-132c5802b15f",
+        "data": {
+          "line_id": "DL-3094-3",
+          "deal_id": "DL-3094",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "36dc44b5-6788-5aba-9286-0857c1941cc6",
+        "data": {
+          "line_id": "DL-3094-4",
+          "deal_id": "DL-3094",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "7570ef33-693f-5af3-9ad7-7c1bcca964e2",
+        "data": {
+          "line_id": "DL-3095-1",
+          "deal_id": "DL-3095",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 50,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 54000
+        }
+      },
+      {
+        "id": "0ae332e3-7bf2-56d1-9f86-53138bf435b3",
+        "data": {
+          "line_id": "DL-3095-2",
+          "deal_id": "DL-3095",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 12,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 28800
+        }
+      },
+      {
+        "id": "64ee4847-9508-50ab-a6cd-c73741459153",
+        "data": {
+          "line_id": "DL-3095-3",
+          "deal_id": "DL-3095",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "53962347-b1bf-5475-871f-568d12b85e72",
+        "data": {
+          "line_id": "DL-3096-1",
+          "deal_id": "DL-3096",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 55,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 26400
+        }
+      },
+      {
+        "id": "df2f585e-0eab-5ec1-98e3-7c5822f3dc69",
+        "data": {
+          "line_id": "DL-3096-2",
+          "deal_id": "DL-3096",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "a20625f2-0939-55e2-92ee-dc722dd7cd1f",
+        "data": {
+          "line_id": "DL-3096-3",
+          "deal_id": "DL-3096",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "dc7933b5-6192-5e90-b156-0d26a0b5c7f8",
+        "data": {
+          "line_id": "DL-3097-1",
+          "deal_id": "DL-3097",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 14400
+        }
+      },
+      {
+        "id": "c8acce58-4020-573a-979a-19f20e5856d6",
+        "data": {
+          "line_id": "DL-3097-2",
+          "deal_id": "DL-3097",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 2400
+        }
+      },
+      {
+        "id": "a8d8b1df-6338-522d-b976-cba4489f30fc",
+        "data": {
+          "line_id": "DL-3097-3",
+          "deal_id": "DL-3097",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "e32c5bc6-420f-570e-8638-51382f2a4cad",
+        "data": {
+          "line_id": "DL-3098-1",
+          "deal_id": "DL-3098",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 80,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 36480
+        }
+      },
+      {
+        "id": "f370056d-6121-5cd6-9066-c4c2b1ea39a1",
+        "data": {
+          "line_id": "DL-3098-2",
+          "deal_id": "DL-3098",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 6840
+        }
+      },
+      {
+        "id": "bf1620e6-f607-5bdd-81a8-b5e1a1c74093",
+        "data": {
+          "line_id": "DL-3099-1",
+          "deal_id": "DL-3099",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 65,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 70200
+        }
+      },
+      {
+        "id": "16a25b34-7637-5b3b-9448-8d31b5ceb0cc",
+        "data": {
+          "line_id": "DL-3099-2",
+          "deal_id": "DL-3099",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 13,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 31200
+        }
+      },
+      {
+        "id": "02cdc490-2ac5-526f-9cfd-44943bca6bb8",
+        "data": {
+          "line_id": "DL-3099-3",
+          "deal_id": "DL-3099",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "62e31a0f-3c92-5768-90d8-892c1b1f258e",
+        "data": {
+          "line_id": "DL-3100-1",
+          "deal_id": "DL-3100",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 20,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 13680
+        }
+      },
+      {
+        "id": "46b627e4-7fe4-59d9-b343-18db62b8f814",
+        "data": {
+          "line_id": "DL-3100-2",
+          "deal_id": "DL-3100",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "57d65524-8ba8-5b63-8a82-9368299d8d3b",
+        "data": {
+          "line_id": "DL-3101-1",
+          "deal_id": "DL-3101",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 720,
+          "discount_pct": 22,
+          "line_total": 14040
+        }
+      },
+      {
+        "id": "9a6e600d-5264-5881-a204-c777baa70c03",
+        "data": {
+          "line_id": "DL-3101-2",
+          "deal_id": "DL-3101",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 22,
+          "line_total": 14040
+        }
+      },
+      {
+        "id": "d7ae8abc-f0b2-53b3-9f96-bd38885f7520",
+        "data": {
+          "line_id": "DL-3101-3",
+          "deal_id": "DL-3101",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 20,
+          "line_total": 9600
+        }
+      },
+      {
+        "id": "5b92f168-5729-54c7-a4bc-db46b7c57361",
+        "data": {
+          "line_id": "DL-3102-1",
+          "deal_id": "DL-3102",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 75,
+          "unit_price": 1080,
+          "discount_pct": 10,
+          "line_total": 72900
+        }
+      },
+      {
+        "id": "3f2d6ab4-fd99-561b-9b5c-f1636408435f",
+        "data": {
+          "line_id": "DL-3102-2",
+          "deal_id": "DL-3102",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "6bd5c0f1-57ea-549e-ac52-d4a8c287096f",
+        "data": {
+          "line_id": "DL-3103-1",
+          "deal_id": "DL-3103",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 55,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 39600
+        }
+      },
+      {
+        "id": "1d79d699-a062-5dca-91f4-a2d8e4a19134",
+        "data": {
+          "line_id": "DL-3103-2",
+          "deal_id": "DL-3103",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "1647c3de-aeff-5194-9285-0a1ab4c1eebf",
+        "data": {
+          "line_id": "DL-3103-3",
+          "deal_id": "DL-3103",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "07ba71b1-11ec-5d1d-ac1e-ab6302d91ea6",
+        "data": {
+          "line_id": "DL-3104-1",
+          "deal_id": "DL-3104",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "31da2ac7-1142-579a-9eb3-77175282ba07",
+        "data": {
+          "line_id": "DL-3104-2",
+          "deal_id": "DL-3104",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 2400
+        }
+      },
+      {
+        "id": "372aa7fb-8e93-5c47-a623-3cfcb59b23b3",
+        "data": {
+          "line_id": "DL-3104-3",
+          "deal_id": "DL-3104",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "cb0ea925-e101-5eec-91de-e4676b2d631e",
+        "data": {
+          "line_id": "DL-3104-4",
+          "deal_id": "DL-3104",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "7432125e-5828-53e0-9265-cf4da0650212",
+        "data": {
+          "line_id": "DL-3104-5",
+          "deal_id": "DL-3104",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "768b0d0f-45f5-5690-8a1e-60264d94be78",
+        "data": {
+          "line_id": "DL-3105-1",
+          "deal_id": "DL-3105",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 90,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 61560
+        }
+      },
+      {
+        "id": "5a94b4f9-9401-5881-927c-20e5e4562827",
+        "data": {
+          "line_id": "DL-3105-2",
+          "deal_id": "DL-3105",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "9db23349-64db-5cb5-ae65-c7b9ce914270",
+        "data": {
+          "line_id": "DL-3106-1",
+          "deal_id": "DL-3106",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 20,
+          "unit_price": 720,
+          "discount_pct": 15,
+          "line_total": 12240
+        }
+      },
+      {
+        "id": "673f06a6-52ed-5a67-b6db-764bfbac64da",
+        "data": {
+          "line_id": "DL-3106-2",
+          "deal_id": "DL-3106",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "56c44f1e-680c-5cae-911f-bb79ef3535b6",
+        "data": {
+          "line_id": "DL-3107-1",
+          "deal_id": "DL-3107",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 60,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 38880
+        }
+      },
+      {
+        "id": "a06b2775-b272-5202-b8e0-74e02c28d984",
+        "data": {
+          "line_id": "DL-3107-2",
+          "deal_id": "DL-3107",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 17,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 36720
+        }
+      },
+      {
+        "id": "56225959-4ecc-5400-b8e3-e419bd02d04f",
+        "data": {
+          "line_id": "DL-3107-3",
+          "deal_id": "DL-3107",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "1d344d28-518d-502c-95cf-99c4bb5e9f5e",
+        "data": {
+          "line_id": "DL-3108-1",
+          "deal_id": "DL-3108",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 250,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 108000
+        }
+      },
+      {
+        "id": "2624492e-17b3-5d56-98a7-09f2460b1b71",
+        "data": {
+          "line_id": "DL-3108-2",
+          "deal_id": "DL-3108",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "fdac3ad9-8f3b-53bf-99d0-7fad462c73d7",
+        "data": {
+          "line_id": "DL-3108-3",
+          "deal_id": "DL-3108",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "25b2c16f-0b08-5fdb-8e00-ad42ac7f8235",
+        "data": {
+          "line_id": "DL-3109-1",
+          "deal_id": "DL-3109",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "06afec18-f175-58e6-b562-c65e17798074",
+        "data": {
+          "line_id": "DL-3109-2",
+          "deal_id": "DL-3109",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 4800
+        }
+      },
+      {
+        "id": "b6587ef4-b8f6-551e-81ef-a993d366357a",
+        "data": {
+          "line_id": "DL-3109-3",
+          "deal_id": "DL-3109",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "75701a5c-aebd-5fea-89c6-d3ea6d89b833",
+        "data": {
+          "line_id": "DL-3110-1",
+          "deal_id": "DL-3110",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 85,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 40800
+        }
+      },
+      {
+        "id": "4048f129-c39b-5e32-a593-85f498c29406",
+        "data": {
+          "line_id": "DL-3110-2",
+          "deal_id": "DL-3110",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 7,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 16800
+        }
+      },
+      {
+        "id": "760915d9-1d2a-52e9-b882-f1978e60e138",
+        "data": {
+          "line_id": "DL-3110-3",
+          "deal_id": "DL-3110",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "872907aa-9e84-5f64-95fc-d8624d0ccf4b",
+        "data": {
+          "line_id": "DL-3110-4",
+          "deal_id": "DL-3110",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "683de5b7-083a-5233-a6a6-e744cf304f21",
+        "data": {
+          "line_id": "DL-3111-1",
+          "deal_id": "DL-3111",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 195,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 210600
+        }
+      },
+      {
+        "id": "730b43b5-40a2-56a5-9ee0-a9a7bb5798f4",
+        "data": {
+          "line_id": "DL-3111-2",
+          "deal_id": "DL-3111",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 9600
+        }
+      },
+      {
+        "id": "a64b8483-c99b-5665-864b-13f178b70586",
+        "data": {
+          "line_id": "DL-3112-1",
+          "deal_id": "DL-3112",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 10,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 4560
+        }
+      },
+      {
+        "id": "f33482bd-9534-55de-a930-644649bcf6a5",
+        "data": {
+          "line_id": "DL-3112-2",
+          "deal_id": "DL-3112",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "78bffab5-2a81-5e49-99ea-57b9aec6d536",
+        "data": {
+          "line_id": "DL-3113-1",
+          "deal_id": "DL-3113",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 70,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 45360
+        }
+      },
+      {
+        "id": "5e6fd964-b7eb-5802-bf18-b34556b78810",
+        "data": {
+          "line_id": "DL-3113-2",
+          "deal_id": "DL-3113",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 7,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 15120
+        }
+      },
+      {
+        "id": "a5835e82-93ea-5e86-aa68-f8d06a758444",
+        "data": {
+          "line_id": "DL-3113-3",
+          "deal_id": "DL-3113",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "b04a7aac-ce82-56b6-af9d-6cb44d626149",
+        "data": {
+          "line_id": "DL-3114-1",
+          "deal_id": "DL-3114",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 50,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 32400
+        }
+      },
+      {
+        "id": "e92bb637-5530-51f5-88fb-49b837183788",
+        "data": {
+          "line_id": "DL-3114-2",
+          "deal_id": "DL-3114",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 12960
+        }
+      },
+      {
+        "id": "9de57e2c-ed1b-5c93-bc4f-1470d33403ba",
+        "data": {
+          "line_id": "DL-3114-3",
+          "deal_id": "DL-3114",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "06d44270-a464-5ed2-aba3-109e72cc031a",
+        "data": {
+          "line_id": "DL-3115-1",
+          "deal_id": "DL-3115",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "a9d3a54b-65f4-50cd-94a7-228e4cd035a7",
+        "data": {
+          "line_id": "DL-3115-2",
+          "deal_id": "DL-3115",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "e0cff733-abe6-5cf8-a6f9-113b4813ae44",
+        "data": {
+          "line_id": "DL-3115-3",
+          "deal_id": "DL-3115",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "5419b886-11a5-5fd4-810d-e94618c79256",
+        "data": {
+          "line_id": "DL-3115-4",
+          "deal_id": "DL-3115",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "74ea1986-9160-5b56-9b90-b9355435bfea",
+        "data": {
+          "line_id": "DL-3116-1",
+          "deal_id": "DL-3116",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 35,
+          "unit_price": 720,
+          "discount_pct": 22,
+          "line_total": 19656
+        }
+      },
+      {
+        "id": "8bbef9ac-896a-5dc1-8875-f7fb85584bd4",
+        "data": {
+          "line_id": "DL-3116-2",
+          "deal_id": "DL-3116",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 2400,
+          "discount_pct": 22,
+          "line_total": 1872
+        }
+      },
+      {
+        "id": "56f590cd-3732-5caf-abe3-e7d33030e473",
+        "data": {
+          "line_id": "DL-3116-3",
+          "deal_id": "DL-3116",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 20,
+          "line_total": 9600
+        }
+      },
+      {
+        "id": "f29e2831-8f8f-548a-b784-5ebce6d1a10c",
+        "data": {
+          "line_id": "DL-3117-1",
+          "deal_id": "DL-3117",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 180,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 86400
+        }
+      },
+      {
+        "id": "9ea1884e-5674-5f58-8a4e-6d3399de53d9",
+        "data": {
+          "line_id": "DL-3117-2",
+          "deal_id": "DL-3117",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 9600
+        }
+      },
+      {
+        "id": "3c8ab4b9-2d2b-5649-a47e-08c5209d3940",
+        "data": {
+          "line_id": "DL-3117-3",
+          "deal_id": "DL-3117",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "db97afef-aeca-51f1-ad0e-3b8264ea2865",
+        "data": {
+          "line_id": "DL-3117-4",
+          "deal_id": "DL-3117",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "c7cc62d1-c140-5b0f-9ce3-ff8a7b156830",
+        "data": {
+          "line_id": "DL-3118-1",
+          "deal_id": "DL-3118",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 170,
+          "unit_price": 1080,
+          "discount_pct": 5,
+          "line_total": 174420
+        }
+      },
+      {
+        "id": "1ed85aab-21bc-5c8e-a33f-e306b4ff1407",
+        "data": {
+          "line_id": "DL-3118-2",
+          "deal_id": "DL-3118",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 10,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 22800
+        }
+      },
+      {
+        "id": "8e9611a8-842c-59b0-bfa6-501b98574eaa",
+        "data": {
+          "line_id": "DL-3118-3",
+          "deal_id": "DL-3118",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "14f2c7c8-1cfc-57b8-a657-a575a8c9371b",
+        "data": {
+          "line_id": "DL-3118-4",
+          "deal_id": "DL-3118",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "90a2f845-8d24-528f-b405-8177046557c8",
+        "data": {
+          "line_id": "DL-3119-1",
+          "deal_id": "DL-3119",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 720,
+          "discount_pct": 22,
+          "line_total": 22464
+        }
+      },
+      {
+        "id": "ab89112a-6865-5bea-ad6c-5495beb6caad",
+        "data": {
+          "line_id": "DL-3119-2",
+          "deal_id": "DL-3119",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 22,
+          "line_total": 7488
+        }
+      },
+      {
+        "id": "9e8b7f5a-3440-5d6f-9b49-c13429805651",
+        "data": {
+          "line_id": "DL-3119-3",
+          "deal_id": "DL-3119",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 20,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "bf217330-1bd1-5266-8979-0c939a23106e",
+        "data": {
+          "line_id": "DL-3120-1",
+          "deal_id": "DL-3120",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 1080,
+          "discount_pct": 0,
+          "line_total": 27000
+        }
+      },
+      {
+        "id": "a32dd886-6ce2-555d-aa9c-6bbee77d301a",
+        "data": {
+          "line_id": "DL-3120-2",
+          "deal_id": "DL-3120",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 7200
+        }
+      },
+      {
+        "id": "1a805c35-fc7e-5af0-9f98-50494a6afebd",
+        "data": {
+          "line_id": "DL-3120-3",
+          "deal_id": "DL-3120",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "b75b75e1-b3cd-581f-bd40-5c486a67c0d7",
+        "data": {
+          "line_id": "DL-3120-4",
+          "deal_id": "DL-3120",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "76c07898-3523-56d6-9501-5a8d7244c742",
+        "data": {
+          "line_id": "DL-3121-1",
+          "deal_id": "DL-3121",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 25920
+        }
+      },
+      {
+        "id": "6e756983-15c0-53ea-a8c1-156d8d7ff4d5",
+        "data": {
+          "line_id": "DL-3121-2",
+          "deal_id": "DL-3121",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 12960
+        }
+      },
+      {
+        "id": "95ad9583-4725-5094-8780-35486dd1dbb1",
+        "data": {
+          "line_id": "DL-3121-3",
+          "deal_id": "DL-3121",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "fe26a205-5e5d-52b0-ae33-4ae4534f1345",
+        "data": {
+          "line_id": "DL-3121-4",
+          "deal_id": "DL-3121",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "734567ca-5880-58dc-93d3-65e7d85c2bc7",
+        "data": {
+          "line_id": "DL-3122-1",
+          "deal_id": "DL-3122",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 30,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 14400
+        }
+      },
+      {
+        "id": "f5af0ba4-f942-5b48-800e-c71423d4b1ed",
+        "data": {
+          "line_id": "DL-3123-1",
+          "deal_id": "DL-3123",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 90,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 64800
+        }
+      },
+      {
+        "id": "95377a17-f527-565b-9576-6e51cdf677d6",
+        "data": {
+          "line_id": "DL-3123-2",
+          "deal_id": "DL-3123",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 19200
+        }
+      },
+      {
+        "id": "41582d18-a5d9-5dd7-8a1d-2f552fe41d3f",
+        "data": {
+          "line_id": "DL-3124-1",
+          "deal_id": "DL-3124",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 65,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 31200
+        }
+      },
+      {
+        "id": "2b81d821-8eb3-501d-8602-6f0291b104b1",
+        "data": {
+          "line_id": "DL-3124-2",
+          "deal_id": "DL-3124",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 19200
+        }
+      },
+      {
+        "id": "b7239f3f-d284-5f7a-aad2-ac62fa455b0d",
+        "data": {
+          "line_id": "DL-3124-3",
+          "deal_id": "DL-3124",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "3f48229b-a714-5783-ae98-94ef8720c911",
+        "data": {
+          "line_id": "DL-3125-1",
+          "deal_id": "DL-3125",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 160,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 109440
+        }
+      },
+      {
+        "id": "f46d24d5-2fdd-55e3-8c8f-e7940b4b7ea5",
+        "data": {
+          "line_id": "DL-3125-2",
+          "deal_id": "DL-3125",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "116a69e2-5e15-589c-9231-64acb91634be",
+        "data": {
+          "line_id": "DL-3126-1",
+          "deal_id": "DL-3126",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 130,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 93600
+        }
+      },
+      {
+        "id": "a8fa16b1-d55d-5e6e-ab45-98266ebab602",
+        "data": {
+          "line_id": "DL-3126-2",
+          "deal_id": "DL-3126",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 17,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 40800
+        }
+      },
+      {
+        "id": "637c1c88-95d1-5c53-a9b7-c306da9422cd",
+        "data": {
+          "line_id": "DL-3126-3",
+          "deal_id": "DL-3126",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "3c53e6e2-5ade-5edc-88d7-2deb8e41e7a1",
+        "data": {
+          "line_id": "DL-3127-1",
+          "deal_id": "DL-3127",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 9720
+        }
+      },
+      {
+        "id": "bcc76dd0-ad9b-5034-a982-e131c473a299",
+        "data": {
+          "line_id": "DL-3127-2",
+          "deal_id": "DL-3127",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "9858abaa-a76a-5db1-89ec-46ad32047dbc",
+        "data": {
+          "line_id": "DL-3127-3",
+          "deal_id": "DL-3127",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "374bf10d-13b3-5019-9252-835a4c83e3e9",
+        "data": {
+          "line_id": "DL-3127-4",
+          "deal_id": "DL-3127",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "98e93f19-d93a-584b-bec5-0b022ebb7b6b",
+        "data": {
+          "line_id": "DL-3128-1",
+          "deal_id": "DL-3128",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 10,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 4320
+        }
+      },
+      {
+        "id": "40ace24b-1132-53d3-8bc9-b87f6574873b",
+        "data": {
+          "line_id": "DL-3128-2",
+          "deal_id": "DL-3128",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "641b22ad-466d-5004-a79c-5b605d227323",
+        "data": {
+          "line_id": "DL-3128-3",
+          "deal_id": "DL-3128",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "4396369d-1341-531e-b040-425a7dd4f07e",
+        "data": {
+          "line_id": "DL-3129-1",
+          "deal_id": "DL-3129",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 10,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 4320
+        }
+      },
+      {
+        "id": "edfdfc36-d03e-5d87-9c80-ff0722b5b693",
+        "data": {
+          "line_id": "DL-3129-2",
+          "deal_id": "DL-3129",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 4320
+        }
+      },
+      {
+        "id": "0fb545fb-fc1c-5129-9b45-ea34c3f279e2",
+        "data": {
+          "line_id": "DL-3129-3",
+          "deal_id": "DL-3129",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "144a9424-d6f5-54f9-b4e0-c61eee1715d7",
+        "data": {
+          "line_id": "DL-3129-4",
+          "deal_id": "DL-3129",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "995bcf6f-75c0-5b0e-8c07-7d4fd682dd15",
+        "data": {
+          "line_id": "DL-3130-1",
+          "deal_id": "DL-3130",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 105,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 75600
+        }
+      },
+      {
+        "id": "bbf83ab6-6b17-566b-a5fc-12f659e6be83",
+        "data": {
+          "line_id": "DL-3130-2",
+          "deal_id": "DL-3130",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "7f27af9b-cdeb-5b3a-b5d2-370381744874",
+        "data": {
+          "line_id": "DL-3130-3",
+          "deal_id": "DL-3130",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "4d2668bc-6a95-5ba8-8429-17a7c85618d1",
+        "data": {
+          "line_id": "DL-3131-1",
+          "deal_id": "DL-3131",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 480,
+          "discount_pct": 20,
+          "line_total": 5760
+        }
+      },
+      {
+        "id": "73c6a2da-da48-5513-a11b-738bbaa21b55",
+        "data": {
+          "line_id": "DL-3131-2",
+          "deal_id": "DL-3131",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 2,
+          "unit_price": 2400,
+          "discount_pct": 22,
+          "line_total": 3744
+        }
+      },
+      {
+        "id": "64de6c4c-7367-5983-921f-25579db09d76",
+        "data": {
+          "line_id": "DL-3131-3",
+          "deal_id": "DL-3131",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 22,
+          "line_total": 14040
+        }
+      },
+      {
+        "id": "3bf3dba7-a388-51f6-81b8-37c349335b85",
+        "data": {
+          "line_id": "DL-3131-4",
+          "deal_id": "DL-3131",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 20,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "267864f6-70ef-5911-a5e7-fa5e87f1815b",
+        "data": {
+          "line_id": "DL-3132-1",
+          "deal_id": "DL-3132",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 20,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 8640
+        }
+      },
+      {
+        "id": "95a2cd56-e389-5979-8807-8ef1baf22cb7",
+        "data": {
+          "line_id": "DL-3132-2",
+          "deal_id": "DL-3132",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "8f47032d-2937-5d61-9378-b9ccfccf44b3",
+        "data": {
+          "line_id": "DL-3132-3",
+          "deal_id": "DL-3132",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "c90281db-1c7d-564b-974b-301bfdcf3239",
+        "data": {
+          "line_id": "DL-3133-1",
+          "deal_id": "DL-3133",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 100,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 45600
+        }
+      },
+      {
+        "id": "a8649481-11b8-53d4-8aba-6530a22958ee",
+        "data": {
+          "line_id": "DL-3133-2",
+          "deal_id": "DL-3133",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 10,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 22800
+        }
+      },
+      {
+        "id": "05e7ce40-c714-5b3c-a1ff-ead4aaf0db0c",
+        "data": {
+          "line_id": "DL-3133-3",
+          "deal_id": "DL-3133",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "00c5f01c-60a4-540d-af0a-b964fa70d9e1",
+        "data": {
+          "line_id": "DL-3133-4",
+          "deal_id": "DL-3133",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "d1df65d3-128b-5996-91bf-487c9b7a723a",
+        "data": {
+          "line_id": "DL-3134-1",
+          "deal_id": "DL-3134",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 85,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 58140
+        }
+      },
+      {
+        "id": "58b45326-cc2b-5045-94c1-6fac1ea64723",
+        "data": {
+          "line_id": "DL-3134-2",
+          "deal_id": "DL-3134",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 18240
+        }
+      },
+      {
+        "id": "42b42d6f-3f54-5d31-8fa9-c8cb8023f5ee",
+        "data": {
+          "line_id": "DL-3134-3",
+          "deal_id": "DL-3134",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "a3b3b640-cc65-5e23-aa76-5eff3fbbd5d6",
+        "data": {
+          "line_id": "DL-3135-1",
+          "deal_id": "DL-3135",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 300,
+          "unit_price": 1080,
+          "discount_pct": 15,
+          "line_total": 275400
+        }
+      },
+      {
+        "id": "7b673dd1-b448-5226-8331-a82b92fc8449",
+        "data": {
+          "line_id": "DL-3135-2",
+          "deal_id": "DL-3135",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 15,
+          "line_total": 15300
+        }
+      },
+      {
+        "id": "ce6f66c7-43fd-5173-9e52-8856aecaecfb",
+        "data": {
+          "line_id": "DL-3135-3",
+          "deal_id": "DL-3135",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "bf82d94c-4344-5bff-a79f-6d9c0b3839dd",
+        "data": {
+          "line_id": "DL-3136-1",
+          "deal_id": "DL-3136",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 230,
+          "unit_price": 1080,
+          "discount_pct": 10,
+          "line_total": 223560
+        }
+      },
+      {
+        "id": "7394c214-5ad1-5d1b-a00c-d674b8cbfd89",
+        "data": {
+          "line_id": "DL-3137-1",
+          "deal_id": "DL-3137",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 310,
+          "unit_price": 1080,
+          "discount_pct": 10,
+          "line_total": 301320
+        }
+      },
+      {
+        "id": "2ddb6a51-ed39-5f53-a01f-d0f123ffe07a",
+        "data": {
+          "line_id": "DL-3137-2",
+          "deal_id": "DL-3137",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 17,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 36720
+        }
+      },
+      {
+        "id": "33fd1a9d-e067-58c7-b70d-81ab64ac77ed",
+        "data": {
+          "line_id": "DL-3137-3",
+          "deal_id": "DL-3137",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "a604313b-0c23-518d-8025-68cbcf9e0d7f",
+        "data": {
+          "line_id": "DL-3137-4",
+          "deal_id": "DL-3137",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "55849d61-7c7e-57f5-bf3a-77024ac3c539",
+        "data": {
+          "line_id": "DL-3138-1",
+          "deal_id": "DL-3138",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 150,
+          "unit_price": 720,
+          "discount_pct": 10,
+          "line_total": 97200
+        }
+      },
+      {
+        "id": "cc40564b-d113-55f4-9f06-126efa1eb6eb",
+        "data": {
+          "line_id": "DL-3138-2",
+          "deal_id": "DL-3138",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "909d3e8c-cbb2-51b4-8afb-0a942e1b5835",
+        "data": {
+          "line_id": "DL-3138-3",
+          "deal_id": "DL-3138",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "e7e65b72-b0fe-56d4-a609-56e4a2bf5781",
+        "data": {
+          "line_id": "DL-3139-1",
+          "deal_id": "DL-3139",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 80,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 36480
+        }
+      },
+      {
+        "id": "04224159-bfd9-5e0b-9b09-362089a470d4",
+        "data": {
+          "line_id": "DL-3140-1",
+          "deal_id": "DL-3140",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 180,
+          "unit_price": 720,
+          "discount_pct": 22,
+          "line_total": 101088
+        }
+      },
+      {
+        "id": "643f7029-b2e3-5276-9891-0d8fd05292d0",
+        "data": {
+          "line_id": "DL-3140-2",
+          "deal_id": "DL-3140",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 20,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "81629ddf-06ac-5e42-98cf-34e4b5d85ea7",
+        "data": {
+          "line_id": "DL-3141-1",
+          "deal_id": "DL-3141",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 60,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 41040
+        }
+      },
+      {
+        "id": "18109721-c0bc-548c-b166-ca98a383522e",
+        "data": {
+          "line_id": "DL-3141-2",
+          "deal_id": "DL-3141",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 9120
+        }
+      },
+      {
+        "id": "ba006c2a-d8eb-582f-bdde-c4e968c0ecac",
+        "data": {
+          "line_id": "DL-3141-3",
+          "deal_id": "DL-3141",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "da7ff0de-43c6-59bb-97b2-eb223e92c001",
+        "data": {
+          "line_id": "DL-3141-4",
+          "deal_id": "DL-3141",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "359090a6-0f01-5cfd-83b3-b53c080296c7",
+        "data": {
+          "line_id": "DL-3142-1",
+          "deal_id": "DL-3142",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 95,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 64980
+        }
+      },
+      {
+        "id": "096a180f-1c8f-5ccc-8623-27f076a2376b",
+        "data": {
+          "line_id": "DL-3142-2",
+          "deal_id": "DL-3142",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "5359c9cc-6736-56f5-8620-fd214e1a3377",
+        "data": {
+          "line_id": "DL-3143-1",
+          "deal_id": "DL-3143",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 100,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 45600
+        }
+      },
+      {
+        "id": "97c8e877-8a91-52d1-a93e-4dbe5f286434",
+        "data": {
+          "line_id": "DL-3143-2",
+          "deal_id": "DL-3143",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "2b8d81eb-faaa-5fe1-bd5f-7a9ddbeb3659",
+        "data": {
+          "line_id": "DL-3143-3",
+          "deal_id": "DL-3143",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "1a97b8b5-e5ad-5c8a-ad46-5d8cc3f889af",
+        "data": {
+          "line_id": "DL-3143-4",
+          "deal_id": "DL-3143",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "9a350140-3fe8-5219-9254-355559e391c6",
+        "data": {
+          "line_id": "DL-3144-1",
+          "deal_id": "DL-3144",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 65,
+          "unit_price": 720,
+          "discount_pct": 5,
+          "line_total": 44460
+        }
+      },
+      {
+        "id": "4064ed4d-a825-545d-96f3-12df9deadda0",
+        "data": {
+          "line_id": "DL-3144-2",
+          "deal_id": "DL-3144",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 6,
+          "unit_price": 2400,
+          "discount_pct": 5,
+          "line_total": 13680
+        }
+      },
+      {
+        "id": "0d54287c-472b-527d-b7ab-e8541cdc854d",
+        "data": {
+          "line_id": "DL-3144-3",
+          "deal_id": "DL-3144",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "446c4e3f-8974-5f34-b5e3-5e6c157cc90f",
+        "data": {
+          "line_id": "DL-3144-4",
+          "deal_id": "DL-3144",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 5,
+          "line_total": 14250
+        }
+      },
+      {
+        "id": "7664c41b-aee4-58a0-baed-01c37339f80d",
+        "data": {
+          "line_id": "DL-3144-5",
+          "deal_id": "DL-3144",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 5,
+          "line_total": 11400
+        }
+      },
+      {
+        "id": "00483f37-8f34-5d06-a40f-85dbe768660f",
+        "data": {
+          "line_id": "DL-3145-1",
+          "deal_id": "DL-3145",
+          "product": "Insight Platform Enterprise",
+          "sku": "BW-PLT-ENT",
+          "family": "Platform",
+          "qty": 35,
+          "unit_price": 1080,
+          "discount_pct": 10,
+          "line_total": 34020
+        }
+      },
+      {
+        "id": "f5265a9f-0d95-552b-ab5c-185c16295907",
+        "data": {
+          "line_id": "DL-3145-2",
+          "deal_id": "DL-3145",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 5,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "51236fff-d6f5-52ea-ba51-d6ba2e09c898",
+        "data": {
+          "line_id": "DL-3145-3",
+          "deal_id": "DL-3145",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "99fb7d73-7db3-528e-87d1-1489ce90f6ea",
+        "data": {
+          "line_id": "DL-3146-1",
+          "deal_id": "DL-3146",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 80,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 57600
+        }
+      },
+      {
+        "id": "16a6008e-519e-5a98-b500-e0cdbe5b327e",
+        "data": {
+          "line_id": "DL-3146-2",
+          "deal_id": "DL-3146",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 8,
+          "unit_price": 2400,
+          "discount_pct": 0,
+          "line_total": 19200
+        }
+      },
+      {
+        "id": "415acf7b-255c-5fc4-8789-6e59cfaea0d8",
+        "data": {
+          "line_id": "DL-3146-3",
+          "deal_id": "DL-3146",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "bef3a099-a8c5-5c4c-8391-249072cbcb81",
+        "data": {
+          "line_id": "DL-3147-1",
+          "deal_id": "DL-3147",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 75,
+          "unit_price": 480,
+          "discount_pct": 5,
+          "line_total": 34200
+        }
+      },
+      {
+        "id": "af91affa-391d-5d4b-9a5b-7508d30e4193",
+        "data": {
+          "line_id": "DL-3147-2",
+          "deal_id": "DL-3147",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 5,
+          "line_total": 17100
+        }
+      },
+      {
+        "id": "d67a421e-e30c-5bb4-abdd-fe9385a2e6e5",
+        "data": {
+          "line_id": "DL-3148-1",
+          "deal_id": "DL-3148",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "65bde59b-12cc-5f52-a299-f97c34f28087",
+        "data": {
+          "line_id": "DL-3148-2",
+          "deal_id": "DL-3148",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 3,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 6480
+        }
+      },
+      {
+        "id": "a311b4bd-b4d5-5988-bcda-b308bff7e154",
+        "data": {
+          "line_id": "DL-3148-3",
+          "deal_id": "DL-3148",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 10,
+          "line_total": 16200
+        }
+      },
+      {
+        "id": "284f3e3d-4549-55cf-a038-8df3dca1b74f",
+        "data": {
+          "line_id": "DL-3148-4",
+          "deal_id": "DL-3148",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "bbc35853-8008-56e6-8162-ec0cc22c98ef",
+        "data": {
+          "line_id": "DL-3148-5",
+          "deal_id": "DL-3148",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "d46afb1d-59e9-586d-ba9a-f10b0f0c6cdd",
+        "data": {
+          "line_id": "DL-3149-1",
+          "deal_id": "DL-3149",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 90,
+          "unit_price": 480,
+          "discount_pct": 10,
+          "line_total": 38880
+        }
+      },
+      {
+        "id": "1bf76942-771a-50ae-a8fd-e8067f171260",
+        "data": {
+          "line_id": "DL-3149-2",
+          "deal_id": "DL-3149",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 10,
+          "line_total": 8640
+        }
+      },
+      {
+        "id": "659baf0b-4575-55d1-80d0-05c890362fd2",
+        "data": {
+          "line_id": "DL-3149-3",
+          "deal_id": "DL-3149",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "8b49011f-e42b-5948-bcfa-56076df68b7b",
+        "data": {
+          "line_id": "DL-3149-4",
+          "deal_id": "DL-3149",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 10,
+          "line_total": 10800
+        }
+      },
+      {
+        "id": "d19b1c84-36cc-54b4-8341-58ff2fa7ca43",
+        "data": {
+          "line_id": "DL-3150-1",
+          "deal_id": "DL-3150",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 80,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 57600
+        }
+      },
+      {
+        "id": "b3b57aef-0e22-55a8-961d-2fca258ead83",
+        "data": {
+          "line_id": "DL-3150-2",
+          "deal_id": "DL-3150",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "1f3da56e-4942-592a-8043-dc370213a5f3",
+        "data": {
+          "line_id": "DL-3151-1",
+          "deal_id": "DL-3151",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "d5b3f954-651c-5972-b024-2af355c5c640",
+        "data": {
+          "line_id": "DL-3151-2",
+          "deal_id": "DL-3151",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "04242ee3-6144-5d49-8a5a-e8c1edbc4815",
+        "data": {
+          "line_id": "DL-3151-3",
+          "deal_id": "DL-3151",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "22246a6e-a47d-528e-a064-06eaa5507c9a",
+        "data": {
+          "line_id": "DL-3152-1",
+          "deal_id": "DL-3152",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 80,
+          "unit_price": 720,
+          "discount_pct": 22,
+          "line_total": 44928
+        }
+      },
+      {
+        "id": "484755e8-c91f-51df-911f-04da018b9d11",
+        "data": {
+          "line_id": "DL-3152-2",
+          "deal_id": "DL-3152",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 2400,
+          "discount_pct": 22,
+          "line_total": 1872
+        }
+      },
+      {
+        "id": "bd1c46fb-d4a9-56b2-bbe1-9e663b65c095",
+        "data": {
+          "line_id": "DL-3152-3",
+          "deal_id": "DL-3152",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 20,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "38e0cbbf-be92-508a-8dc6-c2d499f3b325",
+        "data": {
+          "line_id": "DL-3153-1",
+          "deal_id": "DL-3153",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 55,
+          "unit_price": 720,
+          "discount_pct": 15,
+          "line_total": 33660
+        }
+      },
+      {
+        "id": "bc2fe1a4-384d-5296-b43d-5c19890245a1",
+        "data": {
+          "line_id": "DL-3153-2",
+          "deal_id": "DL-3153",
+          "product": "Sensor Hub add-on",
+          "sku": "BW-ADD-SENS",
+          "family": "Add-on",
+          "qty": 4,
+          "unit_price": 2400,
+          "discount_pct": 15,
+          "line_total": 8160
+        }
+      },
+      {
+        "id": "3cff2006-ce05-5976-91e4-f235e65d5c14",
+        "data": {
+          "line_id": "DL-3153-3",
+          "deal_id": "DL-3153",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 15,
+          "line_total": 15300
+        }
+      },
+      {
+        "id": "2a7d6c1a-b1d6-5c32-b9c7-06eb6a00c71f",
+        "data": {
+          "line_id": "DL-3153-4",
+          "deal_id": "DL-3153",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 10,
+          "line_total": 13500
+        }
+      },
+      {
+        "id": "b39e1240-b892-5147-bbb8-68f0a8e147ff",
+        "data": {
+          "line_id": "DL-3154-1",
+          "deal_id": "DL-3154",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 165,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 79200
+        }
+      },
+      {
+        "id": "d2a660b4-dbab-5299-9701-858fb80aa0e2",
+        "data": {
+          "line_id": "DL-3154-2",
+          "deal_id": "DL-3154",
+          "product": "Predictive Analytics add-on",
+          "sku": "BW-ADD-PRED",
+          "family": "Add-on",
+          "qty": 1,
+          "unit_price": 18000,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "c3e8b73d-ebaf-5b0d-b37f-54a53836fe2d",
+        "data": {
+          "line_id": "DL-3154-3",
+          "deal_id": "DL-3154",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "4c889bee-9eda-5fba-9f71-0b4f18085e60",
+        "data": {
+          "line_id": "DL-3154-4",
+          "deal_id": "DL-3154",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "64424597-2374-5504-a2ca-6957fea1768d",
+        "data": {
+          "line_id": "DL-3155-1",
+          "deal_id": "DL-3155",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 25,
+          "unit_price": 720,
+          "discount_pct": 0,
+          "line_total": 18000
+        }
+      },
+      {
+        "id": "0cab69c6-094e-5abb-a854-e05c87a31285",
+        "data": {
+          "line_id": "DL-3155-2",
+          "deal_id": "DL-3155",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "ad7c8eae-fb1c-57b4-ae2b-bc9ac4fc1343",
+        "data": {
+          "line_id": "DL-3155-3",
+          "deal_id": "DL-3155",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "c1b5a568-f4ba-5742-9c18-24d250094526",
+        "data": {
+          "line_id": "DL-3156-1",
+          "deal_id": "DL-3156",
+          "product": "Insight Platform Professional",
+          "sku": "BW-PLT-PRO",
+          "family": "Platform",
+          "qty": 40,
+          "unit_price": 720,
+          "discount_pct": 22,
+          "line_total": 22464
+        }
+      },
+      {
+        "id": "26d06747-68ca-5e23-be21-f7a65e1dacd4",
+        "data": {
+          "line_id": "DL-3156-2",
+          "deal_id": "DL-3156",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 20,
+          "line_total": 12000
+        }
+      },
+      {
+        "id": "1008708c-4cc5-585a-a0f0-cd156d648acb",
+        "data": {
+          "line_id": "DL-3157-1",
+          "deal_id": "DL-3157",
+          "product": "Insight Platform Standard",
+          "sku": "BW-PLT-STD",
+          "family": "Platform",
+          "qty": 15,
+          "unit_price": 480,
+          "discount_pct": 0,
+          "line_total": 7200
+        }
+      },
+      {
+        "id": "1004115d-4a2c-57fe-a254-1501330fb7fa",
+        "data": {
+          "line_id": "DL-3157-2",
+          "deal_id": "DL-3157",
+          "product": "Implementation services",
+          "sku": "BW-SVC-IMPL",
+          "family": "Services",
+          "qty": 1,
+          "unit_price": 15000,
+          "discount_pct": 0,
+          "line_total": 15000
+        }
+      },
+      {
+        "id": "ad535b5e-f0c9-5a59-ac55-1d714b3a1611",
+        "data": {
+          "line_id": "DL-3157-3",
+          "deal_id": "DL-3157",
+          "product": "Premium support",
+          "sku": "BW-SUP-PREM",
+          "family": "Support",
+          "qty": 1,
+          "unit_price": 12000,
+          "discount_pct": 0,
+          "line_total": 12000
+        }
+      }
+    ]
+  }
+}

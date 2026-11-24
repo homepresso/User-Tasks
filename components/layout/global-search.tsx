@@ -21,6 +21,7 @@ import { CREATE_ACTIONS, type CreateAction } from "./create-actions"
 import { readRecentPages, type RecentPage } from "./recent-pages"
 import { useExtensionPaletteEntries, type ExtensionMenuEntry } from "@/components/extensions/extension-menus"
 import { useExtensionAction, type ExtensionActionRequest } from "@/components/extensions/use-extension-action"
+import { TagList } from "@/components/ui/tag-chip"
 import {
   Search, FileInput, Globe, SquareCheck, Workflow, CalendarClock, History, Database, Rows3, BarChart3, Scale, Mail,
   Bot, Network, Plug, Link2, Server, Puzzle, Package, Archive, Inbox, Paperclip, UsersRound, User, Compass,
@@ -51,6 +52,8 @@ interface Row {
   title: string
   subtitle?: string
   meta?: string
+  /** Coloured tag chips (tasks, forms, workflows). */
+  tags?: string[]
   href?: string
   /** Opens in a new tab (docs, gallery). */
   external?: boolean
@@ -101,7 +104,7 @@ function loadGalleryIndex() {
 function hitRow(section: string, hit: SearchHit): Row {
   // Forms open inside the app (/fill/<id>); their shareable links open without the shell.
   const href = hit.href
-  return { key: `${section}:${hit.kind}:${hit.id}`, section, kind: hit.kind, title: hit.title, subtitle: hit.subtitle, meta: hit.meta, href }
+  return { key: `${section}:${hit.kind}:${hit.id}`, section, kind: hit.kind, title: hit.title, subtitle: hit.subtitle, meta: hit.meta, tags: hit.tags, href }
 }
 
 function actionRow(action: CreateAction): Row {
@@ -416,6 +419,7 @@ function ResultRow({ row, onSelect }: { row: Row; onSelect: () => void }) {
         <span className="truncate text-ui font-medium text-fg">{row.title}</span>
         {row.subtitle && row.subtitle !== row.title && <span className="min-w-0 truncate text-xs text-fg-muted max-sm:hidden">{row.subtitle}</span>}
       </span>
+      {row.tags?.length ? <TagList tags={row.tags} max={2} size="xs" maxWidthClass="max-w-[7rem]" className="shrink-0 flex-nowrap self-center max-sm:hidden" /> : null}
       {row.external && <ExternalLink className="size-3.5 shrink-0 text-fg-subtle" aria-label="Opens in a new tab" />}
       {tag && <span className="shrink-0 text-xs text-fg-subtle group-data-[selected=true]/row:hidden">{tag}</span>}
       <CornerDownLeft className="hidden size-3.5 shrink-0 text-fg-muted group-data-[selected=true]/row:block" aria-hidden />

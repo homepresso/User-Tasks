@@ -10,7 +10,8 @@
  *  - form      form help: reads the form being filled, proposes values (never submits);
  *  - task      task help: summarises, drafts, suggests (never completes);
  *  - designer  building help: reads (anyone with view permissions) and builds
- *              workflows, forms, data tables, decision tables and form plugins
+ *              workflows, forms, data tables, decision tables, form plugins and
+ *              apps (one confirmed app spec: lib/services/app-spec.ts)
  *              through the MCP tools (builders only), with confirmation, drafts only;
  *  - admin     admin help: explains settings, access, audit, usage and workspace
  *              health, and makes confirmed admin changes (team, roles, org,
@@ -25,6 +26,7 @@
  * permission ids — assistant_settings, /api/assistants/chat,
  * assistants.manage — are unchanged.)
  */
+import type { AgentFailureCode, AgentFailureView, AgentRetrySummary } from '@/lib/agents/errors'
 import type { ThinkingGroup, ThinkingLevel } from '@/lib/agents/reasoning'
 import type { AgentProviderKind } from '@/lib/agents/provider'
 import type { ModelRule } from './model-rules'
@@ -55,7 +57,7 @@ export type AgentToolGroup = (typeof AGENT_TOOL_GROUPS)[number]
 export const TOOL_GROUP_LABELS: Record<AgentToolGroup, string> = { ...CAPABILITY_LABELS, admin: 'Admin help' }
 
 /** The providers offered in Settings → Agent (provider kinds of lib/agents/provider.ts). */
-export const ASSISTANT_PROVIDERS = ['openai', 'anthropic', 'xai', 'gemini', 'azure_openai', 'mistral', 'groq', 'ollama', 'other'] as const
+export const ASSISTANT_PROVIDERS = ['openai', 'anthropic', 'xai', 'gemini', 'azure_openai', 'mistral', 'groq', 'baseten', 'ollama', 'other'] as const
 export type AssistantProvider = (typeof ASSISTANT_PROVIDERS)[number] & AgentProviderKind
 
 export interface ProviderPreset {
@@ -109,6 +111,11 @@ export const PROVIDER_PRESETS: Record<AssistantProvider, ProviderPreset> = {
     models: ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b'], keyRequired: true, keyPlaceholder: 'gsk_…',
     help: 'An API key from console.groq.com.',
   },
+  baseten: {
+    label: 'Baseten', defaultBaseUrl: 'https://inference.baseten.co', baseUrl: 'optional', defaultModel: 'deepseek-ai/DeepSeek-V4.1-Flash',
+    models: ['deepseek-ai/DeepSeek-V4.1-Flash', 'moonshotai/Kimi-K3', 'zai-org/GLM-5.3'], keyRequired: true, keyPlaceholder: 'Baseten API key',
+    help: 'Your own Baseten API key (app.baseten.co → Settings → API keys); usage is billed by Baseten. For a dedicated deployment, enter its URL and the model name it serves.',
+  },
   ollama: {
     label: 'Ollama', defaultBaseUrl: 'http://localhost:11434', baseUrl: 'required', defaultModel: 'llama3.1',
     models: ['llama3.1', 'qwen2.5', 'mistral'], keyRequired: false, keyPlaceholder: 'Optional',
@@ -156,6 +163,12 @@ export interface AgentSettings extends CapabilityAccess {
    * Off: the action tools are not offered; reading a task's form still works.
    */
   task_actions?: boolean
+  /**
+   * "Let importers use AI for hard PDFs": the PDF form importer may send a PDF's
+   * content to this workspace's AI provider when the person ticks "Use AI for the
+   * hard parts" for one import (lib/importers/pdf/ai.ts). Absent = off.
+   */
+  import_ai?: boolean
   /**
    * Ordered profiles (lib/assistants/profiles.ts): who gets which Agent
    * configuration (model, help groups, instructions, starters, limits); first
@@ -352,7 +365,7 @@ export interface ChatMessage {
 
 export interface DesignerContext {
   /** Which builder the person is in. */
-  area: 'workflow' | 'form' | 'data' | 'decision_table' | 'extensibility' | 'general' | 'report' | 'agent' | 'integration' | 'email_template' | 'page'
+  area: 'workflow' | 'form' | 'data' | 'decision_table' | 'extensibility' | 'general' | 'report' | 'agent' | 'integration' | 'email_template' | 'page' | 'app'
   /** The open item (workflow id, form id, table id…). */
   item_id?: string | null
   item_name?: string | null
@@ -469,8 +482,12 @@ export type AssistantEvent =
   | { type: 'choice'; id: string; question: string; options: ChoiceOption[]; allow_other?: boolean; multi?: boolean }
   | { type: 'changed'; kind: string; id: string | null; title: string; href: string | null; action: 'created' | 'updated' | 'deleted' }
   | { type: 'messages'; messages: ChatMessage[] }
-  | { type: 'done'; status: 'completed' | 'awaiting_confirmation' }
-  | { type: 'error'; error: string; code?: string }
+  /** `retries`: the turn needed automatic provider retries — sent only to people who manage the Agent (the panel's Details). */
+  | { type: 'done'; status: 'completed' | 'awaiting_confirmation'; retries?: AgentRetrySummary }
+  /** A friendly, sanitised failure view (lib/agents/errors.ts) rides along with provider errors; `error` is its message. */
+  | { type: 'error'; error: string; code?: string; failure?: AgentFailureView }
+  /** The provider call failed transiently and is retried after `delay_ms` — server-side only (logs, the job's progress); never sent to the browser. */
+  | { type: 'retry'; attempt: number; max_attempts: number; delay_ms: number; code: AgentFailureCode; message: string }
   /** The turn's background job (lib/assistants/background.ts): the panel can move it to the background or stop it. */
   | { type: 'job'; id: string; turn_id: string }
 
@@ -487,6 +504,10 @@ export const DESIGNER_WRITE_TOOLS = [
   'agents_create', 'agents_update',
   'email_templates_create', 'email_templates_update',
   'integrations_test',
+  // Apps: one confirmed step builds or changes a whole app (lib/services/app-spec.ts); form grants for its audience; packaging.
+  'apps_apply_spec', 'apps_access_grant', 'apps_package',
+  // App drafts: publish, discard, restore a version into the draft (lib/services/app-versions.ts).
+  'apps_publish', 'apps_draft_discard', 'apps_version_restore',
 ] as const
 
 /** Designer tools that only read. */
@@ -501,6 +522,10 @@ export const DESIGNER_READ_TOOLS = [
   'decision_tables_list', 'decision_tables_get', 'decision_tables_test',
   'workflow_activities_list', 'workflow_activities_get',
   'form_controls_list', 'form_controls_get',
+  // Apps (the full widget schemas come from apps_spec_reference { widget_types }).
+  'apps_list', 'apps_get', 'apps_pages_list', 'apps_page_get', 'apps_rule_types', 'apps_access_check', 'apps_package_preview',
+  'apps_search', 'apps_object_details', 'apps_spec_reference', 'apps_plan',
+  'apps_versions', 'apps_version_get', 'apps_compare',
 ] as const
 
 /** Starter prompts per builder area. */
@@ -516,6 +541,7 @@ export const DESIGNER_STARTERS: Record<DesignerContext['area'], string[]> = {
   integration: ['Explain this connection', 'Test this connection', 'Which workflows could use this?'],
   email_template: ['Draft a friendly approval email', 'Make this email shorter', 'Add the request reference to the subject'],
   page: ['What can you help me with here?', 'Explain this page', 'List my workflows'],
+  app: ['Add a chart of overdue tasks to this page', 'Who in the audience can\'t use this app?', 'Build me an expense desk for the finance team'],
 }
 
 /** Starter prompts per admin page. */

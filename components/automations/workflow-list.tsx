@@ -27,15 +27,16 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, floatingSurfaceClass,
 } from "@/components/ui/dropdown-menu"
 import { useWorkflowDependencies, WorkflowDependencyMapView } from './workflow-dependencies'
-import { TagBadge, InlineTagEditor, TagFilterBar, type TagDefinition } from "@/components/ui/tag-manager"
+import { InlineTagEditor, TagFilterBar } from "@/components/ui/tag-manager"
+import { applyObjectTags } from "@/app/actions/tags"
+import { BulkTagsDialog, ObjectTagsDialog, useCanEditTags } from "@/components/ui/object-tags-dialog"
+import { TagChip } from "@/components/ui/tag-chip"
 import { cn } from "@/lib/utils"
 import { formatAbsolute, formatRelative } from "@/lib/format/date"
 import { formatCount } from "@/lib/format/number"
 import { plural } from "@/lib/format/plural"
 import { serverQuery } from "@/lib/server-read"
-import { updateWorkflowTags } from "@/app/actions/automations"
 import { runInlineJob, useJobs } from "@/components/jobs/jobs-provider"
-import { createTagDefinition, updateTagDefinitionColor } from "@/app/actions/tags"
 import { useAppStore } from "@/stores/app-store"
 import { BulkPermissionsDialog } from "@/components/governance/bulk-permissions-dialog"
 import { InlineNotice } from "@/components/ui/inline-notice"
@@ -102,7 +103,7 @@ function RelativeDate({ value, prefix }: { value: string; prefix?: string }) {
  * (automations.listPage), with search, status / trigger / tag filters, sort,
  * page and page size in the URL (lib/automations/workflow-list-page).
  */
-export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition[] }) {
+export function WorkflowList() {
   const router = useRouter()
   const { layoutPreference, setLayoutPreference } = useAppStore()
   const { can } = usePermissions()
@@ -134,9 +135,11 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
   const sortField = state.sort
   const sortDir = state.dir
   const [editingTagsId, setEditingTagsId] = useState<string | null>(null)
-  const [tagDefs, setTagDefs] = useState<TagDefinition[]>(initialTagDefs)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[] }>(null)
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false)
+  const canEditTags = useCanEditTags('workflows')
   const [showBulkDelete, setShowBulkDelete] = useState(false)
   const [bulkDeleteNotice, setBulkDeleteNotice] = useState<DeleteNotice | null>(null)
   const [showBulkPermissions, setShowBulkPermissions] = useState(false)
@@ -149,18 +152,6 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
   const { data: deps, isLoading: depsLoading } = useWorkflowDependencies(depsWorkflow?.id ?? '')
   const queryClient = useQueryClient()
   const jobs = useJobs()
-
-  async function createTagDef(name: string, color: string) {
-    const result = await createTagDefinition('workflows', name, color)
-    if (result.ok) setTagDefs(prev => [...prev, result.data])
-  }
-
-  async function updateTagDefColor(name: string, color: string) {
-    const def = tagDefs.find(d => d.name === name)
-    if (!def) return
-    const result = await updateTagDefinitionColor('workflows', def.id, color)
-    if (result.ok) setTagDefs(prev => prev.map(d => d.name === name ? { ...d, color } : d))
-  }
 
   useEffect(() => {
     setLocalWorkflows(workflows)
@@ -179,18 +170,17 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
   async function addTag(workflowId: string, tag: string) {
     const wf = localWorkflows.find(w => w.id === workflowId)
     if (!wf) return
-    const current = wf.tags ?? []
-    const normalized = tag.trim().toLowerCase()
-    if (!normalized || current.includes(normalized)) return
-    await updateWorkflowTags(workflowId, [...current, normalized])
+    const result = await applyObjectTags({ type: 'workflows', ids: [workflowId], add: [tag] })
     queryClient.invalidateQueries({ queryKey: ['workflows'] })
+    if (!result.ok) throw new Error(result.error)
   }
 
   async function removeTag(workflowId: string, tag: string) {
     const wf = localWorkflows.find(w => w.id === workflowId)
     if (!wf) return
-    await updateWorkflowTags(workflowId, (wf.tags ?? []).filter(t => t !== tag))
+    const result = await applyObjectTags({ type: 'workflows', ids: [workflowId], remove: [tag] })
     queryClient.invalidateQueries({ queryKey: ['workflows'] })
+    if (!result.ok) throw new Error(result.error)
   }
 
   // ── Selection helpers ──
@@ -279,7 +269,6 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
   const selectedNames = localWorkflows.filter(w => selected.has(w.id)).map(w => w.name)
   const clearFilters = () => { setSearch(""); update({ q: "", tag: null, trigger: null, status: "all" }) }
   const loading = !viewDecided || listPage.loading
-  const toggleEditTags = (id: string) => setEditingTagsId(editingTagsId === id ? null : id)
 
   function workflowMenu(wf: Workflow) {
     return (
@@ -299,8 +288,8 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
           <DropdownMenuItem icon={<Map />} onSelect={() => setDepsId(wf.id)}>
             Dependency map
           </DropdownMenuItem>
-          <DropdownMenuItem icon={<TagIcon />} onSelect={() => toggleEditTags(wf.id)}>
-            Edit tags
+          <DropdownMenuItem icon={<TagIcon />} onSelect={() => setTagsTarget({ id: wf.id, name: wf.name, tags: wf.tags ?? [] })}>
+            Tags…
           </DropdownMenuItem>
           {/* Actions contributed by extensions for workflows. */}
           <ExtensionMenuItems objectType="workflow" items={[wf as unknown as Record<string, unknown>]} />
@@ -318,13 +307,11 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
         </div>
         <InlineTagEditor
           tags={wf.tags ?? []}
-          tagDefinitions={tagDefs}
+          suggestions={allTags}
           selectedTag={selectedTag}
           onSelectTag={setSelectedTag}
           onAdd={(tag) => addTag(wf.id, tag)}
           onRemove={(tag) => removeTag(wf.id, tag)}
-          onCreateDefinition={createTagDef}
-          onUpdateDefinitionColor={updateTagDefColor}
         />
       </div>
     )
@@ -332,8 +319,8 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
 
   function tagBadges(wf: Workflow) {
     return (wf.tags ?? []).map(tag => (
-      <TagBadge key={tag} tag={tag} color={tagDefs.find(d => d.name === tag)?.color}
-        selected={selectedTag === tag} onSelect={() => setSelectedTag(selectedTag === tag ? null : tag)} />
+      <TagChip key={tag} name={tag} size="xs"
+        selected={selectedTag === tag} onClick={() => setSelectedTag(selectedTag === tag ? null : tag)} />
     ))
   }
 
@@ -353,7 +340,7 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
     )
   }
 
-  const LIST_COLUMNS = 8
+  const LIST_COLUMNS = 9
 
   return (
     <div className="space-y-3">
@@ -402,7 +389,6 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
             {(close) => (
               <TagFilterBar
                 tags={allTags}
-                tagDefinitions={tagDefs}
                 selectedTag={selectedTag}
                 onSelectTag={(tag) => { setSelectedTag(tag); close() }}
               />
@@ -451,6 +437,7 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
           <Button size="sm" variant="secondary" onClick={handleBulkActivate} disabled={bulkLoading} leadingIcon={<Power />}>Activate</Button>
           <Button size="sm" variant="secondary" onClick={handleBulkDeactivate} disabled={bulkLoading} leadingIcon={<PowerOff />}>Deactivate</Button>
           <Button size="sm" variant="secondary" onClick={() => setShowBulkPermissions(true)} disabled={bulkLoading} leadingIcon={<Shield />}>Permissions</Button>
+          {canEditTags && <Button size="sm" variant="secondary" onClick={() => setBulkTagsOpen(true)} disabled={bulkLoading} leadingIcon={<TagIcon />} data-bulk-tags>Tags…</Button>}
           <ExportAssetButton ids={[...selected]} name={plural(selectedCount, 'workflow')} />
           <div className="flex-1" />
           <Button size="sm" variant="danger" onClick={() => { setBulkDeleteNotice(null); setShowBulkDelete(true) }} disabled={bulkLoading} leadingIcon={<Trash2 />}>
@@ -525,6 +512,7 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
               {sortHeader("name", "Name", false, "title")}
               {sortHeader("status", "Status", false, "status")}
               {sortHeader("trigger_type", "Trigger", false, "status")}
+              <TH col="text" className="w-56" data-tags-column>Tags</TH>
               {sortHeader("nodes", "Nodes", true)}
               {sortHeader("run_count", "Runs", true)}
               {sortHeader("updated_at", "Updated", false, "date")}
@@ -546,12 +534,12 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
                     <Link href={href} onClick={e => e.stopPropagation()} className="block truncate font-medium text-fg hover:underline" title={wf.name}>
                       {wf.name}
                     </Link>
-                    {(wf.tags ?? []).length > 0 && (
-                      <div className="mt-0.5 flex flex-wrap gap-1" onClick={e => e.stopPropagation()}>{tagBadges(wf)}</div>
-                    )}
                   </TD>
                   <TD><StatusPill status={wf.is_active ? "active" : "inactive"} /></TD>
                   <TD className="whitespace-nowrap"><TriggerTag trigger={wf.trigger_type} /></TD>
+                  <TD className="max-w-56" data-tags-cell="" onClick={e => e.stopPropagation()}>
+                    {(wf.tags ?? []).length > 0 ? <div className="flex flex-wrap gap-1">{tagBadges(wf)}</div> : <span className="text-fg-subtle">—</span>}
+                  </TD>
                   <TD numeric className="text-fg-muted">{formatCount(wf.node_count ?? 0)}</TD>
                   <TD numeric className="text-fg-muted">{formatCount(wf.run_count ?? 0)}</TD>
                   <TD className="whitespace-nowrap text-xs text-fg-muted"><RelativeDate value={wf.updated_at} /></TD>
@@ -691,6 +679,14 @@ export function WorkflowList({ initialTagDefs }: { initialTagDefs: TagDefinition
         showExecute={true}
       />
 
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="workflows" id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['workflows']]} />
+      )}
+      {bulkTagsOpen && (
+        <BulkTagsDialog open onOpenChange={setBulkTagsOpen} type="workflows" ids={[...selected]} invalidate={[['workflows']]}
+          onDone={() => setSelected(new Set())} />
+      )}
       <Dialog open={showBulkDelete} onOpenChange={(open) => { if (!bulkLoading) { setShowBulkDelete(open) } }}>
         <DialogContent size="sm" title={`Delete ${plural(selectedCount, 'workflow')}`}>
           <DialogBody className="space-y-2">

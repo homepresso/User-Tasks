@@ -57,7 +57,8 @@ export function Badge({ tone = "neutral", dot = false, pill = false, className, 
       {...props}
     >
       {dot && <span aria-hidden="true" className={cn("size-1.5 shrink-0 rounded-full", t.dot)} />}
-      <span className="truncate">{children}</span>
+      {/* Icons inside the label sit inline with the text (svg is display:block by default, which stacked them above it). */}
+      <span className="truncate [&>svg]:mr-1 [&>svg]:inline-block [&>svg]:align-[-0.125em]">{children}</span>
     </span>
   )
 }

@@ -24,13 +24,20 @@ export async function countLicencePausedRuns(db: any, tenantId: string): Promise
 }
 
 export interface ResumePausedDeps {
-  resume: (runId: string) => Promise<{ status: string }>
+  resume: (runId: string, run: { tenantId: string; workflowId: string }) => Promise<{ status: string }>
 }
 
 const defaultDeps: ResumePausedDeps = {
-  resume: async (runId) => {
-    const { resumeWorkflow } = await import('@/lib/workflow-engine')
-    return resumeWorkflow(runId, { outcome: 'resumed', outcome_notes: 'Resumed after the licence was renewed' })
+  resume: async (runId, run) => {
+    // Here, or queued for the processing workers (not waited for: a job).
+    const { resumeRun } = await import('@/lib/processing/dispatch')
+    return resumeRun({
+      runId,
+      tenantId: run.tenantId,
+      workflowId: run.workflowId,
+      variables: { outcome: 'resumed', outcome_notes: 'Resumed after the licence was renewed' },
+      wait: false,
+    })
   },
 }
 
@@ -47,7 +54,7 @@ export async function resumeLicencePausedRuns(
   for (const run of (data ?? []) as Array<{ id: string; workflow_id: string }>) {
     if (input.deadline && Date.now() > input.deadline - 3000) break
     try {
-      const result = await deps.resume(run.id)
+      const result = await deps.resume(run.id, { tenantId: input.tenantId, workflowId: run.workflow_id })
       resumed++
       await writeAudit({
         supabase: db, tenantId: input.tenantId, actorId: null, objectType: 'workflow_run', objectId: run.id, action: 'resume',

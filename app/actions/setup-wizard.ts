@@ -4,8 +4,10 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { getSessionDbWithUser } from '@/lib/providers/db/session'
 import { viewerCanSeeInfrastructure } from '@/lib/admin/infrastructure'
-import { applySwitchAs, saveProviderSettingsAs } from '@/lib/admin/infrastructure-switching'
-import { appSwitchDeps } from '@/lib/admin/switch/app-runner'
+import { changeEmailProviderAs, saveProviderSettingsAs } from '@/lib/admin/infrastructure-settings'
+import { appSettingsDeps } from '@/lib/admin/settings-deps'
+import { isFreeProviderChange, isFreeSettingsChange } from '@/lib/infrastructure/addon'
+import { callInfrastructureAction } from '@/lib/infrastructure/dispatch'
 import { appUrlOrLocalhost, configuredAppUrl } from '@/lib/config/bootstrap'
 import { markStepAs, removeIdpAs, saveEmailAs, saveIdpAs, sendTestEmailAs, testIdpAs, type WizardDeps } from '@/lib/setup/wizard-server'
 import { checkAddress, parseInviteList, type AddressCheck } from '@/lib/setup/wizard-model'
@@ -44,8 +46,19 @@ const deps: WizardDeps = {
     const report = await runDoctor({ config: await getConfig(), areas: ['email'], emailTo: to, timeoutMs: 20_000 })
     return report.checks.map((c) => ({ name: c.name, status: c.status, detail: c.detail }))
   },
-  saveSettings: (user, input) => saveProviderSettingsAs(user, input, appSwitchDeps),
-  applySwitch: (user, input) => applySwitchAs(user, input, appSwitchDeps),
+  // Email and sign-in settings, and the email transport between SMTP, Resend and log-only, are free (core);
+  // anything else (an email API such as SES, settings of an API provider) goes to the Infrastructure add-on.
+  saveSettings: async (user, input) => {
+    const area = (input as { area?: string }).area
+    const current = area === 'email' ? (await (await import('@/lib/config')).getConfig()).providers.email.id : null
+    if (area === 'email' && current && !isFreeSettingsChange('email', current)) return callInfrastructureAction({ id: user.id, email: user.email ?? null }, 'saveSettings', input) as never
+    return saveProviderSettingsAs(user, input, appSettingsDeps)
+  },
+  applySwitch: async (user, input) => {
+    const { area, to } = input as { area?: string; to?: string }
+    if (area === 'email' && typeof to === 'string' && isFreeProviderChange('email', to)) return changeEmailProviderAs(user, input, appSettingsDeps)
+    return callInfrastructureAction({ id: user.id, email: user.email ?? null }, 'applySwitch', input) as never
+  },
   appUrl: () => appUrlOrLocalhost().replace(/\/+$/, ''),
 }
 

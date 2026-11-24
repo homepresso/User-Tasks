@@ -12,9 +12,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const createClientMock = vi.hoisted(() => vi.fn())
 vi.mock('@supabase/supabase-js', () => ({ createClient: createClientMock }))
 const executeWorkflowMock = vi.hoisted(() => vi.fn())
+const recoverRunMock = vi.hoisted(() => vi.fn(async () => null))
 vi.mock('@/lib/workflow-engine', () => ({
   executeWorkflow: executeWorkflowMock,
   resumeTimedPause: vi.fn(),
+  recoverRunFromCheckpoint: recoverRunMock,
 }))
 
 import { coalescedKick, kickQueueProcessor, queueWorkerContext, resetQueueKickState } from '@/lib/process-queue'
@@ -209,7 +211,7 @@ describe('processWorkflowQueueBatch', () => {
     slowRuns(1)
     const result = await processWorkflowQueueBatch({ batchSize: 10, concurrency: 2 })
     expect(result.processed).toBe(3)
-    expect(claimCalls(fake, 'claim_jobs')).toHaveLength(1) // probed once
+    expect(claimCalls(fake, 'claim_jobs')).toHaveLength(2) // probed with a lease, then without, once
     expect(claimCalls(fake, 'claim_next_job').length).toBeGreaterThanOrEqual(3)
   })
 

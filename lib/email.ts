@@ -19,6 +19,8 @@ export interface SendEmailParams {
   to: string | string[]
   subject: string
   body: string
+  /** Plain-text alternative (the provider derives one from the HTML when absent). */
+  text?: string
   from?: string
   replyTo?: string
   /** Attached files (the workflow Send Email step). */
@@ -45,7 +47,7 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
     console.log(`[email] Sending via ${provider.id} to ${toAddresses.join(', ')} from ${fromAddress} — subject: ${params.subject}`)
     const attachments = params.attachments?.length ? params.attachments : undefined
     if (attachments) console.log(`[email] ${attachments.length} attachment(s): ${attachments.map((a) => a.filename).join(', ')}`)
-    const result = await provider.send({ from: fromAddress, to: toAddresses, subject: params.subject, html: params.body, replyTo, ...(attachments ? { attachments } : {}) })
+    const result = await provider.send({ from: fromAddress, to: toAddresses, subject: params.subject, html: params.body, ...(params.text?.trim() ? { text: params.text } : {}), replyTo, ...(attachments ? { attachments } : {}) })
     console.log(`[email] Sent successfully — id: ${result.id}`)
     return { success: true, id: result.id }
   } catch (err) {

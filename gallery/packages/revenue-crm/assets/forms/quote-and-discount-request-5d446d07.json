@@ -1,0 +1,293 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "5d446d07-f2ee-5da5-9e0e-3d2aef25aaf0",
+  "asset": {
+    "id": "5d446d07-f2ee-5da5-9e0e-3d2aef25aaf0",
+    "name": "Quote and discount request",
+    "description": "Build a quote from the price book. Discounts over 10%, or quotes over $100,000, go to the sales manager (and the VP of sales over 20%).",
+    "tags": [
+      "crm",
+      "quotes",
+      "approvals"
+    ],
+    "fields": [
+      {
+        "key": "deal_id",
+        "label": "Deal",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "search_columns": [
+            "deal_id",
+            "name",
+            "account"
+          ],
+          "display_columns": [
+            "deal_id",
+            "name",
+            "account"
+          ],
+          "value_column": "deal_id",
+          "fill": [
+            {
+              "from": "name",
+              "to": "deal_name"
+            },
+            {
+              "from": "account",
+              "to": "account"
+            }
+          ],
+          "sort": {
+            "column": "deal_id",
+            "direction": "desc"
+          }
+        },
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.deal_id}}"
+          }
+        }
+      },
+      {
+        "key": "deal_name",
+        "label": "Deal name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "account",
+        "label": "Account",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "manager",
+        "label": "Sales manager",
+        "type": "user",
+        "required": true,
+        "help_text": "Approves discounts over 10%."
+      },
+      {
+        "key": "valid_until",
+        "label": "Valid until",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "lines",
+        "label": "Products",
+        "type": "repeating_section",
+        "required": true,
+        "repeating_section": {
+          "fields": [
+            {
+              "key": "product",
+              "label": "Product",
+              "type": "lookup",
+              "required": true,
+              "lookup": {
+                "source": "table",
+                "table_id": "02e83507-ed5c-5116-a19a-9714da21fdea",
+                "search_columns": [
+                  "product",
+                  "sku"
+                ],
+                "display_columns": [
+                  "product",
+                  "unit"
+                ],
+                "value_column": "product",
+                "fill": [
+                  {
+                    "from": "list_price",
+                    "to": "unit_price"
+                  }
+                ],
+                "filters": [
+                  {
+                    "column": "active",
+                    "operator": "eq",
+                    "value": "true"
+                  }
+                ],
+                "sort": {
+                  "column": "product",
+                  "direction": "asc"
+                }
+              }
+            },
+            {
+              "key": "qty",
+              "label": "Quantity",
+              "type": "number",
+              "required": true,
+              "min": 1,
+              "default": 1
+            },
+            {
+              "key": "unit_price",
+              "label": "List price (USD)",
+              "type": "currency",
+              "currency": "USD",
+              "min": 0,
+              "required": true
+            },
+            {
+              "key": "discount_pct",
+              "label": "Discount %",
+              "type": "number",
+              "min": 0,
+              "max": 60,
+              "default": 0
+            }
+          ],
+          "layout": {
+            "rows": [
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "product",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "qty",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "discount_pct",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "unit_price",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "add_label": "Add product",
+          "item_title": "{{item.product}}",
+          "min_items": 1,
+          "max_items": 20,
+          "start_items": 1
+        }
+      },
+      {
+        "key": "justification",
+        "label": "Why this discount?",
+        "type": "textarea",
+        "placeholder": "Competitive situation, multi-year commitment, reference customer…"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "deal_id",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "deal_name",
+              "span": 1
+            },
+            {
+              "field_key": "account",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "manager",
+              "span": 1
+            },
+            {
+              "field_key": "valid_until",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "lines",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "justification",
+              "span": 2
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "deal_id",
+          "label": "Deal",
+          "type": "text",
+          "source": "context"
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Request approval",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Quote requested",
+            "text": "Your quote for {{account}} is with the approvers. Follow it on the Quotes page.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Quote and discount request",
+      "subtitle": "Prices in USD from the price book.",
+      "align": "left"
+    }
+  }
+}

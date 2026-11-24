@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks"
 import { after } from "next/server"
 import { getProcessorSecret } from "@/lib/cron-auth"
 import { appUrlOrLocalhost } from "@/lib/config/bootstrap"
+import { notifyProcessing, processingHandoff } from "@/lib/processing/handoff"
 
 /**
  * Set while the queue processor runs jobs in this process. A kick from inside
@@ -79,7 +80,12 @@ export function kickQueueProcessor() {
     return
   }
 
-  const kick = coalescedKick()
+  // queue mode (a processing provider's workers run the queue): only wake
+  // them; the web app never processes its own kick.
+  const kick = processingHandoff().then(
+    (mode) => (mode === "queue" ? notifyProcessing("workflows") : coalescedKick()),
+    () => coalescedKick(),
+  )
   try {
     after(() => kick)
   } catch {
@@ -95,21 +101,34 @@ export function resetQueueKickState() {
 
 /**
  * Kicks the agent queue processor after a job is enqueued (MCP agents_execute,
- * v1 async execute). Non-blocking; if this fetch dies the cron sweep still
- * drains the job on its next tick.
+ * v1 async execute): POST /api/agents/process in web mode, a wake-up of the
+ * processing workers in queue mode. Non-blocking; if this fetch dies the cron
+ * sweep still drains the job on its next tick.
  */
 export function kickAgentQueueProcessor(batchSize = 3) {
+  const kick = processingHandoff().then(
+    (mode) => (mode === "queue" ? notifyProcessing("agents") : sendAgentKick(batchSize)),
+    () => sendAgentKick(batchSize),
+  )
+  try {
+    after(() => kick)
+  } catch {
+    // Outside a request scope: runs on its own.
+  }
+}
+
+function sendAgentKick(batchSize: number): Promise<void> {
   const baseUrl = appUrlOrLocalhost()
   const secret = getProcessorSecret() ?? ""
 
-  fetch(`${baseUrl}/api/agents/process`, {
+  return fetch(`${baseUrl}/api/agents/process`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(secret ? { "x-processor-secret": secret } : {}),
     },
     body: JSON.stringify({ batch_size: batchSize }),
-  }).catch(() => {
+  }).then(() => undefined, () => {
     // Silently ignore — cron sweep will pick it up
   })
 }

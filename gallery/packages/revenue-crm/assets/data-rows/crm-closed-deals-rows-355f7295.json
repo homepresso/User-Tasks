@@ -1,0 +1,1631 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "355f7295-9d17-5988-82b5-da86f7474945",
+  "asset": {
+    "id": "355f7295-9d17-5988-82b5-da86f7474945",
+    "name": "CRM closed deals rows",
+    "rows": [
+      {
+        "id": "e4d33cb1-97fc-55e4-ac29-fce77bf4418c",
+        "data": {
+          "deal_id": "DL-3061",
+          "deal": "Nimbus Standard rollout",
+          "account": "Nimbus Software",
+          "owner": "Sam Torres",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 161310,
+          "close_date": "2026-06-19",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 78
+        }
+      },
+      {
+        "id": "e0d73f4d-f032-5915-81a1-0f5cd9eb0691",
+        "data": {
+          "deal_id": "DL-3062",
+          "deal": "Tidewater site expansion",
+          "account": "Tidewater Utilities",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 14400,
+          "close_date": "2026-06-05",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 119
+        }
+      },
+      {
+        "id": "99631ffe-6991-5f90-82cd-78cc20f95abd",
+        "data": {
+          "deal_id": "DL-3063",
+          "deal": "Marlow Standard rollout",
+          "account": "Marlow & Finch Legal",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 33120,
+          "close_date": "2026-06-06",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 115
+        }
+      },
+      {
+        "id": "d0900a36-2e23-56b7-b7df-bfc33cb7636b",
+        "data": {
+          "deal_id": "DL-3064",
+          "deal": "Willow Professional rollout",
+          "account": "Willow Creek Clinics",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 59400,
+          "close_date": "2026-06-15",
+          "reason": "Product fit",
+          "competitor": "Helix Cloud",
+          "cycle_days": 45
+        }
+      },
+      {
+        "id": "f63be8cf-e913-5d52-968a-abbfdf1d651d",
+        "data": {
+          "deal_id": "DL-3065",
+          "deal": "Bluefin renewal",
+          "account": "Bluefin Analytics",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 32400,
+          "close_date": "2026-06-06",
+          "reason": "Timing",
+          "competitor": "In-house build",
+          "cycle_days": 134
+        }
+      },
+      {
+        "id": "872fd674-bcf1-5a1d-b576-37da424a532c",
+        "data": {
+          "deal_id": "DL-3066",
+          "deal": "Foxglove Standard rollout",
+          "account": "Foxglove Pharma",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 139650,
+          "close_date": "2026-06-19",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 103
+        }
+      },
+      {
+        "id": "a3e56b05-71f9-5777-9017-a3c9de9f9f5b",
+        "data": {
+          "deal_id": "DL-3067",
+          "deal": "Clearwater site expansion",
+          "account": "Clearwater Municipal",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 104760,
+          "close_date": "2026-07-16",
+          "reason": "Timing",
+          "competitor": "Quarry Analytics",
+          "cycle_days": 120
+        }
+      },
+      {
+        "id": "c5d39be0-1967-52d3-90f7-049f82c9d0eb",
+        "data": {
+          "deal_id": "DL-3068",
+          "deal": "Bluefin renewal",
+          "account": "Bluefin Analytics",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "Renewal",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 42120,
+          "close_date": "2026-07-23",
+          "reason": "Value proven",
+          "competitor": "None",
+          "cycle_days": 62
+        }
+      },
+      {
+        "id": "de5f64eb-9719-5610-8d60-0ae81de6dcf1",
+        "data": {
+          "deal_id": "DL-3069",
+          "deal": "Polaris site expansion",
+          "account": "Polaris Aerospace",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 50160,
+          "close_date": "2026-07-27",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 40
+        }
+      },
+      {
+        "id": "635653f0-4e14-50ff-aad8-fc30ba80fdd4",
+        "data": {
+          "deal_id": "DL-3070",
+          "deal": "Atlas renewal",
+          "account": "Atlas Fabrication",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "Renewal",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 150480,
+          "close_date": "2026-07-05",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 70
+        }
+      },
+      {
+        "id": "25a05128-c845-570b-816b-5ed702d6059b",
+        "data": {
+          "deal_id": "DL-3071",
+          "deal": "Silverline renewal",
+          "account": "Silverline Insurance",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Renewal",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 21600,
+          "close_date": "2026-07-23",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 81
+        }
+      },
+      {
+        "id": "10a22aa9-b993-500d-ab0e-9abe6064a709",
+        "data": {
+          "deal_id": "DL-3072",
+          "deal": "Clearwater site expansion",
+          "account": "Clearwater Municipal",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 82200,
+          "close_date": "2026-07-25",
+          "reason": "Timing",
+          "competitor": "None",
+          "cycle_days": 59
+        }
+      },
+      {
+        "id": "56f37478-bfef-5ee2-84fc-66d7f659ff45",
+        "data": {
+          "deal_id": "DL-3073",
+          "deal": "Harborview renewal",
+          "account": "Harborview Logistics",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 56400,
+          "close_date": "2026-07-18",
+          "reason": "Timing",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 101
+        }
+      },
+      {
+        "id": "519be725-d9dd-591b-bed3-8eda83811cf3",
+        "data": {
+          "deal_id": "DL-3074",
+          "deal": "Marlow Professional rollout",
+          "account": "Marlow & Finch Legal",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 37800,
+          "close_date": "2026-08-13",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 97
+        }
+      },
+      {
+        "id": "4e925bc8-78b8-5665-a559-7bcdff490cb8",
+        "data": {
+          "deal_id": "DL-3075",
+          "deal": "Granite site expansion",
+          "account": "Granite Peak Capital",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "Expansion",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 345600,
+          "close_date": "2026-08-08",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 44
+        }
+      },
+      {
+        "id": "e895f875-89cc-5c73-99c6-83677af68bc5",
+        "data": {
+          "deal_id": "DL-3076",
+          "deal": "Redwood renewal",
+          "account": "Redwood Freight",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "Renewal",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 29580,
+          "close_date": "2026-08-14",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 41
+        }
+      },
+      {
+        "id": "df2f3de6-23c4-57ab-b501-bf25f0d88746",
+        "data": {
+          "deal_id": "DL-3077",
+          "deal": "Bayside Enterprise rollout",
+          "account": "Bayside Medical Group",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 215580,
+          "close_date": "2026-08-25",
+          "reason": "Product fit",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 49
+        }
+      },
+      {
+        "id": "fd75ce86-f79f-5d93-ac12-cfed3e1a9aaa",
+        "data": {
+          "deal_id": "DL-3078",
+          "deal": "Silverline site expansion",
+          "account": "Silverline Insurance",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 40800,
+          "close_date": "2026-08-11",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 83
+        }
+      },
+      {
+        "id": "a46c1847-dd47-51dd-8b70-0cc8e7580c1d",
+        "data": {
+          "deal_id": "DL-3079",
+          "deal": "Sagebrush Standard rollout",
+          "account": "Sagebrush Outdoor",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 50220,
+          "close_date": "2026-08-08",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 101
+        }
+      },
+      {
+        "id": "c141fe01-a01b-501c-a19b-d8f2eb0ad168",
+        "data": {
+          "deal_id": "DL-3080",
+          "deal": "Cedar site expansion",
+          "account": "Cedar & Stone Retail",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 72360,
+          "close_date": "2026-08-15",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 47
+        }
+      },
+      {
+        "id": "71aaec32-4f5f-53a5-afa9-a957f8ce1f76",
+        "data": {
+          "deal_id": "DL-3081",
+          "deal": "Foxglove site expansion",
+          "account": "Foxglove Pharma",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 126000,
+          "close_date": "2026-08-06",
+          "reason": "Price",
+          "competitor": "Quarry Analytics",
+          "cycle_days": 88
+        }
+      },
+      {
+        "id": "66fc9e9e-e88c-5464-b444-6cf6850fe650",
+        "data": {
+          "deal_id": "DL-3082",
+          "deal": "Tidewater renewal",
+          "account": "Tidewater Utilities",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Renewal",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 17100,
+          "close_date": "2026-09-06",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 44
+        }
+      },
+      {
+        "id": "1205f5f1-8a96-5edf-b84b-c01813011da8",
+        "data": {
+          "deal_id": "DL-3083",
+          "deal": "Highland Professional rollout",
+          "account": "Highland Dairy Co-op",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 75720,
+          "close_date": "2026-09-10",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 94
+        }
+      },
+      {
+        "id": "e3f1745d-98a2-5619-b95f-205142b4bb3e",
+        "data": {
+          "deal_id": "DL-3084",
+          "deal": "Willow site expansion",
+          "account": "Willow Creek Clinics",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 105600,
+          "close_date": "2026-09-05",
+          "reason": "Price",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 51
+        }
+      },
+      {
+        "id": "eeba84b0-8435-5875-b3ab-5963c919aece",
+        "data": {
+          "deal_id": "DL-3085",
+          "deal": "Harborview renewal",
+          "account": "Harborview Logistics",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 20520,
+          "close_date": "2026-09-04",
+          "reason": "Price",
+          "competitor": "Helix Cloud",
+          "cycle_days": 82
+        }
+      },
+      {
+        "id": "288d45d6-fedb-5898-9c65-e3949a577720",
+        "data": {
+          "deal_id": "DL-3086",
+          "deal": "Orchard Standard rollout",
+          "account": "Orchard Valley Farms",
+          "owner": "Priya Raman",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 75000,
+          "close_date": "2026-09-11",
+          "reason": "Timing",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 159
+        }
+      },
+      {
+        "id": "044e075c-f4fe-5811-b2f4-e664dcb07b05",
+        "data": {
+          "deal_id": "DL-3087",
+          "deal": "Meridian renewal",
+          "account": "Meridian Hospitality",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 45600,
+          "close_date": "2026-09-23",
+          "reason": "Competitor",
+          "competitor": "Quarry Analytics",
+          "cycle_days": 93
+        }
+      },
+      {
+        "id": "76a96f5a-5262-5173-a1f7-5459b16bf69f",
+        "data": {
+          "deal_id": "DL-3088",
+          "deal": "Polaris site expansion",
+          "account": "Polaris Aerospace",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 30780,
+          "close_date": "2026-09-09",
+          "reason": "Competitor",
+          "competitor": "Helix Cloud",
+          "cycle_days": 34
+        }
+      },
+      {
+        "id": "bc0e7710-dea1-5bdf-a0c3-3a16a52a1fff",
+        "data": {
+          "deal_id": "DL-3089",
+          "deal": "Stonegate site expansion",
+          "account": "Stonegate Properties",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 46440,
+          "close_date": "2026-09-08",
+          "reason": "Product fit",
+          "competitor": "In-house build",
+          "cycle_days": 103
+        }
+      },
+      {
+        "id": "688d119d-f76e-5158-809b-ca72ba3b9363",
+        "data": {
+          "deal_id": "DL-3090",
+          "deal": "Foxglove site expansion",
+          "account": "Foxglove Pharma",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 267600,
+          "close_date": "2026-09-13",
+          "reason": "Timing",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 100
+        }
+      },
+      {
+        "id": "5f276d83-34c8-5aa3-a757-bc66dececb63",
+        "data": {
+          "deal_id": "DL-3091",
+          "deal": "Brightline Enterprise rollout",
+          "account": "Brightline Telecom",
+          "owner": "Priya Raman",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 165780,
+          "close_date": "2026-10-16",
+          "reason": "No decision",
+          "competitor": "None",
+          "cycle_days": 123
+        }
+      },
+      {
+        "id": "5216d1f4-e25e-5554-b39a-f341515f1c73",
+        "data": {
+          "deal_id": "DL-3092",
+          "deal": "Ironbridge Professional rollout",
+          "account": "Ironbridge Manufacturing",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 60990,
+          "close_date": "2026-10-24",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 116
+        }
+      },
+      {
+        "id": "82ec905e-a7ee-5bde-9e49-b20709c5efe3",
+        "data": {
+          "deal_id": "DL-3093",
+          "deal": "Copperfield renewal",
+          "account": "Copperfield Foods",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 67260,
+          "close_date": "2026-10-19",
+          "reason": "Competitor",
+          "competitor": "Quarry Analytics",
+          "cycle_days": 83
+        }
+      },
+      {
+        "id": "160c19bc-8317-5cd9-9cbc-5e3bf35159a0",
+        "data": {
+          "deal_id": "DL-3094",
+          "deal": "Cedar site expansion",
+          "account": "Cedar & Stone Retail",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 85200,
+          "close_date": "2026-10-03",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 105
+        }
+      },
+      {
+        "id": "66eaad1a-0e53-5ac6-a6ec-59fc0c4a1432",
+        "data": {
+          "deal_id": "DL-3095",
+          "deal": "Foxglove renewal",
+          "account": "Foxglove Pharma",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 100800,
+          "close_date": "2026-10-07",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 134
+        }
+      },
+      {
+        "id": "36921aaa-4fd7-5c41-9927-fd46dff88512",
+        "data": {
+          "deal_id": "DL-3096",
+          "deal": "Highland Standard rollout",
+          "account": "Highland Dairy Co-op",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 53400,
+          "close_date": "2026-10-07",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 115
+        }
+      },
+      {
+        "id": "9203732d-ece0-5aa6-b50b-f3198b81e8a9",
+        "data": {
+          "deal_id": "DL-3097",
+          "deal": "Bluefin Standard rollout",
+          "account": "Bluefin Analytics",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 31800,
+          "close_date": "2026-10-18",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 114
+        }
+      },
+      {
+        "id": "725f0587-87af-57f7-ba0a-7668b82e62e4",
+        "data": {
+          "deal_id": "DL-3098",
+          "deal": "Willow site expansion",
+          "account": "Willow Creek Clinics",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 43320,
+          "close_date": "2026-10-15",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 78
+        }
+      },
+      {
+        "id": "fda55c4e-1c76-5e9c-b0cd-aea8bedb2472",
+        "data": {
+          "deal_id": "DL-3099",
+          "deal": "Summit site expansion",
+          "account": "Summit Ridge Energy",
+          "owner": "Priya Raman",
+          "region": "East",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 119400,
+          "close_date": "2026-10-21",
+          "reason": "Timing",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 91
+        }
+      },
+      {
+        "id": "c2aa692a-eee9-5085-a18b-d889a35cc7a8",
+        "data": {
+          "deal_id": "DL-3100",
+          "deal": "Sunpath Professional rollout",
+          "account": "Sunpath Solar",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 27930,
+          "close_date": "2026-10-02",
+          "reason": "Product fit",
+          "competitor": "In-house build",
+          "cycle_days": 66
+        }
+      },
+      {
+        "id": "0fb29d2f-f81f-5cc6-90e5-cda565581341",
+        "data": {
+          "deal_id": "DL-3101",
+          "deal": "Harborview renewal",
+          "account": "Harborview Logistics",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 37680,
+          "close_date": "2026-11-10",
+          "reason": "Competitor",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 99
+        }
+      },
+      {
+        "id": "a976d09d-dd9c-52b6-b5b0-485329af5b76",
+        "data": {
+          "deal_id": "DL-3102",
+          "deal": "Cedar Enterprise rollout",
+          "account": "Cedar & Stone Retail",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 86400,
+          "close_date": "2026-11-16",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 92
+        }
+      },
+      {
+        "id": "f761675d-175e-5945-8105-a6cba7aa063c",
+        "data": {
+          "deal_id": "DL-3103",
+          "deal": "Crescent Professional rollout",
+          "account": "Crescent Bay Resorts",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 72600,
+          "close_date": "2026-11-12",
+          "reason": "No decision",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 120
+        }
+      },
+      {
+        "id": "ff0327e4-eee6-56f9-8af6-01eea61d0c9a",
+        "data": {
+          "deal_id": "DL-3104",
+          "deal": "Falcon Professional rollout",
+          "account": "Falcon Ridge Security",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 58200,
+          "close_date": "2026-11-04",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 116
+        }
+      },
+      {
+        "id": "9905fb6c-d292-591f-b443-0079bc8c7140",
+        "data": {
+          "deal_id": "DL-3105",
+          "deal": "Vantage Professional rollout",
+          "account": "Vantage Point Media",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 75810,
+          "close_date": "2026-11-14",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 57
+        }
+      },
+      {
+        "id": "5b2fde2d-0e5a-58b8-9acc-1ea808c9afc3",
+        "data": {
+          "deal_id": "DL-3106",
+          "deal": "Silverline site expansion",
+          "account": "Silverline Insurance",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 23040,
+          "close_date": "2026-11-09",
+          "reason": "Product fit",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 43
+        }
+      },
+      {
+        "id": "285299c3-b450-56ea-b8f3-deead72e0a90",
+        "data": {
+          "deal_id": "DL-3107",
+          "deal": "Granite renewal",
+          "account": "Granite Peak Capital",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "Renewal",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 91800,
+          "close_date": "2026-11-13",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 50
+        }
+      },
+      {
+        "id": "479a1649-8ab0-5982-81e8-aa37d5659aec",
+        "data": {
+          "deal_id": "DL-3108",
+          "deal": "Granite renewal",
+          "account": "Granite Peak Capital",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 135000,
+          "close_date": "2026-11-01",
+          "reason": "Product fit",
+          "competitor": "Quarry Analytics",
+          "cycle_days": 144
+        }
+      },
+      {
+        "id": "2c59e9fe-252d-5303-83df-aa5ce2d0cfa7",
+        "data": {
+          "deal_id": "DL-3109",
+          "deal": "Harborview Professional rollout",
+          "account": "Harborview Logistics",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 37800,
+          "close_date": "2023-03-06",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 113
+        }
+      },
+      {
+        "id": "64185891-b625-530f-8474-95e8077eb68c",
+        "data": {
+          "deal_id": "DL-3110",
+          "deal": "Summit Standard rollout",
+          "account": "Summit Ridge Energy",
+          "owner": "Priya Raman",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 84600,
+          "close_date": "2024-12-04",
+          "reason": "Value proven",
+          "competitor": "None",
+          "cycle_days": 50
+        }
+      },
+      {
+        "id": "9ae2790a-b948-5f13-a5a4-48cbc6921041",
+        "data": {
+          "deal_id": "DL-3112",
+          "deal": "Bluefin Standard rollout",
+          "account": "Bluefin Analytics",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 18810,
+          "close_date": "2024-01-19",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 62
+        }
+      },
+      {
+        "id": "2c71654c-7334-5c88-9f67-0b6598836bdd",
+        "data": {
+          "deal_id": "DL-3113",
+          "deal": "Cedar Professional rollout",
+          "account": "Cedar & Stone Retail",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 73980,
+          "close_date": "2023-11-06",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 69
+        }
+      },
+      {
+        "id": "296f2a8c-acf3-58cf-b901-b8f8a81dd75a",
+        "data": {
+          "deal_id": "DL-3114",
+          "deal": "Cedar Professional rollout",
+          "account": "Cedar & Stone Retail",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 58860,
+          "close_date": "2025-05-12",
+          "reason": "Price",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 99
+        }
+      },
+      {
+        "id": "6d4a64cf-a559-532a-81ae-213800547770",
+        "data": {
+          "deal_id": "DL-3115",
+          "deal": "Ironbridge Standard rollout",
+          "account": "Ironbridge Manufacturing",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 46980,
+          "close_date": "2025-08-05",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 83
+        }
+      },
+      {
+        "id": "47444278-b0a6-5bea-9d6e-fb1199354047",
+        "data": {
+          "deal_id": "DL-3116",
+          "deal": "Ironbridge site expansion",
+          "account": "Ironbridge Manufacturing",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 31128,
+          "close_date": "2025-05-01",
+          "reason": "Timing",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 87
+        }
+      },
+      {
+        "id": "109761fa-1a53-5ed2-bba3-8d3dfe815d3f",
+        "data": {
+          "deal_id": "DL-3117",
+          "deal": "Lumen Standard rollout",
+          "account": "Lumen Credit Union",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 129000,
+          "close_date": "2025-10-29",
+          "reason": "Value proven",
+          "competitor": "None",
+          "cycle_days": 87
+        }
+      },
+      {
+        "id": "f73461b7-c44c-52ff-b863-47226418285c",
+        "data": {
+          "deal_id": "DL-3118",
+          "deal": "Lumen site expansion",
+          "account": "Lumen Credit Union",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 225720,
+          "close_date": "2025-04-04",
+          "reason": "No decision",
+          "competitor": "Quarry Analytics",
+          "cycle_days": 71
+        }
+      },
+      {
+        "id": "dde9b14e-a0e7-5302-b58d-afedde5cd2a6",
+        "data": {
+          "deal_id": "DL-3119",
+          "deal": "Aurora Professional rollout",
+          "account": "Aurora Biotech",
+          "owner": "Priya Raman",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 41952,
+          "close_date": "2025-02-07",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 107
+        }
+      },
+      {
+        "id": "3254a530-6dce-5716-872d-a7d901e4dadc",
+        "data": {
+          "deal_id": "DL-3120",
+          "deal": "Aurora site expansion",
+          "account": "Aurora Biotech",
+          "owner": "Priya Raman",
+          "region": "East",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 64200,
+          "close_date": "2025-08-04",
+          "reason": "Product fit",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 64
+        }
+      },
+      {
+        "id": "f06210d6-50db-5eb4-821f-e8e5c550c910",
+        "data": {
+          "deal_id": "DL-3121",
+          "deal": "Redwood Professional rollout",
+          "account": "Redwood Freight",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 63180,
+          "close_date": "2024-02-29",
+          "reason": "Value proven",
+          "competitor": "None",
+          "cycle_days": 75
+        }
+      },
+      {
+        "id": "09bdbc5f-4551-54e7-80e6-7555e3643186",
+        "data": {
+          "deal_id": "DL-3122",
+          "deal": "Redwood site expansion",
+          "account": "Redwood Freight",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 14400,
+          "close_date": "2025-09-12",
+          "reason": "Competitor",
+          "competitor": "Helix Cloud",
+          "cycle_days": 43
+        }
+      },
+      {
+        "id": "24df095e-f8c7-5d76-89e6-959a6212e820",
+        "data": {
+          "deal_id": "DL-3124",
+          "deal": "Silverline Standard rollout",
+          "account": "Silverline Insurance",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 65400,
+          "close_date": "2023-12-20",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 107
+        }
+      },
+      {
+        "id": "a095ec2f-fbbc-5eb6-875c-2b041d3664ac",
+        "data": {
+          "deal_id": "DL-3125",
+          "deal": "Kestrel Professional rollout",
+          "account": "Kestrel Robotics",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 123690,
+          "close_date": "2024-03-26",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 51
+        }
+      },
+      {
+        "id": "d826ea62-bb99-55f8-a670-19bef09c9d48",
+        "data": {
+          "deal_id": "DL-3126",
+          "deal": "Kestrel site expansion",
+          "account": "Kestrel Robotics",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 152400,
+          "close_date": "2025-10-24",
+          "reason": "Timing",
+          "competitor": "Helix Cloud",
+          "cycle_days": 67
+        }
+      },
+      {
+        "id": "14a05075-1883-54be-ac81-7bec4c51ac19",
+        "data": {
+          "deal_id": "DL-3127",
+          "deal": "Meridian Professional rollout",
+          "account": "Meridian Hospitality",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 45900,
+          "close_date": "2024-12-09",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 49
+        }
+      },
+      {
+        "id": "9be9d582-2efd-524c-9d10-1f87309c2d47",
+        "data": {
+          "deal_id": "DL-3128",
+          "deal": "Oakhaven Standard rollout",
+          "account": "Oakhaven Schools",
+          "owner": "Sam Torres",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 34020,
+          "close_date": "2025-06-02",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 99
+        }
+      },
+      {
+        "id": "83f849c9-1069-50dc-8aab-68f79fcf9f42",
+        "data": {
+          "deal_id": "DL-3129",
+          "deal": "Oakhaven site expansion",
+          "account": "Oakhaven Schools",
+          "owner": "Sam Torres",
+          "region": "East",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 35640,
+          "close_date": "2025-09-22",
+          "reason": "Price",
+          "competitor": "In-house build",
+          "cycle_days": 112
+        }
+      },
+      {
+        "id": "9b7d093f-6764-5ce1-bfe5-6bdb9d9803f4",
+        "data": {
+          "deal_id": "DL-3130",
+          "deal": "Copperfield Professional rollout",
+          "account": "Copperfield Foods",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 108600,
+          "close_date": "2023-01-19",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 89
+        }
+      },
+      {
+        "id": "654de4a4-be43-574e-aa1b-5eef003ee796",
+        "data": {
+          "deal_id": "DL-3131",
+          "deal": "Tidewater Standard rollout",
+          "account": "Tidewater Utilities",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 35544,
+          "close_date": "2024-06-12",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 113
+        }
+      },
+      {
+        "id": "596eba5c-9e7f-5a53-ae4a-2e9456671a45",
+        "data": {
+          "deal_id": "DL-3132",
+          "deal": "Tidewater Standard rollout",
+          "account": "Tidewater Utilities",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 28620,
+          "close_date": "2025-03-07",
+          "reason": "No decision",
+          "competitor": "In-house build",
+          "cycle_days": 67
+        }
+      },
+      {
+        "id": "00ed48b1-def4-5fdc-9030-ae728e491a18",
+        "data": {
+          "deal_id": "DL-3133",
+          "deal": "Granite Standard rollout",
+          "account": "Granite Peak Capital",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 94050,
+          "close_date": "2024-05-22",
+          "reason": "Value proven",
+          "competitor": "None",
+          "cycle_days": 100
+        }
+      },
+      {
+        "id": "9bed7006-7b43-5861-bf73-e1a587ea6d78",
+        "data": {
+          "deal_id": "DL-3134",
+          "deal": "Willow Professional rollout",
+          "account": "Willow Creek Clinics",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 90630,
+          "close_date": "2025-04-29",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 63
+        }
+      },
+      {
+        "id": "7a0247a3-bdf9-59cd-ba60-e9ae4ac3a074",
+        "data": {
+          "deal_id": "DL-3135",
+          "deal": "Nimbus Enterprise rollout",
+          "account": "Nimbus Software",
+          "owner": "Sam Torres",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 304200,
+          "close_date": "2022-12-05",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 80
+        }
+      },
+      {
+        "id": "d9bdca77-33eb-5a73-9a41-a762699eb294",
+        "data": {
+          "deal_id": "DL-3136",
+          "deal": "Nimbus site expansion",
+          "account": "Nimbus Software",
+          "owner": "Sam Torres",
+          "region": "East",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 223560,
+          "close_date": "2025-07-15",
+          "reason": "Timing",
+          "competitor": "None",
+          "cycle_days": 34
+        }
+      },
+      {
+        "id": "fc25b9e7-20f1-579d-b55e-67e1d0335d3e",
+        "data": {
+          "deal_id": "DL-3138",
+          "deal": "Atlas Professional rollout",
+          "account": "Atlas Fabrication",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 117180,
+          "close_date": "2024-08-02",
+          "reason": "Value proven",
+          "competitor": "None",
+          "cycle_days": 81
+        }
+      },
+      {
+        "id": "2386b20b-ad10-50f6-ab25-a2a199099b19",
+        "data": {
+          "deal_id": "DL-3139",
+          "deal": "Atlas renewal",
+          "account": "Atlas Fabrication",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 36480,
+          "close_date": "2025-02-26",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 56
+        }
+      },
+      {
+        "id": "3601270b-2468-53fb-897a-206d1dc87932",
+        "data": {
+          "deal_id": "DL-3140",
+          "deal": "Clearwater Professional rollout",
+          "account": "Clearwater Municipal",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 113088,
+          "close_date": "2025-04-28",
+          "reason": "Champion",
+          "competitor": "None",
+          "cycle_days": 50
+        }
+      },
+      {
+        "id": "7d9cc5c8-d1f3-5d20-8238-47ec9d39f4ec",
+        "data": {
+          "deal_id": "DL-3141",
+          "deal": "Stonegate Professional rollout",
+          "account": "Stonegate Properties",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 81510,
+          "close_date": "2023-05-18",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 74
+        }
+      },
+      {
+        "id": "48f5102c-f166-5f1d-b49e-af18d819ccf8",
+        "data": {
+          "deal_id": "DL-3143",
+          "deal": "Brightline Standard rollout",
+          "account": "Brightline Telecom",
+          "owner": "Priya Raman",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 88350,
+          "close_date": "2024-07-25",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 101
+        }
+      },
+      {
+        "id": "bed83348-17e3-5cf8-a0bd-e1c764627832",
+        "data": {
+          "deal_id": "DL-3144",
+          "deal": "Evergreen Professional rollout",
+          "account": "Evergreen Grocers",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 100890,
+          "close_date": "2025-06-24",
+          "reason": "Relationship",
+          "competitor": "None",
+          "cycle_days": 93
+        }
+      },
+      {
+        "id": "801e871b-d29b-54ce-99f9-8d63dfd7f989",
+        "data": {
+          "deal_id": "DL-3145",
+          "deal": "Evergreen site expansion",
+          "account": "Evergreen Grocers",
+          "owner": "Jonas Berg",
+          "region": "EMEA",
+          "type": "Expansion",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 61020,
+          "close_date": "2026-10-06",
+          "reason": "No decision",
+          "competitor": "None",
+          "cycle_days": 84
+        }
+      },
+      {
+        "id": "eac1650d-f536-5dd5-a823-42e320db1ffe",
+        "data": {
+          "deal_id": "DL-3146",
+          "deal": "Sagebrush Professional rollout",
+          "account": "Sagebrush Outdoor",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Won",
+          "won": 100,
+          "amount": 91800,
+          "close_date": "2025-04-14",
+          "reason": "Price",
+          "competitor": "None",
+          "cycle_days": 45
+        }
+      },
+      {
+        "id": "8e5db6a5-9a42-529f-b04d-be3d4a0ca3bf",
+        "data": {
+          "deal_id": "DL-3147",
+          "deal": "Sagebrush renewal",
+          "account": "Sagebrush Outdoor",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "Renewal",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 51300,
+          "close_date": "2025-02-07",
+          "reason": "Timing",
+          "competitor": "None",
+          "cycle_days": 117
+        }
+      },
+      {
+        "id": "83e8a146-df0c-5057-98b3-f081a7c8653b",
+        "data": {
+          "deal_id": "DL-3148",
+          "deal": "Marlow Standard rollout",
+          "account": "Marlow & Finch Legal",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 57780,
+          "close_date": "2025-04-24",
+          "reason": "Product fit",
+          "competitor": "In-house build",
+          "cycle_days": 73
+        }
+      },
+      {
+        "id": "a4f0df4d-7fcd-5c43-a827-29c4a6b87011",
+        "data": {
+          "deal_id": "DL-3149",
+          "deal": "Quarry Standard rollout",
+          "account": "Quarry Lane Mining",
+          "owner": "Sam Torres",
+          "region": "East",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 71820,
+          "close_date": "2025-05-14",
+          "reason": "Price",
+          "competitor": "In-house build",
+          "cycle_days": 118
+        }
+      },
+      {
+        "id": "6ee0e8b0-0aee-5ea0-966b-41272a0188c0",
+        "data": {
+          "deal_id": "DL-3150",
+          "deal": "Vantage Professional rollout",
+          "account": "Vantage Point Media",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 72600,
+          "close_date": "2025-03-12",
+          "reason": "Product fit",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 124
+        }
+      },
+      {
+        "id": "c13e5ad4-ed83-562b-badb-9d8d8b52343f",
+        "data": {
+          "deal_id": "DL-3151",
+          "deal": "Highland Standard rollout",
+          "account": "Highland Dairy Co-op",
+          "owner": "Alex Morgan",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 39000,
+          "close_date": "2025-07-14",
+          "reason": "Product fit",
+          "competitor": "Quarry Analytics",
+          "cycle_days": 130
+        }
+      },
+      {
+        "id": "c94f0763-acd2-5ad1-84b3-5c8938cae58d",
+        "data": {
+          "deal_id": "DL-3153",
+          "deal": "Juniper Professional rollout",
+          "account": "Juniper Data Systems",
+          "owner": "Alex Morgan",
+          "region": "Central",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 70620,
+          "close_date": "2025-07-10",
+          "reason": "Competitor",
+          "competitor": "Northpeak Systems",
+          "cycle_days": 126
+        }
+      },
+      {
+        "id": "459f94eb-db24-54b6-8323-e27d3eb4e83f",
+        "data": {
+          "deal_id": "DL-3155",
+          "deal": "Riverside Professional rollout",
+          "account": "Riverside Polytechnic",
+          "owner": "Grace Kim",
+          "region": "APAC",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 45000,
+          "close_date": "2025-10-28",
+          "reason": "Price",
+          "competitor": "Quarry Analytics",
+          "cycle_days": 55
+        }
+      },
+      {
+        "id": "e4da05e6-8261-51f1-a79e-828505ac05d4",
+        "data": {
+          "deal_id": "DL-3156",
+          "deal": "Falcon Professional rollout",
+          "account": "Falcon Ridge Security",
+          "owner": "Maya Patel",
+          "region": "West",
+          "type": "New business",
+          "outcome": "Lost",
+          "won": 0,
+          "amount": 34464,
+          "close_date": "2025-02-04",
+          "reason": "Product fit",
+          "competitor": "None",
+          "cycle_days": 137
+        }
+      }
+    ]
+  }
+}

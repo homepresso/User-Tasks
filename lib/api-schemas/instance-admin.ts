@@ -66,4 +66,49 @@ export const getAdminWorkspaceEndpoint = defineEndpoint({
   cli: { resource: 'admin-workspaces', verb: 'get', positional: ['slug'] },
 })
 
-export const instanceAdminEndpoints = [createAdminWorkspaceEndpoint, getAdminWorkspaceEndpoint]
+const queueHealthSchema = z.looseObject({
+  due: z.number(), scheduled: z.number(), processing: z.number(),
+  stuck: z.number().describe('Processing jobs whose lease expired (worker lost); the next claim recovers them'),
+  retrying: z.number(), dead_24h: z.number(), oldest_due_seconds: z.number(), at: z.string(),
+})
+
+export const getAdminProcessingEndpoint = defineEndpoint({
+  method: 'GET', path: '/admin/processing', operationId: 'getAdminProcessing', tags,
+  summary: 'Processing status: where queued work runs, queue health, processing and stuck jobs (instance admin)',
+  description: `${AUTH_NOTE} mode is web (the web app runs queued work) or queue (a processing provider's workers do; the separate processing add-on). provider is that add-on's own status, null without it. jobs lists processing jobs, stuck ones (stuck: true — the worker was lost, its lease expired) first.`,
+  permission: null, auth: 'instance_admin',
+  response: z.looseObject({
+    mode: z.enum(['web', 'queue']),
+    provider: z.looseObject({ extension_id: z.string(), mode: z.string(), label: z.string() }).nullable(),
+    queue: queueHealthSchema.nullable(),
+    jobs: z.array(z.looseObject({ id: z.string(), tenant_id: z.string(), workflow_id: z.string(), stuck: z.boolean() })),
+    docs_href: z.string(),
+  }),
+  cli: { resource: 'admin-processing', verb: 'status' },
+})
+
+export const recoverAdminProcessingJobEndpoint = defineEndpoint({
+  method: 'POST', path: '/admin/processing/jobs/{id}/recover', operationId: 'recoverAdminProcessingJob', tags,
+  summary: 'Retry or cancel a processing job whose worker was lost; force-cancel a live one (instance admin)',
+  description: `${AUTH_NOTE} retry: a stuck job (lease expired) goes back to pending (its unfinished run continues from its checkpoint, or is closed as interrupted). cancel: a stuck job is cancelled and its unfinished run failed; a job whose worker is still alive needs force: true (the worker's late result is discarded). 409 when the job is not processing or its worker is alive (retry). Audited in the job's workspace.`,
+  permission: null, auth: 'instance_admin',
+  params: z.object({ id: z.string().describe('Queue job id') }),
+  body: z.object({ action: z.enum(['retry', 'cancel']), force: z.boolean().optional().describe('Cancel a job whose worker is still alive') }),
+  response: z.looseObject({ action: z.string(), lease_expired: z.boolean(), forced: z.boolean() }),
+  cli: { resource: 'admin-processing', verb: 'recover', positional: ['id'] },
+})
+
+export const configureAdminProcessingEndpoint = defineEndpoint({
+  method: 'PATCH', path: '/admin/processing', operationId: 'configureAdminProcessing', tags,
+  summary: 'Change the processing mode / test-run option (instance admin; needs the processing add-on)',
+  description: `${AUTH_NOTE} mode: web (the web app runs queued work) or workers (separate processing workers do). Switching to workers is refused (409) while no worker has reported recently; a setting fixed by the server environment (PROCESSING_MODE) is refused too. 409 without the processing add-on (and its licence).`,
+  permission: null, auth: 'instance_admin',
+  body: z.object({
+    mode: z.enum(['web', 'workers']).optional().describe('Where queued work runs'),
+    test_runs_on_workers: z.boolean().optional().describe('Designer test runs on workers too (default: in the web app)'),
+  }),
+  response: z.looseObject({ mode: z.string(), label: z.string() }),
+  cli: { resource: 'admin-processing', verb: 'configure' },
+})
+
+export const instanceAdminEndpoints = [createAdminWorkspaceEndpoint, getAdminWorkspaceEndpoint, getAdminProcessingEndpoint, configureAdminProcessingEndpoint, recoverAdminProcessingJobEndpoint]

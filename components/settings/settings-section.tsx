@@ -67,6 +67,7 @@ export function SettingsSaveBar({ dirty, saving = false, error, onDiscard, onSav
     <div
       role="region"
       aria-label="Unsaved changes"
+      data-agent-bar=""
       className={cn(
         "ds-toast sticky bottom-4 z-10 mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-elevated px-4 py-2.5 shadow-elev-2",
         className,

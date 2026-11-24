@@ -1,7 +1,7 @@
 import { after, NextRequest, NextResponse } from "next/server"
 import { getServiceDb } from "@/lib/providers/db"
-import bcrypt from "bcryptjs"
-import { executeWorkflow } from "@/lib/workflow-engine"
+import { isMissingSha256Column, verifyWebhookSecret } from "@/lib/webhook-secret"
+import { handsOff, QueuedRunTimeoutError, startRun, type RunOutcome } from "@/lib/processing/dispatch"
 import { processWorkflowQueueBatch } from "@/lib/workflow-queue-processor"
 import { kickQueueProcessor } from "@/lib/process-queue"
 
@@ -19,13 +19,18 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Find webhook by slug
-  const { data: webhook } = await supabase
+  // Find webhook by slug (without api_key_sha256 until its migration is applied)
+  const findWebhook = (columns: string) => supabase
     .from("workflow_webhooks")
-    .select("id, slug, tenant_id, is_active, api_key_hash, api_key_prefix, payload_mapping, receive_count, workflow:workflows(id, is_active, trigger_type, published_version_id)")
+    .select(`${columns}, workflow:workflows(id, is_active, trigger_type, published_version_id)`)
     .eq("slug", slug)
     .eq("is_active", true)
     .single()
+  const baseColumns = "id, slug, tenant_id, is_active, api_key_hash, api_key_prefix, payload_mapping, receive_count"
+  let found = await findWebhook(`${baseColumns}, api_key_sha256`)
+  const hasSha256Column = !isMissingSha256Column(found.error)
+  if (!hasSha256Column) found = await findWebhook(baseColumns)
+  const webhook = found.data as any
 
   if (!webhook) {
     return NextResponse.json(
@@ -48,15 +53,23 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // Validate API key via bcrypt hash only (plaintext keys are no longer stored).
-  let isValid = false
-  if ((webhook as any).api_key_prefix && !token.startsWith((webhook as any).api_key_prefix)) {
-    isValid = false
-  } else {
-    try { isValid = await bcrypt.compare(token, webhook.api_key_hash) } catch { /* invalid hash */ }
-  }
-  if (!isValid) {
+  // SHA-256 + constant-time compare; legacy bcrypt-only rows verify once and
+  // are upgraded (lib/webhook-secret). Plaintext keys are never stored.
+  const check = await verifyWebhookSecret(webhook, token)
+  if (!check.valid) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401 })
+  }
+  if (check.upgradeSha256 && hasSha256Column) {
+    const sha256 = check.upgradeSha256
+    after(async () => {
+      // Only the secret just verified: a rotation in between changed api_key_hash.
+      await supabase
+        .from("workflow_webhooks")
+        .update({ api_key_sha256: sha256 } as any)
+        .eq("id", webhook.id)
+        .eq("api_key_hash", webhook.api_key_hash)
+        .is("api_key_sha256" as any, null)
+    })
   }
 
   // Parse incoming payload
@@ -99,16 +112,23 @@ export async function POST(request: NextRequest) {
   }
 
   if (workflow.trigger_type === 'middleware_received') {
-    const result = await executeWorkflow(
-      workflow.id,
-      undefined,
-      false,
-      variables,
-      undefined,
-      undefined,
-      undefined,
-      { initiator: { userId: null, via: "webhook" } },
-    )
+    // Request/response: runs here, or on a processing worker while the caller
+    // waits (lib/processing/dispatch; 504 when it does not finish in time).
+    let result: RunOutcome
+    try {
+      result = await startRun({
+        workflowId: workflow.id,
+        tenantId: webhook.tenant_id,
+        variables,
+        initiator: { userId: null, via: "webhook" },
+        priority: 100,
+      })
+    } catch (error) {
+      if (error instanceof QueuedRunTimeoutError) {
+        return NextResponse.json({ received: true, error: "The workflow did not respond in time", job_id: error.jobId }, { status: 504 })
+      }
+      throw error
+    }
 
     const response = result.response ?? {
       statusCode: 200,
@@ -151,7 +171,11 @@ export async function POST(request: NextRequest) {
   })
 
   if (!enqueueError) {
+    // Web mode: run a small batch right after the response. Queue mode: the
+    // processing workers run it (the kick only wakes them).
+    const local = !(await handsOff())
     after(async () => {
+      if (!local) return kickQueueProcessor()
       try {
         await processWorkflowQueueBatch({ batchSize: 5 })
       } catch {
@@ -166,18 +190,18 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  // Queue failed — try direct execution
+  // Queue failed — try direct execution (web mode only: with separate
+  // workers the web app runs nothing; the sender retries).
+  if (await handsOff()) {
+    return NextResponse.json({ received: true, error: "Could not queue the workflow; try again" }, { status: 503 })
+  }
 try {
-    const result = await executeWorkflow(
-      workflow.id,
-      undefined,
-      false,
+    const result = await startRun({
+      workflowId: workflow.id,
+      tenantId: webhook.tenant_id,
       variables,
-      undefined,
-      undefined,
-      undefined,
-      { initiator: { userId: null, via: "webhook" } },
-    )
+      initiator: { userId: null, via: "webhook" },
+    })
     return NextResponse.json({
       received: true,
       executed: true,

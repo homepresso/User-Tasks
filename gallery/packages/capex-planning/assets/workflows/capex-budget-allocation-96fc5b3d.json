@@ -1,0 +1,286 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "96fc5b3d-d255-5d95-bb5d-2c401c0b8834",
+  "asset": {
+    "id": "96fc5b3d-d255-5d95-bb5d-2c401c0b8834",
+    "name": "CapEx budget allocation",
+    "description": "A change from the CapEx budget allocation form: sets, increases or decreases a budget line (adding it if it is new) and moves the business unit’s totals by the same amount.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Allocation saved",
+        "config": {
+          "form_id": "42abc3cd-fb85-5992-996c-eb96d112a990",
+          "form_name": "CapEx budget allocation"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "key",
+        "type": "set_variable",
+        "label": "Budget line",
+        "config": {
+          "name": "budget_key",
+          "expression": "{{form.fiscal_year}}-{{form.bu_code}}-{{form.category}}-{{form.quarter}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Budget {{budget_key}}: {{form.change_type}} ${{form.amount}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "line",
+        "type": "update_data_table",
+        "label": "Read the budget line",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "get",
+          "match_column": "budget_key",
+          "match_value": "{{budget_key}}",
+          "output_row_var": "budget_line"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "old",
+        "type": "set_variable",
+        "label": "Current budget",
+        "config": {
+          "name": "old_budget",
+          "expression": "{{=COALESCE(budget_line.budget, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "new",
+        "type": "set_variable",
+        "label": "New budget",
+        "config": {
+          "name": "new_budget",
+          "expression": "{{=IF(form.change_type = \"Set to\", form.amount, IF(form.change_type = \"Increase by\", old_budget + form.amount, MAX(0, old_budget - form.amount)))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "exists",
+        "type": "condition",
+        "label": "Line exists?",
+        "config": {
+          "branches": [
+            {
+              "label": "Existing line",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{budget_line.row_id}}",
+                  "operator": "is_not_empty"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "upd",
+        "type": "update_data_table",
+        "label": "Update the line",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "update",
+          "match_column": "budget_key",
+          "match_value": "{{budget_key}}",
+          "column_values": {
+            "budget": "{{new_budget}}",
+            "available": "{{=new_budget - COALESCE(budget_line.committed, 0)}}",
+            "committed_pct": "{{=IF(new_budget > 0, ROUND(COALESCE(budget_line.committed, 0) / new_budget * 100, 1), 0)}}"
+          }
+        },
+        "position": {
+          "x": 80,
+          "y": 1040
+        }
+      },
+      {
+        "id": "ins",
+        "type": "update_data_table",
+        "label": "Add the line",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "insert",
+          "column_values": {
+            "budget_key": "{{budget_key}}",
+            "fiscal_year": "{{form.fiscal_year}}",
+            "bu_code": "{{form.bu_code}}",
+            "business_unit": "{{bu_row.business_unit}}",
+            "category": "{{form.category}}",
+            "quarter": "{{form.quarter}}",
+            "period": "{{form.fiscal_year}}-{{form.quarter}}",
+            "budget": "{{new_budget}}",
+            "committed": "0",
+            "spent": "0",
+            "available": "{{new_budget}}",
+            "committed_pct": "0"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1040
+        }
+      },
+      {
+        "id": "bu",
+        "type": "update_data_table",
+        "label": "Read the business unit",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "get",
+          "match_column": "bu_key",
+          "match_value": "{{form.bu_code}}-{{form.fiscal_year}}",
+          "output_row_var": "bu_row"
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "bu_upd",
+        "type": "update_data_table",
+        "label": "Move the business unit totals",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "update",
+          "match_column": "bu_key",
+          "match_value": "{{form.bu_code}}-{{form.fiscal_year}}",
+          "column_values": {
+            "budget": "{{=COALESCE(bu_row.budget, 0) + new_budget - old_budget}}",
+            "available": "{{=COALESCE(bu_row.available, 0) + new_budget - old_budget}}",
+            "committed_pct": "{{=IF(COALESCE(bu_row.budget, 0) + new_budget - old_budget > 0, ROUND(COALESCE(bu_row.committed, 0) / (COALESCE(bu_row.budget, 0) + new_budget - old_budget) * 100, 1), 0)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Saved",
+        "config": {
+          "reason": "{{budget_key}}: ${{old_budget}} → ${{new_budget}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-key",
+        "source": "trigger",
+        "target": "key"
+      },
+      {
+        "id": "e-key-title",
+        "source": "key",
+        "target": "title"
+      },
+      {
+        "id": "e-title-line",
+        "source": "title",
+        "target": "line"
+      },
+      {
+        "id": "e-line-old",
+        "source": "line",
+        "target": "old"
+      },
+      {
+        "id": "e-old-new",
+        "source": "old",
+        "target": "new"
+      },
+      {
+        "id": "e-new-bu",
+        "source": "new",
+        "target": "bu"
+      },
+      {
+        "id": "e-bu-exists",
+        "source": "bu",
+        "target": "exists"
+      },
+      {
+        "id": "e-exists-upd-existing_line",
+        "source": "exists",
+        "target": "upd",
+        "label": "Existing line"
+      },
+      {
+        "id": "e-exists-ins-else",
+        "source": "exists",
+        "target": "ins",
+        "label": "Else"
+      },
+      {
+        "id": "e-upd-bu_upd",
+        "source": "upd",
+        "target": "bu_upd"
+      },
+      {
+        "id": "e-ins-bu_upd",
+        "source": "ins",
+        "target": "bu_upd"
+      },
+      {
+        "id": "e-bu_upd-done",
+        "source": "bu_upd",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

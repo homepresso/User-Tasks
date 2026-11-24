@@ -1,6 +1,6 @@
 import type { InstanceConfig } from '@/lib/config'
 import type { InfrastructureViewer } from '@/lib/admin/instance-admins'
-import type { ActionResult } from '@/lib/admin/infrastructure-switching'
+import type { ActionResult } from '@/lib/admin/infrastructure-settings'
 import type { HostCheck } from '@/lib/install/egress-server'
 import type { SsoIdpConfig } from '@/lib/providers/auth/sso/config'
 import type { SsoCheckResult } from '@/lib/providers/auth/sso/check'

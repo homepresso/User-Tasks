@@ -193,7 +193,7 @@ Without Supabase you run these instead:
 
 The laptop trial and the standalone Docker Compose profile set all of that up for you.
 
-You don't have to decide forever. Each area (database, sign-in, files, email and so on) can move later, one at a time, with \`usertasks-admin switch\`. See [Choose your topology](/docs/topologies) and [Switching providers](/docs/self-hosting/switching-providers).
+You don't have to decide forever. Each area (database, sign-in, files, email and so on) can move later, one at a time, with the [Infrastructure add-on](/docs/self-hosting/infrastructure-add-on) (a paid extension: \`usertasks-admin switch\` and Settings → Infrastructure). See [Choose your topology](/docs/topologies) and [Switching providers](/docs/self-hosting/switching-providers).
 
 ## Next
 
@@ -308,6 +308,8 @@ On Windows, in PowerShell, with Docker Desktop (WSL 2 backend, Linux containers)
 irm https://usertasks.com/install.ps1 | iex
 \`\`\`
 
+Need a native Windows installer (an MSI that runs UserTasks as Windows services, without Docker) for Windows Server? It's available on request: [contact support](/contact).
+
 The installer:
 
 1. Checks the machine (Linux or macOS on amd64 or arm64; memory; disk) and Docker with Compose 2.20 or later. Without Docker it explains how to get it; on Ubuntu, Debian, Fedora, RHEL and similar distributions it offers to install Docker Engine (with your consent, using Docker's own script).
@@ -331,12 +333,12 @@ It's safe to run again: an existing install keeps its \`.env\`, secrets and data
 | \`--build\` | | builds the image locally if it can't be pulled |
 | \`--install-docker\` | | Linux: installs Docker Engine without asking |
 | \`--no-browser\` | \`USERTASKS_NO_BROWSER=1\` | opens the browser when it can |
-| \`--edition sharepoint\` | \`USERTASKS_EDITION\` | the public image; \`sharepoint\` installs the [SharePoint edition](/docs/self-hosting#editions) |
+| \`--edition enterprise\` | \`USERTASKS_EDITION\` | the public image; with \`--licence\` (or \`enterprise\`) [UserTasks Enterprise](/docs/self-hosting#editions), one image with every paid extension, each unlocked by its licence; \`core\` the public image even with a licence; \`sharepoint\` the older SharePoint edition name |
 | \`--licence usertasks.licence\` | \`USERTASKS_LICENCE_FILE\` | needed with \`--edition\`: your trial or purchased licence, checked with usertasks.com and installed for you |
-| \`--bundle <file>\` | | installs from an offline bundle ([air-gapped](/docs/self-hosting/air-gapped#sharepoint-edition)) |
-| \`--bundle-download\` | | makes an offline bundle here instead of installing (with \`--edition\`, \`--licence\`, optional \`--platform\`, \`--out\`) |
+| \`--bundle <file>\` | | installs from an offline bundle ([air-gapped](/docs/self-hosting/air-gapped#enterprise-edition)): its \`.tar\`, or its parts (the folder holding them, or the \`.parts.json\`) |
+| \`--bundle-download\` | | makes an offline bundle here instead of installing (with \`--edition\`, \`--licence\`, optional \`--platform\`, \`--out\`); with \`--from <address of a .parts.json>\`, downloads a prebuilt bundle's parts instead (it resumes after a broken connection and checks every part; [bundles in parts](/docs/self-hosting/air-gapped#bundles-in-parts)) |
 
-Pass options after \`sh -s --\`. In PowerShell they're parameters (\`-Version\`, \`-Dir\`, \`-Port\`, \`-Url\`, \`-Preset\`, \`-Project\`, \`-NonInteractive\`, \`-Build\`, \`-NoBrowser\`, \`-Edition\`, \`-Licence\`, \`-Bundle\`, \`-BundleDownload\`, \`-Platform\`, \`-Out\`):
+Pass options after \`sh -s --\`. In PowerShell they're parameters (\`-Version\`, \`-Dir\`, \`-Port\`, \`-Url\`, \`-Preset\`, \`-Project\`, \`-NonInteractive\`, \`-Build\`, \`-NoBrowser\`, \`-Edition\`, \`-Licence\`, \`-Bundle\`, \`-BundleDownload\`, \`-From\`, \`-Platform\`, \`-Out\`):
 
 \`\`\`bash
 curl -fsSL https://usertasks.com/install.sh | sh -s -- --port 8080 --url https://tasks.example.com --non-interactive
@@ -761,7 +763,7 @@ The Helm chart can run it as a post-install Job (\`bootstrap.enabled\`, \`bootst
   {
     slug: 'self-hosting/setup-wizard',
     title: 'Setup wizard',
-    description: 'The in-browser setup wizard after install: admin account, organisation and web address, services with health checks (change email, files, sign-in and background jobs in place, or move off Supabase), SSO with Entra ID / AD FS / OIDC / SAML, a test email, and invitations.',
+    description: 'The in-browser setup wizard after install: admin account, organisation and web address, services with health checks (email and sign-in settings in place; changing providers or moving off Supabase with the Infrastructure add-on), SSO with Entra ID / AD FS / OIDC / SAML, a test email, and invitations.',
     body: `
 After you [create your admin account](/docs/self-hosting/admin-account), UserTasks opens the setup wizard. It walks you through the rest of the setup in plain steps. You can skip any step and come back later from **Settings → Setup wizard** (\`/settings/setup\`). **Settings → Infrastructure** has the same controls for services.
 
@@ -818,7 +820,9 @@ Changing providers from the page can be turned off with \`INFRA_UI_SWITCHING=fal
 
 ### Moving off Supabase
 
-If any service runs on Supabase, the Services step lists how to move each one off it, one at a time, in this order:
+Staying on Supabase needs nothing more. Moving services off it is part of the [Infrastructure add-on](/docs/self-hosting/infrastructure-add-on), a paid extension. Without the add-on, the Services step shows what it does and how to get it, and **Change…** on a card leads there. Email and sign-in settings stay free.
+
+With the add-on, if any service runs on Supabase, its page (opened from the Services step) lists how to move each one off it, one at a time, in this order:
 
 1. **Files** to a local folder or S3-compatible storage. This copies every file and keeps the original.
 2. **Live updates** to built-in live updates. This is a settings change only.
@@ -1576,7 +1580,7 @@ Run **Check again** until Wildcard DNS, Wildcard certificate and App answers are
 
 ## 7. Optional: set the workspace address
 
-With \`APP_BASE_DOMAIN\` set, open **Settings → General → Workspace address**. Every member can see it; changing it needs **Edit settings**.
+With \`APP_BASE_DOMAIN\` set, open **Settings → General → Workspace address**. Changing it needs **Edit settings** (owners and admins).
 
 - **Rules:** lowercase letters a–z, numbers and hyphens, 3–40 characters, not starting or ending with a hyphen, no two hyphens in a row. Reserved names such as \`www\`, \`app\`, \`api\`, \`docs\`, \`admin\` and \`mail\` can't be used. Availability is checked as you type.
 - **A head start:** workspaces whose organisation slug fits the rules already have it as their address.
@@ -1700,7 +1704,7 @@ usertasks upgrade
 
 It refuses to go to an older version unless you add \`--allow-downgrade\`. On Windows, the same in PowerShell: \`usertasks upgrade -To 0.2.0\`.
 
-**Editions** (the [SharePoint edition](/docs/self-hosting#editions)): before step 1 the licence is checked with usertasks.com (the licence installed in UserTasks, or \`--licence <file>\`); a lapsed licence stops the upgrade with the reason and changes nothing. \`--edition sharepoint\` switches a plain install to the SharePoint edition and \`--edition core\` back, keeping all data; \`--bundle <file>\` upgrades from an offline bundle.
+**Editions** ([UserTasks Enterprise](/docs/self-hosting#editions)): before step 1 the licence is checked with usertasks.com (the licence installed in UserTasks, or \`--licence <file>\`); a lapsed licence stops the upgrade with the reason and changes nothing. \`--edition enterprise\` switches a plain install (or one made as the older SharePoint edition) to UserTasks Enterprise and \`--edition core\` back, keeping all data; \`--bundle <file>\` upgrades from an offline bundle. On Enterprise, adding another paid extension is just installing its licence: no upgrade needed.
 
 ### Laptop trial and Docker Compose (standalone)
 

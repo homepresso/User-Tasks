@@ -63,6 +63,8 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
         {...(description == null ? { 'aria-describedby': undefined } : {})}
         {...props}
       >
+        {/* No visible header: a slim top-right bar for the Agent button, collapsed (empty) unless the Agent is hosted here. */}
+        {(title == null || hideHeader) && <DialogAgentSlot bar />}
         {title != null && (hideHeader ? (
           <RadixDialog.Title className="sr-only">{title}</RadixDialog.Title>
         ) : (
@@ -82,12 +84,29 @@ export function DialogHeader({ title, description, showClose = true, className }
         <RadixDialog.Title className="text-base font-semibold text-fg">{title}</RadixDialog.Title>
         {description != null && <RadixDialog.Description className="mt-1 text-ui text-fg-muted">{description}</RadixDialog.Description>}
       </div>
+      <DialogAgentSlot />
       {showClose && (
         <RadixDialog.Close asChild>
           <IconButton label="Close" icon={<X />} size="sm" className="-mr-2 -mt-1" noTooltip />
         </RadixDialog.Close>
       )}
     </div>
+  )
+}
+
+/**
+ * Where the Agent's icon button goes in a pop-up (AssistantHost portals it
+ * here when this dialog hosts the Agent): in the header row, left of the
+ * close button. Empty, it takes no space (`empty:hidden`). Custom dialog
+ * headers render one too; `bar` is a slim right-aligned row of its own for
+ * dialogs without a visible header.
+ */
+export function DialogAgentSlot({ bar = false, className }: { bar?: boolean; className?: string }) {
+  return (
+    <span
+      data-agent-header-slot={bar ? 'bar' : ''}
+      className={cn(bar ? 'flex shrink-0 justify-end px-3 pt-2 empty:hidden' : 'inline-flex shrink-0 items-center -mt-1 empty:hidden', className)}
+    />
   )
 }
 
@@ -98,7 +117,7 @@ export function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDiv
 
 /** Footer: right-aligned actions over a subtle hairline. */
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border-subtle px-6 py-4 max-sm:px-4', className)} {...props} />
+  return <div data-agent-bar="" className={cn('flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border-subtle px-6 py-4 max-sm:px-4', className)} {...props} />
 }
 
 export const DialogTitle = RadixDialog.Title

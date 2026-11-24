@@ -1,0 +1,111 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "04a88929-b4bc-543e-9105-5fc66cf95b60",
+  "asset": {
+    "id": "04a88929-b4bc-543e-9105-5fc66cf95b60",
+    "name": "Goal check-in",
+    "description": "From the Goal check-in form: updates the goal's progress, status, progress bar and last check-in date.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Checked in",
+        "config": {
+          "form_id": "34632d26-8b59-5918-988c-c788cbda0f7c",
+          "form_name": "Goal check-in"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Check-in · {{form.objective}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "bar",
+        "type": "set_variable",
+        "label": "Progress bar",
+        "config": {
+          "name": "progress_bar",
+          "expression": "{{=CONCAT(LEFT(\"▰▰▰▰▰▰▰▰▰▰\", ROUND(form.progress / 10, 0)), LEFT(\"▱▱▱▱▱▱▱▱▱▱\", 10 - ROUND(form.progress / 10, 0)), \" \", form.progress, \"%\")}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "save",
+        "type": "update_data_table",
+        "label": "Update the goal",
+        "config": {
+          "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+          "table_name": "Goals and OKRs",
+          "operation": "update",
+          "match_column": "goal_ref",
+          "match_value": "{{form.goal}}",
+          "column_values": {
+            "progress": "{{form.progress}}",
+            "status": "{{form.status}}",
+            "progress_bar": "{{progress_bar}}",
+            "last_check_in": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Goal updated",
+        "config": {
+          "reason": "{{form.goal}}: {{form.progress}}% ({{form.status}})"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-bar",
+        "source": "title",
+        "target": "bar"
+      },
+      {
+        "id": "e-bar-save",
+        "source": "bar",
+        "target": "save"
+      },
+      {
+        "id": "e-save-end",
+        "source": "save",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

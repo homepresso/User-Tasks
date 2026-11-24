@@ -47,3 +47,8 @@ scripts/seed/local-fixture.ts
 # Backstop in case one is copied in by mistake: only the free example ships.
 extensions/**
 !extensions/example-hello/**
+
+# Internal packages (internal/packages, internal/dist): operator-only, never published
+internal/**
+# Internal Cloud admin package tests and fixture (the package itself is internal/, excluded above)
+__tests__/cloud-admin-package.test.ts

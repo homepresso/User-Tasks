@@ -60,6 +60,7 @@ import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@
 import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
+import { TaskTags } from "@/components/tasks/task-tags"
 import { UnreadDot, unreadTitleClass } from "@/components/tasks/unread-dot"
 import { MarkAllReadButton } from "@/components/tasks/task-read-controls"
 import { showsUnread } from "@/lib/tasks/unread"
@@ -485,8 +486,9 @@ function SortableTaskRow({ task, onNotice }: { task: any; onNotice: (message: st
               <UnreadDot unread={unread} />
               <span className={cn("truncate font-medium text-fg", unreadTitleClass(unread), isDone && "text-fg-muted line-through")} title={task.title}>{task.title}</span>
             </span>
-            {(task.tenant || task.assignee || hasChildren) && (
+            {(task.tenant || task.assignee || hasChildren || task.tags?.length > 0) && (
               <span className="flex w-full min-w-0 items-center gap-1.5 pl-[22px] text-xs text-fg-muted">
+                <TaskTags tags={task.tags} max={3} />
                 <span className="truncate">
                   {[task.tenant?.name, task.assignee?.display_name].filter(Boolean).join(" · ")}
                   {hasChildren && <>{task.tenant || task.assignee ? " · " : ""}<span className="num">{task.completed_child_count ?? 0}/{task.child_count ?? 0}</span> subtasks</>}
@@ -575,6 +577,7 @@ function TaskCard({ task, onNotice }: { task: any; onNotice: (message: string) =
         done={isDone}
         unread={unread}
         code={getTaskCode(task)}
+        tags={task.tags}
         meta={(meta || hasChildren) ? (
           <>
             {meta}

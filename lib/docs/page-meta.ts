@@ -18,9 +18,11 @@ import { TASK_PAGES } from './content/tasks'
 import { CUSTOM_FORM_CONTROLS_PAGE } from './content/custom-form-controls'
 import { GALLERY_FORM_CONTROLS_PAGE } from './content/gallery-form-controls'
 import { FORM_WIZARD_PAGE } from './content/form-wizard'
+import { APPS_PAGE } from './content/apps'
 import { SURVEY_CONTROLS_PAGE } from './content/survey-controls'
 import { INFOPATH_IMPORT_PAGE } from './content/infopath-import'
 import { NINTEX_IMPORT_PAGE } from './content/nintex-import'
+import { PDF_IMPORT_PAGE } from './content/pdf-import'
 import { INTEGRATION_PAGES } from './content/integrations'
 import { BUILDING_BLOCK_PAGES } from './content/building-blocks'
 import { GOVERNANCE_PAGES } from './content/governance'
@@ -46,9 +48,11 @@ const SOURCES: Array<[DocPageDef | DocPageDef[], string]> = [
   [CUSTOM_FORM_CONTROLS_PAGE, `${CONTENT}/custom-form-controls.ts`],
   [GALLERY_FORM_CONTROLS_PAGE, `${CONTENT}/gallery-form-controls.ts`],
   [FORM_WIZARD_PAGE, `${CONTENT}/form-wizard.ts`],
+  [APPS_PAGE, `${CONTENT}/apps.ts`],
   [SURVEY_CONTROLS_PAGE, `${CONTENT}/survey-controls.ts`],
   [INFOPATH_IMPORT_PAGE, `${CONTENT}/infopath-import.ts`],
   [NINTEX_IMPORT_PAGE, `${CONTENT}/nintex-import.ts`],
+  [PDF_IMPORT_PAGE, `${CONTENT}/pdf-import.ts`],
   [GETTING_STARTED_PAGES, `${CONTENT}/getting-started.ts`],
   [WORKFLOW_PAGES, `${CONTENT}/workflows.ts`],
   [DOCUMENT_PAGES, `${CONTENT}/documents.ts`],

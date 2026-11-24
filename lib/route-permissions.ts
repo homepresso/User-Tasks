@@ -20,6 +20,7 @@ export const ROUTE_RULES: RouteRule[] = [
   { prefix: '/settings/github-sync', anyOf: ['sync.view', 'settings.view'] },
   { prefix: '/settings/sso', allOf: ['settings.view'] },
   { prefix: '/settings/theme', allOf: ['settings.view'] },
+  { prefix: '/settings/tags', anyOf: ['settings.view', 'tags.manage'] },
   { prefix: '/settings/api-keys', allOf: ['settings.manage_api_keys'] },
   { prefix: '/settings/webhooks', allOf: ['settings.manage_webhooks'] },
   { prefix: '/settings/invitations', allOf: ['team.invite'] },
@@ -64,6 +65,8 @@ export const ROUTE_RULES: RouteRule[] = [
   { prefix: '/reports/retention', allOf: ['reports.view'], anyOf: ['team.change_roles', 'settings.view'] },
   { prefix: '/reports/builder', allOf: ['reports.view', 'reports.create'] },
   { prefix: '/reports', allOf: ['reports.view'] },
+  // Apps: each app's audience and editors decide (lib/services/apps.ts); the page needs Use apps or Build apps.
+  { prefix: '/apps', anyOf: ['apps.view', 'apps.manage'] },
   { prefix: '/data', allOf: ['data.view'] },
   // Task tracker: Following for everyone with task access (followed and shared-with-me tasks); its other tabs read tasks.assigned (tasks.view_all).
   { prefix: '/tasks/assigned', anyOf: ['tasks.view_own', 'tasks.view_all'] },
@@ -84,6 +87,7 @@ export const OPEN_ROUTES: Readonly<Record<string, string>> = {
   '/settings/infrastructure': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure), not a workspace permission',
   '/settings/setup': 'Setup wizard: instance admin only — enforced server-side (viewerCanSeeInfrastructure); every action re-checks',
   '/settings/workspace-dns': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure)',
+  '/settings/query': 'Query settings: self-hosted needs settings.view (settings.edit to change); the cloud edition is instance admin only, 404 otherwise — enforced server-side (lib/services/query-settings, queryPageAccess)',
   '/settings/licence': 'Instance admin only — enforced server-side (viewerCanSeeInfrastructure); every licence action re-checks',
   '/settings/gallery-review': 'Gallery moderators only — enforced server-side (requireModerator)',
   '/settings/requests': 'Team requests: instance admin only — enforced server-side (lib/services/team-requests, viewerCanSeeInfrastructure); every action re-checks',

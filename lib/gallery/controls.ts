@@ -276,7 +276,7 @@ export function validateControlSource(source: ControlSource, all?: Map<string, C
   const tablesById = new Map<string, any>((extras.data_tables ?? []).map((t: any) => [String(t.id), t]))
   for (const form of extras.forms ?? []) {
     const def = normalizeFormDefinition(form)
-    issues.push(...formIssues(def, tablesById, `${assetsPath}/forms (${form.name})`))
+    issues.push(...formIssues(def, tablesById, `${assetsPath}/forms (${form.name})`, null, form.fields))
     for (const field of (form.fields ?? []) as any[]) {
       if (field?.type !== 'custom') continue
       const config = normalizeCustomControlConfig(field.custom)

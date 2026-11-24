@@ -15,7 +15,7 @@ import { resolveStorageUrl } from '@/lib/storage/refs'
 import { cn } from '@/lib/utils'
 import { setFormSignInSettingsAction } from '@/app/actions/form-sign-in'
 import {
-  DEFAULT_SIGN_IN_SETTINGS, PLATFORM_ACCENT, SIGN_IN_DESIGNS, SIGN_IN_LIMITS, formSignInInputProblem, signInColors,
+  DEFAULT_SIGN_IN_SETTINGS, PLATFORM_ACCENT, SIGN_IN_DESIGNS, SIGN_IN_LIMITS, formSignInInputProblem, settingsForApp, signInColors,
   type FormSignInSettings,
 } from '@/lib/forms/sign-in-page'
 import { signInThemeStyle } from '@/lib/forms/sign-in-theme'
@@ -26,12 +26,13 @@ import { LogoUpload } from './logo-upload'
 import { SettingsSaveBar } from './settings-section'
 
 /**
- * Settings → Forms → Form sign-in page (settings.edit to change; anyone in
- * Settings sees it): what visitors see when a form link needs them to sign
- * in (/form-login). Logo, one of ten designs, the wording, an optional
+ * Settings → Sign-in page (also under Settings → Forms; settings.edit to
+ * change; anyone in Settings sees it): what visitors see when a form link
+ * (/form-login) or an app (/sign-in) needs them to sign in — and whether
+ * form links and apps use it at all. Logo, one of ten designs, the wording, an optional
  * support link and the look — the UserTasks colours with an optional accent
  * colour, or the workspace theme — with a live desktop / mobile preview. Stored in
- * tenants.settings.forms.sign_in (lib/services/form-sign-in-page.ts).
+ * tenants.settings.sign_in (lib/services/form-sign-in-page.ts).
  */
 
 const PREVIEW_OPTIONS = { provider: 'builtin' as const, password: true, sso: [] }
@@ -45,6 +46,7 @@ export function FormSignInCard({ tenantId, readOnly }: { tenantId: string; readO
   const [saved, setSaved] = useState<FormSignInSettings | null>(null)
   const [draft, setDraft] = useState<FormSignInSettings>(DEFAULT_SIGN_IN_SETTINGS)
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
+  const [target, setTarget] = useState<'form' | 'app'>('form')
   const [notice, setNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const [logoKey, setLogoKey] = useState(0)
   const guard = useSubmitGuard()
@@ -88,7 +90,14 @@ export function FormSignInCard({ tenantId, readOnly }: { tenantId: string; readO
     <div className="space-y-6" data-testid="form-sign-in-card">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <fieldset disabled={readOnly} className="min-w-0 space-y-5">
-          <legend className="sr-only">Form sign-in page</legend>
+          <legend className="sr-only">Sign-in page for forms and apps</legend>
+
+          <div className="space-y-2 rounded-lg border border-border p-3" data-sign-in-use>
+            <p className="text-ui font-medium text-fg">Use this page for</p>
+            <Switch checked={draft.use_for_forms} onCheckedChange={(on) => set('use_for_forms', on)} label="Form links" data-testid="sign-in-use-forms" />
+            <Switch checked={draft.use_for_apps} onCheckedChange={(on) => set('use_for_apps', on)} label="Apps" data-testid="sign-in-use-apps" />
+            <p className="text-2xs text-fg-muted">Off: the standard UserTasks sign-in instead. An app can choose for itself in its settings (Share &amp; sign-in).</p>
+          </div>
 
           <div>
             <p className="mb-2 text-ui font-medium text-fg" id="fsi-design-label">Design</p>
@@ -144,6 +153,7 @@ export function FormSignInCard({ tenantId, readOnly }: { tenantId: string; readO
                 : 'Off: the UserTasks look (warm neutrals, ink buttons, the UserTasks logo until you upload one), with your accent colour if set.'}
             </p>
           </div>
+          <Switch checked={draft.use_app_color} onCheckedChange={(on) => set('use_app_color', on)} label="Use each app’s colour as the accent on its sign-in page" data-testid="sign-in-app-color" />
           <Field label="Accent colour"
             description={draft.use_workspace_theme ? 'Not used while the page follows the workspace theme (its primary colour is used).' : draft.accent_color ? 'Buttons and coloured panels. Text on it is chosen to stay readable.' : 'The UserTasks default (ink).'}>
             <div className={cn('flex items-center gap-2', draft.use_workspace_theme && 'opacity-50')} data-sign-in-accent>
@@ -164,15 +174,19 @@ export function FormSignInCard({ tenantId, readOnly }: { tenantId: string; readO
         <div className="min-w-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-ui font-medium text-fg">Preview</p>
+            <div className="flex items-center gap-2">
+            <SegmentedControl aria-label="Preview for" size="sm" value={target} onValueChange={setTarget}
+              options={[{ value: 'form', label: 'Form' }, { value: 'app', label: 'App' }]} />
             <SegmentedControl aria-label="Preview size" size="sm" value={device} onValueChange={setDevice}
               options={[{ value: 'desktop', icon: <Monitor className="size-4" />, label: 'Desktop' }, { value: 'mobile', icon: <Smartphone className="size-4" />, label: 'Mobile' }]} />
+            </div>
           </div>
           <ScaledPreview device={device}>
-            <FormSignInScreen preview settings={draft} logoUrl={draft.logo_url ? resolveStorageUrl(draft.logo_url) : null}
+            <FormSignInScreen preview settings={target === 'app' ? settingsForApp(draft) : draft} target={target} logoUrl={draft.logo_url ? resolveStorageUrl(draft.logo_url) : null}
               workspace={{ name: 'Your workspace', slug: 'your-workspace' }} themeStyle={themeStyle} options={PREVIEW_OPTIONS}
-              returnPath="/f/preview" ssoStart={null} openUrl="#" embed={false} />
+              returnPath={target === 'app' ? '/app/preview' : '/f/preview'} ssoStart={null} openUrl="#" embed={false} />
           </ScaledPreview>
-          <p className="text-2xs text-fg-muted">Shown when a form link (<code>/f/…</code> or <code>/form/…</code>) needs someone to sign in. Embedded in another website, the page uses the Compact design with &ldquo;Open the form in a new tab&rdquo;.</p>
+          <p className="text-2xs text-fg-muted">Shown when a form link (<code>/f/…</code>, <code>/form/…</code>) or an app (<code>/app/…</code>, <code>/apps/…</code>) needs someone to sign in. Embedded in another website, the page uses the Compact design with &ldquo;Open … in a new tab&rdquo;.</p>
         </div>
       </div>
 

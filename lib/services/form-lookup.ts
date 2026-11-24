@@ -38,6 +38,7 @@ import {
 import { answersLookups, normalizeTaskFields, type TaskFieldDef } from '@/lib/task-field-schema'
 import { LOOKUP_ROW_KEY } from '@/lib/forms/lookup'
 import { childListAt, type ListFieldConfig } from '@/lib/forms/list-field'
+import { findFieldDeep } from '@/lib/forms/repeating-section'
 import type { DataTableColumn } from '@/lib/forms/data-table'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
@@ -631,6 +632,9 @@ export function lookupTargetField(fields: TaskFieldDef[], key: unknown): TaskFie
   const k = String(key ?? '')
   const direct = fields.find((f) => f.key === k && answersLookups(f))
   if (direct) return direct
+  // A control inside a repeating section (inner keys are unique over the form, any level).
+  const inner = findFieldDeep(fields, k)?.field
+  if (inner && answersLookups(inner)) return inner
   // A Data table's bound column (lib/grid/column-model.ts): `<field>.<column>` — the column key may be an API path.
   const table = dataTableColumnAt(fields, k)
   if (table) return table.column.binding ? { key: k, label: table.column.label, type: 'lookup', lookup: table.column.binding } : null

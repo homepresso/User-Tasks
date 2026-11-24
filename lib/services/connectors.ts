@@ -75,7 +75,13 @@ function validateValues(definition: ConnectorDefinition, config: Values, credent
 }
 
 function integrationConfigFor(definition: ConnectorDefinition, config: Values, credentials: Values) {
-  const built = definition.buildIntegrationConfig(config, credentials)
+  let built: ReturnType<ConnectorDefinition['buildIntegrationConfig']>
+  try {
+    built = definition.buildIntegrationConfig(config, credentials)
+  } catch (error: any) {
+    // A definition that rejects a malformed setting (e.g. Baseten's deployment URL) is a 400, not a 500.
+    throw ServiceError.validation(error?.message ?? 'Connector configuration is invalid')
+  }
   // Non-secret settings (account ids, API versions …) the reference templates use as {{placeholders}}.
   return { ...built, headers: { ...(built.headers ?? {}) }, template_vars: connectorTemplateVars(definition, config, credentials) }
 }

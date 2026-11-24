@@ -6,7 +6,10 @@
 // retention policies, MCP servers, linked forms (form_id → the form, and its
 // saved theme via theme_id; a form's options_source table_id → the data
 // table) — by walking the exported asset JSON for
-// the same id keys import remaps (ID_KEY_TO_MAP).
+// the same id keys import remaps (ID_KEY_TO_MAP). Apps are walked by the app
+// reference walker (lib/apps/references.ts): every form, workflow, data
+// table, report, API reference and agent its pages, menu and settings use,
+// custom roles in visibility rules, and other apps it links to (by slug).
 //
 // People (user / team ids) never travel; they are reported separately so a
 // package can turn them into requirements. System roles never travel either;
@@ -18,16 +21,17 @@ import { buildManifestExport } from './export'
 import { ID_KEY_TO_MAP } from './id-maps'
 import { isUuid, PLAN_SECTIONS } from './plan'
 import { formPageOf } from '@/lib/forms/form-page'
+import { appDependencyRefs, isRetiredAppAsset } from './apps'
 
 export type DependencyAssetType =
   | 'workflow' | 'workflow_activity' | 'data_table' | 'integration' | 'connector' | 'decision_table'
   | 'email_template' | 'agent' | 'report' | 'role' | 'mcp_server' | 'retention_policy' | 'log_destination'
-  | 'form' | 'form_theme' | 'form_control'
+  | 'form' | 'form_theme' | 'form_control' | 'app'
 
 export const DEPENDENCY_TYPES: readonly DependencyAssetType[] = [
   'workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table',
   'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination',
-  'form', 'form_theme', 'form_control',
+  'form', 'form_theme', 'form_control', 'app',
 ]
 
 export interface AssetRef { type: DependencyAssetType; id: string }
@@ -74,7 +78,19 @@ export interface FoundRef {
  * Every asset id referenced inside one exported asset (pure). Custom
  * activity keys are returned as `activity_keys`; people separately.
  */
-export function scanAssetReferences(asset: unknown): { refs: FoundRef[]; activityKeys: string[]; controlTags: string[]; people: Array<{ kind: 'user' | 'team'; id: string; path: Array<string | number> }> } {
+export function scanAssetReferences(asset: unknown): { refs: FoundRef[]; activityKeys: string[]; controlTags: string[]; people: Array<{ kind: 'user' | 'team'; id: string; path: Array<string | number> }>; appSlugs?: string[] } {
+  // An app (pages + menu + settings): the app reference walker. Its people
+  // never travel (an install keeps the ones that exist and drops the rest),
+  // so they are not package requirements.
+  if (isAppAsset(asset)) {
+    const refs: FoundRef[] = []
+    const appSlugs: string[] = []
+    for (const ref of appDependencyRefs(asset as any)) {
+      if (ref.kind === 'app') appSlugs.push(ref.id)
+      else refs.push({ type: ref.kind as DependencyAssetType | 'reference', id: ref.id, path: ref.path })
+    }
+    return { refs, activityKeys: [], controlTags: [], people: [], appSlugs }
+  }
   const refs: FoundRef[] = []
   const activityKeys: string[] = []
   // Custom form controls are referenced by tag (field / start-form variable `custom.tag`).
@@ -118,6 +134,11 @@ export function scanAssetReferences(asset: unknown): { refs: FoundRef[]; activit
   }
   walk(asset, [], 0)
   return { refs, activityKeys, controlTags, people }
+}
+
+/** An exported app asset (lib/portability/apps.ts): pages, a menu and settings. */
+export function isAppAsset(asset: unknown): boolean {
+  return !isRetiredAppAsset(asset) && Array.isArray((asset as any).menu) && 'settings' in (asset as any)
 }
 
 const key = (ref: AssetRef) => `${ref.type}:${ref.id}`
@@ -185,6 +206,7 @@ export async function resolveDependencyClosure(
     const referenceIds: Array<{ id: string; by: AssetRef }> = []
     const activityKeys: Array<{ key: string; by: AssetRef }> = []
     const controlTags: Array<{ tag: string; by: AssetRef }> = []
+    const appSlugs: Array<{ slug: string; by: AssetRef }> = []
     for (const { section, asset } of bySection) {
       const type = SECTION_TYPE[section]
       const owner: AssetRef | null = type === 'reference' || type === 'object'
@@ -205,6 +227,7 @@ export async function resolveDependencyClosure(
       }
       for (const activityKey of scanned.activityKeys) activityKeys.push({ key: activityKey, by: owner })
       for (const tag of scanned.controlTags) controlTags.push({ tag, by: owner })
+      for (const slug of scanned.appSlugs ?? []) appSlugs.push({ slug, by: owner })
       for (const person of scanned.people) people.push({ ...person, section, asset_id: String(asset.id) })
     }
 
@@ -238,6 +261,16 @@ export async function resolveDependencyClosure(
       for (const { tag, by } of controlTags) {
         const id = idOf.get(tag)
         if (id) queue.push({ ref: { type: 'form_control', id }, by })
+      }
+    }
+    if (appSlugs.length) {
+      // Links to other apps (/apps/<slug>): the linked app travels too.
+      const unique = [...new Set(appSlugs.map((a) => a.slug))]
+      const { data: apps } = await supabase.from('apps').select('id, slug').eq('tenant_id', tenantId).in('slug', unique)
+      const idOf = new Map<string, string>(((apps ?? []) as any[]).map((a) => [String(a.slug), String(a.id)]))
+      for (const { slug, by } of appSlugs) {
+        const id = idOf.get(slug)
+        if (id) queue.push({ ref: { type: 'app', id }, by })
       }
     }
     if (activityKeys.length) {

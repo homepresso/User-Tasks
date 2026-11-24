@@ -30,7 +30,6 @@ function render(): string {
   return renderToStaticMarkup(createElement(QueryClientProvider, { client },
     createElement(IntegrationsView, {
       integrations: [INTEGRATION], references: [],
-      initialTagDefs: [{ id: 't1', name: 'billing', color: '#ff0000' }],
     })))
 }
 

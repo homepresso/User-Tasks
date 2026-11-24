@@ -38,6 +38,7 @@ const WORKFLOW_TRIGGER_TYPES = new Set([
   'schedule',
   'webhook_received',
   'esign_event',
+  'agent_error',
   'manual',
 ])
 
@@ -57,6 +58,7 @@ const WORKFLOW_TRIGGER_LABELS: Record<string, string> = {
   schedule: 'Schedule',
   webhook_received: 'Webhook',
   esign_event: 'E-signature Event',
+  agent_error: 'Agent Error',
   manual: 'Manual Trigger',
 }
 

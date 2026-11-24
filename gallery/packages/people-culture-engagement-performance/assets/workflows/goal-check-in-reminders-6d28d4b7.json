@@ -1,0 +1,124 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "6d28d4b7-0bfc-5418-894c-219aa5c2ed7a",
+  "asset": {
+    "id": "6d28d4b7-0bfc-5418-894c-219aa5c2ed7a",
+    "name": "Goal check-in reminders",
+    "description": "Every Monday: emails the owner of each open goal that has not had a check-in for two weeks.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Every Monday",
+        "config": {
+          "schedule_mode": "weekly",
+          "day_of_week": 1,
+          "time_of_day": "09:00",
+          "timezone": "America/Denver"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "stale",
+        "type": "update_data_table",
+        "label": "Goals without a recent check-in",
+        "config": {
+          "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+          "table_name": "Goals and OKRs",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "neq",
+              "value": "Done"
+            },
+            {
+              "column": "last_check_in",
+              "operator": "lt",
+              "value": "{{=FORMAT_DATE(ADD_DAYS(NOW(), -14), \"YYYY-MM-DD\")}}"
+            }
+          ],
+          "limit": 500,
+          "output_rows_var": "stale",
+          "output_count_var": "stale_n"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each goal",
+        "config": {
+          "items": "{{stale}}",
+          "item_var": "item",
+          "index_var": "item_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Check-in reminder",
+        "config": {
+          "to": "{{item.owner_email}}",
+          "email_template_id": "1d158257-2a77-57b4-b6df-79f6c20f8748"
+        },
+        "position": {
+          "x": 720,
+          "y": 480
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Reminders sent",
+        "config": {
+          "reason": "{{stale_n}} reminders"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-stale",
+        "source": "trigger",
+        "target": "stale"
+      },
+      {
+        "id": "e-stale-each",
+        "source": "stale",
+        "target": "each"
+      },
+      {
+        "id": "e-each-mail-each_item",
+        "source": "each",
+        "target": "mail",
+        "label": "Each item"
+      },
+      {
+        "id": "e-each-end-done",
+        "source": "each",
+        "target": "end",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

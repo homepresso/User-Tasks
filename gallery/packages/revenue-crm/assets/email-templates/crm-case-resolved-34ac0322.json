@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "34ac0322-87dc-52e8-851d-aa727b3e0ded",
+  "asset": {
+    "id": "34ac0322-87dc-52e8-851d-aa727b3e0ded",
+    "name": "CRM: case resolved",
+    "description": "Sent to the customer’s contact when their support case is resolved.",
+    "subject": "Resolved: {{case_id}} {{form.subject}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your case is resolved</h2>\n  <p>Hello {{form.contact}},</p>\n  <p>We have resolved <strong>{{case_id}}: {{form.subject}}</strong>.</p>\n  <p>{{task_data.resolution}}</p>\n  <p>Reply to this email if anything is still not right and we will reopen it.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Brightwater Labs support</p>\n</div>",
+    "text_body": "Your case is resolved\nHello {{form.contact}},\nWe have resolved {{case_id}}: {{form.subject}}.\n{{task_data.resolution}}\nReply to this email if anything is still not right and we will reopen it.\nBrightwater Labs support",
+    "is_default": false
+  }
+}

@@ -16,7 +16,7 @@ import type { ImportFile } from '@/lib/extensions/sdk'
  */
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 180
 
 const NO_STORE = { 'Cache-Control': 'no-store' }
 
@@ -55,13 +55,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 }
 
 /**
- * GET: the core Nintex importer's targets for "Where should this go?" (new,
+ * GET pdf: the PDF importer's AI assist availability ({ ai }).
+ * GET nintex: the core Nintex importer's targets for "Where should this go?" (new,
  * replace, and the targets of usable extensions with their fields); with
  * ?workflow_id= also `bound`: the target that workflow is bound to.
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ importer: string }> }) {
   try {
     const { importer } = await params
+    // The PDF importer: whether "Use AI for the hard parts" can be offered here (and the provider it would use).
+    if (decodeURIComponent(importer) === 'pdf') {
+      const ctx = await fromSession()
+      const { requireAny } = await import('@/lib/services/context')
+      requireAny(ctx, ['forms.view', 'forms.edit'])
+      const { pdfAiAvailability } = await import('@/lib/importers/pdf/importer')
+      return NextResponse.json({ ai: await pdfAiAvailability(ctx) }, { headers: NO_STORE })
+    }
     if (decodeURIComponent(importer) !== 'nintex') throw ServiceError.notFound('This importer has no targets')
     const ctx = await fromSession()
     const { requireAny } = await import('@/lib/services/context')

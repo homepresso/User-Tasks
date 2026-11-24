@@ -8,6 +8,7 @@ import { ArrowLeft, ClipboardPen, Copy, Download, Eye, FileText, History, Inbox,
 import { Button } from '@/components/ui/button'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Tag } from '@/components/ui/badge'
+import { TagList } from '@/components/ui/tag-chip'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -245,7 +246,7 @@ export function FormDesignerPage({ formId, returnTo, step = null }: { formId: st
     <>
       {draftRow && <Tag className="shrink-0 text-warning" data-form-draft-pill="">Draft</Tag>}
       {form?.available_in_menu && <Tag className="shrink-0 text-primary-text max-lg:hidden" data-form-available="">In menu</Tag>}
-      {(form?.tags ?? parseTags(draft.tags)).slice(0, 3).map((t) => <Tag key={t} className="max-w-[8rem] shrink-0 truncate max-xl:hidden">{t}</Tag>)}
+      <TagList tags={form?.tags ?? parseTags(draft.tags)} max={3} size="sm" maxWidthClass="max-w-[8rem]" className="shrink-0 flex-nowrap max-xl:hidden" />
     </>
   )
 

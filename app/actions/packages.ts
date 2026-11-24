@@ -8,6 +8,8 @@ import * as installs from '@/lib/services/package-installs'
 import * as packageItems from '@/lib/services/package-items'
 import * as history from '@/lib/services/package-events'
 import type { RequirementValues } from '@/lib/packages/requirements'
+import { searchAssignees } from '@/lib/services/assignee-search'
+import { findMemberByEmail, packageAssigneeMe } from '@/lib/services/package-assignees'
 
 /*
  * Settings → Packages server actions: thin wrappers over lib/services/packages
@@ -117,6 +119,11 @@ export async function listInstallsAction() {
   return run(async () => (await installs.listPackageInstalls(await fromSession(), { limit: null, offset: 0 })).installs)
 }
 
+/** The Installed library with its search / filter facts (lib/packages/library.ts). */
+export async function listInstallLibraryAction() {
+  return run(async () => installs.listPackageLibrary(await fromSession()))
+}
+
 export async function getInstallAction(id: string) {
   return run(async () => installs.getPackageInstall(await fromSession(), id))
 }
@@ -198,5 +205,35 @@ export async function listInstallTargetsAction() {
       } catch { /* not a member any more */ }
     }
     return out.sort((a, b) => a.name.localeCompare(b.name))
+  })
+}
+
+/**
+ * The Configure step's assignee picker: people and teams of the workspace the
+ * package goes into (the one the user is in, or `tenant_id` for an install
+ * into another workspace), the same search as the task assignee pickers.
+ */
+export async function searchPackageAssigneesAction(input: { q?: string; kinds?: Array<'person' | 'team'>; limit?: number; tenant_id?: string | null }) {
+  return run(async () => {
+    const ctx = await sessionFor(input.tenant_id)
+    requirePerm(ctx, 'packages.view')
+    const kinds = (input.kinds ?? ['person', 'team']).filter((kind) => kind === 'person' || kind === 'team')
+    const q = String(input.q ?? '').trim().slice(0, 200)
+    const found = await searchAssignees(ctx, { q, kinds, limit: Math.min(Math.max(Number(input.limit ?? 8) || 8, 1), 50) })
+    // A pasted email: the member with exactly that address first (the name search drops some characters).
+    if (kinds.includes('person') && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q)) {
+      const exact = await findMemberByEmail(ctx, q)
+      if (exact) found.people = [exact, ...found.people.filter((p) => p.id !== exact.id)]
+    }
+    return found
+  })
+}
+
+/** The signed-in user as an assignee in that workspace (the picker's "Me"), or null when not an active member. */
+export async function packageAssigneeMeAction(tenantId?: string | null) {
+  return run(async () => {
+    const ctx = await sessionFor(tenantId)
+    requirePerm(ctx, 'packages.view')
+    return packageAssigneeMe(ctx)
   })
 }

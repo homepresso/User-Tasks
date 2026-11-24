@@ -62,8 +62,9 @@ export function registerDecisionTableTools(server: McpToolServer, ctx: McpContex
   server.tool('decision_tables_list', 'List business rules / decision tables. Decision tables can be called from workflow decision_table nodes, and tested with sample inputs.', {
     search: z.string().optional().describe('Search table name and description'),
     limit: z.number().optional().describe('Max results (default 50, hard cap 200)'),
+    tag: z.string().optional().describe('Only tables carrying this tag'),
   }, async (args) => run(async () => {
-    const { decision_tables: rows } = await decisionTables.listDecisionTables(readCtx(), { search: args.search }, { limit: Math.max(1, Math.min(args.limit ?? 50, 200)), offset: 0 })
+    const { decision_tables: rows } = await decisionTables.listDecisionTables(readCtx(), { search: args.search, tag: args.tag }, { limit: Math.max(1, Math.min(args.limit ?? 50, 200)), offset: 0 })
     return { decision_tables: rows, count: rows.length }
   }))
 
@@ -81,6 +82,7 @@ export function registerDecisionTableTools(server: McpToolServer, ctx: McpContex
     inputs: z.array(fieldSchema).optional().describe('Input field definitions'),
     outputs: z.array(fieldSchema).optional().describe('Output field definitions'),
     rules: z.array(ruleSchema).optional().describe('Ordered rules'),
+    tags: z.array(z.string()).optional().describe('Optional tags'),
   }, async (args) => run(async () => ({ created: true, decision_table: await decisionTables.createDecisionTable(writeCtx(), args) }), 'Failed to create decision table'))
 
   server.tool('decision_tables_update', 'Update a decision table. Provide only the fields you want to change. Inputs, outputs, and rules replace the existing arrays when supplied; values equal to the stored ones are not changes (updated: false).', {
@@ -90,6 +92,7 @@ export function registerDecisionTableTools(server: McpToolServer, ctx: McpContex
     inputs: z.array(fieldSchema).optional().describe('Replacement input definitions'),
     outputs: z.array(fieldSchema).optional().describe('Replacement output definitions'),
     rules: z.array(ruleSchema).optional().describe('Replacement ordered rules'),
+    tags: z.array(z.string()).optional().describe('Replacement tags ([] clears)'),
   }, async (args) => {
     const { decision_table_id: id, ...fields } = args
     if (!Object.values(fields).some((value) => value !== undefined)) return mcpErr('No fields to update')

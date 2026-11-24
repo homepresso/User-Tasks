@@ -1,0 +1,247 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "53b475fc-ceed-5e2d-b636-043bc2f9fdd0",
+  "asset": {
+    "id": "53b475fc-ceed-5e2d-b636-043bc2f9fdd0",
+    "name": "CRM deal summary",
+    "description": "Started from the deal room’s Summarize button: reads the deal, its latest activity and quotes, works out a next best action from simple rules (no quote in Proposal, no activity for two weeks, a close date that has passed), and asks the optional CRM account assistant for a short summary with this workflow’s data as context. Without an AI provider the summary step is skipped and the rules’ next best action is still saved on the deal.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "user_variables": [
+      {
+        "id": "v-deal_id",
+        "name": "deal_id",
+        "type": "string",
+        "description": "Deal ID",
+        "defaultValue": "",
+        "required": true,
+        "label": "Deal ID"
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true,
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Summarize pressed",
+        "config": {},
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "deal",
+        "type": "update_data_table",
+        "label": "The deal",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "deal_id",
+              "operator": "eq",
+              "value": "{{deal_id}}"
+            }
+          ],
+          "limit": 1,
+          "output_rows_var": "deals",
+          "output_count_var": "deal_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "acts",
+        "type": "update_data_table",
+        "label": "Latest activity",
+        "config": {
+          "table_id": "d94fcb41-7ceb-565a-bfdd-d46824060a9b",
+          "table_name": "CRM activities",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "deal_id",
+              "operator": "eq",
+              "value": "{{deal_id}}"
+            }
+          ],
+          "sort_column": "date",
+          "sort_direction": "desc",
+          "limit": 8,
+          "output_rows_var": "activities",
+          "output_count_var": "activity_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "quotes",
+        "type": "update_data_table",
+        "label": "Quotes",
+        "config": {
+          "table_id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+          "table_name": "CRM quotes",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "deal_id",
+              "operator": "eq",
+              "value": "{{deal_id}}"
+            }
+          ],
+          "limit": 10,
+          "output_rows_var": "quotes",
+          "output_count_var": "quote_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "idle",
+        "type": "set_variable",
+        "label": "Days since the last activity",
+        "config": {
+          "name": "idle_days",
+          "expression": "{{=IF(activity_count > 0, DATE_DIFF(FIRST(activities).date, TODAY(), \"days\"), 999)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "rules",
+        "type": "set_variable",
+        "label": "Next best action (rules)",
+        "config": {
+          "name": "next_action",
+          "expression": "{{=IF(activity_count == 0, CONCAT(\"Log a first conversation with \", COALESCE(FIRST(deals).contact, \"the buyer\"), \".\"), IF(AND(FIRST(deals).stage == \"Proposal\", quote_count == 0), \"Send a quote: the deal is in Proposal without one.\", IF(idle_days > 14, CONCAT(\"Re-engage \", FIRST(deals).contact, \": no activity for \", idle_days, \" days.\"), IF(FIRST(deals).close_date < FORMAT_DATE(TODAY(), \"YYYY-MM-DD\"), \"Update the close date: it has passed.\", COALESCE(FIRST(deals).next_step, \"Agree the next step with the buyer.\")))))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "blank",
+        "type": "set_variable",
+        "label": "No summary yet",
+        "config": {
+          "name": "summary",
+          "expression": ""
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "ai",
+        "type": "run_agent",
+        "label": "Summarize the deal (optional AI)",
+        "onError": "continue",
+        "config": {
+          "agent_id": "0fd2493e-8050-50c4-8245-0aa9af7dff4d",
+          "agent_name": "CRM account assistant",
+          "output_variable": "summary",
+          "max_iterations": 3,
+          "timeout_ms": 60000,
+          "include_workflow_data": true,
+          "user_message": "Summarize this deal for the account owner in three short bullet points (where it stands, risks, what the buyer cares about), then give one next best action in a sentence. Use the deal, its latest activity and its quotes from the workflow data. Amounts are in USD."
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "save",
+        "type": "update_data_table",
+        "label": "Save on the deal",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "update",
+          "match_column": "deal_id",
+          "match_value": "{{deal_id}}",
+          "column_values": {
+            "next_best_action": "{{next_action}}",
+            "ai_summary": "{{=COALESCE(summary.answer, summary, \"Switch on the CRM account assistant (choose an AI provider) for an AI summary here.\")}}",
+            "summary_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Summarized",
+        "config": {},
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-deal",
+        "source": "trigger",
+        "target": "deal"
+      },
+      {
+        "id": "e-deal-acts",
+        "source": "deal",
+        "target": "acts"
+      },
+      {
+        "id": "e-acts-quotes",
+        "source": "acts",
+        "target": "quotes"
+      },
+      {
+        "id": "e-quotes-idle",
+        "source": "quotes",
+        "target": "idle"
+      },
+      {
+        "id": "e-idle-rules",
+        "source": "idle",
+        "target": "rules"
+      },
+      {
+        "id": "e-rules-blank",
+        "source": "rules",
+        "target": "blank"
+      },
+      {
+        "id": "e-blank-ai",
+        "source": "blank",
+        "target": "ai"
+      },
+      {
+        "id": "e-ai-save",
+        "source": "ai",
+        "target": "save"
+      },
+      {
+        "id": "e-save-end",
+        "source": "save",
+        "target": "end"
+      }
+    ]
+  }
+}

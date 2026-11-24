@@ -1,0 +1,94 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+  "asset": {
+    "id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+    "name": "New starters",
+    "description": "Everyone joining soon: role, department, manager, start date, location, onboarding status and checklist progress (%).",
+    "columns": [
+      {
+        "id": "2c1b5dfa-6f71-535f-9722-4fdb499c6763",
+        "required": true,
+        "key": "starter_ref",
+        "name": "Reference",
+        "type": "text"
+      },
+      {
+        "id": "7c91c263-8ace-57ec-b493-5265ba67c3f0",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "01bbf5ff-3e3b-54f1-9599-ce88b62bb71d",
+        "required": false,
+        "key": "role",
+        "name": "Role",
+        "type": "text"
+      },
+      {
+        "id": "ba52411d-838d-5edb-8d91-717c9721eb19",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Sales",
+          "Marketing",
+          "Engineering",
+          "Finance",
+          "Operations",
+          "People"
+        ]
+      },
+      {
+        "id": "c23b6d8c-d377-5361-9fc7-9800e0dc46f0",
+        "required": false,
+        "key": "manager_name",
+        "name": "Manager",
+        "type": "text"
+      },
+      {
+        "id": "0ad6e61c-4616-5ecd-affc-05d034276257",
+        "required": false,
+        "key": "start_date",
+        "name": "Start date",
+        "type": "date"
+      },
+      {
+        "id": "1a0114e2-3e91-51d7-85a3-c69a074c9146",
+        "required": false,
+        "key": "location",
+        "name": "Location",
+        "type": "select",
+        "options": [
+          "Denver HQ",
+          "Austin office",
+          "Remote (US)"
+        ]
+      },
+      {
+        "id": "2eaa831d-dd21-5d2e-9d67-6aae00bb3cef",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Requested",
+          "Preparing",
+          "Ready",
+          "Started"
+        ]
+      },
+      {
+        "id": "df16027f-de15-5b83-af49-5abf9cf9ac6a",
+        "required": false,
+        "key": "progress",
+        "name": "Checklist progress (%)",
+        "type": "number"
+      }
+    ]
+  }
+}

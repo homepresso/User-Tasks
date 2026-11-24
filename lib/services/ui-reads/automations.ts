@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { RunTask } from '@/lib/run-tasks'
 import { getDb } from '../context'
+import { normalizeAgentSettings } from '@/lib/assistants/config'
 import { canDesignObject } from '../design-access'
 import { getDirectoryCapabilities, searchDirectoryEntraGroups } from '../directory-groups'
 import { applyScope, queueJobInScope, resolveRunScope, runInScope, runScopeFilter } from '../run-visibility'
@@ -228,13 +229,13 @@ export const reads = {
     perm: VIEW,
     run: async (ctx) => {
       const { data } = await (getDb(ctx) as any).from('workflows')
-        .select('id, name, is_active, nodes, published_version_id, schedule_last_fired_at, updated_at')
+        .select('id, name, is_active, nodes, published_version_id, schedule_last_fired_at, updated_at, tags')
         .eq('trigger_type', 'schedule')
         .order('name')
       // Only the schedule trigger's config goes back, not the whole definition.
-      return ((data ?? []) as any[]).map(({ nodes, ...wf }) => ({ ...wf, config: extractScheduleConfig(nodes) })) as Array<{
+      return ((data ?? []) as any[]).map(({ nodes, ...wf }) => ({ ...wf, tags: wf.tags ?? [], config: extractScheduleConfig(nodes) })) as Array<{
         id: string; name: string; is_active: boolean | null; published_version_id: string | null
-        schedule_last_fired_at: string | null; updated_at: string | null; config: ScheduleConfig | null
+        schedule_last_fired_at: string | null; updated_at: string | null; config: ScheduleConfig | null; tags: string[]
       }>
     },
   }),
@@ -694,12 +695,38 @@ export const reads = {
     },
   }),
 
+  /** A Send Email / User Task step's template: its variables for the mapping table (lib/email-editor/variables.ts). */
+  'automations.emailTemplateVariables': defineRead({
+    args: z.object({ templateId: id }),
+    perm: VIEW,
+    run: async (ctx, { templateId }) => (await import('../email-templates')).getEmailTemplateVariables(ctx, templateId),
+  }),
+
   'automations.agentOptions': defineRead({
     args: NO_ARGS,
     perm: VIEW,
     run: async (ctx) => {
       const { data } = await (getDb(ctx) as any).from('agents').select('id, name, is_active, integration_id, model, output_config, version').order('name')
       return (data ?? []) as any[]
+    },
+  }),
+
+  /**
+   * The Agent's profiles (id + name only) for the Agent error trigger's
+   * profile filter. assistant_settings is readable by people who manage the
+   * Agent only (RLS stays the boundary): others get the Default profile and
+   * `restricted: true` (the panel says so; the trigger still matches saved ids).
+   */
+  'automations.agentProfileOptions': defineRead({
+    args: NO_ARGS,
+    perm: VIEW,
+    run: async (ctx) => {
+      const { data: row } = await (getDb(ctx) as any).from('assistant_settings').select('capabilities').eq('tenant_id', ctx.tenantId).maybeSingle()
+      const profiles = row ? normalizeAgentSettings(row.capabilities).profiles : []
+      return {
+        restricted: !row,
+        profiles: [{ id: 'default', name: 'Default profile' }, ...profiles.map((p) => ({ id: String(p.id), name: String(p.name ?? '') || 'Profile' }))],
+      }
     },
   }),
 

@@ -1,0 +1,4411 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+  "asset": {
+    "id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+    "name": "CapEx spend rows",
+    "rows": [
+      {
+        "id": "d201be2d-30d9-5cf2-8459-9f781666fbe5",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 24880,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "2840201a-d18a-584f-a9dc-487594443b39",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 24880,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "52e42122-889e-55c3-8524-101bb5762a7c",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 24880,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "4d21c6b2-c4ca-57af-a47b-86211d58e167",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 24860,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "2df1ca4f-aaed-5f82-8c5b-91cad1c5acdc",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 25200,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00101",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "49a8c0d4-fb57-5b5c-ab3e-e78e1fb9b73f",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Actual",
+          "amount": 31680,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00102",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "3cb3771b-a479-5216-b47f-9163a0b3dbca",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Actual",
+          "amount": 30730,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00103",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "09b6f209-0688-5fb3-a5de-9f50db116c0d",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "title": "LED lighting retrofit",
+          "business_unit": "Production",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 22170,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00104",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "e9ef7cc5-181f-5ff6-b45a-7c9eb4dec8a8",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 21500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "07f11db0-81f8-5404-8cb2-56f5ba72638a",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 21500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "735b8388-d7e8-540c-8402-3cb9e9c0fd07",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 21500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "3f2c5ee4-120f-555c-8017-592aa6803232",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 21500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "24bd4ef0-70e9-5213-a1e6-a686fc29c7bf",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 21500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "d8a9e68d-547a-527a-a063-90f404c690bd",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 20000,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00204",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "874a67f6-65d3-5b79-989f-84ece66c4f76",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Actual",
+          "amount": 21170,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00205",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "392ca17e-f1e7-5ee7-a245-113eeb7aaea0",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Actual",
+          "amount": 21210,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00206",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "681d5987-c697-53ad-88ca-30876b98dddf",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 20130,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00207",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "6c7a3228-8ab3-5f78-b9d3-d2ce750aa9e1",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "title": "Box truck 26 ft",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 34880,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00208",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "cee5d0d8-ef7e-5326-a825-4d324d1b4435",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 5080,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "47deb2df-f5d1-52ee-9cbb-d20b1d889ef9",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 5080,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8339060e-ad6e-585a-bc91-1ef43ed5209b",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 5080,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "500db50c-87e8-55ab-b941-ca39260e20f9",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 5080,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "73a60836-568b-5300-8b4d-d8c6895964c6",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 5080,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "e61294b3-88c5-5dd8-b046-a97207efc263",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 5100,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "4b97d95b-03e0-59e4-945c-fe30b2a61d5e",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 5000,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-00307",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "19abb8ec-1c14-51da-ac03-8006e8c8522c",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 6180,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-00308",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "ba656701-6f0f-5232-a91a-4fad100cf055",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Actual",
+          "amount": 5870,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-00309",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "fcfcd196-e61a-5a13-8348-a18f92536ba4",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Actual",
+          "amount": 6850,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-00310",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "d88c2ed8-7d4f-51b6-94c1-49503650538d",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "title": "Rapid prototyping printer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Actual",
+          "amount": 6000,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-00311",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "838dd3d8-d461-5170-bb3a-98ba69200f01",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 24130,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "e550c8fd-37a4-5e0d-b2d3-547074444c0e",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 24130,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "3bb2adc7-ebd7-59be-8134-33b755977549",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 24130,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a3f27187-eec9-5585-8d5a-b4b63721d1ba",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 24110,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a4bee086-d767-5f2b-b0e7-c0fd445f9e98",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 22220,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00401",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "a6130719-a1f1-5fd5-bfe7-21b99d0fed92",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Actual",
+          "amount": 25620,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00402",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "187f0cb6-b738-5af5-8ba2-b9847ad4b5e0",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Actual",
+          "amount": 18640,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00403",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "f52d35a1-35be-51dd-8e61-4eb1071e9342",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "title": "ERP finance module upgrade",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 23870,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00404",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "2f755248-bb59-5b15-9a8d-4be08a59ab28",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 121600,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "22edb0dc-23d4-586c-8a3c-d99fe113ec5b",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 121600,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "c1cef843-363a-5b5a-b17b-565e2f5514d0",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 121600,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "9ec96a28-c516-56da-9cac-5a9413835d1f",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 121600,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "57fa6663-c7af-5c56-afc9-eb9066f9502f",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 121600,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "86fe22b2-47f6-5cd4-8ffe-7f878d4dc2bd",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 95640,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00504",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "5db29e95-b7f4-5eb2-8d08-6d3a8350d325",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Actual",
+          "amount": 110760,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00505",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "2ff4aa38-ae91-5531-a520-d152d5ae9c51",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Actual",
+          "amount": 101200,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00506",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "aab2a013-ef7b-598a-a473-c3f701e74fa9",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 99580,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00507",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "3fdc16e2-8b9a-506a-86c9-3f191e3aba22",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "title": "Loading dock levellers",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 182670,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-00508",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "274aba6a-7fec-5985-8da6-761606ebcc42",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 2000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "b27e1719-d63f-5dde-b7ce-21efe0e6a8f0",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 2000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "df00dafe-6a6c-593e-b821-7744fec535ea",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 2000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8ed3f3de-8af7-517b-908a-353f4d076358",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 2000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "10502773-8cb9-51e6-a56d-3553d5e77ae2",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 2000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "356e1f13-fca3-5888-907b-b7949d56d151",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 2000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a965384b-a36a-5eb1-b52b-b18f88ba4eb1",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 2550,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00607",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "f029de48-dd10-55e0-a437-c8ce6016b1e6",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 2760,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00608",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "06968eaa-7b9f-5855-9321-972107e6b610",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Actual",
+          "amount": 2100,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00609",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "3a434be5-3fa7-57cf-a3a8-6dc8b5b48f97",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Actual",
+          "amount": 2600,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00610",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "71ea686a-1db1-58ad-a45a-c38e539b45e9",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "title": "Data platform build",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Actual",
+          "amount": 2140,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-00611",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "21ef56fc-9251-5251-bdd4-5e1efa9cd2ee",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 25250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "47018221-7247-5f74-b838-21ef71c3e505",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 25250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "55a6e727-2dcd-5070-9648-38dcbe69fe96",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 25250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "0a6cdf92-6fb4-5769-a92f-3c53e5876f9b",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 25250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "22a450eb-729b-5a5a-b971-350c19ed0dae",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 30670,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00701",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "82a71b4e-24e7-509d-9c8a-2524b6679577",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Actual",
+          "amount": 30710,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00702",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "b6a22438-edfc-51ee-9c2e-45269c34ecb1",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Actual",
+          "amount": 23570,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00703",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "a078451c-ec53-55b7-8fef-28ffd40980a9",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "title": "Shrink-wrap line",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 21850,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00704",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "087c4800-32c0-5277-a937-a767d140e872",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 29700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "5a78a307-d3a4-5c1b-928f-342d6db96a3e",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 29700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "0f02e8a3-de4f-53f0-a2eb-efc979e3e53c",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 29700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "e4c73b55-8bca-5417-b84f-43ded20bbbd9",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 29700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "81eed896-09b4-5fa8-9932-7ccce2d34dc5",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 29700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "df2422d4-8130-5a23-b959-f8483f80a510",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 33240,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00804",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "ee6d31b2-e9d8-59c1-8dfb-7302e20b73bc",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Actual",
+          "amount": 30260,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00805",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "ddef12a9-7e3d-5027-9586-e5609c3ae306",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Actual",
+          "amount": 35690,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00806",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "4340f87d-98a2-5515-b1c3-018c3a4cb185",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 24530,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00807",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "c3944226-25a2-5c8d-929e-5b81b6ebbff3",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "title": "Delivery van replacement (4)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 27570,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-00808",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "64699b16-68f9-51fd-9845-ab2df73d5281",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 9000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "199dbacd-db3b-51a7-9934-51611e1c9bf9",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 9000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "eaa16c84-22ac-5964-8641-15c3201392f6",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 9000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "73ba04a4-3ad0-5881-883b-e155f6bb2c3f",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 9000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a01f6f92-4dbf-53fd-8600-f119d0eb1fa9",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 9000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "374efd33-a176-50a0-91a2-34886936908a",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 9000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "93576f24-d1df-5cba-839d-d7dae700dfb1",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 10340,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00907",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "1ab3e8e3-e60f-5231-bdd5-acf0716755a7",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 9730,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00908",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "c66fc50d-9630-597e-b596-2be46595a65a",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Actual",
+          "amount": 12230,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00909",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "0b8943aa-aac6-592a-84d3-b797d7c6e7bd",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Actual",
+          "amount": 9260,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00910",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "379adcec-2661-5a6d-bdf8-a42f86f26673",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "title": "Forklift charging stations",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Actual",
+          "amount": 9710,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-00911",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "e3210a8a-4549-5272-909b-d04ad7b15f54",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "title": "Security operations tooling",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 153000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "d3a5623e-3638-5a3b-980e-423370687733",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "title": "Security operations tooling",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 153000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "38e50237-f986-5c93-ad5b-2cc0505cba2c",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "title": "Security operations tooling",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 153000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "805d402e-4d89-5685-abf3-4f9c3ab9afce",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "title": "Security operations tooling",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 153000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "1293435a-8249-5ef9-9840-905999f22181",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "title": "Security operations tooling",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 111350,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01001",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "c215235b-43a8-5ec8-a917-025c3f6ea824",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "title": "Security operations tooling",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Actual",
+          "amount": 107020,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01002",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "4beb0171-6641-5364-88ad-24ebdaffa5c3",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "title": "Security operations tooling",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Actual",
+          "amount": 91180,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01003",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "3daa2219-583a-563e-a337-31f77c5e03ae",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 8100,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "b442d007-1987-51b0-8df6-7924182575a6",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 8100,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8cdad338-e622-595f-ac9f-9f65c809f9fa",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 8100,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "93b5cec5-b5b6-5a16-adb2-36814ccb72f9",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 8100,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "d9e63468-d562-5562-a459-18c0427d5337",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 8100,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "e1609c56-b2f5-589a-b30a-d4f16a1ba177",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 7030,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-01104",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "864d3987-c7d2-5ea7-9f87-65bf8bae3c19",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Actual",
+          "amount": 8300,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-01105",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "2cdd644a-7ea6-5750-a232-7c25439adb92",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Actual",
+          "amount": 8150,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-01106",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "630c658d-955c-5836-94f5-351bad4d26e5",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "title": "Solar array phase 1",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 5300,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-01107",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "ac483bfb-28a0-5441-897d-0c6c8d69d991",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 16170,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "d055cca5-cd51-55b9-a4d5-268856213210",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 16170,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "9781c588-6da8-5ce9-9654-879eba205d0c",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 16170,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8dc72b7a-2e6f-5c26-9717-b06a3d1d92a2",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 16170,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "382344ad-442d-519b-acfb-524960e1340b",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 16170,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "903af3be-8182-5c4e-8178-849177c7d4e3",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 16150,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "6735ace7-042b-512d-b38d-faa7b75014e9",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 16310,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01207",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "fc4c4cc1-5f35-5858-977f-ba418036b215",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 16540,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01208",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "e81bb24d-1df5-51d6-9c0a-6a4b1b5c8d45",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "title": "Yard tractor",
+          "business_unit": "Commercial",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Actual",
+          "amount": 14490,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01209",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "8c19a84b-76ce-5392-99fa-92fd120e0b7a",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "title": "Sales fleet EV transition",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 126500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "328e2d6a-ac24-5ba7-8596-d91a999b392a",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "title": "Sales fleet EV transition",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 126500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "38649b84-09aa-50d8-ad05-078255dfc96a",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "title": "Sales fleet EV transition",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 126500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "66175f9c-c4fe-5c15-9ac0-f5830bb369f1",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "title": "Sales fleet EV transition",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 126500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "c5b885b0-cf41-5d40-a196-048e4ec5e772",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "title": "Sales fleet EV transition",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 84980,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01301",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "934abcb5-44dc-57be-a419-050399b4380f",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "title": "Sales fleet EV transition",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Actual",
+          "amount": 111890,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01302",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "02ea95a2-f58a-582e-86b3-80307d8d8523",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "title": "Sales fleet EV transition",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Actual",
+          "amount": 111850,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01303",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "240ca6d2-bd12-530f-86ad-6a276cf30c09",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "title": "Sales fleet EV transition",
+          "business_unit": "Production",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 96530,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01304",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "8b68f425-a609-5421-9d7d-8e061f3e21d7",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 57000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "73103af2-9f0f-5df1-ac7e-9408f47e1d33",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 57000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "1ac962f6-5fbf-525a-b12c-428fac65d848",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 57000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "e943f157-b385-5618-9ef0-e412f88f4f8f",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 57000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "6302c992-dc90-52dc-9bd2-aea5bf5bcbe9",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 57000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "d85af5cf-792b-5f9f-b8ad-ab09501ed012",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 53770,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01404",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "81291f08-4898-51a6-8184-b0ec8ea19108",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Actual",
+          "amount": 48910,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01405",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "2d02b340-2b89-5a8a-bec7-2daa6f89c43a",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Actual",
+          "amount": 49810,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01406",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "e11b06d3-c89b-5410-91a0-35ce57c481a3",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 56010,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01407",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "7f674739-fee5-52c1-9260-a3d0ea0bcc1d",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "title": "Site utility vehicles",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 41410,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-01408",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "d1b66cd3-40aa-5299-a5db-ebf0273621a1",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 49670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "3194f1a7-bb7b-5d61-8792-37c4a54f0488",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 49670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "2266d90f-b755-5196-88ed-3716207995ba",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 49670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "7d781928-bf03-595c-8763-1e0a4df7554e",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 49670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8fbcf640-176c-5fb3-a1f4-688b5f469ae9",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 49670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "0f6e50f2-56ad-5769-85e4-eeb9a7dfde60",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 49650,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "fcba89fe-2de3-5dd3-ac1a-dc7be18f30d0",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 58420,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-01507",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "c2cf2057-87b9-5c27-9b7f-db8aaf5f8fab",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 47690,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-01508",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "a2d38bf0-b976-5669-938a-d9be01d0627a",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Actual",
+          "amount": 60820,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-01509",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "7de7fdb4-f37b-54f6-a9c2-5ef4a5d2251f",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "title": "Spectrometer",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Actual",
+          "amount": 55210,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-01510",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "0512ba97-bf9d-55d7-b52e-59d4f1261d62",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "title": "Wi-Fi 7 rollout",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 56630,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "977ef563-4676-5f45-8e00-da35b2cba165",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "title": "Wi-Fi 7 rollout",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 56630,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "339bfb79-a3a7-53ea-998f-9c999d5cd865",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "title": "Wi-Fi 7 rollout",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 56630,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "c476d60e-20a1-5c5d-985d-2a74f47d4352",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "title": "Wi-Fi 7 rollout",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 56610,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8d172daa-e417-53cf-8302-9f0155eaf839",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "title": "Wi-Fi 7 rollout",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 39330,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01601",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "b10b2cd6-7dc8-59a0-8e94-9fbda8871876",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "title": "Wi-Fi 7 rollout",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Actual",
+          "amount": 55960,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01602",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "facf9ddb-6964-586f-a5e7-9d0579c44806",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "title": "Wi-Fi 7 rollout",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Actual",
+          "amount": 57300,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01603",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "43cd774f-d263-56ce-a1d4-66fab27b98f4",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "title": "Wi-Fi 7 rollout",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 39320,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01604",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "bcc7fdb3-f2e3-5529-928e-fd3dd351f760",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 9800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a72e006c-aa92-5273-a2de-b0644aa081f0",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 9800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "6b15f562-b668-58f8-a988-e5db57f1252a",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 9800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "065ef7a6-5551-5127-be4b-4539cebd082d",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 9800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "16c0fa08-9e1d-503c-afad-6e340bdd5407",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 9800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "16d4ffab-f29d-56f9-8dd4-96658fc97754",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 10360,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-01704",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "097a596c-6225-5485-b543-76338a312086",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Actual",
+          "amount": 7910,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-01705",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "3280c237-24dd-5958-83aa-205a274d6598",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Actual",
+          "amount": 8090,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-01706",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "da3e9293-e450-5c6c-b7c1-30caf3b0aabe",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "title": "Vision inspection system",
+          "business_unit": "Facilities & EHS",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 10970,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-01707",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "c4e8c3a1-995f-5316-a0ad-beeefe7a5701",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "title": "Core network switches",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 11500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "aa4daab3-bea5-525c-b711-046f11ed3edd",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "title": "Core network switches",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 11500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "750edc76-5a8e-584b-a57b-a85100512aa7",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "title": "Core network switches",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 11500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "416a073f-ca0e-5d3a-a5fe-54cae345753c",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "title": "Core network switches",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 11500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "cad84f8d-ac44-5da3-9b53-c11ccb4fbf27",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "title": "Core network switches",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 11500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8fd6432b-fb2d-5c94-bea2-db590101e519",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "title": "Core network switches",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 11500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "f41e04b7-871b-570a-a0e9-17b7b12818ff",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "title": "Core network switches",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 14310,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01807",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "8646a094-bf63-5659-9b3b-a3c849c1c13c",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "title": "Core network switches",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 10530,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-01808",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "d62074c1-c15d-5830-9018-a19d5a5d6f05",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "title": "Automated palletiser",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 157630,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "975919f1-96d7-562d-8052-4ca9e0be82b2",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "title": "Automated palletiser",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 157630,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a66f28eb-5ffc-595a-8548-a149fc6ba564",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "title": "Automated palletiser",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 157630,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "108b0856-40cb-5f4f-929e-2d87cf2fb45c",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "title": "Automated palletiser",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 157610,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "5e5d77d1-86b1-5c74-86f6-37ebe3d52412",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "title": "Automated palletiser",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 107140,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-01901",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "c5577db1-d298-55fa-b39c-374fe5887a79",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "title": "Automated palletiser",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Actual",
+          "amount": 126510,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-01902",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "f18f0765-d776-5e07-b348-cadc70ac716f",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "title": "Electric forklift fleet (6)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 43500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "f24dda69-def4-5767-926b-b1628a0da50f",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "title": "Electric forklift fleet (6)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 43500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "95740499-3031-59da-a1f3-b3456823127f",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "title": "Electric forklift fleet (6)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 43500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "f610f80d-a30c-514f-a247-0675344fe041",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "title": "Electric forklift fleet (6)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 43500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "b68b9806-991e-525e-9d8d-2575764b955b",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "title": "Electric forklift fleet (6)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 43500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "b330d7ca-a68a-5c9d-bab5-31043cf0f6dc",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "title": "Electric forklift fleet (6)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 26060,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-02004",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "54a0993e-3225-5dab-a9f4-fdc34fcc3707",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "title": "Electric forklift fleet (6)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Actual",
+          "amount": 27770,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-02005",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "77303b76-ab49-500a-a6d4-b75e95437c7e",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "title": "Electric forklift fleet (6)",
+          "business_unit": "Logistics",
+          "category": "Vehicles",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Actual",
+          "amount": 37210,
+          "vendor": "Prairie Fleet Sales",
+          "invoice_ref": "INV-02006",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "2a36ecbd-3966-5c90-ba09-392c4f6a2224",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 2250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "e2fa536d-47f8-53a9-8e72-4d294c9a29f4",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 2250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "83109389-3d5e-5a45-a324-a2087828642d",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 2250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "6761830a-55a8-5491-a440-9a5f019e8757",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 2250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "1548bb29-d114-5fc0-b231-46b3080c506c",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 2250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "16eb60b8-3b99-5996-86b0-a295a601dabd",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 2250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "1230b590-b7e5-5376-a1bb-c04898378746",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 2330,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02107",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "9ae85209-6218-5c29-bd2f-d4b91902ba32",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 2760,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02108",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "5454a107-e379-5eb6-bb6e-a15cfde65e47",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Actual",
+          "amount": 2070,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02109",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "ec72ddb0-2a25-50d5-997b-1fc7bea9c524",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Actual",
+          "amount": 2030,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02110",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "364008ab-fa84-54a6-8868-14c8a2113c9f",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "title": "CRM replacement",
+          "business_unit": "Engineering & R&D",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Actual",
+          "amount": 2770,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02111",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "3dcb097d-1148-536d-b1e8-e44835689aa8",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "title": "Plant floor tablets",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 15500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "6d039296-1595-57cc-8f18-01a1c87b2a01",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "title": "Plant floor tablets",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 15500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "fe918cbe-1629-5fa2-bd4e-ef2ed20b9e55",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "title": "Plant floor tablets",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 15500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "610ab5a2-a7c8-569e-8994-a890c5949632",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "title": "Plant floor tablets",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 15500,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "6194a6f9-5dac-5c46-9c12-ba6b4134c275",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "title": "Plant floor tablets",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 12620,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02201",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "f8e7d6b1-587f-5820-b02a-519399adb3e8",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "title": "Plant floor tablets",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Actual",
+          "amount": 14860,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02202",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "ce8fac80-e463-5715-a5da-6daea711f501",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "title": "Plant floor tablets",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Actual",
+          "amount": 9960,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02203",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "bc3c6290-36fa-5151-b649-8d3161c33f4d",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 140200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "34ef2181-1760-5ba9-becb-69b2888fc5a3",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 140200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "2dfabf3e-a11e-5701-a36f-d018cd7c84ca",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 140200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "c3d15c54-324a-5ce9-aa3c-543b0d21eeb5",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 140200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "e23b40d4-30c9-584d-b632-0f6a410aea0d",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 140200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a05256e5-2ead-57f4-a8d4-89c5a5d2bbff",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 121470,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-02304",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "d1cc059e-e603-57a2-84a2-f742ac4d3978",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Actual",
+          "amount": 135620,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-02305",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "63100d75-8652-5b50-aefc-cfb5fc30ad78",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Actual",
+          "amount": 144080,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-02306",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "352043dd-218f-5888-b06e-0057c417ef77",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 108490,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-02307",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "0c923353-6073-5159-9587-495d4b5aaf33",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "title": "Wastewater treatment upgrade",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Actual",
+          "amount": 117680,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-02308",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "03c78c43-6400-5a47-a79c-38e2c5b20bca",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "title": "Warehouse management system",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 23330,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "c245c26a-43e7-5f80-b689-d0afad4249d4",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "title": "Warehouse management system",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 23330,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "0bb61608-3cdc-528b-bbe9-68906b82442e",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "title": "Warehouse management system",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 23330,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "fc198361-f56a-5e91-b6e0-a7f5400e8ea3",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "title": "Warehouse management system",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 23330,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a77ddd49-0a7f-56d1-ae34-74d46afb039d",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "title": "Warehouse management system",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 23330,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8d9caa66-e0d6-5d27-9c30-7027b5b57a84",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "title": "Warehouse management system",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 23350,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "f35f06b3-7103-5a2d-9712-53cffe9aae68",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "title": "Warehouse management system",
+          "business_unit": "Commercial",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 18730,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02407",
+          "description": "Equipment delivery"
+        }
+      },
+      {
+        "id": "19980300-354e-5660-8151-1cfa743e7204",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "title": "Line 3 conveyor upgrade",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 486880,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "54982dfc-d5ab-50c7-ab0b-54a13df80a8d",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "title": "Line 3 conveyor upgrade",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 486880,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "b0e2a9e7-4639-5a86-a589-b87d7f6ac88a",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "title": "Line 3 conveyor upgrade",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 486880,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "3e4a92c4-0ad0-52a2-8002-5ddc548197fe",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "title": "Line 3 conveyor upgrade",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 486860,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "c9bc101d-c3d4-5d46-8426-ee3a47284597",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "title": "Line 3 conveyor upgrade",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 196050,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-02501",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "eea4b610-771d-5b4b-9338-f9d779582a1b",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "title": "Chiller replacement",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 10200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "b52905b6-78ae-577d-9ef6-58017729b338",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "title": "Chiller replacement",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 10200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "06f56b6f-5acf-5df6-96c4-66486b479a84",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "title": "Chiller replacement",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 10200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "db03f65a-81b6-5a86-a49c-d56e1fbbfbae",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "title": "Chiller replacement",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 10200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "d9dc1124-efd8-5f72-ae25-d11dfa874942",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "title": "Chiller replacement",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 10200,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "051ca101-34cf-5042-bcf0-d4ac44c66ecc",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "title": "Chiller replacement",
+          "business_unit": "Logistics",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 7710,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-02604",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "d6f34798-77e7-5ce7-a21b-a7bdd809dada",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "title": "Materials test rig",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 5920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "5be66244-94c2-5705-a1ec-0eaed3797881",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "title": "Materials test rig",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 5920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "f9b54a79-0a11-5522-a5aa-29e85fc454ac",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "title": "Materials test rig",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 5920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "17356f7b-14ac-5b67-8130-34cb5aff72cd",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "title": "Materials test rig",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 5920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "dcfa0df9-aaeb-5014-8e44-25751ed83dae",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "title": "Materials test rig",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 5920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "1784c1c9-1229-5917-a409-d4502cd118ed",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "title": "Materials test rig",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 5900,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "34b77618-0ee8-560d-bd82-ce0227b17997",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "title": "Materials test rig",
+          "business_unit": "Engineering & R&D",
+          "category": "R&D",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 6150,
+          "vendor": "Lumen Lab Supply",
+          "invoice_ref": "INV-02707",
+          "description": "Progress payment"
+        }
+      },
+      {
+        "id": "098231aa-4495-5e2d-9805-044b85ac3e3e",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "title": "MES data collection",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 45380,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "29c7e9e1-f029-506f-9ddf-9a0e41ca3b91",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "title": "MES data collection",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 45380,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "81edc702-5082-5fca-a0ad-6f858071568c",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "title": "MES data collection",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 45380,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "4de22e96-de0b-55d3-82fd-be76846536fa",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "title": "MES data collection",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 45360,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "fa792689-ecf3-5658-80a6-0a50e01891d6",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "title": "MES data collection",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 11910,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02801",
+          "description": "Milestone invoice"
+        }
+      },
+      {
+        "id": "5a6a4b3f-1b86-56f0-abbb-db1495d06b43",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "title": "Laptop refresh 2026",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 36800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "836119a2-15e7-5708-a504-27a2b5d59c66",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "title": "Laptop refresh 2026",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 36800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "358b8b81-7be8-5c73-8a5c-c5985392a4e2",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "title": "Laptop refresh 2026",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 36800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "38efa980-b397-5149-9275-97d145e08738",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "title": "Laptop refresh 2026",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 36800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "8f0ce52d-4598-5153-bdd6-f7bb23592790",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "title": "Laptop refresh 2026",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 36800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "0d9051b1-79f0-537a-86b2-8024f42d3579",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "title": "Laptop refresh 2026",
+          "business_unit": "Facilities & EHS",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Actual",
+          "amount": 31070,
+          "vendor": "Bluepeak Systems",
+          "invoice_ref": "INV-02904",
+          "description": "Commissioning"
+        }
+      },
+      {
+        "id": "a4f8bbaa-3870-5df4-a425-e15093ca1bd2",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "title": "Mezzanine storage floor",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 18920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "2c948525-cf7e-51d4-a135-64b5cdf50bf8",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "title": "Mezzanine storage floor",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 18920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "9b98a4dd-0ffe-501e-93dc-6ff1606d09d2",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "title": "Mezzanine storage floor",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 18920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "6ffc7358-1bb3-57d8-b8c0-b92a53df563b",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "title": "Mezzanine storage floor",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 18920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "b5143aca-10ac-597b-886b-9a408e380b1d",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "title": "Mezzanine storage floor",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 18920,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "0e2f21b9-1d8f-51a3-a40d-63164b728437",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "title": "Mezzanine storage floor",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 18900,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "bce2a0a5-564d-599a-bac6-ef40224cb93b",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "title": "Mezzanine storage floor",
+          "business_unit": "Commercial",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Actual",
+          "amount": 1490,
+          "vendor": "Harborline Builders",
+          "invoice_ref": "INV-03007",
+          "description": "Materials"
+        }
+      },
+      {
+        "id": "52cbc60f-f0a3-5c3a-a3dc-7b0f67078bd1",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "title": "Paint booth extraction",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 61000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "3d466a89-3956-5168-89e4-3cebf4ec2773",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "title": "Paint booth extraction",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 61000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "5c90914b-eed7-5c99-a17d-067e80e7dd71",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "title": "Paint booth extraction",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 61000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "de50fa5c-1c9a-54d3-bc4a-1f7de7705fba",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "title": "Paint booth extraction",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 61000,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "486edbc7-519d-5c56-aa28-e24ec87ea299",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "title": "Paint booth extraction",
+          "business_unit": "Production",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Actual",
+          "amount": 12150,
+          "vendor": "Northline Machine Tools",
+          "invoice_ref": "INV-03101",
+          "description": "Installation"
+        }
+      },
+      {
+        "id": "7e9f65bc-bd5b-51ba-a4ef-e548d9ed483e",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "title": "Site perimeter fencing",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 165700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "2a069c32-3cbf-5304-8b24-cb575c44c886",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "title": "Site perimeter fencing",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 165700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a42e4f5f-ab7d-541c-ae27-9321290955a0",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "title": "Site perimeter fencing",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 165700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a29d2435-b458-5ab0-99ee-38c465515c91",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "title": "Site perimeter fencing",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 165700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "840f1bd9-9bf1-5623-94c6-342c710938e6",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "title": "Site perimeter fencing",
+          "business_unit": "Logistics",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 165700,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "be85c6d2-9783-5d37-b55c-d350d3965662",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "title": "Injection moulding press 450t",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 120670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "51f51b98-d9b9-5633-afe1-569ff11feefb",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "title": "Injection moulding press 450t",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 120670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "76e8ec50-ae75-5f02-b15d-a258edb9aeb7",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "title": "Injection moulding press 450t",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-09",
+          "entry_type": "Planned",
+          "amount": 120670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "f308d867-f642-5f0d-8f62-95149c6ec669",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "title": "Injection moulding press 450t",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-10",
+          "entry_type": "Planned",
+          "amount": 120670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "74e8c576-79ca-546a-a595-048015d211d9",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "title": "Injection moulding press 450t",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-11",
+          "entry_type": "Planned",
+          "amount": 120670,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "f147eb3a-e3ac-59b1-8bd1-040d534aca4c",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "title": "Injection moulding press 450t",
+          "business_unit": "Engineering & R&D",
+          "category": "Equipment",
+          "fiscal_year": "2026",
+          "period": "2026-12",
+          "entry_type": "Planned",
+          "amount": 120650,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "2511bd00-93a3-5821-a691-f12bdd440810",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "title": "Data platform build (IT)",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-01",
+          "entry_type": "Planned",
+          "amount": 57250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "90ca42bb-21ec-5be8-af36-1b81e4c9b7ef",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "title": "Data platform build (IT)",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-02",
+          "entry_type": "Planned",
+          "amount": 57250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "a6609837-72a8-5519-84d7-2f81956dccce",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "title": "Data platform build (IT)",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-03",
+          "entry_type": "Planned",
+          "amount": 57250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "9775eb02-c197-504f-96a3-bd23c7536e03",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "title": "Data platform build (IT)",
+          "business_unit": "IT",
+          "category": "IT",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 57250,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "623471bf-563c-537b-9d41-87c617269619",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "title": "Car park resurfacing",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-04",
+          "entry_type": "Planned",
+          "amount": 78800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "51fc0369-6655-50c9-b805-6294d75c6ae9",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "title": "Car park resurfacing",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-05",
+          "entry_type": "Planned",
+          "amount": 78800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "9f342f6f-7922-5b43-9c0a-2af1e8e8a04f",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "title": "Car park resurfacing",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-06",
+          "entry_type": "Planned",
+          "amount": 78800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "5ee76019-09eb-5c1d-99f4-9d57e0abe53f",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "title": "Car park resurfacing",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-07",
+          "entry_type": "Planned",
+          "amount": 78800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      },
+      {
+        "id": "ca8d04d0-099c-5e5f-9129-b3d1c56375eb",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "title": "Car park resurfacing",
+          "business_unit": "Facilities & EHS",
+          "category": "Facilities",
+          "fiscal_year": "2026",
+          "period": "2026-08",
+          "entry_type": "Planned",
+          "amount": 78800,
+          "vendor": "",
+          "invoice_ref": "",
+          "description": "Approved phasing"
+        }
+      }
+    ]
+  }
+}

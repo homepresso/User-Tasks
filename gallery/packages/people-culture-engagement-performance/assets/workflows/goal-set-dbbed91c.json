@@ -1,0 +1,196 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "dbbed91c-fef3-566a-b2b5-89e65dc4b480",
+  "asset": {
+    "id": "dbbed91c-fef3-566a-b2b5-89e65dc4b480",
+    "name": "Goal set",
+    "description": "From the Set a goal form: adds the goal and each key result (child records), aligned to the goal above.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Goal set",
+        "config": {
+          "form_id": "d54f6fe1-8fbd-5c19-b23c-ab29b40f9bce",
+          "form_name": "Set a goal"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Goal reference",
+        "config": {
+          "name": "goal_ref",
+          "expression": "G-{{=FORMAT_DATE(NOW(), \"YYMM\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{form.objective}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "owner",
+        "type": "update_data_table",
+        "label": "Owner in the directory",
+        "config": {
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "table_name": "People directory",
+          "operation": "get",
+          "match_column": "email",
+          "match_value": "{{submitted_by_email}}",
+          "output_row_var": "owner"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "goal",
+        "type": "update_data_table",
+        "label": "Add the goal",
+        "config": {
+          "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+          "table_name": "Goals and OKRs",
+          "operation": "insert",
+          "column_values": {
+            "goal_ref": "{{goal_ref}}",
+            "objective": "{{form.objective}}",
+            "level": "{{form.level}}",
+            "aligned_to": "{{form.aligned_to}}",
+            "owner_name": "{{submitted_by_name}}",
+            "owner_email": "{{submitted_by_email}}",
+            "manager_email": "{{owner.manager_email}}",
+            "department": "{{form.department}}",
+            "quarter": "{{form.quarter}}",
+            "status": "On track",
+            "progress": "0",
+            "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+            "key_results": "{{form.key_results_count}}",
+            "due_date": "{{form.due_date}}",
+            "last_check_in": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each key result",
+        "config": {
+          "items": "{{form.key_results}}",
+          "item_var": "kr",
+          "index_var": "kr_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "kr",
+        "type": "update_data_table",
+        "label": "Add the key result",
+        "config": {
+          "table_id": "6d174f2d-1916-589a-ac03-91b5f271812d",
+          "table_name": "Key results",
+          "operation": "insert",
+          "column_values": {
+            "kr_ref": "{{goal_ref}}-KR{{=kr_index + 1}}",
+            "goal": "{{goal_ref}}",
+            "key_result": "{{kr.kr}}",
+            "start_value": "{{kr.kr_start}}",
+            "target_value": "{{kr.kr_target}}",
+            "current_value": "{{kr.kr_start}}",
+            "unit": "{{kr.kr_unit}}",
+            "progress": "0",
+            "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+            "status": "On track",
+            "owner_email": "{{submitted_by_email}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Goal saved",
+        "config": {
+          "reason": "{{goal_ref}} with {{form.key_results_count}} key results"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-owner",
+        "source": "title",
+        "target": "owner"
+      },
+      {
+        "id": "e-owner-goal",
+        "source": "owner",
+        "target": "goal"
+      },
+      {
+        "id": "e-goal-each",
+        "source": "goal",
+        "target": "each"
+      },
+      {
+        "id": "e-each-kr-each_item",
+        "source": "each",
+        "target": "kr",
+        "label": "Each item"
+      },
+      {
+        "id": "e-each-end-done",
+        "source": "each",
+        "target": "end",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

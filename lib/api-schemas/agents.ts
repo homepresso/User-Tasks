@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { defineEndpoint } from './registry'
 import { booleanFlag, idParams, itemResponse, listResponse, looseObject, paginationQuery } from './common'
+import { COST_SOURCES, GROUP_BYS, MAX_PERIOD_DAYS, PERIOD_PRESETS } from '@/lib/agents/cost-breakdown'
 
 // Agent saves go through lib/services/agents (validation, versions, audit);
 // these schemas describe the accepted fields (unknown fields are ignored).
@@ -97,9 +98,22 @@ export const getAgentUsageEndpoint = defineEndpoint({
 
 export const getWorkspaceAgentUsageEndpoint = defineEndpoint({
   method: 'GET', path: '/agents/usage', operationId: 'getWorkspaceAgentUsage', tags,
-  summary: 'Workspace agent usage: tokens and cost per day and per agent, workspace budgets, and the price table in effect', permission: 'agents.view',
-  query: z.object({ days: z.coerce.number().int().min(1).max(90).optional() }),
-  response: z.looseObject({ ...usageSummary, agents: z.array(looseObject), budgets: looseObject, prices: looseObject }),
+  summary: 'Workspace agent usage: tokens and cost per day and per agent, workspace budgets, the price table in effect, and AI cost breakdowns by model, profile, agent, source or person', permission: 'agents.view',
+  description: 'With group_by, period, from / to or a filter the answer also has `breakdown`: every AI call of the workspace in the period (agent runs, the in-product Agent, PDF import AI assist, redaction AI detection) rolled up per group — calls, input / output / cached tokens, stored cost per currency, `estimated_cost` (calls recorded without a cost, at today\'s price), `unknown_calls` (no price), share, cost per 1k tokens and a per-day trend — plus totals and per-day series by model and by profile. Grouping or filtering by user needs assistants.manage.',
+  query: z.object({
+    days: z.coerce.number().int().min(1).max(90).optional(),
+    group_by: z.string().max(100).optional().describe(`Comma-separated: ${GROUP_BYS.join(' | ')} (default day,model,profile,agent,source; user needs assistants.manage)`),
+    period: z.enum(PERIOD_PRESETS).optional().describe('Breakdown period preset (default 30d); from / to win'),
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe('First day (UTC, YYYY-MM-DD, inclusive)'),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe(`Last day (UTC, YYYY-MM-DD, inclusive; at most ${MAX_PERIOD_DAYS} days after from)`),
+    provider: z.string().max(60).optional().describe('Only calls to this provider (openai, anthropic, … or unknown)'),
+    model: z.string().max(200).optional().describe('Only calls to this model'),
+    agent_profile: z.string().max(64).optional().describe('Only the in-product Agent\'s calls under this Agent profile id (default = no profile matched)'),
+    agent: z.string().max(64).optional().describe('Only this agent\'s runs (agent id)'),
+    source: z.enum(COST_SOURCES).optional().describe('Only calls from this source'),
+    user: z.string().max(64).optional().describe('Only this person\'s in-product Agent calls (user id; needs assistants.manage)'),
+  }),
+  response: z.looseObject({ ...usageSummary, agents: z.array(looseObject), budgets: looseObject, prices: looseObject, breakdown: looseObject.optional().describe('Present when a breakdown parameter is given') }),
   cli: { resource: 'agents', verb: 'workspace-usage' },
 })
 

@@ -1,0 +1,122 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+  "asset": {
+    "id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+    "name": "CapEx budgets",
+    "description": "The annual capital budget by business unit, category and quarter (two fiscal years), with what is committed and spent against each line in USD.",
+    "columns": [
+      {
+        "id": "1096e55e-3bdf-526d-8080-295c3d5185d9",
+        "required": true,
+        "key": "budget_key",
+        "name": "Budget line",
+        "type": "text"
+      },
+      {
+        "id": "097929dd-cc48-5a84-8590-e03552ea3870",
+        "required": false,
+        "key": "fiscal_year",
+        "name": "Fiscal year",
+        "type": "select",
+        "options": [
+          "2026",
+          "2027",
+          "2028"
+        ]
+      },
+      {
+        "id": "e7c41d1b-d8f4-5068-ad61-b04a86546997",
+        "required": false,
+        "key": "bu_code",
+        "name": "BU code",
+        "type": "text"
+      },
+      {
+        "id": "07258879-f867-546e-9b7b-1159efb974d7",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Production",
+          "Logistics",
+          "Engineering & R&D",
+          "IT",
+          "Facilities & EHS",
+          "Commercial"
+        ]
+      },
+      {
+        "id": "a701bda9-8d50-5590-b7d6-9ce87f2388e5",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Equipment",
+          "IT",
+          "Facilities",
+          "Vehicles",
+          "R&D"
+        ]
+      },
+      {
+        "id": "08df99b0-4edc-5c2b-ae9f-6e326abbf059",
+        "required": false,
+        "key": "quarter",
+        "name": "Quarter",
+        "type": "select",
+        "options": [
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4"
+        ]
+      },
+      {
+        "id": "df907e6c-5494-5060-b105-ed31e891bbb2",
+        "required": false,
+        "key": "period",
+        "name": "Period",
+        "type": "text"
+      },
+      {
+        "id": "798e7753-d61d-5244-9a4d-a5bdec5d3bb3",
+        "required": false,
+        "key": "budget",
+        "name": "Budget (USD)",
+        "type": "number"
+      },
+      {
+        "id": "16a678a0-5e04-5c8b-8406-ee9403146b43",
+        "required": false,
+        "key": "committed",
+        "name": "Committed (USD)",
+        "type": "number"
+      },
+      {
+        "id": "bfd8fe0f-5c70-5479-80f6-0d29097667ae",
+        "required": false,
+        "key": "spent",
+        "name": "Spent (USD)",
+        "type": "number"
+      },
+      {
+        "id": "029e8ea6-8c24-50c9-b824-205b5a99eb44",
+        "required": false,
+        "key": "available",
+        "name": "Available (USD)",
+        "type": "number"
+      },
+      {
+        "id": "d022d2e3-7afd-5f72-b89e-b02fd8453acd",
+        "required": false,
+        "key": "committed_pct",
+        "name": "Committed %",
+        "type": "number"
+      }
+    ]
+  }
+}

@@ -14,37 +14,37 @@
       "id": "hr-people",
       "title": "HR & People",
       "summary": "Onboarding, leave, reviews and the people processes every company runs.",
-      "count": 10
+      "count": 12
     },
     {
       "id": "finance",
       "title": "Finance",
       "summary": "Expenses, invoices, purchasing, vendors and the month-end close.",
-      "count": 10
+      "count": 12
     },
     {
       "id": "it-security",
       "title": "IT & Security",
       "summary": "Access, incidents, changes, identity lifecycle and alert handling.",
-      "count": 9
+      "count": 10
     },
     {
       "id": "customer-sales",
       "title": "Customer & Sales",
       "summary": "Leads, quotes, customer onboarding and complaints with SLAs.",
-      "count": 7
+      "count": 8
     },
     {
       "id": "operations-compliance",
       "title": "Operations & Compliance",
       "summary": "Contracts, attestations, audits, supplier risk and privacy requests.",
-      "count": 14
+      "count": 15
     },
     {
       "id": "workplace",
       "title": "Workplace & Facilities",
       "summary": "Visitors, rooms, vehicles, equipment, events and the everyday office processes.",
-      "count": 5
+      "count": 7
     },
     {
       "id": "surveys-assessments",
@@ -199,6 +199,43 @@
       "native": false
     },
     {
+      "id": "86df1dc0-d053-56a8-b3af-247a01b6e212",
+      "slug": "hr-onboarding-portal",
+      "title": "HR onboarding portal",
+      "category": "hr-people",
+      "summary": "An onboarding app: request a new starter in a side panel, track each starter’s checklist, see every team’s onboarding tasks and the start dates on a calendar.",
+      "trigger": "app",
+      "version": "1.0.0",
+      "released": "2026-11-22",
+      "tags": [
+        "onboarding",
+        "new starter",
+        "checklist",
+        "calendar",
+        "hr",
+        "app"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 10,
+      "file": "/gallery/hr-onboarding-portal-1.0.0.utpkg",
+      "file_name": "hr-onboarding-portal-1.0.0.utpkg",
+      "size_bytes": 15758,
+      "sha256": "2e2a002ba5eb472ed444a35e2b082aba46e6741c2adfd3d3bf7a963d5516e715",
+      "checksum": "sha256:abc19e2c7a865d4e179886edfc60874c44b036a79306503096c2d0313e106863",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 5,
+      "requirement_count": 1,
+      "page": "/gallery/hr-onboarding-portal",
+      "source": "official",
+      "systems": [],
+      "native": false
+    },
+    {
       "id": "5a90e018-560f-4227-a7b9-27065511d3e3",
       "slug": "leave-request",
       "title": "Leave request",
@@ -232,6 +269,50 @@
       "asset_count": 9,
       "requirement_count": 2,
       "page": "/gallery/leave-request",
+      "source": "official",
+      "systems": [],
+      "native": false
+    },
+    {
+      "id": "0ddb671e-c384-516f-8072-12f0ed964e7a",
+      "slug": "people-culture-engagement-performance",
+      "title": "People & Culture: engagement, performance and growth",
+      "category": "hr-people",
+      "summary": "A complete people app: anonymity-safe engagement surveys and pulses, goals and OKRs, performance reviews with peer feedback and calibration, a recognition wall and development plans.",
+      "trigger": "app",
+      "version": "1.0.0",
+      "released": "2026-11-22",
+      "tags": [
+        "engagement",
+        "survey",
+        "enps",
+        "performance review",
+        "okr",
+        "goals",
+        "recognition",
+        "development",
+        "calibration",
+        "app",
+        "showcase"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "advanced",
+      "setup_minutes": 20,
+      "file": "/gallery/people-culture-engagement-performance-1.0.0.utpkg",
+      "file_name": "people-culture-engagement-performance-1.0.0.utpkg",
+      "size_bytes": 229292,
+      "sha256": "9f7b8d083847bac252648260e707d27d7d912fd599782d2ecd1fdb8ec028fa7f",
+      "checksum": "sha256:3a9aa973071e1323c667428b169d69739cb02950d2bd9f55c2ba88005c11292d",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 54,
+      "requirement_count": 3,
+      "page": "/gallery/people-culture-engagement-performance",
       "source": "official",
       "systems": [],
       "native": false
@@ -472,6 +553,47 @@
       "native": false
     },
     {
+      "id": "dfbafc28-f571-529a-88dc-14c21ee3c4e9",
+      "slug": "capex-planning",
+      "title": "CapEx planning & approvals",
+      "category": "finance",
+      "summary": "Capital expenditure end to end: budgets by business unit, requests with live NPV, IRR and payback, rule-based approvals, spend against plan and the asset register.",
+      "trigger": "app",
+      "version": "1.0.0",
+      "released": "2026-11-22",
+      "tags": [
+        "showcase",
+        "capex",
+        "budgeting",
+        "approvals",
+        "finance",
+        "decision-tables",
+        "npv",
+        "assets"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [
+        "email"
+      ],
+      "difficulty": "advanced",
+      "setup_minutes": 20,
+      "file": "/gallery/capex-planning-1.0.0.utpkg",
+      "file_name": "capex-planning-1.0.0.utpkg",
+      "size_bytes": 148162,
+      "sha256": "574d6632b4b0dccc487b495d62398f4adf5fd0246e4a45b62f29786ad5e706db",
+      "checksum": "sha256:2321f8f4c80b2f1433059c766233b1ff5d9c4d095705388cf81e95499b0c5089",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 33,
+      "requirement_count": 4,
+      "page": "/gallery/capex-planning",
+      "source": "official",
+      "systems": [],
+      "native": false
+    },
+    {
       "id": "5dc02cfb-c3b0-4a0c-9106-6f0aefd04ad6",
       "slug": "expense-claims",
       "title": "Expense claims",
@@ -507,6 +629,43 @@
       "asset_count": 8,
       "requirement_count": 2,
       "page": "/gallery/expense-claims",
+      "source": "official",
+      "systems": [],
+      "native": false
+    },
+    {
+      "id": "52f58731-4234-5b4d-af2c-dc08c6ff76b0",
+      "slug": "expense-desk",
+      "title": "Expense desk",
+      "category": "finance",
+      "summary": "An expense app: claim in a slide-in panel, follow claims to payment, approve your team’s claims and see spend by category and department in USD.",
+      "trigger": "app",
+      "version": "1.0.0",
+      "released": "2026-11-22",
+      "tags": [
+        "expenses",
+        "approvals",
+        "app",
+        "finance",
+        "sla",
+        "charts"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 5,
+      "file": "/gallery/expense-desk-1.0.0.utpkg",
+      "file_name": "expense-desk-1.0.0.utpkg",
+      "size_bytes": 16703,
+      "sha256": "bce253768efbc37545531ff3d15cd890fb2ad2002cbac623d5f6fd0f35056a67",
+      "checksum": "sha256:fd1653bd1c1fd702d480ed35821b44960cba03062fe6af79403d22a865b670a4",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 6,
+      "requirement_count": 1,
+      "page": "/gallery/expense-desk",
       "source": "official",
       "systems": [],
       "native": false
@@ -1032,6 +1191,43 @@
       "native": true
     },
     {
+      "id": "ea85100b-e2c1-5809-b067-4f3c4afbbb15",
+      "slug": "it-service-desk",
+      "title": "IT service desk",
+      "category": "it-security",
+      "summary": "A service desk app: raise a ticket in a dialog, follow your tickets, work a team Kanban board, watch SLAs at risk or breached and point people to the knowledge base.",
+      "trigger": "app",
+      "version": "1.0.0",
+      "released": "2026-11-22",
+      "tags": [
+        "it service desk",
+        "tickets",
+        "sla",
+        "kanban",
+        "knowledge base",
+        "app"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 5,
+      "file": "/gallery/it-service-desk-1.0.0.utpkg",
+      "file_name": "it-service-desk-1.0.0.utpkg",
+      "size_bytes": 16131,
+      "sha256": "ad0ee803f7d3f0ad09357f54c2665fa951c242401faa315ad0870874c6739910",
+      "checksum": "sha256:b2d143f052eb24b89f01515cb21111e41aaffcf04a60b17e6240d799ec02831e",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 5,
+      "requirement_count": 1,
+      "page": "/gallery/it-service-desk",
+      "source": "official",
+      "systems": [],
+      "native": false
+    },
+    {
       "id": "efded5b9-407a-4b99-a790-0c1a7d85b4c1",
       "slug": "joiner-mover-leaver-sync",
       "title": "Joiner, mover, leaver sync",
@@ -1458,6 +1654,49 @@
       "native": false
     },
     {
+      "id": "b8dcb20a-d5b4-50e9-bded-72f27ac555ed",
+      "slug": "revenue-crm",
+      "title": "Revenue CRM",
+      "category": "customer-sales",
+      "summary": "A complete CRM app: routed leads, a drag-and-drop pipeline, account 360 with every opportunity, deal rooms with stage history, quote approvals and revenue insights in USD.",
+      "trigger": "app",
+      "version": "1.2.0",
+      "released": "2026-11-24",
+      "tags": [
+        "crm",
+        "sales",
+        "pipeline",
+        "app",
+        "kanban",
+        "approvals",
+        "leads",
+        "showcase",
+        "support"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [
+        "email",
+        "ai_model"
+      ],
+      "difficulty": "advanced",
+      "setup_minutes": 20,
+      "file": "/gallery/revenue-crm-1.2.0.utpkg",
+      "file_name": "revenue-crm-1.2.0.utpkg",
+      "size_bytes": 193329,
+      "sha256": "5f0d3b236286f745fd378174406232f4af9f8c0f6dd5ef15ee8b966dc3000d6f",
+      "checksum": "sha256:9758682a9d3d79f18bcd78af6734a07e4a54d9c4444d3c8c7ef2eb99ebb8acde",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 42,
+      "requirement_count": 5,
+      "page": "/gallery/revenue-crm",
+      "source": "official",
+      "systems": [],
+      "native": false
+    },
+    {
       "id": "1075cd0a-d421-5dc0-8533-a0bee0635dbb",
       "slug": "salesforce-discount-approval",
       "title": "Salesforce opportunity discount approval",
@@ -1616,6 +1855,43 @@
       "systems": [
         "DocuSign"
       ],
+      "native": false
+    },
+    {
+      "id": "06ee1413-add9-50ef-b199-a50d970e7dfa",
+      "slug": "contract-hub",
+      "title": "Contract hub",
+      "category": "operations-compliance",
+      "summary": "A contract app: submit a contract in a side panel, follow the approval pipeline as a funnel, see renewal decisions on a calendar and keep the register in an editable grid.",
+      "trigger": "app",
+      "version": "1.0.0",
+      "released": "2026-11-22",
+      "tags": [
+        "contracts",
+        "approvals",
+        "renewals",
+        "legal",
+        "funnel",
+        "app"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [],
+      "difficulty": "intermediate",
+      "setup_minutes": 10,
+      "file": "/gallery/contract-hub-1.0.0.utpkg",
+      "file_name": "contract-hub-1.0.0.utpkg",
+      "size_bytes": 13555,
+      "sha256": "4a5ba4d19d760bd2fab581531d6ca785a5625d5e7d05c31e655ccfbb4a2670fe",
+      "checksum": "sha256:140cc083d582b2fb98f208799b120876bb01e27dfd9f5bdb3efa5c5e6a74f4eb",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 4,
+      "requirement_count": 1,
+      "page": "/gallery/contract-hub",
+      "source": "official",
+      "systems": [],
       "native": false
     },
     {
@@ -2154,6 +2430,43 @@
       "native": true
     },
     {
+      "id": "28a09380-00a9-5b72-a1d8-8e70f5485220",
+      "slug": "facilities-desk",
+      "title": "Facilities desk",
+      "category": "workplace",
+      "summary": "A facilities app: report a problem with its location in a side panel, browse open requests as cards, see requests by site and building, and balance technician workload.",
+      "trigger": "app",
+      "version": "1.0.0",
+      "released": "2026-11-22",
+      "tags": [
+        "facilities",
+        "maintenance",
+        "locations",
+        "technicians",
+        "workplace",
+        "app"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 10,
+      "file": "/gallery/facilities-desk-1.0.0.utpkg",
+      "file_name": "facilities-desk-1.0.0.utpkg",
+      "size_bytes": 14381,
+      "sha256": "78f4fa00946f040a8f65413926758ab5cd9379b8c3153893c7bf1dcd12ed9219",
+      "checksum": "sha256:a1ce41257f93364b6cbf00a5f6770b913cd9964a6b36ca2b03fb1b7a6075cc5c",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 5,
+      "requirement_count": 1,
+      "page": "/gallery/facilities-desk",
+      "source": "official",
+      "systems": [],
+      "native": false
+    },
+    {
       "id": "4e43d9de-932e-575d-aa18-ddd65344c088",
       "slug": "meeting-room-booking",
       "title": "Meeting room booking",
@@ -2188,6 +2501,43 @@
       "source": "official",
       "systems": [],
       "native": true
+    },
+    {
+      "id": "e7712469-b071-5807-b2d4-f90039b4de50",
+      "slug": "team-operations-dashboard",
+      "title": "Team operations dashboard",
+      "category": "workplace",
+      "summary": "A dashboard app for team leads: KPIs, throughput, bottlenecks, cycle time, overdue work and announcements, with team, period and person filters and click-to-filter charts.",
+      "trigger": "app",
+      "version": "1.0.0",
+      "released": "2026-11-22",
+      "tags": [
+        "dashboard",
+        "kpi",
+        "throughput",
+        "bottlenecks",
+        "cycle time",
+        "app"
+      ],
+      "needs": [
+        "assignees"
+      ],
+      "optional_needs": [],
+      "difficulty": "starter",
+      "setup_minutes": 5,
+      "file": "/gallery/team-operations-dashboard-1.0.0.utpkg",
+      "file_name": "team-operations-dashboard-1.0.0.utpkg",
+      "size_bytes": 13964,
+      "sha256": "8a9ba36d98cbb7d631e7bed92b6abbee39d5ba70077813f8cad18bf32944205d",
+      "checksum": "sha256:e90307f2b519a3606afcdd5aca2d8ae1ef5ebc521225ab5892d50c6da886052d",
+      "signed": true,
+      "fingerprint": "49:f3:04:90:47:02:4d:07:28:61:3d:dc:bb:aa:db:11",
+      "asset_count": 5,
+      "requirement_count": 1,
+      "page": "/gallery/team-operations-dashboard",
+      "source": "official",
+      "systems": [],
+      "native": false
     },
     {
       "id": "e0671c2b-28a0-5735-b1a6-e3c3950c2bc5",

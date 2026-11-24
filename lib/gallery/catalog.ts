@@ -10,12 +10,13 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- manifests are free-form JSON */
 
+import { appEmbedOrigins } from '@/lib/apps/references'
 import type { ActionCatalogEntry } from './actions'
 import { deriveInputFields } from '@/lib/workflow-inputs'
 import type { BuiltGalleryPackage } from './build'
 import { isNativeContents, releaseDate } from './build'
 import type { GallerySource } from './source'
-import type { ControlGalleryMeta, GalleryChangelogEntry, GalleryControlKind, GalleryMeta } from './types'
+import { galleryScreenshotUrl, type ControlGalleryMeta, type GalleryChangelogEntry, type GalleryControlKind, type GalleryMeta } from './types'
 import type { ControlAccessibilitySpec, ControlContextSpec, ControlDisplaySpec, ControlOutputSpec, ControlPropSpec, ControlSizeSpec, ControlValueSpec } from '@/lib/forms/custom-controls/contract'
 
 export interface CatalogField {
@@ -82,7 +83,7 @@ export interface CatalogRequirement {
   fields: Array<{ key: string; label: string; type: string; secret: boolean; required: boolean; default?: unknown }>
 }
 
-export interface CatalogEntry extends Omit<GalleryMeta, 'sample_input' | 'expect' | 'verify_mocks' | 'optional_needs' | 'systems'> {
+export interface CatalogEntry extends Omit<GalleryMeta, 'sample_input' | 'expect' | 'verify_mocks' | 'optional_needs' | 'systems' | 'screenshots'> {
   optional_needs: GalleryMeta['needs']
   systems: string[]
   /** "No integrations needed" (lib/gallery/build isNativeContents). */
@@ -100,6 +101,40 @@ export interface CatalogEntry extends Omit<GalleryMeta, 'sample_input' | 'expect
   asset_count: number
   /** Official form controls its forms use (they ship in the package): /gallery/controls/<slug>. */
   controls: Array<{ slug: string; tag: string; name: string }>
+  /** App-first packages (entry_app): the app people open after install. */
+  app?: CatalogApp
+  /** Screenshots published by the build (public/gallery/screenshots/<slug>/). */
+  screenshots?: CatalogScreenshot[]
+}
+
+export interface CatalogScreenshot { src: string; caption: string; theme: 'light' | 'dark' }
+
+/** The entry app of an app-first package, for its gallery page. */
+export interface CatalogApp {
+  id: string
+  name: string
+  slug: string
+  subtitle: string | null
+  description: string | null
+  /** A built-in icon name (uploaded icons are not shown in the catalogue). */
+  icon: string | null
+  color: string | null
+  pages: Array<{ slug: string; title: string; widgets: string[]; hidden: boolean }>
+  /** Sites its Embed widgets frame (the installing workspace must allow them). */
+  embed_origins: string[]
+}
+
+/** The catalogue view of an app asset. */
+export function catalogApp(app: any): CatalogApp {
+  return {
+    id: String(app.id), name: String(app.name ?? ''), slug: String(app.slug ?? ''), subtitle: app.subtitle ?? null, description: app.description ?? null,
+    icon: typeof app.icon === 'string' && !app.icon.startsWith('svg:') ? app.icon : null, color: app.color ?? null,
+    pages: (Array.isArray(app.pages) ? app.pages : []).map((p: any) => ({
+      slug: String(p.slug), title: String(p.title ?? p.slug), hidden: p.layout?.options?.hidden === true,
+      widgets: (Array.isArray(p.layout?.widgets) ? p.layout.widgets : []).map((w: any) => String(w?.type ?? '')).filter(Boolean),
+    })),
+    embed_origins: appEmbedOrigins(app),
+  }
 }
 
 /** One form control in a control entry (from its validated manifest and module). */
@@ -172,7 +207,7 @@ const SECTION_LABEL: Record<string, string> = {
   workflows: 'Workflow', decision_tables: 'Decision table', data_tables: 'Data table', integrations: 'Integration',
   references: 'API reference', email_templates: 'Email template', agents: 'AI agent', workflow_activities: 'Workflow action',
   reports: 'Report', roles: 'Role', retention_policies: 'Retention policy', objects: 'Object',
-  forms: 'Form', form_themes: 'Form theme', form_controls: 'Form control',
+  forms: 'Form', form_themes: 'Form theme', form_controls: 'Form control', apps: 'App',
 }
 
 export function sectionLabel(section: string): string {
@@ -284,8 +319,9 @@ export function catalogEntry(source: GallerySource, built: BuiltGalleryPackage):
       ...(f.default !== undefined && !f.secret ? { default: f.default } : {}),
     })),
   }))
-  const entryWorkflow = (assets.workflows ?? []).find((wf: any) => String(wf.id) === meta.entry_workflow)
-  const { sample_input: sampleInput, expect: _expect, verify_mocks: _mocks, systems, ...rest } = meta
+  const entryWorkflow = meta.entry_workflow ? (assets.workflows ?? []).find((wf: any) => String(wf.id) === meta.entry_workflow) : undefined
+  const entryApp = meta.entry_app ? (assets.apps ?? []).find((a: any) => String(a.id) === meta.entry_app) : undefined
+  const { sample_input: sampleInput, expect: _expect, verify_mocks: _mocks, systems, screenshots, ...rest } = meta
   return {
     ...rest,
     optional_needs: meta.optional_needs ?? [],
@@ -303,5 +339,7 @@ export function catalogEntry(source: GallerySource, built: BuiltGalleryPackage):
     requirements,
     asset_count: built.assetCount,
     controls: source.controls ?? [],
+    ...(entryApp ? { app: catalogApp(entryApp) } : {}),
+    ...(screenshots?.length ? { screenshots: screenshots.map((s) => ({ src: galleryScreenshotUrl(source.slug, s.file), caption: s.caption, theme: s.theme ?? 'light' })) } : {}),
   }
 }

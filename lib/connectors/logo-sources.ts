@@ -25,6 +25,11 @@ export const CONNECTOR_LOGO_SOURCES: Record<string, ConnectorLogoSource> = {
     sourceUrl: "https://azure.microsoft.com/products/ai-services/openai-service",
     sourceLabel: "Microsoft Azure official site icon",
   },
+  baseten: {
+    src: "https://www.google.com/s2/favicons?domain=baseten.co&sz=64",
+    sourceUrl: "https://www.baseten.co/",
+    sourceLabel: "Baseten official site icon",
+  },
   box: {
     src: "https://www.box.com/favicon.ico",
     sourceUrl: "https://www.box.com/",

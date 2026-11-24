@@ -13,6 +13,7 @@ import {
   effortInputText, parseEffortInput, SUBTASK_DESCRIPTION_MAX, SUBTASK_SUBTITLE_MAX, SUBTASK_TITLE_MAX, validateSubtaskInput, type SubtaskInput,
 } from "@/lib/tasks/subtask-input"
 import type { SubtaskRecord } from "@/lib/services/tasks"
+import { TagInput, parseTagText } from "@/components/ui/tag-input"
 
 /**
  * Add or edit a subtask — the task page's task tree and the task lists'
@@ -210,7 +211,7 @@ export function SubtaskForm({ parentTaskId, subtaskId, initial, defaultPriority,
               <Select size={size} value={draft.priority} onChange={(e) => set("priority")(e.target.value)} options={SUBTASK_PRIORITY_OPTIONS} data-subtask-priority />
             </Field>
             <Field label="Tags" id={`${uid}-tags`}>
-              <Input size={size} value={draft.tags} onChange={(e) => set("tags")(e.target.value)} placeholder="Comma separated" data-subtask-tags />
+              <TagInput value={parseTagText(draft.tags)} onChange={(next) => set("tags")(next.join(", "))} data-subtask-tags />
             </Field>
           </div>
         </div>

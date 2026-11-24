@@ -477,6 +477,43 @@ describe('completion checks for table lookups (mergeTaskFieldValuesChecked)', ()
   })
 })
 
+describe('read-only fields a lookup fills (gap: dropped on submit)', () => {
+  beforeEach(() => { db = fakeDb(seed()); clearLookupCache() })
+  const READ_ONLY = FIELDS.map((f) => (f.key === 'customer' ? { ...f, lookup: { ...tableLookup, fill: [] } } : f.key === 'contact_email' || f.key === 'contact_phone' ? { ...f, read_only: true } : f))
+  // A rule on the lookup copies the selected item's columns into read-only fields (the browser never sends <key>_item it can trust).
+  const COPY_RULE = { id: 'r_copy', event: 'value_change', target: 'customer', then: [{ type: 'set_values', assign: { contact_email: '{{form.customer_item.email}}', contact_phone: '{{customer_label}}' } }] }
+
+  it('a rule copying the lookup item into a read-only field: kept, worked out from the server-verified item', async () => {
+    const { mergeTaskFieldValuesChecked } = await import('@/lib/forms/task-values')
+    const meta = { fields: READ_ONLY, template_values: {}, form_layout: { rows: [], rules: [COPY_RULE] } }
+    const ok = await mergeTaskFieldValuesChecked(db as any, TENANT, meta, { region: 'EU', customer: u(101), contact_email: 'maria@alfreds.test', contact_phone: 'Alfreds Futterkiste' }, { taskId: TASK })
+    expect(ok.errors).toEqual({})
+    expect(ok.templateValues.contact_email).toBe('maria@alfreds.test')
+    expect(ok.templateValues.contact_phone).toBe('Alfreds Futterkiste')
+  })
+
+  it('…and a forged item can not smuggle a value in', async () => {
+    const { mergeTaskFieldValuesChecked } = await import('@/lib/forms/task-values')
+    const meta = { fields: READ_ONLY, template_values: {}, form_layout: { rows: [], rules: [COPY_RULE] } }
+    const forged = await mergeTaskFieldValuesChecked(db as any, TENANT, meta, { region: 'EU', customer: u(101), customer_item: { email: 'forged@evil.test' }, customer_label: 'Forged', contact_email: 'forged@evil.test', contact_phone: 'Forged' }, { taskId: TASK })
+    expect(forged.templateValues.contact_email).not.toBe('forged@evil.test')
+    expect(forged.templateValues.contact_phone).not.toBe('Forged')
+  })
+
+  it('labels and Before-submit checks read the filled read-only value (not an empty one)', async () => {
+    const { mergeTaskFieldValuesChecked } = await import('@/lib/forms/task-values')
+    const fields = [
+      ...FIELDS.map((f) => (f.key === 'contact_email' || f.key === 'contact_phone' ? { ...f, read_only: true } : f)),
+      { key: 'shown_phone', label: 'Shown phone', type: 'label', label_config: { expression: 'CONCAT("Tel ", contact_phone)', include: true } },
+    ]
+    const meta = { fields, template_values: {} }
+    const ok = await mergeTaskFieldValuesChecked(db as any, TENANT, meta, { region: 'EU', customer: u(101) }, { taskId: TASK })
+    expect(ok.errors).toEqual({})
+    expect(ok.templateValues.contact_phone).toBe('030-0074321')
+    expect(ok.templateValues.shown_phone).toBe('Tel 030-0074321')
+  })
+})
+
 describe('downstream data and portability', () => {
   it('the data picker exposes the value and <key>_item with its item model', () => {
     const groups = buildDataTree({

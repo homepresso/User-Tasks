@@ -156,6 +156,53 @@ describe('installer: licence-gated edition download', () => {
   })
 })
 
+describe('installer: UserTasks Enterprise', () => {
+  const entJson = () => Buffer.from(`${JSON.stringify({
+    format: 1, kind: 'usertasks.edition', edition: 'enterprise', edition_version: '0.4.0-ent.2', core_version: '0.4.0', build: 2,
+    extensions: [{ id: 'infrastructure', name: 'Infrastructure', version: '0.1.0', commit: '1111111' }, { id: 'sharepoint', name: 'SharePoint Server', version: '0.2.0', commit: '2222222' }],
+    built_at: '2026-11-30T00:00:00Z', index_digest: dg('a'), platforms: { 'linux/amd64': { manifest: dg('b'), config: dg('c') } },
+  }, null, 2)}\n`)
+
+  it('requests enterprise with any licence, verifies the multi-extension manifest, pulls the enterprise repository', () => {
+    const m = entJson()
+    writeFileSync(files.body, tokenResponse(m, sign(null, m, KEYS.privateKey), {
+      repository: 'editions/enterprise', image: `usertasks.com/editions/enterprise@${dg('a')}`, edition: 'enterprise', edition_version: '0.4.0-ent.2', core_version: '0.4.0', extension_version: undefined, included_extensions: 'infrastructure,sharepoint',
+    }))
+    const r = wrapper(`edition_request enterprise "${files.licence}" 0.4.0 install "${DIR}/w" "${PUB}" && edition_pull && echo "IMG=$EDITION_IMAGE VER=$ED_VERSION"`)
+    expect(r.stderr).toBe('')
+    expect(r.stdout).toContain('UserTasks Enterprise')
+    expect(r.stdout).toContain('contains: infrastructure, sharepoint (each unlocked by its own licence)')
+    expect(r.stdout).toContain('IMG=usertasks.com/editions/enterprise:0.4.0-ent.2 VER=0.4.0-ent.2')
+    expect(readFileSync(files.log, 'utf8').split('\n')[0]).toBe('https://api.test/x/enterprise/pull-token')
+  })
+
+  it('accepts what the SharePoint alias serves an existing SharePoint edition install: the Enterprise image under a sharepoint manifest', () => {
+    const m = editionJson({ edition_version: '0.4.0-sp0.2.0', core_version: '0.4.0', extension_version: '0.2.0', served_by: 'enterprise', served_by_version: '0.4.0-ent.2' })
+    writeFileSync(files.body, tokenResponse(m, sign(null, m, KEYS.privateKey), { repository: 'editions/enterprise', image: `usertasks.com/editions/enterprise@${dg('a')}`, edition_version: '0.4.0-sp0.2.0', core_version: '0.4.0', served_by: 'enterprise' }))
+    const r = wrapper(`edition_request sharepoint "${files.licence}" 0.4.0 upgrade "${DIR}/w" "${PUB}" && edition_pull && echo "IMG=$EDITION_IMAGE"`)
+    expect(r.stderr).toBe('')
+    expect(r.stdout).toContain('IMG=usertasks.com/editions/enterprise:0.4.0-sp0.2.0')
+  })
+
+  it('falls back to the public image only for a missing build or no connection, never for a licence refusal', () => {
+    const r = wrapper(`for c in edition_not_found editions_unavailable upstream_error offline licence_expired licence_not_for_edition licence_revoked; do if edition_fallback_ok "$c"; then echo "$c=yes"; else echo "$c=no"; fi; done`)
+    expect(r.stdout.trim().split('\n')).toEqual(['edition_not_found=yes', 'editions_unavailable=yes', 'upstream_error=yes', 'offline=yes', 'licence_expired=no', 'licence_not_for_edition=no', 'licence_revoked=no'])
+    writeFileSync(files.body, '')
+    const off = wrapper(`edition_request enterprise "${files.licence}" latest install "${DIR}/w" "${PUB}" || echo "CODE=$EDITION_ERROR_CODE"`, { FAKE_STATUS: '000' })
+    expect(off.stdout).toContain('CODE=offline')
+  })
+
+  it('switching a SharePoint edition install to enterprise reuses its kept licence', () => {
+    mkdirSync(path.join(DIR, 'licences'), { recursive: true })
+    writeFileSync(path.join(DIR, 'licences', 'sharepoint.licence'), readFileSync(files.licence))
+    const r = wrapper(`f=$(edition_licence enterprise) && cat "$f"`)
+    expect(r.stdout).toContain('"licence_id":"lic_1"')
+    const none = wrapper(`rm -f "${DIR}/licences/"*; edition_licence enterprise`)
+    expect(none.status).toBe(1)
+    expect(none.stderr).toContain('UserTasks Enterprise needs a licence: pass --licence <file>')
+  })
+})
+
 describe('installer: offline bundles', () => {
   function makeBundle(tamper = false) {
     const b = path.join(DIR, 'b', 'usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64')
@@ -201,15 +248,18 @@ describe('installer: edition options', () => {
     expect(run(['--edition', 'sharepoint', '--non-interactive']).stderr).toContain('needs your licence: --licence <file>')
     expect(run(['--edition', 'nope']).stderr).toContain('unknown edition: nope')
     expect(run(['--edition', 'sharepoint', '--licence', path.join(SCRATCH, 'missing.licence')]).stderr).toContain('licence file not found')
-    expect(run(['--bundle-download', '--edition', 'sharepoint']).stderr).toContain('--bundle-download needs --edition sharepoint and --licence')
+    expect(run(['--bundle-download', '--edition', 'sharepoint']).stderr).toContain('--bundle-download needs --licence <file>')
+    expect(run(['--bundle-download']).stderr).toContain('--bundle-download needs --licence <file>')
+    expect(run(['--edition', 'enterprise', '--non-interactive']).stderr).toContain('needs your licence: --licence <file>')
   })
 
   it('documents the edition options in --help and the wrapper usage', () => {
     const help = run(['--help']).stdout
-    expect(help).toContain('--edition sharepoint')
+    expect(help).toContain('--edition <name>')
+    expect(help).toMatch(/installs UserTasks Enterprise \(any paid licence\)/)
     expect(help).toContain('--bundle-download')
     const usage = spawnSync('sh', [path.join(INSTALL, 'usertasks'), 'help'], { encoding: 'utf8' }).stdout
-    expect(usage).toContain('[--edition sharepoint|core] [--licence <file>] [--bundle <offline bundle>]')
-    expect(usage).toContain('usertasks bundle-download --edition sharepoint --licence <file>')
+    expect(usage).toContain('[--edition enterprise|sharepoint|core] [--licence <file>] [--bundle <offline bundle>]')
+    expect(usage).toContain('usertasks bundle-download --edition enterprise --licence <file>')
   })
 })

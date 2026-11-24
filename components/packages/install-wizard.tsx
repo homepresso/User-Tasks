@@ -302,6 +302,18 @@ export function InstallWizard({ open, onOpenChange, onInstalled, expectUpgradeOf
             <Checkbox checked={keepLocal} onChange={(event) => { setKeepLocal(event.target.checked); void replan(values, rows, adoptByName, event.target.checked) }} label="Keep assets changed in this workspace (don’t overwrite them)" />
           ) : null}
           {plan.warnings.map((w, i) => <InlineNotice key={i} tone="warning" message={w.warning} />)}
+          {(plan.apps ?? []).map((app) => (
+            <div key={app.source_id} className="rounded-lg border border-border p-3 text-ui" data-testid="install-plan-app">
+              <p className="font-medium text-fg">App: {app.name} <span className="text-xs font-normal text-fg-muted">({plural(app.pages, 'page')})</span></p>
+              <p className="text-xs text-fg-muted">{app.set_audience
+                ? 'You become its editor. Nobody else sees it until you choose its audience in the app’s settings.'
+                : 'An upgrade: its audience, editors, URL and the pages added here are kept.'}</p>
+              {app.slug_conflict && <p className="mt-1 text-xs text-fg-muted">/apps/{app.slug} is taken here: it opens at /apps/{app.slug_conflict}.</p>}
+              {app.embed_origins_missing.length > 0 && (
+                <p className="mt-1 text-xs text-warning">Its Embed widgets frame {app.embed_origins_missing.join(', ')}, which Settings → Embedding doesn’t allow yet: they show as blocked until an admin adds them.</p>
+              )}
+            </div>
+          ))}
           {otherBlockers.map((b) => <InlineNotice key={b} tone="error" message={b} />)}
           {plan.missing_permissions?.length ? <InlineNotice tone="error" message={`You need ${[...new Set(plan.missing_permissions.map((m) => m.permission))].join(', ')} to install this package.`} /> : null}
         </div>
@@ -312,7 +324,7 @@ export function InstallWizard({ open, onOpenChange, onInstalled, expectUpgradeOf
           <p className="text-sm text-fg-muted">
             Credentials and environment settings are not part of the package. Fill them in now, or keep the install incomplete and finish later from the package library — items that need configuration stay disabled until then.
           </p>
-          <RequirementsForm requirements={requirements} values={values} onChange={setValues} />
+          <RequirementsForm requirements={requirements} values={values} onChange={setValues} tenantId={tenantId} />
           {missing > 0 && (
             <div className="rounded-lg bg-warning-wash p-3">
               <Checkbox checked={keepIncomplete} onChange={(event) => setKeepIncomplete(event.target.checked)} data-testid="keep-incomplete"
@@ -333,6 +345,18 @@ export function InstallWizard({ open, onOpenChange, onInstalled, expectUpgradeOf
           {(result.result?.errors ?? []).map((e, i) => <p key={i} className="text-xs text-danger">{e.asset_type}: {e.error}</p>)}
           {((result.result?.rows ?? []) as Array<{ table_id: string; name: string; inserted: number; updated: number; error?: string }>).map((r) => <p key={r.table_id} className="num text-xs text-fg">{r.name}: {r.inserted} rows added, {r.updated} updated{r.error ? ` — ${r.error}` : ''}</p>)}
           {result.warnings.map((w, i) => <p key={i} className="text-xs text-warning">{w.warning}</p>)}
+          {((result.result?.warnings ?? []) as Array<{ asset_type?: string; warning: string }>).filter((w) => w.asset_type === 'app').map((w, i) => <p key={`a${i}`} className="text-xs text-warning">{w.warning}</p>)}
+          {(result.apps ?? []).filter((app) => app.local_slug).map((app) => (
+            <div key={app.source_id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-ui" data-testid="installed-app">
+              <span className="font-medium text-fg">{app.name}</span>
+              {target ? <span className="text-xs text-fg-muted">in {target.name} at /apps/{app.local_slug}</span> : (
+                <>
+                  <a className="text-primary-text underline" href={`/apps/${app.local_slug}`} data-testid="installed-app-open">Open app</a>
+                  {app.set_audience && <a className="text-primary-text underline" href={`/apps/${app.local_slug}?edit=1&settings=audience`} data-testid="installed-app-audience">Choose who can use it</a>}
+                </>
+              )}
+            </div>
+          ))}
           <p className="text-xs text-fg-muted">Recorded in the package history{target ? ` of ${target.name}` : ''}.</p>
         </div>
       )}

@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { validateApiKey, requireApiPermission, ok, err, parsePagination } from '@/lib/api-auth'
 import { normalizeReportConfig } from '@/lib/report-config'
 import { reportShareDenied, scopeReportRead } from '@/lib/reports-access'
+import { normalizeTagList, tagFilterValues, TagListError } from '@/lib/tags/normalize'
+import { selectWithTags } from '@/lib/services/tags-column'
 
 export async function GET(request: NextRequest) {
   const auth = await validateApiKey(request)
@@ -14,20 +16,26 @@ export async function GET(request: NextRequest) {
   const { limit, offset } = parsePagination(params)
   const shared = params.get('shared')
   const category = params.get('category')
+  const tagValues = tagFilterValues(params.get('tag'))
 
-  let query = scopeReportRead((supabase as any)
-    .from('reports')
-    .select('id, name, description, category, is_shared, config, created_at, updated_at', { count: 'exact' })
-    .eq('tenant_id', tenantId), auth.actingUserId)
-    .order('updated_at', { ascending: false })
+  const run = (columns: string) => {
+    let query = scopeReportRead((supabase as any)
+      .from('reports')
+      .select(columns, { count: 'exact' })
+      .eq('tenant_id', tenantId), auth.actingUserId)
+      .order('updated_at', { ascending: false })
 
-  if (shared === 'true') query = query.eq('is_shared', true)
-  if (shared === 'false') query = query.or('is_shared.is.null,is_shared.eq.false')
-  if (category) query = query.eq('category', category)
-  if (offset > 0) query = query.range(offset, offset + (limit ?? 1000) - 1)
-  else if (limit) query = query.limit(limit)
+    if (shared === 'true') query = query.eq('is_shared', true)
+    if (shared === 'false') query = query.or('is_shared.is.null,is_shared.eq.false')
+    if (category) query = query.eq('category', category)
+    if (tagValues.length) query = query.overlaps('tags', tagValues)
+    if (offset > 0) query = query.range(offset, offset + (limit ?? 1000) - 1)
+    else if (limit) query = query.limit(limit)
+    return query
+  }
 
-  const { data, count, error } = await query
+  // tags arrive with migration 20270122150000_tags_everywhere: read without them until it is applied.
+  const { data, count, error } = await selectWithTags('id, name, description, category, is_shared, config, created_at, updated_at', run)
   if (error) return err(error.message, 500)
 
   return ok({ reports: data ?? [], total: count ?? 0 })
@@ -45,6 +53,8 @@ export async function POST(request: NextRequest) {
   if (!name) return err('name is required')
 
   const config = normalizeReportConfig(body.config ?? {})
+  let tags: string[]
+  try { tags = normalizeTagList(body.tags) } catch (e) { return err(e instanceof TagListError ? e.message : 'Invalid tags') }
 
   const { data, error } = await (supabase as any)
     .from('reports')
@@ -56,6 +66,7 @@ export async function POST(request: NextRequest) {
       category: String(body.category ?? '').trim() || null,
       is_shared: body.is_shared === true,
       config,
+      ...(tags.length ? { tags } : {}),
     })
     .select('*')
     .single()

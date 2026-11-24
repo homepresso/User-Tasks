@@ -6,7 +6,7 @@
 import { LICENCE_KEYRING } from '@/lib/licensing/keyring'
 import { hashIp } from '@/lib/licensing/trial-service'
 import { rateLimit } from '@/lib/rate-limit'
-import type { EditionDefinition } from './catalog'
+import { editionSources, type EditionDefinition } from './catalog'
 import { editionServerConfig } from './config'
 import { recordPullLog } from './access-log'
 import { EDITION_MANIFEST_FILE, EDITION_SIGNATURE_FILE, type PullServiceDeps } from './pull-service'
@@ -29,18 +29,32 @@ function upstreamFor(edition: EditionDefinition): { secret: string; registryHost
 }
 
 export function defaultPullServiceDeps(edition: EditionDefinition): PullServiceDeps {
+  const sources = editionSources(edition)
   return {
     now: () => new Date(),
     keyring: () => LICENCE_KEYRING,
     config: () => {
-      const c = upstreamFor(edition)
-      return 'missing' in c ? { ok: false, missing: c.missing } : { ok: true, secret: c.secret, registryHost: c.registryHost, revoked: c.revoked }
+      const missing: string[] = []
+      for (const s of sources) {
+        const c = upstreamFor(s.serving)
+        if (!('missing' in c)) return { ok: true, secret: c.secret, registryHost: c.registryHost, revoked: c.revoked }
+        missing.push(...c.missing)
+      }
+      return { ok: false, missing: [...new Set(missing)] }
     },
     readRelease: async (ref) => {
-      const c = upstreamFor(edition)
-      if ('missing' in c) return null
-      const files = await c.upstream.artifactFiles(ref, [EDITION_MANIFEST_FILE, EDITION_SIGNATURE_FILE])
-      return files ? { manifest: files[EDITION_MANIFEST_FILE], signature: files[EDITION_SIGNATURE_FILE] } : null
+      for (const s of sources) {
+        const c = upstreamFor(s.serving)
+        if ('missing' in c) continue
+        const files = await c.upstream.artifactFiles(`${s.tagPrefix}${ref}`, [EDITION_MANIFEST_FILE, EDITION_SIGNATURE_FILE])
+        if (!files) continue
+        return {
+          manifest: files[EDITION_MANIFEST_FILE],
+          signature: files[EDITION_SIGNATURE_FILE],
+          ...(s.serving.id !== edition.id ? { source: { edition: s.serving.id, repository: s.serving.repository } } : {}),
+        }
+      }
+      return null
     },
     log: recordPullLog,
   }

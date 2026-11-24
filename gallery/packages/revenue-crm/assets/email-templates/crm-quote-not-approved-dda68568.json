@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "dda68568-b6d7-5086-a842-9386a4f22276",
+  "asset": {
+    "id": "dda68568-b6d7-5086-a842-9386a4f22276",
+    "name": "CRM: quote not approved",
+    "description": "Sent to the rep when a quote is rejected.",
+    "subject": "Not approved: {{quote_id}} for {{form.account}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your quote was not approved</h2>\n  <p>Quote <strong>{{quote_id}}</strong> for {{form.account}} ({{discount}}% off, net ${{net_total}}) was not approved.</p>\n  <p>Comment: {{=COALESCE(task_data.comment, \"none\")}}</p>\n  <p>Change the discount or the products and send a new request.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by Revenue CRM</p>\n</div>",
+    "text_body": "Your quote was not approved\n  Quote {{quote_id}} for {{form.account}} ({{discount}}% off, net ${{net_total}}) was not approved.\n  Comment: {{=COALESCE(task_data.comment, \"none\")}}\n  Change the discount or the products and send a new request.\nSent by Revenue CRM",
+    "is_default": false
+  }
+}

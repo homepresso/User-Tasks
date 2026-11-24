@@ -1,0 +1,129 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "355f7295-9d17-5988-82b5-da86f7474945",
+  "asset": {
+    "id": "355f7295-9d17-5988-82b5-da86f7474945",
+    "name": "CRM closed deals",
+    "description": "Every closed deal: won or lost, the reason, competitor, amount and sales cycle in days (Won = 100 so its average is the win rate).",
+    "columns": [
+      {
+        "id": "fa855384-c8a7-5ad3-98a2-ec6dcef00e58",
+        "required": true,
+        "key": "deal_id",
+        "name": "Deal ID",
+        "type": "text"
+      },
+      {
+        "id": "5f101dc6-b068-5a19-a066-cca47813a038",
+        "required": false,
+        "key": "deal",
+        "name": "Deal",
+        "type": "text"
+      },
+      {
+        "id": "a6aecb16-7d6a-59e4-ae4b-4a89071a64f7",
+        "required": false,
+        "key": "account",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "ae5479e0-e58c-55bd-a6da-a763c057b3cb",
+        "required": false,
+        "key": "owner",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "00f845f0-5997-5e00-9f22-c35b96234e95",
+        "required": false,
+        "key": "region",
+        "name": "Region",
+        "type": "select",
+        "options": [
+          "West",
+          "Central",
+          "East",
+          "EMEA",
+          "APAC"
+        ]
+      },
+      {
+        "id": "a768a097-88db-5516-92db-a0c34be657f5",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "New business",
+          "Expansion",
+          "Renewal"
+        ]
+      },
+      {
+        "id": "824a17c0-d668-53ec-833c-cde126ef340f",
+        "required": false,
+        "key": "outcome",
+        "name": "Outcome",
+        "type": "select",
+        "options": [
+          "Won",
+          "Lost"
+        ]
+      },
+      {
+        "id": "2146ded0-6597-53a6-91e1-c399a2d20aae",
+        "required": false,
+        "key": "won",
+        "name": "Won (100 / 0)",
+        "type": "number"
+      },
+      {
+        "id": "d448fa6e-97e9-575e-9558-f11e4c2175ff",
+        "required": false,
+        "key": "amount",
+        "name": "Amount (USD)",
+        "type": "number"
+      },
+      {
+        "id": "8c08db75-5e34-5cbb-9053-d0c698c7a3f8",
+        "required": false,
+        "key": "close_date",
+        "name": "Close date",
+        "type": "date"
+      },
+      {
+        "id": "3b3484e4-26b9-50bc-ad71-4db619b5bb12",
+        "required": false,
+        "key": "reason",
+        "name": "Reason",
+        "type": "select",
+        "options": [
+          "Value proven",
+          "Product fit",
+          "Champion",
+          "Relationship",
+          "Price",
+          "Competitor",
+          "No decision",
+          "Timing"
+        ]
+      },
+      {
+        "id": "07c41e77-0368-54ab-9f2c-3053d4ffb151",
+        "required": false,
+        "key": "competitor",
+        "name": "Competitor",
+        "type": "text"
+      },
+      {
+        "id": "1d844f26-e535-558c-a361-19a481facebb",
+        "required": false,
+        "key": "cycle_days",
+        "name": "Sales cycle (days)",
+        "type": "number"
+      }
+    ]
+  }
+}

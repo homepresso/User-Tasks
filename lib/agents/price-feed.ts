@@ -33,6 +33,7 @@ const PROVIDER_MAP: Record<string, string> = {
   groq: 'groq',
   deepseek: 'deepseek',
   together_ai: 'together',
+  baseten: 'baseten',
   perplexity: 'perplexity',
   azure: 'azure_openai',
   bedrock_converse: 'bedrock',
@@ -42,7 +43,7 @@ const PROVIDER_MAP: Record<string, string> = {
 /** Key prefixes LiteLLM puts on model ids (removed: our ids are the provider's own). */
 const PREFIX: Record<string, RegExp> = {
   xai: /^xai\//, gemini: /^gemini\//, mistral: /^mistral\//, groq: /^groq\//, deepseek: /^deepseek\//,
-  together: /^together_ai\//, perplexity: /^perplexity\//, azure_openai: /^azure\//, bedrock: /^bedrock\//, openai: /^openai\//, anthropic: /^anthropic\//,
+  together: /^together_ai\//, baseten: /^baseten\//, perplexity: /^perplexity\//, azure_openai: /^azure\//, bedrock: /^bedrock\//, openai: /^openai\//, anthropic: /^anthropic\//,
 }
 
 export interface FeedPrice {

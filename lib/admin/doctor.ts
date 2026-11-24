@@ -503,6 +503,39 @@ async function checkScheduler(ctx: Ctx, add: Add): Promise<void> {
   add2('last tick', !last ? 'warn' : ageMin! > 5 ? 'warn' : 'ok', !last ? 'no tick recorded yet' : `${last.toISOString()} (${Math.round(ageMin!)} min ago)`)
   if (failing) add2('jobs', 'warn', `last run failed: ${failing}`)
   await checkHousekeeping('sql' in facts ? sqlHousekeeping(facts.sql) : rpcHousekeeping(ctx.api!.rpc), add2)
+  await checkReportRollups('sql' in facts
+    ? async () => (await facts.sql.query<{ r: unknown }>('SELECT public.report_rollup_status() AS r')).rows[0]?.r
+    : async () => { const { data, error } = await ctx.api!.rpc.rpc('report_rollup_status'); if (error) throw Object.assign(new Error(error.message), { code: error.code }); return data }, add2)
+}
+
+/**
+ * Report rollups (migration 20270123100000): backfill progress, queued
+ * rebuilds and reconcile freshness. Fed by the scheduler's report-rollups job.
+ */
+export function reportRollupFindings(s: { tenants: number; backfilled: number; in_progress: number; not_started: number; dirty_ranges: number; oldest_dirty_at: string | null; oldest_reconciled_at: string | null }, now = Date.now()): Array<{ status: CheckStatus; detail: string }> {
+  const out: Array<{ status: CheckStatus; detail: string }> = []
+  const pending = s.in_progress + s.not_started
+  out.push({ status: pending ? 'warn' : 'ok', detail: pending
+    ? `${s.backfilled}/${s.tenants} workspaces backfilled (${pending} pending; reports use live queries for them until done — usertasks-admin rollups backfill)`
+    : `all ${s.tenants} workspaces backfilled` })
+  const dirtyAge = s.oldest_dirty_at ? (now - new Date(s.oldest_dirty_at).getTime()) / 60_000 : 0
+  if (s.dirty_ranges) out.push({ status: dirtyAge > 30 ? 'warn' : 'ok', detail: `${s.dirty_ranges} queued rebuild(s), oldest ${Math.round(dirtyAge)} min (is the scheduler running?)` })
+  const recAge = s.oldest_reconciled_at && !s.oldest_reconciled_at.startsWith('-') ? (now - new Date(s.oldest_reconciled_at).getTime()) / 3_600_000 : null
+  if (s.backfilled && recAge !== null && recAge > 6) out.push({ status: 'warn', detail: `a workspace was last reconciled ${Math.round(recAge)} h ago (expected hourly)` })
+  return out
+}
+
+async function checkReportRollups(read: () => Promise<unknown>, add: Add): Promise<void> {
+  try {
+    const status = await read() as Parameters<typeof reportRollupFindings>[0] | null
+    if (!status) { add('report rollups', 'skip', 'not installed (migration 20270123100000)'); return }
+    for (const f of reportRollupFindings(status)) add('report rollups', f.status, f.detail)
+  } catch (error) {
+    const code = (error as { code?: string }).code
+    if (code && (MISSING_FUNCTION.has(code) || code === '42883')) add('report rollups', 'skip', 'not installed yet (apply migration 20270123100000); reports use live queries')
+    else if (/report_rollup_status/.test(message(error))) add('report rollups', 'skip', 'not installed yet (apply migration 20270123100000); reports use live queries')
+    else add('report rollups', 'warn', `status unavailable: ${message(error)}`)
+  }
 }
 
 /** System-table purge (any scheduler): last pass, and tables that grew or bloated. */

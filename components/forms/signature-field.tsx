@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { Eraser, Loader2, PenLine, Redo2, Type as TypeIcon, Undo2 } from 'lucide-react'
 import { attachmentPath, type AttachmentFile } from '@/lib/forms/attachments'
 import {
-  describeSignature, normalizeSignatureValue, SIGNATURE_DISCLAIMER, signatureMethods, type SignatureMethod, type SignatureValue,
+  describeSignature, normalizeSignatureValue, signatureMethods, type SignatureMethod, type SignatureValue,
 } from '@/lib/forms/media-fields'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import { useAttachmentSource } from './attachments-field'
@@ -135,7 +135,6 @@ export function SignatureField({ field, value, onChange, id, describedBy, invali
   const sessionFile = useRef<string | null>(null)
   const [localPng, setLocalPng] = useState<{ id: string; url: string } | null>(null)
   const statementId = useId()
-  const helpId = useId()
   const canSign = !disabled && (Boolean(upload) || (Boolean(source) && source!.kind !== 'preview'))
   const strokesRef = useRef(strokes)
 
@@ -221,7 +220,7 @@ export function SignatureField({ field, value, onChange, id, describedBy, invali
 
   if (sig) {
     return (
-      <div id={id} role="group" aria-labelledby={`${id}-label`} aria-describedby={[describedBy, helpId].filter(Boolean).join(' ')} className="space-y-2" data-signature-field={field.key}>
+      <div id={id} role="group" aria-labelledby={`${id}-label`} aria-describedby={describedBy || undefined} className="space-y-2" data-signature-field={field.key}>
         {statement && <p className="text-sm text-fg">{statement}</p>}
         <SignatureView value={sig.file.id ? sig : null} preview={localPng?.id === sig.file.id ? localPng.url : null} />
         {!sig.user_id && <p className="text-2xs text-fg-muted">Your name and the time are recorded when the form is submitted.</p>}
@@ -230,13 +229,12 @@ export function SignatureField({ field, value, onChange, id, describedBy, invali
             <Eraser size={14} aria-hidden /> Clear signature
           </button>
         )}
-        <p id={helpId} className="text-2xs text-fg-muted">{SIGNATURE_DISCLAIMER}</p>
       </div>
     )
   }
 
   return (
-    <div id={id} role="group" aria-labelledby={`${id}-label`} aria-describedby={[statement ? statementId : '', describedBy, helpId].filter(Boolean).join(' ')} className="space-y-2" data-signature-field={field.key}>
+    <div id={id} role="group" aria-labelledby={`${id}-label`} aria-describedby={[statement ? statementId : "", describedBy].filter(Boolean).join(" ") || undefined} className="space-y-2" data-signature-field={field.key}>
       {statement && <p id={statementId} className="text-sm text-fg">{statement}</p>}
       {notice && <p className="text-2xs text-warning" role="status">{notice}</p>}
       {methods.length > 1 && (
@@ -311,7 +309,6 @@ export function SignatureField({ field, value, onChange, id, describedBy, invali
         </button>
       )}
       {error && <p className="text-2xs text-(--status-blocked)" role="alert">{error}</p>}
-      <p id={helpId} className="text-2xs text-fg-muted">{SIGNATURE_DISCLAIMER}</p>
     </div>
   )
 }

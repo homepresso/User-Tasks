@@ -1,5 +1,17 @@
 # Switching providers
 
+> **Infrastructure add-on.** Switching providers — `usertasks-admin switch`
+> and `rollback`, **Change…** in Settings → Infrastructure and the setup
+> wizard's "move off Supabase" steps — is part of the
+> [Infrastructure add-on](infrastructure-add-on.md), a paid extension
+> ($9,000 USD per deployment per year). The free edition runs any provider
+> configuration and keeps `status`, `doctor`, `history`, the read-only
+> Settings → Infrastructure page, and the email and sign-in settings.
+> Installs that already moved services with v0.2.0 / v0.3.0 keep running
+> without it; they need it only to change providers again or roll back.
+> Without the add-on, `usertasks-admin switch` and `rollback` say so and
+> exit 2.
+
 `usertasks-admin` — or [Settings → Infrastructure](#from-the-ui), which
 runs the same engine — moves a running install from one provider to another, one
 area at a time: the database, auth, file storage, the scheduler, realtime,
@@ -377,12 +389,17 @@ per area with on-prem / Azure / Google Cloud badges, health from the doctor
 checks (cached for five minutes; *Re-run checks* refreshes), the switch log
 and the **Housekeeping** card ([Infrastructure: Housekeeping](infrastructure.md#housekeeping)).
 
-Changing a provider there is the same as `usertasks-admin switch`: the page
-calls the same engine, with the same pre-flight checks, backups, switch log
-and rollback. Every area card always shows **Change…** and **Settings**; when
-one can't be used on this deployment it is disabled and the card says why
-and what to do (the cloud lock with an **Unlock…** control, a missing
-`DATABASE_URL` with how to add it, a provider without settings).
+With the Infrastructure add-on, **Change…** on an area card opens the
+add-on's page (**Infrastructure changes**, `/x/infrastructure`), which runs
+the same engine as `usertasks-admin switch`, with the same pre-flight checks,
+backups, switch log and rollback. Without it, **Change…** leads to the add-on
+card on the page (what it does and how to get it), and the switch log is
+read-only. **Settings** for email and sign-in are free and open the setup
+wizard's Email and Sign-in panels; the other areas' settings come with the
+add-on. When a control can't be used on this deployment it is disabled and
+the card says why and what to do (the cloud lock with an **Unlock…**
+control, a missing `DATABASE_URL` with how to add it, a provider without
+settings).
 
 `DATABASE_URL` is optional. With the Supabase database provider and no
 `DATABASE_URL` (Vercel, or any host that only has the Supabase URL and keys)

@@ -70,7 +70,7 @@ const FIRST_RUN = [
 
 const IN_THE_REPO = [
   { icon: Code2, title: "The whole app", body: "Workflow engine, form designer, tasks, data tables, reports, the Agent and the REST API — the same code that runs usertasks.com." },
-  { icon: Terminal, title: "CLI and SDK", body: "@user-tasks/cli and @user-tasks/sdk (TypeScript), plus usertasks-admin for installs, migrations and provider switches." },
+  { icon: Terminal, title: "CLI and SDK", body: "@user-tasks/cli and @user-tasks/sdk (TypeScript), plus usertasks-admin for installs, migrations, status and health checks." },
   { icon: Boxes, title: "Deployments", body: "Docker Compose profiles, a Helm chart for Kubernetes, cloud templates and the signed air-gapped bundle." },
   { icon: KeyRound, title: "Extension kits", body: "Starter kits for custom workflow actions and form controls, and the sources of the gallery's official packages." },
 ]
@@ -79,7 +79,7 @@ const FAQS = [
   { question: "Is UserTasks really open source?", answer: "Yes. The whole platform is licensed under Apache-2.0: you can run it, change it and ship it, commercially or not. The cloud edition at usertasks.com runs the same code and is free during the beta." },
   { question: "What do I need to run it locally?", answer: "Git, Node.js 22 LTS (20.9 or later works) and Docker Desktop. From source, npm run setup:local starts the local Supabase in Docker and writes your settings; the standalone stack runs PostgreSQL, storage and the scheduler in Docker with no Supabase. Everything runs on Windows, macOS and Linux." },
   { question: "Does the CLI install UserTasks?", answer: "No. The CLI (@user-tasks/cli) is a remote control: it talks to a UserTasks server that is already running — your local one at http://localhost:3000, your company's server, or usertasks.com. It doesn't install a server, a database or Supabase. To run UserTasks itself, use npm run setup:local (from source) or npm run stack -- up (all in Docker)." },
-  { question: "Do I need Supabase?", answer: "No. Supabase is the default and our recommended way to run UserTasks, but the standalone stack uses plain PostgreSQL, S3-compatible storage and built-in sign-in, and each area can be moved to AWS, Azure, Google Cloud or your own servers later." },
+  { question: "Do I need Supabase?", answer: "No. Supabase is the default and our recommended way to run UserTasks, but the standalone stack (free, all in Docker) uses plain PostgreSQL, S3-compatible storage and built-in sign-in. Moving areas to AWS, Azure, Google Cloud or your own servers later is the Infrastructure add-on, a paid extension; the open-source core runs any configuration." },
   { question: "How do I create the first account?", answer: "Open http://localhost:3000 and fill in Create your admin account with the setup code printed in the terminal. Scripts can use npm run bootstrap instead. After that, people join by invitation or through your SSO." },
   { question: "How do I contribute or report a security issue?", answer: "Open an issue or a pull request on GitHub; CONTRIBUTING.md explains the workflow and the checks. Report security issues privately as described in SECURITY.md, not in public issues." },
 ]

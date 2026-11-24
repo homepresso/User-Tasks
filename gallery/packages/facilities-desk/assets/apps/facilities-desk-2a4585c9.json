@@ -1,0 +1,470 @@
+{
+  "format_version": 3,
+  "asset_type": "apps",
+  "id": "2a4585c9-f3d8-5139-8f9a-8d0c9964bb5a",
+  "asset": {
+    "id": "2a4585c9-f3d8-5139-8f9a-8d0c9964bb5a",
+    "name": "Facilities desk",
+    "slug": "facilities",
+    "subtitle": "Requests, locations and technicians",
+    "description": "Report a facilities problem, see what is open across sites, and balance the technicians’ workload.",
+    "icon": "Wrench",
+    "color": "#c2410c",
+    "menu": [],
+    "settings": {
+      "nav": {
+        "style": "sidebar",
+        "header_style": "plain",
+        "density": "compact"
+      },
+      "style": {
+        "default": {
+          "radius": "lg",
+          "shadow": "none",
+          "border_width": 1
+        },
+        "presets": []
+      }
+    },
+    "pages": [
+      {
+        "id": "0c68ffb0-2e11-5799-a614-77a15271cf2f",
+        "slug": "requests",
+        "title": "Requests",
+        "icon": "Wrench",
+        "position": 0,
+        "layout": {
+          "widgets": [
+            {
+              "id": "actions",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "New request",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Facilities request"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "abd56279-8d33-5bd9-a02d-7de84c403f0f",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "My requests",
+                    "icon": "ListChecks",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "mine"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "total",
+              "title": "Requests logged",
+              "w": 4,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+                "format": "number",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "ClipboardList",
+                "accent": "amber"
+              }
+            },
+            {
+              "id": "open",
+              "title": "Jobs waiting",
+              "w": 4,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "workflow_id": "966e8d86-da44-59b8-9f39-0cf83179c2af",
+                "status": "open",
+                "compare_previous": false,
+                "icon": "Hourglass",
+                "accent": "rose",
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "week",
+              "title": "Requests this week",
+              "w": 4,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "submissions",
+                "aggregate": "count",
+                "form_id": "abd56279-8d33-5bd9-a02d-7de84c403f0f",
+                "date_range": {
+                  "preset": "7d"
+                },
+                "compare_previous": true,
+                "icon": "CalendarDays",
+                "accent": "teal",
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "cards",
+              "title": "Requests",
+              "w": 12,
+              "h": 12,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "title",
+                  "subtitle": "site",
+                  "description": "spot",
+                  "image_style": "none",
+                  "badge": "status",
+                  "badge_colors": [
+                    {
+                      "value": "Open",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "Assigned",
+                      "tone": "info"
+                    },
+                    {
+                      "value": "Done",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "Closed - not fixed",
+                      "tone": "neutral"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "priority",
+                      "label": "Priority",
+                      "icon": "Flag"
+                    },
+                    {
+                      "key": "category",
+                      "label": "Category",
+                      "icon": "Tag"
+                    },
+                    {
+                      "key": "technician",
+                      "label": "Technician",
+                      "icon": "HardHat"
+                    }
+                  ],
+                  "footer": "request_ref"
+                },
+                "actions": [
+                  {
+                    "kind": "detail",
+                    "label": "Details"
+                  }
+                ],
+                "layout": "grid",
+                "card_size": "md",
+                "sort": "request_ref",
+                "sort_dir": "desc",
+                "show_search": true,
+                "page_size": 12,
+                "empty_text": "No requests match your search."
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "fe090a16-a7a6-5ac3-96cd-bb8909f1ff5d",
+        "slug": "mine",
+        "title": "My requests",
+        "icon": "ListChecks",
+        "position": 1,
+        "layout": {
+          "widgets": [
+            {
+              "id": "mine",
+              "title": "My requests",
+              "w": 7,
+              "h": 9,
+              "type": "my_submissions",
+              "config": {
+                "form_id": "abd56279-8d33-5bd9-a02d-7de84c403f0f",
+                "limit": 20
+              }
+            },
+            {
+              "id": "latest",
+              "title": "My latest request",
+              "w": 5,
+              "h": 9,
+              "type": "run_timeline",
+              "config": {
+                "workflow_id": "966e8d86-da44-59b8-9f39-0cf83179c2af"
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "79325b7a-aff4-572d-9000-39700eca7072",
+        "slug": "locations",
+        "title": "Locations",
+        "icon": "Building2",
+        "position": 2,
+        "layout": {
+          "widgets": [
+            {
+              "id": "by_site",
+              "title": "Requests by site",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "site",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "by_building",
+              "title": "Requests by building",
+              "style": {
+                "palette": "warm"
+              },
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "building",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "pivot",
+              "title": "Site by category",
+              "w": 12,
+              "h": 5,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+                "rows": "field",
+                "row_field": "site",
+                "columns": "field",
+                "column_field": "category",
+                "interval": "month",
+                "aggregate": "count"
+              }
+            },
+            {
+              "id": "grid",
+              "title": "Requests by location",
+              "w": 12,
+              "h": 9,
+              "type": "data_grid",
+              "config": {
+                "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+                "columns": [
+                  "request_ref",
+                  "title",
+                  "site",
+                  "building",
+                  "floor",
+                  "spot",
+                  "priority",
+                  "status"
+                ],
+                "editable": false,
+                "group_by": "site",
+                "page_size": 25
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": []
+      },
+      {
+        "id": "157de5c5-51cf-5a86-a3b8-b2ddf2b18be7",
+        "slug": "technicians",
+        "title": "Technicians",
+        "icon": "HardHat",
+        "position": 3,
+        "layout": {
+          "widgets": [
+            {
+              "id": "load",
+              "title": "Jobs per technician",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "technician",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "status",
+              "title": "Requests by status",
+              "style": {
+                "value_colors": [
+                  {
+                    "value": "Open",
+                    "color": "token:warning"
+                  },
+                  {
+                    "value": "Assigned",
+                    "color": "token:info"
+                  },
+                  {
+                    "value": "Done",
+                    "color": "token:success"
+                  },
+                  {
+                    "value": "Closed - not fixed",
+                    "color": "token:muted"
+                  }
+                ]
+              },
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "pie",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "status",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "queue",
+              "title": "Jobs and assignments waiting",
+              "w": 7,
+              "h": 8,
+              "type": "task_list",
+              "config": {
+                "scope": "all",
+                "workflow_id": "966e8d86-da44-59b8-9f39-0cf83179c2af",
+                "status": "open",
+                "limit": 10,
+                "show_claim": true,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "sla",
+              "title": "On time",
+              "w": 5,
+              "h": 8,
+              "type": "sla",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "966e8d86-da44-59b8-9f39-0cf83179c2af",
+                "status": "open",
+                "at_risk_hours": 12
+              }
+            },
+            {
+              "id": "flow",
+              "title": "Requests in versus jobs done",
+              "w": 12,
+              "h": 7,
+              "type": "throughput",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "966e8d86-da44-59b8-9f39-0cf83179c2af",
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "day"
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "period",
+            "kind": "date_range",
+            "label": "Period",
+            "default": {
+              "preset": "30d"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

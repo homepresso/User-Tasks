@@ -1,0 +1,189 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "be12b759-7146-58bc-9ee9-ae876fe567ad",
+  "asset": {
+    "id": "be12b759-7146-58bc-9ee9-ae876fe567ad",
+    "name": "Create a development plan",
+    "description": "A career goal, the skill to focus on and the actions (courses, stretch assignments, mentoring) with due dates.",
+    "tags": [
+      "growth",
+      "development"
+    ],
+    "fields": [
+      {
+        "key": "career_goal",
+        "label": "Career goal",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Move into a team lead role within 12 months"
+      },
+      {
+        "key": "focus_skill",
+        "label": "Focus skill",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "5d583110-8550-541c-a3b9-2dc8357ff4a6",
+          "search_columns": [
+            "skill",
+            "category"
+          ],
+          "display_columns": [
+            "skill",
+            "category"
+          ],
+          "value_column": "skill",
+          "fill": [],
+          "filters": [],
+          "sort": {
+            "column": "skill",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "manager",
+        "label": "Manager",
+        "type": "user",
+        "required": true
+      },
+      {
+        "key": "plan_actions",
+        "label": "Actions",
+        "type": "repeating_section",
+        "required": true,
+        "repeating_section": {
+          "fields": [
+            {
+              "key": "pa_action",
+              "label": "Action",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "pa_type",
+              "label": "Type",
+              "type": "choice",
+              "options": [
+                "Course",
+                "Workshop",
+                "Mentoring",
+                "Book",
+                "Stretch assignment"
+              ],
+              "required": true
+            },
+            {
+              "key": "pa_due",
+              "label": "Due",
+              "type": "date",
+              "required": true
+            }
+          ],
+          "layout": {
+            "rows": [
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "pa_action",
+                    "span": 3
+                  }
+                ]
+              },
+              {
+                "columns": 3,
+                "cells": [
+                  {
+                    "field_key": "pa_type",
+                    "span": 2
+                  },
+                  {
+                    "field_key": "pa_due",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "add_label": "Add action",
+          "item_title": "Action {{index}}",
+          "min_items": 1,
+          "max_items": 8,
+          "start_items": 2
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "career_goal",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "focus_skill",
+              "span": 1
+            },
+            {
+              "field_key": "manager",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "plan_actions",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Save plan",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Plan saved",
+            "text": "Your plan is on the Growth page; your manager can see it too.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Development plan",
+      "subtitle": "Where you want to go and how you will get there.",
+      "align": "left"
+    }
+  }
+}

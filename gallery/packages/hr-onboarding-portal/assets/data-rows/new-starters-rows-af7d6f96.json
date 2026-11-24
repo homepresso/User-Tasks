@@ -1,0 +1,95 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+  "asset": {
+    "id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+    "name": "New starters rows",
+    "rows": [
+      {
+        "id": "62af88cf-e1df-5bc1-98af-4f2a798d6f7f",
+        "data": {
+          "starter_ref": "NS-2611-01",
+          "name": "Elena Morales",
+          "role": "Account executive",
+          "department": "Sales",
+          "manager_name": "Maya Patel",
+          "start_date": "2026-11-30",
+          "location": "Denver HQ",
+          "status": "Preparing",
+          "progress": 50
+        }
+      },
+      {
+        "id": "f0418be5-2e70-5b76-9ec8-269925ac4529",
+        "data": {
+          "starter_ref": "NS-2611-02",
+          "name": "Kwame Asante",
+          "role": "Backend engineer",
+          "department": "Engineering",
+          "manager_name": "Daniel Okafor",
+          "start_date": "2026-12-01",
+          "location": "Remote (US)",
+          "status": "Preparing",
+          "progress": 25
+        }
+      },
+      {
+        "id": "2bcc9178-6b91-59ad-8ee9-44dd0543f2c0",
+        "data": {
+          "starter_ref": "NS-2611-03",
+          "name": "Hannah Becker",
+          "role": "Payroll specialist",
+          "department": "Finance",
+          "manager_name": "Noah Fischer",
+          "start_date": "2026-12-07",
+          "location": "Austin office",
+          "status": "Requested",
+          "progress": 0
+        }
+      },
+      {
+        "id": "cbd6b277-b6a5-53c8-8312-f78ff38fd4f7",
+        "data": {
+          "starter_ref": "NS-2611-04",
+          "name": "Ravi Menon",
+          "role": "Product designer",
+          "department": "Marketing",
+          "manager_name": "Sofia Lindqvist",
+          "start_date": "2026-12-07",
+          "location": "Denver HQ",
+          "status": "Preparing",
+          "progress": 75
+        }
+      },
+      {
+        "id": "586a9a02-3f08-5acf-9950-7ee1525ce9ca",
+        "data": {
+          "starter_ref": "NS-2611-05",
+          "name": "Chloe Dubois",
+          "role": "Operations analyst",
+          "department": "Operations",
+          "manager_name": "Liam Chen",
+          "start_date": "2026-11-23",
+          "location": "Denver HQ",
+          "status": "Ready",
+          "progress": 100
+        }
+      },
+      {
+        "id": "6cbf0195-02e6-5b46-914b-ba9b18eb1523",
+        "data": {
+          "starter_ref": "NS-2611-06",
+          "name": "Tomás Silva",
+          "role": "People partner",
+          "department": "People",
+          "manager_name": "Amara Nwosu",
+          "start_date": "2026-12-14",
+          "location": "Remote (US)",
+          "status": "Requested",
+          "progress": 0
+        }
+      }
+    ]
+  }
+}

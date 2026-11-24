@@ -26,7 +26,7 @@ import { mediaProviderForType } from '@/lib/media/catalog'
 import { geminiMockAnswer, isGeminiGenerate, type MediaMockOptions } from './media-mock'
 import type { GalleryKind, GalleryMeta } from './types'
 
-export type VerifyMeta = Pick<GalleryMeta, 'entry_workflow' | 'entry_form' | 'sample_input' | 'expect' | 'verify_mocks'>
+export type VerifyMeta = Pick<GalleryMeta, 'entry_workflow' | 'entry_form' | 'sample_input' | 'expect' | 'verify_mocks'> & Partial<Pick<GalleryMeta, 'entry_app'>>
 
 export interface VerifyPackageInput {
   slug: string
@@ -389,6 +389,20 @@ export async function verifyPackage(db: any, scratch: ScratchWorkspace, mock: { 
     if (completed.status !== 'complete') throw new Error(`setup incomplete: ${completed.requirements.filter((r: any) => r.status === 'missing').map((r: any) => r.label).join(', ')}`)
 
     const detail: any = await getPackageInstall(ctx, install.id)
+    // App-first packages: the entry app is installed with its pages (and no audience).
+    if (meta.entry_app) {
+      const localApp = detail.assets.find((a: any) => a.section === 'apps' && a.source_id === meta.entry_app)
+      if (!localApp) throw new Error('entry app was not installed')
+      const { count } = await db.from('app_pages').select('id', { count: 'exact', head: true }).eq('app_id', localApp.local_id)
+      if (!count) throw new Error('entry app has no pages after install')
+      const { count: audience } = await db.from('app_audience').select('id', { count: 'exact', head: true }).eq('app_id', localApp.local_id)
+      if (audience) throw new Error('an installed app must start without an audience')
+      if (!meta.entry_workflow) {
+        result.ok = true
+        result.detail = `app installed (${count} page${count === 1 ? '' : 's'})`
+        return result
+      }
+    }
     const local = detail.assets.find((a: any) => a.section === 'workflows' && a.source_id === meta.entry_workflow)
     if (!local) throw new Error('entry workflow was not installed')
     const { data: wf } = await db.from('workflows').select('id, is_active, published_version_id').eq('id', local.local_id).single()

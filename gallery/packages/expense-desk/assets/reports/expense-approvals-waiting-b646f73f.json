@@ -1,0 +1,42 @@
+{
+  "format_version": 3,
+  "asset_type": "reports",
+  "id": "b646f73f-23ef-5319-9865-8307dd58d882",
+  "asset": {
+    "id": "b646f73f-23ef-5319-9865-8307dd58d882",
+    "name": "Expense approvals waiting",
+    "description": "Manager approvals and payments that are not done yet, oldest due first (the Expense claim approval workflow’s tasks).",
+    "category": "Finance",
+    "is_shared": true,
+    "config": {
+      "filters": [
+        {
+          "field": "status",
+          "operator": "neq",
+          "value": "completed"
+        }
+      ],
+      "data_source": "tasks",
+      "source_inputs": {
+        "workflow_id": "defbf102-7c16-5305-a94e-dc58cda7d996"
+      },
+      "columns": [
+        "title",
+        "priority",
+        "due_date",
+        "status",
+        "created_at"
+      ],
+      "sort": {
+        "field": "due_date",
+        "direction": "asc"
+      },
+      "visualization": "table",
+      "row_limit": 200,
+      "drill_target": {
+        "href_template": "/tasks/{id}",
+        "label": "Open task"
+      }
+    }
+  }
+}

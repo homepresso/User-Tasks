@@ -282,16 +282,18 @@ describe('ctx.workflows.stats and ctx.forms.submissionStats', () => {
 
   it('statistics are cached for 30 seconds per workspace, workflows and period', async () => {
     const mem = seed()
+    // The report rollups (tried first) answer nothing here; count the stats RPC itself.
+    const statsCalls = (m: any) => m.rpc.mock.calls.filter((c: any[]) => c[0] === 'workflow_run_stats').length // eslint-disable-line @typescript-eslint/no-explicit-any
     mem.rpc = vi.fn(async () => ({ data: { workflows: [], total: { started: 1, per_day: [] } }, error: null }))
     const ctx = ctxFor(['workflows.view'])
     await ctx.workflows.stats({ days: 7 })
     await ctx.workflows.stats({ days: 7 })
-    expect(mem.rpc).toHaveBeenCalledTimes(1)
+    expect(statsCalls(mem)).toBe(1)
     await ctx.workflows.stats({ days: 30 })
-    expect(mem.rpc).toHaveBeenCalledTimes(2)
+    expect(statsCalls(mem)).toBe(2)
     vi.setSystemTime(new Date(NOW.getTime() + 31_000))
     await ctx.workflows.stats({ days: 7 })
-    expect(mem.rpc).toHaveBeenCalledTimes(3)
+    expect(statsCalls(mem)).toBe(3)
   })
 
   it('counts submissions of its own bound forms per day (never values), last submission any time; forms.view needed', async () => {

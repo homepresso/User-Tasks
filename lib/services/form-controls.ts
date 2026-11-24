@@ -27,6 +27,8 @@ import { PACKAGE_LIMITS, type FormControlManifest } from '@/lib/forms/custom-con
 import { PackageError, parseControlUpload, parseZipPackage, parseModulePackage, sha256Hex, type ControlSignature, type ParsedControlPackage } from '@/lib/forms/custom-controls/package'
 import { getDb, hasPerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { applyPage, audit, dbError, ilikeTerm, serviceRoleClient, type Page } from './_shared'
+import { isMissingTagsColumn, selectWithTags, tagsNotApplied, tagsSafeWrite, validTags } from './tags-column'
+import { manifestTags, tagFilterValues } from '@/lib/tags/normalize'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- tables are not in the generated Database types */
 
@@ -43,6 +45,8 @@ export interface FormControlRow {
   enabled: boolean
   trusted: boolean
   approved_hosts: string[]
+  /** Absent until migration 20270122150000 is applied. */
+  tags?: string[]
   created_by?: string | null
   updated_by?: string | null
   created_at: string
@@ -117,8 +121,8 @@ function packageError(error: unknown): never {
 
 async function loadControl(db: AnySupabaseClient, tenantId: string, idOrTag: string): Promise<FormControlRow> {
   const byId = /^[0-9a-f-]{36}$/i.test(idOrTag)
-  const { data, error } = await (db as any).from('form_controls').select(CONTROL_COLUMNS)
-    .eq('tenant_id', tenantId).eq(byId ? 'id' : 'tag', idOrTag).maybeSingle()
+  const { data, error } = await selectWithTags(CONTROL_COLUMNS, (columns) => (db as any).from('form_controls').select(columns)
+    .eq('tenant_id', tenantId).eq(byId ? 'id' : 'tag', idOrTag).maybeSingle())
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Form control not found')
   return data as FormControlRow
@@ -147,20 +151,24 @@ function summarize(row: FormControlRow, versions: FormControlVersionRow[]): Form
 
 // ── reads ───────────────────────────────────────────────────────────────────
 
-export async function listFormControls(ctx: ServiceContext, filters: { search?: string; enabled?: boolean } = {}, page: Page = { limit: 200, offset: 0 }) {
+export async function listFormControls(ctx: ServiceContext, filters: { search?: string; enabled?: boolean; tag?: string } = {}, page: Page = { limit: 200, offset: 0 }) {
   requireAny(ctx, ['extensibility.view', 'forms.view'])
   const db = getDb(ctx)
-  let query = (db as any).from('form_controls').select(CONTROL_COLUMNS, { count: 'exact' })
-    .eq('tenant_id', ctx.tenantId).order('name', { ascending: true })
-  if (filters.enabled !== undefined) query = query.eq('enabled', filters.enabled)
-  // Designers without extensibility.view only see what they can place.
-  else if (!hasPerm(ctx, 'extensibility.view')) query = query.eq('enabled', true)
-  if (filters.search?.trim()) {
-    const term = ilikeTerm(filters.search)
-    query = query.or(`name.ilike.%${term}%,tag.ilike.%${term}%,description.ilike.%${term}%`)
-  }
-  const { data, count, error } = await applyPage(query, page)
-  if (error) throw dbError(error)
+  const tagValues = tagFilterValues(filters.tag)
+  const { data, count, error } = await selectWithTags(CONTROL_COLUMNS, (columns) => {
+    let query = (db as any).from('form_controls').select(columns, { count: 'exact' })
+      .eq('tenant_id', ctx.tenantId).order('name', { ascending: true })
+    if (filters.enabled !== undefined) query = query.eq('enabled', filters.enabled)
+    // Designers without extensibility.view only see what they can place.
+    else if (!hasPerm(ctx, 'extensibility.view')) query = query.eq('enabled', true)
+    if (filters.search?.trim()) {
+      const term = ilikeTerm(filters.search)
+      query = query.or(`name.ilike.%${term}%,tag.ilike.%${term}%,description.ilike.%${term}%`)
+    }
+    if (tagValues.length) query = query.overlaps('tags', tagValues)
+    return applyPage(query, page)
+  }) as any
+  if (error) throw tagValues.length && isMissingTagsColumn(error) ? tagsNotApplied('form controls') : dbError(error)
   const rows = (data ?? []) as FormControlRow[]
   const versions = await loadVersions(db, ctx.tenantId, rows.map((r) => r.id))
   return { form_controls: rows.map((r) => summarize(r, versions)), total: (count ?? rows.length) as number }
@@ -281,20 +289,20 @@ export async function getFormControlUsages(ctx: ServiceContext, idOrTag: string)
 
 // ── writes ──────────────────────────────────────────────────────────────────
 
-async function storeParsed(ctx: ServiceContext, parsed: ParsedControlPackage, origin: { source: 'upload' | 'url' | 'import' | 'package'; source_url?: string | null }): Promise<SaveResult> {
+async function storeParsed(ctx: ServiceContext, parsed: ParsedControlPackage, origin: { source: 'upload' | 'url' | 'import' | 'package'; source_url?: string | null }, extra: { tags?: string[] } = {}): Promise<SaveResult> {
   const db = await serviceRoleClient(ctx)
   const { manifest } = parsed
-  const { data: existing, error } = await (db as any).from('form_controls').select(CONTROL_COLUMNS)
-    .eq('tenant_id', ctx.tenantId).eq('tag', manifest.tag).maybeSingle()
+  const { data: existing, error } = await selectWithTags(CONTROL_COLUMNS, (columns) => (db as any).from('form_controls').select(columns)
+    .eq('tenant_id', ctx.tenantId).eq('tag', manifest.tag).maybeSingle())
   if (error) throw dbError(error)
   let control = existing as FormControlRow | null
   let outcome: SaveResult['outcome'] = 'version'
   if (!control) {
     requireAll(ctx, 'extensibility.create')
-    const { data, error: insertError } = await (db as any).from('form_controls').insert({
+    const { data, error: insertError } = await tagsSafeWrite('form controls', {
       tenant_id: ctx.tenantId, tag: manifest.tag, name: manifest.name, description: manifest.description ?? null, icon: manifest.icon ?? null,
-      latest_version: manifest.version, enabled: true, trusted: false, approved_hosts: [], created_by: ctx.actorId, updated_by: ctx.actorId,
-    }).select(CONTROL_COLUMNS).single()
+      latest_version: manifest.version, enabled: true, trusted: false, approved_hosts: [], tags: extra.tags ?? [], created_by: ctx.actorId, updated_by: ctx.actorId,
+    }, CONTROL_COLUMNS, (values, columns) => (db as any).from('form_controls').insert(values).select(columns).single())
     if (insertError || !data) throw insertError?.code === '23505' ? ServiceError.conflict(`A form control with tag "${manifest.tag}" already exists`) : dbError(insertError, 'Failed to create the form control')
     control = data as FormControlRow
     outcome = 'created'
@@ -321,9 +329,10 @@ async function storeParsed(ctx: ServiceContext, parsed: ParsedControlPackage, or
   // The newest version becomes the default for new placements (and its name / icon the library's).
   const newest = compareSemver(manifest.version, control.latest_version) >= 0 || outcome === 'created'
   if (newest) {
-    const { data: updated, error: updateError } = await (db as any).from('form_controls').update({
+    const controlId = control.id
+    const { data: updated, error: updateError } = await selectWithTags(CONTROL_COLUMNS, (columns) => (db as any).from('form_controls').update({
       latest_version: manifest.version, name: manifest.name, description: manifest.description ?? null, icon: manifest.icon ?? null, updated_by: ctx.actorId,
-    }).eq('id', control.id).eq('tenant_id', ctx.tenantId).select(CONTROL_COLUMNS).single()
+    }).eq('id', controlId).eq('tenant_id', ctx.tenantId).select(columns).single())
     if (updateError) throw dbError(updateError)
     control = updated as FormControlRow
   }
@@ -418,6 +427,8 @@ export interface FormControlUpdate {
   approved_hosts?: string[]
   /** Instance admins only (inline rendering without the sandbox). */
   trusted?: boolean
+  /** Replaces the control's tags ([] clears). */
+  tags?: string[] | null
 }
 
 export async function updateFormControl(ctx: ServiceContext, idOrTag: string, input: FormControlUpdate, options: { instanceAdmin?: boolean } = {}): Promise<FormControlSummary> {
@@ -440,11 +451,16 @@ export async function updateFormControl(ctx: ServiceContext, idOrTag: string, in
     if (unknown.length) throw ServiceError.validation(`Only hosts a version's manifest asks for can be approved (not ${unknown.join(', ')})`)
     patch.approved_hosts = hosts
   }
+  if (input.tags !== undefined) {
+    const tags = validTags(input.tags)
+    // Before migration 20270122150000 rows have no tags: an empty list is no change.
+    if (row.tags !== undefined || tags.length) patch.tags = tags
+  }
   if (input.trusted !== undefined) {
     if (!options.instanceAdmin) throw ServiceError.forbidden('Only an instance administrator can mark a form control as trusted')
     patch.trusted = input.trusted === true
   }
-  const { data, error } = await (db as any).from('form_controls').update(patch).eq('id', row.id).eq('tenant_id', ctx.tenantId).select(CONTROL_COLUMNS).single()
+  const { data, error } = await tagsSafeWrite('form controls', patch, CONTROL_COLUMNS, (values, columns) => (db as any).from('form_controls').update(values).eq('id', row.id).eq('tenant_id', ctx.tenantId).select(columns).single())
   if (error || !data) throw dbError(error, 'Failed to update the form control')
   const changed = Object.keys(patch).filter((k) => k !== 'updated_by')
   await audit(ctx, {
@@ -492,6 +508,7 @@ export interface PortableFormControl {
   description: string | null
   icon: string | null
   enabled: boolean
+  tags?: string[]
   versions: Array<{ version: string; manifest: FormControlManifest; bundle: string; sha256: string; signature: ControlSignature | null }>
 }
 
@@ -511,7 +528,7 @@ export async function exportFormControl(ctx: ServiceContext, idOrTag: string): P
   if (error) throw dbError(error)
   const versions = ((data ?? []) as any[]).sort((a, b) => compareSemver(a.version, b.version))
     .map((v) => ({ version: String(v.version), manifest: v.manifest, bundle: String(v.bundle), sha256: String(v.sha256), signature: v.signature ?? null }))
-  return { version: 1, asset_type: 'form_control', form_control: { tag: row.tag, name: row.name, description: row.description, icon: row.icon, enabled: row.enabled, versions } }
+  return { version: 1, asset_type: 'form_control', form_control: { tag: row.tag, name: row.name, description: row.description, icon: row.icon, enabled: row.enabled, ...(row.tags?.length ? { tags: row.tags } : {}), versions } }
 }
 
 /**
@@ -543,12 +560,16 @@ export async function importFormControl(ctx: ServiceContext, source: unknown, op
     if (v?.sha256 && v.sha256 !== parsed.sha256) throw ServiceError.validation(`Version ${parsed.manifest.version}: the module does not match its recorded SHA-256`)
     if (asset.tag && parsed.manifest.tag !== asset.tag) throw ServiceError.validation(`Version ${parsed.manifest.version} is for "${parsed.manifest.tag}", not "${asset.tag}"`)
     if (v?.signature && typeof v.signature === 'object') parsed = { ...parsed, signature: { alg: 'ed25519', key_fingerprint: String(v.signature.key_fingerprint ?? ''), verified: false } }
-    const result = await storeParsed(ctx, parsed, { source: options.source ?? 'import' })
+    const result = await storeParsed(ctx, parsed, { source: options.source ?? 'import' }, { tags: manifestTags(asset.tags) })
     ;(result.outcome === 'unchanged' ? skipped : added).push(parsed.manifest.version)
     last = result
   }
   if (asset.enabled === false && last && last.outcome === 'created') {
     last = { ...last, control: await updateFormControl(ctx, last.control.id, { enabled: false }) }
+  }
+  // An existing control takes the export's tags when it carries some (a new one got them on insert).
+  if (Array.isArray(asset.tags) && last && last.outcome !== 'created' && manifestTags(asset.tags).length && hasPerm(ctx, 'extensibility.edit')) {
+    last = { ...last, control: await updateFormControl(ctx, last.control.id, { tags: manifestTags(asset.tags) }) }
   }
   return { ...(last as SaveResult), added, skipped }
 }

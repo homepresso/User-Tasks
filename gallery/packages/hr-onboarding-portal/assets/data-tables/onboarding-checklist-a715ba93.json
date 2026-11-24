@@ -1,0 +1,65 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+  "asset": {
+    "id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+    "name": "Onboarding checklist",
+    "description": "One row per onboarding item per starter: what has to be ready, which team owns it, when it is due and whether it is done.",
+    "columns": [
+      {
+        "id": "0e50ef3b-4d6a-5216-8a1f-864c120db76d",
+        "required": true,
+        "key": "item_ref",
+        "name": "Item",
+        "type": "text"
+      },
+      {
+        "id": "4d9cdae7-b964-52c9-95c2-e7e345265d17",
+        "required": true,
+        "key": "starter",
+        "name": "Starter",
+        "type": "text"
+      },
+      {
+        "id": "209af0fa-b1d5-56f3-9d03-0e3e348aee3b",
+        "required": false,
+        "key": "item",
+        "name": "What",
+        "type": "text"
+      },
+      {
+        "id": "1d7429aa-49af-5477-ad67-3e821f5a4814",
+        "required": false,
+        "key": "team",
+        "name": "Team",
+        "type": "select",
+        "options": [
+          "IT",
+          "Facilities",
+          "People team",
+          "Manager"
+        ]
+      },
+      {
+        "id": "d8d0bbc6-3085-5348-b6de-fc46f1f38720",
+        "required": false,
+        "key": "due_date",
+        "name": "Due",
+        "type": "date"
+      },
+      {
+        "id": "0300e897-6858-5974-bfad-75869db102d0",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "To do",
+          "In progress",
+          "Done"
+        ]
+      }
+    ]
+  }
+}

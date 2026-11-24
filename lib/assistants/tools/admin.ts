@@ -131,7 +131,7 @@ interface RoleRef { id: string; name: string; slug: string | null; is_system: bo
 
 const ADMIN_HREF: Record<string, string> = {
   invitation: '/settings/invitations', member: '/team', team: '/team', role: '/settings/governance', org: '/org/manage',
-  theme: '/settings/theme', sign_in_page: '/settings?tab=forms', task_completion: '/settings?tab=task-completion',
+  theme: '/settings/theme', sign_in_page: '/settings?tab=sign-in', task_completion: '/settings?tab=task-completion',
   retention_policy: '/settings/governance?tab=retention', form: '/automations/forms',
 }
 
@@ -446,7 +446,7 @@ export function adminTools({ server, permissions, svc, deactivate }: AdminToolsP
   const SETTINGS_PAGES: Record<string, { tools: string[]; href: string; about: string }> = {
     general: { tools: [], href: '/settings?tab=general', about: 'Workspace name, address and logo.' },
     theme: { tools: ['workspace_theme_get'], href: '/settings/theme', about: 'The workspace theme every member sees: colours (light / dark), fonts, shape, density, sidebar and top bar style, logos.' },
-    sign_in_page: { tools: ['form_sign_in_page_get'], href: '/settings?tab=forms', about: 'The page visitors see when a form link needs them to sign in.' },
+    sign_in_page: { tools: ['form_sign_in_page_get'], href: '/settings?tab=sign-in', about: 'The page visitors see when a form link or an app needs them to sign in (use_for_forms / use_for_apps turn it on or off for each).' },
     task_completion: { tools: ['task_completion_settings_get'], href: '/settings?tab=task-completion', about: 'The Task completed screen: whether it shows, its texts and buttons.' },
     retention: { tools: ['retention_policies_list'], href: '/settings/governance?tab=retention', about: 'Retention policies: how long tables, rows, roles and form submissions are kept, and legal holds.' },
     log_export: { tools: ['log_destinations_list'], href: '/settings/log-export', about: 'Where the event stream is shipped (Splunk, Datadog, OTLP, webhook…), with delivery status. Credentials are never shown.' },
@@ -1008,7 +1008,7 @@ export function adminTools({ server, permissions, svc, deactivate }: AdminToolsP
   })
 
   for (const [name, getter, kind, title] of [
-    ['form_sign_in_page_update', 'form_sign_in_page_get', 'sign_in_page', 'the form sign-in page'],
+    ['form_sign_in_page_update', 'form_sign_in_page_get', 'sign_in_page', 'the sign-in page for forms and apps'],
     ['task_completion_settings_update', 'task_completion_settings_get', 'task_completion', 'the Task completed screen'],
   ] as const) {
     add({

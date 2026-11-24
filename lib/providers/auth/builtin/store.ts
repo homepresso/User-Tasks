@@ -64,6 +64,50 @@ export async function recordFailedLogin(userId: string, threshold: number, locko
   return until && until.getTime() > Date.now() ? until : null
 }
 
+/** Sign-in state of accounts (instance admin views): lockout, failures, last sign-in, open sessions. No secrets. */
+export interface CredentialState {
+  user_id: string
+  failed_attempts: number
+  locked_until: Date | null
+  last_sign_in_at: Date | null
+  email_confirmed_at: Date | null
+  has_password: boolean
+  open_sessions: number
+}
+
+export async function credentialStates(userIds: readonly string[], db: AuthDb = authDb()): Promise<CredentialState[]> {
+  if (!userIds.length) return []
+  const { rows } = await db.query<CredentialState>(
+    `SELECT c.user_id, c.failed_attempts, c.locked_until, c.last_sign_in_at, c.email_confirmed_at,
+            (c.password_hash IS NOT NULL) AS has_password,
+            (SELECT count(*)::int FROM app_auth.sessions s WHERE s.user_id = c.user_id AND s.revoked_at IS NULL AND s.expires_at > now()) AS open_sessions
+       FROM app_auth.credentials c WHERE c.user_id = ANY($1::uuid[])`,
+    [userIds],
+  )
+  return rows
+}
+
+/** Accounts locked out right now (failed sign-ins), newest lock first. */
+export async function lockedCredentialIds(limit = 500, db: AuthDb = authDb()): Promise<Array<{ user_id: string; locked_until: Date }>> {
+  const { rows } = await db.query<{ user_id: string; locked_until: Date }>(
+    `SELECT user_id, locked_until FROM app_auth.credentials WHERE locked_until > now() ORDER BY locked_until DESC LIMIT $1`,
+    [Math.min(Math.max(1, limit), 2000)],
+  )
+  return rows
+}
+
+/** Clear a failed-sign-in lockout (instance admin "Unlock"). Returns whether the account was locked or had failures. */
+export async function clearLockout(userId: string, db: AuthDb = authDb()): Promise<boolean> {
+  const { rows } = await db.query<{ was: boolean }>(
+    `UPDATE app_auth.credentials c SET failed_attempts = 0, locked_until = NULL, updated_at = now()
+       FROM (SELECT user_id, (failed_attempts > 0 OR locked_until IS NOT NULL) AS was FROM app_auth.credentials WHERE user_id = $1) o
+      WHERE c.user_id = o.user_id
+      RETURNING o.was`,
+    [userId],
+  )
+  return Boolean(rows[0]?.was)
+}
+
 export async function recordSuccessfulLogin(userId: string, db: AuthDb = authDb()): Promise<void> {
   await db.query(
     `UPDATE app_auth.credentials SET failed_attempts = 0, locked_until = NULL, last_sign_in_at = now(), updated_at = now() WHERE user_id = $1`,

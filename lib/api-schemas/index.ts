@@ -1,5 +1,6 @@
 import type { EndpointDef } from './registry'
 import { agentEndpoints } from './agents'
+import { appEndpoints } from './apps'
 import { apiKeyEndpoints } from './api-keys'
 import { configEndpoints } from './config'
 import { dataTableEndpoints } from './data-tables'
@@ -25,6 +26,7 @@ import { packageEndpoints } from './packages'
 import { reportEndpoints } from './reports'
 import { retentionEndpoints } from './retention-policies'
 import { taskEndpoints } from './tasks'
+import { tagEndpoints } from './tags'
 import { taskAttachmentEndpoints } from './task-attachments'
 import { taskFollowEndpoints } from './task-follows'
 import { taskReadEndpoints } from './task-reads'
@@ -40,7 +42,9 @@ import { taskCompletionEndpoints } from './task-completion'
 import { formSignInPageEndpoints } from './form-sign-in-page'
 import { workspaceSsoEndpoints } from './workspace-sso'
 import { documentOcrEndpoints } from './document-ocr'
+import { querySettingsEndpoints } from './query-settings'
 import { instanceAdminEndpoints } from './instance-admin'
+import { instanceEndpoints } from './instance'
 import { extensionEndpoints } from './extensions'
 import { licenceEndpoints } from './licence'
 import { importerEndpoints } from './importers'
@@ -69,6 +73,8 @@ export const API_ENDPOINTS: readonly EndpointDef[] = [
   ...fileEndpoints,
   ...workflowActivityEndpoints,
   ...reportEndpoints,
+  ...appEndpoints,
+  ...tagEndpoints,
   ...retentionEndpoints,
   ...governanceEndpoints,
   ...orgEndpoints,
@@ -80,6 +86,7 @@ export const API_ENDPOINTS: readonly EndpointDef[] = [
   ...formSignInPageEndpoints,
   ...workspaceSsoEndpoints,
   ...documentOcrEndpoints,
+  ...querySettingsEndpoints,
   ...apiKeyEndpoints,
   ...webhookEndpoints,
   ...githubSyncEndpoints,
@@ -93,5 +100,6 @@ export const API_ENDPOINTS: readonly EndpointDef[] = [
   ...logDestinationEndpoints,
   ...gatewayEndpoints,
   ...instanceAdminEndpoints,
+  ...instanceEndpoints,
   ...licenceEndpoints,
 ]

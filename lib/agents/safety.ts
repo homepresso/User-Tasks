@@ -35,6 +35,11 @@ const KEY_PATTERNS = [
 
 export const REDACTED = '[redacted]'
 
+/** A credential-looking key name (authorization, api_key, token, secret, password, cookie, signature …). */
+export function isSecretKeyName(key: string): boolean {
+  return SECRET_KEY.test(key)
+}
+
 /** Mask credential-looking keys and token patterns (deep, cycle-safe, depth-capped). */
 export function redactSecrets<T>(value: T, depth = 0, seen = new WeakSet<object>()): T {
   if (value === null || value === undefined) return value

@@ -1,0 +1,763 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "4d9b7c25-d4c0-5bac-bfa3-969d96e41808",
+  "asset": {
+    "id": "4d9b7c25-d4c0-5bac-bfa3-969d96e41808",
+    "name": "CRM quote approval",
+    "description": "A quote request: each product line is priced and added to the deal, the effective discount and net total go through the CRM discount authority table, then the sales manager (over 10% or $100,000) and the VP of sales (over 20% or $100,000) approve within a 3-day SLA, with escalation; the rep is emailed the decision. An approved quote becomes a PDF (the products, discount and total in USD) attached to the rep’s email, ready to send to the customer.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Quote requested",
+        "config": {
+          "form_id": "5d446d07-f2ee-5da5-9e0e-3d2aef25aaf0",
+          "form_name": "Quote and discount request"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Quote ID",
+        "config": {
+          "name": "quote_id",
+          "expression": "Q-{{=UPPER(LEFT(GUID(), 6))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "list0",
+        "type": "set_variable",
+        "label": "Start the list total",
+        "config": {
+          "name": "list_total",
+          "expression": "{{=0}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "net0",
+        "type": "set_variable",
+        "label": "Start the net total",
+        "config": {
+          "name": "net_total",
+          "expression": "{{=0}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "rows0",
+        "type": "set_variable",
+        "label": "Start the quote lines",
+        "config": {
+          "name": "quote_rows",
+          "expression": ""
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each product",
+        "config": {
+          "items": "{{form.lines}}",
+          "item_var": "line"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "list",
+        "type": "set_variable",
+        "label": "Add to list total",
+        "config": {
+          "name": "list_total",
+          "expression": "{{=list_total + TO_NUMBER(line.qty) * TO_NUMBER(line.unit_price)}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      },
+      {
+        "id": "lt",
+        "type": "set_variable",
+        "label": "Line total",
+        "config": {
+          "name": "line_total",
+          "expression": "{{=ROUND(TO_NUMBER(line.qty) * TO_NUMBER(line.unit_price) * (1 - TO_NUMBER(COALESCE(line.discount_pct, 0)) / 100), 0)}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "row_html",
+        "type": "set_variable",
+        "label": "Add the quote line",
+        "config": {
+          "name": "quote_rows",
+          "expression": "{{=CONCAT(quote_rows, \"<tr><td>\", line.product, \"</td><td align=\\\"right\\\">\", line.qty, \"</td><td align=\\\"right\\\">\", FORMAT_CURRENCY(TO_NUMBER(line.unit_price), \"USD\"), \"</td><td align=\\\"right\\\">\", COALESCE(line.discount_pct, 0), \"%</td><td align=\\\"right\\\">\", FORMAT_CURRENCY(line_total, \"USD\"), \"</td></tr>\")}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1040
+        }
+      },
+      {
+        "id": "net",
+        "type": "set_variable",
+        "label": "Add to net total",
+        "config": {
+          "name": "net_total",
+          "expression": "{{=net_total + line_total}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1180
+        }
+      },
+      {
+        "id": "line",
+        "type": "update_data_table",
+        "label": "Add the line to the deal",
+        "config": {
+          "table_id": "a6eb6ba9-2f7e-5f76-8ffa-f6379178705a",
+          "table_name": "CRM deal line items",
+          "operation": "insert",
+          "column_values": {
+            "line_id": "{{quote_id}}-{{=UPPER(LEFT(GUID(), 4))}}",
+            "deal_id": "{{form.deal_id}}",
+            "product": "{{line.product}}",
+            "qty": "{{line.qty}}",
+            "unit_price": "{{line.unit_price}}",
+            "discount_pct": "{{=COALESCE(line.discount_pct, 0)}}",
+            "line_total": "{{line_total}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1320
+        }
+      },
+      {
+        "id": "disc",
+        "type": "set_variable",
+        "label": "Effective discount",
+        "config": {
+          "name": "discount",
+          "expression": "{{=IF(list_total > 0, ROUND((1 - net_total / list_total) * 100, 1), 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "authority",
+        "type": "decision_table",
+        "label": "Discount authority",
+        "config": {
+          "decision_table_id": "cbb9b0e6-f433-595d-a55f-5c62000a58ff",
+          "decision_table_name": "CRM discount authority",
+          "input_mappings": {
+            "discount_pct": "{{discount}}",
+            "amount": "{{net_total}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{quote_id}} · {{form.account}} · ${{net_total}} at {{discount}}% off"
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the quote",
+        "config": {
+          "table_id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+          "table_name": "CRM quotes",
+          "operation": "insert",
+          "column_values": {
+            "quote_id": "{{quote_id}}",
+            "deal_id": "{{form.deal_id}}",
+            "deal": "{{form.deal_name}}",
+            "account": "{{form.account}}",
+            "list_total": "{{list_total}}",
+            "discount_pct": "{{discount}}",
+            "amount": "{{net_total}}",
+            "status": "Pending approval",
+            "approval_path": "{{approval_path}}",
+            "requested_by": "{{submitted_by_name}}",
+            "valid_until": "{{form.valid_until}}",
+            "created_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "sla",
+        "type": "set_sla",
+        "label": "Approval SLA",
+        "config": {
+          "sla_label": "Quote approval",
+          "mode": "relative",
+          "amount": 3,
+          "unit": "days",
+          "warning_amount": 2,
+          "warning_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "g_m",
+        "type": "condition",
+        "label": "Manager approval?",
+        "config": {
+          "branches": [
+            {
+              "label": "Sales manager",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_manager}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "t_m",
+        "type": "user_task",
+        "label": "Sales manager approval",
+        "config": {
+          "task_title": "Approve {{quote_id}}: {{form.account}} at {{discount}}% off (${{net_total}})",
+          "task_description": "<p><strong>{{form.account}}</strong> · {{form.deal_name}} ({{form.deal_id}}).</p><p>List ${{list_total}}, net <strong>${{net_total}}</strong>, effective discount <strong>{{discount}}%</strong>. Path: {{approval_path}}.</p><p>Why: {{form.justification}}</p><p>Requested by {{submitted_by_name}}.</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.manager}}",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment for the rep",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Quote approval",
+            "align": "left",
+            "subtitle": "{{quote_id}} · {{approval_path}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 1440
+        },
+        "position": {
+          "x": 400,
+          "y": 1740
+        }
+      },
+      {
+        "id": "g_vp",
+        "type": "condition",
+        "label": "VP approval?",
+        "config": {
+          "branches": [
+            {
+              "label": "VP of sales",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_vp}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      },
+      {
+        "id": "t_vp",
+        "type": "user_task",
+        "label": "VP of sales approval",
+        "config": {
+          "task_title": "VP approval {{quote_id}}: {{form.account}} at {{discount}}% off (${{net_total}})",
+          "task_description": "<p><strong>{{form.account}}</strong> · {{form.deal_name}}. Net <strong>${{net_total}}</strong> at <strong>{{discount}}%</strong> off list (${{list_total}}).</p><p>The sales manager approved: {{=COALESCE(task_data.comment, \"no comment\")}}</p><p>Why: {{form.justification}}</p>",
+          "task_priority": "high",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "a53a38b7-e5f1-5921-90b4-a4106ea7da90",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment for the rep",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "VP approval",
+            "align": "left",
+            "subtitle": "{{quote_id}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 1440
+        },
+        "position": {
+          "x": 400,
+          "y": 2020
+        }
+      },
+      {
+        "id": "ok",
+        "type": "update_data_table",
+        "label": "Mark approved",
+        "config": {
+          "table_id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+          "table_name": "CRM quotes",
+          "operation": "update",
+          "match_column": "quote_id",
+          "match_value": "{{quote_id}}",
+          "column_values": {
+            "status": "Approved"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2160
+        }
+      },
+      {
+        "id": "deal",
+        "type": "update_data_table",
+        "label": "Update the deal",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "update",
+          "match_column": "deal_id",
+          "match_value": "{{form.deal_id}}",
+          "column_values": {
+            "discount_pct": "{{discount}}",
+            "amount": "{{net_total}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2300
+        }
+      },
+      {
+        "id": "quote_doc",
+        "type": "text_template",
+        "label": "Quote document",
+        "config": {
+          "output_var": "quote_html",
+          "template": "<h1>Quote {{quote_id}}</h1><p><strong>Brightwater Labs</strong> for <strong>{{form.account}}</strong><br>{{form.deal_name}} · valid until {{form.valid_until}}</p><table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" width=\"100%\"><tr><th align=\"left\">Product</th><th align=\"right\">Quantity</th><th align=\"right\">Unit price</th><th align=\"right\">Discount</th><th align=\"right\">Line total</th></tr>{{quote_rows}}<tr><th align=\"left\" colspan=\"4\">List total</th><td align=\"right\">{{=FORMAT_CURRENCY(list_total, \"USD\")}}</td></tr><tr><th align=\"left\" colspan=\"4\">Discount</th><td align=\"right\">{{discount}}%</td></tr><tr><th align=\"left\" colspan=\"4\">Total (USD)</th><td align=\"right\"><strong>{{=FORMAT_CURRENCY(net_total, \"USD\")}}</strong></td></tr></table><p>Prices in US dollars, excluding taxes. Approved on {{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}.</p>"
+        },
+        "position": {
+          "x": 400,
+          "y": 2440
+        }
+      },
+      {
+        "id": "quote_pdf",
+        "type": "doc_convert",
+        "label": "Quote PDF",
+        "config": {
+          "source": "{{quote_html}}",
+          "target": "pdf",
+          "title": "Quote {{quote_id}}",
+          "output_name": "{{quote_id}}-{{form.account}}",
+          "output_var": "quote_pdf",
+          "page_size": "Letter"
+        },
+        "position": {
+          "x": 400,
+          "y": 2580
+        }
+      },
+      {
+        "id": "mail_ok",
+        "type": "send_email",
+        "label": "Email the rep",
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "3f44be15-a7ff-5fb1-9150-c47e59d7616f",
+          "attachments": "{{quote_pdf}}"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 2720
+        }
+      },
+      {
+        "id": "end_ok",
+        "type": "end_workflow",
+        "label": "Approved",
+        "config": {
+          "reason": "{{quote_id}} approved ({{approval_path}})"
+        },
+        "position": {
+          "x": 400,
+          "y": 2860
+        }
+      },
+      {
+        "id": "no",
+        "type": "update_data_table",
+        "label": "Mark rejected",
+        "config": {
+          "table_id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+          "table_name": "CRM quotes",
+          "operation": "update",
+          "match_column": "quote_id",
+          "match_value": "{{quote_id}}",
+          "column_values": {
+            "status": "Rejected"
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 2440
+        }
+      },
+      {
+        "id": "mail_no",
+        "type": "send_email",
+        "label": "Tell the rep",
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "dda68568-b6d7-5086-a842-9386a4f22276"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 1040,
+          "y": 2580
+        }
+      },
+      {
+        "id": "end_no",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "config": {
+          "reason": "{{quote_id}} rejected"
+        },
+        "position": {
+          "x": 1040,
+          "y": 2720
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-list0",
+        "source": "ref",
+        "target": "list0"
+      },
+      {
+        "id": "e-list0-net0",
+        "source": "list0",
+        "target": "net0"
+      },
+      {
+        "id": "e-net0-rows0",
+        "source": "net0",
+        "target": "rows0"
+      },
+      {
+        "id": "e-rows0-each",
+        "source": "rows0",
+        "target": "each"
+      },
+      {
+        "id": "e-each-list-each_item",
+        "source": "each",
+        "target": "list",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-list-lt",
+        "source": "list",
+        "target": "lt"
+      },
+      {
+        "id": "e-lt-row_html",
+        "source": "lt",
+        "target": "row_html"
+      },
+      {
+        "id": "e-row_html-net",
+        "source": "row_html",
+        "target": "net"
+      },
+      {
+        "id": "e-net-line",
+        "source": "net",
+        "target": "line"
+      },
+      {
+        "id": "e-each-disc-done",
+        "source": "each",
+        "target": "disc",
+        "label": "Done"
+      },
+      {
+        "id": "e-disc-authority",
+        "source": "disc",
+        "target": "authority"
+      },
+      {
+        "id": "e-authority-title",
+        "source": "authority",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-sla",
+        "source": "log",
+        "target": "sla"
+      },
+      {
+        "id": "e-sla-g_m",
+        "source": "sla",
+        "target": "g_m"
+      },
+      {
+        "id": "e-g_m-t_m-sales_manager",
+        "source": "g_m",
+        "target": "t_m",
+        "label": "Sales manager"
+      },
+      {
+        "id": "e-g_m-g_vp-else",
+        "source": "g_m",
+        "target": "g_vp",
+        "label": "Else"
+      },
+      {
+        "id": "e-t_m-g_vp-approve",
+        "source": "t_m",
+        "target": "g_vp",
+        "label": "Approve"
+      },
+      {
+        "id": "e-t_m-no-reject",
+        "source": "t_m",
+        "target": "no",
+        "label": "Reject"
+      },
+      {
+        "id": "e-g_vp-t_vp-vp_of_sales",
+        "source": "g_vp",
+        "target": "t_vp",
+        "label": "VP of sales"
+      },
+      {
+        "id": "e-g_vp-ok-else",
+        "source": "g_vp",
+        "target": "ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-t_vp-ok-approve",
+        "source": "t_vp",
+        "target": "ok",
+        "label": "Approve"
+      },
+      {
+        "id": "e-t_vp-no-reject",
+        "source": "t_vp",
+        "target": "no",
+        "label": "Reject"
+      },
+      {
+        "id": "e-ok-deal",
+        "source": "ok",
+        "target": "deal"
+      },
+      {
+        "id": "e-deal-quote_doc",
+        "source": "deal",
+        "target": "quote_doc"
+      },
+      {
+        "id": "e-quote_doc-quote_pdf",
+        "source": "quote_doc",
+        "target": "quote_pdf"
+      },
+      {
+        "id": "e-quote_pdf-mail_ok",
+        "source": "quote_pdf",
+        "target": "mail_ok"
+      },
+      {
+        "id": "e-mail_ok-end_ok",
+        "source": "mail_ok",
+        "target": "end_ok"
+      },
+      {
+        "id": "e-no-mail_no",
+        "source": "no",
+        "target": "mail_no"
+      },
+      {
+        "id": "e-mail_no-end_no",
+        "source": "mail_no",
+        "target": "end_no"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

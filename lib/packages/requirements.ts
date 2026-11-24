@@ -39,7 +39,7 @@ const SECTION_LABEL: Record<string, string> = {
   workflows: 'Workflow', integrations: 'Integration', connectors: 'Connector', mcp_servers: 'MCP server',
   log_destinations: 'Log destination', agents: 'Agent', references: 'Reference', decision_tables: 'Decision table',
   workflow_activities: 'Custom step', reports: 'Report', email_templates: 'Email template', data_tables: 'Data table',
-  forms: 'Form', form_themes: 'Form theme', form_controls: 'Form control',
+  forms: 'Form', form_themes: 'Form theme', form_controls: 'Form control', apps: 'App',
 }
 
 function humanize(key: string): string {
@@ -312,13 +312,16 @@ export function isFieldRequired(requirement: PackageRequirement, field: Requirem
  * Write supplied values into the asset manifest (in place). Secret fields
  * with no value keep the '__SECRET__' sentinel (an upsert then keeps the
  * stored value); `resolve` maps a field value to what is written (e.g. a
- * user email → user id, a role slug → role id).
+ * user email → user id, a role slug → role id). `write`, when given, may
+ * write a field itself (returns true): assignees go into the config key the
+ * step reads (lib/services/package-assignees.ts), not always the field's path.
  */
 export function applyRequirementValues(
   assets: Record<string, any>,
   requirements: PackageRequirement[],
   values: RequirementValues,
   resolve: (requirement: PackageRequirement, field: RequirementField, value: unknown) => unknown = (_r, _f, value) => value,
+  write?: (asset: any, requirement: PackageRequirement, field: RequirementField, value: unknown) => boolean,
 ): void {
   for (const requirement of requirements) {
     for (const field of requirement.fields) {
@@ -328,6 +331,7 @@ export function applyRequirementValues(
       const list = Array.isArray(assets[field.target.section]) ? assets[field.target.section] : []
       const asset = list.find((a: any) => String(field.target.section === 'objects' ? a?.generated_reference_id : a?.id) === field.target.asset_id)
       if (!asset) continue
+      if (write?.(asset, requirement, field, value)) continue
       const resolved = resolve(requirement, field, field.type === 'number' && typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value)
       if (resolved === undefined) continue
       setAt(asset, field.target.path, resolved)

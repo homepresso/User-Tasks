@@ -1,0 +1,143 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+  "asset": {
+    "id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+    "name": "Survey cycles rows",
+    "rows": [
+      {
+        "id": "62b4f40a-4ce1-5e86-b980-703acc82ea64",
+        "data": {
+          "cycle_code": "ENG-2026-Q1",
+          "name": "Q1 2026 engagement survey",
+          "label": "Q1 2026",
+          "cycle_order": 1,
+          "type": "Quarterly engagement",
+          "status": "Published",
+          "opens_on": "2026-03-02",
+          "closes_on": "2026-03-16",
+          "audience": "Everyone",
+          "invited": 150,
+          "responded": 114,
+          "participation_pct": 76,
+          "engagement_score": 71,
+          "enps": 21,
+          "min_group_size": 5,
+          "reminder_days": 7,
+          "results_released": "Yes"
+        }
+      },
+      {
+        "id": "a3544870-1df3-5cee-8f0e-1f75c827cd5d",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "name": "Q2 2026 engagement survey",
+          "label": "Q2 2026",
+          "cycle_order": 2,
+          "type": "Quarterly engagement",
+          "status": "Published",
+          "opens_on": "2026-06-01",
+          "closes_on": "2026-06-15",
+          "audience": "Everyone",
+          "invited": 150,
+          "responded": 120,
+          "participation_pct": 80,
+          "engagement_score": 71,
+          "enps": 20,
+          "min_group_size": 5,
+          "reminder_days": 7,
+          "results_released": "Yes"
+        }
+      },
+      {
+        "id": "c3a149d5-ca63-51de-97b2-72d2ac760b34",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "name": "Q3 2026 engagement survey",
+          "label": "Q3 2026",
+          "cycle_order": 3,
+          "type": "Quarterly engagement",
+          "status": "Published",
+          "opens_on": "2026-09-08",
+          "closes_on": "2026-09-22",
+          "audience": "Everyone",
+          "invited": 150,
+          "responded": 135,
+          "participation_pct": 90,
+          "engagement_score": 74,
+          "enps": 23,
+          "min_group_size": 5,
+          "reminder_days": 7,
+          "results_released": "Yes"
+        }
+      },
+      {
+        "id": "319f8889-f1d5-59b3-8f7d-5608f4c741dd",
+        "data": {
+          "cycle_code": "PULSE-2026-11",
+          "name": "November 2026 pulse",
+          "label": "Nov 2026 pulse",
+          "cycle_order": 4,
+          "type": "Pulse",
+          "status": "Open",
+          "opens_on": "2026-11-16",
+          "closes_on": "2026-11-30",
+          "audience": "Everyone",
+          "invited": 150,
+          "responded": 101,
+          "participation_pct": 67,
+          "engagement_score": null,
+          "enps": null,
+          "min_group_size": 5,
+          "reminder_days": 5,
+          "results_released": "No"
+        }
+      },
+      {
+        "id": "cbe52fe5-879a-5ed0-88bf-6d4bedd4d6a5",
+        "data": {
+          "cycle_code": "ONB-ROLLING",
+          "name": "New starter check-in (day 30)",
+          "label": "Onboarding",
+          "cycle_order": 5,
+          "type": "Onboarding",
+          "status": "Open",
+          "opens_on": "2026-01-05",
+          "closes_on": "2026-12-31",
+          "audience": "New starters at day 30",
+          "invited": 14,
+          "responded": 11,
+          "participation_pct": 79,
+          "engagement_score": null,
+          "enps": null,
+          "min_group_size": 5,
+          "reminder_days": 7,
+          "results_released": "No"
+        }
+      },
+      {
+        "id": "3662fdec-f9a5-54b4-b355-1c3a1d3beb97",
+        "data": {
+          "cycle_code": "EXIT-ROLLING",
+          "name": "Exit survey",
+          "label": "Exit",
+          "cycle_order": 6,
+          "type": "Exit",
+          "status": "Open",
+          "opens_on": "2026-01-05",
+          "closes_on": "2026-12-31",
+          "audience": "Leavers",
+          "invited": 3,
+          "responded": 2,
+          "participation_pct": 67,
+          "engagement_score": null,
+          "enps": null,
+          "min_group_size": 5,
+          "reminder_days": 7,
+          "results_released": "No"
+        }
+      }
+    ]
+  }
+}

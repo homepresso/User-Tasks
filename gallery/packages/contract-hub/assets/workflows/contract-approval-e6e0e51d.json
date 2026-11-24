@@ -1,0 +1,570 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+  "asset": {
+    "id": "e6e0e51d-40b3-5dd4-a3a4-07411434521f",
+    "name": "Contract approval",
+    "description": "A contract from the Submit a contract form: added to the register, reviewed by legal, by finance when it is over $50,000, signed, and a renewal review task for the business owner falls due on the renewal decision date.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Contract submitted",
+        "config": {
+          "form_id": "21f3d5fd-7c35-5437-9fd8-cf517721e729",
+          "form_name": "Submit a contract"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Contract reference",
+        "config": {
+          "name": "contract_ref",
+          "expression": "CT-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{contract_ref}} · {{form.title}} · {{form.counterparty}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Add to the register",
+        "config": {
+          "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+          "table_name": "Contract register",
+          "operation": "insert",
+          "column_values": {
+            "contract_ref": "{{contract_ref}}",
+            "title": "{{form.title}}",
+            "counterparty": "{{form.counterparty}}",
+            "type": "{{form.type}}",
+            "value_usd": "{{form.value}}",
+            "start_date": "{{form.start_date}}",
+            "end_date": "{{form.end_date}}",
+            "renewal_date": "{{form.renewal_date}}",
+            "auto_renew": "{{form.auto_renew}}",
+            "stage": "Legal review"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "legal",
+        "type": "user_task",
+        "label": "Legal review",
+        "config": {
+          "task_title": "Legal review: {{form.title}} with {{form.counterparty}}",
+          "task_description": "<p><strong>{{form.type}}</strong> with {{form.counterparty}}, worth <strong>${{form.value}}</strong>, from {{form.start_date}} to {{form.end_date}}.</p><p>{{form.summary}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "c6eebf53-a2f0-5673-a5dc-4b9833f52e9e",
+          "fields": [
+            {
+              "key": "legal_notes",
+              "label": "Legal notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "legal_notes",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Legal review",
+            "align": "left",
+            "subtitle": "{{contract_ref}} · ${{form.value}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "big",
+        "type": "condition",
+        "label": "Over $50,000?",
+        "config": {
+          "branches": [
+            {
+              "label": "Finance review",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.value}}",
+                  "operator": "gt",
+                  "value": "50000"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "to_fin",
+        "type": "update_data_table",
+        "label": "Stage: finance review",
+        "config": {
+          "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+          "table_name": "Contract register",
+          "operation": "update",
+          "match_column": "contract_ref",
+          "match_value": "{{contract_ref}}",
+          "column_values": {
+            "stage": "Finance review"
+          }
+        },
+        "position": {
+          "x": 80,
+          "y": 900
+        }
+      },
+      {
+        "id": "finance",
+        "type": "user_task",
+        "label": "Finance review",
+        "config": {
+          "task_title": "Finance review: ${{form.value}} with {{form.counterparty}}",
+          "task_description": "<p>{{form.title}} ({{form.type}}) commits <strong>${{form.value}}</strong> from {{form.start_date}} to {{form.end_date}}. Check the budget and payment terms.</p><p>Legal notes: {{task_data.legal_notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "cf61dbe6-fc73-5376-a144-3fa6fd969a03",
+          "fields": [
+            {
+              "key": "budget_line",
+              "label": "Budget line",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "budget_line",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Finance review",
+            "align": "left",
+            "subtitle": "{{contract_ref}} · ${{form.value}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 80,
+          "y": 1040
+        }
+      },
+      {
+        "id": "to_sign",
+        "type": "update_data_table",
+        "label": "Stage: signature",
+        "config": {
+          "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+          "table_name": "Contract register",
+          "operation": "update",
+          "match_column": "contract_ref",
+          "match_value": "{{contract_ref}}",
+          "column_values": {
+            "stage": "Signature"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "sign",
+        "type": "user_task",
+        "label": "Collect signatures",
+        "config": {
+          "task_title": "Get {{form.title}} signed by {{form.counterparty}}",
+          "task_description": "<p>Approved. Send <strong>{{form.title}}</strong> for signature and upload or link the signed copy.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Signed"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.owner}}",
+          "fields": [
+            {
+              "key": "signed_on",
+              "label": "Signed on",
+              "type": "date",
+              "required": true,
+              "default": "{{today}}"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "signed_on",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "signed",
+              "label": "Signed",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Signed"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Signature",
+            "align": "left",
+            "subtitle": "{{contract_ref}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 7,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "signed",
+        "type": "update_data_table",
+        "label": "Stage: signed",
+        "config": {
+          "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+          "table_name": "Contract register",
+          "operation": "update",
+          "match_column": "contract_ref",
+          "match_value": "{{contract_ref}}",
+          "column_values": {
+            "stage": "Signed"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "renewal",
+        "type": "user_task",
+        "label": "Renewal review",
+        "config": {
+          "task_title": "Renew or give notice: {{form.title}} ({{form.counterparty}})",
+          "task_description": "<p>The renewal decision for <strong>{{form.title}}</strong> is due today. It ends on {{form.end_date}} (auto-renews: {{form.auto_renew}}). Decide whether to renew, renegotiate or give notice.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Renew",
+            "Let it end"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{form.owner}}",
+          "fields": [
+            {
+              "key": "renewal_notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "renewal_notes",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "renew",
+              "label": "Renew",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Renew"
+            },
+            {
+              "id": "let_it_end",
+              "label": "Let it end",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Let it end"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Renewal review",
+            "align": "left",
+            "subtitle": "{{contract_ref}} · ends {{form.end_date}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{form.renewal_date}}",
+          "reminders": [
+            {
+              "offset_minutes": 20160
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Reviewed for renewal",
+        "config": {
+          "reason": "{{contract_ref}} renewal decided"
+        },
+        "position": {
+          "x": 400,
+          "y": 1740
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "update_data_table",
+        "label": "Stage: rejected",
+        "config": {
+          "table_id": "ed7c93e9-0c67-52f3-a73b-57eb1fa7767d",
+          "table_name": "Contract register",
+          "operation": "update",
+          "match_column": "contract_ref",
+          "match_value": "{{contract_ref}}",
+          "column_values": {
+            "stage": "Rejected"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      },
+      {
+        "id": "end_rejected",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "config": {
+          "reason": "{{contract_ref}} rejected"
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-legal",
+        "source": "log",
+        "target": "legal"
+      },
+      {
+        "id": "e-legal-big-approve",
+        "source": "legal",
+        "target": "big",
+        "label": "Approve"
+      },
+      {
+        "id": "e-legal-rejected-reject",
+        "source": "legal",
+        "target": "rejected",
+        "label": "Reject"
+      },
+      {
+        "id": "e-big-to_fin-finance_review",
+        "source": "big",
+        "target": "to_fin",
+        "label": "Finance review"
+      },
+      {
+        "id": "e-big-to_sign-else",
+        "source": "big",
+        "target": "to_sign",
+        "label": "Else"
+      },
+      {
+        "id": "e-to_fin-finance",
+        "source": "to_fin",
+        "target": "finance"
+      },
+      {
+        "id": "e-finance-to_sign-approve",
+        "source": "finance",
+        "target": "to_sign",
+        "label": "Approve"
+      },
+      {
+        "id": "e-finance-rejected-reject",
+        "source": "finance",
+        "target": "rejected",
+        "label": "Reject"
+      },
+      {
+        "id": "e-to_sign-sign",
+        "source": "to_sign",
+        "target": "sign"
+      },
+      {
+        "id": "e-sign-signed-signed",
+        "source": "sign",
+        "target": "signed",
+        "label": "Signed"
+      },
+      {
+        "id": "e-signed-renewal",
+        "source": "signed",
+        "target": "renewal"
+      },
+      {
+        "id": "e-renewal-end-renew",
+        "source": "renewal",
+        "target": "end",
+        "label": "Renew"
+      },
+      {
+        "id": "e-renewal-end-let_it_end",
+        "source": "renewal",
+        "target": "end",
+        "label": "Let it end"
+      },
+      {
+        "id": "e-rejected-end_rejected",
+        "source": "rejected",
+        "target": "end_rejected"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

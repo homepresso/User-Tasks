@@ -150,6 +150,12 @@ export const workflowEventCompleteBody = z.object({
 
 export const workflowQueueActionBody = z.object({
   action: z.enum(['cancel', 'retry']),
+  /**
+   * Cancel a job a worker is still processing (its lease has not expired).
+   * Not needed for a stuck job (lease expired), which can be retried or
+   * cancelled as is.
+   */
+  force: z.boolean().optional(),
 })
 
 export const workflowRunActionBody = z.object({

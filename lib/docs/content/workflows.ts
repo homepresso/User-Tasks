@@ -161,7 +161,7 @@ curl -X POST "https://tasks.example.com/api/webhooks/inbound?hook=<slug>" \\
   -d '{"invoice_number":"INV-1042","amount":12400,"vendor_id":"V-311"}'
 \`\`\`
 
-The body is available as \`{{_raw}}\`, and a payload mapping can turn fields into named variables. Secrets are stored only as bcrypt hashes; rotate one with \`usertasks webhooks rotate <webhook-id>\`.
+The body is available as \`{{_raw}}\`, and a payload mapping can turn fields into named variables. Secrets are stored only as hashes (never in plain text); rotate one with \`usertasks webhooks rotate <webhook-id>\`.
 
 ## Schedules
 
@@ -268,7 +268,7 @@ Order {{= line_count + 1 }} of {{max}}
 | \`-\` \`*\` \`/\` \`%\` | Arithmetic on numbers. A non-numeric operand or division by zero gives null (empty). |
 | \`( )\` | Grouping. \`*\` \`/\` \`%\` bind tighter than \`+\` \`-\`, which bind tighter than comparisons. |
 
-Operands are literals (\`"text"\`, \`12.5\`, \`true\`, \`false\`, \`null\`), variables (\`{{amount}}\` or \`amount\`), functions and parenthesised expressions. If an argument names something that is not a variable, it is read as plain text, as before — quote text to be safe. Unquoted dates and ids with two or more separators (\`2026-01-05\`, \`021-555-1234\`) are text, not subtraction.
+Operands are literals (\`"text"\`, \`12.5\`, \`true\`, \`false\`, \`null\`), variables (\`{{amount}}\` or \`amount\`), functions and parenthesised expressions. A snake_case name with no value (\`contact_phone\`, \`total_cost\`) is empty (null), as is an expression that is only a name with no value (\`{{= missing }}\`) — never the name's own text; the form designer flags unknown names in labels. Other unquoted words (\`open\`, \`example.com\`) are read as plain text, as before — quote text to be safe. Unquoted dates and ids with two or more separators (\`2026-01-05\`, \`021-555-1234\`) are text, not subtraction.
 
 **Truthiness.** \`IF\`, \`AND\`, \`OR\` and \`NOT\` treat \`false\`, \`0\`, \`""\`, \`"false"\`, \`"0"\`, \`"no"\`, \`"off"\`, \`"null"\`, null, missing values and empty lists as false, and everything else as true — the same rules as the Condition node's \`is_true\` / \`is_false\`. So a form field or API value of \`"false"\` takes the else branch.
 

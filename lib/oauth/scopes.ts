@@ -30,6 +30,10 @@ const READ_WRITE_MAP: Record<string, { read: string[]; write: string[] }> = {
     read: ['reports.view'],
     write: ['reports.create', 'reports.edit_own', 'reports.share', 'reports.delete'],
   },
+  apps: {
+    read: ['apps.view'],
+    write: ['apps.manage'],
+  },
   agents: {
     read: ['agents.view'],
     write: ['agents.create', 'agents.edit', 'agents.test', 'agents.delete'],
@@ -45,7 +49,7 @@ const READ_WRITE_MAP: Record<string, { read: string[]; write: string[] }> = {
   settings: {
     read: ['settings.view'],
     // API-key management is deliberately NOT here — see `keys:write`.
-    write: ['settings.edit', 'settings.manage_webhooks'],
+    write: ['settings.edit', 'settings.manage_webhooks', 'tags.manage'],
   },
   team: {
     // The org structure and projects are people data, consented with the team.
@@ -125,6 +129,8 @@ export const SCOPE_DESCRIPTIONS: Record<string, string> = {
   'data:write': 'Create and modify data tables and rows',
   'reports:read': 'Read reports',
   'reports:write': 'Create, edit, share, and delete reports',
+  'apps:read': 'Open the apps shared with you',
+  'apps:write': 'Create, edit and delete apps',
   'agents:read': 'Read AI agent definitions',
   'agents:write': 'Create, edit, test, and delete AI agents',
   'integrations:read': 'Read integrations, connectors, and references',

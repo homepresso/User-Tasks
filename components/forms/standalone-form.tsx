@@ -2,6 +2,7 @@
 
 import { formAnimation } from '@/lib/forms/motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -25,6 +26,7 @@ import { freshSubmissionValues, screenButtonOutcome } from '@/lib/forms/submitte
 import { validateTaskFieldValues } from '@/lib/task-field-schema'
 import { FORM_PARAMS_KEY, formParamsMessage, layoutFormParams, paramsFromQuery, parseFormParams, withFormContext } from '@/lib/forms/form-params'
 import { openingFieldDefaults } from '@/lib/forms/preview-inputs'
+import { VALUE_CONTROL_SELECTOR, isPersonEdit, personHasEntered, shouldOfferDraft, type EditEventLike } from '@/lib/forms/draft-offer'
 import type { AnonymousFormPage } from '@/lib/services/anonymous-forms'
 import type { FormLookupSource } from '@/components/forms/lookup-field'
 import { AnonymousCaptcha, AnonymousHoneypot, submitAnonymous } from '@/components/forms/anonymous-form-parts'
@@ -135,7 +137,7 @@ function newKey(): string {
  * the final step; with "Resume later" on, unsent answers and the step are
  * kept in this browser until the form is submitted or discarded.
  */
-export function StandaloneForm({ formId, query, anonymous, surface = 'app', embed = false, trusted = false, initialForm }: {
+export function StandaloneForm({ formId, query, anonymous, surface = 'app', embed = false, trusted = false, initialForm, onDone, hideHeader = false, fill = false, onDirtyChange, contextParams, onSubmitted, onTitle, actionsTarget }: {
   formId: string
   /**
    * `app`: inside the dashboard shell (/fill/<id>, opened from the app's own
@@ -169,6 +171,26 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
    * optional captcha; "Close form" ends on a neutral page.
    */
   anonymous?: { token: string; page: AnonymousFormPage }
+  /**
+   * Opened in a dialog (an app page's "New submission" button,
+   * components/apps/form-dialog.tsx): Cancel, Close and a submission that
+   * closes the form call this instead of ending on the closed state.
+   */
+  onDone?: (event: 'submitted' | 'cancelled' | 'closed') => void
+  /** App form widget: no form header (title block). */
+  hideHeader?: boolean
+  /** App form widget: fill the box edge to edge (the form's theme as the background), scrolling inside. */
+  fill?: boolean
+  /** Told when the form starts / stops holding unsent answers (app panels warn before closing). */
+  onDirtyChange?: (dirty: boolean) => void
+  /** Values for the form's declared parameters from the embedding app (any source); validated like URL ones. */
+  contextParams?: Record<string, string> | null
+  /** After a successful submission: its id and the values sent (app "form submitted" events). */
+  onSubmitted?: (result: { submission_id: string | null; values: Record<string, unknown> }) => void
+  /** Told the form's name once loaded (panel titles). */
+  onTitle?: (title: string) => void
+  /** With hideHeader: the favourite / Save draft icons go into this element (a panel's header row). */
+  actionsTarget?: HTMLElement | null
 }) {
   const router = useRouter()
   // isPending, not isLoading: on the first (server / hydration) render the query
@@ -196,12 +218,16 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   const params = useMemo(() => {
     const declared = layoutFormParams(form?.layout)
     if (!declared.length) return null
-    const parsed = parseFormParams(declared, paramsFromQuery(declared, query))
+    const given = { ...paramsFromQuery(declared, query), ...(contextParams ? Object.fromEntries(Object.entries(contextParams).filter(([k]) => declared.some((d) => d.name === k))) : {}) }
+    const parsed = parseFormParams(declared, given)
     return { parsed, message: formParamsMessage(declared, parsed) }
-  }, [form, query])
+  }, [form, query, contextParams])
+  useEffect(() => { if (form?.name) onTitle?.(form.name) }, [form?.name]) // eslint-disable-line react-hooks/exhaustive-deps
   // Defaults: {{param.x}} filled in; other placeholders have nothing to fill them on a form page.
   const defaults = useMemo(() => (form ? openingFieldDefaults(form.fields, params?.parsed.values ?? null) : {}), [form, params])
   const [values, setValues] = useState<Record<string, unknown>>({})
+  const hasValues = Object.values(values).some((v) => v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length))
+  useEffect(() => { onDirtyChange?.(hasValues) }, [hasValues]) // eslint-disable-line react-hooks/exhaustive-deps
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState<string | null>(null)
   // Synchronous guard: two clicks in one frame both see busy === null.
@@ -221,8 +247,15 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   // A data target's record values sit between the defaults and what the person typed.
   const loaded = form?.target?.values ?? null
   const shown = params ? { ...defaults, ...loaded, ...values, [FORM_PARAMS_KEY]: params.parsed.values } : { ...defaults, ...loaded, ...values }
-  // Form context (variables, control state) isn't something the person typed.
-  const dirty = Object.keys(values).some((k) => !k.startsWith('__form_'))
+  // What the person entered — not what the form set by itself when it opened (bound defaults, Labels,
+  // a repeating section's items, form-load rules): only their own edit events count (lib/forms/draft-offer.ts).
+  const [edited, setEdited] = useState(false)
+  const dirty = personHasEntered(values, edited)
+  const noteEdit = (event: React.SyntheticEvent) => {
+    if (edited) return
+    const target = event.target as Element | null
+    if (isPersonEdit(event.nativeEvent as unknown as EditEventLike, Boolean(target?.closest?.(VALUE_CONTROL_SELECTOR)))) setEdited(true)
+  }
   // "Resume later" (steps / tabs forms): unsent answers and the step stay in this browser.
   const resumeKey = !anonymous && form && isPaged(form.layout) && pageSettings(form.layout).resume ? `form:${form.id}` : undefined
   const [resumed, setResumed] = useState(false)
@@ -247,7 +280,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   const [draftDecided, setDraftDecided] = useState(false)
   // A display form (data target mode `display`): the record read-only, no drafts or submit buttons.
   const displayOnly = form?.target?.mode === 'display'
-  const offerDraft = !anonymous && !displayOnly && drafts.draft && !draftDecided && !dirty ? drafts.draft : null
+  const offerDraft = shouldOfferDraft({ anonymous: Boolean(anonymous), displayOnly, hasDraft: Boolean(drafts.draft), decided: draftDecided, entered: dirty }) ? drafts.draft : null
   const standalone = surface === 'standalone' || Boolean(anonymous)
   // A form link page has no shell to title the tab: the form's name does.
   useEffect(() => {
@@ -286,7 +319,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
 
   function reset() {
     // A fresh form: the answers go, the URL parameters (read from the query) stay.
-    setValues((prev) => freshSubmissionValues(prev)); setErrors({}); setEffects(null); setFailure(null); setConfirmCancel(false); setClosed(false)
+    setValues((prev) => freshSubmissionValues(prev)); setErrors({}); setEffects(null); setFailure(null); setConfirmCancel(false); setClosed(false); setEdited(false)
     forgetDraft()
     keyRef.current = newKey()
   }
@@ -300,7 +333,10 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
       if (trusted && !/^\/f\//.test(next.redirect)) return
       router.push(trusted ? `/embed${next.redirect}` : next.redirect); return
     }
-    if (next.close && !next.success_screen) { setClosed(true) }
+    if (next.close && !next.success_screen) {
+      if (onDone) { onDone('submitted'); return }
+      setClosed(true)
+    }
     setEffects(next)
   }
 
@@ -310,10 +346,11 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
       if (button.kind === 'cancel') {
         if (dirty && !confirmCancel) { setConfirmCancel(true); return }
         const planned = planButtonEffects(button, { values: shown, targetReturnUrl: form!.target?.return_url ?? null, targetUrls: form!.target?.urls ?? null })
-        setValues({}); setErrors({}); setConfirmCancel(false)
+        setValues({}); setErrors({}); setConfirmCancel(false); setEdited(false)
         forgetDraft()
         keyRef.current = newKey()
         if (trusted) notifyHost(displayOnly ? 'closed' : 'cancelled', planned.redirect)
+        if (onDone) { onDone('cancelled'); return }
         finish(planned)
         return
       }
@@ -330,7 +367,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         try {
           const result = await deleteStandaloneFormRecord(formId, { button_id: button.id, params: params?.parsed.values ?? null, target_version: form!.target?.version ?? null })
           if (!result.ok) { setFailure(result.error); return }
-          setValues({}); forgetDraft()
+          setValues({}); setEdited(false); forgetDraft()
           const next = result.data.effects
           if (trusted) notifyHost('deleted', next.redirect)
           if (!next.redirect && !next.close && !next.success_screen) { setEffects({ ...next, messages: next.messages.length ? next.messages : [{ text: 'Deleted.', tone: 'success' }] }); setClosed(true); return }
@@ -355,6 +392,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
           return
         }
         if (anonymous?.page.captcha) { setCaptcha(null); setCaptchaRound((n) => n + 1) }
+        onSubmitted?.({ submission_id: ((result.data as { submission_id?: string; id?: string }).submission_id ?? (result.data as { id?: string }).id ?? null), values: shown })
         setErrors({})
         forgetDraft()
         if (!anonymous) drafts.submitted()
@@ -364,7 +402,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         if (form!.target) void refetch()
         if (!result.data.effects.success_screen && !result.data.effects.redirect && !result.data.effects.close) {
           // Stay on the form, cleared for the next submission (back on its first step), with the message(s).
-          setValues({})
+          setValues({}); setEdited(false)
           keyRef.current = newKey()
           setEffects({ ...result.data.effects, messages: result.data.effects.messages.length ? result.data.effects.messages : [{ text: 'Submitted.', tone: 'success' }] })
           return
@@ -382,15 +420,19 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   // The hand-off from the loading state: the form's own load animation when it has one, else a short fade.
   const motion = formAnimation(form.layout)
   return (
-    <div className={cn('mx-auto', width.className, loadedHere && motion.style === 'none' && 'form-reveal')} style={width.style as React.CSSProperties} data-standalone-form={form.id} data-form-width-mode={width.width}>
-      <FormThemeScope overrides={overrides} page={standalone && !embed ? 'viewport' : true} motion={motion}>
-        <div>
+    <div className={cn(fill ? 'h-full w-full overflow-auto [&>[data-form-page]]:h-full [&>[data-form-page]>[data-form-theme]]:min-h-full' : 'mx-auto', !fill && width.className, loadedHere && motion.style === 'none' && 'form-reveal')} style={fill ? undefined : width.style as React.CSSProperties} data-standalone-form={form.id} data-form-width-mode={width.width} data-form-fill={fill || undefined}>
+      <FormThemeScope overrides={overrides} page={standalone && !embed ? 'viewport' : true} motion={motion} className={fill ? 'min-h-full !rounded-none !border-0 !shadow-none' : undefined}>
+        <div className={fill ? 'min-h-full' : undefined}>
           {/* The heart / Save draft icons sit in the header's top-right corner, on the title's row. */}
-          <FormHeaderBlock header={form.header ?? (form.theme_overrides?.header?.enabled ? null : { enabled: true, image: 'none', title: form.name, align: 'left' })} values={withFormContext(form.layout, shown)} overrides={form.theme_overrides}
+          {hideHeader && actionsTarget && !anonymous && !displayOnly && !trusted && !closed && createPortal(
+            <FormHeaderActions form={form} drafts={drafts} inHeader onSave={() => { setDraftDecided(true); void drafts.save(values, params?.parsed.values ?? null) }} />,
+            actionsTarget,
+          )}
+          {!hideHeader && <FormHeaderBlock header={form.header ?? (form.theme_overrides?.header?.enabled ? null : { enabled: true, image: 'none', title: form.name, align: 'left' })} values={withFormContext(form.layout, shown)} overrides={form.theme_overrides}
             actions={!anonymous && !displayOnly && !trusted && !closed && !effects?.success_screen ? (
               <FormHeaderActions form={form} drafts={drafts} inHeader
                 onSave={() => { setDraftDecided(true); void drafts.save(values, params?.parsed.values ?? null) }} />
-            ) : null} />
+            ) : null} />}
           {closed ? (
             <div className="py-10 text-center text-sm text-fg-muted" role="status" data-form-closed>
               {anonymous ? 'Thank you — you can close this page now.' : 'This form is closed.'} <button type="button" className="underline" onClick={reset}>{anonymous ? 'Fill it in again' : 'Open it again'}</button>
@@ -400,6 +442,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
               onClose={() => {
                 // Close form: back to the dashboard (lib/forms/submitted-page.ts); an older screen's Close keeps the page, closed.
                 // A form link page (public or signed in) has no dashboard: Close ends on the neutral closed page.
+                if (onDone) { onDone('closed'); return }
                 const next = !standalone && effects.success_screen?.source === 'form' ? screenButtonOutcome({ kind: 'close', label: '' }, 'page') : null
                 if (next?.kind === 'navigate') router.push(next.href)
                 else { setEffects(null); setClosed(true) }
@@ -419,6 +462,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
                 </div>
               )}
               {form.target && <DataTargetNotice target={form.target} />}
+              <div className="contents" onInputCapture={noteEdit} onChangeCapture={noteEdit} onKeyDownCapture={noteEdit} onPasteCapture={noteEdit} onClickCapture={noteEdit} data-form-fields>
               <FormRenderer
                 idPrefix="form-field-"
                 fields={form.fields}
@@ -433,6 +477,7 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
                   setConfirmCancel(false)
                 }}
               />
+              </div>
               {anonymous && <AnonymousHoneypot value={honeypot} onChange={setHoneypot} />}
               {anonymous?.page.captcha && <AnonymousCaptcha key={captchaRound} provider={anonymous.page.captcha.provider} siteKey={anonymous.page.captcha.site_key} onToken={setCaptcha} />}
               {failure && <p className="mt-3 text-sm text-(--status-blocked)" role="alert">{failure}</p>}

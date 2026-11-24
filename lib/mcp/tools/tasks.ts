@@ -18,6 +18,7 @@ import { withDescriptionText } from '@/lib/task-description-format'
 import { fromMcpContext } from '@/lib/services/context'
 import { acceptanceForAssignee } from '@/lib/tasks/queue-rules-server'
 import { QUEUE_TASK_COLUMNS, queueFactsFromTask } from '@/lib/tasks/queue-rules'
+import { invalidTaskStatusMessage } from '@/lib/tasks/status-filter'
 
 const DESCRIPTION_HTML = 'Plain text or HTML (sanitised to an allowlist: formatting, lists, headings, links, tables, https images)'
 
@@ -87,6 +88,8 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     if (actingUserId && args.assignee_id && args.assignee_id !== actingUserId) {
       return mcpErr('User-context API keys can only list tasks for their own user context')
     }
+    const badStatus = args.status ? invalidTaskStatusMessage([args.status]) : null
+    if (badStatus) return mcpErr(badStatus)
 
     let query = supabase.from('tasks')
       .select('id, title, status, priority, due_date, created_at, completed_at, assignee_id, progress_pct, is_workflow_task')

@@ -60,3 +60,8 @@ export async function takePendingInfoPath(now = Date.now()): Promise<File | null
 export function importerHref(signedIn: boolean): string {
   return signedIn ? '/automations/forms?import=infopath' : '/start?next=infopath'
 }
+
+/** The PDF form preview's CTA (the same in-browser hand-off, opening the PDF importer). */
+export function pdfImporterHref(signedIn: boolean): string {
+  return signedIn ? '/automations/forms?import=pdf' : `/start?redirect=${encodeURIComponent('/automations/forms?import=pdf')}`
+}

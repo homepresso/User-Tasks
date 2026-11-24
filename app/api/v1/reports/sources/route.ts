@@ -4,6 +4,7 @@ import { validateApiKey, requireApiPermission } from '@/lib/api-auth'
 import { listTenantReportSources, resolveTenantReportSource } from '@/lib/report-source-registry'
 import { workflowIdOfSourceInputs } from '@/lib/report-workflow-variables'
 import { getUserPermissions } from '@/lib/permissions-server'
+import { isInstanceAdminUser } from '@/lib/services/instance-admin/access'
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +32,10 @@ export async function GET(request: NextRequest) {
     }
     if (!tenantId) return NextResponse.json({ sources: [] })
 
-    const sources = await listTenantReportSources(supabase, tenantId)
+    // UserTasks instance sources: listed for instance admins only (a user key's person, or the signed-in person).
+    const personId = apiAuth.success ? (apiAuth.keyType === 'user' ? apiAuth.actingUserId ?? null : null) : (await getCachedUser())?.id ?? null
+    const instance = personId ? (await isInstanceAdminUser(personId)).ok : false
+    const sources = await listTenantReportSources(supabase, tenantId, { instance })
 
     // ?workflow_id=: Workflow runs and Tasks scoped to that workflow, with its
     // variable columns (vars.* / fields.*).

@@ -8,6 +8,7 @@ import { processDeploymentQueue } from '@/lib/github-sync/deploy'
 import { enqueueScheduledDirectorySyncs, processDirectorySyncRuns } from '@/lib/directory-sync/sync'
 import { runShipper } from '@/lib/log-export/shipper'
 import { processAgentQueueBatch } from '@/lib/jobs/agent-queue'
+import { isProcessorProcess, processingHandoff } from '@/lib/processing/handoff'
 import { processScheduledWorkflows } from '@/lib/jobs/schedules'
 import { processTaskReminders } from '@/lib/jobs/reminders'
 import { processTaskEscalations } from '@/lib/jobs/escalations'
@@ -22,6 +23,7 @@ import { runProviderSwitchesJob } from '@/lib/jobs/provider-switches'
 import { purgeFormFiles } from '@/lib/services/form-files'
 import { purgeTaskAttachments } from '@/lib/services/task-attachments'
 import { getProviderConfig } from '@/lib/config'
+import { reportRollupsPending, runReportRollupsJob } from '@/lib/jobs/report-rollups'
 
 /**
  * The canonical list of scheduled background jobs.
@@ -82,6 +84,18 @@ function probed(...keys: string[]) {
   }
 }
 
+/**
+ * Queue processing jobs: off in queue mode (lib/processing/handoff) unless
+ * this process is a processor — the provider's workers drain the queues
+ * then, never the web app's tick.
+ */
+function processingHere(check: (ctx: JobContext) => Promise<boolean>) {
+  return async (ctx: JobContext) => {
+    if (!isProcessorProcess() && (await processingHandoff().catch(() => 'web')) === 'queue') return false
+    return check(ctx)
+  }
+}
+
 /** ms left before the job's deadline, at least `min`. */
 const remaining = (ctx: JobContext, min = 1000) => Math.max(min, ctx.deadline - Date.now())
 
@@ -100,7 +114,7 @@ export const JOBS: JobDefinition[] = [
     cadence: { every: 1 },
     endpoint: '/api/workflows/process',
     budgetMs: 45_000,
-    isEnabled: probed('workflow_queue'),
+    isEnabled: processingHere(probed('workflow_queue')),
     run: async (ctx) => {
       const result = await processWorkflowQueueBatch({ batchSize: 20, budgetMs: remaining(ctx) })
       if (result.more) kickQueueProcessor()
@@ -112,7 +126,7 @@ export const JOBS: JobDefinition[] = [
     cadence: { every: 1 },
     endpoint: '/api/agents/process',
     budgetMs: 30_000,
-    isEnabled: probed('agent_queue'),
+    isEnabled: processingHere(probed('agent_queue')),
     run: async (ctx) => {
       const result = await processAgentQueueBatch({ supabase: ctx.supabase, batchSize: 10, deadline: ctx.deadline })
       return { processed: result.processed }
@@ -124,7 +138,7 @@ export const JOBS: JobDefinition[] = [
     cadence: { every: 1 },
     endpoint: '/api/cron/process-media',
     budgetMs: 50_000,
-    isEnabled: probed('media_jobs'),
+    isEnabled: processingHere(probed('media_jobs')),
     run: async (ctx) => {
       const { processMediaJobBatch } = await import('@/lib/media/jobs')
       const result = await processMediaJobBatch({ supabase: ctx.supabase, batchSize: 5, deadline: ctx.deadline })
@@ -199,6 +213,19 @@ export const JOBS: JobDefinition[] = [
     budgetMs: 45_000,
     isEnabled: (ctx) => hasDueUserJobs(ctx.supabase),
     run: (ctx) => processUserJobs({ supabase: ctx.supabase, budgetMs: remaining(ctx) - 2_000 }),
+  },
+
+  {
+    // Report rollups (lib/jobs/report-rollups.ts): queued rebuilds, the
+    // history backfill (chunks of days per tenant, resumable) and the hourly
+    // per-tenant reconcile of today + yesterday. The rollups themselves are
+    // updated by triggers as things happen; skipped when nothing is due.
+    name: 'report-rollups',
+    cadence: { every: 1 },
+    endpoint: '/api/cron/report-rollups',
+    budgetMs: 20_000,
+    isEnabled: (ctx) => reportRollupsPending(ctx.supabase),
+    run: (ctx) => runReportRollupsJob({ supabase: ctx.supabase, deadline: ctx.deadline }),
   },
 
   // ── Every 5 minutes ─────────────────────────────────────────────────────

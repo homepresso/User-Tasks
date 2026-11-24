@@ -1,0 +1,1611 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "0c9a2634-1aec-5cf8-b7e9-fe25adfb1419",
+  "asset": {
+    "id": "0c9a2634-1aec-5cf8-b7e9-fe25adfb1419",
+    "name": "Development actions rows",
+    "rows": [
+      {
+        "id": "032146da-612e-5635-b02a-ac6dd58c438f",
+        "data": {
+          "action_ref": "DP-001-A1",
+          "plan": "DP-001",
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "action": "Complete \"Writing for busy readers\"",
+          "type": "Course",
+          "learning_item": "Writing for busy readers",
+          "skill": "Communication",
+          "due_date": "2026-12-05",
+          "status": "Done",
+          "hours": 4
+        }
+      },
+      {
+        "id": "49b7732c-7987-5a95-9cb8-98dc3078ceb5",
+        "data": {
+          "action_ref": "DP-001-A2",
+          "plan": "DP-001",
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "action": "Stretch assignment: lead a communication initiative",
+          "type": "Stretch assignment",
+          "learning_item": "Public speaking lab",
+          "skill": "Communication",
+          "due_date": "2027-02-16",
+          "status": "In progress",
+          "hours": 4
+        }
+      },
+      {
+        "id": "02120779-2e5f-5745-a9cf-fe536ae343d5",
+        "data": {
+          "action_ref": "DP-002-A1",
+          "plan": "DP-002",
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "action": "Complete \"Systems design fundamentals\"",
+          "type": "Course",
+          "learning_item": "Systems design fundamentals",
+          "skill": "Technical depth",
+          "due_date": "2027-04-05",
+          "status": "Done",
+          "hours": 12
+        }
+      },
+      {
+        "id": "962c701d-ae70-5762-8042-cc1f6b18e42a",
+        "data": {
+          "action_ref": "DP-002-A2",
+          "plan": "DP-002",
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "action": "Complete \"Accessibility in practice\"",
+          "type": "Course",
+          "learning_item": "Accessibility in practice",
+          "skill": "Technical depth",
+          "due_date": "2027-01-02",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "e15a9097-b779-5cac-8e9b-94519de7dd03",
+        "data": {
+          "action_ref": "DP-002-A3",
+          "plan": "DP-002",
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Stretch assignment",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2026-12-30",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "c3535f3b-a195-5474-bb80-c81322affef9",
+        "data": {
+          "action_ref": "DP-003-A1",
+          "plan": "DP-003",
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-04-11",
+          "status": "In progress",
+          "hours": 24
+        }
+      },
+      {
+        "id": "2436dfe5-b071-599c-bfd0-3c26d329ea0b",
+        "data": {
+          "action_ref": "DP-003-A2",
+          "plan": "DP-003",
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Workshop",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2027-04-20",
+          "status": "Not started",
+          "hours": 6
+        }
+      },
+      {
+        "id": "3063dd2b-a518-53fd-a8e0-f9601b4590a5",
+        "data": {
+          "action_ref": "DP-003-A3",
+          "plan": "DP-003",
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "action": "Complete \"Mentoring circle\"",
+          "type": "Mentoring",
+          "learning_item": "Mentoring circle",
+          "skill": "Coaching",
+          "due_date": "2027-01-11",
+          "status": "Not started",
+          "hours": 12
+        }
+      },
+      {
+        "id": "22eb3fd0-f7af-5e52-a679-09ecde386919",
+        "data": {
+          "action_ref": "DP-004-A1",
+          "plan": "DP-004",
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "action": "Complete \"Inclusive meetings\"",
+          "type": "Micro-course",
+          "learning_item": "Inclusive meetings",
+          "skill": "Inclusion",
+          "due_date": "2026-12-04",
+          "status": "Not started",
+          "hours": 1
+        }
+      },
+      {
+        "id": "4b26f955-d3ce-5c7c-a0aa-26911da63050",
+        "data": {
+          "action_ref": "DP-004-A2",
+          "plan": "DP-004",
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "action": "Complete \"Allyship at work\"",
+          "type": "Stretch assignment",
+          "learning_item": "Allyship at work",
+          "skill": "Inclusion",
+          "due_date": "2026-12-25",
+          "status": "Done",
+          "hours": 3
+        }
+      },
+      {
+        "id": "73ff0d95-f162-58d0-9b1e-5e40baaeab92",
+        "data": {
+          "action_ref": "DP-005-A1",
+          "plan": "DP-005",
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "action": "Complete \"Structured problem solving\"",
+          "type": "Course",
+          "learning_item": "Structured problem solving",
+          "skill": "Problem solving",
+          "due_date": "2027-01-04",
+          "status": "Not started",
+          "hours": 8
+        }
+      },
+      {
+        "id": "290420f2-b559-5ca4-b6fe-f989aaedaf91",
+        "data": {
+          "action_ref": "DP-005-A2",
+          "plan": "DP-005",
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-02-22",
+          "status": "Done",
+          "hours": 24
+        }
+      },
+      {
+        "id": "9adb46d1-18b0-5e11-a382-2e6f4cd1ce8a",
+        "data": {
+          "action_ref": "DP-005-A3",
+          "plan": "DP-005",
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "action": "Stretch assignment: lead a problem solving initiative",
+          "type": "Stretch assignment",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2026-12-28",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "b10bb041-394c-5c93-b8ba-c2e2216afe32",
+        "data": {
+          "action_ref": "DP-006-A1",
+          "plan": "DP-006",
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "action": "Complete \"Owning outcomes\"",
+          "type": "Micro-course",
+          "learning_item": "Owning outcomes",
+          "skill": "Ownership",
+          "due_date": "2027-01-02",
+          "status": "Not started",
+          "hours": 1
+        }
+      },
+      {
+        "id": "8d42d482-0c62-54a8-bc99-06bc79894e9b",
+        "data": {
+          "action_ref": "DP-006-A2",
+          "plan": "DP-006",
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "action": "Complete \"Writing for busy readers\"",
+          "type": "Course",
+          "learning_item": "Writing for busy readers",
+          "skill": "Communication",
+          "due_date": "2026-12-09",
+          "status": "In progress",
+          "hours": 4
+        }
+      },
+      {
+        "id": "a2747c1b-2e66-5922-b980-ed5fcf45606b",
+        "data": {
+          "action_ref": "DP-006-A3",
+          "plan": "DP-006",
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Stretch assignment",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-03-09",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "72e28c6d-3c5e-57d4-991b-cff71003139b",
+        "data": {
+          "action_ref": "DP-007-A1",
+          "plan": "DP-007",
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "action": "Complete \"Planning with OKRs\"",
+          "type": "Course",
+          "learning_item": "Planning with OKRs",
+          "skill": "Planning and prioritising",
+          "due_date": "2027-01-18",
+          "status": "Done",
+          "hours": 5
+        }
+      },
+      {
+        "id": "f50d82c1-3635-5ddb-9559-ea4e767268ef",
+        "data": {
+          "action_ref": "DP-007-A2",
+          "plan": "DP-007",
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "action": "Complete \"Time and energy management\"",
+          "type": "Micro-course",
+          "learning_item": "Time and energy management",
+          "skill": "Planning and prioritising",
+          "due_date": "2027-01-19",
+          "status": "Done",
+          "hours": 2
+        }
+      },
+      {
+        "id": "e248439c-c519-55a4-9eaa-d7f6aade82d9",
+        "data": {
+          "action_ref": "DP-007-A3",
+          "plan": "DP-007",
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Workshop",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-04-06",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "287bc477-45fd-5f90-8582-55b3e73cb87a",
+        "data": {
+          "action_ref": "DP-007-A4",
+          "plan": "DP-007",
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "action": "Complete \"Structured problem solving\"",
+          "type": "Stretch assignment",
+          "learning_item": "Structured problem solving",
+          "skill": "Problem solving",
+          "due_date": "2027-03-21",
+          "status": "In progress",
+          "hours": 8
+        }
+      },
+      {
+        "id": "b114dd6e-c698-50cd-9d84-db7f85a473b2",
+        "data": {
+          "action_ref": "DP-008-A1",
+          "plan": "DP-008",
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Workshop",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-04-17",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "95ab5b83-f407-56bb-a9e6-7d4eba0b5e4f",
+        "data": {
+          "action_ref": "DP-008-A2",
+          "plan": "DP-008",
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "action": "Complete \"Negotiation essentials\"",
+          "type": "Stretch assignment",
+          "learning_item": "Negotiation essentials",
+          "skill": "Customer focus",
+          "due_date": "2027-02-01",
+          "status": "Done",
+          "hours": 8
+        }
+      },
+      {
+        "id": "9bc9a143-e6d9-5a7c-a3ff-99fa4f47e1a5",
+        "data": {
+          "action_ref": "DP-009-A1",
+          "plan": "DP-009",
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "action": "Complete \"Leading without authority\"",
+          "type": "Workshop",
+          "learning_item": "Leading without authority",
+          "skill": "Collaboration",
+          "due_date": "2027-02-25",
+          "status": "Done",
+          "hours": 3
+        }
+      },
+      {
+        "id": "03ee83f8-5934-58f0-9ee9-922ee0641f1b",
+        "data": {
+          "action_ref": "DP-009-A2",
+          "plan": "DP-009",
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "action": "Stretch assignment: lead a collaboration initiative",
+          "type": "Course",
+          "learning_item": "Advanced SQL for analysts",
+          "skill": "Data literacy",
+          "due_date": "2027-01-03",
+          "status": "Not started",
+          "hours": 10
+        }
+      },
+      {
+        "id": "1be3ab93-d309-5254-94c9-164bd9c3c276",
+        "data": {
+          "action_ref": "DP-010-A1",
+          "plan": "DP-010",
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "action": "Complete \"Advanced SQL for analysts\"",
+          "type": "Course",
+          "learning_item": "Advanced SQL for analysts",
+          "skill": "Data literacy",
+          "due_date": "2027-02-13",
+          "status": "In progress",
+          "hours": 10
+        }
+      },
+      {
+        "id": "cc5eefe4-cf8e-51fc-bd85-c66280a37003",
+        "data": {
+          "action_ref": "DP-010-A2",
+          "plan": "DP-010",
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "action": "Complete \"Storytelling with data\"",
+          "type": "Book",
+          "learning_item": "Storytelling with data",
+          "skill": "Data literacy",
+          "due_date": "2026-12-22",
+          "status": "Not started",
+          "hours": 6
+        }
+      },
+      {
+        "id": "780ed9d7-39f3-5ad0-81aa-777d2ccc5ade",
+        "data": {
+          "action_ref": "DP-010-A3",
+          "plan": "DP-010",
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-03-13",
+          "status": "Done",
+          "hours": 24
+        }
+      },
+      {
+        "id": "ea766bc7-a1ec-5620-a638-924e16cf786a",
+        "data": {
+          "action_ref": "DP-010-A4",
+          "plan": "DP-010",
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Stretch assignment",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2027-01-23",
+          "status": "In progress",
+          "hours": 6
+        }
+      },
+      {
+        "id": "8de12143-a0ea-51fd-996e-5178e89e7d7c",
+        "data": {
+          "action_ref": "DP-011-A1",
+          "plan": "DP-011",
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "action": "Complete \"Writing for busy readers\"",
+          "type": "Course",
+          "learning_item": "Writing for busy readers",
+          "skill": "Communication",
+          "due_date": "2027-04-10",
+          "status": "Done",
+          "hours": 4
+        }
+      },
+      {
+        "id": "84ab1bb9-ae81-5d80-98ad-97b3dcecb3a8",
+        "data": {
+          "action_ref": "DP-011-A2",
+          "plan": "DP-011",
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "action": "Complete \"Public speaking lab\"",
+          "type": "Workshop",
+          "learning_item": "Public speaking lab",
+          "skill": "Communication",
+          "due_date": "2026-12-26",
+          "status": "Done",
+          "hours": 4
+        }
+      },
+      {
+        "id": "cc1b8d9a-d04a-557b-af0d-ec0b9e734cc4",
+        "data": {
+          "action_ref": "DP-011-A3",
+          "plan": "DP-011",
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Stretch assignment",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-02-15",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "e2381018-d030-5330-80f2-fb0533a5b261",
+        "data": {
+          "action_ref": "DP-012-A1",
+          "plan": "DP-012",
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "action": "Complete \"Systems design fundamentals\"",
+          "type": "Course",
+          "learning_item": "Systems design fundamentals",
+          "skill": "Technical depth",
+          "due_date": "2026-12-13",
+          "status": "Not started",
+          "hours": 12
+        }
+      },
+      {
+        "id": "4c943676-4154-54d2-a91c-d7a47a3c2d15",
+        "data": {
+          "action_ref": "DP-012-A2",
+          "plan": "DP-012",
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "action": "Complete \"Accessibility in practice\"",
+          "type": "Stretch assignment",
+          "learning_item": "Accessibility in practice",
+          "skill": "Technical depth",
+          "due_date": "2026-12-03",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "df938f0a-2eb4-5dab-8170-61acbba005a0",
+        "data": {
+          "action_ref": "DP-013-A1",
+          "plan": "DP-013",
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2026-12-12",
+          "status": "Not started",
+          "hours": 24
+        }
+      },
+      {
+        "id": "5355ef4a-a28d-5fe3-88bb-04a76a183c80",
+        "data": {
+          "action_ref": "DP-013-A2",
+          "plan": "DP-013",
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Workshop",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2027-04-20",
+          "status": "Not started",
+          "hours": 6
+        }
+      },
+      {
+        "id": "841eb52e-e5e4-5292-afbf-abbb5a710105",
+        "data": {
+          "action_ref": "DP-013-A3",
+          "plan": "DP-013",
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "action": "Stretch assignment: lead a coaching initiative",
+          "type": "Mentoring",
+          "learning_item": "Mentoring circle",
+          "skill": "Coaching",
+          "due_date": "2027-02-11",
+          "status": "In progress",
+          "hours": 12
+        }
+      },
+      {
+        "id": "b25e0628-47a9-5c07-a752-17036652938f",
+        "data": {
+          "action_ref": "DP-014-A1",
+          "plan": "DP-014",
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "action": "Complete \"Inclusive meetings\"",
+          "type": "Micro-course",
+          "learning_item": "Inclusive meetings",
+          "skill": "Inclusion",
+          "due_date": "2027-04-11",
+          "status": "In progress",
+          "hours": 1
+        }
+      },
+      {
+        "id": "c73cf1a4-761d-5068-99db-5a13be2fa4c5",
+        "data": {
+          "action_ref": "DP-014-A2",
+          "plan": "DP-014",
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "action": "Complete \"Allyship at work\"",
+          "type": "Workshop",
+          "learning_item": "Allyship at work",
+          "skill": "Inclusion",
+          "due_date": "2027-02-18",
+          "status": "Not started",
+          "hours": 3
+        }
+      },
+      {
+        "id": "19332449-2f52-5d8b-978f-a238b27514aa",
+        "data": {
+          "action_ref": "DP-015-A1",
+          "plan": "DP-015",
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "action": "Complete \"Structured problem solving\"",
+          "type": "Course",
+          "learning_item": "Structured problem solving",
+          "skill": "Problem solving",
+          "due_date": "2027-02-24",
+          "status": "Not started",
+          "hours": 8
+        }
+      },
+      {
+        "id": "4e807693-7a07-5eed-9d04-37295fb0eaba",
+        "data": {
+          "action_ref": "DP-015-A2",
+          "plan": "DP-015",
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2026-12-30",
+          "status": "Not started",
+          "hours": 24
+        }
+      },
+      {
+        "id": "3c9270e6-b2de-57eb-bba1-884b93811208",
+        "data": {
+          "action_ref": "DP-015-A3",
+          "plan": "DP-015",
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Stretch assignment",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2026-12-09",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "910bf6b4-6ea3-5e44-b7fa-34d48f2f9408",
+        "data": {
+          "action_ref": "DP-016-A1",
+          "plan": "DP-016",
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "action": "Complete \"Owning outcomes\"",
+          "type": "Micro-course",
+          "learning_item": "Owning outcomes",
+          "skill": "Ownership",
+          "due_date": "2027-01-23",
+          "status": "Done",
+          "hours": 1
+        }
+      },
+      {
+        "id": "09a67154-d0a2-543b-bca7-465c1291ade8",
+        "data": {
+          "action_ref": "DP-016-A2",
+          "plan": "DP-016",
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "action": "Complete \"Writing for busy readers\"",
+          "type": "Course",
+          "learning_item": "Writing for busy readers",
+          "skill": "Communication",
+          "due_date": "2027-02-13",
+          "status": "In progress",
+          "hours": 4
+        }
+      },
+      {
+        "id": "39f23119-43fa-592c-8c35-4f27c8bf7391",
+        "data": {
+          "action_ref": "DP-016-A3",
+          "plan": "DP-016",
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Stretch assignment",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-04-04",
+          "status": "Not started",
+          "hours": 6
+        }
+      },
+      {
+        "id": "557bdc64-e99c-59e7-94bc-8b6894ce1f48",
+        "data": {
+          "action_ref": "DP-017-A1",
+          "plan": "DP-017",
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "action": "Complete \"Planning with OKRs\"",
+          "type": "Course",
+          "learning_item": "Planning with OKRs",
+          "skill": "Planning and prioritising",
+          "due_date": "2026-12-03",
+          "status": "Done",
+          "hours": 5
+        }
+      },
+      {
+        "id": "32514452-ea47-522f-b879-17708e93bce3",
+        "data": {
+          "action_ref": "DP-017-A2",
+          "plan": "DP-017",
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "action": "Complete \"Time and energy management\"",
+          "type": "Stretch assignment",
+          "learning_item": "Time and energy management",
+          "skill": "Planning and prioritising",
+          "due_date": "2027-01-22",
+          "status": "Not started",
+          "hours": 2
+        }
+      },
+      {
+        "id": "7d19f8c7-89e4-5acf-b7ec-d5e089989b99",
+        "data": {
+          "action_ref": "DP-018-A1",
+          "plan": "DP-018",
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Workshop",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-01-13",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "d800673e-cd59-5bdd-889c-a6e8f62a14a0",
+        "data": {
+          "action_ref": "DP-018-A2",
+          "plan": "DP-018",
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "action": "Stretch assignment: lead a customer focus initiative",
+          "type": "Stretch assignment",
+          "learning_item": "Negotiation essentials",
+          "skill": "Customer focus",
+          "due_date": "2027-01-09",
+          "status": "Not started",
+          "hours": 8
+        }
+      },
+      {
+        "id": "eb5a97e3-fb60-5a91-b96b-161d63140588",
+        "data": {
+          "action_ref": "DP-019-A1",
+          "plan": "DP-019",
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "action": "Complete \"Leading without authority\"",
+          "type": "Workshop",
+          "learning_item": "Leading without authority",
+          "skill": "Collaboration",
+          "due_date": "2027-01-13",
+          "status": "Done",
+          "hours": 3
+        }
+      },
+      {
+        "id": "9e4b0858-3a9e-58ee-9a6b-238aaa86724a",
+        "data": {
+          "action_ref": "DP-019-A2",
+          "plan": "DP-019",
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "action": "Complete \"Advanced SQL for analysts\"",
+          "type": "Course",
+          "learning_item": "Advanced SQL for analysts",
+          "skill": "Data literacy",
+          "due_date": "2027-01-12",
+          "status": "Not started",
+          "hours": 10
+        }
+      },
+      {
+        "id": "77b9fb00-fe5a-5921-99c4-5a33c1689815",
+        "data": {
+          "action_ref": "DP-019-A3",
+          "plan": "DP-019",
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "action": "Stretch assignment: lead a collaboration initiative",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-04-05",
+          "status": "Not started",
+          "hours": 24
+        }
+      },
+      {
+        "id": "4e464cc4-b857-5cb5-9298-075a36cd4f13",
+        "data": {
+          "action_ref": "DP-020-A1",
+          "plan": "DP-020",
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "action": "Complete \"Advanced SQL for analysts\"",
+          "type": "Course",
+          "learning_item": "Advanced SQL for analysts",
+          "skill": "Data literacy",
+          "due_date": "2027-03-20",
+          "status": "In progress",
+          "hours": 10
+        }
+      },
+      {
+        "id": "4bc94c45-ff2e-5bd6-8be8-fcc42834f9e1",
+        "data": {
+          "action_ref": "DP-020-A2",
+          "plan": "DP-020",
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "action": "Complete \"Storytelling with data\"",
+          "type": "Book",
+          "learning_item": "Storytelling with data",
+          "skill": "Data literacy",
+          "due_date": "2027-01-07",
+          "status": "In progress",
+          "hours": 6
+        }
+      },
+      {
+        "id": "45bb775d-73d3-5fb2-ba32-4879c8689574",
+        "data": {
+          "action_ref": "DP-020-A3",
+          "plan": "DP-020",
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-02-25",
+          "status": "Done",
+          "hours": 24
+        }
+      },
+      {
+        "id": "35ebc3aa-5e18-527e-a26c-3399f0daba7c",
+        "data": {
+          "action_ref": "DP-021-A1",
+          "plan": "DP-021",
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "action": "Complete \"Writing for busy readers\"",
+          "type": "Course",
+          "learning_item": "Writing for busy readers",
+          "skill": "Communication",
+          "due_date": "2027-01-31",
+          "status": "Not started",
+          "hours": 4
+        }
+      },
+      {
+        "id": "21dfaa1f-abf9-5788-bf38-0a8bb84bc676",
+        "data": {
+          "action_ref": "DP-021-A2",
+          "plan": "DP-021",
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "action": "Complete \"Public speaking lab\"",
+          "type": "Workshop",
+          "learning_item": "Public speaking lab",
+          "skill": "Communication",
+          "due_date": "2027-04-19",
+          "status": "Not started",
+          "hours": 4
+        }
+      },
+      {
+        "id": "8a37b93f-8178-53fc-a2e4-204bd8d59df0",
+        "data": {
+          "action_ref": "DP-021-A3",
+          "plan": "DP-021",
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Workshop",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-02-13",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "109504ac-19c3-59eb-a17b-d1308263b085",
+        "data": {
+          "action_ref": "DP-022-A1",
+          "plan": "DP-022",
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "action": "Complete \"Systems design fundamentals\"",
+          "type": "Course",
+          "learning_item": "Systems design fundamentals",
+          "skill": "Technical depth",
+          "due_date": "2027-03-08",
+          "status": "In progress",
+          "hours": 12
+        }
+      },
+      {
+        "id": "be6bf20d-3c1e-54e7-98bb-aaf0e0b2fc06",
+        "data": {
+          "action_ref": "DP-022-A2",
+          "plan": "DP-022",
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "action": "Complete \"Accessibility in practice\"",
+          "type": "Course",
+          "learning_item": "Accessibility in practice",
+          "skill": "Technical depth",
+          "due_date": "2027-01-04",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "525a315d-945a-54a7-b2aa-19ebcd7af609",
+        "data": {
+          "action_ref": "DP-022-A3",
+          "plan": "DP-022",
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "action": "Stretch assignment: lead a technical depth initiative",
+          "type": "Workshop",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-01-20",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "375fc733-d7c1-546d-b924-d93dffc293c2",
+        "data": {
+          "action_ref": "DP-023-A1",
+          "plan": "DP-023",
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-03-02",
+          "status": "In progress",
+          "hours": 24
+        }
+      },
+      {
+        "id": "d8c9e39f-7bff-5dae-95b6-ba275f87279c",
+        "data": {
+          "action_ref": "DP-023-A2",
+          "plan": "DP-023",
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Workshop",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2026-12-25",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "6d5ee2f0-430a-5d2d-93bc-f8bc41f51b60",
+        "data": {
+          "action_ref": "DP-023-A3",
+          "plan": "DP-023",
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "action": "Complete \"Mentoring circle\"",
+          "type": "Stretch assignment",
+          "learning_item": "Mentoring circle",
+          "skill": "Coaching",
+          "due_date": "2026-12-25",
+          "status": "In progress",
+          "hours": 12
+        }
+      },
+      {
+        "id": "630a7904-2469-58bd-ad17-16b96f919b8e",
+        "data": {
+          "action_ref": "DP-024-A1",
+          "plan": "DP-024",
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "action": "Complete \"Inclusive meetings\"",
+          "type": "Micro-course",
+          "learning_item": "Inclusive meetings",
+          "skill": "Inclusion",
+          "due_date": "2027-03-22",
+          "status": "Not started",
+          "hours": 1
+        }
+      },
+      {
+        "id": "53c0e328-10d9-521a-b428-4e14cc6e54e9",
+        "data": {
+          "action_ref": "DP-024-A2",
+          "plan": "DP-024",
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "action": "Complete \"Allyship at work\"",
+          "type": "Stretch assignment",
+          "learning_item": "Allyship at work",
+          "skill": "Inclusion",
+          "due_date": "2027-02-24",
+          "status": "In progress",
+          "hours": 3
+        }
+      },
+      {
+        "id": "87ad429e-3c04-5965-9d20-51a95e1b1aec",
+        "data": {
+          "action_ref": "DP-025-A1",
+          "plan": "DP-025",
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "action": "Complete \"Structured problem solving\"",
+          "type": "Course",
+          "learning_item": "Structured problem solving",
+          "skill": "Problem solving",
+          "due_date": "2027-03-23",
+          "status": "Done",
+          "hours": 8
+        }
+      },
+      {
+        "id": "4daaa86a-622d-528e-9b20-4c1016e37e7d",
+        "data": {
+          "action_ref": "DP-025-A2",
+          "plan": "DP-025",
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-03-09",
+          "status": "In progress",
+          "hours": 24
+        }
+      },
+      {
+        "id": "a88897ae-79c0-50e5-a1f4-92ba0311793e",
+        "data": {
+          "action_ref": "DP-025-A3",
+          "plan": "DP-025",
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Workshop",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2027-03-24",
+          "status": "Not started",
+          "hours": 6
+        }
+      },
+      {
+        "id": "416703fc-19f6-5000-bd08-7e9e1dad7e26",
+        "data": {
+          "action_ref": "DP-026-A1",
+          "plan": "DP-026",
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "action": "Complete \"Owning outcomes\"",
+          "type": "Micro-course",
+          "learning_item": "Owning outcomes",
+          "skill": "Ownership",
+          "due_date": "2027-01-18",
+          "status": "Done",
+          "hours": 1
+        }
+      },
+      {
+        "id": "745b3ad9-681b-54b7-8a7b-bb2438881eeb",
+        "data": {
+          "action_ref": "DP-026-A2",
+          "plan": "DP-026",
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "action": "Complete \"Writing for busy readers\"",
+          "type": "Course",
+          "learning_item": "Writing for busy readers",
+          "skill": "Communication",
+          "due_date": "2026-12-14",
+          "status": "Not started",
+          "hours": 4
+        }
+      },
+      {
+        "id": "c3c2ce4e-2f21-5b27-9ef4-467e33c7c1f3",
+        "data": {
+          "action_ref": "DP-026-A3",
+          "plan": "DP-026",
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "action": "Stretch assignment: lead a ownership initiative",
+          "type": "Workshop",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-04-07",
+          "status": "Not started",
+          "hours": 6
+        }
+      },
+      {
+        "id": "3173f3d8-fc16-59de-a2c4-8730397c184f",
+        "data": {
+          "action_ref": "DP-027-A1",
+          "plan": "DP-027",
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "action": "Complete \"Planning with OKRs\"",
+          "type": "Course",
+          "learning_item": "Planning with OKRs",
+          "skill": "Planning and prioritising",
+          "due_date": "2027-04-18",
+          "status": "Done",
+          "hours": 5
+        }
+      },
+      {
+        "id": "52f42c4a-7c1b-502d-8c3b-48057f92611d",
+        "data": {
+          "action_ref": "DP-027-A2",
+          "plan": "DP-027",
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "action": "Stretch assignment: lead a planning and prioritising initiative",
+          "type": "Micro-course",
+          "learning_item": "Time and energy management",
+          "skill": "Planning and prioritising",
+          "due_date": "2027-02-09",
+          "status": "Done",
+          "hours": 2
+        }
+      },
+      {
+        "id": "8f6920ec-b0d5-53a1-96bd-3f3e815b6b4a",
+        "data": {
+          "action_ref": "DP-028-A1",
+          "plan": "DP-028",
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "action": "Complete \"Customer interviews that work\"",
+          "type": "Workshop",
+          "learning_item": "Customer interviews that work",
+          "skill": "Customer focus",
+          "due_date": "2027-04-16",
+          "status": "Not started",
+          "hours": 6
+        }
+      },
+      {
+        "id": "7c6dac00-bc6a-52d7-b479-098fb65b8d4b",
+        "data": {
+          "action_ref": "DP-028-A2",
+          "plan": "DP-028",
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "action": "Complete \"Negotiation essentials\"",
+          "type": "Workshop",
+          "learning_item": "Negotiation essentials",
+          "skill": "Customer focus",
+          "due_date": "2027-03-01",
+          "status": "In progress",
+          "hours": 8
+        }
+      },
+      {
+        "id": "2e3a3f55-8f3c-59e5-a559-0d029c186be4",
+        "data": {
+          "action_ref": "DP-028-A3",
+          "plan": "DP-028",
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "action": "Complete \"Advanced SQL for analysts\"",
+          "type": "Course",
+          "learning_item": "Advanced SQL for analysts",
+          "skill": "Data literacy",
+          "due_date": "2027-01-30",
+          "status": "In progress",
+          "hours": 10
+        }
+      },
+      {
+        "id": "6f86ac9b-60ca-53e6-bf7a-cd1f257d5be9",
+        "data": {
+          "action_ref": "DP-029-A1",
+          "plan": "DP-029",
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "action": "Complete \"Leading without authority\"",
+          "type": "Workshop",
+          "learning_item": "Leading without authority",
+          "skill": "Collaboration",
+          "due_date": "2027-01-08",
+          "status": "Not started",
+          "hours": 3
+        }
+      },
+      {
+        "id": "6e83a397-c32c-555c-b54e-a6b5deab2003",
+        "data": {
+          "action_ref": "DP-029-A2",
+          "plan": "DP-029",
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "action": "Complete \"Advanced SQL for analysts\"",
+          "type": "Course",
+          "learning_item": "Advanced SQL for analysts",
+          "skill": "Data literacy",
+          "due_date": "2027-02-06",
+          "status": "In progress",
+          "hours": 10
+        }
+      },
+      {
+        "id": "f8356de0-dce4-5863-9b23-7c553335594b",
+        "data": {
+          "action_ref": "DP-029-A3",
+          "plan": "DP-029",
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "action": "Stretch assignment: lead a collaboration initiative",
+          "type": "Stretch assignment",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-04-09",
+          "status": "Done",
+          "hours": 24
+        }
+      },
+      {
+        "id": "6f5f27f7-b68d-5a0a-ab60-605d5da28330",
+        "data": {
+          "action_ref": "DP-030-A1",
+          "plan": "DP-030",
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "action": "Complete \"Advanced SQL for analysts\"",
+          "type": "Course",
+          "learning_item": "Advanced SQL for analysts",
+          "skill": "Data literacy",
+          "due_date": "2026-12-28",
+          "status": "Done",
+          "hours": 10
+        }
+      },
+      {
+        "id": "aceea3c4-eb08-5109-826b-8b9917e176e7",
+        "data": {
+          "action_ref": "DP-030-A2",
+          "plan": "DP-030",
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "action": "Complete \"Storytelling with data\"",
+          "type": "Book",
+          "learning_item": "Storytelling with data",
+          "skill": "Data literacy",
+          "due_date": "2027-01-27",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "3c546878-e600-5d90-860e-a06a27415c75",
+        "data": {
+          "action_ref": "DP-030-A3",
+          "plan": "DP-030",
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-03-31",
+          "status": "In progress",
+          "hours": 24
+        }
+      },
+      {
+        "id": "ae4fd377-94df-5fe5-a86c-b391f435141b",
+        "data": {
+          "action_ref": "DP-030-A4",
+          "plan": "DP-030",
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Workshop",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2027-01-04",
+          "status": "Not started",
+          "hours": 6
+        }
+      },
+      {
+        "id": "70a15844-d9d3-5e58-92cb-6943433628fd",
+        "data": {
+          "action_ref": "DP-031-A1",
+          "plan": "DP-031",
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "action": "Complete \"Writing for busy readers\"",
+          "type": "Course",
+          "learning_item": "Writing for busy readers",
+          "skill": "Communication",
+          "due_date": "2027-04-09",
+          "status": "Not started",
+          "hours": 4
+        }
+      },
+      {
+        "id": "4b8c8766-9241-5868-9d7b-d077915f7eac",
+        "data": {
+          "action_ref": "DP-031-A2",
+          "plan": "DP-031",
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "action": "Complete \"Public speaking lab\"",
+          "type": "Workshop",
+          "learning_item": "Public speaking lab",
+          "skill": "Communication",
+          "due_date": "2026-12-16",
+          "status": "Done",
+          "hours": 4
+        }
+      },
+      {
+        "id": "8b37f1df-0148-5af1-a7a1-8670336d5468",
+        "data": {
+          "action_ref": "DP-032-A1",
+          "plan": "DP-032",
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "action": "Complete \"Systems design fundamentals\"",
+          "type": "Course",
+          "learning_item": "Systems design fundamentals",
+          "skill": "Technical depth",
+          "due_date": "2027-01-01",
+          "status": "In progress",
+          "hours": 12
+        }
+      },
+      {
+        "id": "1cb85220-e1e5-52e0-a2bf-2241213c1fbd",
+        "data": {
+          "action_ref": "DP-032-A2",
+          "plan": "DP-032",
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "action": "Stretch assignment: lead a technical depth initiative",
+          "type": "Stretch assignment",
+          "learning_item": "Accessibility in practice",
+          "skill": "Technical depth",
+          "due_date": "2026-12-06",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "95eea839-9a3f-5497-9ea1-83cf2ceafff2",
+        "data": {
+          "action_ref": "DP-033-A1",
+          "plan": "DP-033",
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-01-15",
+          "status": "Not started",
+          "hours": 24
+        }
+      },
+      {
+        "id": "278203a0-66ef-58a4-a77f-b2ad53fe387d",
+        "data": {
+          "action_ref": "DP-033-A2",
+          "plan": "DP-033",
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Workshop",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2027-04-18",
+          "status": "In progress",
+          "hours": 6
+        }
+      },
+      {
+        "id": "7a23bd0e-7391-576f-8c01-5ad04a9ca699",
+        "data": {
+          "action_ref": "DP-033-A3",
+          "plan": "DP-033",
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "action": "Stretch assignment: lead a coaching initiative",
+          "type": "Mentoring",
+          "learning_item": "Mentoring circle",
+          "skill": "Coaching",
+          "due_date": "2027-01-08",
+          "status": "Not started",
+          "hours": 12
+        }
+      },
+      {
+        "id": "5160863e-58e8-5d71-866c-d86b99a27f71",
+        "data": {
+          "action_ref": "DP-034-A1",
+          "plan": "DP-034",
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "action": "Complete \"Inclusive meetings\"",
+          "type": "Micro-course",
+          "learning_item": "Inclusive meetings",
+          "skill": "Inclusion",
+          "due_date": "2027-01-01",
+          "status": "In progress",
+          "hours": 1
+        }
+      },
+      {
+        "id": "56612ae8-a98c-5a51-aef6-f76296f14fb0",
+        "data": {
+          "action_ref": "DP-034-A2",
+          "plan": "DP-034",
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "action": "Complete \"Allyship at work\"",
+          "type": "Workshop",
+          "learning_item": "Allyship at work",
+          "skill": "Inclusion",
+          "due_date": "2027-02-19",
+          "status": "Done",
+          "hours": 3
+        }
+      },
+      {
+        "id": "6e3d5bb1-a695-5a57-b7f8-2386b556d612",
+        "data": {
+          "action_ref": "DP-034-A3",
+          "plan": "DP-034",
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "action": "Stretch assignment: lead a inclusion initiative",
+          "type": "Course",
+          "learning_item": "Advanced SQL for analysts",
+          "skill": "Data literacy",
+          "due_date": "2026-12-21",
+          "status": "In progress",
+          "hours": 10
+        }
+      },
+      {
+        "id": "ac546041-254c-571e-ae7f-73b1cb28f6a1",
+        "data": {
+          "action_ref": "DP-035-A1",
+          "plan": "DP-035",
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "action": "Complete \"Structured problem solving\"",
+          "type": "Course",
+          "learning_item": "Structured problem solving",
+          "skill": "Problem solving",
+          "due_date": "2027-03-26",
+          "status": "Not started",
+          "hours": 8
+        }
+      },
+      {
+        "id": "3a497d9f-8b76-5137-bbd0-7cc267769430",
+        "data": {
+          "action_ref": "DP-035-A2",
+          "plan": "DP-035",
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "action": "Complete \"First-time manager programme\"",
+          "type": "Programme",
+          "learning_item": "First-time manager programme",
+          "skill": "Coaching",
+          "due_date": "2027-03-10",
+          "status": "Done",
+          "hours": 24
+        }
+      },
+      {
+        "id": "675a92b2-8519-52f2-82a1-966b41cd06ef",
+        "data": {
+          "action_ref": "DP-035-A3",
+          "plan": "DP-035",
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "action": "Complete \"Coaching conversations\"",
+          "type": "Stretch assignment",
+          "learning_item": "Coaching conversations",
+          "skill": "Coaching",
+          "due_date": "2027-01-22",
+          "status": "Done",
+          "hours": 6
+        }
+      },
+      {
+        "id": "ee104606-29f0-5d8e-bb9b-93f8daef0a78",
+        "data": {
+          "action_ref": "DP-036-A1",
+          "plan": "DP-036",
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "action": "Complete \"Owning outcomes\"",
+          "type": "Micro-course",
+          "learning_item": "Owning outcomes",
+          "skill": "Ownership",
+          "due_date": "2027-03-03",
+          "status": "Done",
+          "hours": 1
+        }
+      },
+      {
+        "id": "f98a8169-4224-58f8-be86-85681399e844",
+        "data": {
+          "action_ref": "DP-036-A2",
+          "plan": "DP-036",
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "action": "Stretch assignment: lead a ownership initiative",
+          "type": "Course",
+          "learning_item": "Writing for busy readers",
+          "skill": "Communication",
+          "due_date": "2027-02-22",
+          "status": "Done",
+          "hours": 4
+        }
+      },
+      {
+        "id": "6960b5c1-5623-5b0a-88bd-bb0d1f80ce58",
+        "data": {
+          "action_ref": "DP-037-A1",
+          "plan": "DP-037",
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "action": "Complete \"Planning with OKRs\"",
+          "type": "Course",
+          "learning_item": "Planning with OKRs",
+          "skill": "Planning and prioritising",
+          "due_date": "2027-02-20",
+          "status": "Done",
+          "hours": 5
+        }
+      },
+      {
+        "id": "bd0823ac-a8d0-5f90-b54a-358b98a4b4bb",
+        "data": {
+          "action_ref": "DP-037-A2",
+          "plan": "DP-037",
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "action": "Complete \"Time and energy management\"",
+          "type": "Micro-course",
+          "learning_item": "Time and energy management",
+          "skill": "Planning and prioritising",
+          "due_date": "2027-04-01",
+          "status": "Not started",
+          "hours": 2
+        }
+      }
+    ]
+  }
+}

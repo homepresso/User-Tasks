@@ -171,21 +171,25 @@ npm install -g --offline ./npm/user-tasks-cli-0.1.0.tgz
 usertasks login --url https://tasks.corp.example
 ```
 
-## SharePoint edition
+## Enterprise edition
 
-The SharePoint extension ships in its own image, the
-[SharePoint edition](self-hosting.md#editions), downloaded with your licence.
+<a id="sharepoint-edition"></a>
+The paid extensions (SharePoint Server, the Infrastructure add-on) ship in one
+image, [UserTasks Enterprise](self-hosting.md#editions), downloaded with any
+licence for an extension it contains; each extension is then unlocked on the
+offline host by its own licence, with no new bundle. (Bundles of the older
+SharePoint edition, `usertasks-edition-sharepoint-…`, install the same way.)
 For an offline host, make a signed offline bundle on any connected machine
 with Docker (Linux, macOS or Windows; it does not need UserTasks installed):
 
 ```bash
-curl -fsSL https://usertasks.com/install.sh | sh -s -- --bundle-download --edition sharepoint --licence usertasks.licence
-# → usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64.tar (+ .sha256)
+curl -fsSL https://usertasks.com/install.sh | sh -s -- --bundle-download --licence usertasks.licence
+# → usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar (+ .sha256)
 #   --platform linux/arm64 for an Arm host, --version <x.y.z> for an older release, --out <file>
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -BundleDownload -Edition sharepoint -Licence .\usertasks.licence
+& ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -BundleDownload -Licence .\usertasks.licence
 ```
 
 The same licence check as an online install (an expired licence is refused).
@@ -194,36 +198,92 @@ The bundle holds:
 | | |
 |---|---|
 | `release/` | the UserTasks release as published: `SHA256SUMS` and its signature (the release key), `usertasks-<version>.tar.gz`, `install.sh`, `install.ps1` |
-| `edition.json`, `edition.json.sig` | the edition manifest (image digests), signed by the release key |
-| `images.tar` | the SharePoint edition image and the images of the bundled services (PostgreSQL, MinIO, Valkey, Mailpit) |
+| `edition.json`, `edition.json.sig` | the edition manifest (image digests, every extension in the build and its version), signed by the release key |
+| `images.tar` | the UserTasks Enterprise image and the images of the bundled services (PostgreSQL, MinIO, Valkey, Mailpit), gzip-compressed (`docker load` reads it as it is) |
 | `bundle.json`, `SHA256SUMS.bundle` | what it is, and checksums of every file |
 
 On the offline host (Docker installed), with the bundle and your licence:
 
 ```bash
-sha256sum usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64.tar   # compare with the .sha256 from the connected machine
-tar -xOf usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64.tar usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64/release/install.sh > install.sh
-sh install.sh --bundle usertasks-edition-sharepoint-0.3.0-sp1.2.0-linux-amd64.tar --licence usertasks.licence
+sha256sum usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar   # compare with the .sha256 from the connected machine
+tar -xOf usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64/release/install.sh > install.sh
+sh install.sh --bundle usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar --licence usertasks.licence
 ```
 
 `install.sh --bundle` checks the bundle's checksums, verifies the UserTasks
 release against the release key built into `install.sh` (it prints the key's
 fingerprint: compare it with the signer fingerprint in the release notes) and
 hands over to that release's `usertasks install --bundle`, which verifies
-`edition.json`, loads the images and checks the SharePoint image against the
+`edition.json`, loads the images and checks the Enterprise image against the
 signed digests before anything starts. Nothing is downloaded. Windows:
 `install.ps1 -Bundle <file> -Licence <file>`.
 
+### Bundles in parts
+
+A prebuilt bundle you are given (rather than make yourself) can be over 2 GB,
+so it comes in numbered parts of at most 1.9 GB each, which also fit on a
+FAT32 USB stick:
+
+| | |
+|---|---|
+| `<name>.tar.part-001`, `-002`, … | consecutive pieces of the bundle |
+| `<name>.tar.parts.json` | the size and SHA-256 of the whole bundle and of every part, in order |
+| `<name>.tar.parts.json.sig` | the signature of that list, made with the UserTasks release key |
+| `<name>.tar.sha256` | the checksum of the whole bundle (for joining by hand) |
+
+Carry all of them over in one folder, with the current installer
+(`install.sh` or `install.ps1` from usertasks.com; the copy inside the bundle
+can't be reached until the parts are joined). Then point the installer at
+the folder (or at the `.parts.json` file):
+
+```bash
+sh install.sh --bundle ./usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64/ --licence usertasks.licence
+usertasks upgrade --bundle ./usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64/   # upgrades
+```
+
+```powershell
+& .\install.ps1 -Bundle .\usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64\ -Licence .\usertasks.licence
+```
+
+Before it unpacks anything, the installer checks the list's signature
+against its built-in release key, then the size and checksum of every part,
+joins them in the install folder and checks the whole bundle. Then it carries
+on as above. If something is wrong, it tells you which part: *part 3 of 4 is
+missing* (copy it next to the `.parts.json`) or *part 2 of 4 is damaged
+(checksum mismatch)* (copy or download it again). The joined copy is deleted
+once it has been unpacked.
+
+On a connected machine, `--bundle-download --from <address of the
+.parts.json>` (PowerShell: `-BundleDownload -From <address>`) downloads the
+list, its signature and every part into `--out <folder>` (default: the
+current folder) and checks them. It needs no Docker and no licence. Run it
+again after a broken connection: parts that are already complete are kept,
+and a part that was cut off continues where it stopped.
+
+An installer from before parts support can still use the bundle once you
+join it by hand. The result is the original bundle, byte for byte:
+
+```bash
+cat usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar.part-* > usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar
+sha256sum usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar   # compare with the .sha256
+```
+
+```powershell
+cmd /c copy /b "usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar.part-001+usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar.part-002" usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar
+(Get-FileHash usertasks-edition-enterprise-0.4.0-ent.2-linux-amd64.tar).Hash   # compare with the .sha256
+```
+
 **Upgrades**: make a newer bundle the same way, carry it over, and run
-`usertasks upgrade --bundle <file>` (backup, migrations, health check and
-rollback as usual). The SharePoint edition's licence is checked when the
+`usertasks upgrade --bundle <file or folder>` (backup, migrations, health
+check and rollback as usual). The licence is checked when the
 bundle is made, so a bundle made with a lapsed licence can't be made at all;
 the offline host itself never contacts usertasks.com.
 
 ## Licences for paid extensions
 
-Paid extensions in an edition stay switched off until a licence
-enables them. Licences are verified offline. Get one bound to this install
+Paid extensions in the Enterprise image stay locked until a licence
+enables them (installing another licence later unlocks another extension: no
+new bundle). Licences are verified offline. Get one bound to this install
 with `usertasks-admin licence request`: carry the request file to a connected
 machine, upload it in the licensing portal, then run `usertasks-admin licence
 install <file>`. See [Licences for paid extensions](licensing.md).

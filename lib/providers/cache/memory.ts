@@ -56,6 +56,11 @@ export function memoryHit(key: string, opts: RateLimitOptions): RateLimitResult 
   return { ok: true, remaining: opts.max - entry.count, retryAfterMs: 0 }
 }
 
+/** Forget the in-process window of `key` (an instance admin clearing a sign-in lockout). */
+export function memoryReset(key: string): void {
+  buckets.delete(key)
+}
+
 function live(key: string, now: number): string | null {
   const entry = values.get(key)
   if (!entry) return null

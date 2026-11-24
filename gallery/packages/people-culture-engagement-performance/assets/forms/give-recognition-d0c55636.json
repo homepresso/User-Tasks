@@ -1,0 +1,202 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "d0c55636-0d87-5ba1-9c39-190e95c2d242",
+  "asset": {
+    "id": "d0c55636-0d87-5ba1-9c39-190e95c2d242",
+    "name": "Give recognition",
+    "description": "Thank a colleague for living one of the company values. It appears on the recognition wall and they get an email.",
+    "tags": [
+      "recognition",
+      "kudos",
+      "people"
+    ],
+    "fields": [
+      {
+        "key": "recipient",
+        "label": "Who do you want to recognise?",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "search_columns": [
+            "name",
+            "department",
+            "job_title"
+          ],
+          "display_columns": [
+            "name",
+            "job_title",
+            "department"
+          ],
+          "value_column": "email",
+          "fill": [
+            {
+              "from": "name",
+              "to": "to_name"
+            },
+            {
+              "from": "department",
+              "to": "to_department"
+            }
+          ],
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Active"
+            }
+          ],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "to_name",
+        "label": "Name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "to_department",
+        "label": "Department",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "value",
+        "label": "Which value did they live?",
+        "type": "image_choice",
+        "required": true,
+        "options": [
+          "Customer obsessed",
+          "Own it",
+          "Better together",
+          "Raise the bar",
+          "Do the right thing"
+        ],
+        "survey": {
+          "columns": 3,
+          "images": {
+            "Customer obsessed": "icon:heart",
+            "Own it": "icon:zap",
+            "Better together": "icon:users",
+            "Raise the bar": "icon:rocket",
+            "Do the right thing": "icon:shield"
+          }
+        }
+      },
+      {
+        "key": "message",
+        "label": "What did they do?",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "Be specific: what happened and why it mattered.",
+        "max_length": 600
+      },
+      {
+        "key": "points",
+        "label": "Points",
+        "type": "choice",
+        "options": [
+          "10",
+          "25",
+          "50"
+        ],
+        "display": "radio",
+        "default": "25",
+        "help_text": "Points add up on the leaderboard."
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "recipient",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "to_name",
+              "span": 1
+            },
+            {
+              "field_key": "to_department",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "value",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "message",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "points",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send kudos",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Kudos sent",
+            "text": "Thanks for recognising great work. It is on the wall now.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Recognise someone else"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Give recognition",
+      "subtitle": "Say thank you for great work.",
+      "align": "left"
+    }
+  }
+}

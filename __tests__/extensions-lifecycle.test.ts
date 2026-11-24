@@ -66,26 +66,63 @@ describe('enable / disable', () => {
     expect(list.extensions[0].settings_pages.map((p) => p.scope)).toEqual(['workspace', 'instance', 'user'])
   })
 
-  it('offers editions this build lacks (self-hosted), with the licence state of their extension and the switch command', async () => {
+  it('says which edition runs and offers UserTasks Enterprise (self-hosted), with the licence state of each extension and the switch command', async () => {
     seed()
-    setEntitlementPort({ check: async ({ extensionId }) => (extensionId === 'sharepoint' ? { allowed: true, state: 'licensed', trial: true, daysLeft: 12, expiresAt: '2027-01-01T00:00:00Z' } : { allowed: true, state: 'not_required' }) })
+    setEntitlementPort({ check: async ({ extensionId }) => (extensionId === 'sharepoint' ? { allowed: true, state: 'licensed', trial: true, daysLeft: 12, expiresAt: '2027-01-01T00:00:00Z' } : extensionId === 'infrastructure' ? { allowed: false, state: 'unlicensed' } : { allowed: true, state: 'not_required' }) })
     const list = await service.listExtensions(ctx(['settings.view']))
-    expect(list.editions).toEqual([{ id: 'sharepoint', name: 'UserTasks for SharePoint Server', extension_id: 'sharepoint', sku: 'sharepoint-se', trial_days: 30, licence: { state: 'licensed', allowed: true, trial: true, days_left: 12, expires_at: '2027-01-01T00:00:00Z' } }])
+    expect(list.edition).toMatchObject({ id: 'core', version: null })
+    expect(list.edition!.extensions.map((x) => [x.id, x.in_build, x.licence.allowed])).toEqual([['sharepoint', false, true], ['infrastructure', false, false], ['processing', false, true]])
+    expect(list.editions).toHaveLength(1)
+    expect(list.editions[0]).toMatchObject({ id: 'enterprise', name: 'UserTasks Enterprise', trial_days: 30, trial_extension: null })
+    expect(list.editions[0].extensions.find((x) => x.id === 'sharepoint')).toEqual({ id: 'sharepoint', name: 'SharePoint Server', sku: 'sharepoint-se', in_build: false, licence: { state: 'licensed', allowed: true, trial: true, days_left: 12, expires_at: '2027-01-01T00:00:00Z' } })
     const { renderToStaticMarkup } = await import('react-dom/server')
     const { createElement } = await import('react')
-    const { EditionSwitchCard } = await import('@/components/extensions/edition-switch-card')
+    const { EditionSwitchCard, EditionSummaryCard } = await import('@/components/extensions/edition-switch-card')
     const html = renderToStaticMarkup(createElement(EditionSwitchCard, { edition: list.editions[0], onStartTrial: () => {} }))
-    expect(html).toContain('usertasks upgrade --edition sharepoint')
-    expect(html).toContain('usertasks upgrade -Edition sharepoint')
-    expect(html).toContain('Trial licence: 12 days left')
-    expect(html).not.toContain('Start a 30-day trial')
+    expect(html).toContain('usertasks upgrade --edition enterprise')
+    expect(html).toContain('usertasks upgrade -Edition enterprise')
+    expect(html).toContain('Trial: 12 days left')
+    expect(html).not.toContain('day trial')
+    const summary = renderToStaticMarkup(createElement(EditionSummaryCard, { edition: list.edition! }))
+    expect(summary).toContain('data-running-edition="core"')
+
+    // A SharePoint trial is offered while SharePoint is not licensed here.
+    setEntitlementPort({ check: async () => ({ allowed: false, state: 'unlicensed' }) })
+    const unlicensed = await service.listExtensions(ctx(['settings.view']))
+    expect(unlicensed.editions[0].trial_extension).toEqual({ id: 'sharepoint', name: 'SharePoint Server' })
+    expect(renderToStaticMarkup(createElement(EditionSwitchCard, { edition: unlicensed.editions[0], onStartTrial: () => {} }))).toContain('Start a 30-day SharePoint Server trial')
+
     const prev = process.env.DEPLOYMENT_MODE
     process.env.DEPLOYMENT_MODE = 'cloud'
     try {
       // UserTasks Cloud never offers editions (lib/config/bootstrap reads DEPLOYMENT_MODE on every call).
-      expect((await service.listExtensions(ctx(['settings.view']))).editions).toEqual([])
+      const cloud = await service.listExtensions(ctx(['settings.view']))
+      expect(cloud.editions).toEqual([])
+      expect(cloud.edition).toBeNull()
     } finally {
       if (prev === undefined) delete process.env.DEPLOYMENT_MODE; else process.env.DEPLOYMENT_MODE = prev
+    }
+  })
+
+  it('on the Enterprise image: every compiled-in extension is listed with its licence, no switch offered', async () => {
+    seed()
+    process.env.USERTASKS_EDITION = 'enterprise'
+    process.env.USERTASKS_EDITION_VERSION = '0.4.0-ent.2'
+    try {
+      setEntitlementPort({ check: async ({ extensionId }) => (extensionId === 'infrastructure' ? { allowed: true, state: 'licensed' } : { allowed: false, state: 'unlicensed' }) })
+      const list = await service.listExtensions(ctx(['settings.view']))
+      expect(list.edition).toMatchObject({ id: 'enterprise', name: 'UserTasks Enterprise', version: '0.4.0-ent.2' })
+      expect(list.editions).toEqual([])
+      const { renderToStaticMarkup } = await import('react-dom/server')
+      const { createElement } = await import('react')
+      const { EditionSummaryCard } = await import('@/components/extensions/edition-switch-card')
+      const html = renderToStaticMarkup(createElement(EditionSummaryCard, { edition: list.edition! }))
+      expect(html).toContain('no reinstall')
+      expect(html).toMatch(/data-edition-extension="infrastructure"[^>]*data-licensed="true"/)
+      expect(html).toMatch(/data-edition-extension="sharepoint"[^>]*data-licensed="false"/)
+    } finally {
+      delete process.env.USERTASKS_EDITION
+      delete process.env.USERTASKS_EDITION_VERSION
     }
   })
 

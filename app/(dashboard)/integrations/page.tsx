@@ -68,12 +68,6 @@ export default function IntegrationsPage() {
     enabled: can('integrations.view'),
   })
 
-  const { data: tagDefs, isLoading: isTagDefsLoading } = useQuery({
-    queryKey: ["tag-definitions"],
-    queryFn: async () => (await serverRead("integrations.tagDefinitions")).data ?? [],
-    enabled: can('integrations.view'),
-  })
-
   const { data: mcpServers, isLoading: isMcpServersLoading } = useQuery({
     queryKey: ["mcp-servers"],
     queryFn: async () => (await serverRead("integrations.mcpServers")).data ?? [],
@@ -88,12 +82,10 @@ export default function IntegrationsPage() {
     isIntegrationsLoading &&
     isReferencesLoading &&
     isConnectorsLoading &&
-    isTagDefsLoading &&
     isMcpServersLoading &&
     !integrations &&
     !references &&
     !connectors &&
-    !tagDefs &&
     !mcpServers
   ) {
     return <PageSkeleton variant="list" />
@@ -116,7 +108,6 @@ export default function IntegrationsPage() {
       integrations={(integrations as any) ?? []}
       references={(references as any) ?? []}
       connectors={(connectors as any) ?? []}
-      initialTagDefs={(tagDefs ?? []) as any}
       mcpServers={(mcpServers as any) ?? []}
     />
   )

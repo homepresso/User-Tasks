@@ -28,13 +28,16 @@ import { registerImporterTools } from './tools/importers'
 import { registerWorkspaceThemeTools } from './tools/workspace-theme'
 import { registerWorkspaceAddressTools } from './tools/workspace-address'
 import { registerTaskCompletionTools } from './tools/task-completion'
+import { registerQuerySettingsTools } from './tools/query-settings'
 import { registerFormSignInTools } from './tools/form-sign-in-page'
 import { registerWorkspaceSsoTools } from './tools/workspace-sso'
 import { registerDocumentOcrTools } from './tools/document-ocr'
+import { registerTagTools } from './tools/tags'
 import { registerConfigTools } from './tools/config'
 import { registerPackageTools } from './tools/packages'
 import { registerOrgTools } from './tools/org'
 import { registerProjectTools } from './tools/projects'
+import { registerAppTools } from './tools/apps'
 import { registerExtensionTools } from './tools/extensions'
 import { checkToolPermission, auditToolCall } from './authz'
 
@@ -78,6 +81,7 @@ const TOOL_REGISTRARS: Array<{ label: string; register: ToolRegistrar }> = [
   { label: 'governance', register: registerGovernanceTools },
   { label: 'org', register: registerOrgTools },
   { label: 'projects', register: registerProjectTools },
+  { label: 'apps', register: registerAppTools },
   { label: 'api_keys', register: registerApiKeyTools },
   { label: 'observability', register: registerObservabilityTools },
   { label: 'decision_tables', register: registerDecisionTableTools },
@@ -97,6 +101,8 @@ const TOOL_REGISTRARS: Array<{ label: string; register: ToolRegistrar }> = [
   { label: 'form_sign_in_page', register: registerFormSignInTools },
   { label: 'workspace_sso', register: registerWorkspaceSsoTools },
   { label: 'document_ocr', register: registerDocumentOcrTools },
+  { label: 'query_settings', register: registerQuerySettingsTools },
+  { label: 'tags', register: registerTagTools },
   { label: 'config', register: registerConfigTools },
   { label: 'packages', register: registerPackageTools },
   { label: 'extensions', register: registerExtensionTools },

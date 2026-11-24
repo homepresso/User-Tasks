@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatCompact, formatCount, formatCurrency, formatPercent } from '@/lib/format/number'
+import { formatBytes, formatCompact, formatCount, formatCurrency, formatCurrencyHeadline, formatPercent } from '@/lib/format/number'
 import { formatDurationDelta, formatDurationMs, formatDurationSeconds } from '@/lib/format/duration'
 import { plural, pluralForm, pluralWord } from '@/lib/format/plural'
 import { formatAbsolute, formatDate, formatDateTime, formatDay, formatRelative, formatTime } from '@/lib/format/date'
@@ -22,9 +22,26 @@ describe('number formatting', () => {
   })
 
   it('currency uses the record currency; unknown codes fall back', () => {
-    expect(formatCurrency(1234.5, 'usd')).toBe('US$1,234.50')
     expect(formatCurrency(12, 'EUR')).toBe('€12.00')
     expect(formatCurrency(3, 'NOPE1')).toBe('3 NOPE1')
+  })
+
+  it('the workspace currency shows its bare symbol in en-GB; mixed currencies keep the ISO code', () => {
+    // en-GB's own rendering of USD is "US$"; the workspace's own currency reads "$".
+    expect(formatCurrency(1234.5, 'usd')).toBe('$1,234.50')
+    expect(formatCurrencyHeadline(4439382, 'USD')).toBe('$4.44M')
+    expect(formatCurrencyHeadline(73989.7, 'USD')).toBe('$73,990')
+    // A whole amount has no cents: an empty total reads $0, not $0.00.
+    expect(formatCurrencyHeadline(0, 'USD')).toBe('$0')
+    expect(formatCurrencyHeadline(250, 'USD')).toBe('$250')
+    expect(formatCurrencyHeadline(42.5, 'USD')).toBe('$42.50')
+    // Another currency keeps a symbol that tells it apart.
+    expect(formatCurrency(1234.5, 'AUD')).toBe('A$1,234.50')
+    expect(formatCurrency(1234.5, 'USD', { home: 'AUD' })).toBe('US$1,234.50')
+    expect(formatCurrency(1234.5, 'AUD', { home: 'AUD' })).toBe('$1,234.50')
+    // Side by side, each amount carries its code.
+    expect(formatCurrency(1234.5, 'USD', { mixed: true }).replace(/\u00a0/g, ' ')).toBe('USD 1,234.50')
+    expect(formatCurrency(12, 'EUR', { mixed: true }).replace(/\u00a0/g, ' ')).toBe('EUR 12.00')
   })
 
   it('bytes', () => {

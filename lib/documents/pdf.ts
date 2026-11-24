@@ -12,7 +12,7 @@ import { DOCUMENT_LIMITS, DocumentLimitError } from './limits'
 import type { Block } from './model'
 
 /* pdf.js on Node 20 needs ArrayBuffer.prototype.transferToFixedLength (Node 21+) for images. */
-function polyfillArrayBuffer(): void {
+export function polyfillArrayBuffer(): void {
   const proto = ArrayBuffer.prototype as unknown as { transferToFixedLength?: (len?: number) => ArrayBuffer; transfer?: (len?: number) => ArrayBuffer }
   if (typeof proto.transferToFixedLength !== 'function') {
     Object.defineProperty(proto, 'transferToFixedLength', {

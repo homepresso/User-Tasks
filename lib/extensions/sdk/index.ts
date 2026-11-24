@@ -166,6 +166,25 @@ export interface ExtensionContext {
   launchUrl(path: string): Promise<string>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js client typing is per-schema
   db: any
+  /**
+   * Instance level (paid instance-wide extensions, e.g. the processing add-on):
+   * `isAdmin()` is true for instance contexts (jobs with scope 'instance',
+   * processing provider hooks, the processor) and for a signed-in instance
+   * administrator (INSTANCE_ADMIN_EMAILS / instance.admin_emails, as Settings →
+   * Infrastructure); `db()` is the service-role client for the extension's
+   * instance tables and `settings.set` writes an instance setting
+   * (`ext.<id>.<key>`) — both refuse (403) anyone else. `settings.get` reads
+   * a non-secret instance setting of this extension.
+   */
+  instance: {
+    isAdmin(): Promise<boolean>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js client typing is per-schema
+    db(): Promise<any>
+    settings: {
+      get(key: string): Promise<unknown>
+      set(key: string, value: unknown): Promise<void>
+    }
+  }
   /** Per-workspace configuration (tenant_extensions.config) and secrets. */
   config: {
     get(): Promise<Record<string, unknown>>
@@ -1537,6 +1556,8 @@ export interface ImportReportItem {
   detail?: string | null
   /** Where it is in the source (a step name, an XPath …). */
   location?: string | null
+  /** 'ai': an AI assist suggested it (shown as "AI — review"); absent: the importer's own mapping. */
+  origin?: 'ai' | null
 }
 
 export interface ImportCoverage {
@@ -1881,6 +1902,194 @@ export interface ConnectionReferenceProvider {
   run(input: { ctx: ExtensionContext; connectionId: string; methodId: string; inputs: Record<string, unknown> }): Promise<unknown>
 }
 
+/* ── processing provider (where queued work runs) ──────────────────── */
+
+/**
+ * How core hands off work (lib/processing/handoff.ts):
+ *   web    run it in the web app, as without a provider (self-calls,
+ *          synchronous starts and test runs inside the request);
+ *   queue  enqueue only and return: the provider's workers run it (callers
+ *          that need a result wait for the queued job, bounded).
+ */
+export type ProcessingHandoff = 'web' | 'queue'
+export type ProcessingWorkKind = 'workflows' | 'agents' | 'media'
+
+/** A workflow_queue job claimed for a processor (leased to host.workerId). */
+export interface ProcessorJob {
+  id: string
+  workflow_id: string
+  tenant_id: string
+  trigger_type: string | null
+  priority: number
+  attempts: number
+  /** Times a worker lost this job's lease before (crash, OOM, timeout) or an admin recovered it. */
+  lease_lost_count: number
+}
+
+export interface ProcessorJobResult {
+  /** completed: the job finished (whatever the run's own status); failed: it will be retried / is dead; lease_lost: taken over meanwhile, result discarded. */
+  status: 'completed' | 'failed' | 'lease_lost'
+  run_status?: string
+  error?: string
+}
+
+/** Workflow queue counts (public.get_queue_health); null before migration 20270124090000. */
+export interface QueueHealth {
+  due: number
+  scheduled: number
+  processing: number
+  /** Processing jobs whose lease expired (worker lost); the next claim recovers them. */
+  stuck: number
+  retrying: number
+  dead_24h: number
+  oldest_due_seconds: number
+  at: string
+}
+
+/**
+ * What core gives a processor process (`node worker.cjs --processor`): the
+ * queue primitives the web app's own processor uses — leases (renewed by the
+ * host while a job runs), expired-lease recovery, checkpoints and the
+ * interrupted-run handling all stay in core.
+ */
+export interface ProcessorHost {
+  /** UserTasks version of this build. */
+  version: string
+  /** This process's worker id (lease owner): `<host>-<pid>-<random>`. */
+  workerId: string
+  hostname: string
+  /** WORKFLOW_CONCURRENCY (default 5, at most 50). */
+  concurrency: number
+  /** WORKFLOW_LEASE_SECONDS (default 120). */
+  leaseSeconds: number
+  workflows: {
+    /** Claims up to `limit` runnable jobs (recovering stuck ones first), leased to workerId. */
+    claim(limit: number): Promise<ProcessorJob[]>
+    /** Runs one claimed job to its end; the host renews its lease meanwhile. Never throws. */
+    run(job: ProcessorJob): Promise<ProcessorJobResult>
+    /** Hands claimed jobs that were not started back to the queue (graceful stop). */
+    release(jobIds: string[]): Promise<number>
+    /** Jobs this process is running now. */
+    running(): number
+  }
+  agents: { processBatch(input: { batchSize: number; deadline?: number }): Promise<{ processed: number }> }
+  media: { processBatch(input: { batchSize: number; deadline?: number }): Promise<{ processed: number }> }
+  queueHealth(): Promise<QueueHealth | null>
+  /** The scheduler's minute tick in this process (leader-elected across processes). */
+  scheduler: { start(): void; stop(): Promise<void> }
+  /**
+   * A session-level Postgres URL for LISTEN (PROCESSING_LISTEN_DATABASE_URL,
+   * else the gateway's resolution: POSTGRES_URL_NON_POOLING, SUPABASE_DB_URL,
+   * DATABASE_URL with DB_PROVIDER=postgres), or null — then poll.
+   */
+  listenUrl(): string | null
+  /** node-postgres connection config for a URL (core's auth plugins: IAM / Entra tokens, TLS). */
+  pgConfig(url: string, extra?: Record<string, unknown>): Record<string, unknown>
+  /** Service-role database client. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js client typing is per-schema
+  db: any
+}
+
+/** Settings → Infrastructure → Processing: what the provider reports. */
+export interface ProcessingStatus {
+  mode: ProcessingHandoff
+  /** One line, e.g. "Separate workers (3 online)". */
+  label: string
+  tone?: 'success' | 'warning' | 'danger' | 'info'
+  details?: string[]
+  /** The provider's own page (e.g. /x/processing). */
+  href?: string
+}
+
+/**
+ * Processing provider: decides where queued work runs and runs the processor
+ * process. Instance-wide: hooks get an instance context (tenantId null);
+ * core asks only while the extension is licensed (`feature`).
+ */
+export interface ProcessingProvider {
+  /** Licence feature (manifest licence.features) the provider needs. */
+  feature?: string
+  /** The hand-off mode now. Called often; core caches the answer ~5 s per process. */
+  handoff(input: { ctx: ExtensionContext }): Promise<ProcessingHandoff>
+  /** queue mode: run designer test runs through the queue too (default: in the web app). */
+  testRunsOnWorkers?(input: { ctx: ExtensionContext }): Promise<boolean>
+  /** Work of `kind` was enqueued (queue mode): wake the workers. Best effort. */
+  notify?(input: { ctx: ExtensionContext; kind: ProcessingWorkKind }): Promise<void>
+  /**
+   * The processor process (`node worker.cjs --processor [args]`): claim and
+   * run work until `signal` aborts (SIGTERM / SIGINT), then drain and
+   * resolve. Core exits when it resolves.
+   */
+  processor?(input: { ctx: ExtensionContext; host: ProcessorHost; signal: AbortSignal; args: string[] }): Promise<void>
+  /** Status block on Settings → Infrastructure (and GET /api/v1/admin/processing). */
+  status?(input: { ctx: ExtensionContext }): Promise<ProcessingStatus>
+  /**
+   * PATCH /api/v1/admin/processing (instance admin token; `usertasks
+   * admin-processing configure`): change the provider's settings. Throw
+   * ExtensionError (e.g. 409 when no worker is online) to refuse.
+   */
+  configure?(input: { ctx: ExtensionContext; changes: { mode?: 'web' | 'workers'; test_runs_on_workers?: boolean } }): Promise<ProcessingStatus>
+}
+
+/* ── infrastructure provider (changing infrastructure: the Infrastructure add-on) ── */
+
+/** The signed-in instance admin an infrastructure action runs for (core checked instance-admin access and the licence). */
+export interface InfrastructureViewer {
+  id: string
+  email: string | null
+}
+
+export type InfrastructureActionResult = ({ ok: true } & Record<string, unknown>) | ({ ok: false; error: string } & Record<string, unknown>)
+
+/** What core's admin CLI hands an add-on command (`usertasks-admin switch|rollback …`). */
+export interface InfrastructureCliInput {
+  /** The arguments after the command name, unparsed. */
+  argv: string[]
+  io: { out: (line: string) => void; err: (line: string) => void; env: NodeJS.ProcessEnv }
+  /**
+   * Run `fn` with the instance store: a direct connection (DATABASE_URL /
+   * --db-url, data keys loaded) or, on the Supabase provider without one, the
+   * service-role API (dbUrl ''). Resolves null when neither is available
+   * (the command says what to set).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SqlClient (lib/admin/ops/instance-db) without importing core into the SDK
+  withStore<T>(fn: (db: any, dbUrl: string, viaApi: boolean) => Promise<T>): Promise<T | null>
+  /** Who to record in the switch log (--actor, else user@host). */
+  actor: string
+}
+
+/**
+ * Changing infrastructure (the paid Infrastructure add-on). Core RUNS any
+ * provider configuration on its own; this provider is what CHANGES it:
+ * provider switches with their data copies, rollback, the switch log
+ * controls, the setup wizard's "move off Supabase" section and the
+ * `switch` / `rollback` admin commands. Core consults it only while the
+ * extension is licensed for `feature` (instance-wide), and refuses the same
+ * calls itself otherwise (lib/infrastructure/provider.ts). At most one
+ * extension in a build should provide it.
+ */
+export interface InfrastructureProvider {
+  /** Licence feature (manifest licence.features) the provider needs. */
+  feature?: string
+  /** The add-on's page (e.g. /x/infrastructure): Settings → Infrastructure links its Change… buttons there. */
+  href: string
+  /**
+   * Server actions behind the add-on's pages, by name, called through core's
+   * `infrastructureAction(name, input)` server action after core checked the
+   * caller is an instance admin and the add-on is licensed. The provider
+   * checks again (defence in depth) and returns `{ ok: false, error }` to refuse.
+   */
+  actions: Record<string, (input: { ctx: ExtensionContext; viewer: InfrastructureViewer; input: unknown }) => Promise<InfrastructureActionResult>>
+  /**
+   * The provider-switches job (every minute, and on /api/cron/provider-switches):
+   * run or continue queued background switches. `deadline` (epoch ms) bounds
+   * a serverless chunk.
+   */
+  runQueued?(input: { ctx: ExtensionContext; deadline?: number }): Promise<Record<string, unknown>>
+  /** Admin CLI commands by name (`switch`, `rollback`); exit code 0 ok, 1 failed, 2 usage / refused. */
+  cli?: Record<string, { usage: string; run(input: InfrastructureCliInput): Promise<number> }>
+}
+
 /** A note about the extension's licence state for Settings → Extensions (e.g. what was given back when a trial ended). */
 export interface LicensingNotice {
   tone: 'info' | 'success' | 'warning' | 'danger'
@@ -1952,6 +2161,10 @@ export interface ServerExtension {
     /** Cross-field checks after the schema passes; return messages to refuse the save. */
     validate?(input: { ctx: ExtensionContext; scope: SettingsScope; page: string; values: Record<string, unknown> }): Promise<string[]>
   }
+  /** Where queued work runs (separate workers): see ProcessingProvider. At most one extension in a build should provide it. */
+  processing?: ProcessingProvider
+  /** Changing infrastructure providers (the Infrastructure add-on): see InfrastructureProvider. */
+  infrastructure?: InfrastructureProvider
   lifecycle?: {
     onEnable?(ctx: ExtensionContext): Promise<void>
     onDisable?(ctx: ExtensionContext): Promise<void>

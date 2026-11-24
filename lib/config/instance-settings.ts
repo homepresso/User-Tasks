@@ -11,6 +11,7 @@ import { isSecretRef } from './secret-refs'
 import { validateHousekeepingSetting } from './housekeeping'
 import { validateEgressSetting } from '@/lib/egress-policy'
 import { validateEmbedSetting } from '@/lib/embedding'
+import { INSTANCE_QUERY_SETTING, querySettingsSchema } from '@/lib/reports/data-source'
 import { ConfigError, InstanceSettingKeySchema, PROVIDER_AREAS, providerIdSchema, type ProviderArea } from './schema'
 
 /**
@@ -130,6 +131,9 @@ function validate(key: string, value: unknown): void {
     if (!(PROVIDER_AREAS as readonly string[]).includes(area) || !providerIdSchema(area).safeParse(value).success) {
       throw new ConfigError(`instance setting ${key}: unknown provider ${JSON.stringify(value)}`)
     }
+  }
+  if (key === INSTANCE_QUERY_SETTING && !querySettingsSchema.safeParse(value).success) {
+    throw new ConfigError(`instance setting ${key}: not valid query settings (see /docs/self-hosting/query-settings)`)
   }
   try {
     validateHousekeepingSetting(key, value)

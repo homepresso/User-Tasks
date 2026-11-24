@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "0d4e0394-9e28-58d1-99a9-9fc507f01020",
+  "asset": {
+    "id": "0d4e0394-9e28-58d1-99a9-9fc507f01020",
+    "name": "CapEx request rejected",
+    "description": "Sent to the requester when a capital request is rejected.",
+    "subject": "Not approved: {{project_ref}} {{form.title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your capital request was not approved</h2>\n  <p>Hi {{submitted_by_name}},</p>\n  <p><strong>{{project_ref}} {{form.title}}</strong> was not approved at the {{rejected_by_step}} step.</p>\n  <p>Comment: {{rejection_comment}}</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the CapEx planner</p>\n</div>",
+    "text_body": "Your capital request was not approved\nHi {{submitted_by_name}},\n  {{project_ref}} {{form.title}} was not approved at the {{rejected_by_step}} step.\n  Comment: {{rejection_comment}}\nSent by the CapEx planner",
+    "is_default": false
+  }
+}

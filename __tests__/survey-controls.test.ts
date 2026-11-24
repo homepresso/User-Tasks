@@ -21,6 +21,7 @@ import { ruleConditionMet } from '@/lib/forms/form-rules'
 import { checkFormAccessibility } from '@/lib/forms/accessibility'
 import { normalizeFormDefinition } from '@/lib/forms/definition'
 import { SurveyAnswerView, SurveyFieldControl } from '@/components/forms/survey/survey-controls'
+import { OptionPicture } from '@/components/forms/survey/survey-icons'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- fixtures */
 
@@ -53,7 +54,7 @@ describe('survey field types: definitions', () => {
     expect(pics.survey?.images).toEqual({ Tea: 'icon:leaf' })
     expect(cleanOptionImage('https://example.com/a.png')).toBe('https://example.com/a.png')
     expect(cleanOptionImage('/brand/a.png')).toBe('/brand/a.png')
-    for (const bad of ['//evil.com/a.png', 'http://x.com/a.png', 'data:image/png;base64,AA', 'icon:nope']) expect(cleanOptionImage(bad)).toBeUndefined()
+    for (const bad of ['//evil.com/a.png', 'http://x.com/a.png', 'data:image/png;base64,AA', 'icon:<script>', 'icon:']) expect(cleanOptionImage(bad)).toBeUndefined()
     expect(matrixRowKey('Value for money!')).toBe('value_for_money')
     expect(field({ key: 'one', label: 'One', type: 'image_choice', options: ['A', 'B'], min: 1, max: 2 }).max).toBeUndefined()
   })
@@ -64,6 +65,21 @@ describe('survey field types: definitions', () => {
     expect(fieldDefinitionProblems([field({ key: 'g', label: 'G', type: 'matrix', options: ['A', 'B'] })]).g).toMatch(/row/)
     expect(fieldDefinitionProblems([field({ key: 'l', label: 'L', type: 'likert', options: ['Only'] })]).l).toMatch(/two options/)
     expect(fieldDefinitionProblems([field({ key: 's', label: 'S', type: 'slider', min: 5, max: 5 })]).s).toMatch(/greater/)
+  })
+
+  it('picture choice icons: aliases resolved, unknown names flagged and shown with the default icon', () => {
+    expect(cleanOptionImage('icon:House')).toBe('icon:home')
+    expect(cleanOptionImage('icon:thumbs_up')).toBe('icon:thumbs-up')
+    expect(cleanOptionImage('icon:lightning')).toBe('icon:zap')
+    expect(cleanOptionImage('icon:nope')).toBe('icon:nope')
+    const bad = field({ key: 'v', label: 'Values', type: 'image_choice', options: ['Own it', 'Care'], survey: { images: { 'Own it': 'icon:handshake', Care: 'icon:Heart' } } })
+    expect(bad.survey?.images).toEqual({ 'Own it': 'icon:handshake', Care: 'icon:heart' })
+    expect(fieldDefinitionProblems([bad]).v).toMatch(/Own it.*unknown icon.*handshake/)
+    const good = field({ key: 'g', label: 'G', type: 'image_choice', options: ['A', 'B'], survey: { images: { A: 'icon:rocket', B: 'icon:users' } } })
+    expect(fieldDefinitionProblems([good])).toEqual({})
+    const html = renderToStaticMarkup(createElement(OptionPicture, { image: 'icon:handshake' }))
+    expect(html).toContain('<svg')
+    expect(html).toContain('data-option-icon="star"')
   })
 
   it('scales: rating with half steps, NPS, CSAT, slider', () => {

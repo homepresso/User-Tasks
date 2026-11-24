@@ -1,0 +1,487 @@
+{
+  "format_version": 3,
+  "asset_type": "apps",
+  "id": "fd4e4f24-b5bc-5f50-b9db-da7b7b6f57a0",
+  "asset": {
+    "id": "fd4e4f24-b5bc-5f50-b9db-da7b7b6f57a0",
+    "name": "Onboarding portal",
+    "slug": "onboarding",
+    "subtitle": "Get every new starter ready for day one",
+    "description": "Request a new starter, follow their checklist, see each team’s onboarding tasks and the start dates coming up.",
+    "icon": "UserPlus",
+    "color": "#7c3aed",
+    "menu": [],
+    "settings": {
+      "nav": {
+        "style": "tabs",
+        "header_style": "plain",
+        "density": "comfortable"
+      },
+      "style": {
+        "default": {
+          "radius": "xl",
+          "shadow": "sm"
+        },
+        "presets": []
+      }
+    },
+    "pages": [
+      {
+        "id": "8233ce9e-c8cb-5bf2-936f-a4dce0e81262",
+        "slug": "home",
+        "title": "Home",
+        "icon": "House",
+        "position": 0,
+        "layout": {
+          "widgets": [
+            {
+              "id": "welcome",
+              "w": 12,
+              "h": 2,
+              "type": "announcement",
+              "config": {
+                "html": "<p><strong>Induction</strong> runs every Monday at 09:30 in the Atrium and online. New starters are booked on it automatically.</p>",
+                "tone": "success"
+              }
+            },
+            {
+              "id": "actions",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "New starter",
+                    "icon": "UserPlus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "lg",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "New starter request"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "7e72464e-c3f4-55fb-a232-76cde5cc168c",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Checklist",
+                    "icon": "ListChecks",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "checklist"
+                    }
+                  },
+                  {
+                    "label": "Start dates",
+                    "icon": "CalendarDays",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "calendar"
+                    }
+                  },
+                  {
+                    "label": "My onboarding tasks",
+                    "icon": "ClipboardCheck",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "badge": "my_tasks",
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "team-tasks"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "count",
+              "title": "Starters in the pipeline",
+              "w": 3,
+              "h": 4,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+                "format": "number",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "Users",
+                "accent": "violet"
+              }
+            },
+            {
+              "id": "progress",
+              "title": "Average checklist progress",
+              "w": 3,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "progress",
+                "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+                "format": "percent",
+                "currency": "USD",
+                "min": 0,
+                "max": 100,
+                "warn_at": 50,
+                "danger_at": 25,
+                "higher_is_better": true
+              }
+            },
+            {
+              "id": "open",
+              "title": "Onboarding tasks open",
+              "w": 3,
+              "h": 4,
+              "type": "metric",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "workflow_id": "1cebc513-e8c4-5143-b67b-74549293c4ac",
+                "status": "open",
+                "compare_previous": false,
+                "icon": "ListTodo",
+                "accent": "amber",
+                "click": {
+                  "page": "team-tasks"
+                },
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "month",
+              "title": "Requests this month",
+              "w": 3,
+              "h": 4,
+              "type": "metric",
+              "config": {
+                "source": "submissions",
+                "aggregate": "count",
+                "form_id": "7e72464e-c3f4-55fb-a232-76cde5cc168c",
+                "date_range": {
+                  "preset": "this_month"
+                },
+                "compare_previous": true,
+                "icon": "Inbox",
+                "accent": "teal",
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "per_starter",
+              "title": "Checklist progress per starter (%)",
+              "w": 7,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "name",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "progress",
+                "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+                "max_groups": 12
+              }
+            },
+            {
+              "id": "upcoming",
+              "title": "Joining soon",
+              "w": 5,
+              "h": 8,
+              "type": "filtered_list",
+              "config": {
+                "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+                "title_column": "name",
+                "subtitle_column": "start_date",
+                "show_search": true,
+                "limit": 10
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "e8716362-2191-5a86-80a7-cccedb23e11e",
+        "slug": "checklist",
+        "title": "Checklist",
+        "icon": "ListChecks",
+        "position": 1,
+        "layout": {
+          "widgets": [
+            {
+              "id": "status",
+              "title": "Checklist items by status",
+              "style": {
+                "value_colors": [
+                  {
+                    "value": "Done",
+                    "color": "token:success"
+                  },
+                  {
+                    "value": "In progress",
+                    "color": "token:info"
+                  },
+                  {
+                    "value": "To do",
+                    "color": "token:warning"
+                  }
+                ]
+              },
+              "w": 4,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "status",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "teams",
+              "title": "Items per team and status",
+              "w": 8,
+              "h": 7,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+                "rows": "field",
+                "row_field": "team",
+                "columns": "field",
+                "column_field": "status",
+                "interval": "month",
+                "aggregate": "count"
+              }
+            },
+            {
+              "id": "grid",
+              "title": "Onboarding checklist (contributors with Manage rows can tick items off here)",
+              "w": 12,
+              "h": 11,
+              "type": "data_grid",
+              "config": {
+                "table_id": "a715ba93-bb24-5b2b-ac20-513a44585752",
+                "columns": [
+                  "starter",
+                  "item",
+                  "team",
+                  "due_date",
+                  "status"
+                ],
+                "editable": true,
+                "group_by": "starter",
+                "page_size": 30
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "87a978d9-b10e-56b2-8f69-6c15f52a3d6f",
+        "slug": "team-tasks",
+        "title": "Team tasks",
+        "icon": "ClipboardCheck",
+        "position": 2,
+        "layout": {
+          "widgets": [
+            {
+              "id": "mine",
+              "title": "My onboarding tasks",
+              "w": 6,
+              "h": 8,
+              "type": "task_list",
+              "config": {
+                "scope": "mine",
+                "workflow_id": "1cebc513-e8c4-5143-b67b-74549293c4ac",
+                "status": "open",
+                "limit": 10,
+                "show_claim": true,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "people",
+              "title": "Open onboarding tasks per person",
+              "w": 6,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "tasks",
+                "chart": "horizontal_bar",
+                "group_by": "assignee",
+                "series_by": "none",
+                "interval": "day",
+                "aggregate": "count",
+                "workflow_id": "1cebc513-e8c4-5143-b67b-74549293c4ac",
+                "status": "open",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "board",
+              "title": "All onboarding tasks",
+              "w": 12,
+              "h": 10,
+              "type": "kanban",
+              "config": {
+                "scope": "all",
+                "workflow_id": "1cebc513-e8c4-5143-b67b-74549293c4ac",
+                "columns": [
+                  "todo",
+                  "in_progress",
+                  "completed"
+                ],
+                "allow_drag": true,
+                "per_column": 15
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": []
+      },
+      {
+        "id": "ffd1cd29-271f-5c3c-a79f-fc6b717b88fe",
+        "slug": "calendar",
+        "title": "Start dates",
+        "icon": "CalendarDays",
+        "position": 3,
+        "layout": {
+          "widgets": [
+            {
+              "id": "cal",
+              "title": "Onboarding tasks due on each start date",
+              "w": 8,
+              "h": 12,
+              "type": "task_calendar",
+              "config": {
+                "scope": "all",
+                "workflow_id": "1cebc513-e8c4-5143-b67b-74549293c4ac",
+                "status": "all",
+                "view": "month"
+              }
+            },
+            {
+              "id": "starters",
+              "title": "New starters by start date",
+              "w": 4,
+              "h": 12,
+              "type": "filtered_list",
+              "config": {
+                "table_id": "af7d6f96-db1b-5acb-9d5f-0f77ccfd1419",
+                "title_column": "name",
+                "subtitle_column": "start_date",
+                "show_search": false,
+                "limit": 12
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "a0e274c1-53be-543e-8f6a-862cbe2d3ca1",
+        "slug": "resources",
+        "title": "Resources",
+        "icon": "BookOpen",
+        "position": 4,
+        "layout": {
+          "widgets": [
+            {
+              "id": "links",
+              "title": "For managers",
+              "w": 6,
+              "h": 6,
+              "type": "links",
+              "config": {
+                "links": [
+                  {
+                    "label": "Manager onboarding guide",
+                    "url": "https://people.example.com/guides/onboarding",
+                    "description": "What to do in the first 90 days"
+                  },
+                  {
+                    "label": "First-week plan template",
+                    "url": "https://people.example.com/templates/first-week",
+                    "description": "A plan you can copy and adapt"
+                  },
+                  {
+                    "label": "Buddy programme",
+                    "url": "https://people.example.com/buddy",
+                    "description": "How buddies help new starters settle in"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "faq",
+              "title": "How onboarding works",
+              "w": 6,
+              "h": 6,
+              "type": "text",
+              "config": {
+                "html": "<p>When you send a <strong>New starter request</strong>:</p><ol><li>IT sets up the laptop and accounts.</li><li>Facilities prepares the desk, badge and parking.</li><li>The People team sends the contract, sets up payroll and books the induction.</li><li>The manager plans the first week and names a buddy.</li></ol><p>Each task is due on the start date and ticks off its checklist item.</p>"
+              }
+            }
+          ]
+        },
+        "filters": []
+      }
+    ]
+  }
+}

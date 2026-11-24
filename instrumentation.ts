@@ -7,6 +7,8 @@
  * 2. Loads the KMS-wrapped data keys (lib/providers/kms/bootstrap.ts), also
  *    awaited: with KMS_PROVIDER=env and no data keys (the default) this is
  *    one lookup and nothing else; any other KMS provider fails closed.
+ * 2b. Registers the processing provider lookup (lib/processing/provider-registry):
+ *    the processing add-on's mode decides whether the web app runs queued work.
  * 3. Starts the in-process scheduler worker when SCHEDULER_PROVIDER=worker
  *    (lib/scheduler/runtime.ts), in the background. Never on Vercel:
  *    serverless functions don't stay up between requests, so Vercel
@@ -24,6 +26,9 @@ export async function register() {
   await bootstrapEncryptionKey()
   const { bootstrapKms } = await import('./lib/providers/kms/bootstrap')
   await bootstrapKms()
+  // Where queued work runs: the processing add-on's provider, when installed and licensed.
+  const { registerProcessingProviderResolver } = await import('./lib/processing/provider-registry')
+  registerProcessingProviderResolver()
   // Self-hosted, brand-new install: print the setup code (never blocks
   // startup; cloud never checks). Inline, after the runtime check above, so
   // the edge build drops it.

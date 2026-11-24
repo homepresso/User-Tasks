@@ -37,6 +37,8 @@ import { getSigningKey, instanceFingerprint, signerTrust, type SignerTrust } fro
 import { toUrlSlug } from '@/lib/utils/slug'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { applyPage, audit, dbError, serviceRoleClient, type Page } from './_shared'
+import { isMissingTagsColumn, rowTags, selectWithTags, tagsNotApplied, tagsSafeWrite, validTags } from './tags-column'
+import { tagFilterValues } from '@/lib/tags/normalize'
 
 export const PACKAGE_LIMITS = { maxFileBytes: 20 * 1024 * 1024, maxAssets: 2000 } as const
 
@@ -58,6 +60,8 @@ export const PACKAGE_ASSET_TYPES: Record<DependencyAssetType, { section: string;
   form: { section: 'forms', view: 'forms.view', label: 'Form' },
   form_theme: { section: 'form_themes', view: 'forms.view', label: 'Form theme' },
   form_control: { section: 'form_controls', view: 'extensibility.view', label: 'Form control' },
+  // An app's configuration (pages, menu, settings): exporting it needs Build apps.
+  app: { section: 'apps', view: 'apps.manage', label: 'App' },
 }
 
 export type DataMode = 'schema' | 'rows'
@@ -78,6 +82,8 @@ export interface PackageRow {
   excluded: PackageItemInput[]
   data_modes: Record<string, DataMode>
   latest_version: string | null
+  /** [] until migration 20270122150000 is applied. */
+  tags: string[]
   created_by: string | null
   created_at: string
   updated_at: string
@@ -127,12 +133,13 @@ export function presentPackage(row: any): PackageRow {
     items: Array.isArray(row.items) ? row.items : [],
     excluded: Array.isArray(row.excluded) ? row.excluded : [],
     data_modes: row.data_modes && typeof row.data_modes === 'object' ? row.data_modes : {},
+    tags: rowTags(row),
   }
 }
 
 export async function loadPackage(ctx: ServiceContext, db: AnySupabaseClient, packageId: string): Promise<PackageRow> {
   const column = /^[0-9a-f-]{36}$/i.test(packageId) ? 'id' : 'slug'
-  const { data, error } = await (db as any).from('packages').select(PACKAGE_COLUMNS).eq('tenant_id', ctx.tenantId).eq(column, packageId).maybeSingle()
+  const { data, error } = await selectWithTags(PACKAGE_COLUMNS, (columns) => (db as any).from('packages').select(columns).eq('tenant_id', ctx.tenantId).eq(column, packageId).maybeSingle())
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Package not found')
   return presentPackage(data)
@@ -144,7 +151,7 @@ export async function assertItemsExist(ctx: ServiceContext, db: AnySupabaseClien
     workflow: 'workflows', workflow_activity: 'custom_workflow_activities', data_table: 'custom_tables', integration: 'integrations',
     connector: 'tenant_connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports',
     role: 'roles', mcp_server: 'mcp_servers', retention_policy: 'retention_policies', log_destination: 'log_destinations',
-    form: 'forms', form_theme: 'form_themes', form_control: 'form_controls',
+    form: 'forms', form_theme: 'form_themes', form_control: 'form_controls', app: 'apps',
   }
   const byType = new Map<DependencyAssetType, string[]>()
   for (const item of items) byType.set(item.type, [...(byType.get(item.type) ?? []), item.id])
@@ -159,11 +166,16 @@ export async function assertItemsExist(ctx: ServiceContext, db: AnySupabaseClien
 
 // ─── CRUD ───────────────────────────────────────────────────────────────────
 
-export async function listPackages(ctx: ServiceContext, page: Page) {
+export async function listPackages(ctx: ServiceContext, page: Page, filters: { tag?: string | null } = {}) {
   requirePerm(ctx, 'packages.view')
   const db = await admin(ctx)
-  const { data, error } = await applyPage((db as any).from('packages').select(PACKAGE_COLUMNS).eq('tenant_id', ctx.tenantId).order('name'), page)
-  if (error) throw dbError(error)
+  const tagValues = tagFilterValues(filters.tag)
+  const { data, error } = await selectWithTags(PACKAGE_COLUMNS, (columns) => {
+    let query = (db as any).from('packages').select(columns).eq('tenant_id', ctx.tenantId).order('name')
+    if (tagValues.length) query = query.overlaps('tags', tagValues)
+    return applyPage(query, page)
+  }) as any
+  if (error) throw tagValues.length && isMissingTagsColumn(error) ? tagsNotApplied('packages') : dbError(error)
   return { packages: ((data ?? []) as any[]).map(presentPackage) }
 }
 
@@ -193,6 +205,7 @@ export interface PackageCreateInput {
   data_modes?: Record<string, DataMode>
   /** Keep the same package identity across workspaces (re-creating a package elsewhere). */
   package_uid?: string
+  tags?: string[] | null
 }
 
 export async function createPackage(ctx: ServiceContext, input: PackageCreateInput) {
@@ -207,7 +220,7 @@ export async function createPackage(ctx: ServiceContext, input: PackageCreateInp
   const excluded = normalizeItems(input.excluded, 'excluded')
   const db = await admin(ctx)
   await assertItemsExist(ctx, db, [...roots, ...items])
-  const { data, error } = await (db as any).from('packages').insert({
+  const { data, error } = await tagsSafeWrite('packages', {
     tenant_id: ctx.tenantId,
     ...(input.package_uid && /^[0-9a-f-]{36}$/i.test(input.package_uid) ? { package_uid: input.package_uid } : {}),
     name, slug,
@@ -217,8 +230,9 @@ export async function createPackage(ctx: ServiceContext, input: PackageCreateInp
     readme: input.readme ?? null,
     roots, items, excluded,
     data_modes: normalizeDataModes(input.data_modes),
+    tags: validTags(input.tags),
     created_by: ctx.actorId,
-  }).select(PACKAGE_COLUMNS).single()
+  }, PACKAGE_COLUMNS, (values, columns) => (db as any).from('packages').insert(values).select(columns).single())
   if (error) {
     if ((error as any).code === '23505') throw ServiceError.conflict(`A package with the slug "${slug}" already exists`)
     throw dbError(error)
@@ -247,6 +261,7 @@ export async function updatePackage(ctx: ServiceContext, packageId: string, inpu
   for (const key of ['description', 'author', 'icon', 'readme'] as const) {
     if (input[key] !== undefined) update[key] = input[key] === null ? null : String(input[key])
   }
+  if (input.tags !== undefined) update.tags = validTags(input.tags)
   let roots = input.roots !== undefined && input.roots !== null ? normalizeItems(input.roots, 'roots') : pkg.roots
   let items = input.items !== undefined && input.items !== null ? normalizeItems(input.items, 'items') : pkg.items
   let excluded = input.excluded !== undefined && input.excluded !== null ? normalizeItems(input.excluded, 'excluded') : pkg.excluded
@@ -271,13 +286,29 @@ export async function updatePackage(ctx: ServiceContext, packageId: string, inpu
   update.items = items
   update.excluded = excluded
   if (input.data_modes !== undefined && input.data_modes !== null) update.data_modes = { ...pkg.data_modes, ...normalizeDataModes(input.data_modes) }
-  const { data, error } = await (db as any).from('packages').update(update).eq('id', pkg.id).eq('tenant_id', ctx.tenantId).select(PACKAGE_COLUMNS).single()
+  const { data, error } = await tagsSafeWrite('packages', update, PACKAGE_COLUMNS, (values, columns) => (db as any).from('packages').update(values).eq('id', pkg.id).eq('tenant_id', ctx.tenantId).select(columns).single())
   if (error) {
     if ((error as any).code === '23505') throw ServiceError.conflict(`A package with the slug "${update.slug}" already exists`)
     throw dbError(error)
   }
   await audit({ ...ctx, supabase: db }, { objectType: 'package', objectId: pkg.id, action: 'update', summary: `Updated package "${data.name}"`, metadata: { fields: Object.keys(update) } })
   return { package: presentPackage(data) }
+}
+
+/**
+ * Replace a package's tags only (the "Tags…" quick action, bulk tags):
+ * packages.manage, audited. Unlike updatePackage it leaves the item lists
+ * alone, so a package whose roots were since deleted can still be tagged.
+ */
+export async function setPackageTags(ctx: ServiceContext, packageId: string, tags: unknown) {
+  requirePerm(ctx, 'packages.manage')
+  const next = validTags(tags)
+  const db = await admin(ctx)
+  const pkg = await loadPackage(ctx, db, packageId)
+  const { data, error } = await (db as any).from('packages').update({ tags: next }).eq('id', pkg.id).eq('tenant_id', ctx.tenantId).select('id, name, tags').single()
+  if (error) throw isMissingTagsColumn(error) ? tagsNotApplied('packages') : dbError(error)
+  await audit({ ...ctx, supabase: db }, { objectType: 'package', objectId: pkg.id, action: 'update', summary: `Tags of package "${pkg.name}" set to ${next.join(', ') || '(none)'}`, diff: { tags: { before: pkg.tags, after: next } } })
+  return data as { id: string; name: string; tags: string[] }
 }
 
 export async function deletePackage(ctx: ServiceContext, packageId: string) {
@@ -345,7 +376,7 @@ async function resolveContents(ctx: ServiceContext, db: AnySupabaseClient, pkg: 
 
   const excludedNames: PackageContentsPreview['excluded'] = []
   for (const item of pkg.excluded) {
-    const table = { workflow: 'workflows', workflow_activity: 'custom_workflow_activities', data_table: 'custom_tables', integration: 'integrations', connector: 'tenant_connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports', role: 'roles', mcp_server: 'mcp_servers', retention_policy: 'retention_policies', log_destination: 'log_destinations', form: 'forms', form_theme: 'form_themes', form_control: 'form_controls' }[item.type]
+    const table = { workflow: 'workflows', workflow_activity: 'custom_workflow_activities', data_table: 'custom_tables', integration: 'integrations', connector: 'tenant_connectors', decision_table: 'decision_tables', email_template: 'email_templates', agent: 'agents', report: 'reports', role: 'roles', mcp_server: 'mcp_servers', retention_policy: 'retention_policies', log_destination: 'log_destinations', form: 'forms', form_theme: 'form_themes', form_control: 'form_controls', app: 'apps' }[item.type]
     const column = item.type === 'connector' ? 'display_name' : 'name'
     const { data } = await (db as any).from(table).select(`id, ${column}`).eq('tenant_id', ctx.tenantId).eq('id', item.id).maybeSingle()
     excludedNames.push({ ...item, name: data ? String(data[column] ?? '') : null })
@@ -380,6 +411,8 @@ export interface BuildVersionInput {
   dependencies?: PackageDependency[]
   /** Return the .utpkg bytes (base64) with the result. */
   include_file?: boolean
+  /** Apps in the package: their published versions (default) or their working drafts ("Export draft"). */
+  app_content?: 'published' | 'draft'
   /**
    * When the package is installed in this workspace (built and installed
    * here, e.g. an Agent-packaged solution): update that install to this
@@ -428,7 +461,7 @@ export async function buildPackageVersion(ctx: ServiceContext, packageId: string
 
   const idsByType: Partial<Record<string, string[]>> = {}
   for (const item of preview.items) (idsByType[item.type] ??= []).push(item.id)
-  const assets = scrubSecretsForExport(await buildManifestExport(db, ctx.tenantId, idsByType))
+  const assets = scrubSecretsForExport(await buildManifestExport(db, ctx.tenantId, idsByType, { appContent: input.app_content }))
   if (countAssets(assets) > PACKAGE_LIMITS.maxAssets) throw ServiceError.validation(`Too many assets (limit ${PACKAGE_LIMITS.maxAssets})`)
 
   const data: PackageContents['data'] = {}

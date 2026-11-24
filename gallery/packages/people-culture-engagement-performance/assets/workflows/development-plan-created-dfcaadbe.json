@@ -1,0 +1,194 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "dfcaadbe-c610-511b-a83a-f133407dfa59",
+  "asset": {
+    "id": "dfcaadbe-c610-511b-a83a-f133407dfa59",
+    "name": "Development plan created",
+    "description": "From the Create a development plan form: adds the plan and each action (child records).",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Plan created",
+        "config": {
+          "form_id": "be12b759-7146-58bc-9ee9-ae876fe567ad",
+          "form_name": "Create a development plan"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Plan reference",
+        "config": {
+          "name": "plan_ref",
+          "expression": "DP-{{=FORMAT_DATE(NOW(), \"YYMM\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Development plan · {{submitted_by_name}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "emp",
+        "type": "update_data_table",
+        "label": "Employee in the directory",
+        "config": {
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "table_name": "People directory",
+          "operation": "get",
+          "match_column": "email",
+          "match_value": "{{submitted_by_email}}",
+          "output_row_var": "emp"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "plan",
+        "type": "update_data_table",
+        "label": "Add the plan",
+        "config": {
+          "table_id": "90281922-a4f8-50c7-be76-3644ec3c0685",
+          "table_name": "Development plans",
+          "operation": "insert",
+          "column_values": {
+            "plan_ref": "{{plan_ref}}",
+            "employee_name": "{{submitted_by_name}}",
+            "employee_email": "{{submitted_by_email}}",
+            "department": "{{emp.department}}",
+            "manager_name": "{{emp.manager_name}}",
+            "manager_email": "{{emp.manager_email}}",
+            "career_goal": "{{form.career_goal}}",
+            "focus_skill": "{{form.focus_skill}}",
+            "status": "Agreed",
+            "progress": "0",
+            "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+            "actions": "{{form.plan_actions_count}}",
+            "next_review": "{{=FORMAT_DATE(ADD_DAYS(NOW(), 90), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each action",
+        "config": {
+          "items": "{{form.plan_actions}}",
+          "item_var": "pa",
+          "index_var": "pa_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "action",
+        "type": "update_data_table",
+        "label": "Add the action",
+        "config": {
+          "table_id": "0c9a2634-1aec-5cf8-b7e9-fe25adfb1419",
+          "table_name": "Development actions",
+          "operation": "insert",
+          "column_values": {
+            "action_ref": "{{plan_ref}}-A{{=pa_index + 1}}",
+            "plan": "{{plan_ref}}",
+            "employee_name": "{{submitted_by_name}}",
+            "employee_email": "{{submitted_by_email}}",
+            "action": "{{pa.pa_action}}",
+            "type": "{{pa.pa_type}}",
+            "learning_item": "",
+            "skill": "{{form.focus_skill}}",
+            "due_date": "{{pa.pa_due}}",
+            "status": "Not started",
+            "hours": "0"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Plan saved",
+        "config": {
+          "reason": "{{plan_ref}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-emp",
+        "source": "title",
+        "target": "emp"
+      },
+      {
+        "id": "e-emp-plan",
+        "source": "emp",
+        "target": "plan"
+      },
+      {
+        "id": "e-plan-each",
+        "source": "plan",
+        "target": "each"
+      },
+      {
+        "id": "e-each-action-each_item",
+        "source": "each",
+        "target": "action",
+        "label": "Each item"
+      },
+      {
+        "id": "e-each-end-done",
+        "source": "each",
+        "target": "end",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -9,6 +9,8 @@ import { enqueueDeletionJob, kickDeletionProcessor } from '@/lib/deletion-queue'
 import { normalizeReportConfig } from '@/lib/report-config'
 import { recordAssetChange } from '@/lib/github-sync/enqueue'
 import { findRecentDuplicate } from '@/lib/recent-duplicate'
+import { normalizeTagList } from '@/lib/tags/normalize'
+import { isMissingTagsColumn } from '@/lib/services/tags-column'
 
 async function getAuthContext() {
   const supabase = await createClient()
@@ -34,15 +36,31 @@ export async function getReport(id: string) {
   return data as any
 }
 
+/**
+ * Reports hub → AI usage reports: save one of the ready-made Agents & AI
+ * usage reports (lib/reports/ai-usage-reports.ts) as the person's own report
+ * (reports.create; the source needs agents.view).
+ */
+export async function addAiUsageReport(key: string): Promise<{ id: string }> {
+  await requirePermission('agents.view')
+  const { aiUsageReportTemplate } = await import('@/lib/reports/ai-usage-reports')
+  const template = aiUsageReportTemplate(String(key ?? ''))
+  if (!template) throw new Error('Unknown AI usage report')
+  const report = await createReport({ name: template.name, description: template.description, config: template.config, category: 'agents' })
+  return { id: String((report as { id: string }).id) }
+}
+
 export async function createReport(input: {
   name: string
   description?: string
   config: ReportConfig
   category?: string
   is_shared?: boolean
+  tags?: string[]
 }) {
   const { supabase, userId, tenantId } = await getAuthContext()
   await requirePermission('reports.create')
+  const tags = normalizeTagList(input.tags)
 
   // A repeated save (double click, retry) reuses the report this user just created.
   const recent = await findRecentDuplicate<{ id: string }>(supabase, 'reports', { tenant_id: tenantId, created_by: userId, name: input.name })
@@ -58,6 +76,7 @@ export async function createReport(input: {
       config: normalizeReportConfig(input.config),
       category: input.category || 'custom',
       is_shared: input.is_shared ?? false,
+      ...(tags.length ? { tags } : {}),
     })
     .select('id')
     .single()
@@ -79,21 +98,29 @@ export async function updateReport(id: string, input: {
   description?: string
   config?: ReportConfig
   category?: string
+  tags?: string[]
 }) {
   const { supabase, userId, tenantId } = await getAuthContext()
   await requirePermission('reports.edit_own')
   const updates: Record<string, any> = { updated_at: new Date().toISOString() }
+  if (input.tags !== undefined) updates.tags = normalizeTagList(input.tags)
   if (input.name !== undefined) updates.name = input.name
   if (input.description !== undefined) updates.description = input.description || null
   if (input.config !== undefined) updates.config = normalizeReportConfig(input.config)
   if (input.category !== undefined) updates.category = input.category
 
-  const { data: changed, error } = await (supabase as any)
+  const write = () => (supabase as any)
     .from('reports')
     .update(updates)
     .eq('id', id)
     .eq('created_by', userId)
     .select('id')
+  let { data: changed, error } = await write()
+  // Before migration 20270122150000 there is no tags column: an empty list changes nothing, so save without it.
+  if (error && isMissingTagsColumn(error) && Array.isArray(updates.tags) && !updates.tags.length) {
+    delete updates.tags
+    ;({ data: changed, error } = await write())
+  }
 
   if (error) throw new Error('Failed to update report')
   // Only the creator edits a report: anyone else's is left as it was (the builder then saves a copy).
@@ -184,6 +211,7 @@ export async function duplicateReport(id: string) {
       config: normalizeReportConfig(original.config),
       category: original.category,
       is_shared: false,
+      ...(Array.isArray(original.tags) && original.tags.length ? { tags: original.tags } : {}),
     })
     .select('id')
     .single()

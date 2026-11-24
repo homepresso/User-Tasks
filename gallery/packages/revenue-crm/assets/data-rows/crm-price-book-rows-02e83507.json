@@ -1,0 +1,141 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "02e83507-ed5c-5116-a19a-9714da21fdea",
+  "asset": {
+    "id": "02e83507-ed5c-5116-a19a-9714da21fdea",
+    "name": "CRM price book rows",
+    "rows": [
+      {
+        "id": "71f052a3-17ed-5437-a657-a97c54367e7c",
+        "data": {
+          "sku": "BW-PLT-STD",
+          "product": "Insight Platform Standard",
+          "family": "Platform",
+          "list_price": 480,
+          "unit": "per seat / year",
+          "max_discount": 10,
+          "active": true,
+          "description": "Dashboards, alerts and reporting for up to 5 sites."
+        }
+      },
+      {
+        "id": "1779677d-3d92-5b7a-b683-624d70ff1daf",
+        "data": {
+          "sku": "BW-PLT-PRO",
+          "product": "Insight Platform Professional",
+          "family": "Platform",
+          "list_price": 720,
+          "unit": "per seat / year",
+          "max_discount": 15,
+          "active": true,
+          "description": "Adds forecasting, API access and SSO."
+        }
+      },
+      {
+        "id": "05d7270d-357f-5021-83ab-d75aa08c6a0d",
+        "data": {
+          "sku": "BW-PLT-ENT",
+          "product": "Insight Platform Enterprise",
+          "family": "Platform",
+          "list_price": 1080,
+          "unit": "per seat / year",
+          "max_discount": 20,
+          "active": true,
+          "description": "Unlimited sites, data residency and a 99.95% SLA."
+        }
+      },
+      {
+        "id": "baffdcf0-5ee0-5691-8afa-b8d05e6febbf",
+        "data": {
+          "sku": "BW-ADD-SENS",
+          "product": "Sensor Hub add-on",
+          "family": "Add-on",
+          "list_price": 2400,
+          "unit": "per site / year",
+          "max_discount": 15,
+          "active": true,
+          "description": "Connects field sensors and gateways to the platform."
+        }
+      },
+      {
+        "id": "95ef1aa3-3b44-57f6-bdf8-5ec347c7de29",
+        "data": {
+          "sku": "BW-ADD-PRED",
+          "product": "Predictive Analytics add-on",
+          "family": "Add-on",
+          "list_price": 18000,
+          "unit": "per year",
+          "max_discount": 15,
+          "active": true,
+          "description": "Anomaly detection and failure prediction models."
+        }
+      },
+      {
+        "id": "fcd50185-20ff-5d33-ad26-304dddefdb36",
+        "data": {
+          "sku": "BW-ADD-VAULT",
+          "product": "Compliance Vault add-on",
+          "family": "Add-on",
+          "list_price": 9600,
+          "unit": "per year",
+          "max_discount": 10,
+          "active": true,
+          "description": "Audit trail, retention and regulator exports."
+        }
+      },
+      {
+        "id": "22430de8-a74c-53e4-a4ef-8461871e5523",
+        "data": {
+          "sku": "BW-SVC-IMPL",
+          "product": "Implementation services",
+          "family": "Services",
+          "list_price": 15000,
+          "unit": "one-off",
+          "max_discount": 10,
+          "active": true,
+          "description": "Project-managed rollout over 6–10 weeks."
+        }
+      },
+      {
+        "id": "593d4d38-9918-59e7-8d10-ba95e1466c18",
+        "data": {
+          "sku": "BW-SVC-TRN",
+          "product": "Training workshop",
+          "family": "Services",
+          "list_price": 3500,
+          "unit": "one-off",
+          "max_discount": 20,
+          "active": true,
+          "description": "Two-day on-site workshop for up to 12 people."
+        }
+      },
+      {
+        "id": "6a92667a-8f10-50b6-8bc9-8ad1727fc1ac",
+        "data": {
+          "sku": "BW-SUP-PREM",
+          "product": "Premium support",
+          "family": "Support",
+          "list_price": 12000,
+          "unit": "per year",
+          "max_discount": 10,
+          "active": true,
+          "description": "24/7 support with a named engineer."
+        }
+      },
+      {
+        "id": "40b5358e-97a2-5347-97db-1c9e2ec82f2a",
+        "data": {
+          "sku": "BW-SUP-LEG",
+          "product": "Legacy connector pack",
+          "family": "Add-on",
+          "list_price": 4800,
+          "unit": "per year",
+          "max_discount": 0,
+          "active": false,
+          "description": "Retired: replaced by the Sensor Hub add-on."
+        }
+      }
+    ]
+  }
+}

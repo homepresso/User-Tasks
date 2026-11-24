@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "9958d235-9fd7-57a2-9288-4e0ee01df8fb",
+  "asset": {
+    "id": "9958d235-9fd7-57a2-9288-4e0ee01df8fb",
+    "name": "CRM: deal won",
+    "description": "Sent to the rep when a deal closes won.",
+    "subject": "Won: {{form.deal_name}} (${{form.amount}})",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Congratulations on the win</h2>\n  <p><strong>{{form.deal_name}}</strong> with {{form.account}} closed won for <strong>${{form.amount}}</strong> after {{cycle_days}} days.</p>\n  <p>Customer success has the onboarding kickoff; the account is now a customer in the CRM.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by Revenue CRM</p>\n</div>",
+    "text_body": "Congratulations on the win\n  {{form.deal_name}} with {{form.account}} closed won for ${{form.amount}} after {{cycle_days}} days.\n  Customer success has the onboarding kickoff; the account is now a customer in the CRM.\nSent by Revenue CRM",
+    "is_default": false
+  }
+}

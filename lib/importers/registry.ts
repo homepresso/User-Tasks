@@ -1,7 +1,8 @@
 /**
  * Importers in this build: the core InfoPath importer (forms, its own
  * endpoint POST /forms/import/infopath), the core Nintex importer (workflows
- * and forms, on the generic endpoints) and every importer an extension
+ * and forms, on the generic endpoints), the core PDF form importer (forms,
+ * generic endpoints — lib/importers/pdf) and every importer an extension
  * contributes (manifest contributes.importers + ServerExtension.importers),
  * addressed as `ext.<extension id>.<key>`.
  *
@@ -12,7 +13,7 @@ import type { ImporterContribution } from '@/lib/extensions/manifest'
 import type { ImportFile, ImporterHandler, ImportReport, ImportResult } from '@/lib/extensions/sdk'
 import type { ServiceContext } from '@/lib/services/context'
 
-export const IMPORTER_ID_RE = /^(infopath|nintex|ext\.[a-z][a-z0-9-]*\.[a-z][a-z0-9_]*)$/
+export const IMPORTER_ID_RE = /^(infopath|nintex|pdf|ext\.[a-z][a-z0-9-]*\.[a-z][a-z0-9_]*)$/
 
 /** A core importer served by the generic /importers endpoints (runs as the caller, no extension context). */
 export interface CoreImporterRunner {
@@ -41,6 +42,12 @@ const NINTEX_RUNNER: CoreImporterRunner = {
   detect: (files) => (files.some((f) => /\.(nwf|nwp)$/i.test(f.name)) ? 0.9 : 0),
 }
 
+const PDF_RUNNER: CoreImporterRunner = {
+  analyze: async (ctx, files, options) => (await import('./pdf/importer')).analyzePdfImport(ctx, files, options),
+  import: async (ctx, files, options) => (await import('./pdf/importer')).importPdf(ctx, files, options),
+  detect: (files) => (files.length === 1 && /\.pdf$/i.test(files[0].name) ? 0.8 : 0),
+}
+
 /** The core InfoPath importer as a contribution (listed beside the extensions' importers). */
 export const CORE_INFOPATH_IMPORTER: ImporterContribution = {
   key: 'infopath',
@@ -56,9 +63,11 @@ export const CORE_INFOPATH_IMPORTER: ImporterContribution = {
 
 export async function listImporters(): Promise<RegisteredImporter[]> {
   const { CORE_NINTEX_IMPORTER } = await import('./nintex/importer')
+  const { CORE_PDF_IMPORTER } = await import('./pdf/importer')
   const out: RegisteredImporter[] = [
     { id: 'infopath', extensionId: null, extensionName: null, contribution: CORE_INFOPATH_IMPORTER, handler: null, endpoint: '/forms/import/infopath' },
     { id: 'nintex', extensionId: null, extensionName: null, contribution: CORE_NINTEX_IMPORTER, handler: null, endpoint: null, core: NINTEX_RUNNER },
+    { id: 'pdf', extensionId: null, extensionName: null, contribution: CORE_PDF_IMPORTER, handler: null, endpoint: null, core: PDF_RUNNER },
   ]
   const { hasExtensions, getExtensionManifest } = await import('@/lib/extensions/registry')
   if (!hasExtensions()) return out

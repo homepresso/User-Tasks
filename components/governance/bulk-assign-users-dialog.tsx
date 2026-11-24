@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { overlayClass } from '@/components/ui/dialog'
+import { DialogAgentSlot, overlayClass } from '@/components/ui/dialog'
 import { X, Search, Check, Square, CheckSquare, Shield, Users as UsersIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -223,6 +223,7 @@ export function BulkAssignUsersDialog({ open, onOpenChange, users, roles, onComp
                   : 'Pick a role, select users, then assign or remove in one action'}
               </Dialog.Description>
             </div>
+            <DialogAgentSlot className="ml-auto mr-1 mt-0" />
             <Dialog.Close className="p-1 rounded-lg hover:bg-[var(--theme-surface)] text-fg-muted">
               <X size={18} />
             </Dialog.Close>

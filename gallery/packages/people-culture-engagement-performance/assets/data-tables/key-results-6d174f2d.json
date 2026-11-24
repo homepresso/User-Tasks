@@ -1,0 +1,100 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "6d174f2d-1916-589a-ac03-91b5f271812d",
+  "asset": {
+    "id": "6d174f2d-1916-589a-ac03-91b5f271812d",
+    "name": "Key results",
+    "description": "The measurable results of each goal (child records of Goals and OKRs): start, target and current value, with progress.",
+    "columns": [
+      {
+        "id": "2d474306-ea9e-525a-a396-351006121c8e",
+        "required": true,
+        "key": "kr_ref",
+        "name": "Key result",
+        "type": "text"
+      },
+      {
+        "id": "f793eb32-4b5b-5aef-af92-9f121c4a23eb",
+        "required": false,
+        "key": "goal",
+        "name": "Goal",
+        "type": "lookup",
+        "lookup": {
+          "sourceTableId": "e339db3c-8a2e-5997-9060-6633bb357429",
+          "sourceTableName": "Goals and OKRs",
+          "sourceColumn": "goal_ref"
+        }
+      },
+      {
+        "id": "6a21440d-1e39-5278-9fd2-c93e67838e3b",
+        "required": true,
+        "key": "key_result",
+        "name": "Description",
+        "type": "text"
+      },
+      {
+        "id": "b26c1508-2932-56dc-8bf5-881a209ca57c",
+        "required": false,
+        "key": "start_value",
+        "name": "Start",
+        "type": "number"
+      },
+      {
+        "id": "073169db-9233-594d-8209-2cfa3f6f55e0",
+        "required": false,
+        "key": "target_value",
+        "name": "Target",
+        "type": "number"
+      },
+      {
+        "id": "c0c77147-1521-507f-bef0-36acca62e198",
+        "required": false,
+        "key": "current_value",
+        "name": "Current",
+        "type": "number"
+      },
+      {
+        "id": "a87e34d6-529f-5f0a-993a-79b540888dda",
+        "required": false,
+        "key": "unit",
+        "name": "Unit",
+        "type": "text"
+      },
+      {
+        "id": "2b4adfdd-bb89-5eaa-b9fa-7a2748616a9b",
+        "required": false,
+        "key": "progress",
+        "name": "Progress %",
+        "type": "number"
+      },
+      {
+        "id": "5b7bb487-f080-517c-a0c9-519794497644",
+        "required": false,
+        "key": "progress_bar",
+        "name": "Progress",
+        "type": "text"
+      },
+      {
+        "id": "ef582440-0e04-5f12-9151-fb8c98c4ded1",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "On track",
+          "At risk",
+          "Off track",
+          "Done"
+        ]
+      },
+      {
+        "id": "8a500569-2527-5f96-9213-c85d360a4d9f",
+        "required": false,
+        "key": "owner_email",
+        "name": "Owner email",
+        "type": "email"
+      }
+    ]
+  }
+}

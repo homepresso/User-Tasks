@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { Mail, Send } from 'lucide-react'
@@ -13,6 +14,7 @@ import { EMAIL_CHOICES, type EmailChoiceId } from '@/lib/setup/wizard-model'
 import type { WizardPageData } from '@/lib/setup/wizard-data'
 import { AllowHostButton } from '@/components/settings/allow-host-button'
 import { StepFooter } from './setup-wizard'
+import { FREE_EMAIL_PROVIDERS } from '@/lib/infrastructure/addon'
 
 /**
  * Step 5: how email is sent, and a real test message. Saving goes through
@@ -98,8 +100,11 @@ export function EmailStep({ data }: { data: WizardPageData }) {
       {!pinnedProvider && (
         <div className="space-y-4">
           <Field label="Send email with">
-            <Select id="email-choice" value={choice} onChange={(e) => pick(e.target.value as EmailChoiceId)} options={EMAIL_CHOICES.map((c) => ({ value: c.id, label: c.label }))} />
+            <Select id="email-choice" value={choice} onChange={(e) => pick(e.target.value as EmailChoiceId)} options={EMAIL_CHOICES.map((c) => ({ value: c.id, label: FREE_EMAIL_PROVIDERS.includes(c.provider) ? c.label : `${c.label} (Infrastructure add-on)` }))} />
           </Field>
+          {!same && !FREE_EMAIL_PROVIDERS.includes(option.provider) && (
+            <InlineNotice tone="info" message={<>Sending through the {option.label} API is part of the Infrastructure add-on (a paid extension); SMTP (including Microsoft 365 and Exchange), Resend and log-only are free. <Link href="/settings/infrastructure#infrastructure-addon" className="underline">About the add-on</Link></>} />
+          )}
           {option.provider !== 'console' && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="From address" description='Like UserTasks <tasks@example.com>. Microsoft 365: the mailbox you sign in with (or one it may send as).' error={errors.from}>

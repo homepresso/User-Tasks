@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
-import { Eye, FileText, Trash2, ExternalLink, CornerDownRight, Pause, Play, Copy, ChevronDown, ChevronUp, MoveRight, SkipForward } from 'lucide-react'
+import { Eye, FileText, Trash2, ExternalLink, CornerDownRight, Pause, Play, Copy, ChevronDown, ChevronUp, MoveRight, SkipForward, RotateCcw, Ban } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { usePermissions } from '@/lib/permissions-context'
 import { Pagination } from '@/components/ui/list-controls'
@@ -22,7 +22,7 @@ import { formatCount } from '@/lib/format/number'
 import { formatDurationMs } from '@/lib/format/duration'
 import { formatAbsolute, formatRelative } from '@/lib/format/date'
 import { plural } from '@/lib/format/plural'
-import { deleteQueueJob } from '@/app/actions/workflow-queue'
+import { actOnQueueJobAction, deleteQueueJob } from '@/app/actions/workflow-queue'
 import { runInlineJob, useJobs } from '@/components/jobs/jobs-provider'
 import { serverRead } from '@/lib/server-read'
 import { QUEUE_PAGE_SIZES, type QueueItem } from '@/lib/automations/queue-filters'
@@ -106,7 +106,7 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
       if (definitionNodes) {
         const nodes = definitionNodes.filter((n: any) =>
           !['task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected', 'workflow_error', 'retention_policy_review', 'retention_policy_executed',
-            'schedule', 'webhook_received', 'middleware_received', 'esign_event'].includes(n.type)
+            'schedule', 'webhook_received', 'middleware_received', 'esign_event', 'agent_error'].includes(n.type)
         )
         setWorkflowNodes(nodes)
       }
@@ -200,6 +200,33 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
     })
   }
 
+  /**
+   * Retry / cancel a job a worker holds (`processing`): once its lease expired
+   * (the worker was lost) as is; while the worker is alive only a forced
+   * cancel, after confirmation. The server re-checks the lease and audits.
+   */
+  function handleRecover(job: QueueItem, action: 'retry' | 'cancel') {
+    if (!job.job_id) return
+    const jobId = job.job_id
+    const stuck = job.lease?.stuck === true
+    const force = action === 'cancel' && !stuck
+    setConfirmState({
+      title: action === 'retry' ? 'Retry stuck job' : force ? 'Force-cancel job' : 'Cancel stuck job',
+      description: action === 'retry'
+        ? 'The worker running this job stopped (its lease expired). Retry queues the job again; a run it left unfinished is marked as interrupted.'
+        : force
+          ? 'A worker is still processing this job. Force-cancelling marks it cancelled and its run failed; the worker may still finish the step it is on, but its result will be discarded. Use this only when the job is known to be stuck.'
+          : 'The worker running this job stopped (its lease expired). Cancel marks the job cancelled and its unfinished run failed.',
+      action: async () => {
+        const result = await actOnQueueJobAction(jobId, action, { force })
+        refreshQueue()
+        setNotice('error' in result
+          ? { tone: 'error', message: result.error }
+          : { tone: 'success', message: action === 'retry' ? 'Job queued again.' : 'Job cancelled.' })
+      },
+    })
+  }
+
   const paginated = localJobs
   const pageAllSelected = paginated.length > 0 && paginated.every((j) => selectedJobs.has(j.id))
   const runIdOf = (jobId: string) => localJobs.find((j) => j.id === jobId)?.result?.run_id ?? null
@@ -262,6 +289,18 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
         {wf?.id && can('workflows.view') && (
           <LinkIconButton href={`/automations/${wf.id}`} label="Go to workflow designer" icon={<ExternalLink />} />
         )}
+        {canManageQueue && !job.synthetic_run && job.status === 'processing' && job.lease?.stuck && (
+          <IconButton size="sm" label="Retry stuck job (worker lost)" icon={<RotateCcw />} onClick={() => handleRecover(job, 'retry')} />
+        )}
+        {canManageQueue && !job.synthetic_run && job.status === 'processing' && job.lease && (
+          <IconButton
+            size="sm"
+            variant="danger-ghost"
+            label={job.lease.stuck ? 'Cancel stuck job (worker lost)' : 'Force-cancel job…'}
+            icon={<Ban />}
+            onClick={() => handleRecover(job, 'cancel')}
+          />
+        )}
         {canManageQueue && (
           <IconButton
             size="sm"
@@ -296,6 +335,15 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
         {sla && <DetailField label="SLA" value={`${sla.label} · ${sla.status}`} onCopy={copyValue} copied={copied} />}
         {sla && <DetailField label="SLA due" value={formatDateTime(sla.iso)} onCopy={copyValue} copied={copied} />}
         <DetailField label="Trigger" value={job.trigger_type?.replace(/_/g, ' ') ?? '—'} onCopy={copyValue} copied={copied} />
+        {job.lease?.locked_by && <DetailField label="Worker" value={job.lease.locked_by} onCopy={copyValue} copied={copied} />}
+        {job.lease && (
+          <DetailField
+            label={job.lease.stuck ? 'Lease expired (worker lost)' : 'Lease expires'}
+            value={job.lease.expires_at ? formatDateTime(job.lease.expires_at) : '15 min after start'}
+            onCopy={copyValue}
+            copied={copied}
+          />
+        )}
         {job.trigger_data?.task_id && <DetailField label="Task ID" value={job.trigger_data.task_id} onCopy={copyValue} copied={copied} />}
         {pausedNodeId && <DetailField label="Paused at node" value={pausedNodeId} onCopy={copyValue} copied={copied} />}
         {job.error && <div className="col-span-full"><DetailField label="Error" value={job.error} onCopy={copyValue} copied={copied} /></div>}
@@ -446,7 +494,7 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
                         </button>
                       </TD>
                       <TD className="w-px whitespace-nowrap">
-                        <StatusPill status={effectiveStatus} tone={effectiveStatus === 'dead' ? 'danger' : undefined} label={statusLabels[effectiveStatus] ?? undefined} />
+                        <StatusPill status={effectiveStatus} tone={effectiveStatus === 'dead' || (job.status === 'processing' && job.lease?.stuck) ? 'danger' : undefined} label={job.status === 'processing' && job.lease?.stuck ? 'Stuck (worker lost)' : statusLabels[effectiveStatus] ?? undefined} />
                       </TD>
                       <TD className="max-w-0 text-ui text-fg-muted">{job.started_by ? <Truncate text={personName(job.started_by)} /> : '—'}</TD>
                       <TD className="whitespace-nowrap text-ui text-fg-muted">
@@ -489,7 +537,7 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
                       <Checkbox checked={isSelected} aria-label={`Select ${job.workflow?.name ?? 'job'} ${job.id.slice(0, 8)}`} onChange={() => toggleSelected(job.id)} />
                       <button type="button" className="min-w-0 flex-1 text-left" aria-expanded={isExpanded} onClick={() => setExpandedJob(isExpanded ? null : job.id)}>
                         <div className="flex min-w-0 items-center gap-2">
-                          <StatusPill status={effectiveStatus} tone={effectiveStatus === 'dead' ? 'danger' : undefined} label={statusLabels[effectiveStatus] ?? undefined} />
+                          <StatusPill status={effectiveStatus} tone={effectiveStatus === 'dead' || (job.status === 'processing' && job.lease?.stuck) ? 'danger' : undefined} label={job.status === 'processing' && job.lease?.stuck ? 'Stuck (worker lost)' : statusLabels[effectiveStatus] ?? undefined} />
                           <span className="ml-auto shrink-0 text-2xs text-fg-muted">{formatRelative(job.created_at)}</span>
                         </div>
                         <p className="mt-1 truncate text-ui font-medium text-fg">{job.workflow?.name ?? 'Unknown'}</p>
@@ -535,7 +583,7 @@ export function QueueList({ rows, page, pageSize, total, onPageChange, onPageSiz
         }}
       />
 
-      <Pagination page={page} pageSize={pageSize} total={total} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} pageSizeOptions={QUEUE_PAGE_SIZES} noun="items" />
+      <Pagination page={page} pageSize={pageSize} total={total} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} pageSizeOptions={QUEUE_PAGE_SIZES} pageSizeResetsPage={false} noun="items" />
 
       {moveRun && (
         <MigrateInstancesWizard workflowId={moveRun.workflowId} runIds={[moveRun.runId]} onClose={() => setMoveRun(null)} onDone={() => refreshQueue()} />

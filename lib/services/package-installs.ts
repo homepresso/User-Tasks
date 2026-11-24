@@ -47,7 +47,11 @@ import { writeTableRows, type RowMode } from '@/lib/portability/table-rows'
 import { PACKAGE_SECTIONS, type PackageContents } from '@/lib/packages/build'
 import { canonicalJson, sha256Hex, type PackageRequirement, type RequirementField } from '@/lib/packages/format'
 import { applyRequirementValues, nonSecretValues, requirementStatus, setAt, type RequirementState, type RequirementValues } from '@/lib/packages/requirements'
+import { assigneeWriter, checkPackageAssignees, stripAssigneeInfo, withAssigneeInfo, type AssigneeCheck } from './package-assignees'
 import { compareSemver, satisfiesRange } from '@/lib/packages/semver'
+import { LIBRARY_MAX, type LibraryFacts } from '@/lib/packages/library'
+import { GALLERY_CATEGORIES } from '@/lib/gallery/types'
+import officialGalleryIndex from '@/public/gallery/index.json'
 import { applyConfig, type ConfigApplyResult } from './config'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { applyPage, audit, dbError, serviceRoleClient, type Page } from './_shared'
@@ -65,6 +69,7 @@ import { deleteFormControl } from './form-controls'
 import { deleteRole } from './roles'
 import { deleteWorkflowActivity } from './workflow-activities'
 import { deleteWorkflow, publishWorkflow } from './workflows'
+import { deleteApp } from './apps'
 
 const INSTALL_COLUMNS = 'id, package_uid, name, slug, version, previous_version, description, source, source_label, checksum, signed, signature_valid, fingerprint, status, requirements, requirement_values, manifest, installed_by, installed_at, updated_at'
 const ASSET_COLUMNS = 'id, install_id, asset_type, section, source_id, local_id, name, content_hash, status, blocked_by, updated_at'
@@ -75,13 +80,14 @@ const SECTION_ASSET_TYPE: Record<string, string> = {
   references: 'reference', objects: 'object', decision_tables: 'decision_table', retention_policies: 'retention_policy',
   roles: 'role', mcp_servers: 'mcp_server', workflow_activities: 'workflow_activity', reports: 'report', agents: 'agent',
   workflows: 'workflow', log_destinations: 'log_destination', form_themes: 'form_theme', forms: 'form', form_controls: 'form_control',
+  apps: 'app',
 }
 /** Install asset type → id map key used by config apply. */
 const MAP_KEY: Record<string, keyof AssetIdMaps> = {
   email_template: 'email_template', connector: 'connector', data_table: 'data_table', integration: 'integration', reference: 'reference',
   object: 'reference', decision_table: 'decision_table', retention_policy: 'retention_policy', role: 'role', mcp_server: 'mcp_server',
   workflow_activity: 'workflow_activity', report: 'report', agent: 'agent', workflow: 'workflow', log_destination: 'log_destination',
-  form: 'form', form_theme: 'form_theme', form_control: 'form_control',
+  form: 'form', form_theme: 'form_theme', form_control: 'form_control', app: 'app',
 }
 /** Activation flag per section (disabled while incomplete). */
 const ACTIVE_FLAG: Record<string, string> = {
@@ -176,6 +182,23 @@ export interface InstallPlanAsset extends AssetPlan {
   skipped?: string
 }
 
+export interface InstallPlanApp {
+  source_id: string
+  name: string
+  /** The slug in the package (a new install may get a free variant). */
+  slug: string
+  pages: number
+  local_id: string | null
+  local_slug: string | null
+  embed_origins: string[]
+  /** Embed origins not on this workspace's allow-list. */
+  embed_origins_missing: string[]
+  /** The installer still has to choose who can use it (new apps). */
+  set_audience: boolean
+  /** A new app whose slug is taken here: the address it will get instead. */
+  slug_conflict?: string
+}
+
 export interface InstallPlanResult {
   dry_run: boolean
   mode: InstallMode
@@ -191,6 +214,14 @@ export interface InstallPlanResult {
   blockers: string[]
   missing_permissions?: Array<{ section: string; permission: string }>
   warnings: Array<{ warning: string; asset_type?: string; source_id?: string }>
+  /**
+   * Apps in the package: what an install sets up beyond the plan — sites its
+   * Embed widgets frame that Settings → Embedding doesn't allow yet (they show
+   * blocked until an admin adds them), and, after a real install, the local
+   * app to open and share (the audience starts empty; the installer is its
+   * editor; an upgrade keeps the audience and editors).
+   */
+  apps?: InstallPlanApp[]
   install?: Record<string, any>
   result?: ConfigApplyResult['result'] & { published?: string[]; rows?: any[] }
 }
@@ -288,14 +319,17 @@ function mergeValues(...sets: Array<RequirementValues | undefined | null>): Requ
   return out
 }
 
+/**
+ * Role slugs → role ids of this workspace. Assignees (`user` requirements)
+ * are checked and written by checkPackageAssignees / assigneeWriter: people
+ * and teams of this workspace only.
+ */
 async function makeResolver(ctx: ServiceContext, db: AnySupabaseClient, requirements: PackageRequirement[], values: RequirementValues, warnings: InstallPlanResult['warnings']) {
   const slugs = new Set<string>()
-  const emails = new Set<string>()
   for (const requirement of requirements) {
     for (const field of requirement.fields) {
       const value = values[requirement.id]?.[field.key] ?? (requirement.kind === 'role' ? field.default : undefined)
       if (requirement.kind === 'role' && typeof value === 'string') slugs.add(value)
-      if (field.type === 'user' && typeof value === 'string' && value.includes('@')) emails.add(value.trim().toLowerCase())
     }
   }
   const roleBySlug = new Map<string, string>()
@@ -303,24 +337,29 @@ async function makeResolver(ctx: ServiceContext, db: AnySupabaseClient, requirem
     const { data } = await (db as any).from('roles').select('id, slug').eq('tenant_id', ctx.tenantId).in('slug', [...slugs])
     for (const row of data ?? []) roleBySlug.set(String(row.slug), String(row.id))
   }
-  const userByEmail = new Map<string, string>()
-  if (emails.size) {
-    const { data } = await (db as any).from('users').select('id, email').in('email', [...emails])
-    for (const row of data ?? []) userByEmail.set(String(row.email).toLowerCase(), String(row.id))
-  }
-  return (requirement: PackageRequirement, field: RequirementField, value: unknown): unknown => {
+  return (requirement: PackageRequirement, _field: RequirementField, value: unknown): unknown => {
     if (requirement.kind === 'role') {
       const id = typeof value === 'string' ? roleBySlug.get(value) ?? (isUuid(value) ? value : undefined) : undefined
       if (!id) warnings.push({ warning: `${requirement.label}: no role "${String(value)}" in this workspace; the step keeps its original role id` })
       return id
     }
-    if (field.type === 'user' && typeof value === 'string' && value.includes('@')) {
-      const id = userByEmail.get(value.trim().toLowerCase())
-      if (!id) warnings.push({ warning: `${requirement.label}: no user with the email ${value}` })
-      return id
-    }
     return value
   }
+}
+
+/** Assignee errors: values sent now block the install; kept ones (no longer valid) only warn and count as empty. */
+function reportAssigneeErrors(check: AssigneeCheck, blockers: string[], warnings: InstallPlanResult['warnings']) {
+  for (const error of check.errors) {
+    const where = `${error.requirement.label} — ${error.field.label}`
+    if (error.supplied) blockers.push(`${where}: ${error.message}`)
+    else warnings.push({ warning: `${where}: the earlier choice is no longer valid (${error.message}); pick again` })
+  }
+}
+
+function getAtPath(value: any, path: Array<string | number>): unknown {
+  let node = value
+  for (const seg of path) { if (node === null || typeof node !== 'object') return undefined; node = node[seg as any] }
+  return node
 }
 
 // ─── Install / upgrade ──────────────────────────────────────────────────────
@@ -429,14 +468,22 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
     const row = bySource.get(`${section}:${sourceId}`)
     return row ? localRaw.get(`${section}:${row.local_id}`) : undefined
   }
+  // Assignees: people and teams of this workspace only, and only what the step can take.
+  const assignees = await checkPackageAssignees(db, ctx.tenantId, {
+    requirements, values: mergeValues(existing?.requirement_values, input.values), supplied: input.values, assets: manifest,
+    stored: (_requirement, field) => getAtPath(localOf(field.target.section, field.target.asset_id), field.target.path),
+  })
+  reportAssigneeErrors(assignees, blockers, warnings)
   const storedAt = (requirement: PackageRequirement, field: RequirementField) => {
+    // A local step still holding the package's placeholder person is not "set".
+    if (requirement.kind === 'user') return assignees.storedValid(requirement, field)
     const local = localOf(field.target.section, field.target.asset_id)
     if (!local) return false
     let node: any = local
     for (const seg of field.target.path) { if (node === null || typeof node !== 'object') return false; node = node[seg as any] }
     return node !== undefined && node !== null && node !== '' && node !== SECRET_PLACEHOLDER
   }
-  const values = mergeValues(existing?.requirement_values, input.values)
+  const values = assignees.values
   const knownReqs = new Map(requirements.map((r) => [r.id, r]))
   for (const [id, fields] of Object.entries(input.values ?? {})) {
     const requirement = knownReqs.get(id)
@@ -451,7 +498,7 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
   }
 
   // Patch requirement values into the manifest.
-  applyRequirementValues(manifest, requirements, values, await makeResolver(ctx, db, requirements, values, warnings))
+  applyRequirementValues(manifest, requirements, values, await makeResolver(ctx, db, requirements, values, warnings), assigneeWriter(assignees))
 
   // Incomplete: disable the assets that need configuration and block what depends on them.
   const graph = packageGraph(manifest)
@@ -549,7 +596,7 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
       planAssets.push({ section, asset_type: (SECTION_ASSET_TYPE[section] ?? 'workflow') as any, source_id: sourceId, local_id: row?.local_id ?? null, name: row?.name ?? sourceId, action: 'unchanged', locally_modified: true, skipped: 'changed locally; kept' })
     }
   }
-  const requirementPlans: RequirementPlan[] = requirements.map((requirement) => ({ ...requirement, status: stateById.get(requirement.id)!.status, field_states: stateById.get(requirement.id)!.fields }))
+  const requirementPlans: RequirementPlan[] = requirements.map((requirement) => ({ ...withAssigneeInfo(requirement, assignees), status: stateById.get(requirement.id)!.status, field_states: stateById.get(requirement.id)!.fields }))
   const result: InstallPlanResult = {
     dry_run: dryRun || blockers.length > 0,
     mode,
@@ -565,6 +612,7 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
     ...(applied.missing_permissions?.length ? { missing_permissions: applied.missing_permissions } : {}),
     warnings: [...warnings, ...applied.warnings],
   }
+  if (Array.isArray(manifest.apps) && manifest.apps.length) result.apps = await planApps(actx, manifest.apps, applied.plan.assets, dryRun || blockers.length > 0)
   trace.plan = result
   if (dryRun) return result
   if (blockers.length) throw ServiceError.validation(`Cannot install: ${blockers.join('; ')}`, { plan: result })
@@ -591,7 +639,7 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
     signature_valid: verification.signature_ok,
     fingerprint: verification.fingerprint,
     status,
-    requirements: requirementPlans.map(({ field_states, ...rest }) => ({ ...rest, field_states })),
+    requirements: requirementPlans.map(({ field_states, ...rest }) => ({ ...stripAssigneeInfo(rest), field_states })),
     requirement_values: nonSecretValues(requirements, values),
     manifest: {
       package: header,
@@ -675,6 +723,15 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
     summary: `${mode === 'install' ? 'Installed' : mode === 'upgrade' ? `Upgraded ${existing.version} →` : mode === 'downgrade' ? `Downgraded ${existing.version} →` : 'Reinstalled'} package "${header.name}" ${header.version}${status === 'incomplete' ? ' (setup incomplete)' : ''}`,
     metadata: { version: header.version, mode, status, checksum: verification.checksum, signed: verification.signed, fingerprint: verification.fingerprint, unmet: [...unmet] },
   })
+  if (result.apps?.length) {
+    const ids = result.apps.map((a) => localIdFor('apps', a.source_id)).filter((id): id is string => Boolean(id))
+    const { data: rows } = ids.length ? await (db as any).from('apps').select('id, slug').eq('tenant_id', ctx.tenantId).in('id', ids) : { data: [] }
+    const slugOf = new Map<string, string>(((rows ?? []) as any[]).map((r) => [String(r.id), String(r.slug)]))
+    result.apps = result.apps.map((a) => {
+      const localId = localIdFor('apps', a.source_id)
+      return { ...a, local_id: localId, local_slug: localId ? slugOf.get(localId) ?? null : null }
+    })
+  }
   const final: InstallPlanResult = {
     ...result,
     dry_run: false,
@@ -716,6 +773,44 @@ async function runInstall(ctx: ServiceContext, input: PackageInstallInput, dryRu
     summary: `${mode === 'install' ? 'Installed' : mode === 'upgrade' ? 'Upgraded' : mode === 'downgrade' ? 'Downgraded' : 'Reinstalled'} ${header.name} ${header.version}${status === 'incomplete' ? ' (setup incomplete)' : ''}`,
   })
   return final
+}
+
+/** A free slug: base, else base-2, base-3 … (same rule as lib/apps/schema uniqueSlug, kept local: a dynamic import of the app schema here broke Turbopack production builds). */
+const RESERVED_SLUGS = new Set(['spec', 'rule-types', 'widget-types', 'new', 'search'])
+function freeSlug(base: string, taken: Set<string>): string {
+  for (const r of RESERVED_SLUGS) taken.add(r)
+  if (!taken.has(base)) return base
+  for (let i = 2; i < 1000; i++) {
+    const suffix = `-${i}`
+    const candidate = `${base.slice(0, 64 - suffix.length).replace(/-+$/, '')}${suffix}`
+    if (!taken.has(candidate)) return candidate
+  }
+  return `${base.slice(0, 55)}-${Date.now().toString(36)}`
+}
+
+/** The apps of a package against this workspace (embed allow-list, audience prompt). */
+async function planApps(ctx: ServiceContext, apps: any[], plan: AssetPlan[], dryRun: boolean): Promise<InstallPlanApp[]> {
+  const { appEmbedOrigins } = await import('@/lib/apps/references')
+  const { embedAllowed } = await import('@/lib/apps/embed-origins')
+  const { loadAppEmbedOrigins } = await import('./tenant-settings')
+  const allowed = await loadAppEmbedOrigins(ctx).catch(() => [] as string[])
+  // Before the install only: afterwards the app itself holds its slug.
+  const { data: taken } = dryRun ? await (ctx.supabase as any).from('apps').select('slug').eq('tenant_id', ctx.tenantId).limit(2000) : { data: [] }
+  const takenSlugs = new Set<string>(((taken ?? []) as any[]).map((r) => String(r.slug)))
+  const out: InstallPlanApp[] = []
+  for (const app of apps) {
+    if (!app || !Array.isArray(app.pages)) continue
+    const entry = plan.find((a) => a.section === 'apps' && a.source_id === String(app.id))
+    const origins = appEmbedOrigins(app)
+    out.push({
+      source_id: String(app.id), name: String(app.name ?? 'App'), slug: String(app.slug ?? ''), pages: app.pages.length,
+      local_id: entry?.local_id ?? null, local_slug: null,
+      embed_origins: origins, embed_origins_missing: origins.filter((o) => !embedAllowed(`${o}/`, allowed)),
+      set_audience: !entry || entry.action === 'create',
+      ...((!entry || entry.action === 'create') && app.slug && takenSlugs.has(String(app.slug)) ? { slug_conflict: freeSlug(String(app.slug), takenSlugs) } : {}),
+    })
+  }
+  return out
 }
 
 /** Upgrade (or plan the upgrade of) an existing install; the file must be the same package. */
@@ -776,6 +871,99 @@ export async function listPackageInstalls(ctx: ServiceContext, page: Page) {
   const { data, error } = await applyPage((db as any).from('package_installs').select(INSTALL_COLUMNS).eq('tenant_id', ctx.tenantId).order('name'), page)
   if (error) throw dbError(error)
   return { installs: ((data ?? []) as any[]).map(presentInstall) }
+}
+
+/**
+ * The Installed library (Settings → Packages): every install (newest first,
+ * at most LIBRARY_MAX) with what its search and filters need — where it came
+ * from (gallery when the package is in this instance's gallery), its gallery
+ * category, tags (gallery and the package authored here), a newer version
+ * (gallery or authored here), whether all of its workflows are off, and the
+ * names of its items. The list itself is filtered in the browser
+ * (lib/packages/library.ts).
+ */
+export async function listPackageLibrary(ctx: ServiceContext) {
+  requirePerm(ctx, 'packages.view')
+  const db = await admin(ctx)
+  const { data, error } = await (db as any).from('package_installs').select(INSTALL_COLUMNS).eq('tenant_id', ctx.tenantId)
+    .order('installed_at', { ascending: false }).limit(LIBRARY_MAX + 1)
+  if (error) throw dbError(error)
+  const rows = ((data ?? []) as any[])
+  const capped = rows.length > LIBRARY_MAX
+  const installs = rows.slice(0, LIBRARY_MAX)
+  if (!installs.length) return { installs: [], capped: false }
+  const ids = installs.map((row) => String(row.id))
+
+  // Items (names) and the installed workflows' on/off state.
+  const items = new Map<string, Array<{ section: string; local_id: string; name: string }>>()
+  for (let i = 0; i < ids.length; i += 200) {
+    for (let offset = 0; ; offset += 1000) {
+      const { data: assets, error: assetError } = await (db as any).from('package_install_assets').select('install_id, section, local_id, name, status')
+        .eq('tenant_id', ctx.tenantId).in('install_id', ids.slice(i, i + 200)).neq('asset_type', 'data_row').neq('status', 'removed_upstream').order('id').range(offset, offset + 999)
+      if (assetError) throw dbError(assetError)
+      for (const asset of assets ?? []) {
+        const list = items.get(String(asset.install_id)) ?? []
+        list.push({ section: String(asset.section), local_id: String(asset.local_id), name: String(asset.name ?? '') })
+        items.set(String(asset.install_id), list)
+      }
+      if (!assets || assets.length < 1000) break
+    }
+  }
+  const workflowIds = [...new Set([...items.values()].flat().filter((a) => a.section === 'workflows').map((a) => a.local_id))]
+  const active = new Map<string, boolean>()
+  for (let i = 0; i < workflowIds.length; i += 500) {
+    const { data: workflows, error: wfError } = await (db as any).from('workflows').select('id, is_active').eq('tenant_id', ctx.tenantId).in('id', workflowIds.slice(i, i + 500))
+    if (wfError) throw dbError(wfError)
+    for (const wf of workflows ?? []) active.set(String(wf.id), Boolean(wf.is_active))
+  }
+  // Packages authored here (tags, newest build).
+  const uids = [...new Set(installs.map((row) => String(row.package_uid)))]
+  const authored = new Map<string, { tags: string[]; latest_version: string | null }>()
+  for (let i = 0; i < uids.length; i += 500) {
+    const { data: pkgs, error: pkgError } = await (db as any).from('packages').select('package_uid, tags, latest_version').eq('tenant_id', ctx.tenantId).in('package_uid', uids.slice(i, i + 500))
+    if (pkgError) throw dbError(pkgError)
+    for (const pkg of pkgs ?? []) authored.set(String(pkg.package_uid), { tags: Array.isArray(pkg.tags) ? pkg.tags.map(String) : [], latest_version: pkg.latest_version ? String(pkg.latest_version) : null })
+  }
+  const gallery = galleryById()
+  const newer = (candidate: string | null | undefined, installed: string) => {
+    if (!candidate) return false
+    try { return compareSemver(candidate, installed) > 0 } catch { return false }
+  }
+  return {
+    capped,
+    installs: installs.map((row) => {
+      const install = presentInstall(row)
+      const entry = gallery.get(String(row.package_uid))
+      const own = authored.get(String(row.package_uid))
+      const list = items.get(String(row.id)) ?? []
+      const workflows = list.filter((a) => a.section === 'workflows' && active.has(a.local_id))
+      const latest = [entry?.version, own?.latest_version].filter((v): v is string => Boolean(v) && newer(v, String(row.version)))
+        .sort((a, b) => compareSemver(b, a))[0] ?? null
+      const source = String(row.source ?? 'file')
+      const facts: LibraryFacts = {
+        origin: entry ? 'gallery' : (['library', 'cli', 'api', 'mcp'].includes(source) ? source : 'file') as LibraryFacts['origin'],
+        category: entry?.category ?? null,
+        category_label: entry ? GALLERY_CATEGORIES.find((c) => c.id === entry.category)?.title ?? entry.category : null,
+        tags: [...new Set([...(own?.tags ?? []), ...(entry?.tags ?? [])])],
+        latest_version: latest,
+        update_available: Boolean(latest),
+        // Switched off by someone: an incomplete install's workflows wait on setup, which is not "disabled".
+        disabled: row.status !== 'incomplete' && workflows.length > 0 && workflows.every((a) => !active.get(a.local_id)),
+        items: [...new Set(list.map((a) => a.name).filter(Boolean))],
+      }
+      return { ...install, ...facts }
+    }),
+  }
+}
+
+let galleryIndexCache: Map<string, { version: string; category: string; tags: string[] }> | null = null
+/** This instance's official gallery by package id (bundled index; community packages are not looked up). */
+function galleryById() {
+  if (!galleryIndexCache) {
+    const index = officialGalleryIndex as unknown as { packages: Array<{ id: string; version: string; category: string; tags?: string[] }> }
+    galleryIndexCache = new Map(index.packages.map((p) => [String(p.id), { version: String(p.version), category: String(p.category), tags: Array.isArray(p.tags) ? p.tags.map(String) : [] }]))
+  }
+  return galleryIndexCache
 }
 
 async function loadInstall(ctx: ServiceContext, db: AnySupabaseClient, installId: string) {
@@ -861,10 +1049,26 @@ async function runComplete(ctx: ServiceContext, db: AnySupabaseClient, install: 
   })
   const valueKeys = new Map(requirements.map((r) => [r.id, r]))
   for (const id of Object.keys(input.values ?? {})) if (!valueKeys.has(id)) warnings.push({ warning: `Unknown requirement "${id}" (ignored)` })
-  const values = mergeValues(install.requirement_values, input.values)
   const touched = assets.filter((row) => localRequirements.some((r) => r.fields.some((f) => f.target.asset_id === String(row.local_id))) && row.asset_type !== 'data_row')
   const localRaw = await localExports(db, ctx.tenantId, touched, true)
-  const storedAt = (_requirement: PackageRequirement, field: RequirementField) => {
+  // Manifest of the touched local assets (scrubbed; secrets resolve from the rows), values patched in below.
+  const localManifest: Record<string, any> = { format_version: 3 }
+  const scrubbed = await localExports(db, ctx.tenantId, touched)
+  for (const [key, asset] of scrubbed) {
+    const section = key.split(':')[0]
+    ;(localManifest[section] ??= []).push(structuredClone(asset))
+  }
+  // Assignees: people and teams of this workspace only, and only what the local step can take.
+  const assignees = await checkPackageAssignees(db, ctx.tenantId, {
+    requirements: localRequirements, values: mergeValues(install.requirement_values, input.values), supplied: input.values, assets: localManifest,
+    stored: (_requirement, field) => getAtPath(localRaw.get(`${field.target.section}:${field.target.asset_id}`), field.target.path),
+  })
+  const assigneeBlockers: string[] = []
+  reportAssigneeErrors(assignees, assigneeBlockers, warnings)
+  if (assigneeBlockers.length && !input.dry_run) throw ServiceError.validation(`Cannot complete setup: ${assigneeBlockers.join('; ')}`)
+  const values = assignees.values
+  const storedAt = (requirement: PackageRequirement, field: RequirementField) => {
+    if (requirement.kind === 'user') return assignees.storedValid(requirement, field)
     const local = localRaw.get(`${field.target.section}:${field.target.asset_id}`)
     let node: any = local
     for (const seg of field.target.path) { if (node === null || typeof node !== 'object') return false; node = node[seg as any] }
@@ -874,14 +1078,7 @@ async function runComplete(ctx: ServiceContext, db: AnySupabaseClient, install: 
   const stateById = new Map(states.map((s) => [s.id, s]))
   const unmet = new Set(states.filter((s) => s.status === 'missing').map((s) => s.id))
 
-  // Manifest of the touched local assets (scrubbed; secrets resolve from the rows), values patched in.
-  const localManifest: Record<string, any> = { format_version: 3 }
-  const scrubbed = await localExports(db, ctx.tenantId, touched)
-  for (const [key, asset] of scrubbed) {
-    const section = key.split(':')[0]
-    ;(localManifest[section] ??= []).push(structuredClone(asset))
-  }
-  applyRequirementValues(localManifest, localRequirements, values, await makeResolver(ctx, db, localRequirements, values, warnings))
+  applyRequirementValues(localManifest, localRequirements, values, await makeResolver(ctx, db, localRequirements, values, warnings), assigneeWriter(assignees))
   for (const requirement of localRequirements) {
     if (unmet.has(requirement.id)) continue
     const flag = ACTIVE_FLAG[requirement.ref.section]
@@ -895,7 +1092,8 @@ async function runComplete(ctx: ServiceContext, db: AnySupabaseClient, install: 
   const response = {
     dry_run: Boolean(input.dry_run),
     install_id: install.id,
-    requirements: requirementPlans,
+    requirements: requirementPlans.map((requirement) => withAssigneeInfo(requirement, assignees)),
+    ...(assigneeBlockers.length ? { blockers: assigneeBlockers } : {}),
     plan: applied.plan,
     warnings: [...warnings, ...applied.warnings],
     status: unmet.size ? 'incomplete' as const : 'complete' as const,
@@ -953,10 +1151,11 @@ export interface UninstallInput {
 }
 
 // Workflows before forms before form themes: a form (or theme) still in use is refused by its service.
-const UNINSTALL_ORDER = ['workflows', 'agents', 'reports', 'log_destinations', 'forms', 'form_themes', 'form_controls', 'decision_tables', 'workflow_activities', 'email_templates', 'mcp_servers', 'roles', 'retention_policies', 'integrations', 'connectors', 'data_tables']
+// Apps first: they only point at the other assets.
+const UNINSTALL_ORDER = ['apps', 'workflows', 'agents', 'reports', 'log_destinations', 'forms', 'form_themes', 'form_controls', 'decision_tables', 'workflow_activities', 'email_templates', 'mcp_servers', 'roles', 'retention_policies', 'integrations', 'connectors', 'data_tables']
 /** The permissions each section's delete needs (as in deleteAsset → the section services). */
 export const UNINSTALL_PERMISSIONS: Record<string, string[]> = {
-  workflows: ['workflows.delete'], agents: ['agents.delete'], reports: ['reports.delete'], log_destinations: ['observability.view', 'settings.edit'],
+  apps: ['apps.manage'], workflows: ['workflows.delete'], agents: ['agents.delete'], reports: ['reports.delete'], log_destinations: ['observability.view', 'settings.edit'],
   forms: ['forms.delete'], form_themes: ['forms.delete'], form_controls: ['extensibility.delete'],
   decision_tables: ['workflows.delete'], workflow_activities: ['extensibility.delete'], email_templates: ['workflows.edit'], mcp_servers: ['settings.edit'],
   roles: ['team.change_roles'], retention_policies: ['settings.edit'], integrations: ['integrations.delete'], connectors: ['integrations.delete'], data_tables: ['data.delete'],
@@ -1122,6 +1321,7 @@ async function deleteAsset(ctx: ServiceContext, section: string, id: string) {
     if (error) throw dbError(error)
   }
   switch (section) {
+    case 'apps': return deleteApp(ctx, id)
     case 'workflows': return deleteWorkflow(ctx, id)
     case 'decision_tables': return deleteDecisionTable(ctx, id)
     case 'workflow_activities': return deleteWorkflowActivity(ctx, id)

@@ -987,6 +987,11 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "action",
           "type": "string",
           "required": true
+        },
+        {
+          "name": "force",
+          "type": "boolean",
+          "required": false
         }
       ]
     },
@@ -2699,7 +2704,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "path": "/agents/usage",
     "resource": "agents",
     "verb": "workspace-usage",
-    "summary": "Workspace agent usage: tokens and cost per day and per agent, workspace budgets, and the price table in effect",
+    "summary": "Workspace agent usage: tokens and cost per day and per agent, workspace budgets, the price table in effect, and AI cost breakdowns by model, profile, agent, source or person",
     "permission": "agents.view",
     "positional": [],
     "pathFlags": [],
@@ -2709,6 +2714,90 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         "flag": "days",
         "required": false,
         "type": "integer"
+      },
+      {
+        "name": "group_by",
+        "flag": "group-by",
+        "description": "Comma-separated: day | model | profile | agent | source | user (default day,model,profile,agent,source; user needs assistants.manage)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "period",
+        "flag": "period",
+        "description": "Breakdown period preset (default 30d); from / to win",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "7d",
+          "30d",
+          "90d",
+          "this_month",
+          "last_month"
+        ]
+      },
+      {
+        "name": "from",
+        "flag": "from",
+        "description": "First day (UTC, YYYY-MM-DD, inclusive)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "to",
+        "flag": "to",
+        "description": "Last day (UTC, YYYY-MM-DD, inclusive; at most 366 days after from)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "provider",
+        "flag": "provider",
+        "description": "Only calls to this provider (openai, anthropic, … or unknown)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "model",
+        "flag": "model",
+        "description": "Only calls to this model",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "agent_profile",
+        "flag": "agent-profile",
+        "description": "Only the in-product Agent's calls under this Agent profile id (default = no profile matched)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "agent",
+        "flag": "agent",
+        "description": "Only this agent's runs (agent id)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "source",
+        "flag": "source",
+        "description": "Only calls from this source",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "assistant",
+          "workflow_agent",
+          "agent",
+          "pdf_import",
+          "redact_ai"
+        ]
+      },
+      {
+        "name": "user",
+        "flag": "user",
+        "description": "Only this person's in-product Agent calls (user id; needs assistants.manage)",
+        "required": false,
+        "type": "string"
       }
     ],
     "body": null,
@@ -2991,6 +3080,13 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         "description": "Name or description contains",
         "required": false,
         "type": "string"
+      },
+      {
+        "name": "tag",
+        "flag": "tag",
+        "description": "Only items carrying this tag",
+        "required": false,
+        "type": "string"
       }
     ],
     "body": null,
@@ -3037,6 +3133,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "array",
           "required": false,
           "description": "Ordered; the first enabled matching rule wins"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
         }
       ]
     },
@@ -3104,6 +3206,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "array",
           "required": false,
           "description": "Replaces all rules"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
         }
       ]
     },
@@ -3235,6 +3343,13 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         "description": "Name contains",
         "required": false,
         "type": "string"
+      },
+      {
+        "name": "tag",
+        "flag": "tag",
+        "description": "Only items carrying this tag",
+        "required": false,
+        "type": "string"
       }
     ],
     "body": null,
@@ -3271,6 +3386,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "array",
           "required": false,
           "description": "Custom columns; the system ID and Date Created columns are added automatically"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
         }
       ]
     },
@@ -3302,7 +3423,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "path": "/data-tables/{id}",
     "resource": "tables",
     "verb": "update",
-    "summary": "Rename a data table or replace its custom columns",
+    "summary": "Rename a data table, change its tags or replace its custom columns",
     "permission": "data.edit_schema",
     "positional": [
       "id"
@@ -3326,6 +3447,24 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "array",
           "required": false,
           "description": "Full replacement list of custom columns (system columns are kept)"
+        },
+        {
+          "name": "child_relations",
+          "type": "array",
+          "required": false,
+          "description": "Full replacement list of child-record relations: rows of table_id whose lookup_column points at a row of this table (at most 5)"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
+        },
+        {
+          "name": "audit_changes",
+          "type": "boolean",
+          "required": false,
+          "description": "Record every field change of every row (who, when, old and new value); the history is on GET /data-tables/{id}/rows/{row_id}/changes. Needs migration 20270128090000"
         }
       ]
     },
@@ -3810,6 +3949,111 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       ]
     },
     "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "groupDataRows",
+    "method": "GET",
+    "path": "/data-tables/{id}/rows/groups",
+    "resource": "rows",
+    "verb": "groups",
+    "summary": "Group rows by one or two columns (counts and sums)",
+    "permission": "data.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "group_by",
+        "flag": "group-by",
+        "description": "One or two column keys, comma-separated (e.g. status or status,region)",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "search",
+        "flag": "search",
+        "description": "Text matched against the row id and every cell",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "filters",
+        "flag": "filters",
+        "description": "JSON array of {field, operator, value}, e.g. [{\"field\":\"status\",\"operator\":\"equals\",\"value\":\"open\"}]",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "sum",
+        "flag": "sum",
+        "description": "Number columns to total per group, comma-separated",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "group_order",
+        "flag": "group-order",
+        "description": "Order of the groups (default asc; the empty group first)",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getDataRowChildren",
+    "method": "GET",
+    "path": "/data-tables/{id}/rows/{rowId}/children",
+    "resource": "rows",
+    "verb": "children",
+    "summary": "Child records of a row (a child relation's rows, or the counts per relation)",
+    "permission": "data.view",
+    "positional": [
+      "id",
+      "rowId"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "relation",
+        "flag": "relation",
+        "description": "Child relation id (omit: the child counts of every relation of the row, or the rows when the table has exactly one relation)",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getDataRowChanges",
+    "method": "GET",
+    "path": "/data-tables/{id}/rows/{rowId}/changes",
+    "resource": "rows",
+    "verb": "changes",
+    "summary": "Change history of a row (field, old and new value, who, when)",
+    "permission": "data.view",
+    "positional": [
+      "id",
+      "rowId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "cursor": true,
     "envelope": true,
     "destructive": false
   },
@@ -4766,6 +5010,13 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         "description": "Name contains",
         "required": false,
         "type": "string"
+      },
+      {
+        "name": "tag",
+        "flag": "tag",
+        "description": "Only items carrying this tag",
+        "required": false,
+        "type": "string"
       }
     ],
     "body": null,
@@ -4819,6 +5070,17 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "boolean",
           "required": false,
           "description": "Make this the workspace default template"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
+        },
+        {
+          "name": "variables",
+          "required": false,
+          "description": "Declared variables (label, type, description, sample, required) for the custom {{variables}} the template uses; workflow steps show them as a mapping table. The variables a template uses are always detected from its subject and bodies; declarations add the details."
         }
       ]
     },
@@ -4889,6 +5151,17 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "boolean",
           "required": false,
           "description": "true makes this the workspace default (clearing the previous one)"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
+        },
+        {
+          "name": "variables",
+          "required": false,
+          "description": "Declared variables (label, type, description, sample, required) for the custom {{variables}} the template uses; workflow steps show them as a mapping table. The variables a template uses are always detected from its subject and bodies; declarations add the details."
         }
       ]
     },
@@ -4941,6 +5214,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "object",
           "required": false,
           "description": "Sample task record for {{task.*}} references"
+        },
+        {
+          "name": "mappings",
+          "type": "object",
+          "required": false,
+          "description": "A workflow step's template_variables: variable name → value or {{expression}} over `variables`"
         }
       ]
     },
@@ -6399,6 +6678,13 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "true",
           "false"
         ]
+      },
+      {
+        "name": "tagged",
+        "flag": "tagged",
+        "description": "Only controls carrying this tag (a label; not the element tag)",
+        "required": false,
+        "type": "string"
       }
     ],
     "body": null,
@@ -6547,6 +6833,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "array",
           "required": false,
           "description": "Network hosts to allow (only hosts a version's manifest asks for)"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
         }
       ]
     },
@@ -7246,6 +7538,13 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         "flag": "category",
         "required": false,
         "type": "string"
+      },
+      {
+        "name": "tag",
+        "flag": "tag",
+        "description": "Only items carrying this tag",
+        "required": false,
+        "type": "string"
       }
     ],
     "body": null,
@@ -7293,6 +7592,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "object",
           "required": false,
           "description": "Report configuration (data_source, columns, filters, ..., charts)"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
         }
       ]
     },
@@ -7357,6 +7662,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "object",
           "required": false,
           "description": "Report configuration (data_source, columns, filters, ..., charts)"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
         }
       ]
     },
@@ -7497,6 +7808,1499 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "string",
           "required": false,
           "description": "Replacement name"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listApps",
+    "method": "GET",
+    "path": "/apps",
+    "resource": "apps",
+    "verb": "list",
+    "summary": "List the apps you can open (or edit), by name",
+    "permission": "apps.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Name or description contains",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "editable",
+        "flag": "editable",
+        "description": "Only apps you can edit",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "true",
+          "false"
+        ]
+      },
+      {
+        "name": "tag",
+        "flag": "tag",
+        "description": "Only apps carrying this tag",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "apps",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createApp",
+    "method": "POST",
+    "path": "/apps",
+    "resource": "apps",
+    "verb": "create",
+    "summary": "Create an app (starts with one empty page, Home; you become an editor)",
+    "permission": "apps.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "App name"
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": false,
+          "description": "URL slug (/apps/<slug>); derived from the name when omitted; spec, rule-types, widget-types, new and search are reserved"
+        },
+        {
+          "name": "subtitle",
+          "required": false,
+          "description": "One line under the name (Apps page cards)"
+        },
+        {
+          "name": "description",
+          "required": false,
+          "description": "Short description (shown in the Apps menu and searched)"
+        },
+        {
+          "name": "icon",
+          "required": false,
+          "description": "Icon name (lucide, e.g. LayoutGrid, Briefcase)"
+        },
+        {
+          "name": "color",
+          "required": false,
+          "description": "Accent colour #rrggbb, layered on the workspace theme"
+        },
+        {
+          "name": "menu",
+          "type": "array",
+          "required": false,
+          "description": "Extra menu entries beside the pages"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively"
+        },
+        {
+          "name": "audience",
+          "type": "array",
+          "required": false,
+          "description": "Who may open the app: users, teams and roles"
+        },
+        {
+          "name": "editors",
+          "type": "array",
+          "required": false,
+          "description": "User ids who may edit this app"
+        },
+        {
+          "name": "nav",
+          "type": "object",
+          "required": false,
+          "description": "Navigation style and header options: { style: top | sidebar | drawer | tabs | bottom | mega | none, header_style, density, shell, … }"
+        },
+        {
+          "name": "params",
+          "type": "array",
+          "required": false,
+          "description": "App parameters [{ name, type: text | number | boolean | date | list | record, default?, required? }], filled from ?p.<name>= on any page, the opener or the embed URL"
+        },
+        {
+          "name": "variables",
+          "type": "array",
+          "required": false,
+          "description": "App variables [{ name, type, default? }]: kept for the session across pages; set by rules and widgets"
+        },
+        {
+          "name": "style",
+          "type": "object",
+          "required": false,
+          "description": "Widget styling: { default: <widget style every widget inherits>, presets: [{ name, style }] } — see lib/apps/style.ts and /docs/tasks/apps “Styling widgets”"
+        },
+        {
+          "name": "rules",
+          "type": "array",
+          "required": false,
+          "description": "App rules (run on every page): [{ id, name?, when: { type, … }, if?: { match, conditions }, then: [actions] }] — see lib/apps/rules.ts and /docs/tasks/apps"
+        },
+        {
+          "name": "sign_in_page",
+          "required": false,
+          "description": "Where people who are not signed in sign in: workspace (the workspace sign-in page), standard (the standard UserTasks sign-in) or null (follow the workspace setting use_for_apps, the default). Live at once: not part of the draft"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listAppWidgetTypes",
+    "method": "GET",
+    "path": "/apps/widget-types",
+    "resource": "apps",
+    "verb": "widget-types",
+    "summary": "The widget catalogue: each widget type with its sizes and config JSON schema",
+    "permission": "apps.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "widget_types",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getApp",
+    "method": "GET",
+    "path": "/apps/{id}",
+    "resource": "apps",
+    "verb": "get",
+    "summary": "An app with its pages and menu (audience, editors and publish state for its builders)",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "version",
+        "flag": "content-version",
+        "description": "Editors: draft (default for editors) or published. Everyone else always gets the published version.",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "draft",
+          "published"
+        ]
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateApp",
+    "method": "PATCH",
+    "path": "/apps/{id}",
+    "resource": "apps",
+    "verb": "update",
+    "summary": "Update an app: name, slug, description, icon, colour, menu, audience (replaced) and editors (replaced)",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "App name"
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": false,
+          "description": "URL slug (/apps/<slug>); derived from the name when omitted; spec, rule-types, widget-types, new and search are reserved"
+        },
+        {
+          "name": "subtitle",
+          "required": false,
+          "description": "One line under the name (Apps page cards)"
+        },
+        {
+          "name": "description",
+          "required": false,
+          "description": "Short description (shown in the Apps menu and searched)"
+        },
+        {
+          "name": "icon",
+          "required": false,
+          "description": "Icon name (lucide, e.g. LayoutGrid, Briefcase)"
+        },
+        {
+          "name": "color",
+          "required": false,
+          "description": "Accent colour #rrggbb, layered on the workspace theme"
+        },
+        {
+          "name": "menu",
+          "type": "array",
+          "required": false,
+          "description": "Extra menu entries beside the pages"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively"
+        },
+        {
+          "name": "audience",
+          "type": "array",
+          "required": false,
+          "description": "Who may open the app: users, teams and roles"
+        },
+        {
+          "name": "editors",
+          "type": "array",
+          "required": false,
+          "description": "User ids who may edit this app"
+        },
+        {
+          "name": "nav",
+          "type": "object",
+          "required": false,
+          "description": "Navigation style and header options: { style: top | sidebar | drawer | tabs | bottom | mega | none, header_style, density, shell, … }"
+        },
+        {
+          "name": "params",
+          "type": "array",
+          "required": false,
+          "description": "App parameters [{ name, type: text | number | boolean | date | list | record, default?, required? }], filled from ?p.<name>= on any page, the opener or the embed URL"
+        },
+        {
+          "name": "variables",
+          "type": "array",
+          "required": false,
+          "description": "App variables [{ name, type, default? }]: kept for the session across pages; set by rules and widgets"
+        },
+        {
+          "name": "style",
+          "type": "object",
+          "required": false,
+          "description": "Widget styling: { default: <widget style every widget inherits>, presets: [{ name, style }] } — see lib/apps/style.ts and /docs/tasks/apps “Styling widgets”"
+        },
+        {
+          "name": "rules",
+          "type": "array",
+          "required": false,
+          "description": "App rules (run on every page): [{ id, name?, when: { type, … }, if?: { match, conditions }, then: [actions] }] — see lib/apps/rules.ts and /docs/tasks/apps"
+        },
+        {
+          "name": "sign_in_page",
+          "required": false,
+          "description": "Where people who are not signed in sign in: workspace (the workspace sign-in page), standard (the standard UserTasks sign-in) or null (follow the workspace setting use_for_apps, the default). Live at once: not part of the draft"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteApp",
+    "method": "DELETE",
+    "path": "/apps/{id}",
+    "resource": "apps",
+    "verb": "delete",
+    "summary": "Delete an app with its pages, audience and editors",
+    "permission": "apps.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "listAppPages",
+    "method": "GET",
+    "path": "/apps/{id}/pages",
+    "resource": "apps",
+    "verb": "pages",
+    "summary": "The pages of an app in menu order, with their widgets and filters",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "version",
+        "flag": "content-version",
+        "description": "Editors: draft (default for editors) or published. Everyone else always gets the published version.",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "draft",
+          "published"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "pages",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "createAppPage",
+    "method": "POST",
+    "path": "/apps/{id}/pages",
+    "resource": "apps",
+    "verb": "add-page",
+    "summary": "Add a page to an app (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "description": "Page title (menu label)"
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": false,
+          "description": "URL slug (/apps/<app>/<slug>); derived from the title when omitted"
+        },
+        {
+          "name": "icon",
+          "required": false,
+          "description": "Icon name"
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false,
+          "description": "Menu order (0 first); appended when omitted"
+        },
+        {
+          "name": "layout",
+          "type": "object",
+          "required": false,
+          "description": "Widgets in reading order: { widgets: [{ id, type, w, h, title?, config }], params?: [page parameters], variables?: [page variables], rules?: [page rules] }"
+        },
+        {
+          "name": "filters",
+          "type": "array",
+          "required": false,
+          "description": "Page filters widgets can bind to with { filter: \"<id>\" }"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "reorderAppPages",
+    "method": "POST",
+    "path": "/apps/{id}/pages/reorder",
+    "resource": "apps",
+    "verb": "reorder-pages",
+    "summary": "Put the app's pages in this order (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "order",
+          "type": "array",
+          "required": true,
+          "description": "Page ids or slugs, first to last"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAppPage",
+    "method": "GET",
+    "path": "/apps/{id}/pages/{pageId}",
+    "resource": "apps",
+    "verb": "page",
+    "summary": "One page of an app: its widgets (layout.widgets) and page filters",
+    "permission": "apps.view",
+    "positional": [
+      "id",
+      "pageId"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "version",
+        "flag": "content-version",
+        "description": "Editors: draft (default for editors) or published. Everyone else always gets the published version.",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "draft",
+          "published"
+        ]
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateAppPage",
+    "method": "PATCH",
+    "path": "/apps/{id}/pages/{pageId}",
+    "resource": "apps",
+    "verb": "update-page",
+    "summary": "Update a page: title, slug, icon, position, widgets (layout, replaced) and filters (replaced) (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id",
+      "pageId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false,
+          "description": "Page title (menu label)"
+        },
+        {
+          "name": "slug",
+          "type": "string",
+          "required": false,
+          "description": "URL slug (/apps/<app>/<slug>); derived from the title when omitted"
+        },
+        {
+          "name": "icon",
+          "required": false,
+          "description": "Icon name"
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "required": false,
+          "description": "Menu order (0 first); appended when omitted"
+        },
+        {
+          "name": "layout",
+          "type": "object",
+          "required": false,
+          "description": "Widgets in reading order: { widgets: [{ id, type, w, h, title?, config }], params?: [page parameters], variables?: [page variables], rules?: [page rules] }"
+        },
+        {
+          "name": "filters",
+          "type": "array",
+          "required": false,
+          "description": "Page filters widgets can bind to with { filter: \"<id>\" }"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteAppPage",
+    "method": "DELETE",
+    "path": "/apps/{id}/pages/{pageId}",
+    "resource": "apps",
+    "verb": "delete-page",
+    "summary": "Delete a page of an app (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id",
+      "pageId"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "getAppAccess",
+    "method": "GET",
+    "path": "/apps/{id}/access",
+    "resource": "apps",
+    "verb": "access",
+    "summary": "Access issues: who in the audience can't use what the app shows them, and how to fix it (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "grantAppAccess",
+    "method": "POST",
+    "path": "/apps/{id}/access/grant",
+    "resource": "apps",
+    "verb": "grant-access",
+    "summary": "Fix access issues with form grants (View + Submit) through the object permissions service (edit access and team.change_roles)",
+    "permission": "team.change_roles",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "keys",
+          "type": "array",
+          "required": false,
+          "description": "Gap keys from GET /apps/{id}/access; omitted = every gap you can fix"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "previewAppPackage",
+    "method": "POST",
+    "path": "/apps/{id}/package/preview",
+    "resource": "apps",
+    "verb": "package-preview",
+    "summary": "What packaging the app would include: dependencies (and why), install requirements, embed sites (edit access)",
+    "permission": "packages.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "excluded",
+          "type": "array",
+          "required": false,
+          "description": "Dependencies to leave out (they must exist where the package is installed); default: the choices kept from the last package"
+        },
+        {
+          "name": "data_modes",
+          "type": "object",
+          "required": false,
+          "description": "Per data table id: \"schema\" (default) or \"rows\" (sample data)"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "required": false,
+          "description": "published (default): the app's published version (its draft while never published); draft: the working draft (\"Export draft\")"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "packageApp",
+    "method": "POST",
+    "path": "/apps/{id}/package",
+    "resource": "apps",
+    "verb": "package",
+    "summary": "Package / Export an app: build the next signed version of its package and return the .utpkg (edit access and packages.manage)",
+    "permission": "packages.manage",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "excluded",
+          "type": "array",
+          "required": false,
+          "description": "Dependencies to leave out (they must exist where the package is installed); default: the choices kept from the last package"
+        },
+        {
+          "name": "data_modes",
+          "type": "object",
+          "required": false,
+          "description": "Per data table id: \"schema\" (default) or \"rows\" (sample data)"
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "required": false,
+          "description": "published (default): the app's published version (its draft while never published); draft: the working draft (\"Export draft\")"
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "required": false,
+          "description": "Exact semver; default: the next patch (1.0.0 first)"
+        },
+        {
+          "name": "notes",
+          "required": false,
+          "description": "Release notes for this version"
+        },
+        {
+          "name": "description",
+          "required": false
+        },
+        {
+          "name": "readme",
+          "required": false,
+          "description": "Markdown shown before install"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAppRuleTypes",
+    "method": "GET",
+    "path": "/apps/rule-types",
+    "resource": "apps",
+    "verb": "rule-types",
+    "summary": "App rules reference: triggers (with their {{event.*}} payload), actions, system variables and the JSON schemas of a rule, parameters and variables",
+    "permission": "apps.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "runAppAction",
+    "method": "POST",
+    "path": "/apps/{id}/actions",
+    "resource": "apps",
+    "verb": "run-action",
+    "summary": "Run an app rule's server action (call an API reference, look up / create / update data table rows, start a workflow) as the caller",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "page",
+          "required": false,
+          "description": "Page id or slug (page rules); omit for app rules"
+        },
+        {
+          "name": "rule_id",
+          "type": "string",
+          "required": true,
+          "description": "Rule id"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": true,
+          "description": "Action path in the rule, e.g. then.2, then.1.then.0, on_error.0"
+        },
+        {
+          "name": "values",
+          "type": "object",
+          "required": false,
+          "description": "Values of the action's template slots: inputs.<name>, values.<column>, row_id, filter.<i>[.<j>]"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": true,
+          "description": "A key per run (a retry replays the result)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "searchAppObjects",
+    "method": "GET",
+    "path": "/apps/spec/search",
+    "resource": "apps",
+    "verb": "search",
+    "summary": "Find objects to put in an app (forms, workflows, data tables, reports, teams, people, roles, agents, API references, table columns / views, pages): id, name, hint",
+    "permission": "apps.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "kind",
+        "flag": "kind",
+        "description": "What to find",
+        "required": true,
+        "type": "string",
+        "enum": [
+          "workflow",
+          "form",
+          "table",
+          "report",
+          "team",
+          "user",
+          "role",
+          "agent",
+          "reference",
+          "page",
+          "column",
+          "view"
+        ]
+      },
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Name contains",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "app",
+        "flag": "app",
+        "description": "The app being edited (id or slug)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "table",
+        "flag": "table",
+        "description": "kind column / view: the data table id",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAppObjectDetails",
+    "method": "GET",
+    "path": "/apps/spec/object",
+    "resource": "apps",
+    "verb": "object",
+    "summary": "What an app binds to: a form's fields and parameters, a data table's columns and views, a workflow's trigger and start form",
+    "permission": "apps.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "kind",
+        "flag": "kind",
+        "required": true,
+        "type": "string",
+        "enum": [
+          "form",
+          "table",
+          "workflow"
+        ]
+      },
+      {
+        "name": "id",
+        "flag": "id",
+        "description": "Id from /apps/spec/search",
+        "required": true,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAppSpecReference",
+    "method": "GET",
+    "path": "/apps/spec/reference",
+    "resource": "apps",
+    "verb": "spec-reference",
+    "summary": "The app spec format (JSON schema), design guidance, starter templates, the widget catalogue in one line each and a worked example",
+    "permission": "apps.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "widget_types",
+        "flag": "widget-types",
+        "description": "Comma-separated widget types whose full config schemas to include",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "planAppSpec",
+    "method": "POST",
+    "path": "/apps/spec/plan",
+    "resource": "apps",
+    "verb": "plan",
+    "summary": "Check an app spec without changing anything: plain-language errors to fix, design warnings and a summary of what would be built",
+    "permission": "apps.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "app_id",
+          "type": "string",
+          "required": false,
+          "description": "An existing app (id or slug) to change. Omit to create a new app (then app.name is required)."
+        },
+        {
+          "name": "app",
+          "type": "object",
+          "required": false,
+          "description": "App settings: { name, slug?, subtitle?, description?, icon? (lucide name), color? (#rrggbb, only when asked), nav? { style: tabs | top | sidebar | drawer | bottom | mega | none, header_style?, density? }, menu? [entries], params?, variables?, rules?, style? }. For an existing app: only what changes."
+        },
+        {
+          "name": "pages",
+          "type": "array",
+          "required": false,
+          "description": "Pages in menu order. New page: { title, icon?, slug?, hidden?, min_role? viewer | contributor | editor, template? (starter template id), filters? [{ id, kind: user | team | form | workflow | table | date_range | status | text, label, default? }], widgets: [{ type, title?, w? 1–12, h?, config?, style?, id? }], params?, variables?, rules? }. Existing page: { page: \"<slug or id>\", title?, filters?, widgets? (replaces all) OR add_widgets [{ …widget, after? | before? | at? start | end }], update_widgets [{ id, config? (merged; null removes a key), replace_config?, w?, h?, title?, style?, move? { after | before | at } }], remove_widgets [\"<id>\"] } (applied in that order: remove, then update / move, then add). The first page of a new app is its home page. Widget config schemas: apps_spec_reference { widget_types } or apps_widget_types."
+        },
+        {
+          "name": "delete_pages",
+          "type": "array",
+          "required": false,
+          "description": "Existing pages (slugs or ids) to delete"
+        },
+        {
+          "name": "page_order",
+          "type": "array",
+          "required": false,
+          "description": "Page slugs in menu order, first to last"
+        },
+        {
+          "name": "audience",
+          "type": "array",
+          "required": false,
+          "description": "Who may open the app (replaced): [{ type: user | team | role, id, role: viewer (read-only) | contributor (may use submit / start / claim buttons) }]"
+        },
+        {
+          "name": "editors",
+          "type": "array",
+          "required": false,
+          "description": "User ids who may edit the app (replaced)"
+        },
+        {
+          "name": "publish",
+          "type": "boolean",
+          "required": false,
+          "description": "Changes are saved to the app's DRAFT (its audience keeps seeing the published version until someone publishes). true: publish straight after applying — only when the person explicitly asked to make it live now."
+        },
+        {
+          "name": "publish_note",
+          "type": "string",
+          "required": false,
+          "description": "With publish: the version note (what changed)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "applyAppSpec",
+    "method": "POST",
+    "path": "/apps/spec/apply",
+    "resource": "apps",
+    "verb": "apply",
+    "summary": "Build or change an app in one step from an app spec (checked again first; applied whole or not at all)",
+    "permission": "apps.view",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "app_id",
+          "type": "string",
+          "required": false,
+          "description": "An existing app (id or slug) to change. Omit to create a new app (then app.name is required)."
+        },
+        {
+          "name": "app",
+          "type": "object",
+          "required": false,
+          "description": "App settings: { name, slug?, subtitle?, description?, icon? (lucide name), color? (#rrggbb, only when asked), nav? { style: tabs | top | sidebar | drawer | bottom | mega | none, header_style?, density? }, menu? [entries], params?, variables?, rules?, style? }. For an existing app: only what changes."
+        },
+        {
+          "name": "pages",
+          "type": "array",
+          "required": false,
+          "description": "Pages in menu order. New page: { title, icon?, slug?, hidden?, min_role? viewer | contributor | editor, template? (starter template id), filters? [{ id, kind: user | team | form | workflow | table | date_range | status | text, label, default? }], widgets: [{ type, title?, w? 1–12, h?, config?, style?, id? }], params?, variables?, rules? }. Existing page: { page: \"<slug or id>\", title?, filters?, widgets? (replaces all) OR add_widgets [{ …widget, after? | before? | at? start | end }], update_widgets [{ id, config? (merged; null removes a key), replace_config?, w?, h?, title?, style?, move? { after | before | at } }], remove_widgets [\"<id>\"] } (applied in that order: remove, then update / move, then add). The first page of a new app is its home page. Widget config schemas: apps_spec_reference { widget_types } or apps_widget_types."
+        },
+        {
+          "name": "delete_pages",
+          "type": "array",
+          "required": false,
+          "description": "Existing pages (slugs or ids) to delete"
+        },
+        {
+          "name": "page_order",
+          "type": "array",
+          "required": false,
+          "description": "Page slugs in menu order, first to last"
+        },
+        {
+          "name": "audience",
+          "type": "array",
+          "required": false,
+          "description": "Who may open the app (replaced): [{ type: user | team | role, id, role: viewer (read-only) | contributor (may use submit / start / claim buttons) }]"
+        },
+        {
+          "name": "editors",
+          "type": "array",
+          "required": false,
+          "description": "User ids who may edit the app (replaced)"
+        },
+        {
+          "name": "publish",
+          "type": "boolean",
+          "required": false,
+          "description": "Changes are saved to the app's DRAFT (its audience keeps seeing the published version until someone publishes). true: publish straight after applying — only when the person explicitly asked to make it live now."
+        },
+        {
+          "name": "publish_note",
+          "type": "string",
+          "required": false,
+          "description": "With publish: the version note (what changed)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "publishApp",
+    "method": "POST",
+    "path": "/apps/{id}/publish",
+    "resource": "apps",
+    "verb": "publish",
+    "summary": "Publish the app's draft as its next version (edit access): its audience sees it from now on",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "note",
+          "required": false,
+          "description": "Version note: what changed"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "discardAppDraft",
+    "method": "DELETE",
+    "path": "/apps/{id}/draft",
+    "resource": "apps",
+    "verb": "draft-discard",
+    "summary": "Discard the app's draft: back to its published version (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "listAppVersions",
+    "method": "GET",
+    "path": "/apps/{id}/versions",
+    "resource": "apps",
+    "verb": "versions",
+    "summary": "The published versions of an app, newest first: number, note, publisher, date, which one is live (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "versions",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAppVersion",
+    "method": "GET",
+    "path": "/apps/{id}/versions/{version}",
+    "resource": "apps",
+    "verb": "version",
+    "summary": "One published version of an app: its immutable snapshot (header, menu, settings, pages with layouts and filters) (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id",
+      "version"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "compareAppVersions",
+    "method": "GET",
+    "path": "/apps/{id}/compare",
+    "resource": "apps",
+    "verb": "compare",
+    "summary": "Compare two versions of an app: pages, widgets, rules, menu, navigation and style changes with readable lines (edit access)",
+    "permission": "apps.view",
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "from",
+        "flag": "from",
+        "description": "draft, published (default) or a version number",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "to",
+        "flag": "to",
+        "description": "draft (default), published or a version number",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "restoreAppVersion",
+    "method": "POST",
+    "path": "/apps/{id}/versions/{version}/restore",
+    "resource": "apps",
+    "verb": "version-restore",
+    "summary": "Restore a published version into the app's draft (edit access): nothing changes for its audience until it is published",
+    "permission": "apps.view",
+    "positional": [
+      "id",
+      "version"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listTags",
+    "method": "GET",
+    "path": "/tags",
+    "resource": "tags",
+    "verb": "list",
+    "summary": "List the tags in use with their colours, descriptions and usage per object type",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Tag name or description contains",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "tags",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "suggestTags",
+    "method": "GET",
+    "path": "/tags/suggest",
+    "resource": "tags",
+    "verb": "suggest",
+    "summary": "Autocomplete: workspace tags matching some text, ranked, with colours and usage",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "What was typed",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "suggestions",
+    "paginated": false,
+    "cursor": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listTagObjects",
+    "method": "GET",
+    "path": "/tags/objects",
+    "resource": "tags",
+    "verb": "objects",
+    "summary": "The objects of one type that carry a tag, by name, paged",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "name",
+        "flag": "name",
+        "description": "The tag (any case)",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "type",
+        "flag": "type",
+        "description": "Object type",
+        "required": true,
+        "type": "string",
+        "enum": [
+          "tasks",
+          "workflows",
+          "forms",
+          "integrations",
+          "references",
+          "agents",
+          "activities",
+          "data_tables",
+          "reports",
+          "business_rules",
+          "email_templates",
+          "form_controls",
+          "apps",
+          "packages"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "items",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "setTagStyle",
+    "method": "PUT",
+    "path": "/tags/style",
+    "resource": "tags",
+    "verb": "set-style",
+    "summary": "Set a tag's colour and / or description",
+    "permission": "tags.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "The tag"
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false,
+          "description": "gray, red, orange, amber, yellow, lime, green, teal, cyan, blue, indigo, violet, purple, pink, rose or auto"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "required": false,
+          "description": "Shown when hovering over the tag; \"\" clears it"
+        },
+        {
+          "name": "keep",
+          "type": "boolean",
+          "required": false,
+          "description": "Keep the tag in the registry even with no colour or description (create a tag ahead of use)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deleteTagStyle",
+    "method": "DELETE",
+    "path": "/tags/style",
+    "resource": "tags",
+    "verb": "reset-style",
+    "summary": "Reset a tag to its automatic colour (removes its colour and description)",
+    "permission": "tags.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "name",
+        "flag": "name",
+        "description": "The tag",
+        "required": true,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "renameTag",
+    "method": "POST",
+    "path": "/tags/rename",
+    "resource": "tags",
+    "verb": "rename",
+    "summary": "Rename a tag on every object, or merge it into another tag",
+    "permission": "tags.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "from",
+          "type": "string",
+          "required": true,
+          "description": "The tag to rename (any case)"
+        },
+        {
+          "name": "to",
+          "type": "string",
+          "required": true,
+          "description": "The new name, or an existing tag to merge into"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "removeTag",
+    "method": "POST",
+    "path": "/tags/remove",
+    "resource": "tags",
+    "verb": "remove",
+    "summary": "Remove a tag from every object and delete its colour and description",
+    "permission": "tags.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "description": "The tag (any case)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": true
+  },
+  {
+    "operationId": "applyTags",
+    "method": "POST",
+    "path": "/tags/apply",
+    "resource": "tags",
+    "verb": "apply",
+    "summary": "Add or remove tags on objects (or replace one object's tags)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "type",
+          "type": "string",
+          "required": true,
+          "description": "Object type"
+        },
+        {
+          "name": "ids",
+          "type": "array",
+          "required": true,
+          "description": "Object ids"
+        },
+        {
+          "name": "add",
+          "type": "array",
+          "required": false,
+          "description": "Tags to add"
+        },
+        {
+          "name": "remove",
+          "type": "array",
+          "required": false,
+          "description": "Tags to remove (any case)"
+        },
+        {
+          "name": "set",
+          "type": "array",
+          "required": false,
+          "description": "Replace the tags (one object only)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getTagSettings",
+    "method": "GET",
+    "path": "/tags/settings",
+    "resource": "tags",
+    "verb": "settings",
+    "summary": "Get the tag settings (automatic colours on or off)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateTagSettings",
+    "method": "PATCH",
+    "path": "/tags/settings",
+    "resource": "tags",
+    "verb": "update-settings",
+    "summary": "Change the tag settings (automatic colours, who may add new tags)",
+    "permission": "tags.manage",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "auto_color",
+          "type": "boolean",
+          "required": false,
+          "description": "Uncoloured tags get a colour from their name (true, default) or show in neutral grey (false)"
+        },
+        {
+          "name": "allow_new",
+          "type": "boolean",
+          "required": false,
+          "description": "Anyone who can edit an object may add a brand-new tag to it (true, default); false: only people with tags.manage, everyone else picks existing tags"
         }
       ]
     },
@@ -10064,12 +11868,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": false
   },
   {
-    "operationId": "getFormSignInPage",
+    "operationId": "getSignInPage",
     "method": "GET",
-    "path": "/workspace/form-sign-in-page",
-    "resource": "form-sign-in-page",
+    "path": "/workspace/sign-in-page",
+    "resource": "sign-in-page",
     "verb": "get",
-    "summary": "Get the form sign-in page settings (any member)",
+    "summary": "Get the sign-in page settings for forms and apps (any member)",
     "permission": null,
     "positional": [],
     "pathFlags": [],
@@ -10080,12 +11884,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "destructive": false
   },
   {
-    "operationId": "updateFormSignInPage",
+    "operationId": "updateSignInPage",
     "method": "PATCH",
-    "path": "/workspace/form-sign-in-page",
-    "resource": "form-sign-in-page",
+    "path": "/workspace/sign-in-page",
+    "resource": "sign-in-page",
     "verb": "update",
-    "summary": "Change the form sign-in page settings",
+    "summary": "Change the sign-in page settings for forms and apps",
     "permission": "settings.edit",
     "positional": [],
     "pathFlags": [],
@@ -10149,6 +11953,135 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "boolean",
           "required": false,
           "description": "Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false"
+        },
+        {
+          "name": "use_for_forms",
+          "type": "boolean",
+          "required": false,
+          "description": "Form links (/f/…, /form/…) use this page; false sends them to the standard UserTasks sign-in. Default true"
+        },
+        {
+          "name": "use_for_apps",
+          "type": "boolean",
+          "required": false,
+          "description": "Apps (/app/…, /apps/…, /embed/apps/…) use this page; false sends them to the standard sign-in. An app can override it (its sign_in_page setting). Default true"
+        },
+        {
+          "name": "use_app_color",
+          "type": "boolean",
+          "required": false,
+          "description": "On an app's sign-in page, use the app's colour as the accent (when it has one; not with use_workspace_theme). Default false"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getFormSignInPage",
+    "method": "GET",
+    "path": "/workspace/form-sign-in-page",
+    "resource": "form-sign-in-page",
+    "verb": "get",
+    "summary": "Get the sign-in page settings (earlier name of GET /workspace/sign-in-page)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateFormSignInPage",
+    "method": "PATCH",
+    "path": "/workspace/form-sign-in-page",
+    "resource": "form-sign-in-page",
+    "verb": "update",
+    "summary": "Change the sign-in page settings (earlier name of PATCH /workspace/sign-in-page)",
+    "permission": "settings.edit",
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "design",
+          "type": "integer",
+          "required": false,
+          "description": "The design, 1–10: 1 UserTasks, 2 Split screen, 3 Minimal, 4 Gradient, 5 Brand rail, 6 Glass, 7 Top banner, 8 Dark elegant, 9 Soft shapes, 10 Compact. Embedded in another site the page always uses 10 (Compact)."
+        },
+        {
+          "name": "logo_url",
+          "required": false,
+          "description": "The logo: an image uploaded to this workspace's logos (variant form-sign-in, Settings → Forms); null shows the workspace name"
+        },
+        {
+          "name": "heading",
+          "type": "string",
+          "required": false,
+          "description": "Heading (default \"Sign in to continue\")"
+        },
+        {
+          "name": "subheading",
+          "type": "string",
+          "required": false,
+          "description": "Welcome message under the heading; may be empty"
+        },
+        {
+          "name": "button_label",
+          "type": "string",
+          "required": false,
+          "description": "The sign-in button label (default \"Sign in\")"
+        },
+        {
+          "name": "footer_text",
+          "type": "string",
+          "required": false,
+          "description": "Small print under the form; empty for none"
+        },
+        {
+          "name": "support_link_label",
+          "type": "string",
+          "required": false,
+          "description": "Support link text (blank: \"Get help\")"
+        },
+        {
+          "name": "support_link_url",
+          "required": false,
+          "description": "Support link: https:// or mailto:; null for none"
+        },
+        {
+          "name": "accent_color",
+          "required": false,
+          "description": "#rrggbb for buttons and coloured panels; null is the UserTasks default (ink). Ignored while use_workspace_theme is on"
+        },
+        {
+          "name": "use_workspace_theme",
+          "type": "boolean",
+          "required": false,
+          "description": "Draw the page in the workspace theme (colours, surfaces, text, radius, fonts, light/dark mode, canvas) instead of the UserTasks look and accent_color; the design, logo and wording still apply. Default false"
+        },
+        {
+          "name": "use_for_forms",
+          "type": "boolean",
+          "required": false,
+          "description": "Form links (/f/…, /form/…) use this page; false sends them to the standard UserTasks sign-in. Default true"
+        },
+        {
+          "name": "use_for_apps",
+          "type": "boolean",
+          "required": false,
+          "description": "Apps (/app/…, /apps/…, /embed/apps/…) use this page; false sends them to the standard sign-in. An app can override it (its sign_in_page setting). Default true"
+        },
+        {
+          "name": "use_app_color",
+          "type": "boolean",
+          "required": false,
+          "description": "On an app's sign-in page, use the app's colour as the accent (when it has one; not with use_workspace_theme). Default false"
         }
       ]
     },
@@ -10309,6 +12242,103 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         {
           "name": "api_version",
           "required": false
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getQuerySettings",
+    "method": "GET",
+    "path": "/settings/query",
+    "resource": "query-settings",
+    "verb": "get",
+    "summary": "Get the query settings and status",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "updateQuerySettings",
+    "method": "PATCH",
+    "path": "/settings/query",
+    "resource": "query-settings",
+    "verb": "update",
+    "summary": "Change the query settings",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "default_mode",
+          "type": "string",
+          "required": false,
+          "description": "Workspace default: auto = the rollups when they cover the window and nothing is queued for the workspace, else real time; rollup = \"Flat table\" (the rollups whenever they cover the window); live = \"Real time\" (raw rows). Real time is always the fallback."
+        },
+        {
+          "name": "default_cache_ttl_seconds",
+          "type": "integer",
+          "required": false,
+          "description": "Default cache TTL (seconds, 0 = off; default 20)"
+        },
+        {
+          "name": "allow_widget_override",
+          "type": "boolean",
+          "required": false,
+          "description": "Let app editors set a data source per widget (Inherit / Flat table / Real time)"
+        },
+        {
+          "name": "services",
+          "type": "object",
+          "required": false,
+          "description": "Per service (reports_hub, report_charts, home_stats, app_widgets, extension_stats, task_sla, form_submission_stats, api_reports); null removes the override"
+        },
+        {
+          "name": "apps",
+          "type": "object",
+          "required": false,
+          "description": "Per app id: a mode, or inherit / null to remove"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "runQueryRollups",
+    "method": "POST",
+    "path": "/settings/query/rollups",
+    "resource": "query-settings",
+    "verb": "rollups",
+    "summary": "Run a report rollups action for the workspace",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "action",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "tenant_id",
+          "type": "string",
+          "required": false,
+          "description": "Cloud edition (instance admins): a workspace id, or \"all\" (default) for every workspace. Self-hosted: this workspace only"
         }
       ]
     },
@@ -11351,7 +13381,15 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "permission": "packages.view",
     "positional": [],
     "pathFlags": [],
-    "query": [],
+    "query": [
+      {
+        "name": "tag",
+        "flag": "tag",
+        "description": "Only items carrying this tag",
+        "required": false,
+        "type": "string"
+      }
+    ],
     "body": null,
     "listKey": "packages",
     "paginated": true,
@@ -11429,6 +13467,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "string",
           "required": false,
           "description": "Re-create a package with an existing identity (another workspace)"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
         }
       ]
     },
@@ -11498,7 +13542,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
       {
         "name": "type",
         "flag": "type",
-        "description": "Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme, form_control (default every type you may view) (comma-separated)",
+        "description": "Asset types: workflow, workflow_activity, data_table, integration, connector, decision_table, email_template, agent, report, role, mcp_server, retention_policy, log_destination, form, form_theme, form_control, app (default every type you may view) (comma-separated)",
         "required": false,
         "type": "string"
       },
@@ -11648,6 +13692,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "type": "object",
           "required": false,
           "description": "Merged over the stored modes"
+        },
+        {
+          "name": "tags",
+          "type": "array",
+          "required": false,
+          "description": "Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters"
         }
       ]
     },
@@ -12950,6 +15000,1582 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
     "pathFlags": [],
     "query": [],
     "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getAdminProcessing",
+    "method": "GET",
+    "path": "/admin/processing",
+    "resource": "admin-processing",
+    "verb": "status",
+    "summary": "Processing status: where queued work runs, queue health, processing and stuck jobs (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "configureAdminProcessing",
+    "method": "PATCH",
+    "path": "/admin/processing",
+    "resource": "admin-processing",
+    "verb": "configure",
+    "summary": "Change the processing mode / test-run option (instance admin; needs the processing add-on)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "mode",
+          "type": "string",
+          "required": false,
+          "description": "Where queued work runs"
+        },
+        {
+          "name": "test_runs_on_workers",
+          "type": "boolean",
+          "required": false,
+          "description": "Designer test runs on workers too (default: in the web app)"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "recoverAdminProcessingJob",
+    "method": "POST",
+    "path": "/admin/processing/jobs/{id}/recover",
+    "resource": "admin-processing",
+    "verb": "recover",
+    "summary": "Retry or cancel a processing job whose worker was lost; force-cancel a live one (instance admin)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "action",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "force",
+          "type": "boolean",
+          "required": false,
+          "description": "Cancel a job whose worker is still alive"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getInstanceOverview",
+    "method": "GET",
+    "path": "/instance/overview",
+    "resource": "instance",
+    "verb": "overview",
+    "summary": "Instance KPIs: workspaces, active people, signups, trials ending, failed runs, AI spend, storage, queue (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceAlerts",
+    "method": "GET",
+    "path": "/instance/alerts",
+    "resource": "instance",
+    "verb": "alerts",
+    "summary": "Alerts: locked accounts, trials ending, lapsed licences, failing workspaces, AI spend spikes (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceWorkspaces",
+    "method": "GET",
+    "path": "/instance/workspaces",
+    "resource": "instance",
+    "verb": "workspaces",
+    "summary": "Workspaces with members, activity, runs, failures, AI spend and storage (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getInstanceWorkspace",
+    "method": "GET",
+    "path": "/instance/workspaces/{id}",
+    "resource": "instance",
+    "verb": "workspace",
+    "summary": "One workspace: owners, members, usage, health, licences (instance admin)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceWorkspaceAudit",
+    "method": "GET",
+    "path": "/instance/workspaces/{id}/audit",
+    "resource": "instance",
+    "verb": "workspace-audit",
+    "summary": "A workspace's audit log: when, object type, action, actor — no summaries or changes (instance admin)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceUsers",
+    "method": "GET",
+    "path": "/instance/users",
+    "resource": "instance",
+    "verb": "users",
+    "summary": "People across workspaces (search by email or name; status=Locked) (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "getInstanceUser",
+    "method": "GET",
+    "path": "/instance/users/{id}",
+    "resource": "instance",
+    "verb": "user",
+    "summary": "One person: sign-in state, lockout, MFA and sign-in methods, workspaces (instance admin)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceMemberships",
+    "method": "GET",
+    "path": "/instance/memberships",
+    "resource": "instance",
+    "verb": "memberships",
+    "summary": "Memberships of a workspace or a person, with roles (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceInvitations",
+    "method": "GET",
+    "path": "/instance/invitations",
+    "resource": "instance",
+    "verb": "invitations",
+    "summary": "Invitations across workspaces (status=pending|expired|accepted; tokens never returned) (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "inviteInstanceUser",
+    "method": "POST",
+    "path": "/instance/invitations",
+    "resource": "instance",
+    "verb": "invite",
+    "summary": "Invite a person to a workspace with a role (instance admin, on behalf)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "workspace_id",
+          "type": "string",
+          "required": true,
+          "description": "Workspace id"
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "description": "Default member"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceUsage",
+    "method": "GET",
+    "path": "/instance/usage",
+    "resource": "instance",
+    "verb": "usage",
+    "summary": "Usage per workspace: runs, failures, tasks, AI requests and spend, API keys, storage (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceAiUsage",
+    "method": "GET",
+    "path": "/instance/ai-usage",
+    "resource": "instance",
+    "verb": "ai-usage",
+    "summary": "AI usage per day, workspace, source and model, with tokens and cost (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceAssets",
+    "method": "GET",
+    "path": "/instance/assets",
+    "resource": "instance",
+    "verb": "assets",
+    "summary": "Asset counts (forms, workflows, apps, tables, reports, agents, …) of a workspace or the instance (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceHealth",
+    "method": "GET",
+    "path": "/instance/health",
+    "resource": "instance",
+    "verb": "health",
+    "summary": "Health per workspace: failed runs, agent errors, queue backlog, dead jobs, licence-paused runs (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceQueue",
+    "method": "GET",
+    "path": "/instance/queue",
+    "resource": "instance",
+    "verb": "queue",
+    "summary": "Queue health of the instance (workflow, agent, background jobs, deletion) (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [],
+    "body": null,
+    "listKey": "rows",
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceSignIns",
+    "method": "GET",
+    "path": "/instance/sign-ins",
+    "resource": "instance",
+    "verb": "sign-ins",
+    "summary": "Recent sign-in activity (last seen) (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceLicences",
+    "method": "GET",
+    "path": "/instance/licences",
+    "resource": "instance",
+    "verb": "licences",
+    "summary": "Licences and trials of workspaces (status=expiring|expired|trial|…) (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "listInstanceAudit",
+    "method": "GET",
+    "path": "/instance/audit",
+    "resource": "instance",
+    "verb": "audit",
+    "summary": "The instance admin audit trail (every on-behalf action) (instance admin)",
+    "permission": null,
+    "positional": [],
+    "pathFlags": [],
+    "query": [
+      {
+        "name": "q",
+        "flag": "q",
+        "description": "Search (names, emails, slugs)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "workspace_id",
+        "flag": "workspace-id",
+        "description": "Only this workspace",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "user_id",
+        "flag": "user-id",
+        "description": "Only this person",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "flag": "status",
+        "description": "Status filter (dataset-specific, e.g. Locked, pending, Failing, expiring)",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "plan",
+        "flag": "plan",
+        "description": "Workspace plan",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "days",
+        "flag": "days",
+        "description": "Look-back window in days (usage, AI usage, sign-ins, audit)",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "sort",
+        "flag": "sort",
+        "description": "Column key to sort by",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "dir",
+        "flag": "dir",
+        "description": "Sort direction",
+        "required": false,
+        "type": "string",
+        "enum": [
+          "asc",
+          "desc"
+        ]
+      }
+    ],
+    "body": null,
+    "listKey": "rows",
+    "paginated": true,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "unlockInstanceUser",
+    "method": "POST",
+    "path": "/instance/users/{id}/unlock",
+    "resource": "instance",
+    "verb": "unlock",
+    "summary": "Unlock an account (clear a failed sign-in lockout / suspension) (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "sendInstancePasswordReset",
+    "method": "POST",
+    "path": "/instance/users/{id}/password-reset",
+    "resource": "instance",
+    "verb": "password-reset",
+    "summary": "Send the normal password reset email (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "signOutInstanceUser",
+    "method": "POST",
+    "path": "/instance/users/{id}/sign-out",
+    "resource": "instance",
+    "verb": "sign-out",
+    "summary": "Sign a person out everywhere (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "resendInstanceInvitation",
+    "method": "POST",
+    "path": "/instance/invitations/{id}/resend",
+    "resource": "instance",
+    "verb": "resend-invitation",
+    "summary": "Resend an invitation (new link, 7 more days) (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "revokeInstanceInvitation",
+    "method": "POST",
+    "path": "/instance/invitations/{id}/revoke",
+    "resource": "instance",
+    "verb": "revoke-invitation",
+    "summary": "Revoke a pending invitation (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "changeInstanceMemberRole",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/members/{user_id}/role",
+    "resource": "instance",
+    "verb": "change-role",
+    "summary": "Change a member's role (the last owner is guarded) (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id",
+      "user_id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "role",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "deactivateInstanceMember",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/members/{user_id}/deactivate",
+    "resource": "instance",
+    "verb": "deactivate",
+    "summary": "Deactivate a member (the last owner is guarded) (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id",
+      "user_id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "reactivateInstanceMember",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/members/{user_id}/reactivate",
+    "resource": "instance",
+    "verb": "reactivate",
+    "summary": "Reactivate a deactivated member (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id",
+      "user_id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "description": "Role when they have none (default member)"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "extendInstanceTrial",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/licences/{extension_id}/extend",
+    "resource": "instance",
+    "verb": "extend-trial",
+    "summary": "Extend a trial or licence of a workspace (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id",
+      "extension_id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "days",
+          "type": "integer",
+          "required": false,
+          "description": "Days to add (from the current end, or today)"
+        },
+        {
+          "name": "ends_at",
+          "type": "string",
+          "required": false,
+          "description": "Or the new end"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "reactivateInstanceLicence",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/licences/{extension_id}/reactivate",
+    "resource": "instance",
+    "verb": "reactivate-licence",
+    "summary": "Reactivate a suspended licence of a workspace (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id",
+      "extension_id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
+    "paginated": false,
+    "envelope": true,
+    "destructive": false
+  },
+  {
+    "operationId": "resumeInstancePausedRuns",
+    "method": "POST",
+    "path": "/instance/workspaces/{id}/resume-paused-runs",
+    "resource": "instance",
+    "verb": "resume-paused-runs",
+    "summary": "Resume workflow runs paused by a lapsed licence (instance admin, on behalf)",
+    "permission": null,
+    "positional": [
+      "id"
+    ],
+    "pathFlags": [],
+    "query": [],
+    "body": {
+      "required": true,
+      "fields": [
+        {
+          "name": "extension_id",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "description": "Why (recorded in both audit logs)"
+        },
+        {
+          "name": "idempotency_key",
+          "type": "string",
+          "required": false,
+          "description": "Retry key: a repeat returns the first result"
+        }
+      ]
+    },
     "paginated": false,
     "envelope": true,
     "destructive": false

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { defineEndpoint } from './registry'
-import { booleanFlag, idParams, itemResponse, listResponse, looseObject, paginationQuery } from './common'
+import { booleanFlag, idParams, itemResponse, listResponse, looseObject, paginationQuery, tagQueryField, tagsBodyField } from './common'
 import { MAX_REPORT_CHARTS, reportChartSpecSchema } from '@/lib/report-charts'
 
 // Report routes normalise bodies with normalizeReportConfig rather than zod;
@@ -34,6 +34,7 @@ export const reportCreateBody = z.looseObject({
   category: z.string().optional(),
   is_shared: z.boolean().optional(),
   config: reportConfigSchema.optional(),
+  tags: tagsBodyField,
 })
 
 export const reportUpdateBody = z.looseObject({
@@ -42,6 +43,7 @@ export const reportUpdateBody = z.looseObject({
   category: z.string().nullable().optional(),
   is_shared: z.boolean().optional(),
   config: reportConfigSchema.optional(),
+  tags: tagsBodyField,
 })
 
 export const reportPreviewBody = z.looseObject({
@@ -81,7 +83,7 @@ export const reportEndpoints = [
   defineEndpoint({
     method: 'GET', path: '/reports', operationId: 'listReports', tags,
     summary: 'List saved reports', permission: 'reports.view',
-    query: paginationQuery.extend({ shared: booleanFlag('Filter by shared flag'), category: z.string().optional() }),
+    query: paginationQuery.extend({ shared: booleanFlag('Filter by shared flag'), category: z.string().optional(), tag: tagQueryField }),
     response: listResponse('reports'), listKey: 'reports',
     cli: { resource: 'reports', verb: 'list' },
   }),

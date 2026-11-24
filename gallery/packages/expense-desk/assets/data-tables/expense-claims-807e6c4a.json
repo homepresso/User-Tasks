@@ -1,0 +1,110 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+  "asset": {
+    "id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+    "name": "Expense claims",
+    "description": "Every claim with its amount in USD, category, department and where it is: Submitted, Approved, Rejected or Paid.",
+    "columns": [
+      {
+        "id": "ff73a1e4-9fdb-5ba2-ae41-1c2c939a03f5",
+        "required": true,
+        "key": "claim_ref",
+        "name": "Claim",
+        "type": "text"
+      },
+      {
+        "id": "b3cb2cc8-caa1-58ca-866d-3ae37ba844df",
+        "required": true,
+        "key": "claimant",
+        "name": "Claimant",
+        "type": "text"
+      },
+      {
+        "id": "7a101e93-9df4-5ba6-885b-aca65f0906fb",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Sales",
+          "Marketing",
+          "Engineering",
+          "Finance",
+          "Operations",
+          "People"
+        ]
+      },
+      {
+        "id": "c5f59ec0-b4da-5a9b-bbf8-116a27ef9d68",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Travel",
+          "Accommodation",
+          "Meals",
+          "Software",
+          "Equipment",
+          "Training",
+          "Client entertainment",
+          "Other"
+        ]
+      },
+      {
+        "id": "090dfbf3-f7b0-5abb-b2b3-8e764355a94d",
+        "required": false,
+        "key": "merchant",
+        "name": "Merchant",
+        "type": "text"
+      },
+      {
+        "id": "801ed040-7584-5f43-8902-5d7f5f7fcd74",
+        "required": true,
+        "key": "amount",
+        "name": "Amount (USD)",
+        "type": "number"
+      },
+      {
+        "id": "5a5f0af1-5f17-5f85-ab78-4409caabc322",
+        "required": false,
+        "key": "expense_date",
+        "name": "Expense date",
+        "type": "date"
+      },
+      {
+        "id": "1a06c059-b975-5d58-817c-09f3b569d431",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Submitted",
+          "Approved",
+          "Rejected",
+          "Paid"
+        ]
+      },
+      {
+        "id": "84d2ee4a-0169-57fb-b0f4-1fed2ac74c24",
+        "required": false,
+        "key": "policy",
+        "name": "Policy check",
+        "type": "select",
+        "options": [
+          "Within policy",
+          "Over limit"
+        ]
+      },
+      {
+        "id": "bfb74e6d-017b-5d77-a8aa-dd8e15414b46",
+        "required": false,
+        "key": "approver_comment",
+        "name": "Approver comment",
+        "type": "text"
+      }
+    ]
+  }
+}

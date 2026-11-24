@@ -1,0 +1,151 @@
+{
+  "id": "b8dcb20a-d5b4-50e9-bded-72f27ac555ed",
+  "slug": "revenue-crm",
+  "title": "Revenue CRM",
+  "category": "customer-sales",
+  "summary": "A complete CRM app: routed leads, a drag-and-drop pipeline, account 360 with every opportunity, deal rooms with stage history, quote approvals and revenue insights in USD.",
+  "description": "Revenue CRM is a showcase of what an app built on UserTasks can do: a full CRM with its own data model, forms, rules and workflows, opened from the Apps menu.\n\nLeads come in through the Website lead form (share it with a public link for web-to-lead). Each lead is scored, routed to a territory and owner by a decision table, thanked by email and qualified by sales development within its response time; qualified leads convert into an account, a contact and a deal in one step.\n\nThe Pipeline page is a Kanban board of deals by stage with lane totals: drag a card to move it, and the stage automation sets the probability, weighted amount and forecast category and gives the rep the stage task. KPIs, a stage funnel, a forecast by close month and charts by region and owner cross-filter the whole page. Clicking a deal opens its deal room in a slide-in panel: the deal, its line items, quotes and approvals, the buying team, the stage history, the activity feed and buttons to log activity, request a discount, advance the stage or close it won or lost (with a confirmation for lost).\n\nAccounts are cards with health badges, ARR, open pipeline and won value, ordered by ARR, open pipeline or won value; each opens an account 360 panel with every opportunity of the account (open and won by default, lost and all behind a toggle), tiles for open pipeline, won this year and all time, deals by status and the win rate, contacts, the activity timeline and customer health. Clicking an opportunity opens its deal room on top, and Back returns to the account. Quotes are built from the price book with a repeating section of products; over 10% discount or $100,000 goes to the sales manager, over 20% to the VP of sales as well, with a 3-day SLA and escalation, and an approved quote comes back to the rep as a PDF. Closing a deal records the reason and cycle time; a win hands the customer to customer success and updates ARR. A daily check posts renewal reminders at 90, 60 and 30 days and flags slipped close dates. Support cases get an SLA from their priority, a resolve task that escalates when it runs late and a customer email when resolved; they show on a Cases page and in the account 360, beside the account's subsidiaries. A Forecast page lets managers override a deal's forecast category; the final forecast drives the pipeline numbers. Repeat website leads are merged and possible duplicates flagged. Summarize in the deal room saves a next best action from simple rules and, with an AI provider, a summary from the CRM account assistant. Grids sort by any column and each person can save their own views. Revenue insights chart revenue by month, win rate, win and loss reasons, the leaderboard, sales cycle, forecast and activity heatmap. Rich sample data (40 accounts, 120 contacts, 157 deals with their stage history, 424 activities, 44 support cases) makes it come alive straight after install.",
+  "trigger": "app",
+  "entry_app": "3d20c4f3-6ebb-533d-91b0-bd45fe5d39a2",
+  "entry_workflow": "4d9b7c25-d4c0-5bac-bfa3-969d96e41808",
+  "entry_form": "5d446d07-f2ee-5da5-9e0e-3d2aef25aaf0",
+  "start": "Open Revenue CRM from the Apps menu: drag deals on the Pipeline board, click one to open its deal room, and press Request discount to start the quote approval workflow.",
+  "difficulty": "advanced",
+  "setup_minutes": 20,
+  "tags": [
+    "crm",
+    "sales",
+    "pipeline",
+    "app",
+    "kanban",
+    "approvals",
+    "leads",
+    "showcase",
+    "support"
+  ],
+  "version": "1.2.0",
+  "changelog": [
+    {
+      "version": "1.2.0",
+      "date": "2026-11-24",
+      "notes": "Support cases with an SLA by priority (Cases page, account 360, resolve task with escalation, customer email); quote PDFs attached to the approval email; a Forecast page with manager overrides; account hierarchy; repeat leads merged and possible duplicates flagged; stage history records who moved the deal; deal change history; Summarize with a rules-based next best action and an optional AI summary; sortable grids with personal saved views."
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-11-23",
+      "notes": "Account 360 lists every opportunity (open and won, lost and all behind a toggle) with open pipeline, won this year and all time, deals by status and win rate; an opportunity opens its deal room on top. Accounts show open pipeline and won value. Deal rooms add the buying team and stage history. Amounts, dates and probabilities are formatted. More sample deals: every customer has open, won and lost deals."
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "optional_needs": [
+    "email",
+    "ai_model"
+  ],
+  "setup": [
+    "Open Apps → Revenue CRM → Settings → Audience: add sales reps as contributors and leadership as viewers (they read the pipeline and Insights).",
+    "Assignees: pick who qualifies new leads (sales development), the VP of sales for large discounts, customer success for onboarding kickoffs, the account manager for renewal calls and support for new cases. Sales managers are chosen on each quote; stage tasks go to whoever moved the deal.",
+    "Forms → Website lead → Share: turn on the public link and add it to your website (web-to-lead).",
+    "Replace the sample owners in CRM accounts, deals and leads and in the CRM lead routing decision table with your reps, and edit the CRM price book.",
+    "Optional: choose an AI provider on the CRM account assistant agent to switch on deal summaries and welcome-email drafts; configure email delivery for the notifications."
+  ],
+  "steps": [
+    {
+      "title": "Lead comes in",
+      "body": "The public Website lead form scores the lead, routes it with the CRM lead routing table, logs it and emails a thank-you."
+    },
+    {
+      "title": "Qualify and convert",
+      "body": "Sales development qualifies it within its response time; Convert lead creates the account, contact and deal."
+    },
+    {
+      "title": "Work the pipeline",
+      "body": "Drag deals across the Kanban board; stage rules set probability and forecast and create the stage task."
+    },
+    {
+      "title": "Quote and approve",
+      "body": "Quotes from the price book go to the sales manager and VP by discount and size, with SLA and escalation."
+    },
+    {
+      "title": "Close and hand over",
+      "body": "Close won or lost with the reason; wins update ARR and hand the customer to customer success."
+    },
+    {
+      "title": "See the revenue",
+      "body": "Insights chart revenue by month, win rate, reasons, the leaderboard, sales cycle, forecast and activity."
+    }
+  ],
+  "sample_input": {
+    "deal_id": "DL-3049",
+    "deal_name": "Silverline site expansion",
+    "account": "Silverline Insurance",
+    "manager": "$owner",
+    "valid_until": "2026-12-31",
+    "lines": [
+      {
+        "product": "Insight Platform Enterprise",
+        "qty": 120,
+        "unit_price": 1080,
+        "discount_pct": 25
+      },
+      {
+        "product": "Implementation services",
+        "qty": 1,
+        "unit_price": 15000,
+        "discount_pct": 10
+      }
+    ],
+    "justification": "Three-year commitment and a public case study."
+  },
+  "expect": "completed",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Approve",
+        "values": {
+          "comment": "Fine for a three-year deal."
+        }
+      },
+      {
+        "outcome": "Approve",
+        "values": {
+          "comment": "Approved."
+        }
+      }
+    ]
+  },
+  "icon": "handshake",
+  "screenshots": [
+    {
+      "file": "screenshots/account-360.webp",
+      "caption": "Account 360 opened from Accounts: every opportunity (open and won, lost behind a toggle), open pipeline, won this year and all time, deals by status and win rate."
+    },
+    {
+      "file": "screenshots/deal-room.webp",
+      "caption": "The deal room on top of the account: the deal with its forecast override, next best action and change history, line items, quotes, buying team and stage history."
+    },
+    {
+      "file": "screenshots/pipeline.webp",
+      "caption": "Pipeline: a drag-and-drop board of deals by stage with lane totals, KPIs and cross-filtering charts."
+    },
+    {
+      "file": "screenshots/forecast.webp",
+      "caption": "Forecast: commit, best case and pipeline by the final forecast, and the review grid where managers override a deal's category."
+    },
+    {
+      "file": "screenshots/cases.webp",
+      "caption": "Support cases: open cases soonest due first with their SLA, breaches, categories and priorities; grids sort by any column and save personal views."
+    },
+    {
+      "file": "screenshots/insights-dark.webp",
+      "caption": "Revenue insights in dark mode: revenue by month, win rate, reasons, leaderboard and forecast.",
+      "theme": "dark"
+    }
+  ]
+}

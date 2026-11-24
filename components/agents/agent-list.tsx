@@ -38,6 +38,10 @@ import { cn } from '@/lib/utils'
 import { plural } from '@/lib/format/plural'
 import { formatCount } from '@/lib/format/number'
 import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { TagList } from '@/components/ui/tag-chip'
+import { TagFilterMenu, TagsCell, useTagFilter } from '@/components/ui/list-tags'
+import { BulkTagsDialog, ObjectTagsDialog, useCanEditTags } from '@/components/ui/object-tags-dialog'
+import { Tag as TagIcon } from 'lucide-react'
 
 interface AgentListProps { agents: any[] }
 
@@ -98,6 +102,9 @@ export function AgentList({ agents }: AgentListProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[] }>(null)
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false)
+  const canEditAgentTags = useCanEditTags('agents')
   const [bulkDeleting, setBulkDeleting] = useState(false)
   const [showBulkDelete, setShowBulkDelete] = useState(false)
   const [localAgents, setLocalAgents] = useState<any[]>(agents)
@@ -108,19 +115,22 @@ export function AgentList({ agents }: AgentListProps) {
     setLocalAgents(agents)
   }, [agents])
 
+  const tagFilter = useTagFilter(localAgents, (a: { tags?: string[] | null }) => a.tags)
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return localAgents.filter(a => {
       if (statusFilter === 'active' && !a.is_active) return false
       if (statusFilter === 'inactive' && a.is_active) return false
+      if (!tagFilter.matches(a)) return false
       if (!q) return true
       return (
         (a.name ?? '').toLowerCase().includes(q) ||
         (a.description ?? '').toLowerCase().includes(q) ||
-        (a.model ?? '').toLowerCase().includes(q)
+        (a.model ?? '').toLowerCase().includes(q) ||
+        (a.tags ?? []).some((t: string) => t.toLowerCase().includes(q))
       )
     })
-  }, [localAgents, search, statusFilter])
+  }, [localAgents, search, statusFilter, tagFilter])
 
   const sorted = useMemo(() => {
     const copy = [...filtered]
@@ -259,6 +269,9 @@ export function AgentList({ agents }: AgentListProps) {
               <History className="size-4 text-fg-muted" aria-hidden="true" /> View runs
             </Link>
           </DropdownMenuItem>
+          <DropdownMenuItem icon={<TagIcon />} onSelect={() => setTagsTarget({ id: agent.id, name: agent.name, tags: agent.tags ?? [] })}>
+            Tags…
+          </DropdownMenuItem>
           <DropdownMenuItem icon={<Download />} onSelect={() => setExportTarget({ id: agent.id, name: agent.name })}>
             Export…
           </DropdownMenuItem>
@@ -271,7 +284,7 @@ export function AgentList({ agents }: AgentListProps) {
     )
   }
 
-  const filtersActive = search.trim() !== '' || statusFilter !== 'all'
+  const filtersActive = search.trim() !== '' || statusFilter !== 'all' || tagFilter.active
 
   return (
     <div>
@@ -296,6 +309,7 @@ export function AgentList({ agents }: AgentListProps) {
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
             <div className="flex-1" />
+            {canEditAgentTags && <Button size="sm" variant="secondary" leadingIcon={<TagIcon />} onClick={() => setBulkTagsOpen(true)} data-bulk-tags>Tags…</Button>}
             <ExportAssetButton ids={[...selected]} name={plural(selected.size, 'agent')} />
             <Button size="sm" variant="danger" leadingIcon={<Trash2 />} onClick={() => setShowBulkDelete(true)}>
               Delete {selected.size}
@@ -312,6 +326,7 @@ export function AgentList({ agents }: AgentListProps) {
             aria-label="Search agents"
             wrapperClassName="min-w-[220px] flex-1"
           />
+          <TagFilterMenu tags={tagFilter.allTags} selected={tagFilter.selected} onChange={tagFilter.setSelected} />
           <SegmentedControl
             aria-label="Status"
             value={statusFilter}
@@ -361,7 +376,7 @@ export function AgentList({ agents }: AgentListProps) {
                 variant="no-results"
                 icon={Bot}
                 title={search ? 'No agents match your search' : 'No agents match this filter'}
-                action={{ label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all') } }}
+                action={{ label: 'Clear filters', onClick: () => { setSearch(''); setStatusFilter('all'); tagFilter.clear() } }}
               />
             ) : (
               <EmptyState
@@ -421,6 +436,7 @@ export function AgentList({ agents }: AgentListProps) {
                     <StatusPill status={agent.is_active ? 'active' : 'inactive'} className="shrink-0" />
                   </div>
                   {agent.description && <p className="line-clamp-2 text-xs text-fg-muted">{agent.description}</p>}
+                  {(agent.tags?.length ?? 0) > 0 && <TagList tags={agent.tags} max={4} size="xs" className="relative z-10 self-start" />}
                   <div className="mt-auto flex items-center gap-2 pt-1">
                     <p className="num min-w-0 flex-1 truncate text-xs text-fg-muted">
                       {plural(toolCount, 'tool')} · {agent.integration?.name ?? 'No provider'}
@@ -446,6 +462,7 @@ export function AgentList({ agents }: AgentListProps) {
                 {sortHeader('name', 'Name', false, 'title')}
                 {sortHeader('model', 'Model', false, 'name')}
                 {sortHeader('tools', 'Tools', true, 'number')}
+                <TH col="text" className="w-56" data-tags-column>Tags</TH>
                 <TH col="status">Status</TH>
                 {sortHeader('updated_at', 'Updated', false, 'date')}
                 <TH col="actions" className="w-12"><span className="sr-only">Actions</span></TH>
@@ -476,6 +493,7 @@ export function AgentList({ agents }: AgentListProps) {
                     </TD>
                     <TD>{agent.model ? <Tag mono>{agent.model}</Tag> : <span className="text-fg-muted">—</span>}</TD>
                     <TD numeric className="text-fg-muted">{formatCount((agent.tools as any[])?.length ?? 0)}</TD>
+                    <TD className="max-w-56"><TagsCell tags={agent.tags} selected={tagFilter.selected} onToggle={tagFilter.toggle} /></TD>
                     <TD><StatusPill status={agent.is_active ? 'active' : 'inactive'} /></TD>
                     <TD className="whitespace-nowrap text-xs text-fg-muted">
                       {agent.updated_at ? (
@@ -552,6 +570,13 @@ export function AgentList({ agents }: AgentListProps) {
         </DialogContent>
       </Dialog>
 
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="agents" id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['agents']]} />
+      )}
+      {bulkTagsOpen && (
+        <BulkTagsDialog open onOpenChange={setBulkTagsOpen} type="agents" ids={[...selected]} invalidate={[['agents']]} onDone={() => setSelected(new Set())} />
+      )}
       <Dialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
         <DialogContent size="sm" title="Delete agents">
           <DialogBody className="space-y-3">

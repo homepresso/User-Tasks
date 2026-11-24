@@ -1,0 +1,215 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+  "asset": {
+    "id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+    "name": "Facilities requests rows",
+    "rows": [
+      {
+        "id": "f18ba667-8ca1-513d-9bb6-3d4e7e65b97e",
+        "data": {
+          "request_ref": "FAC-3101",
+          "title": "Flickering lights over the open-plan desks",
+          "category": "Electrical",
+          "site": "Denver HQ",
+          "building": "Building A",
+          "floor": "Floor 2",
+          "spot": "Desks 2-20 to 2-28",
+          "priority": "Normal",
+          "status": "Assigned",
+          "technician": "Ben Carter",
+          "requested_by": "Maya Patel",
+          "target_date": "2026-11-25"
+        }
+      },
+      {
+        "id": "2cfe27b0-7411-5f3d-83c8-20d19ab02066",
+        "data": {
+          "request_ref": "FAC-3102",
+          "title": "Leaking tap in the kitchen",
+          "category": "Plumbing",
+          "site": "Denver HQ",
+          "building": "Building A",
+          "floor": "Floor 3",
+          "spot": "Kitchen",
+          "priority": "High",
+          "status": "Assigned",
+          "technician": "Rosa Alvarez",
+          "requested_by": "Liam Chen",
+          "target_date": "2026-11-23"
+        }
+      },
+      {
+        "id": "c298b1f6-98d1-5181-bb6d-3721a7818b37",
+        "data": {
+          "request_ref": "FAC-3103",
+          "title": "Meeting room too warm",
+          "category": "Heating & cooling",
+          "site": "Austin office",
+          "building": "Main building",
+          "floor": "Floor 2",
+          "spot": "Room Pecos",
+          "priority": "Normal",
+          "status": "Open",
+          "technician": "Unassigned",
+          "requested_by": "Sofia Lindqvist",
+          "target_date": ""
+        }
+      },
+      {
+        "id": "19cc52c8-b7d4-5278-b031-e9ff3cc26763",
+        "data": {
+          "request_ref": "FAC-3104",
+          "title": "Broken office chair",
+          "category": "Furniture",
+          "site": "Denver HQ",
+          "building": "Building B",
+          "floor": "Floor 2",
+          "spot": "Desk B2-07",
+          "priority": "Low",
+          "status": "Open",
+          "technician": "Unassigned",
+          "requested_by": "Noah Fischer",
+          "target_date": ""
+        }
+      },
+      {
+        "id": "f2f727f3-4dc3-5f25-95cd-3543a5cfd31b",
+        "data": {
+          "request_ref": "FAC-3105",
+          "title": "Loading dock door sticks",
+          "category": "Access & security",
+          "site": "Riverside warehouse",
+          "building": "Warehouse",
+          "floor": "Dock level",
+          "spot": "Door 3",
+          "priority": "Urgent",
+          "status": "Assigned",
+          "technician": "Marcus Lee",
+          "requested_by": "Daniel Okafor",
+          "target_date": "2026-11-22"
+        }
+      },
+      {
+        "id": "027c6518-6bb1-5195-9e5e-7f876db2b7e3",
+        "data": {
+          "request_ref": "FAC-3106",
+          "title": "Spill in the reception area",
+          "category": "Cleaning",
+          "site": "Denver HQ",
+          "building": "Building A",
+          "floor": "Ground floor",
+          "spot": "Reception",
+          "priority": "High",
+          "status": "Done",
+          "technician": "Ines Duarte",
+          "requested_by": "Grace Kim",
+          "target_date": "2026-11-18"
+        }
+      },
+      {
+        "id": "a8c794c8-f002-5971-a9d1-9bd5b1f11722",
+        "data": {
+          "request_ref": "FAC-3107",
+          "title": "No hot water in the showers",
+          "category": "Plumbing",
+          "site": "Denver HQ",
+          "building": "Building B",
+          "floor": "Ground floor",
+          "spot": "Changing rooms",
+          "priority": "High",
+          "status": "Assigned",
+          "technician": "Rosa Alvarez",
+          "requested_by": "Amara Nwosu",
+          "target_date": "2026-11-24"
+        }
+      },
+      {
+        "id": "3bf3ada2-bbe3-551a-979a-a8c802843e8a",
+        "data": {
+          "request_ref": "FAC-3108",
+          "title": "Socket not working",
+          "category": "Electrical",
+          "site": "Austin office",
+          "building": "Main building",
+          "floor": "Floor 1",
+          "spot": "Desk 1-14",
+          "priority": "Normal",
+          "status": "Done",
+          "technician": "Ben Carter",
+          "requested_by": "Sofia Lindqvist",
+          "target_date": "2026-11-17"
+        }
+      },
+      {
+        "id": "574d51e6-aff0-5c27-9da0-2b8f334d430d",
+        "data": {
+          "request_ref": "FAC-3109",
+          "title": "Badge reader offline at the side door",
+          "category": "Access & security",
+          "site": "Denver HQ",
+          "building": "Building A",
+          "floor": "Ground floor",
+          "spot": "East entrance",
+          "priority": "Urgent",
+          "status": "Done",
+          "technician": "Marcus Lee",
+          "requested_by": "Liam Chen",
+          "target_date": "2026-11-15"
+        }
+      },
+      {
+        "id": "68469366-09f4-52f0-ad54-f922f5b2c735",
+        "data": {
+          "request_ref": "FAC-3110",
+          "title": "Whiteboard needs replacing",
+          "category": "Furniture",
+          "site": "Denver HQ",
+          "building": "Building A",
+          "floor": "Floor 3",
+          "spot": "Room Aspen",
+          "priority": "Low",
+          "status": "Open",
+          "technician": "Unassigned",
+          "requested_by": "Maya Patel",
+          "target_date": ""
+        }
+      },
+      {
+        "id": "0f32253c-ae42-50fe-ae68-ee38d7d6bb93",
+        "data": {
+          "request_ref": "FAC-3111",
+          "title": "Air conditioning noisy",
+          "category": "Heating & cooling",
+          "site": "Denver HQ",
+          "building": "Building B",
+          "floor": "Floor 2",
+          "spot": "North wing",
+          "priority": "Normal",
+          "status": "Assigned",
+          "technician": "Ben Carter",
+          "requested_by": "Grace Kim",
+          "target_date": "2026-11-27"
+        }
+      },
+      {
+        "id": "45cb85dd-b169-5d6b-8a08-272fc6bdaba6",
+        "data": {
+          "request_ref": "FAC-3112",
+          "title": "Deep clean after the event",
+          "category": "Cleaning",
+          "site": "Austin office",
+          "building": "Main building",
+          "floor": "Floor 1",
+          "spot": "Event space",
+          "priority": "Normal",
+          "status": "Assigned",
+          "technician": "Ines Duarte",
+          "requested_by": "Daniel Okafor",
+          "target_date": "2026-11-26"
+        }
+      }
+    ]
+  }
+}

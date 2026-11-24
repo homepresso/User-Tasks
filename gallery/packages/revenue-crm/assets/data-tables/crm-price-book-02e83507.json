@@ -1,0 +1,74 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "02e83507-ed5c-5116-a19a-9714da21fdea",
+  "asset": {
+    "id": "02e83507-ed5c-5116-a19a-9714da21fdea",
+    "name": "CRM price book",
+    "description": "Products and list prices in USD, with the most a rep may discount without approval.",
+    "columns": [
+      {
+        "id": "302a3426-7ee4-5077-bd4e-1e2514b29497",
+        "required": true,
+        "key": "sku",
+        "name": "SKU",
+        "type": "text"
+      },
+      {
+        "id": "3df99980-f0b8-5fc1-97d7-ba3c3ac144d9",
+        "required": true,
+        "key": "product",
+        "name": "Product",
+        "type": "text"
+      },
+      {
+        "id": "ff4d0fd2-3282-5722-8dfc-ef9a0dfde5a0",
+        "required": false,
+        "key": "family",
+        "name": "Family",
+        "type": "select",
+        "options": [
+          "Platform",
+          "Add-on",
+          "Services",
+          "Support"
+        ]
+      },
+      {
+        "id": "9f4c0426-f75c-5136-b46d-13f69d37788d",
+        "required": false,
+        "key": "list_price",
+        "name": "List price (USD)",
+        "type": "number"
+      },
+      {
+        "id": "1c9e800d-7a60-5483-94c7-5d57fbeffd77",
+        "required": false,
+        "key": "unit",
+        "name": "Unit",
+        "type": "text"
+      },
+      {
+        "id": "e32dcb00-351e-5d71-980b-b0822ecc60b6",
+        "required": false,
+        "key": "max_discount",
+        "name": "Rep discount limit %",
+        "type": "number"
+      },
+      {
+        "id": "1acca4ef-e5c3-5ab1-a254-e93ae467128f",
+        "required": false,
+        "key": "active",
+        "name": "Active",
+        "type": "boolean"
+      },
+      {
+        "id": "c0cf148c-8c61-5310-a614-7ab79c987889",
+        "required": false,
+        "key": "description",
+        "name": "Description",
+        "type": "text"
+      }
+    ]
+  }
+}

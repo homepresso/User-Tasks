@@ -303,7 +303,7 @@ export function shareToGalleryTool(deps: SolutionPackageDeps): AssistantToolDef 
 }
 
 /** Item types package_items can add or remove (every packageable type). */
-export const PACKAGE_EDIT_KINDS = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control'] as const
+export const PACKAGE_EDIT_KINDS = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control', 'app'] as const
 
 /**
  * package_items: add items to / remove items from an existing package (one

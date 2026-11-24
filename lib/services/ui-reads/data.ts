@@ -3,6 +3,9 @@ import { getDb } from '../context'
 import { getCellByIdentifier } from '@/lib/data-table-cells'
 import type { LookupFilter, LookupOption } from '@/components/data/lookup-config'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
+import { computeChildCounts, computeRowGroups, loadChildRelations, loadChildRows, queryFilteredRows } from '../data-table-grouping'
+import { GROUPING_LIMITS, type GroupRowFilter } from '@/lib/grid/grouping'
+import { listRowChanges } from '../data-table-audit'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
 
@@ -42,6 +45,14 @@ function matchesLookupFilter(rowData: Record<string, any>, filter: Omit<LookupFi
       return true
   }
 }
+
+/** A grid filter (group membership, a hierarchy's top level): lib/grid/grouping.ts GroupRowFilter. */
+const gridFilter = z.object({
+  field: z.string().min(1).max(200),
+  operator: z.enum(['equals', 'not_equals', 'contains', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'not_empty', 'in', 'is_root']),
+  value: z.union([z.string().max(1000), z.number(), z.boolean(), z.array(z.string().max(1000)).max(500)]).optional(),
+})
+const columnKeyArg = z.string().min(1).max(200)
 
 /** Rows a searched / cell-sorted grid page scans (newest first). */
 const GRID_SCAN = 2000
@@ -158,11 +169,17 @@ export const reads = {
       search: z.string().max(200).optional(),
       sort: z.string().max(200).optional(),
       dir: z.enum(['asc', 'desc']).optional(),
+      /** Rows of one group / a hierarchy's top level: exact through data_table_rows_page (lib/services/data-table-grouping.ts). */
+      filters: z.array(gridFilter).max(10).optional(),
     }),
     perm: 'data.view',
-    run: async (ctx, { tableId, limit, offset, search, sort, dir }) => {
+    run: async (ctx, { tableId, limit, offset, search, sort, dir, filters }) => {
       const db = getDb(ctx) as any
       const direction = dir ?? 'desc'
+      if (filters?.length) {
+        const page = await queryFilteredRows(db, tableId, { search, filters: filters as GroupRowFilter[], sort, dir: direction, limit, offset })
+        return { rows: await hydrateRows(db, page.rows), total: page.total, truncated: page.truncated }
+      }
       const systemSort = !sort || sort === '_updated_at' || sort === '_created_at'
       const term = search?.trim().toLowerCase() ?? ''
       if (!term && systemSort) {
@@ -187,6 +204,66 @@ export const reads = {
         })
       }
       return { rows: await hydrateRows(db, rows.slice(offset, offset + limit)), total: rows.length, truncated }
+    },
+  }),
+
+  /**
+   * Group counts (and sums) of a table's rows over the whole filtered result
+   * (lib/services/data-table-grouping.ts computeRowGroups): the grid's group headers.
+   */
+  'data.rowGroups': defineRead({
+    args: z.object({
+      tableId: id,
+      groupBy: z.array(columnKeyArg).min(1).max(GROUPING_LIMITS.levels),
+      search: z.string().max(200).optional(),
+      sum: z.array(columnKeyArg).max(GROUPING_LIMITS.sums).optional(),
+      direction: z.array(z.enum(['asc', 'desc'])).max(GROUPING_LIMITS.levels).optional(),
+      filters: z.array(gridFilter).max(10).optional(),
+    }),
+    perm: 'data.view',
+    run: async (ctx, { tableId, groupBy, search, sum, direction, filters }) => {
+      // The grid knows its group_by: it is not echoed back.
+      const { group_by: _groupBy, ...result } = await computeRowGroups(getDb(ctx) as any, tableId, { group_by: groupBy, search, sum, direction, filters: filters as GroupRowFilter[] | undefined })
+      return result
+    },
+  }),
+
+  /** A table's child relations (custom_tables.child_relations; available: false until migration 20270119090000). */
+  'data.childRelations': defineRead({
+    args: z.object({ tableId: id }),
+    perm: 'data.view',
+    run: async (ctx, { tableId }) => {
+      const { relations, available } = await loadChildRelations(getDb(ctx) as any, tableId)
+      return { relations, available }
+    },
+  }),
+
+  /** Child counts of the grid's rows, per relation: { relations, counts: { [relationId]: { [rowId]: n } } }. */
+  'data.childCounts': defineRead({
+    args: z.object({ tableId: id, rowIds: z.array(id).max(GROUPING_LIMITS.countParents) }),
+    perm: 'data.view',
+    run: async (ctx, { tableId, rowIds }) => {
+      const db = getDb(ctx) as any
+      if (!rowIds.length) return { relations: [], counts: {}, exact: true }
+      const parents = check(await db.from('custom_table_rows').select('id, data').eq('table_id', tableId).in('id', rowIds)) as Array<{ id: string; data: any }> | null
+      return computeChildCounts(db, tableId, parents ?? [])
+    },
+  }),
+
+  /** A row's child rows of one relation, hydrated like the grid's rows, with the child table's columns and views. */
+  'data.childRows': defineRead({
+    args: z.object({
+      tableId: id,
+      rowId: id,
+      relationId: z.string().min(1).max(40),
+      limit: z.number().int().min(1).max(GROUPING_LIMITS.childRows).default(50),
+      offset: z.number().int().min(0).max(100_000).default(0),
+    }),
+    perm: 'data.view',
+    run: async (ctx, { tableId, rowId, relationId, limit, offset }) => {
+      const db = getDb(ctx) as any
+      const result = await loadChildRows(db, tableId, rowId, relationId, { limit, offset })
+      return { ...result, rows: await hydrateRows(db, result.rows) }
     },
   }),
 
@@ -259,6 +336,21 @@ export const reads = {
         seen.add(key)
         return true
       })
+    },
+  }),
+  /** A row's field-change history (tables with audit_changes; available: false until migration 20270128090000). */
+  'data.rowChanges': defineRead({
+    args: z.object({ tableId: id, rowId: id, limit: z.number().int().min(1).max(200).optional() }),
+    perm: 'data.view',
+    run: async (ctx, { tableId, rowId, limit }) => listRowChanges(ctx, tableId, rowId, { limit }),
+  }),
+  /** Whether a table records field changes (and whether the database can yet). */
+  'data.tableAudit': defineRead({
+    args: z.object({ tableId: id }),
+    perm: 'data.view',
+    run: async (ctx, { tableId }) => {
+      const { data } = await (getDb(ctx) as any).from('custom_tables').select('*').eq('id', tableId).eq('tenant_id', ctx.tenantId).maybeSingle()
+      return { available: !!data && 'audit_changes' in data, audited: !!data?.audit_changes }
     },
   }),
 } satisfies Record<string, UiRead<any, any>>

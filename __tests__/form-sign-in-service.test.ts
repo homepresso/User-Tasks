@@ -1,6 +1,7 @@
 /**
- * The form sign-in page settings service (lib/services/form-sign-in-page.ts):
- * stored in tenants.settings.forms.sign_in next to the other keys,
+ * The sign-in page settings service (lib/services/form-sign-in-page.ts),
+ * shared by forms and apps: stored in tenants.settings.sign_in next to the
+ * other keys (the older tenants.settings.forms.sign_in is read as a fallback),
  * settings.edit to change, the logo must be in the workspace's own logos
  * folder, audited.
  */
@@ -23,7 +24,7 @@ vi.mock('@/lib/services/_shared', async (orig) => ({
   audit: async (_ctx: unknown, entry: unknown) => { db.audits.push(entry) },
 }))
 
-const { getFormSignInSettings, setFormSignInSettings } = await import('@/lib/services/form-sign-in-page')
+const { getFormSignInSettings, setFormSignInSettings, getSignInPageSettings, setSignInPageSettings } = await import('@/lib/services/form-sign-in-page')
 
 const ctx = (perms: string[]) => ({ supabase: serviceDb, tenantId: 'tenant-a', actorId: 'u1', permissions: new Set(perms), authKind: 'session', source: 'ui' }) as never
 
@@ -44,14 +45,14 @@ describe('form sign-in page settings', () => {
   it('saves a change next to the other settings, audited', async () => {
     const next = await setFormSignInSettings(ctx(['settings.edit']), { design: 6, heading: 'Hello', logo_url: '/files/logos/tenant-a/form-sign-in.png?t=1' })
     expect(next).toMatchObject({ design: 6, heading: 'Hello', logo_url: '/files/logos/tenant-a/form-sign-in.png?t=1' })
-    expect(db.settings).toMatchObject({ forms: { anonymous: { enabled: true }, sign_in: { design: 6 } }, tasks: { completion_screen: { enabled: false } } })
+    expect(db.settings).toMatchObject({ forms: { anonymous: { enabled: true } }, sign_in: { design: 6 }, tasks: { completion_screen: { enabled: false } } })
     expect(db.audits).toHaveLength(1)
   })
 
   it('turns the workspace theme on and off (off by default)', async () => {
     expect((await getFormSignInSettings(ctx([]))).use_workspace_theme).toBe(false)
     expect((await setFormSignInSettings(ctx(['settings.edit']), { use_workspace_theme: true })).use_workspace_theme).toBe(true)
-    expect(db.settings).toMatchObject({ forms: { sign_in: { use_workspace_theme: true } } })
+    expect(db.settings).toMatchObject({ sign_in: { use_workspace_theme: true } })
     await expect(setFormSignInSettings(ctx(['settings.edit']), { use_workspace_theme: 'on' })).rejects.toThrow(/use_workspace_theme/)
   })
 
@@ -60,5 +61,21 @@ describe('form sign-in page settings', () => {
     await expect(setFormSignInSettings(ctx(['settings.edit']), { logo_url: 'https://evil.example/x.png' })).rejects.toThrow(/logo/)
     await expect(setFormSignInSettings(ctx(['settings.edit']), { design: 11 })).rejects.toThrow(/design/)
     expect(db.audits).toHaveLength(0)
+  })
+
+  it('reads the older forms.sign_in until the shared key is saved, then writes sign_in', async () => {
+    db.settings = { forms: { anonymous: { enabled: true }, sign_in: { design: 7, heading: 'Old place' } } }
+    expect(await getFormSignInSettings(ctx([]))).toMatchObject({ design: 7, heading: 'Old place', use_for_forms: true, use_for_apps: true })
+    const next = await setSignInPageSettings(ctx(['settings.edit']), { use_for_apps: false })
+    expect(next).toMatchObject({ design: 7, heading: 'Old place', use_for_apps: false, use_for_forms: true })
+    expect(db.settings).toMatchObject({ sign_in: { design: 7, heading: 'Old place', use_for_apps: false }, forms: { anonymous: { enabled: true } } })
+    // The shared key wins from now on.
+    expect((await getSignInPageSettings(ctx([]))).use_for_apps).toBe(false)
+  })
+
+  it('toggles: form links and apps on by default, the app colour off; booleans only', async () => {
+    expect(await getSignInPageSettings(ctx([]))).toMatchObject({ use_for_forms: true, use_for_apps: true, use_app_color: false })
+    expect(await setSignInPageSettings(ctx(['settings.edit']), { use_for_forms: false, use_app_color: true })).toMatchObject({ use_for_forms: false, use_for_apps: true, use_app_color: true })
+    await expect(setSignInPageSettings(ctx(['settings.edit']), { use_for_apps: 'no' })).rejects.toThrow(/use_for_apps/)
   })
 })

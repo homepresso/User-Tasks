@@ -1,0 +1,155 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "a94eca91-9810-58a8-adf1-09576ed3334a",
+  "asset": {
+    "id": "a94eca91-9810-58a8-adf1-09576ed3334a",
+    "name": "Weekly delivery rows",
+    "rows": [
+      {
+        "id": "6a3dbdbd-f501-5412-bc2d-dfa89d621f7f",
+        "data": {
+          "week": "2026-10-26",
+          "team": "Platform",
+          "planned": 8,
+          "delivered": 7
+        }
+      },
+      {
+        "id": "0028a82f-9299-50d1-acc8-56074321def7",
+        "data": {
+          "week": "2026-10-26",
+          "team": "Customer success",
+          "planned": 6,
+          "delivered": 6
+        }
+      },
+      {
+        "id": "4093771f-e4dc-53af-80ba-c00c21939095",
+        "data": {
+          "week": "2026-10-26",
+          "team": "Finance ops",
+          "planned": 5,
+          "delivered": 5
+        }
+      },
+      {
+        "id": "e087b1bf-52d6-5dba-9847-fc03b7c6d170",
+        "data": {
+          "week": "2026-10-26",
+          "team": "Marketing ops",
+          "planned": 4,
+          "delivered": 3
+        }
+      },
+      {
+        "id": "ed8feb14-3cc8-573a-aecf-e4d710054dc6",
+        "data": {
+          "week": "2026-11-02",
+          "team": "Platform",
+          "planned": 8,
+          "delivered": 8
+        }
+      },
+      {
+        "id": "a71383e1-f491-590e-b7f6-397d95d331cb",
+        "data": {
+          "week": "2026-11-02",
+          "team": "Customer success",
+          "planned": 6,
+          "delivered": 5
+        }
+      },
+      {
+        "id": "8811a160-33f9-5926-b892-b5fcabfaab8a",
+        "data": {
+          "week": "2026-11-02",
+          "team": "Finance ops",
+          "planned": 5,
+          "delivered": 4
+        }
+      },
+      {
+        "id": "6ab4f169-6fbf-5544-b33b-344266df1504",
+        "data": {
+          "week": "2026-11-02",
+          "team": "Marketing ops",
+          "planned": 5,
+          "delivered": 5
+        }
+      },
+      {
+        "id": "e5c3497a-7cb9-5dbc-b6c4-515d4c30a751",
+        "data": {
+          "week": "2026-11-09",
+          "team": "Platform",
+          "planned": 9,
+          "delivered": 6
+        }
+      },
+      {
+        "id": "9f778eea-bbc3-5bb1-95c6-5fb91978c90f",
+        "data": {
+          "week": "2026-11-09",
+          "team": "Customer success",
+          "planned": 7,
+          "delivered": 7
+        }
+      },
+      {
+        "id": "ca7df7ae-daee-5e78-b4c4-7aa166986cf5",
+        "data": {
+          "week": "2026-11-09",
+          "team": "Finance ops",
+          "planned": 6,
+          "delivered": 6
+        }
+      },
+      {
+        "id": "6846838c-59e0-585a-9a5e-2d021f9cfa94",
+        "data": {
+          "week": "2026-11-09",
+          "team": "Marketing ops",
+          "planned": 4,
+          "delivered": 4
+        }
+      },
+      {
+        "id": "e3d33935-b855-51d8-8c66-a75e5b39381b",
+        "data": {
+          "week": "2026-11-16",
+          "team": "Platform",
+          "planned": 8,
+          "delivered": 7
+        }
+      },
+      {
+        "id": "a42197e9-cd92-50a2-83df-ec57a61941d3",
+        "data": {
+          "week": "2026-11-16",
+          "team": "Customer success",
+          "planned": 6,
+          "delivered": 6
+        }
+      },
+      {
+        "id": "e5b2dd01-1b63-58fc-a780-e9b4b8ed8988",
+        "data": {
+          "week": "2026-11-16",
+          "team": "Finance ops",
+          "planned": 5,
+          "delivered": 5
+        }
+      },
+      {
+        "id": "ceb53fee-b32c-5d7d-ab2b-db6ceb884ab4",
+        "data": {
+          "week": "2026-11-16",
+          "team": "Marketing ops",
+          "planned": 5,
+          "delivered": 3
+        }
+      }
+    ]
+  }
+}

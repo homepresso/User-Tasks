@@ -1,0 +1,333 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "f15757f7-cee4-5d98-ae50-d3fbfe83783b",
+  "asset": {
+    "id": "f15757f7-cee4-5d98-ae50-d3fbfe83783b",
+    "name": "Comment themes rows",
+    "rows": [
+      {
+        "id": "1e77dce7-d7e4-513b-b259-beb446d87a96",
+        "data": {
+          "cycle_code": "ENG-2026-Q1",
+          "cycle_label": "Q1 2026",
+          "theme": "Workload and pace",
+          "driver": "Wellbeing",
+          "sentiment": "Mixed",
+          "mentions": 38,
+          "summary": "People like the pace but say the support queue and quarter-end crunch spill into evenings. Several ask for clearer priorities when everything is urgent.",
+          "example": "More predictable on-call rotations would make a big difference.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "7b852cf5-627f-5b6a-9c8c-f704ee9ff5fa",
+        "data": {
+          "cycle_code": "ENG-2026-Q1",
+          "cycle_label": "Q1 2026",
+          "theme": "Career paths",
+          "driver": "Growth",
+          "sentiment": "Negative",
+          "mentions": 36,
+          "summary": "Many want clearer criteria for promotion and lateral moves, especially outside Engineering.",
+          "example": "I would love to know what the next level actually looks like for my role.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "a29b0690-4772-5875-b41b-f5d6753cbe6c",
+        "data": {
+          "cycle_code": "ENG-2026-Q1",
+          "cycle_label": "Q1 2026",
+          "theme": "Team culture",
+          "driver": "Belonging",
+          "sentiment": "Positive",
+          "mentions": 35,
+          "summary": "Teams describe colleagues as generous, kind and quick to help; new starters feel welcomed.",
+          "example": "My team has my back, every single time.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "fc635abc-0b42-57a3-9c17-3875902a45ef",
+        "data": {
+          "cycle_code": "ENG-2026-Q1",
+          "cycle_label": "Q1 2026",
+          "theme": "Recognition from peers",
+          "driver": "Recognition",
+          "sentiment": "Positive",
+          "mentions": 28,
+          "summary": "The kudos wall is popular and people notice when leaders join in.",
+          "example": "Getting a shout-out from another team made my month.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "f0669e87-aaf5-5458-9360-76482e958944",
+        "data": {
+          "cycle_code": "ENG-2026-Q1",
+          "cycle_label": "Q1 2026",
+          "theme": "Leadership communication",
+          "driver": "Leadership",
+          "sentiment": "Mixed",
+          "mentions": 27,
+          "summary": "The all-hands are valued, but decisions on reorganisations reached some teams late.",
+          "example": "Tell us the why earlier, even when the answer is not final.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "05e3dbeb-7a76-5b22-b28b-e40695a2c27b",
+        "data": {
+          "cycle_code": "ENG-2026-Q1",
+          "cycle_label": "Q1 2026",
+          "theme": "Tools and systems",
+          "driver": "Growth",
+          "sentiment": "Negative",
+          "mentions": 20,
+          "summary": "Old internal tools slow down onboarding and customer work.",
+          "example": "Half my day goes into copying data between systems.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "38181a8d-773c-516f-a196-a3e69ce5f306",
+        "data": {
+          "cycle_code": "ENG-2026-Q1",
+          "cycle_label": "Q1 2026",
+          "theme": "Feedback quality",
+          "driver": "Recognition",
+          "sentiment": "Mixed",
+          "mentions": 17,
+          "summary": "Feedback is frequent in some teams and rare in others; people want more specific examples.",
+          "example": "I hear \"good job\" but not what to do differently.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "60dfcf70-95fb-5355-a082-7c6a0872a7c2",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "cycle_label": "Q2 2026",
+          "theme": "Workload and pace",
+          "driver": "Wellbeing",
+          "sentiment": "Mixed",
+          "mentions": 41,
+          "summary": "People like the pace but say the support queue and quarter-end crunch spill into evenings. Several ask for clearer priorities when everything is urgent.",
+          "example": "More predictable on-call rotations would make a big difference.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "d41610e4-1565-5229-b520-63a1d35c1723",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "cycle_label": "Q2 2026",
+          "theme": "Career paths",
+          "driver": "Growth",
+          "sentiment": "Negative",
+          "mentions": 34,
+          "summary": "Many want clearer criteria for promotion and lateral moves, especially outside Engineering.",
+          "example": "I would love to know what the next level actually looks like for my role.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "2fd3283b-a8f2-5542-b0b6-b31f323f8c67",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "cycle_label": "Q2 2026",
+          "theme": "Team culture",
+          "driver": "Belonging",
+          "sentiment": "Positive",
+          "mentions": 33,
+          "summary": "Teams describe colleagues as generous, kind and quick to help; new starters feel welcomed.",
+          "example": "My team has my back, every single time.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "2dd0a30b-74b0-52bf-a622-c9cb6c6267c1",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "cycle_label": "Q2 2026",
+          "theme": "Recognition from peers",
+          "driver": "Recognition",
+          "sentiment": "Positive",
+          "mentions": 31,
+          "summary": "The kudos wall is popular and people notice when leaders join in.",
+          "example": "Getting a shout-out from another team made my month.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "7fefcde0-1406-572c-a643-f75e710fbc1a",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "cycle_label": "Q2 2026",
+          "theme": "Leadership communication",
+          "driver": "Leadership",
+          "sentiment": "Mixed",
+          "mentions": 25,
+          "summary": "The all-hands are valued, but decisions on reorganisations reached some teams late.",
+          "example": "Tell us the why earlier, even when the answer is not final.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "7b0c1be6-a726-5c55-86d0-8b32ea058ea7",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "cycle_label": "Q2 2026",
+          "theme": "Tools and systems",
+          "driver": "Growth",
+          "sentiment": "Negative",
+          "mentions": 23,
+          "summary": "Old internal tools slow down onboarding and customer work.",
+          "example": "Half my day goes into copying data between systems.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "12d2a7e4-505f-5a81-a858-e3f06061b12d",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "cycle_label": "Q2 2026",
+          "theme": "Hybrid working",
+          "driver": "Wellbeing",
+          "sentiment": "Positive",
+          "mentions": 16,
+          "summary": "Flexible hours and remote days are among the most appreciated things here.",
+          "example": "The flexibility is the reason I stay.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "604df558-605c-545d-a200-8147a6b7d0d4",
+        "data": {
+          "cycle_code": "ENG-2026-Q2",
+          "cycle_label": "Q2 2026",
+          "theme": "Feedback quality",
+          "driver": "Recognition",
+          "sentiment": "Mixed",
+          "mentions": 15,
+          "summary": "Feedback is frequent in some teams and rare in others; people want more specific examples.",
+          "example": "I hear \"good job\" but not what to do differently.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "90d9be0f-43d3-57ee-9089-d4849f30e410",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "cycle_label": "Q3 2026",
+          "theme": "Workload and pace",
+          "driver": "Wellbeing",
+          "sentiment": "Mixed",
+          "mentions": 48,
+          "summary": "People like the pace but say the support queue and quarter-end crunch spill into evenings. Several ask for clearer priorities when everything is urgent.",
+          "example": "More predictable on-call rotations would make a big difference.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "a89e4081-156e-5d79-9cc7-6216a2129b12",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "cycle_label": "Q3 2026",
+          "theme": "Career paths",
+          "driver": "Growth",
+          "sentiment": "Negative",
+          "mentions": 37,
+          "summary": "Many want clearer criteria for promotion and lateral moves, especially outside Engineering.",
+          "example": "I would love to know what the next level actually looks like for my role.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "26e46a7f-9d19-57a9-8102-e8704ecf2866",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "cycle_label": "Q3 2026",
+          "theme": "Team culture",
+          "driver": "Belonging",
+          "sentiment": "Positive",
+          "mentions": 31,
+          "summary": "Teams describe colleagues as generous, kind and quick to help; new starters feel welcomed.",
+          "example": "My team has my back, every single time.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "702539dc-4746-51e3-aed3-8e98bdfb0852",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "cycle_label": "Q3 2026",
+          "theme": "Recognition from peers",
+          "driver": "Recognition",
+          "sentiment": "Positive",
+          "mentions": 29,
+          "summary": "The kudos wall is popular and people notice when leaders join in.",
+          "example": "Getting a shout-out from another team made my month.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "ed677035-51f4-523e-b7f9-2292e5991a72",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "cycle_label": "Q3 2026",
+          "theme": "Leadership communication",
+          "driver": "Leadership",
+          "sentiment": "Positive",
+          "mentions": 22,
+          "summary": "The all-hands are valued, but decisions on reorganisations reached some teams late.",
+          "example": "Tell us the why earlier, even when the answer is not final.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "3fb4963f-0588-57e0-ab9d-75ea27cd2bbc",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "cycle_label": "Q3 2026",
+          "theme": "Tools and systems",
+          "driver": "Growth",
+          "sentiment": "Negative",
+          "mentions": 21,
+          "summary": "Old internal tools slow down onboarding and customer work.",
+          "example": "Half my day goes into copying data between systems.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "604d43ff-cb37-52a0-ad3c-cb2f5e761bfb",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "cycle_label": "Q3 2026",
+          "theme": "Hybrid working",
+          "driver": "Wellbeing",
+          "sentiment": "Positive",
+          "mentions": 19,
+          "summary": "Flexible hours and remote days are among the most appreciated things here.",
+          "example": "The flexibility is the reason I stay.",
+          "source": "Keyword rules"
+        }
+      },
+      {
+        "id": "c37f4fce-7b19-5686-bbf2-9c3551d04619",
+        "data": {
+          "cycle_code": "ENG-2026-Q3",
+          "cycle_label": "Q3 2026",
+          "theme": "Feedback quality",
+          "driver": "Recognition",
+          "sentiment": "Mixed",
+          "mentions": 13,
+          "summary": "Feedback is frequent in some teams and rare in others; people want more specific examples.",
+          "example": "I hear \"good job\" but not what to do differently.",
+          "source": "Keyword rules"
+        }
+      }
+    ]
+  }
+}

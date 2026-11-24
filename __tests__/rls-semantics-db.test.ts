@@ -212,6 +212,11 @@
  * (edition image pull access log): instance level, no client grants at all —
  * every caller gets 42501 for every statement.
  *
+ * 20270125100000_run_checkpoints.sql added workflow_step_effects (side
+ * effects already performed, by idempotency key) and workflow_run_event_relay
+ * (events of queued designer test runs): service role only, no client
+ * grants at all — every caller gets 42501 for every statement.
+ *
  * 20270114400000_provision_auth_user_in_workspace.sql added a function only
  * (provision_auth_user_in, executable by the service role only): no table
  * entry changed.
@@ -225,6 +230,35 @@
  * needs a note above. Both a Supabase stack and a standalone PostgreSQL
  * migrated with `usertasks-admin db migrate` must give the same file (the
  * instance-migration release gate runs it on both).
+ * 20270120090000_apps.sql added apps, app_pages, app_audience and
+ * app_editors (the app builder): SELECT where public.app_access(app) allows
+ * it — the caller holds apps.manage, is a named editor, or holds apps.view
+ * and the audience names them (by user, team or role) — and, for the
+ * audience and editor lists, only with edit access. Each workspace's owner
+ * (a / b) is its app's named editor, so they read all four tables of their
+ * own workspace and nothing of the other; callers in the unified view or
+ * another current workspace read nothing. No end-user writes (SELECT is the
+ * only grant): every INSERT / UPDATE / DELETE gets 42501.
+ * 20270123090000_app_drafts.sql added app_versions (published app
+ * snapshots): SELECT for the app's editors (every version) and its audience
+ * (the published version only); no end-user writes — every INSERT / UPDATE /
+ * DELETE gets 42501. It also limits apps and app_pages (the working draft)
+ * to the app's editors; the fixture's readers of those rows are the owners,
+ * who are the apps' named editors, so their existing entries are unchanged.
+ * 20270121150000_tag_styles.sql added tag_styles (the workspace tag
+ * registry): SELECT for the current workspace or every member workspace in
+ * the unified view (rls_visible_tenant_ids); INSERT / UPDATE / DELETE need
+ * tags.manage in the current workspace (rls_perm_tenant_ids) — the
+ * fixture's callers hold no roles, so every write is refused. No existing
+ * table entry changed.
+ * 20270123100000_report_rollups.sql added report_rollup_runs / _nodes
+ * (SELECT with workflows.view_runs in the row's workspace), _submissions
+ * (forms.edit), _tasks (tasks.view_all, or rows assigned to the caller or
+ * queued for one of their teams) — the fixture's callers hold no roles and
+ * the fixture rows name no one, so every SELECT sees nothing — and
+ * report_rollup_state / _dirty (service role only: 42501). No end-user
+ * writes (42501). Its triggers on workflow_runs, tasks and form_submissions
+ * only write the rollup tables: no existing table entry changed.
  * End users are simulated the way PostgREST does it: SET ROLE + request.jwt.claims.
  * Everything runs in one transaction that is rolled back.
  */
@@ -605,6 +639,25 @@ const SPECS: Spec[] = [
   },
   // Edition pull access log (20270118090000): instance level, service role only.
   { table: 'edition_pull_log', make: (k, v) => ({ edition: 'rls', outcome: 'issued', code: `${k}-${v}` }), move: null, touch: 'code' },
+  // Run checkpoints (20270125100000): step effects and the test-run event relay, service role only.
+  { table: 'workflow_step_effects', make: (k, v) => ({ key: `rls-${k}-${v}`, tenant_id: TENANT[k], kind: 'send_email' }), touch: 'kind' },
+  { table: 'workflow_run_event_relay', make: (k, v) => ({ job_id: uid(`relay:${k}:${v}`), seq: 1, event: {} }), move: null, touch: 'seq' },
+  // App builder (20270120090000): read through app_access (audience / editors / apps.manage); no end-user writes.
+  { table: 'apps', make: (k, v) => ({ tenant_id: TENANT[k], slug: `rls-${v}`, name: `app ${v}`, created_by: OWNER[k] }), touch: 'name' },
+  { table: 'app_pages', make: (k, v) => ({ tenant_id: TENANT[k], app_id: id('apps', k), slug: `rls-${v}`, title: `page ${v}` }), touch: 'title' },
+  { table: 'app_audience', make: (k, v) => ({ tenant_id: TENANT[k], app_id: id('apps', k), principal_type: 'user', principal_id: v === 'row' ? OWNER[k] : uid(`aud:${k}:${v}`) }), touch: 'principal_id' },
+  { table: 'app_editors', make: (k, v) => ({ tenant_id: TENANT[k], app_id: id('apps', k), user_id: OWNER[k] }), variants: ['row'], touch: 'user_id' },
+  // App drafts (20270123090000): published snapshots — editors read every version, the audience the published one; no end-user writes.
+  { table: 'app_versions', make: (k, v) => ({ tenant_id: TENANT[k], app_id: id('apps', k), version: v === 'row' ? 1 : 2, snapshot: {} }), touch: 'note' },
+  // Tag colours (20270121150000): members read their workspace's styles; writes need tags.manage (the fixture's callers have none).
+  { table: 'tag_styles', make: (k, v) => ({ tenant_id: TENANT[k], name: `tag ${v}`, color: 'teal' }) },
+  // Report rollups (20270123100000): permission-gated SELECT (the fixture's callers hold none), no client writes.
+  { table: 'report_rollup_runs', make: (k, v) => ({ tenant_id: TENANT[k], day: v === 'row' ? '2001-01-01' : '2001-01-02', workflow_id: uid(`rr-wf:${k}`), shard: 0 }), touch: 'runs' },
+  { table: 'report_rollup_nodes', make: (k, v) => ({ tenant_id: TENANT[k], workflow_id: uid(`rr-wf:${k}`), day: '2001-01-01', node_id: `node_${v}`, shard: 0 }), touch: 'visits' },
+  { table: 'report_rollup_tasks', make: (k, v) => ({ tenant_id: TENANT[k], day: v === 'row' ? '2001-01-01' : '2001-01-02', workflow_id: uid(`rr-wf:${k}`), team_id: uid('rr-none'), assignee_id: uid('rr-none') }), touch: 'cr_total' },
+  { table: 'report_rollup_submissions', make: (k, v) => ({ tenant_id: TENANT[k], day: v === 'row' ? '2001-01-01' : '2001-01-02', form_id: uid(`rr-form:${k}`), shard: 0 }), touch: 'submissions' },
+  { table: 'report_rollup_state', variants: ['row'], insertVariant: 'row', make: (k) => ({ tenant_id: TENANT[k] }), touch: 'days_rebuilt' },
+  { table: 'report_rollup_dirty', make: (k, v) => ({ id: parseInt(uid(`report_rollup_dirty:${k}:${v}`).slice(0, 7), 16), tenant_id: TENANT[k], day_from: '2001-01-01', day_to: v === 'row' ? '2001-01-01' : '2001-01-02' }), touch: 'reason' },
 ]
 
 /** Tables seeded by the fixture setup itself rather than SPECS. */

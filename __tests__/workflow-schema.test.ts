@@ -107,6 +107,10 @@ describe('createDefaultNode', () => {
     expect(node.config).toEqual({})
   })
 
+  it('turns on "Use this workflow\'s data as context" for new Run Agent steps only', () => {
+    expect(createDefaultNode('run_agent').config).toEqual({ include_workflow_data: true })
+  })
+
   it('creates a node with a valid UUID id', () => {
     const node = createDefaultNode('log')
     expect(node.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)

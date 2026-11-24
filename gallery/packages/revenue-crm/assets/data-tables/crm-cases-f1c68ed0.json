@@ -1,0 +1,158 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f1c68ed0-80cb-5d6b-8389-a42ab5f9eb6a",
+  "asset": {
+    "id": "f1c68ed0-80cb-5d6b-8389-a42ab5f9eb6a",
+    "name": "CRM cases",
+    "description": "Customer support cases: account, contact, priority, category, status, owner, SLA (response hours by priority, due by, met or missed) and the resolution.",
+    "columns": [
+      {
+        "id": "6f702f2d-1896-5a6d-8e6c-ba17157c77c6",
+        "required": true,
+        "key": "case_id",
+        "name": "Case ID",
+        "type": "text"
+      },
+      {
+        "id": "7631c914-0d2f-53a4-b487-133f91f2b684",
+        "required": false,
+        "key": "subject",
+        "name": "Subject",
+        "type": "text"
+      },
+      {
+        "id": "f18b485c-828b-5f0f-a0a0-e6855ef39cf3",
+        "required": false,
+        "key": "account",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "31f2ef0e-ce5b-5d76-8d9d-f9fad0b6ea7f",
+        "required": false,
+        "key": "account_id",
+        "name": "Account ID",
+        "type": "text"
+      },
+      {
+        "id": "5a5db32a-1e1f-5dfa-8166-69839e15bc35",
+        "required": false,
+        "key": "contact",
+        "name": "Contact",
+        "type": "text"
+      },
+      {
+        "id": "2b24f4ef-2a89-5a54-9d9a-3165237db601",
+        "required": false,
+        "key": "contact_email",
+        "name": "Contact email",
+        "type": "text"
+      },
+      {
+        "id": "bc0bc2c8-768e-5572-b71f-57cbfa6dac63",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "How-to",
+          "Bug",
+          "Integration",
+          "Billing",
+          "Access",
+          "Outage"
+        ]
+      },
+      {
+        "id": "0242c418-4763-5dba-abdd-236bea4c45c7",
+        "required": false,
+        "key": "priority",
+        "name": "Priority",
+        "type": "select",
+        "options": [
+          "Urgent",
+          "High",
+          "Normal",
+          "Low"
+        ]
+      },
+      {
+        "id": "ac06bae9-7479-5d16-9110-ee490a727649",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "New",
+          "In progress",
+          "Waiting on customer",
+          "Resolved",
+          "Closed"
+        ]
+      },
+      {
+        "id": "a836fc5e-6138-51a4-bbae-2a81f2e7e039",
+        "required": false,
+        "key": "owner",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "8b6ac4f9-198b-51fa-9b46-96c542faddd2",
+        "required": false,
+        "key": "opened_on",
+        "name": "Opened on",
+        "type": "date"
+      },
+      {
+        "id": "73921fb4-b7ed-5928-aaeb-d8299c3986d9",
+        "required": false,
+        "key": "due_by",
+        "name": "Due by (UTC)",
+        "type": "text"
+      },
+      {
+        "id": "987b45e4-47be-5d95-b2ca-e0fc6fe9bf85",
+        "required": false,
+        "key": "sla_hours",
+        "name": "SLA hours",
+        "type": "number"
+      },
+      {
+        "id": "f158ec46-89e4-5b7d-bdd7-c19a2fb7dfb7",
+        "required": false,
+        "key": "sla",
+        "name": "SLA",
+        "type": "select",
+        "options": [
+          "On track",
+          "Breached",
+          "Met",
+          "Missed"
+        ]
+      },
+      {
+        "id": "d4747e47-d6cd-544c-adda-a9c3091c8d6f",
+        "required": false,
+        "key": "resolved_on",
+        "name": "Resolved on",
+        "type": "date"
+      },
+      {
+        "id": "e5464fcd-64c5-5529-b5e7-0f1dcb8ad0f0",
+        "required": false,
+        "key": "description",
+        "name": "Description",
+        "type": "longtext"
+      },
+      {
+        "id": "7ce07f47-108c-566f-9c1d-ea426769f3ee",
+        "required": false,
+        "key": "resolution",
+        "name": "Resolution",
+        "type": "longtext"
+      }
+    ]
+  }
+}

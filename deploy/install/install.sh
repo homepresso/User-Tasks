@@ -16,12 +16,19 @@
 #   --build                                  build the image locally if it can't be downloaded
 #   --no-browser         USERTASKS_NO_BROWSER=1
 #
-# UserTasks for SharePoint Server (a licence-gated image; trial or purchased licence):
-#   --edition sharepoint USERTASKS_EDITION   install the SharePoint edition
-#   --licence <file>     USERTASKS_LICENCE_FILE   your .licence file (checked with usertasks.com)
-#   --bundle <file>                          install from an offline bundle (air-gapped hosts)
+# UserTasks Enterprise (one licence-gated image with every paid extension: SharePoint
+# Server, the Infrastructure add-on…; each unlocked by its own licence):
+#   --licence <file>     USERTASKS_LICENCE_FILE   your .licence file (checked with usertasks.com):
+#                                            installs UserTasks Enterprise (any paid licence)
+#   --edition <name>     USERTASKS_EDITION   enterprise (the default with a licence), core (the
+#                                            public image, even with a licence), sharepoint (the
+#                                            older SharePoint edition name: served the Enterprise image)
+#   --bundle <file>                          install from an offline bundle (air-gapped hosts): its .tar,
+#                                            or its parts (the .parts.json, or the folder holding them)
 #   --bundle-download                        make an offline bundle here instead of installing
-#                                            (with --edition and --licence; --platform linux/amd64|linux/arm64, --out <file>)
+#                                            (with --licence; --platform linux/amd64|linux/arm64, --out <file>)
+#   --bundle-download --from <url>           download a prebuilt split bundle (<url> of its .parts.json)
+#                                            into --out <folder>, resuming and checking every part
 #
 # It checks the machine and Docker, downloads a pinned release, verifies its
 # signature and checksum before running anything from it, then hands over to
@@ -47,7 +54,7 @@ ut_install() {
   EDITION_API=${USERTASKS_EDITION_API:-https://usertasks.com/api/public/extensions}
   V=${USERTASKS_VERSION:-}; DIR=${USERTASKS_DIR:-}; PORT=${USERTASKS_PORT:-}; URL=${USERTASKS_APP_URL:-}
   PRESET=${USERTASKS_PRESET:-}; PROJECT=${USERTASKS_PROJECT:-}; INSTALL_DOCKER=0; BUILD=0
-  EDITION=${USERTASKS_EDITION:-}; LICENCE=${USERTASKS_LICENCE_FILE:-}; BUNDLE=""; BUNDLE_DOWNLOAD=0; PLATFORM=""; OUT=""
+  EDITION=${USERTASKS_EDITION:-}; LICENCE=${USERTASKS_LICENCE_FILE:-}; BUNDLE=""; BUNDLE_DOWNLOAD=0; PLATFORM=""; OUT=""; FROM=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --version) V=${2#v}; shift 2 ;; --dir) DIR=$2; shift 2 ;; --port) PORT=$2; shift 2 ;; --url) URL=$2; shift 2 ;;
@@ -56,24 +63,38 @@ ut_install() {
       --build) BUILD=1; shift ;; --no-browser) USERTASKS_NO_BROWSER=1; shift ;;
       --edition) EDITION=$2; shift 2 ;; --licence|--license) LICENCE=$2; shift 2 ;; --bundle) BUNDLE=$2; shift 2 ;;
       --bundle-download) BUNDLE_DOWNLOAD=1; shift ;; --platform) PLATFORM=$2; shift 2 ;; --out) OUT=$2; shift 2 ;;
-      -h|--help) sed -n '2,31p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//' || echo "See https://usertasks.com/install"; return 0 ;;
+      --from) FROM=$2; shift 2 ;;
+      -h|--help) sed -n '2,37p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//' || echo "See https://usertasks.com/install"; return 0 ;;
       *) ut_die "unknown option $1 (see --help)" ;;
     esac
   done
   export USERTASKS_NONINTERACTIVE="${USERTASKS_NONINTERACTIVE:-0}" USERTASKS_NO_BROWSER="${USERTASKS_NO_BROWSER:-0}"
-  case "$EDITION" in ""|core) EDITION="" ;; sharepoint) : ;; *) ut_die "unknown edition: $EDITION (editions: sharepoint)" ;; esac
+  case "$EDITION" in ""|core|enterprise|sharepoint) : ;; *) ut_die "unknown edition: $EDITION (editions: enterprise, sharepoint, core)" ;; esac
+  # A licence alone means UserTasks Enterprise; --edition core keeps the public image.
+  IMPLICIT=0
+  if [ -z "$EDITION" ] && [ -n "$LICENCE" ]; then EDITION=enterprise; IMPLICIT=1; fi
+  CORE_CHOSEN=0; [ "$EDITION" = core ] && { EDITION=""; CORE_CHOSEN=1; }
   if [ -n "$LICENCE" ]; then
     [ -f "$LICENCE" ] || ut_die "licence file not found: $LICENCE"
     LICENCE="$(cd "$(dirname "$LICENCE")" && pwd)/$(basename "$LICENCE")"
   fi
   if [ -n "$BUNDLE" ]; then
-    [ -f "$BUNDLE" ] || ut_die "bundle not found: $BUNDLE"
+    [ -e "$BUNDLE" ] || ut_die "bundle not found: $BUNDLE"
     BUNDLE="$(cd "$(dirname "$BUNDLE")" && pwd)/$(basename "$BUNDLE")"
   fi
+  if [ -n "$FROM" ]; then
+    # A prebuilt, split bundle: download and check its parts, nothing else (no Docker needed).
+    [ "$BUNDLE_DOWNLOAD" = 1 ] || ut_die "--from goes with --bundle-download"
+    ut_say ""; ut_say "${UT_B}UserTasks installer${UT_N}"
+    DIR=${DIR:-$PWD/usertasks-bundle-work}; mkdir -p "$DIR/releases"; chmod 700 "$DIR"; DIR=$(cd "$DIR" && pwd)
+    ut_trust_key
+    ut_parts_download "$FROM" "${OUT:-$PWD}"
+    return
+  fi
   if [ "$BUNDLE_DOWNLOAD" = 1 ]; then
-    if [ -z "$EDITION" ] || [ -z "$LICENCE" ]; then ut_die "--bundle-download needs --edition sharepoint and --licence <file>"; fi
+    if [ -z "$EDITION" ] || [ -z "$LICENCE" ]; then ut_die "--bundle-download needs --licence <file> (and optionally --edition enterprise)"; fi
   elif [ -n "$EDITION" ] && [ -z "$LICENCE" ] && [ -z "$BUNDLE" ]; then
-    ut_die "--edition $EDITION needs your licence: --licence <file> (start a 30-day trial at https://usertasks.com/sharepoint/trial)"
+    ut_die "--edition $EDITION needs your licence: --licence <file> (licences: https://usertasks.com/extensions; a 30-day SharePoint trial: https://usertasks.com/sharepoint/trial)"
   fi
 
   ut_say ""
@@ -117,7 +138,10 @@ ut_install() {
 
   set -- install --dir "$DIR" --version "$V"
   [ -n "$BUNDLE_DIR" ] && set -- "$@" --bundle "$BUNDLE_DIR"
-  [ -n "$EDITION" ] && [ -z "$BUNDLE_DIR" ] && set -- "$@" --edition "$EDITION"
+  # Implicit Enterprise is left to the release's installer (a licence and no --edition), which
+  # falls back to the public image when there is no Enterprise build to use.
+  [ -n "$EDITION" ] && [ "$IMPLICIT" = 0 ] && [ -z "$BUNDLE_DIR" ] && set -- "$@" --edition "$EDITION"
+  [ "$CORE_CHOSEN" = 1 ] && [ -z "$BUNDLE_DIR" ] && set -- "$@" --edition core
   [ -n "$LICENCE" ] && set -- "$@" --licence "$LICENCE"
   [ -n "$PORT" ] && set -- "$@" --port "$PORT"
   [ -n "$URL" ] && set -- "$@" --url "$URL"
@@ -315,22 +339,164 @@ ut_rel_get() { # <local folder or ""> <release url> <file> <dest>
   if [ -n "$1" ]; then [ -f "$1/$3" ] && cp "$1/$3" "$4"; else ut_get "$2/$3" "$4"; fi
 }
 
-# ut_open_bundle: unpack the offline bundle ($BUNDLE) into releases/.bundle.
+# ut_open_bundle: unpack the offline bundle ($BUNDLE: a .tar, or its parts) into releases/.bundle.
 # Sets BUNDLE_DIR and BUNDLE_V. Its release is then verified like a download
 # (ut_fetch) and the edition image by the release's `usertasks install --bundle`.
 ut_open_bundle() {
-  if [ -f "$BUNDLE.sha256" ]; then
-    [ "$(ut_sha256 "$BUNDLE")" = "$(cut -d' ' -f1 < "$BUNDLE.sha256")" ] || ut_die "$BUNDLE does not match $BUNDLE.sha256: the bundle is damaged or was changed"
-    ut_ok "bundle checksum ($BUNDLE.sha256)"
+  ut_bundle_resolve "$BUNDLE" "$KEY" "$DIR/releases/.bundle-join"
+  if [ "$BUNDLE_JOINED" = 0 ] && [ -f "$BUNDLE_FILE.sha256" ]; then
+    [ "$(ut_sha256 "$BUNDLE_FILE")" = "$(cut -d' ' -f1 < "$BUNDLE_FILE.sha256")" ] || ut_die "$BUNDLE_FILE does not match $BUNDLE_FILE.sha256: the bundle is damaged or was changed"
+    ut_ok "bundle checksum ($BUNDLE_FILE.sha256)"
   fi
   _bo="$DIR/releases/.bundle"; rm -rf "$_bo"; mkdir -p "$_bo"
-  ut_step "Unpacking $(basename "$BUNDLE")"
-  tar -xf "$BUNDLE" -C "$_bo" || ut_die "could not unpack $BUNDLE"
+  ut_step "Unpacking $(basename "$BUNDLE_FILE")"
+  tar -xf "$BUNDLE_FILE" -C "$_bo" || ut_die "could not unpack $BUNDLE_FILE"
+  [ "$BUNDLE_JOINED" = 0 ] || rm -rf "$DIR/releases/.bundle-join"
   BUNDLE_DIR=$(find "$_bo" -mindepth 2 -maxdepth 2 -name bundle.json -exec dirname {} \; | head -n 1)
   [ -n "$BUNDLE_DIR" ] || ut_die "$BUNDLE is not a UserTasks offline bundle"
   BUNDLE_V=$(sed -n 's/.*"core_version": *"\([^"]*\)".*/\1/p' "$BUNDLE_DIR/bundle.json" | head -n 1)
   [ -n "$BUNDLE_V" ] || ut_die "the bundle names no UserTasks version"
   ut_say "  release key fingerprint (the signer fingerprint in the release notes): $(ut_key_fingerprint)"
+}
+
+# ── split bundles (parts; the same as the usertasks wrapper) ───────────────
+# A bundle over GitHub's 2 GiB release-asset limit comes in parts:
+#   <name>.tar.part-001 … <name>.tar.part-NNN   consecutive pieces of <name>.tar
+#   <name>.tar.parts.json                        size + sha256 of the whole and of each part, in order
+#   <name>.tar.parts.json.sig                    ed25519 signature of the manifest by the release key
+# --bundle takes the .tar, the .parts.json, one of the parts, or the folder
+# holding them. The signature, then every part, then the joined file are
+# checked before anything is unpacked. (By hand: cat <name>.tar.part-* > <name>.tar)
+
+# ut_parts_list <parts.json>: "<name> <size> <sha256>" of the whole, then one line per part.
+ut_parts_list() {
+  tr -d '\r\n' < "$1" | awk '
+    function f(s, k,   m) {
+      if (match(s, "\"" k "\"[ \t]*:[ \t]*\"[^\"]*\"")) { m = substr(s, RSTART, RLENGTH); sub(/^[^:]*:[ \t]*"/, "", m); sub(/"$/, "", m); return m }
+      if (match(s, "\"" k "\"[ \t]*:[ \t]*[0-9]+")) { m = substr(s, RSTART, RLENGTH); sub(/^[^:]*:[ \t]*/, "", m); return m }
+      return "-"
+    }
+    { i = index($0, "\"parts\""); if (!i) exit 1
+      head = substr($0, 1, i - 1); print f(head, "name") " " f(head, "size") " " f(head, "sha256")
+      n = split(substr($0, i), o, "}")
+      for (k = 1; k <= n; k++) if (o[k] ~ /"name"/) print f(o[k], "name") " " f(o[k], "size") " " f(o[k], "sha256") }'
+}
+
+# ut_parts_read <parts.json> <list file>: checks the manifest's shape; writes "<n> <name> <size> <sha256>"
+# per part to <list file>. Sets PARTS_NAME, PARTS_SIZE, PARTS_SHA, PARTS_N.
+ut_parts_read() {
+  _pr_m=$(basename "$1")
+  ut_parts_list "$1" > "$2" 2>/dev/null || ut_die "$_pr_m is not a bundle parts manifest"
+  read -r PARTS_NAME PARTS_SIZE PARTS_SHA < "$2" || ut_die "$_pr_m is empty"
+  if ! printf '%s' "$PARTS_NAME" | grep -Eq '^[A-Za-z0-9._-]+\.tar$' || ! printf '%s' "$PARTS_SIZE" | grep -Eq '^[0-9]+$' \
+    || ! printf '%s' "$PARTS_SHA" | grep -Eq '^[0-9a-f]{64}$'; then ut_die "$_pr_m is not a bundle parts manifest"; fi
+  PARTS_N=$(($(wc -l < "$2") - 1))
+  [ "$PARTS_N" -ge 1 ] || ut_die "$_pr_m lists no parts"
+  tail -n +2 "$2" > "$2.tmp"; : > "$2"; _pr_i=0; _pr_sum=0
+  while read -r _pr_n _pr_s _pr_h; do
+    _pr_i=$((_pr_i + 1))
+    if [ "$_pr_n" != "$(printf '%s.part-%03d' "$PARTS_NAME" "$_pr_i")" ] || ! printf '%s' "$_pr_s" | grep -Eq '^[0-9]+$' \
+      || ! printf '%s' "$_pr_h" | grep -Eq '^[0-9a-f]{64}$'; then ut_die "$_pr_m lists an unexpected part (entry $_pr_i)"; fi
+    _pr_sum=$((_pr_sum + _pr_s)); printf '%s %s %s %s\n' "$_pr_i" "$_pr_n" "$_pr_s" "$_pr_h" >> "$2"
+  done < "$2.tmp"
+  rm -f "$2.tmp"
+  [ "$_pr_sum" = "$PARTS_SIZE" ] || ut_die "the parts in $_pr_m do not add up to the bundle size"
+}
+
+# ut_parts_part_ok <file> <size> <sha256>: 0 intact, 1 missing, 2 wrong size, 3 checksum mismatch.
+ut_parts_part_ok() {
+  [ -f "$1" ] || return 1
+  [ "$(wc -c < "$1" | tr -d ' ')" = "$2" ] || return 2
+  [ "$(ut_sha256 "$1")" = "$3" ] || return 3
+}
+
+# ut_parts_join <parts.json> <release key> <work folder>: verify and join. Sets BUNDLE_FILE (the joined .tar).
+ut_parts_join() {
+  _pj_d=$(dirname "$1"); _pj_m=$(basename "$1")
+  [ -f "$1" ] || ut_die "parts manifest not found: $1"
+  [ -f "$1.sig" ] || ut_die "$_pj_m.sig is missing: copy it next to $_pj_m (the parts can't be checked without it)"
+  ut_verify_sig "$1" "$1.sig" "$2" || ut_die "signature check FAILED: $_pj_m was not signed by the UserTasks release key. Nothing was installed."
+  ut_ok "signature of $_pj_m"
+  mkdir -p "$3"; _pj_l="$3/.parts.list"
+  ut_parts_read "$1" "$_pj_l"
+  ut_step "Checking the $PARTS_N parts of $PARTS_NAME"
+  while read -r _pj_i _pj_n _pj_s _pj_h; do
+    _pj_rc=0; ut_parts_part_ok "$_pj_d/$_pj_n" "$_pj_s" "$_pj_h" || _pj_rc=$?
+    case "$_pj_rc" in
+      1) ut_die "part $_pj_i of $PARTS_N ($_pj_n) is missing: copy it next to $_pj_m (or download it again)" ;;
+      2) ut_die "part $_pj_i of $PARTS_N ($_pj_n) is incomplete or damaged (wrong size): download it again" ;;
+      3) ut_die "part $_pj_i of $PARTS_N ($_pj_n) is damaged (checksum mismatch): download it again" ;;
+    esac
+  done < "$_pj_l"
+  ut_ok "$PARTS_N parts (sizes and checksums)"
+  BUNDLE_FILE="$3/$PARTS_NAME"; : > "$BUNDLE_FILE"
+  while read -r _pj_i _pj_n _pj_s _pj_h; do
+    cat "$_pj_d/$_pj_n" >> "$BUNDLE_FILE" || ut_die "could not join the parts into $BUNDLE_FILE (disk full?)"
+  done < "$_pj_l"
+  rm -f "$_pj_l"
+  [ "$(ut_sha256 "$BUNDLE_FILE")" = "$PARTS_SHA" ] || { rm -f "$BUNDLE_FILE"; ut_die "the joined bundle does not match $_pj_m (checksum mismatch): download the parts again"; }
+  ut_ok "joined $PARTS_NAME (checksum)"
+}
+
+# ut_bundle_resolve <path> <release key> <work folder>: a bundle .tar, or its parts (a .parts.json,
+# one of the parts, or the folder holding them), as one .tar. Sets BUNDLE_FILE; BUNDLE_JOINED=1 when joined.
+ut_bundle_resolve() {
+  BUNDLE_FILE=$1; BUNDLE_JOINED=0; _br_m=""
+  case "$1" in
+    *.parts.json) _br_m=$1 ;;
+    *.part-[0-9][0-9][0-9]) _br_m="${1%.part-[0-9][0-9][0-9]}.parts.json" ;;
+    *) if [ -d "$1" ]; then
+         _br_n=$(find "$1" -maxdepth 1 -type f -name '*.parts.json' | wc -l | tr -d ' ')
+         if [ "$_br_n" -gt 1 ]; then ut_die "$1 holds more than one bundle: name its .parts.json"
+         elif [ "$_br_n" = 1 ]; then _br_m=$(find "$1" -maxdepth 1 -type f -name '*.parts.json')
+         else
+           [ "$(find "$1" -maxdepth 1 -type f -name '*.tar' | wc -l | tr -d ' ')" = 1 ] || ut_die "$1 has no offline bundle (a .tar, or the .part-NNN files with their .parts.json)"
+           BUNDLE_FILE=$(find "$1" -maxdepth 1 -type f -name '*.tar')
+         fi
+       fi ;;
+  esac
+  if [ -n "$_br_m" ]; then ut_parts_join "$_br_m" "$2" "$3"; BUNDLE_JOINED=1; fi
+  [ -f "$BUNDLE_FILE" ] || ut_die "bundle not found: $1"
+}
+
+# ut_parts_download <.parts.json address> <folder>: download a split bundle (the manifest, its
+# signature and every part) into <folder> to carry to an offline host. Resumes: parts already
+# there and intact are kept, a part cut short is continued. Every part is checked.
+ut_parts_download() {
+  case "$1" in https://*.parts.json|http://*.parts.json|file://*.parts.json) : ;; *) ut_die "--from needs the address of a bundle's .parts.json file" ;; esac
+  _pd_base=${1%/*}; _pd_m=${1##*/}
+  mkdir -p "$2"; _pd_o=$(cd "$2" && pwd)
+  ut_step "Downloading $_pd_m"
+  ut_get "$1" "$_pd_o/$_pd_m" || ut_die "could not download $1"
+  ut_get "$1.sig" "$_pd_o/$_pd_m.sig" || ut_die "could not download $1.sig (the parts can't be checked without it)"
+  ut_verify_sig "$_pd_o/$_pd_m" "$_pd_o/$_pd_m.sig" "$KEY" || ut_die "signature check FAILED: $_pd_m was not signed by the UserTasks release key"
+  ut_ok "signature of $_pd_m"
+  _pd_l="$DIR/releases/.parts.list"; ut_parts_read "$_pd_o/$_pd_m" "$_pd_l"
+  while read -r _pd_i _pd_n _pd_s _pd_h; do
+    _pd_f="$_pd_o/$_pd_n"; _pd_rc=0; ut_parts_part_ok "$_pd_f" "$_pd_s" "$_pd_h" || _pd_rc=$?
+    if [ "$_pd_rc" = 0 ]; then ut_ok "part $_pd_i of $PARTS_N already here ($_pd_n)"; continue; fi
+    # A complete part that fails its check (or an over-long one) is downloaded again from the start.
+    if [ -f "$_pd_f" ] && [ "$(wc -c < "$_pd_f" | tr -d ' ')" -ge "$_pd_s" ]; then rm -f "$_pd_f"; fi
+    ut_step "Downloading part $_pd_i of $PARTS_N ($_pd_n, $((_pd_s / 1048576)) MB)"
+    ut_get_resume "$_pd_base/$_pd_n" "$_pd_f" || ut_die "the download of part $_pd_i of $PARTS_N stopped: run the same command again to resume it"
+    _pd_rc=0; ut_parts_part_ok "$_pd_f" "$_pd_s" "$_pd_h" || _pd_rc=$?
+    if [ "$_pd_rc" != 0 ]; then rm -f "$_pd_f"; ut_die "part $_pd_i of $PARTS_N ($_pd_n) arrived damaged (checksum mismatch): run the same command again to download it again"; fi
+    ut_ok "part $_pd_i of $PARTS_N ($_pd_n, checksum)"
+  done < "$_pd_l"
+  rm -f "$_pd_l"
+  ut_say ""
+  ut_say "${UT_G}${UT_B}Offline bundle ready:${UT_N} $_pd_o ($PARTS_N parts of $PARTS_NAME, $((PARTS_SIZE / 1048576)) MB in all; signature and checksums verified)"
+  ut_say "Carry these to the offline host, in one folder: $_pd_m, $_pd_m.sig and the $PARTS_N .part-NNN files,"
+  ut_say "with this installer (https://usertasks.com/install.sh) and your licence file. There:"
+  ut_say "  sh install.sh --bundle <folder> --licence <your .licence file>"
+  ut_say "(it checks the signature and every part, then joins them). Upgrades: usertasks upgrade --bundle <folder>"
+}
+
+ut_get_resume() { # <url> <file>: continues a partial <file>
+  if ut_have curl; then
+    if [ -t 2 ]; then curl -fL --retry 3 --connect-timeout 20 -C - -# -o "$2" "$1"; else curl -fsSL --retry 3 --connect-timeout 20 -C - -o "$2" "$1"; fi
+  elif ut_have wget; then wget -q -c -O "$2" "$1"
+  else ut_die "curl or wget is needed"; fi
 }
 
 ut_key_fingerprint() {

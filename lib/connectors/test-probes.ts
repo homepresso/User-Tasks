@@ -514,6 +514,30 @@ async function probePerplexity(integrationConfig: IntegrationConfig, config: Rec
   }, () => 'Connected to Perplexity and verified the API key')
 }
 
+async function probeBaseten(integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
+  // Baseten documents no models endpoint: a 1-token completion with the
+  // connection's model validates the key, the deployment URL and the model.
+  const { basetenMode, basetenModel } = await import('./definitions/baseten')
+  const dedicated = basetenMode(config) === 'dedicated'
+  const model = basetenModel(config)
+  const name = dedicated ? 'your Baseten deployment' : 'Baseten Model APIs'
+  const resp = await performProbe('baseten', integrationConfig, config, credentials, {
+    url: buildUrl(integrationConfig.base_url, '/v1/chat/completions'),
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: 'user', content: 'ping' }] }),
+  })
+  const payload = await readJson(resp)
+  if (resp.ok) return { ok: true, message: `Connected to ${name} and ran ${model} (1 token)`, statusCode: resp.status }
+  const detail = firstErrorMessage(payload) || buildStandardMessage('Baseten', resp)
+  const hint = resp.status === 401 || resp.status === 403 ? ' — check the API key'
+    : resp.status === 404 ? (dedicated ? ' — check the deployment URL and that it serves /v1/chat/completions' : ` — check the model slug (${model})`)
+    : resp.status === 429 ? ' — Baseten is rate limiting this key'
+    : resp.status === 529 ? ' — the model has no free capacity right now; try again shortly'
+    : ''
+  return { ok: false, message: `${detail}${hint}`, statusCode: resp.status }
+}
+
 async function probeGeneric(connectorKey: string, integrationConfig: IntegrationConfig, config: Record<string, any>, credentials: Record<string, any>) {
   const resp = await performProbe(connectorKey, integrationConfig, config, credentials, {
     url: integrationConfig.base_url,
@@ -648,6 +672,8 @@ async function runConnectorProbeInner(
     case 'together':
     case 'ollama':
       return probeAiModels(connectorKey, integrationConfig, config, credentials)
+    case 'baseten':
+      return probeBaseten(integrationConfig, config, credentials)
     case 'perplexity':
       return probePerplexity(integrationConfig, config, credentials)
     case 'firebase':

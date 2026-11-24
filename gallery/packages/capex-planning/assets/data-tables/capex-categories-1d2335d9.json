@@ -1,0 +1,47 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "1d2335d9-e227-56be-82a9-65a6ecbc343c",
+  "asset": {
+    "id": "1d2335d9-e227-56be-82a9-65a6ecbc343c",
+    "name": "CapEx categories",
+    "description": "Capital categories: default useful life (years), GL account, depreciation method and the extra review each one needs.",
+    "columns": [
+      {
+        "id": "6dfe3fa2-b75b-5ec9-b620-529c074c5980",
+        "required": true,
+        "key": "category",
+        "name": "Category",
+        "type": "text"
+      },
+      {
+        "id": "5e8954de-d138-5c70-abab-f28233dfdf0a",
+        "required": false,
+        "key": "default_life",
+        "name": "Default useful life (years)",
+        "type": "number"
+      },
+      {
+        "id": "b442ea8e-4c37-5659-95c6-874bb1d4f348",
+        "required": false,
+        "key": "gl_account",
+        "name": "GL account",
+        "type": "text"
+      },
+      {
+        "id": "148b9f31-4246-5819-8547-7e4cca7f93d9",
+        "required": false,
+        "key": "depreciation_method",
+        "name": "Depreciation method",
+        "type": "text"
+      },
+      {
+        "id": "2909729b-63ad-53ed-acf4-8dadb79a5f15",
+        "required": false,
+        "key": "review_rule",
+        "name": "Extra review",
+        "type": "text"
+      }
+    ]
+  }
+}

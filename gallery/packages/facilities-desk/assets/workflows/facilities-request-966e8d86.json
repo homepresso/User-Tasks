@@ -1,0 +1,390 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "966e8d86-da44-59b8-9f39-0cf83179c2af",
+  "asset": {
+    "id": "966e8d86-da44-59b8-9f39-0cf83179c2af",
+    "name": "Facilities request",
+    "description": "A request from the Facilities request form: logged with its location, a coordinator assigns a technician and a target date, and the job is completed or closed.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Request sent",
+        "config": {
+          "form_id": "abd56279-8d33-5bd9-a02d-7de84c403f0f",
+          "form_name": "Facilities request"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Request number",
+        "config": {
+          "name": "request_ref",
+          "expression": "FAC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{request_ref}} · {{form.title}} · {{form.site}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the request",
+        "config": {
+          "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+          "table_name": "Facilities requests",
+          "operation": "insert",
+          "column_values": {
+            "request_ref": "{{request_ref}}",
+            "title": "{{form.title}}",
+            "category": "{{form.category}}",
+            "site": "{{form.site}}",
+            "building": "{{form.building}}",
+            "floor": "{{form.floor}}",
+            "spot": "{{form.spot}}",
+            "priority": "{{form.priority}}",
+            "status": "Open",
+            "technician": "Unassigned",
+            "requested_by": "{{form.requester}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "assign",
+        "type": "user_task",
+        "label": "Assign a technician",
+        "config": {
+          "task_title": "Assign: {{form.title}} ({{form.priority}})",
+          "task_description": "<p><strong>{{form.title}}</strong> at {{form.site}}, {{form.building}}, {{form.floor}} ({{form.spot}}).</p><p>{{form.details}}</p><p>Reported by {{form.requester}} ({{form.email}}). Category: {{form.category}}.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Assign"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "706bda5d-e0a2-5793-ae6d-b0d079b1c6c7",
+          "fields": [
+            {
+              "key": "technician",
+              "label": "Technician",
+              "type": "choice",
+              "options": [
+                "Rosa Alvarez",
+                "Ben Carter",
+                "Ines Duarte",
+                "Marcus Lee"
+              ],
+              "required": true
+            },
+            {
+              "key": "target_date",
+              "label": "Target date",
+              "type": "date",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "technician",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "target_date",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "assign",
+              "label": "Assign",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Assign"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Facilities request",
+            "align": "left",
+            "subtitle": "{{request_ref}} · {{form.priority}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "assigned",
+        "type": "update_data_table",
+        "label": "Mark assigned",
+        "config": {
+          "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+          "table_name": "Facilities requests",
+          "operation": "update",
+          "match_column": "request_ref",
+          "match_value": "{{request_ref}}",
+          "column_values": {
+            "status": "Assigned",
+            "technician": "{{task_data.technician}}",
+            "target_date": "{{task_data.target_date}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "tech",
+        "type": "set_variable",
+        "label": "Technician",
+        "config": {
+          "name": "technician",
+          "expression": "{{task_data.technician}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "job",
+        "type": "user_task",
+        "label": "Do the job",
+        "config": {
+          "task_title": "{{technician}}: {{form.title}} by {{task_data.target_date}}",
+          "task_description": "<p>Job for <strong>{{technician}}</strong>: {{form.title}} at {{form.site}}, {{form.building}}, {{form.floor}} ({{form.spot}}).</p><p>{{form.details}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done",
+            "Cannot fix"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "f5a2d9ca-620c-565a-ae02-6ff4cb4ca32f",
+          "fields": [
+            {
+              "key": "work_done",
+              "label": "What was done",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "work_done",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            },
+            {
+              "id": "cannot_fix",
+              "label": "Cannot fix",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Cannot fix"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Facilities job",
+            "align": "left",
+            "subtitle": "{{request_ref}} · {{technician}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "done",
+        "type": "update_data_table",
+        "label": "Mark done",
+        "config": {
+          "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+          "table_name": "Facilities requests",
+          "operation": "update",
+          "match_column": "request_ref",
+          "match_value": "{{request_ref}}",
+          "column_values": {
+            "status": "Done"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "end_done",
+        "type": "end_workflow",
+        "label": "Done",
+        "config": {
+          "reason": "{{request_ref}} done by {{technician}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "closed",
+        "type": "update_data_table",
+        "label": "Close: not fixed",
+        "config": {
+          "table_id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+          "table_name": "Facilities requests",
+          "operation": "update",
+          "match_column": "request_ref",
+          "match_value": "{{request_ref}}",
+          "column_values": {
+            "status": "Closed - not fixed"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1180
+        }
+      },
+      {
+        "id": "end_closed",
+        "type": "end_workflow",
+        "label": "Closed",
+        "config": {
+          "reason": "{{request_ref}} closed without a fix"
+        },
+        "position": {
+          "x": 720,
+          "y": 1320
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-assign",
+        "source": "log",
+        "target": "assign"
+      },
+      {
+        "id": "e-assign-assigned-assign",
+        "source": "assign",
+        "target": "assigned",
+        "label": "Assign"
+      },
+      {
+        "id": "e-assigned-tech",
+        "source": "assigned",
+        "target": "tech"
+      },
+      {
+        "id": "e-tech-job",
+        "source": "tech",
+        "target": "job"
+      },
+      {
+        "id": "e-job-done-done",
+        "source": "job",
+        "target": "done",
+        "label": "Done"
+      },
+      {
+        "id": "e-job-closed-cannot_fix",
+        "source": "job",
+        "target": "closed",
+        "label": "Cannot fix"
+      },
+      {
+        "id": "e-done-end_done",
+        "source": "done",
+        "target": "end_done"
+      },
+      {
+        "id": "e-closed-end_closed",
+        "source": "closed",
+        "target": "end_closed"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

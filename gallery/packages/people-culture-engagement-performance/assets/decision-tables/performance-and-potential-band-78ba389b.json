@@ -1,0 +1,233 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "78ba389b-6aee-584d-9193-d89a40e67dcf",
+  "asset": {
+    "id": "78ba389b-6aee-584d-9193-d89a40e67dcf",
+    "name": "Performance and potential band",
+    "description": "Places a calibrated rating and potential on the nine-box grid used in calibration (Star, High performer, Core contributor…). Change the bands to match your framework.",
+    "inputs": [
+      {
+        "id": "e89d558f-dd79-523b-adb4-18c8ee26b077",
+        "key": "rating",
+        "label": "Calibrated rating (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "b9f23bfb-675e-575c-a8ab-591a763ea205",
+        "key": "potential",
+        "label": "Potential",
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "5c07e819-8693-594c-aa72-e36724efb7f6",
+        "key": "band",
+        "label": "Band",
+        "type": "string"
+      }
+    ],
+    "rules": [
+      {
+        "id": "d4f2e5d5-bf40-5f96-ac7f-d4a6a6788148",
+        "label": "Star",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "f230d6bd-64fa-5bea-85b3-c4b418034646",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "4"
+          },
+          {
+            "id": "233e4bd4-c4c9-5231-aac4-dfad0538b6c6",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "High"
+          }
+        ],
+        "outputs": {
+          "band": "Star"
+        }
+      },
+      {
+        "id": "8206556b-9edd-5561-84fa-f619964aed6b",
+        "label": "High performer",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "7fbd4b85-f3af-5be3-9461-06cf9a91cde3",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "4"
+          },
+          {
+            "id": "83cb3ea2-8895-5a7e-b3d9-66b4b6ae6c0a",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "Medium"
+          }
+        ],
+        "outputs": {
+          "band": "High performer"
+        }
+      },
+      {
+        "id": "4f3ae9fa-5234-53ba-bf44-23af5a362e0a",
+        "label": "Trusted expert",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "90b9896c-0c37-5fcf-8415-8f50f2afd25e",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "4"
+          },
+          {
+            "id": "0f13ac75-7864-5376-8bf6-d716b6eb99f8",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "Low"
+          }
+        ],
+        "outputs": {
+          "band": "Trusted expert"
+        }
+      },
+      {
+        "id": "79a7c9f7-1812-5a77-a9e9-70ca861549c6",
+        "label": "Rising talent",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "4187de8e-cd93-5001-a88c-1b9da68192c5",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "3"
+          },
+          {
+            "id": "334f021c-c1e3-5fce-8004-09c5fd238b05",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "High"
+          }
+        ],
+        "outputs": {
+          "band": "Rising talent"
+        }
+      },
+      {
+        "id": "05971735-f172-5c74-ba9a-b2d0d6c0dbae",
+        "label": "Core contributor",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "3e0dc9fe-e855-5810-aa96-877dea470b7e",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "3"
+          },
+          {
+            "id": "ed017f2e-bab8-5c25-8ed8-de00b52c5dfa",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "Medium"
+          }
+        ],
+        "outputs": {
+          "band": "Core contributor"
+        }
+      },
+      {
+        "id": "a50315a6-d50a-5eba-a7d6-62416a847877",
+        "label": "Steady contributor",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "3e18cfca-e95a-5f03-8175-f8fa7bcc434a",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "3"
+          },
+          {
+            "id": "42eccdd7-59b8-5100-bd55-e059d550c0da",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "Low"
+          }
+        ],
+        "outputs": {
+          "band": "Steady contributor"
+        }
+      },
+      {
+        "id": "623bd081-9786-5044-9ff1-ac660a6b96a8",
+        "label": "Untapped potential",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "f475312f-ccc9-5fad-8a56-062c729ed308",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "0"
+          },
+          {
+            "id": "c65291d0-07e3-5f6f-8172-7e2746aa6113",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "High"
+          }
+        ],
+        "outputs": {
+          "band": "Untapped potential"
+        }
+      },
+      {
+        "id": "992c47c9-dcb7-59c8-b1f4-1c7daf5a8862",
+        "label": "Needs support",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "3d70d4cc-34fc-50a2-9919-443938c22833",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "0"
+          },
+          {
+            "id": "dc02b7a6-bd6a-5d40-be9b-c81d26c757ab",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "Medium"
+          }
+        ],
+        "outputs": {
+          "band": "Needs support"
+        }
+      },
+      {
+        "id": "1c275502-1d39-54ad-8fd9-179c3aa15946",
+        "label": "Performance concern",
+        "enabled": true,
+        "conditions": [
+          {
+            "id": "1bd6afeb-f3f5-56ee-ae46-b16ef82c4c02",
+            "inputKey": "rating",
+            "operator": "greater_than_or_equal",
+            "value": "0"
+          },
+          {
+            "id": "88b22b1a-b125-5173-a067-d0d04dd79c97",
+            "inputKey": "potential",
+            "operator": "equals",
+            "value": "Low"
+          }
+        ],
+        "outputs": {
+          "band": "Performance concern"
+        }
+      }
+    ],
+    "hit_policy": "first"
+  }
+}

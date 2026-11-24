@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { contentSecurityPolicy } from "@/lib/csp"
+import { APP_FRAME_SRC, contentSecurityPolicy, isAppPagePath } from "@/lib/csp"
 import { configuredAppUrl } from "@/lib/config/bootstrap"
 import { updateSession } from "@/lib/supabase/middleware"
 import { FRAME_PATH_PREFIX } from "@/lib/forms/custom-controls/frame"
@@ -104,7 +104,7 @@ export async function proxy(request: NextRequest) {
     captcha: publicForm,
     frameAncestors: frameable ? "*" : embeddable ? embedFrameAncestors(embedPolicy, workspaceOrigins) : "'none'",
     // Automatic sign-in's hidden frame goes to the identity provider (lib/providers/auth/sso/frame-sources.ts).
-    ...(embeddable && readSsoFrameSources().length ? { frameSrc: embedFrameSrc() } : {}),
+    ...(embeddable && readSsoFrameSources().length ? { frameSrc: embedFrameSrc() } : isAppPagePath(request.nextUrl.pathname) ? { frameSrc: APP_FRAME_SRC } : {}),
   }))
   if (frameable || embeddable) response.headers.delete("X-Frame-Options")
   else response.headers.set("X-Frame-Options", "DENY")

@@ -97,6 +97,8 @@ export const SECTION_TO_DIR: ReadonlyArray<{ section: string; dir: string }> = [
   // Custom form controls (web components): every version with its ES module.
   { section: 'form_controls', dir: 'form-controls' },
   { section: 'forms', dir: 'forms' },
+  // App builder apps: one file per app with its pages and the icons it uses.
+  { section: 'apps', dir: 'apps' },
   // Opt-in data-table rows (config export include_rows; packages): one file
   // per table, the asset id is the table id. Never pushed by GitHub sync.
   { section: 'table_rows', dir: 'data-rows' },

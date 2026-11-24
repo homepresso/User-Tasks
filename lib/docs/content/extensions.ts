@@ -42,7 +42,9 @@ Denied API, MCP and public-route calls answer \`403 extension_disabled\`, \`402 
 
 ## Free and paid
 
-The framework, the extension SDK and the licence verifier are open source (Apache-2.0) in the UserTasks repository. Paid extensions live in a private repository and are compiled into their own images only, the **editions** (such as the SharePoint edition), which licensed customers download through usertasks.com with their licence ([editions](/docs/self-hosting#editions)); core never imports them (a test enforces it). Without a licence an edition behaves exactly like the open-source image and lists its extensions as available but not licensed.
+The framework, the extension SDK and the licence verifier are open source (Apache-2.0) in the UserTasks repository. Paid extensions live in private repositories and are compiled into one image only, **UserTasks Enterprise**, which licensed customers download through usertasks.com with any licence for an extension it contains ([editions](/docs/self-hosting#editions)); core never imports them (a test enforces it). Each extension in it stays locked until its own licence is installed, so adding an extension later needs no reinstall. Without a licence the Enterprise image behaves exactly like the open-source image and lists its extensions as in this build but not licensed.
+
+The paid extensions are **SharePoint** (available), **Infrastructure** (service separation; coming soon) and **Processing** (separate runners; coming soon): what each does, what stays free in core, and prices are on [usertasks.com/extensions](/extensions).
 
 ## Authoring rules
 

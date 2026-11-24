@@ -1,0 +1,109 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "746ab20f-5436-50e7-b277-19c420b69652",
+  "asset": {
+    "id": "746ab20f-5436-50e7-b277-19c420b69652",
+    "name": "Service desk tickets",
+    "description": "Every ticket with its category, priority, status, who is working on it and its SLA state.",
+    "columns": [
+      {
+        "id": "d8bf8694-a2db-5e14-bf25-eded43b20723",
+        "required": true,
+        "key": "ticket_ref",
+        "name": "Ticket",
+        "type": "text"
+      },
+      {
+        "id": "2c1cacac-fac5-5d84-b964-f1be9322cd01",
+        "required": true,
+        "key": "title",
+        "name": "Summary",
+        "type": "text"
+      },
+      {
+        "id": "e8323608-194c-500e-a613-e1946a297739",
+        "required": false,
+        "key": "requester",
+        "name": "Requester",
+        "type": "text"
+      },
+      {
+        "id": "49ee3d23-3e29-5921-8198-9a6bd8517de0",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Hardware",
+          "Software",
+          "Access & accounts",
+          "Network & VPN",
+          "Email & calendar",
+          "Printing",
+          "Other"
+        ]
+      },
+      {
+        "id": "4bb34a6e-790b-57c6-8ea6-01daae2663a3",
+        "required": false,
+        "key": "priority",
+        "name": "Priority",
+        "type": "select",
+        "options": [
+          "P1 · Critical",
+          "P2 · High",
+          "P3 · Normal",
+          "P4 · Low"
+        ]
+      },
+      {
+        "id": "6748a424-9571-5cdb-88ec-b88edf0bac41",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "New",
+          "In progress",
+          "Waiting on requester",
+          "Resolved"
+        ]
+      },
+      {
+        "id": "83fa11ec-58ce-5020-ab25-ea79fda8bf67",
+        "required": false,
+        "key": "agent",
+        "name": "Agent",
+        "type": "text"
+      },
+      {
+        "id": "6584267e-9242-5a96-8bce-1e02901f3804",
+        "required": false,
+        "key": "opened_on",
+        "name": "Opened",
+        "type": "date"
+      },
+      {
+        "id": "3ba77a88-3bb0-5245-888f-3a888ab335e8",
+        "required": false,
+        "key": "sla_state",
+        "name": "SLA",
+        "type": "select",
+        "options": [
+          "On track",
+          "At risk",
+          "Breached",
+          "Met"
+        ]
+      },
+      {
+        "id": "f15d1afd-729a-5b02-8be6-55be85d44e81",
+        "required": false,
+        "key": "resolution",
+        "name": "Resolution",
+        "type": "text"
+      }
+    ]
+  }
+}

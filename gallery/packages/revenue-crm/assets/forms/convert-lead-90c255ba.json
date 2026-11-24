@@ -1,0 +1,374 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "90c255ba-f813-53bb-b7ff-5c9e68d43e7a",
+  "asset": {
+    "id": "90c255ba-f813-53bb-b7ff-5c9e68d43e7a",
+    "name": "Convert lead",
+    "description": "Turn a qualified lead into an account, a contact and a deal in Qualification.",
+    "tags": [
+      "crm",
+      "leads"
+    ],
+    "fields": [
+      {
+        "key": "h_lead",
+        "label": "The lead",
+        "type": "heading"
+      },
+      {
+        "key": "lead_id",
+        "label": "Lead ID",
+        "type": "text",
+        "required": true,
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.lead_id}}"
+          }
+        }
+      },
+      {
+        "key": "name",
+        "label": "Contact name",
+        "type": "text",
+        "required": true,
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.name}}"
+          }
+        }
+      },
+      {
+        "key": "email",
+        "label": "Email",
+        "type": "email",
+        "required": true,
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.email}}"
+          }
+        }
+      },
+      {
+        "key": "title",
+        "label": "Title",
+        "type": "text",
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.title}}"
+          }
+        }
+      },
+      {
+        "key": "company",
+        "label": "Account name",
+        "type": "text",
+        "required": true,
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.company}}"
+          }
+        }
+      },
+      {
+        "key": "region",
+        "label": "Region",
+        "type": "choice",
+        "options": [
+          "West",
+          "Central",
+          "East",
+          "EMEA",
+          "APAC"
+        ],
+        "required": true,
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.region}}"
+          }
+        }
+      },
+      {
+        "key": "industry",
+        "label": "Industry",
+        "type": "choice",
+        "options": [
+          "Manufacturing",
+          "Healthcare",
+          "Financial services",
+          "Retail",
+          "Software",
+          "Energy",
+          "Education",
+          "Logistics",
+          "Public sector"
+        ],
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.industry}}"
+          }
+        }
+      },
+      {
+        "key": "employees",
+        "label": "Employees",
+        "type": "number",
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.employees}}"
+          }
+        }
+      },
+      {
+        "key": "h_deal",
+        "label": "The deal",
+        "type": "heading"
+      },
+      {
+        "key": "deal_name",
+        "label": "Deal name",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Platform rollout"
+      },
+      {
+        "key": "amount",
+        "label": "Estimated amount (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "required": true
+      },
+      {
+        "key": "close_date",
+        "label": "Expected close date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "owner",
+        "label": "Owner",
+        "type": "text",
+        "required": true,
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.owner}}"
+          }
+        }
+      },
+      {
+        "key": "next_step",
+        "label": "Next step",
+        "type": "textarea"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_lead",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "lead_id",
+              "span": 1
+            },
+            {
+              "field_key": "name",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "email",
+              "span": 1
+            },
+            {
+              "field_key": "title",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "company",
+              "span": 1
+            },
+            {
+              "field_key": "region",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "industry",
+              "span": 1
+            },
+            {
+              "field_key": "employees",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_deal",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "deal_name",
+              "span": 1
+            },
+            {
+              "field_key": "amount",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "close_date",
+              "span": 1
+            },
+            {
+              "field_key": "owner",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "next_step",
+              "span": 2
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "lead_id",
+          "label": "Lead",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "company",
+          "label": "Company",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "title",
+          "label": "Title",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "region",
+          "label": "Region",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "industry",
+          "label": "Industry",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "employees",
+          "label": "Employees",
+          "type": "text",
+          "source": "context"
+        },
+        {
+          "name": "owner",
+          "label": "Owner",
+          "type": "text",
+          "source": "context"
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Convert",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Lead converted",
+            "text": "{{company}} is now an account with a deal in Qualification.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Convert lead",
+      "subtitle": "Creates the account (if new), the contact and a deal.",
+      "align": "left"
+    }
+  }
+}

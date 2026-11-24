@@ -457,8 +457,8 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
   if (targets) { const prepared = await targets.prepareFormTarget(ctx, targetForm, targetParams, 'submit'); targetForm.fields = prepared.fields; targetContext = prepared.context ?? {} }
   const values = await checkSubmissionValues(ctx, db, formId, targetForm.fields, input.values, def.layout, input, button.id)
   // Wizard forms: the response window and "one response per person" (lib/services/form-wizard-policy).
-  const { assertWizardResponsePolicy } = await import('./form-wizard-policy')
-  await assertWizardResponsePolicy(db, ctx.tenantId, formId, anonymous ? null : ctx.actorId)
+  const { assertWizardResponsePolicy, insertSubmissionRow, ONE_RESPONSE_MESSAGE } = await import('./form-wizard-policy')
+  const { singleResponse } = await assertWizardResponsePolicy(db, ctx.tenantId, formId, anonymous ? null : ctx.actorId)
   // The record is written first: when the provider refuses (validation, a conflict) nothing is stored.
   // Bindings with `writes: 'rules'` write only through the button's visible "Save to …" action, exactly as it says (older bindings: every submit writes).
   const saveAction = button.actions?.find((a) => a.type === 'save_target') ?? null
@@ -478,7 +478,8 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     notWrittenReturnUrl = (await targets.prepareFormTarget(ctx, targetForm, targetParams, 'render').catch(() => null))?.state?.return_url ?? null
   }
 
-  const { data: inserted, error } = await (db as any).from('form_submissions').insert({
+  // "One response per person": stored flagged, so a racing second response hits the unique index (refused).
+  const { data: inserted, error, duplicateResponse } = await insertSubmissionRow<Record<string, any>>(db, {
     tenant_id: ctx.tenantId,
     form_id: formId,
     form_version: row.version ?? null,
@@ -490,11 +491,12 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     values,
     idempotency_key: key,
     ...(anonymous ? { anonymous_meta: options.anonymousMeta ?? {} } : {}),
-  }).select(SUBMISSION_COLUMNS).single()
+  }, SUBMISSION_COLUMNS, { singleResponse })
   if (error?.code === '23505' && key) {
     const replay = await findReplay(db, ctx, key, formId)
     if (replay) return replay
   }
+  if (duplicateResponse) throw ServiceError.forbidden(ONE_RESPONSE_MESSAGE)
   if (error || !inserted) throw dbError(error, 'Failed to store the submission')
   // The uploads are the submission's now (no longer pending).
   const { attachmentIdsIn, bindFormFiles } = await import('./form-files')
@@ -703,6 +705,15 @@ export interface SubmissionFilters {
   until?: string
 }
 
+/** since / until must be a date or date-time (a 400, not a database error, otherwise). */
+function dateFilter(name: string, value: string): string {
+  const text = String(value).trim()
+  if (!/^\d{4}-\d{2}-\d{2}/.test(text) || Number.isNaN(Date.parse(text))) {
+    throw ServiceError.validation(`${name} must be an ISO date or date-time (e.g. 2026-11-01 or 2026-11-01T09:00:00Z)`)
+  }
+  return text
+}
+
 /** Everyone sees their own; forms.edit sees the workspace's (as the RLS policy). */
 function scopedQuery(ctx: ServiceContext, db: AnySupabaseClient, columns: string, filters: SubmissionFilters, count = true) {
   requirePerm(ctx, 'forms.submit')
@@ -722,8 +733,8 @@ function scopedQuery(ctx: ServiceContext, db: AnySupabaseClient, columns: string
   }
   if (filters.button_id) query = query.eq('button_id', String(filters.button_id).slice(0, 40))
   if (filters.source) query = query.eq('source', filters.source)
-  if (filters.since) query = query.gte('created_at', filters.since)
-  if (filters.until) query = query.lte('created_at', filters.until)
+  if (filters.since) query = query.gte('created_at', dateFilter('since', filters.since))
+  if (filters.until) query = query.lte('created_at', dateFilter('until', filters.until))
   return query
 }
 

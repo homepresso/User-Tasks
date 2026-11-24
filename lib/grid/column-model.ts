@@ -31,6 +31,7 @@ import { normalizeSignatureConfig, normalizeSignatureValue, type SignatureFieldC
 import { normalizePeopleValue, type PersonRef } from '@/lib/forms/people-field'
 import { sanitizeRichText, richTextPlainText } from '@/lib/forms/rich-text'
 import { calculateColumn, type ListColumn } from '@/lib/forms/list-field'
+import { GROUPABLE_TYPES, normalizeGroupBy } from '@/lib/grid/grouping'
 
 /* ── Controls ────────────────────────────────────────────────────────── */
 
@@ -386,6 +387,8 @@ export interface GridViewConfig {
   page_size?: number
   /** The view the grid opens on. */
   default?: boolean
+  /** Group the rows by these column keys (up to two levels; lib/grid/grouping.ts). */
+  group_by?: string[]
 }
 
 const VIEW_ID_RE = /^[A-Za-z0-9_-]{1,40}$/
@@ -426,6 +429,8 @@ export function normalizeGridViews(raw: unknown, tableColumns?: TableSchemaColum
     const pageSize = finite(entry.page_size)
     if (pageSize !== undefined && pageSize !== GRID_LIMITS.defaultPageSize) view.page_size = Math.min(GRID_LIMITS.pageSize, Math.max(10, Math.floor(pageSize)))
     if (entry.default === true && !out.some((v) => v.default)) view.default = true
+    const groupBy = normalizeGroupBy(entry.group_by, known ? new Set([...known.values()].filter((c) => GROUPABLE_TYPES.has(c.type)).map((c) => c.key)) : undefined)
+    if (groupBy.length) view.group_by = groupBy
     out.push(view)
   }
   return out

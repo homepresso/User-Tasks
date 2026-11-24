@@ -1,0 +1,316 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "f06c79fd-e413-5e8b-8bf5-a6822162e14a",
+  "asset": {
+    "id": "f06c79fd-e413-5e8b-8bf5-a6822162e14a",
+    "name": "CRM lead routing",
+    "description": "Territory, owner and response time for a new lead, by region, company size and score. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "15fe87bf-3767-5595-90cb-a5cc68f313e8",
+        "key": "region",
+        "label": "Region",
+        "type": "text"
+      },
+      {
+        "id": "ade94f2d-52d9-5877-bb5d-ecb4001e1ac1",
+        "key": "employees",
+        "label": "Employees",
+        "type": "number"
+      },
+      {
+        "id": "7992c70b-9c82-534e-a01b-95b84ae77288",
+        "key": "score",
+        "label": "Lead score",
+        "type": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "010c54c0-3543-55cf-8df0-4f3f6dc70780",
+        "key": "territory",
+        "label": "Territory",
+        "type": "text"
+      },
+      {
+        "id": "ae0e3638-64cc-5ed0-84fb-b571aac19b00",
+        "key": "owner",
+        "label": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "1e1f9c00-0345-512f-8bb5-7d091754dae1",
+        "key": "priority",
+        "label": "Priority",
+        "type": "text"
+      },
+      {
+        "id": "4b703f62-1990-5dc1-ae45-dda46296e762",
+        "key": "sla_hours",
+        "label": "Respond within (hours)",
+        "type": "number"
+      }
+    ],
+    "rules": [
+      {
+        "id": "8ba97f5d-08c8-5c66-84b4-d99f0816f2ba",
+        "label": "Hot lead: any region",
+        "enabled": true,
+        "outputs": {
+          "territory": "Strategic desk",
+          "owner": "Alex Morgan",
+          "priority": "high",
+          "sla_hours": 4
+        },
+        "conditions": [
+          {
+            "id": "d64f9443-63a5-5f2c-a9f1-6be972db8daf",
+            "inputKey": "score",
+            "operator": "greater_than_or_equal",
+            "value": "80"
+          }
+        ]
+      },
+      {
+        "id": "b507cf39-f412-5c9b-8155-d2a0c8c51068",
+        "label": "West enterprise",
+        "enabled": true,
+        "outputs": {
+          "territory": "West Enterprise",
+          "owner": "Maya Patel",
+          "priority": "medium",
+          "sla_hours": 8
+        },
+        "conditions": [
+          {
+            "id": "d4869b56-e892-5b6f-90a0-82f1cf96124d",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "West"
+          },
+          {
+            "id": "8aa618a6-c683-509c-b8eb-3121bf96c3b2",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "1000"
+          }
+        ]
+      },
+      {
+        "id": "74bb1491-5109-5331-ac2d-8fe2be341594",
+        "label": "West commercial",
+        "enabled": true,
+        "outputs": {
+          "territory": "West Commercial",
+          "owner": "Alex Morgan",
+          "priority": "medium",
+          "sla_hours": 24
+        },
+        "conditions": [
+          {
+            "id": "1b18bdd8-9bfa-5851-8911-acb5d1f00964",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "West"
+          }
+        ]
+      },
+      {
+        "id": "678835c7-d34b-50c4-ab9b-314a4390230c",
+        "label": "Central enterprise",
+        "enabled": true,
+        "outputs": {
+          "territory": "Central Enterprise",
+          "owner": "Daniel Okafor",
+          "priority": "medium",
+          "sla_hours": 8
+        },
+        "conditions": [
+          {
+            "id": "36c0a5bb-dc15-5dc0-8387-154942269498",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "Central"
+          },
+          {
+            "id": "fe53e30e-a8a2-54ca-9017-54717462e9b0",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "1000"
+          }
+        ]
+      },
+      {
+        "id": "27b735b6-cc2c-5230-bc16-8fdcc969bb8b",
+        "label": "Central commercial",
+        "enabled": true,
+        "outputs": {
+          "territory": "Central Commercial",
+          "owner": "Alex Morgan",
+          "priority": "medium",
+          "sla_hours": 24
+        },
+        "conditions": [
+          {
+            "id": "659de077-096c-505e-9ec1-5cd6cfc29334",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "Central"
+          }
+        ]
+      },
+      {
+        "id": "05b31f10-8727-5be3-9e2f-c58a49f09a0b",
+        "label": "East enterprise",
+        "enabled": true,
+        "outputs": {
+          "territory": "East Enterprise",
+          "owner": "Priya Raman",
+          "priority": "medium",
+          "sla_hours": 8
+        },
+        "conditions": [
+          {
+            "id": "fd7c0516-0107-5d4b-8160-a51428700a0a",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "East"
+          },
+          {
+            "id": "e3a435b6-a87c-5f01-a273-173676cf31b3",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "1000"
+          }
+        ]
+      },
+      {
+        "id": "8f745af1-d718-5a27-a5da-30469ae72943",
+        "label": "East commercial",
+        "enabled": true,
+        "outputs": {
+          "territory": "East Commercial",
+          "owner": "Sam Torres",
+          "priority": "medium",
+          "sla_hours": 24
+        },
+        "conditions": [
+          {
+            "id": "5b008661-0b45-5d38-8949-eaaa1332b263",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "East"
+          }
+        ]
+      },
+      {
+        "id": "251c1970-a4eb-51bf-8864-56fc885398b4",
+        "label": "EMEA enterprise",
+        "enabled": true,
+        "outputs": {
+          "territory": "EMEA Enterprise",
+          "owner": "Jonas Berg",
+          "priority": "medium",
+          "sla_hours": 8
+        },
+        "conditions": [
+          {
+            "id": "c28b7976-4644-5e7e-890b-469443461535",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "EMEA"
+          },
+          {
+            "id": "0d251220-cb35-53b6-8767-9f40f664173a",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "1000"
+          }
+        ]
+      },
+      {
+        "id": "2795120c-528e-5aad-94cf-70306c70c40c",
+        "label": "EMEA commercial",
+        "enabled": true,
+        "outputs": {
+          "territory": "EMEA Commercial",
+          "owner": "Jonas Berg",
+          "priority": "medium",
+          "sla_hours": 24
+        },
+        "conditions": [
+          {
+            "id": "101b1e2a-95b3-5522-a981-d78cddc6981f",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "EMEA"
+          }
+        ]
+      },
+      {
+        "id": "b97d4889-a9fc-5021-9284-3881960b9163",
+        "label": "APAC enterprise",
+        "enabled": true,
+        "outputs": {
+          "territory": "APAC Enterprise",
+          "owner": "Grace Kim",
+          "priority": "medium",
+          "sla_hours": 8
+        },
+        "conditions": [
+          {
+            "id": "b88b5b65-7f05-5c0f-829f-8f0579a6dd07",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "APAC"
+          },
+          {
+            "id": "0672cf84-dea9-58cf-85e8-0a43d775ddf3",
+            "inputKey": "employees",
+            "operator": "greater_than_or_equal",
+            "value": "1000"
+          }
+        ]
+      },
+      {
+        "id": "ccec1935-e24e-5c93-bab4-19f883505e9c",
+        "label": "APAC commercial",
+        "enabled": true,
+        "outputs": {
+          "territory": "APAC Commercial",
+          "owner": "Grace Kim",
+          "priority": "medium",
+          "sla_hours": 24
+        },
+        "conditions": [
+          {
+            "id": "406e2114-e49e-50cd-8849-09a47ee40473",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "APAC"
+          }
+        ]
+      },
+      {
+        "id": "bd5c1020-f470-5be6-a5ee-5d6d405848ab",
+        "label": "Anywhere else: inside sales",
+        "enabled": true,
+        "outputs": {
+          "territory": "Inside sales",
+          "owner": "Sam Torres",
+          "priority": "low",
+          "sla_hours": 48
+        },
+        "conditions": [
+          {
+            "id": "a8b28ede-5a9d-5d31-a358-3701110038db",
+            "inputKey": "region",
+            "operator": "equals",
+            "value": "*"
+          }
+        ]
+      }
+    ]
+  }
+}

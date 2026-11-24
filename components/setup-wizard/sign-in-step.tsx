@@ -11,7 +11,7 @@ import { InlineNotice } from '@/components/ui/inline-notice'
 import { setupWizardRemoveIdp, setupWizardSaveIdp, setupWizardTestIdp } from '@/app/actions/setup-wizard'
 import { IDP_KINDS, idpRedirects, type IdpFormInput, type IdpKind, type IdpSummary } from '@/lib/setup/wizard-model'
 import type { WizardPageData } from '@/lib/setup/wizard-data'
-import { CopyBlock } from '@/components/settings/provider-switch-wizard'
+import { CopyBlock } from '@/components/settings/copy-block'
 import { AllowHostButton } from '@/components/settings/allow-host-button'
 import { StepFooter } from './setup-wizard'
 
@@ -143,7 +143,7 @@ export function SignInStep({ data }: { data: WizardPageData }) {
     if (!window.confirm(`Remove ${idp.name ?? idp.id}? People who sign in with it will need a password or another provider.`)) return
     const res = await setupWizardRemoveIdp(idp.id)
     if (!res.ok) { setMessage({ tone: 'danger', message: res.error }); return }
-    setMessage({ tone: 'success', message: `${idp.name ?? idp.id} removed (the switch log can roll this back).` })
+    setMessage({ tone: 'success', message: `${idp.name ?? idp.id} removed (recorded in the switch log).` })
     router.refresh()
   })
   const testLink = (idp: IdpSummary) => `${data.appUrl}/auth/sso/${idp.id}/start?redirect=${encodeURIComponent('/home')}`

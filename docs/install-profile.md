@@ -62,6 +62,46 @@ Paths for `--set`:
 `--local-root <folder>` changes the default files folder of `server` and
 `windows`.
 
+## Separated profiles need an Infrastructure licence
+
+`supabase`, `server` and `windows` are standard stacks: everything on a
+Supabase project, or everything installed with UserTasks on this machine.
+Email (SMTP, Microsoft 365, Exchange, Resend, log-only) and identity
+providers on built-in sign-in are settings of those stacks. These profiles
+need no licence.
+
+A profile that moves a service off the standard stack is separated, and
+needs the [Infrastructure add-on](infrastructure-add-on.md)
+(`lib/install/standard-stack.ts`). That covers `existing`, and any profile
+with:
+
+- your own or a managed PostgreSQL;
+- an external S3, Azure Blob or GCS bucket;
+- SSO-only sign-in (`oidc` / `saml`);
+- an external scheduler or Redis;
+- a cloud secret store or KMS;
+- an email API (SES, Azure Communication Services, Microsoft Graph, Gmail).
+
+`validate`, `write` and `apply` refuse a separated profile (exit 1) unless
+`--licence <file>`, `USERTASKS_LICENCE_FILE` or `USERTASKS_LICENCE` holds a
+licence for the `infrastructure` extension with the
+`infrastructure-separation` feature. The licence is checked offline:
+
+- the signature against the built-in keys;
+- the dates (it stops 24 hours after expiry);
+- the binding to `app.url`.
+
+`apply --licence` also installs the licence in the instance (Settings →
+Licence). Areas that the running configuration already has need no licence,
+so re-runs and upgrades of installs separated with v0.2.0 / v0.3.0 keep
+working:
+
+- `write` and `validate` compare with the `--merge` env file;
+- `apply` compares with the instance settings.
+
+With `--format json`, a refusal is
+`{ "ok": false, "code": "licence_required", "separated": [...] }`.
+
 ## The profile
 
 ```json

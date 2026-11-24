@@ -12,6 +12,7 @@ import { Field } from '@/components/ui/field'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { SubmitButton } from '@/components/ui/submit-button'
+import { TagInput } from '@/components/ui/tag-input'
 
 export function CreateTableDialog() {
   const searchParams = useSearchParams()
@@ -39,17 +40,20 @@ export function CreateTableDialog() {
   }, [wantsNew, searchParams, pathname, router])
 
   const [clash, setClash] = useState<{ name: string; suggestion: string; description: string } | null>(null)
+  const [tags, setTags] = useState<string[]>([])
   // Create from file: the import wizard infers the columns, creates the table and imports the rows.
   const [fromFile, setFromFile] = useState<{ name: string } | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
 
   async function create(formData: FormData) {
+    if (tags.length) formData.set('tags', JSON.stringify(tags))
     const created = await createCustomTable(formData)
     if (created && 'exists' in created && created.exists) {
       setClash({ name: created.name, suggestion: created.suggestion, description: String(formData.get('description') ?? '') })
       return
     }
     setClash(null)
+    setTags([])
     setOpen(false)
     // Straight to the new table's schema so columns can be added.
     if (created && 'id' in created && created.id) router.push(`/data/${created.id}?tab=schema`)
@@ -81,6 +85,9 @@ export function CreateTableDialog() {
             </Field>
             <Field label="Description" optional>
               <Input name="description" placeholder="What the table holds" />
+            </Field>
+            <Field label="Tags" optional>
+              <TagInput value={tags} onChange={setTags} listInline aria-label="Tags" />
             </Field>
             {clash && (
               <div data-testid="table-name-exists"><InlineNotice tone="warning">

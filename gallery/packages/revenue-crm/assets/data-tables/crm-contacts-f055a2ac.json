@@ -1,0 +1,83 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f055a2ac-22a3-5e94-b144-6dd4b846e645",
+  "asset": {
+    "id": "f055a2ac-22a3-5e94-b144-6dd4b846e645",
+    "name": "CRM contacts",
+    "description": "People at your accounts and the part they play in the deal.",
+    "columns": [
+      {
+        "id": "99deb15a-7819-5c37-bcaa-a324e6c0a28b",
+        "required": true,
+        "key": "contact_id",
+        "name": "Contact ID",
+        "type": "text"
+      },
+      {
+        "id": "12f24b51-31a7-527a-9a97-2b5d4f9ff996",
+        "required": true,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "97a810d2-e71b-5102-84e6-3594d3902563",
+        "required": false,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "5ba1fc98-ce68-51ef-af15-10a87c163c39",
+        "required": false,
+        "key": "account",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "2259db6c-0b79-5393-acfd-fe1b275fa43e",
+        "required": false,
+        "key": "account_id",
+        "name": "Account ID",
+        "type": "text"
+      },
+      {
+        "id": "c7d11675-f804-5fa4-af1f-204d98eb9cd2",
+        "required": false,
+        "key": "email",
+        "name": "Email",
+        "type": "text"
+      },
+      {
+        "id": "53e9fb6f-af37-5ced-befc-d304ff3abb24",
+        "required": false,
+        "key": "phone",
+        "name": "Phone",
+        "type": "text"
+      },
+      {
+        "id": "ee581ba9-070d-53b4-bbf7-b5cbb86d6174",
+        "required": false,
+        "key": "role",
+        "name": "Buying role",
+        "type": "select",
+        "options": [
+          "Decision maker",
+          "Champion",
+          "Economic buyer",
+          "Technical evaluator",
+          "Finance",
+          "User"
+        ]
+      },
+      {
+        "id": "42baac5c-12e8-5b81-bf35-6644acb7fb51",
+        "required": false,
+        "key": "last_contacted",
+        "name": "Last contacted",
+        "type": "date"
+      }
+    ]
+  }
+}

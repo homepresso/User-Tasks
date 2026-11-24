@@ -193,10 +193,13 @@ export async function runActionTool(runtime: AgentToolRuntime, action: string, a
       const { data: workflow } = await db.from('workflows').select('id, name, is_active, published_version_id').eq('id', workflowId).eq('tenant_id', tenantId).maybeSingle()
       if (!workflow) throw new AgentToolError('Workflow not found', 404)
       if (!workflow.is_active) throw new AgentToolError('Workflow is not active')
-      const { executeWorkflow } = await import('@/lib/workflow-engine')
+      const { startRun } = await import('@/lib/processing/dispatch')
       const variables = args.variables && typeof args.variables === 'object' && !Array.isArray(args.variables) ? args.variables : undefined
-      const result = await executeWorkflow(workflowId, undefined, false, variables, undefined, workflow.published_version_id ?? undefined, undefined,
-        { initiator: { userId: actingUserId ?? null, via: 'agent' } })
+      // Here, or on a processing worker while the agent waits (bounded).
+      const result = await startRun({
+        workflowId, tenantId, variables, versionId: workflow.published_version_id ?? null,
+        initiator: { userId: actingUserId ?? null, via: 'agent' },
+      })
       return { run: { workflow_id: workflowId, workflow_name: workflow.name, run_id: result.run_id, status: result.status, error: result.error ?? null } }
     }
 

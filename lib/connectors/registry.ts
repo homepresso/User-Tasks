@@ -155,6 +155,7 @@ import { groqConnector } from './definitions/groq'
 import { xaiConnector } from './definitions/xai'
 import { mistralConnector } from './definitions/mistral'
 import { togetherConnector } from './definitions/together'
+import { basetenConnector } from './definitions/baseten'
 import { perplexityConnector } from './definitions/perplexity'
 import { ollamaConnector } from './definitions/ollama'
 import { azureOpenaiConnector } from './definitions/azure-openai'
@@ -180,6 +181,7 @@ export const CONNECTOR_CATALOG: ConnectorDefinition[] = [
   xaiConnector,
   mistralConnector,
   togetherConnector,
+  basetenConnector,
   perplexityConnector,
   deepseekConnector,
   azureOpenaiConnector,

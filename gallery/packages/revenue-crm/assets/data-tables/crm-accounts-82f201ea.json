@@ -1,0 +1,200 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+  "asset": {
+    "id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+    "name": "CRM accounts",
+    "description": "Companies you sell to: industry, tier, region, owner, ARR in USD, health and renewal date.",
+    "columns": [
+      {
+        "id": "bb65deb3-d3b5-5d6d-a3cb-d7acce095b01",
+        "required": true,
+        "key": "account_id",
+        "name": "Account ID",
+        "type": "text"
+      },
+      {
+        "id": "83556da6-886d-59ee-810a-e777d2ae562b",
+        "required": true,
+        "key": "name",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "7946e972-16f5-5964-92f3-211978245d4e",
+        "required": false,
+        "key": "industry",
+        "name": "Industry",
+        "type": "select",
+        "options": [
+          "Manufacturing",
+          "Healthcare",
+          "Financial services",
+          "Retail",
+          "Software",
+          "Energy",
+          "Education",
+          "Logistics",
+          "Public sector"
+        ]
+      },
+      {
+        "id": "c89eb5df-0e08-5777-b78d-b940de3d5b3d",
+        "required": false,
+        "key": "tier",
+        "name": "Tier",
+        "type": "select",
+        "options": [
+          "Strategic",
+          "Enterprise",
+          "Mid-market",
+          "SMB"
+        ]
+      },
+      {
+        "id": "b42dfad2-5b4e-54c5-9318-702d975cc0b3",
+        "required": false,
+        "key": "region",
+        "name": "Region",
+        "type": "select",
+        "options": [
+          "West",
+          "Central",
+          "East",
+          "EMEA",
+          "APAC"
+        ]
+      },
+      {
+        "id": "1210dbd3-a228-527c-b511-1620edc06e82",
+        "required": false,
+        "key": "owner",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "c729405e-8d4e-539e-9142-b90be90d4093",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Customer",
+          "Prospect",
+          "Former customer"
+        ]
+      },
+      {
+        "id": "c835891a-f520-563e-b34c-ccbfa2c0f8d4",
+        "required": false,
+        "key": "arr",
+        "name": "ARR (USD)",
+        "type": "number"
+      },
+      {
+        "id": "d753b059-005a-5531-bc7a-50839da597e0",
+        "required": false,
+        "key": "health",
+        "name": "Health",
+        "type": "select",
+        "options": [
+          "Healthy",
+          "Watch",
+          "At risk"
+        ]
+      },
+      {
+        "id": "ee5956ef-4d40-54f7-bd7b-a4e5aab55ff4",
+        "required": false,
+        "key": "health_score",
+        "name": "Health score",
+        "type": "number"
+      },
+      {
+        "id": "ce9d7cc3-b63a-5534-817c-bf54251f2217",
+        "required": false,
+        "key": "employees",
+        "name": "Employees",
+        "type": "number"
+      },
+      {
+        "id": "68f272c8-6bed-5b21-994f-c90b84033e2a",
+        "required": false,
+        "key": "city",
+        "name": "City",
+        "type": "text"
+      },
+      {
+        "id": "1f4cefc2-36f6-5a18-b8f0-40ba2b1f192d",
+        "required": false,
+        "key": "website",
+        "name": "Website",
+        "type": "text"
+      },
+      {
+        "id": "c18f281f-5e5e-5562-a66c-9724c9e8ed12",
+        "required": false,
+        "key": "customer_since",
+        "name": "Customer since",
+        "type": "date"
+      },
+      {
+        "id": "5f78b49e-8508-5732-8376-91d557b9e689",
+        "required": false,
+        "key": "renewal_date",
+        "name": "Renewal date",
+        "type": "date"
+      },
+      {
+        "id": "3b1140c9-cb48-588c-8949-08ef861c3919",
+        "required": false,
+        "key": "last_activity",
+        "name": "Last activity",
+        "type": "date"
+      },
+      {
+        "id": "82608adc-0845-5912-8ebd-e32671223a67",
+        "required": false,
+        "key": "open_pipeline",
+        "name": "Open pipeline (USD)",
+        "type": "number"
+      },
+      {
+        "id": "65ce01f1-fa34-5beb-a2bf-24de21a45263",
+        "required": false,
+        "key": "open_deals",
+        "name": "Open deals",
+        "type": "number"
+      },
+      {
+        "id": "409f1ed6-ebc3-5755-ac0c-8af80e7eec49",
+        "required": false,
+        "key": "won_value",
+        "name": "Won (USD)",
+        "type": "number"
+      },
+      {
+        "id": "0c8772d0-95d3-5d2f-a53f-c9db0609030a",
+        "required": false,
+        "key": "parent_account_id",
+        "name": "Parent account ID",
+        "type": "text"
+      },
+      {
+        "id": "c28b8f70-beb2-5a53-9c88-f8012068965d",
+        "required": false,
+        "key": "parent_account",
+        "name": "Parent account",
+        "type": "text"
+      },
+      {
+        "id": "ed2b1c2d-7da9-5000-9b47-364fd9b65146",
+        "required": false,
+        "key": "notes",
+        "name": "Notes",
+        "type": "text"
+      }
+    ]
+  }
+}

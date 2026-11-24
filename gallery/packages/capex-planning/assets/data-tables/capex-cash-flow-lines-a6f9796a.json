@@ -1,0 +1,54 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a6f9796a-8279-50be-89fe-22a6c3b69017",
+  "asset": {
+    "id": "a6f9796a-8279-50be-89fe-22a6c3b69017",
+    "name": "CapEx cash-flow lines",
+    "description": "Each request’s projected yearly benefits, operating costs, net cash flow and its present value at 8% (child rows of CapEx projects).",
+    "columns": [
+      {
+        "id": "50f9e702-6a25-5660-8709-dce61c3b5276",
+        "required": true,
+        "key": "project_ref",
+        "name": "Project",
+        "type": "text"
+      },
+      {
+        "id": "50720580-898a-577f-9714-1c25cc171fbc",
+        "required": false,
+        "key": "year",
+        "name": "Year",
+        "type": "number"
+      },
+      {
+        "id": "8911bc80-51a7-5d18-aed0-8dbba6a4cddd",
+        "required": false,
+        "key": "benefits",
+        "name": "Benefits (USD)",
+        "type": "number"
+      },
+      {
+        "id": "51a3faa0-3521-5b52-b115-a14edabe4ce4",
+        "required": false,
+        "key": "operating_costs",
+        "name": "Operating costs (USD)",
+        "type": "number"
+      },
+      {
+        "id": "ac67b223-4275-5190-8cc3-fcafe34b9a4f",
+        "required": false,
+        "key": "net",
+        "name": "Net cash flow (USD)",
+        "type": "number"
+      },
+      {
+        "id": "51e011dc-3374-57b6-bbe0-1ed1f1642d08",
+        "required": false,
+        "key": "present_value",
+        "name": "Present value (USD)",
+        "type": "number"
+      }
+    ]
+  }
+}

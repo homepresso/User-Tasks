@@ -11,6 +11,22 @@
 
 export const CLOSED_TASK_STATUSES = ['completed', 'cancelled'] as const
 
+/** The task_status enum: every value a `status` filter may hold. */
+export const TASK_STATUSES = ['draft', 'todo', 'in_progress', 'blocked', 'completed', 'cancelled'] as const
+
+/**
+ * Check a status filter before it reaches the database (an unknown value
+ * would fail the enum cast there: a 500 instead of a 400). Returns the error
+ * message, or null when every value is allowed. `extra` adds values a list
+ * accepts beyond the enum (the unified My tasks list's `queued`).
+ */
+export function invalidTaskStatusMessage(statuses: readonly string[] | null | undefined, extra: readonly string[] = []): string | null {
+  const allowed = [...TASK_STATUSES, ...extra]
+  const bad = (statuses ?? []).filter((s) => !allowed.includes(s))
+  if (!bad.length) return null
+  return `Invalid status ${bad.map((s) => JSON.stringify(s.slice(0, 50))).join(', ')}: use ${allowed.join(', ')}`
+}
+
 export interface StatusFilterState {
   /** Open statuses picked in the Status menu ([] = every open status). */
   selected: string[]

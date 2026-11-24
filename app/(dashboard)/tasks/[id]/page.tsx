@@ -479,6 +479,7 @@ function TaskDetailContent({
           ref={setMobileBar}
           className="sticky -bottom-6 z-20 -mx-4 mt-4 flex flex-nowrap items-center gap-2 overflow-x-auto border-t border-border bg-panel px-4 py-2 shadow-elev-1 [scrollbar-width:none] empty:hidden md:hidden [&>*]:shrink-0"
           data-task-mobile-actions
+          data-agent-bar=""
         />
         <TimelineSheet target={{ taskId: id }} open={timelineOpen} onOpenChange={setTimelineOpen} />
       </div>

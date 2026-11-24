@@ -20,7 +20,11 @@ import { columnKey, normalizeRowData, slugifyColumnName, type CellColumn } from 
 import { enqueueDataTableEvents, type DataTableEvent } from '@/lib/data-table-workflow-triggers'
 import { initiatorFromContext } from '@/lib/workflow-initiator'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
+import { childRelationsUnavailable, isMissingObject, validateChildRelations } from './data-table-grouping'
+import { auditUnavailable, isAuditMissing } from './data-table-audit'
 import { applyPage, audit, dbError, ilikeTerm, queueDeletion, queueDeletions, syncChange, type Page } from './_shared'
+import { isMissingTagsColumn, selectWithTags, tagsNotApplied, tagsSafeWrite, validTags } from './tags-column'
+import { tagFilterValues } from '@/lib/tags/normalize'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- jsonb columns and row data are free-form */
 
@@ -77,17 +81,21 @@ function conflictOr(error: any, fallback: string): Error {
 
 // ─── Tables ─────────────────────────────────────────────────────────────────
 
-export async function listDataTables(ctx: ServiceContext, filters: { search?: string } = {}, page: Page) {
+export async function listDataTables(ctx: ServiceContext, filters: { search?: string; tag?: string } = {}, page: Page) {
   requirePerm(ctx, 'data.view')
-  let query = (ctx.supabase as any).from('custom_tables')
-    .select('id, name, slug, description, columns, created_at, updated_at', { count: 'exact' })
-    .eq('tenant_id', ctx.tenantId)
-    .order('name')
-  const allow = tableScope(ctx)
-  if (allow.length) query = query.in('id', allow)
-  if (filters.search?.trim()) query = query.ilike('name', `%${ilikeTerm(filters.search)}%`)
-  const { data, count, error } = await applyPage(query, page)
-  if (error) throw dbError(error)
+  const tagValues = tagFilterValues(filters.tag)
+  const { data, count, error } = await selectWithTags('id, name, slug, description, columns, created_at, updated_at', (columns) => {
+    let query = (ctx.supabase as any).from('custom_tables')
+      .select(columns, { count: 'exact' })
+      .eq('tenant_id', ctx.tenantId)
+      .order('name')
+    const allow = tableScope(ctx)
+    if (allow.length) query = query.in('id', allow)
+    if (filters.search?.trim()) query = query.ilike('name', `%${ilikeTerm(filters.search)}%`)
+    if (tagValues.length) query = query.overlaps('tags', tagValues)
+    return applyPage(query, page)
+  }) as any
+  if (error) throw tagValues.length && isMissingTagsColumn(error) ? tagsNotApplied('data tables') : dbError(error)
   return { data_tables: (data ?? []) as any[], total: (count ?? (data ?? []).length) as number }
 }
 
@@ -129,7 +137,7 @@ function normalizeColumns(input: DataColumnInput[], existing: any[] = []): any[]
   })
 }
 
-export interface DataTableCreateInput { name: string; description?: string | null; columns?: DataColumnInput[] }
+export interface DataTableCreateInput { name: string; description?: string | null; columns?: DataColumnInput[]; tags?: string[] | null }
 
 export async function createDataTable(ctx: ServiceContext, input: DataTableCreateInput) {
   requirePerm(ctx, 'data.create')
@@ -141,21 +149,23 @@ export async function createDataTable(ctx: ServiceContext, input: DataTableCreat
     { id: crypto.randomUUID(), key: 'date_created', name: 'Date Created', type: 'date' },
     ...normalizeColumns(input.columns ?? []),
   ]
-  const { data, error } = await (ctx.supabase as any).from('custom_tables').insert({
+  const tags = validTags(input.tags)
+  const { data, error } = await tagsSafeWrite('data tables', {
     tenant_id: ctx.tenantId,
     name,
     slug: tableSlug(name),
     description: input.description?.trim() || null,
     columns,
+    tags,
     created_by: ctx.actorId,
-  }).select(TABLE_COLUMNS).single()
+  }, TABLE_COLUMNS, (values, cols) => (ctx.supabase as any).from('custom_tables').insert(values).select(cols).single())
   if (error || !data) throw conflictOr(error, 'Failed to create table')
   await audit(ctx, { objectType: 'data_table', objectId: data.id, action: 'create', summary: `Created data table "${name}"`, metadata: { columns: columns.length } })
   await syncChange(ctx, 'data_table', data)
   return data
 }
 
-export interface DataTableUpdateInput { name?: string; description?: string | null; columns?: DataColumnInput[] }
+export interface DataTableUpdateInput { name?: string; description?: string | null; columns?: DataColumnInput[]; child_relations?: unknown[]; tags?: string[] | null; /** Record every field change of every row (lib/services/data-table-audit.ts). */ audit_changes?: boolean }
 
 /** Rename / describe / replace the custom columns (the system ID and Date Created columns are kept). */
 export async function updateDataTable(ctx: ServiceContext, tableId: string, input: DataTableUpdateInput) {
@@ -169,6 +179,7 @@ export async function updateDataTable(ctx: ServiceContext, tableId: string, inpu
     updates.slug = tableSlug(name)
   }
   if (input.description !== undefined) updates.description = input.description?.trim() || null
+  if (input.tags !== undefined) updates.tags = validTags(input.tags)
   if (input.columns !== undefined) {
     const current = Array.isArray(existing.columns) ? existing.columns : []
     const system = current.filter((col: any) => SYSTEM_KEYS.has(String(col?.key ?? '')))
@@ -176,11 +187,21 @@ export async function updateDataTable(ctx: ServiceContext, tableId: string, inpu
     const custom = input.columns.filter((col) => !SYSTEM_KEYS.has(String(col?.key ?? '')))
     updates.columns = [...system, ...normalizeColumns(custom, current)]
   }
+  if (input.child_relations !== undefined) {
+    // Child records (lib/grid/grouping.ts): checked against the child tables — a same-table relation against the columns being saved.
+    updates.child_relations = await validateChildRelations(ctx.supabase as any, tableId, input.child_relations, {
+      tenantId: ctx.tenantId, parentColumns: updates.columns ?? existing.columns, allowTable: (id) => !tableScope(ctx).length || tableScope(ctx).includes(id),
+    })
+  }
+  if (input.audit_changes !== undefined) updates.audit_changes = !!input.audit_changes
   if (Object.keys(updates).length === 0) throw ServiceError.validation('No fields to update')
   updates.updated_at = new Date().toISOString()
 
-  const { data, error } = await (ctx.supabase as any).from('custom_tables')
-    .update(updates).eq('id', tableId).eq('tenant_id', ctx.tenantId).select(TABLE_COLUMNS).single()
+  const selected = [TABLE_COLUMNS, ...(updates.child_relations ? ['child_relations'] : []), ...('audit_changes' in updates ? ['audit_changes'] : [])].join(', ')
+  const { data, error } = await tagsSafeWrite('data tables', updates, selected, (values, cols) => (ctx.supabase as any).from('custom_tables')
+    .update(values).eq('id', tableId).eq('tenant_id', ctx.tenantId).select(cols).single())
+  if (error && updates.child_relations && isMissingObject(error)) throw childRelationsUnavailable()
+  if (error && 'audit_changes' in updates && isAuditMissing(error)) throw auditUnavailable()
   if (error || !data) throw conflictOr(error, 'Failed to update table')
   await audit(ctx, {
     objectType: 'data_table', objectId: tableId, action: 'update',
@@ -224,6 +245,20 @@ function searchable(value: unknown): string {
   return String(value)
 }
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}/
+
+/** gt / gte / lt / lte: numbers by value; ISO dates (YYYY-MM-DD…) by date, so a date column compares with a date. */
+export function compareOrdered(raw: unknown, value: unknown, test: (diff: number) => boolean): boolean {
+  if (typeof raw === 'string' && typeof value === 'string' && ISO_DATE_RE.test(raw) && ISO_DATE_RE.test(value)) {
+    const l = raw.length === 10 || value.length === 10 ? raw.slice(0, 10) : raw
+    const r = raw.length === 10 || value.length === 10 ? value.slice(0, 10) : value
+    return test(l < r ? -1 : l > r ? 1 : 0)
+  }
+  const l = Number(raw)
+  const r = Number(value)
+  return !Number.isNaN(l) && !Number.isNaN(r) && test(l - r)
+}
+
 function matchesFilter(row: any, filter: RowFilter) {
   const raw = fieldValue(row, filter.field)
   const left = searchable(raw).toLowerCase()
@@ -234,10 +269,10 @@ function matchesFilter(row: any, filter: RowFilter) {
     case 'contains': return left.includes(right)
     case 'starts_with': return left.startsWith(right)
     case 'ends_with': return left.endsWith(right)
-    case 'gt': return Number(raw) > Number(filter.value)
-    case 'gte': return Number(raw) >= Number(filter.value)
-    case 'lt': return Number(raw) < Number(filter.value)
-    case 'lte': return Number(raw) <= Number(filter.value)
+    case 'gt': return compareOrdered(raw, filter.value, (d) => d > 0)
+    case 'gte': return compareOrdered(raw, filter.value, (d) => d >= 0)
+    case 'lt': return compareOrdered(raw, filter.value, (d) => d < 0)
+    case 'lte': return compareOrdered(raw, filter.value, (d) => d <= 0)
     case 'is_empty': return left.trim().length === 0
     case 'not_empty': return left.trim().length > 0
     default: return true
@@ -300,10 +335,19 @@ export async function queryRows(ctx: ServiceContext, tableId: string, query: Row
   }
 
   const cap = Math.min(Math.max(limit + offset, 200), DATA_ROW_LIMITS.scan)
-  const { data, error } = await (ctx.supabase as any).from('custom_table_rows')
+  let scan = (ctx.supabase as any).from('custom_table_rows')
     .select(ROW_COLUMNS)
     .eq('table_id', tableId)
     .eq('tenant_id', ctx.tenantId)
+  // "equals" on a column narrows the scan in the database first (case-insensitive, as the in-memory match below),
+  // so a filtered page finds its rows even when they are not among the newest rows of a large table.
+  for (const f of query.filters ?? []) {
+    if (f.operator !== 'equals' || !/^[A-Za-z_][A-Za-z0-9_]{0,79}$/.test(f.field) || ['id', 'row_id', 'created_at', 'updated_at', 'created_by'].includes(f.field)) continue
+    const text = f.value === null || f.value === undefined ? '' : typeof f.value === 'object' ? null : String(f.value)
+    if (text === null || text === '') continue
+    scan = scan.ilike(`data->>${f.field}`, text.replace(/[\\%_]/g, (c) => `\\${c}`))
+  }
+  const { data, error } = await scan
     .order('created_at', { ascending: false })
     .limit(cap)
   if (error) throw dbError(error)

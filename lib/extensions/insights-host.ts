@@ -30,6 +30,9 @@ import type {
 } from '@/lib/extensions/sdk'
 import { ExtensionError } from '@/lib/extensions/sdk'
 import { boundForm } from './forms'
+import { rollupRunStats, rollupSubmissionStats, rollupsAllowed } from '@/lib/services/report-rollups'
+import { recordQueryTiming, resolveDataSource } from '@/lib/reports/data-source'
+import '@/lib/services/query-settings-loader'
 import { asExtensionError, serviceContext } from './objects-host'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- supabase rows */
@@ -565,7 +568,17 @@ export function hostInsightsWorkflows(host: InsightsHost) {
       if (!workflows.length) return { ...base, workflows: [], totals: counts(undefined, p.dayKeys) }
       const ids = workflows.map((w) => String(w.id))
       let raw: { workflows: Array<RawCounts & { workflow_id: string }>; total: RawCounts } | null = null
-      if (typeof host.serviceDb.rpc === 'function') {
+      // Report rollups first (migration 20270123100000); the live RPC when they can't answer.
+      // Settings → Query (extension_stats): Auto / Flat table try the rollups first.
+      const ds = await resolveDataSource({ tenantId: host.tenantId }, { service: 'extension_stats' })
+      if (typeof host.serviceDb.rpc === 'function' && await rollupsAllowed(host.serviceDb, host.tenantId, ds.mode)) {
+        const t0 = performance.now()
+        raw = await rollupRunStats(host.serviceDb, host.tenantId, { workflowIds: ids, since: base.since, until: base.until })
+        if (raw) recordQueryTiming(host.tenantId, 'extension_stats', 'rollup', performance.now() - t0)
+      }
+      const rolledUp = raw !== null
+      const tLive = performance.now()
+      if (!raw && typeof host.serviceDb.rpc === 'function') {
         const { data, error } = await host.serviceDb.rpc('workflow_run_stats', { p_tenant_id: host.tenantId, p_workflow_ids: ids, p_since: base.since, p_until: base.until })
         if (error && !isMissingFunction(error)) throw new Error(`workflows.stats failed: ${error.message}`)
         if (!error && data) raw = data
@@ -580,6 +593,7 @@ export function hostInsightsWorkflows(host: InsightsHost) {
         for (const r of [periodRuns, liveRuns, queuedJobs]) if (r.error) throw new Error(`workflows.stats failed: ${r.error.message}`)
         raw = aggregateRuns(ids, ((periodRuns.data ?? []) as any[]).map((r) => (isManualCancel(r) ? { ...r, status: 'cancelled' } : r)), liveRuns.data ?? [], ((queuedJobs.data ?? []) as any[]).filter((j) => !RESUME_TRIGGERS.has(String(j.trigger_type)) && !j.result?.run_id))
       }
+      if (!rolledUp) recordQueryTiming(host.tenantId, 'extension_stats', 'live', performance.now() - tLive)
       const byId = new Map((raw.workflows ?? []).map((w) => [String(w.workflow_id), w]))
       return {
         ...base,
@@ -610,7 +624,11 @@ export function hostInsightsForms(host: InsightsHost) {
       if (!forms.length) return empty
       const ids = forms.map((f) => f.id)
       let raw: Array<{ form_id: string; total: number; last_at: string | null; per_day: Array<{ day: string; count: number }> }> | null = null
-      if (typeof host.serviceDb.rpc === 'function') {
+      const ds = await resolveDataSource({ tenantId: host.tenantId }, { service: 'form_submission_stats' })
+      if (typeof host.serviceDb.rpc === 'function' && await rollupsAllowed(host.serviceDb, host.tenantId, ds.mode)) {
+        raw = await rollupSubmissionStats(host.serviceDb, host.tenantId, { formIds: ids, since: base.since, until: base.until })
+      }
+      if (!raw && typeof host.serviceDb.rpc === 'function') {
         const res = await host.serviceDb.rpc('form_submission_stats', { p_tenant_id: host.tenantId, p_form_ids: ids, p_since: base.since, p_until: base.until })
         if (res.error && !isMissingFunction(res.error)) throw new Error(`forms.submissionStats failed: ${res.error.message}`)
         if (!res.error && res.data) raw = res.data.forms ?? []

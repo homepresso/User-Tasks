@@ -14,6 +14,8 @@ import { hasPerm, requirePerm, ServiceError, type ServiceContext } from './conte
 import { evaluateDecisionTable } from '@/lib/decision-table-engine'
 import { diffValues } from '@/lib/portability/plan'
 import { applyPage, audit, dbError, ilikeTerm, queueDeletion, syncChange, type Page } from './_shared'
+import { isMissingTagsColumn, selectWithTags, tagsNotApplied, tagsSafeWrite, validTags } from './tags-column'
+import { manifestTags, tagFilterValues } from '@/lib/tags/normalize'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped table (jsonb inputs/outputs/rules) */
 
@@ -28,6 +30,7 @@ export interface DecisionTableExport {
     inputs: unknown[]
     outputs: unknown[]
     rules: unknown[]
+    tags?: string[]
   }
 }
 
@@ -80,6 +83,7 @@ export async function exportDecisionTable(ctx: ServiceContext, tableId: string):
       inputs: data.inputs ?? [],
       outputs: data.outputs ?? [],
       rules: data.rules ?? [],
+      ...(Array.isArray(data.tags) && data.tags.length ? { tags: data.tags.map(String) } : {}),
     },
   }
 }
@@ -128,9 +132,10 @@ export async function importDecisionTable(ctx: ServiceContext, input: DecisionTa
     inputs: (payload.inputs ?? []).map(normalizeField),
     outputs: (payload.outputs ?? []).map(normalizeField),
     rules: (payload.rules ?? []).map(normalizeRule),
+    ...(manifestTags(payload.tags).length ? { tags: manifestTags(payload.tags) } : {}),
     created_by: ctx.actorId,
   }).select('*').single()
-  if (error || !data) throw dbError(error, 'Failed to import decision table')
+  if (error || !data) throw isMissingTagsColumn(error) ? tagsNotApplied('business rules') : dbError(error, 'Failed to import decision table')
 
   await audit(ctx, {
     objectType: 'decision_table', objectId: data.id, action: 'create',
@@ -151,6 +156,7 @@ export interface DecisionTableInput {
   inputs?: unknown[]
   outputs?: unknown[]
   rules?: unknown[]
+  tags?: string[] | null
 }
 
 async function loadTable(ctx: ServiceContext, tableId: string, columns = '*') {
@@ -168,17 +174,21 @@ function validateFields(key: string, list: unknown) {
   }
 }
 
-export async function listDecisionTables(ctx: ServiceContext, filters: { search?: string }, page: Page) {
+export async function listDecisionTables(ctx: ServiceContext, filters: { search?: string; tag?: string }, page: Page) {
   requirePerm(ctx, 'workflows.view')
-  let query = (ctx.supabase as any).from('decision_tables')
-    .select(LIST_COLUMNS, { count: 'exact' }).eq('tenant_id', ctx.tenantId).order('updated_at', { ascending: false })
-  const search = filters.search?.trim()
-  if (search) {
-    const term = ilikeTerm(search)
-    query = query.or(`name.ilike.%${term}%,description.ilike.%${term}%`)
-  }
-  const { data, count, error } = await applyPage(query, page)
-  if (error) throw dbError(error)
+  const tagValues = tagFilterValues(filters.tag)
+  const { data, count, error } = await selectWithTags(LIST_COLUMNS, (columns) => {
+    let query = (ctx.supabase as any).from('decision_tables')
+      .select(columns, { count: 'exact' }).eq('tenant_id', ctx.tenantId).order('updated_at', { ascending: false })
+    const search = filters.search?.trim()
+    if (search) {
+      const term = ilikeTerm(search)
+      query = query.or(`name.ilike.%${term}%,description.ilike.%${term}%`)
+    }
+    if (tagValues.length) query = query.overlaps('tags', tagValues)
+    return applyPage(query, page)
+  }) as any
+  if (error) throw tagValues.length && isMissingTagsColumn(error) ? tagsNotApplied('business rules') : dbError(error)
   return { decision_tables: (data ?? []).map(summarizeDecisionTable), total: (count ?? (data ?? []).length) as number }
 }
 
@@ -196,15 +206,16 @@ export async function createDecisionTable(ctx: ServiceContext, input: DecisionTa
   validateFields('inputs', input.inputs)
   validateFields('outputs', input.outputs)
   if (input.rules !== undefined && !Array.isArray(input.rules)) throw ServiceError.validation('rules must be an array')
-  const { data, error } = await (ctx.supabase as any).from('decision_tables').insert({
+  const { data, error } = await tagsSafeWrite('business rules', {
     tenant_id: ctx.tenantId,
     name,
     description: input.description?.trim() || null,
     inputs: (input.inputs ?? []).map(normalizeField),
     outputs: (input.outputs ?? []).map(normalizeField),
     rules: (input.rules ?? []).map(normalizeRule),
+    tags: validTags(input.tags),
     created_by: ctx.actorId,
-  }).select('*').single()
+  }, '*', (values) => (ctx.supabase as any).from('decision_tables').insert(values).select('*').single())
   if (error || !data) throw dbError(error, 'Failed to create decision table')
   await audit(ctx, {
     objectType: 'decision_table', objectId: data.id, action: 'create',
@@ -236,13 +247,18 @@ export async function updateDecisionTable(ctx: ServiceContext, tableId: string, 
   if (input.inputs !== undefined) next.inputs = input.inputs.map(normalizeField)
   if (input.outputs !== undefined) next.outputs = input.outputs.map(normalizeField)
   if (input.rules !== undefined) next.rules = input.rules.map(normalizeRule)
+  if (input.tags !== undefined) {
+    const tags = validTags(input.tags)
+    // Before migration 20270122150000 rows have no tags: an empty list is no change.
+    if (existing.tags !== undefined || tags.length) next.tags = tags
+  }
 
   const changes = Object.fromEntries(Object.entries(next).filter(([key, value]) => diffValues(existing[key], value).length > 0))
   if (!Object.keys(changes).length) return { ...summarizeDecisionTable(existing), changed: false }
 
-  const { data, error } = await (ctx.supabase as any).from('decision_tables')
-    .update({ ...changes, updated_at: new Date().toISOString() })
-    .eq('id', tableId).eq('tenant_id', ctx.tenantId).select('*').single()
+  const { data, error } = await tagsSafeWrite('business rules', { ...changes, updated_at: new Date().toISOString() }, '*', (values) => (ctx.supabase as any).from('decision_tables')
+    .update(values)
+    .eq('id', tableId).eq('tenant_id', ctx.tenantId).select('*').single())
   if (error || !data) throw dbError(error, 'Failed to update decision table')
   await audit(ctx, {
     objectType: 'decision_table', objectId: tableId, action: 'update',

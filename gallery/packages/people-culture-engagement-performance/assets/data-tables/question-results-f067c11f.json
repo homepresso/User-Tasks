@@ -1,0 +1,99 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f067c11f-287b-5a81-82b0-0362bab6d03a",
+  "asset": {
+    "id": "f067c11f-287b-5a81-82b0-0362bab6d03a",
+    "name": "Question results",
+    "description": "Published % favourable per question for the company and each department, ranked into the top five and bottom five.",
+    "columns": [
+      {
+        "id": "99cbcdca-ddd5-580e-8c2b-821ee4fc61ff",
+        "required": false,
+        "key": "cycle_code",
+        "name": "Cycle code",
+        "type": "text"
+      },
+      {
+        "id": "a44e095e-9ba8-57e3-b541-8013618087b7",
+        "required": false,
+        "key": "cycle_label",
+        "name": "Cycle",
+        "type": "text"
+      },
+      {
+        "id": "63d9b562-8043-5653-8012-15967a8b8c33",
+        "required": false,
+        "key": "segment",
+        "name": "Segment",
+        "type": "text"
+      },
+      {
+        "id": "3639fdbd-8bd9-56a3-a052-336d0efc5da8",
+        "required": false,
+        "key": "q_code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "fffcebe1-ebf6-54ad-959c-3418f2613635",
+        "required": false,
+        "key": "question",
+        "name": "Question",
+        "type": "text"
+      },
+      {
+        "id": "9747a828-9adf-5769-a256-9390a882cc3a",
+        "required": false,
+        "key": "short",
+        "name": "Short label",
+        "type": "text"
+      },
+      {
+        "id": "2eb3b96f-536e-504b-ad68-27f32177723d",
+        "required": false,
+        "key": "driver",
+        "name": "Driver",
+        "type": "text"
+      },
+      {
+        "id": "3f439545-d8ac-5a0a-b364-33e017ea9643",
+        "required": false,
+        "key": "favourable_pct",
+        "name": "% favourable",
+        "type": "number"
+      },
+      {
+        "id": "b953ad05-8fad-50c3-afcf-373499940aae",
+        "required": false,
+        "key": "responses",
+        "name": "Responses",
+        "type": "number"
+      },
+      {
+        "id": "a171c432-df1d-5892-a03f-350b5149b12a",
+        "required": false,
+        "key": "reportable",
+        "name": "Reportable",
+        "type": "select",
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "ab3d4394-d4f1-58d0-9949-689176f9de1e",
+        "required": false,
+        "key": "rank_band",
+        "name": "Rank",
+        "type": "select",
+        "options": [
+          "Top 5",
+          "Middle",
+          "Bottom 5",
+          "Hidden"
+        ]
+      }
+    ]
+  }
+}

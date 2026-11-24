@@ -4,6 +4,9 @@ import { hasExtensibilityFeatureAccess } from '@/lib/extensibility-access'
 import type { Database } from '@/lib/database.types'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
 import { resolveStorageUrl } from '@/lib/storage/refs'
+import { getQueryStatus } from '../query-settings'
+import { serviceRoleClient } from '../_shared'
+import { loadQuerySettings } from '@/lib/reports/data-source'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
 
@@ -50,6 +53,26 @@ export const reads = {
     args: NO_ARGS,
     perm: 'settings.view',
     run: async (ctx) => (await import('../document-ocr')).getDocumentOcr(ctx),
+  }),
+
+  /** Settings → Query: settings, effective mode per service, rollup coverage, read times, and the workspace's apps. */
+  'settings.query': defineRead({
+    args: NO_ARGS,
+    // Self-hosted: settings.view; cloud: instance admins only — checked in getQueryStatus (404 otherwise).
+    run: async (ctx) => {
+      const status = await getQueryStatus(ctx)
+      const db = status.scope === 'instance' ? await serviceRoleClient(ctx) : getDb(ctx)
+      let q = (db as any).from('apps').select('id, name, tenant_id').order('name').limit(500)
+      if (status.scope === 'workspace') q = q.eq('tenant_id', ctx.tenantId)
+      const apps = await q.then((r: any) => (r.data ?? []) as Array<{ id: string; name: string; tenant_id: string }>, () => [])
+      return { ...status, apps }
+    },
+  }),
+
+  /** App builder: may editors set a data source per widget? (any member; a flag only). */
+  'settings.queryWidgetOverride': defineRead({
+    args: NO_ARGS,
+    run: async (ctx) => ({ allowed: (await loadQuerySettings(ctx.tenantId)).allow_widget_override }),
   }),
 
   /** Designer: would OCR work in this workspace? (status and message only; any member). */

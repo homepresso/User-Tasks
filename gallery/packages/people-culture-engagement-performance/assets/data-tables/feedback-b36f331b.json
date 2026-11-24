@@ -1,0 +1,118 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b36f331b-dcc0-5eec-b95e-8b1e855ef17e",
+  "asset": {
+    "id": "b36f331b-dcc0-5eec-b95e-8b1e855ef17e",
+    "name": "Feedback",
+    "description": "Peer feedback for reviews, continuous feedback and upward feedback: strengths, one thing to improve and a rating.",
+    "columns": [
+      {
+        "id": "4695d3b2-cdf0-5d03-8a64-36c4a530a53c",
+        "required": true,
+        "key": "feedback_ref",
+        "name": "Feedback",
+        "type": "text"
+      },
+      {
+        "id": "a33d12bb-4f59-5f59-aee1-b80e667d2ba6",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "Peer review",
+          "Continuous",
+          "Upward"
+        ]
+      },
+      {
+        "id": "0eac7c3f-65d3-537c-b4cd-010db17fc6e8",
+        "required": false,
+        "key": "about_name",
+        "name": "About",
+        "type": "text"
+      },
+      {
+        "id": "302a43dd-cddf-529c-945b-a20e8f3e6cdb",
+        "required": false,
+        "key": "about_email",
+        "name": "About (email)",
+        "type": "email"
+      },
+      {
+        "id": "9c338d65-4c1e-597c-8973-8636585ebb82",
+        "required": false,
+        "key": "from_name",
+        "name": "From",
+        "type": "text"
+      },
+      {
+        "id": "913afc20-5131-53ce-99d4-74ea8db521e2",
+        "required": false,
+        "key": "from_email",
+        "name": "From (email)",
+        "type": "email"
+      },
+      {
+        "id": "e880d401-9878-58f7-9061-8fd041ca116c",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "3e362bbb-6057-5519-a45a-2db097efabba",
+        "required": false,
+        "key": "strengths",
+        "name": "Strengths",
+        "type": "text"
+      },
+      {
+        "id": "2addc3fb-7861-552b-ad27-921bc84ff862",
+        "required": false,
+        "key": "improve",
+        "name": "One thing to improve",
+        "type": "text"
+      },
+      {
+        "id": "50f366aa-8af9-51fa-9472-8d99f4ca0e5e",
+        "required": false,
+        "key": "rating",
+        "name": "Rating (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "6ccb5057-dd27-57bf-9233-5fb42847257e",
+        "required": false,
+        "key": "review_ref",
+        "name": "Review",
+        "type": "text"
+      },
+      {
+        "id": "1169fa55-8288-581d-9ba4-c736b81b5881",
+        "required": false,
+        "key": "given_on",
+        "name": "Given on",
+        "type": "date"
+      },
+      {
+        "id": "7f501eb0-d05f-5e6b-8534-35f668fdb285",
+        "required": false,
+        "key": "visibility",
+        "name": "Visible to",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -46,6 +46,11 @@ import { usePermissions } from '@/lib/permissions-context'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { buildQueuedDeleteNotice, type DeleteNotice } from '@/lib/queued-delete-feedback'
 import { ImportConfigButton } from '@/components/shared/config-transfer'
+import { TagList } from '@/components/ui/tag-chip'
+import { TagFilterMenu, TagsActionButton, TagsCell, useTagFilter } from '@/components/ui/list-tags'
+import { BulkTagsDialog, ObjectTagsDialog, useCanEditTags } from '@/components/ui/object-tags-dialog'
+import { Tag as TagIcon } from 'lucide-react'
+import { TagInput, parseTagText } from '@/components/ui/tag-input'
 
 interface WorkflowActivitiesViewProps {
   items: any[]
@@ -208,11 +213,16 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
     setLocalItems(items)
   }, [items])
 
+  const tagFilter = useTagFilter(localItems, (item: { tags?: string[] | null }) => item.tags)
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[] }>(null)
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false)
+  const canEditTags = useCanEditTags('activities')
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase()
     return localItems
       .filter((item) => {
         if (statusFilter !== 'all' && item.status !== statusFilter) return false
+        if (!tagFilter.matches(item)) return false
         if (!needle) return true
         return [item.name, item.description, item.key, ...(item.tags ?? [])]
           .some((value) => String(value ?? '').toLowerCase().includes(needle))
@@ -222,7 +232,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
         if (sortBy === 'key') return String(a.key ?? '').localeCompare(String(b.key ?? ''))
         return new Date(b.updated_at ?? b.created_at ?? 0).getTime() - new Date(a.updated_at ?? a.created_at ?? 0).getTime()
       })
-  }, [localItems, search, sortBy, statusFilter])
+  }, [localItems, search, sortBy, statusFilter, tagFilter])
 
   const editorPreview = useMemo(() => {
     if (!editor) return null
@@ -388,6 +398,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
       {can('extensibility.view') && <IconButton size="sm" label={`Manage ${item.name}`} icon={<Settings2 />} onClick={() => setManageId(item.id)} />}
       {can('extensibility.view') && <IconButton size="sm" label="Export" icon={<FileDown />} onClick={() => handleExport(item)} disabled={exportingId === item.id} />}
       {can('extensibility.edit') && item.runtime !== 'module' && <IconButton size="sm" label="Edit" icon={<Pencil />} onClick={() => setEditor(toEditorState(item))} />}
+      <TagsActionButton onClick={() => setTagsTarget({ id: item.id, name: item.name, tags: item.tags ?? [] })} />
       {can('extensibility.delete') && <IconButton size="sm" variant="danger-ghost" label="Delete" icon={<Trash2 />} onClick={() => setDeleteId(item.id)} />}
     </>
   )
@@ -450,6 +461,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
           <option value="draft">Draft</option>
           <option value="archived">Archived</option>
         </Select>
+        <TagFilterMenu tags={tagFilter.allTags} selected={tagFilter.selected} onChange={tagFilter.setSelected} />
         <Select
           value={sortBy}
           onChange={(event) => setSortBy(event.target.value as 'updated' | 'name' | 'key')}
@@ -489,6 +501,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
           <span className="num text-ui font-medium text-primary-text">{formatCount(selected.size)} selected</span>
           <Button size="sm" variant="link" onClick={() => setSelected(new Set())}>Clear</Button>
           <div className="flex-1" />
+          {canEditTags && <Button size="sm" variant="secondary" leadingIcon={<TagIcon />} onClick={() => setBulkTagsOpen(true)} data-bulk-tags>Tags…</Button>}
           {can('extensibility.delete') && (
             <Button size="sm" variant="danger" leadingIcon={<Trash2 />} onClick={() => setBulkDeleteOpen(true)}>
               Delete {selected.size}
@@ -554,6 +567,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
                   {item.enabled === false && <Badge tone="warning">Disabled</Badge>}
                   {item.signature?.verified && <Badge tone="success"><BadgeCheck size={12} aria-hidden="true" className="-ml-0.5 mr-1 inline" />{item.signature.via === 'package' ? 'Signed package' : 'Signed'}</Badge>}
                   {item.runtime === 'module' && Array.isArray(item.manifest?.operations) && <Tag>{plural(item.manifest.operations.length, 'function')}</Tag>}
+                  {Array.isArray(item.tags) && item.tags.length > 0 && <TagList tags={item.tags} max={3} size="xs" />}
                 </div>
                 <p className="line-clamp-3 text-xs text-fg-muted">
                   {presentation.purpose || summary || item.description || 'No description yet.'}
@@ -586,6 +600,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
               <TH col="title">Action</TH>
               <TH col="status" className="w-28">Status</TH>
               <TH numeric col="number" className="w-24">Readiness</TH>
+              <TH col="text" className="w-56" data-tags-column>Tags</TH>
               <TH col="actions"><span className="sr-only">Actions</span></TH>
             </tr>
           </THead>
@@ -625,6 +640,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
                   <TD numeric>
                     <Badge tone={readiness.ready ? 'success' : 'warning'} className="num">{readiness.score}/5</Badge>
                   </TD>
+                  <TD className="max-w-56"><TagsCell tags={item.tags} selected={tagFilter.selected} onToggle={tagFilter.toggle} /></TD>
                   <TDActions>{rowActions(item)}</TDActions>
                 </TR>
               )
@@ -840,7 +856,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <Field label="Tags">
-                    <Input value={editor.tagsText} onChange={(event) => setEditor((state) => state ? { ...state, tagsText: event.target.value } : state)} placeholder="scoring, enrichment, custom" />
+                    <TagInput listInline value={parseTagText(editor.tagsText)} onChange={(next) => setEditor((state) => state ? { ...state, tagsText: next.join(', ') } : state)} placeholder="scoring, enrichment, custom" />
                   </Field>
                   <Field label="Source filename">
                     <Input value={editor.sourceFilename} onChange={(event) => setEditor((state) => state ? { ...state, sourceFilename: event.target.value } : state)} />
@@ -887,6 +903,13 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
         destructive
         onConfirm={handleBulkDelete}
       />
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="activities" id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['custom-workflow-activities']]} />
+      )}
+      {bulkTagsOpen && (
+        <BulkTagsDialog open onOpenChange={setBulkTagsOpen} type="activities" ids={[...selected]} invalidate={[['custom-workflow-activities']]} onDone={() => setSelected(new Set())} />
+      )}
     </div>
   )
 }

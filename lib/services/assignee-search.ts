@@ -14,7 +14,7 @@
  * the session client filtered to the workspace.
  */
 
-import { getDb, type ServiceContext } from './context'
+import { getDb, ServiceError, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
 import { checkOrigin, withOrigin } from './teams'
 import { escapeLikePattern } from '@/lib/utils'
@@ -171,7 +171,8 @@ export async function teamMemberPreview(ctx: ServiceContext, teamId: string, lim
   const db = getDb(ctx) as any
   const { data: team, error: teamError } = await db.from('teams').select('id').eq('id', teamId).eq('tenant_id', ctx.tenantId).maybeSingle()
   if (teamError) throw dbError(teamError)
-  if (!team) return { team_id: teamId, total: 0, members: [] }
+  // Another workspace's (or an unknown) team: not found, like other reads — never an echo of the id.
+  if (!team) throw ServiceError.notFound('Team not found')
   const { data, error } = await db.from('user_teams').select('user_id, user:users(id, display_name, email)').eq('team_id', teamId).limit(2000)
   if (error) throw dbError(error)
   const members = ((data ?? []) as any[]).map((row) => row.user).filter(Boolean)

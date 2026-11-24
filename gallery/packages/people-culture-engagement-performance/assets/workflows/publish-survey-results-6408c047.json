@@ -1,0 +1,597 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "6408c047-3dda-5894-93cc-d9c8bdf0d3eb",
+  "asset": {
+    "id": "6408c047-3dda-5894-93cc-d9c8bdf0d3eb",
+    "name": "Publish survey results",
+    "description": "Turns a closed survey's sealed ballots into Engagement results for the company and every department, location and tenure group, scores only where at least the minimum group size answered; puts comments into themes with the Comment theme keywords decision table; updates the cycle; then deletes the ballots.",
+    "trigger_type": "webhook_received",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "webhook_received",
+        "label": "Publish requested",
+        "config": {},
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "cycle",
+        "type": "update_data_table",
+        "label": "Find the survey",
+        "config": {
+          "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+          "table_name": "Survey cycles",
+          "operation": "get",
+          "match_column": "cycle_code",
+          "match_value": "{{cycle_code}}",
+          "output_row_var": "cycle"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Publish results · {{cycle_code}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "closing",
+        "type": "update_data_table",
+        "label": "Mark closing",
+        "config": {
+          "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+          "table_name": "Survey cycles",
+          "operation": "update",
+          "match_column": "cycle_code",
+          "match_value": "{{cycle_code}}",
+          "column_values": {
+            "status": "Closing"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "ballots",
+        "type": "update_data_table",
+        "label": "Read the sealed ballots",
+        "config": {
+          "table_id": "7d7e5c5e-274e-562d-91a7-6f1231fbdc34",
+          "table_name": "Sealed survey ballots",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "cycle_code",
+              "operator": "eq",
+              "value": "{{cycle_code}}"
+            }
+          ],
+          "limit": 5000,
+          "output_rows_var": "ballots",
+          "output_count_var": "ballot_n"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "min",
+        "type": "set_variable",
+        "label": "Minimum group size",
+        "config": {
+          "name": "min_group",
+          "expression": "{{=MAX(3, TO_NUMBER(COALESCE(cycle.min_group_size, 5)))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "segs",
+        "type": "set_variable",
+        "label": "Segments to report",
+        "config": {
+          "name": "segments",
+          "expression": "{{=UNION(UNION(UNION(LIST_ADD([], \"Company|All\"), MAP(UNIQUE(PLUCK(ballots, \"department\")), \"CONCAT(\\\"department|\\\", row)\")), MAP(UNIQUE(PLUCK(ballots, \"location\")), \"CONCAT(\\\"location|\\\", row)\")), MAP(UNIQUE(PLUCK(ballots, \"tenure_band\")), \"CONCAT(\\\"tenure_band|\\\", row)\"))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "each_seg",
+        "type": "loop",
+        "label": "For each segment",
+        "config": {
+          "items": "{{segments}}",
+          "item_var": "seg",
+          "index_var": "seg_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "col",
+        "type": "set_variable",
+        "label": "Segment column",
+        "config": {
+          "name": "seg_col",
+          "expression": "{{=SUBSTRING_BEFORE(seg, \"|\")}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1180
+        }
+      },
+      {
+        "id": "grp",
+        "type": "set_variable",
+        "label": "Segment group",
+        "config": {
+          "name": "seg_group",
+          "expression": "{{=SUBSTRING_AFTER(seg, \"|\")}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1320
+        }
+      },
+      {
+        "id": "rows",
+        "type": "set_variable",
+        "label": "Ballots in the segment",
+        "config": {
+          "name": "seg_ballots",
+          "expression": "{{=IF(seg_col == \"Company\", ballots, FILTER_WHERE(ballots, seg_col, seg_group))}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1460
+        }
+      },
+      {
+        "id": "nresp",
+        "type": "set_variable",
+        "label": "Responses",
+        "config": {
+          "name": "seg_n",
+          "expression": "{{=COUNT(seg_ballots)}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1600
+        }
+      },
+      {
+        "id": "label",
+        "type": "set_variable",
+        "label": "Segment label",
+        "config": {
+          "name": "seg_label",
+          "expression": "{{=IF(seg_col == \"Company\", \"Company\", CONCAT(IF(seg_col == \"department\", \"Department: \", IF(seg_col == \"location\", \"Location: \", \"Tenure: \")), seg_group))}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1740
+        }
+      },
+      {
+        "id": "ok",
+        "type": "set_variable",
+        "label": "Enough responses?",
+        "config": {
+          "name": "reportable",
+          "expression": "{{=IF(seg_n >= min_group, \"Yes\", \"No\")}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1880
+        }
+      },
+      {
+        "id": "each_metric",
+        "type": "loop",
+        "label": "For each metric",
+        "config": {
+          "items": "{{=LIST_ADD(LIST_ADD([\"engagement\",\"leadership\",\"growth\",\"wellbeing\",\"belonging\",\"recognition\"], \"enps_points\"), \"participation\")}}",
+          "item_var": "metric",
+          "index_var": "metric_index"
+        },
+        "position": {
+          "x": 720,
+          "y": 2020
+        }
+      },
+      {
+        "id": "row",
+        "type": "update_data_table",
+        "label": "Write the result (scores only for 5+)",
+        "config": {
+          "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+          "table_name": "Engagement results",
+          "operation": "insert",
+          "column_values": {
+            "cycle_code": "{{cycle_code}}",
+            "cycle_label": "{{cycle.label}}",
+            "cycle_order": "{{cycle.cycle_order}}",
+            "dimension": "{{=IF(seg_col == \"Company\", \"Company\", IF(seg_col == \"department\", \"Department\", IF(seg_col == \"location\", \"Location\", \"Tenure\")))}}",
+            "group": "{{=IF(seg_col == \"Company\", \"All of Fernhill Labs\", seg_group)}}",
+            "segment": "{{seg_label}}",
+            "metric": "{{=IF(metric == \"enps_points\", \"eNPS\", IF(metric == \"participation\", \"Participation\", PROPER(metric)))}}",
+            "kind": "{{=IF(metric == \"engagement\", \"Outcome\", IF(metric == \"enps_points\", \"eNPS\", IF(metric == \"participation\", \"Participation\", \"Driver\")))}}",
+            "in_heatmap": "{{=IF(OR(metric == \"enps_points\", metric == \"participation\"), \"No\", \"Yes\")}}",
+            "score": "{{=IF(metric == \"participation\", IF(seg_col == \"Company\", ROUND(seg_n * 100 / MAX(1, TO_NUMBER(cycle.invited)), 0), \"\"), IF(reportable == \"Yes\", ROUND(AVG(PLUCK(seg_ballots, metric)), 0), \"\"))}}",
+            "favourable_pct": "{{=IF(OR(metric == \"enps_points\", metric == \"participation\", reportable == \"No\"), \"\", ROUND(AVG(PLUCK(seg_ballots, metric)), 0))}}",
+            "responses": "{{seg_n}}",
+            "reportable": "{{reportable}}",
+            "note": "{{=IF(reportable == \"Yes\", \"\", CONCAT(\"Fewer than \", min_group, \" responses: hidden to protect anonymity\"))}}"
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 2160
+        }
+      },
+      {
+        "id": "no_themes",
+        "type": "set_variable",
+        "label": "Start the theme list",
+        "config": {
+          "name": "theme_list",
+          "expression": "{{=FILTER_WHERE(ballots, \"cycle_code\", \"(none)\")}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2300
+        }
+      },
+      {
+        "id": "each_comment",
+        "type": "loop",
+        "label": "For each comment",
+        "config": {
+          "items": "{{=EXCEPT(PLUCK(ballots, \"comment\"), LIST_ADD(LIST_ADD([], \"\"), null))}}",
+          "item_var": "comment_text",
+          "index_var": "comment_text_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 2440
+        }
+      },
+      {
+        "id": "theme",
+        "type": "decision_table",
+        "label": "Theme by keywords",
+        "config": {
+          "decision_table_id": "3a95010f-b56e-5aab-8f8a-4799267f15e7",
+          "decision_table_name": "Comment theme keywords",
+          "input_mappings": {
+            "comment": "{{=LOWER(comment_text)}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 2580
+        }
+      },
+      {
+        "id": "themes",
+        "type": "json_add_to_array",
+        "label": "Count the theme",
+        "config": {
+          "array_var": "theme_list",
+          "fields": [
+            {
+              "key": "theme",
+              "value": "{{theme}}"
+            }
+          ]
+        },
+        "position": {
+          "x": 720,
+          "y": 2720
+        }
+      },
+      {
+        "id": "each_theme",
+        "type": "loop",
+        "label": "For each theme",
+        "config": {
+          "items": "{{=UNIQUE(PLUCK(theme_list, \"theme\"))}}",
+          "item_var": "theme_name",
+          "index_var": "theme_name_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 2860
+        }
+      },
+      {
+        "id": "theme_row",
+        "type": "update_data_table",
+        "label": "Write the theme",
+        "config": {
+          "table_id": "f15757f7-cee4-5d98-ae50-d3fbfe83783b",
+          "table_name": "Comment themes",
+          "operation": "insert",
+          "column_values": {
+            "cycle_code": "{{cycle_code}}",
+            "cycle_label": "{{cycle.label}}",
+            "theme": "{{theme_name}}",
+            "mentions": "{{=COUNTIF(theme_list, \"theme\", theme_name)}}",
+            "sentiment": "Mixed",
+            "summary": "Grouped from survey comments by keyword. Review the theme and write a summary before sharing.",
+            "example": "",
+            "source": "Keyword rules"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 3000
+        }
+      },
+      {
+        "id": "cycle_done",
+        "type": "update_data_table",
+        "label": "Publish the cycle",
+        "config": {
+          "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+          "table_name": "Survey cycles",
+          "operation": "update",
+          "match_column": "cycle_code",
+          "match_value": "{{cycle_code}}",
+          "column_values": {
+            "status": "Published",
+            "results_released": "Yes",
+            "responded": "{{ballot_n}}",
+            "participation_pct": "{{=ROUND(ballot_n * 100 / MAX(1, TO_NUMBER(cycle.invited)), 0)}}",
+            "engagement_score": "{{=IF(ballot_n >= min_group, ROUND(AVG(PLUCK(ballots, \"engagement\")), 0), \"\")}}",
+            "enps": "{{=IF(ballot_n >= min_group, ROUND(AVG(PLUCK(ballots, \"enps_points\")), 0), \"\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 3140
+        }
+      },
+      {
+        "id": "each_ballot",
+        "type": "loop",
+        "label": "For each ballot",
+        "config": {
+          "items": "{{ballots}}",
+          "item_var": "ballot",
+          "index_var": "ballot_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 3280
+        }
+      },
+      {
+        "id": "drop",
+        "type": "update_data_table",
+        "label": "Delete the ballot",
+        "config": {
+          "table_id": "7d7e5c5e-274e-562d-91a7-6f1231fbdc34",
+          "table_name": "Sealed survey ballots",
+          "operation": "delete",
+          "row_id": "{{ballot.row_id}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 3420
+        }
+      },
+      {
+        "id": "notify",
+        "type": "send_email",
+        "label": "Tell the People team",
+        "config": {
+          "to": "{{workflow_owner_email}}",
+          "email_template_id": "1c4faa9c-092e-5d31-9a8c-3be32811e03d"
+        },
+        "position": {
+          "x": 400,
+          "y": 3560
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Results published",
+        "config": {
+          "reason": "{{cycle_code}}: {{ballot_n}} responses"
+        },
+        "position": {
+          "x": 400,
+          "y": 3700
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-cycle",
+        "source": "trigger",
+        "target": "cycle"
+      },
+      {
+        "id": "e-cycle-title",
+        "source": "cycle",
+        "target": "title"
+      },
+      {
+        "id": "e-title-closing",
+        "source": "title",
+        "target": "closing"
+      },
+      {
+        "id": "e-closing-ballots",
+        "source": "closing",
+        "target": "ballots"
+      },
+      {
+        "id": "e-ballots-min",
+        "source": "ballots",
+        "target": "min"
+      },
+      {
+        "id": "e-min-segs",
+        "source": "min",
+        "target": "segs"
+      },
+      {
+        "id": "e-segs-each_seg",
+        "source": "segs",
+        "target": "each_seg"
+      },
+      {
+        "id": "e-each_seg-col-each_item",
+        "source": "each_seg",
+        "target": "col",
+        "label": "Each item"
+      },
+      {
+        "id": "e-col-grp",
+        "source": "col",
+        "target": "grp"
+      },
+      {
+        "id": "e-grp-rows",
+        "source": "grp",
+        "target": "rows"
+      },
+      {
+        "id": "e-rows-nresp",
+        "source": "rows",
+        "target": "nresp"
+      },
+      {
+        "id": "e-nresp-label",
+        "source": "nresp",
+        "target": "label"
+      },
+      {
+        "id": "e-label-ok",
+        "source": "label",
+        "target": "ok"
+      },
+      {
+        "id": "e-ok-each_metric",
+        "source": "ok",
+        "target": "each_metric"
+      },
+      {
+        "id": "e-each_metric-row-each_item",
+        "source": "each_metric",
+        "target": "row",
+        "label": "Each item"
+      },
+      {
+        "id": "e-each_seg-no_themes-done",
+        "source": "each_seg",
+        "target": "no_themes",
+        "label": "Done"
+      },
+      {
+        "id": "e-no_themes-each_comment",
+        "source": "no_themes",
+        "target": "each_comment"
+      },
+      {
+        "id": "e-each_comment-theme-each_item",
+        "source": "each_comment",
+        "target": "theme",
+        "label": "Each item"
+      },
+      {
+        "id": "e-theme-themes",
+        "source": "theme",
+        "target": "themes"
+      },
+      {
+        "id": "e-each_comment-each_theme-done",
+        "source": "each_comment",
+        "target": "each_theme",
+        "label": "Done"
+      },
+      {
+        "id": "e-each_theme-theme_row-each_item",
+        "source": "each_theme",
+        "target": "theme_row",
+        "label": "Each item"
+      },
+      {
+        "id": "e-each_theme-cycle_done-done",
+        "source": "each_theme",
+        "target": "cycle_done",
+        "label": "Done"
+      },
+      {
+        "id": "e-cycle_done-each_ballot",
+        "source": "cycle_done",
+        "target": "each_ballot"
+      },
+      {
+        "id": "e-each_ballot-drop-each_item",
+        "source": "each_ballot",
+        "target": "drop",
+        "label": "Each item"
+      },
+      {
+        "id": "e-each_ballot-notify-done",
+        "source": "each_ballot",
+        "target": "notify",
+        "label": "Done"
+      },
+      {
+        "id": "e-notify-end",
+        "source": "notify",
+        "target": "end"
+      }
+    ],
+    "user_variables": [
+      {
+        "id": "v-cycle_code",
+        "name": "cycle_code",
+        "type": "string",
+        "label": "Cycle code",
+        "description": "The survey cycle to publish, e.g. ENG-2026-Q4",
+        "defaultValue": "",
+        "required": true
+      },
+      {
+        "id": "v-survey_name",
+        "name": "survey_name",
+        "type": "string",
+        "label": "Survey name",
+        "description": "For the email",
+        "defaultValue": ""
+      }
+    ],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

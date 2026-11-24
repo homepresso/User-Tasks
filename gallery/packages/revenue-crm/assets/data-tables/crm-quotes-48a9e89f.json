@@ -1,0 +1,104 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+  "asset": {
+    "id": "48a9e89f-0d34-592d-b289-9d49ddb43e3e",
+    "name": "CRM quotes",
+    "description": "Quotes with their list and net totals in USD, discount and approval status.",
+    "columns": [
+      {
+        "id": "cd139acf-f847-53ec-aad2-0c1e33e041c7",
+        "required": true,
+        "key": "quote_id",
+        "name": "Quote",
+        "type": "text"
+      },
+      {
+        "id": "d80b81fc-3a5d-5d65-804e-ce75461cfc84",
+        "required": false,
+        "key": "deal_id",
+        "name": "Deal ID",
+        "type": "text"
+      },
+      {
+        "id": "c4a9b29e-5d1c-5eb6-ac7b-223106a500f8",
+        "required": false,
+        "key": "deal",
+        "name": "Deal",
+        "type": "text"
+      },
+      {
+        "id": "de5643a9-5a79-5fbc-9855-df28dde49733",
+        "required": false,
+        "key": "account",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "1bf07190-e1b2-5af9-988b-3049ce179d1c",
+        "required": false,
+        "key": "list_total",
+        "name": "List total (USD)",
+        "type": "number"
+      },
+      {
+        "id": "c0dff47e-afba-50f1-a7d2-c6418e3a19f3",
+        "required": false,
+        "key": "discount_pct",
+        "name": "Discount %",
+        "type": "number"
+      },
+      {
+        "id": "384e9f84-3f3b-5cdf-93e8-0bfd3818dec3",
+        "required": false,
+        "key": "amount",
+        "name": "Net total (USD)",
+        "type": "number"
+      },
+      {
+        "id": "fdfbb171-7063-5759-9da2-b9a38eb0ab37",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Draft",
+          "Pending approval",
+          "Approved",
+          "Rejected",
+          "Sent",
+          "Accepted"
+        ]
+      },
+      {
+        "id": "e95c7211-e252-5197-988c-75eeab78952c",
+        "required": false,
+        "key": "approval_path",
+        "name": "Approval path",
+        "type": "text"
+      },
+      {
+        "id": "ed4ece53-484d-5915-9357-547ba52b7e13",
+        "required": false,
+        "key": "requested_by",
+        "name": "Requested by",
+        "type": "text"
+      },
+      {
+        "id": "7133e38e-f197-523e-9ab4-593b1d5a2fb2",
+        "required": false,
+        "key": "valid_until",
+        "name": "Valid until",
+        "type": "date"
+      },
+      {
+        "id": "3818a467-f2c5-5f5a-aaa0-3aa119a65007",
+        "required": false,
+        "key": "created_on",
+        "name": "Created",
+        "type": "date"
+      }
+    ]
+  }
+}

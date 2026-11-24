@@ -318,6 +318,82 @@
   --ds-bg-elevated: color-mix(in srgb, var(--theme-card-bg) 92%, white);
 }
 
+/* ─── Tag colours (lib/tags/palette.ts — keep in step; __tests__/tag-palette
+   checks it) ───
+   A fixed palette of named tokens. A chip's background and border are the
+   token's solid colour mixed into the theme's card colour, so each workspace
+   theme tints them in its own surface; the text is a darker (light) or
+   lighter (dark) shade of the hue that keeps AA contrast on the tint. */
+:root {
+  --tag-gray-solid: #6b7280; --tag-gray-fg: #374151;
+  --tag-red-solid: #ef4444; --tag-red-fg: #991b1b;
+  --tag-orange-solid: #f97316; --tag-orange-fg: #9a3412;
+  --tag-amber-solid: #f59e0b; --tag-amber-fg: #92400e;
+  --tag-yellow-solid: #eab308; --tag-yellow-fg: #854d0e;
+  --tag-lime-solid: #84cc16; --tag-lime-fg: #3f6212;
+  --tag-green-solid: #22c55e; --tag-green-fg: #166534;
+  --tag-teal-solid: #14b8a6; --tag-teal-fg: #115e59;
+  --tag-cyan-solid: #06b6d4; --tag-cyan-fg: #155e75;
+  --tag-blue-solid: #3b82f6; --tag-blue-fg: #1e40af;
+  --tag-indigo-solid: #6366f1; --tag-indigo-fg: #3730a3;
+  --tag-violet-solid: #8b5cf6; --tag-violet-fg: #5b21b6;
+  --tag-purple-solid: #a855f7; --tag-purple-fg: #6b21a8;
+  --tag-pink-solid: #ec4899; --tag-pink-fg: #9d174d;
+  --tag-rose-solid: #f43f5e; --tag-rose-fg: #9f1239;
+  --tag-mix-bg: 14%;
+  --tag-mix-border: 38%;
+}
+[data-theme-mode="dark"] {
+  --tag-gray-fg: #d1d5db;
+  --tag-red-fg: #fca5a5;
+  --tag-orange-fg: #fdba74;
+  --tag-amber-fg: #fcd34d;
+  --tag-yellow-fg: #fde047;
+  --tag-lime-fg: #bef264;
+  --tag-green-fg: #86efac;
+  --tag-teal-fg: #5eead4;
+  --tag-cyan-fg: #67e8f9;
+  --tag-blue-fg: #93c5fd;
+  --tag-indigo-fg: #a5b4fc;
+  --tag-violet-fg: #c4b5fd;
+  --tag-purple-fg: #d8b4fe;
+  --tag-pink-fg: #f9a8d4;
+  --tag-rose-fg: #fda4af;
+  --tag-mix-bg: 24%;
+  --tag-mix-border: 45%;
+}
+.tag-chip {
+  --tag-solid: var(--tag-gray-solid);
+  --tag-fg: var(--tag-gray-fg);
+  background-color: color-mix(in srgb, var(--tag-solid) var(--tag-mix-bg), var(--theme-card-bg));
+  border-color: color-mix(in srgb, var(--tag-solid) var(--tag-mix-border), var(--theme-card-bg));
+  color: var(--tag-fg);
+}
+/* Selected (an active filter): the same tint and text, ringed in the solid hue. */
+.tag-chip[data-tag-selected] {
+  border-color: var(--tag-solid);
+  box-shadow: 0 0 0 1px var(--tag-solid);
+}
+.tag-swatch {
+  --tag-solid: var(--tag-gray-solid);
+  background-color: var(--tag-solid);
+}
+.tag-chip[data-tag-color="gray"], .tag-swatch[data-tag-color="gray"] { --tag-solid: var(--tag-gray-solid); --tag-fg: var(--tag-gray-fg); }
+.tag-chip[data-tag-color="red"], .tag-swatch[data-tag-color="red"] { --tag-solid: var(--tag-red-solid); --tag-fg: var(--tag-red-fg); }
+.tag-chip[data-tag-color="orange"], .tag-swatch[data-tag-color="orange"] { --tag-solid: var(--tag-orange-solid); --tag-fg: var(--tag-orange-fg); }
+.tag-chip[data-tag-color="amber"], .tag-swatch[data-tag-color="amber"] { --tag-solid: var(--tag-amber-solid); --tag-fg: var(--tag-amber-fg); }
+.tag-chip[data-tag-color="yellow"], .tag-swatch[data-tag-color="yellow"] { --tag-solid: var(--tag-yellow-solid); --tag-fg: var(--tag-yellow-fg); }
+.tag-chip[data-tag-color="lime"], .tag-swatch[data-tag-color="lime"] { --tag-solid: var(--tag-lime-solid); --tag-fg: var(--tag-lime-fg); }
+.tag-chip[data-tag-color="green"], .tag-swatch[data-tag-color="green"] { --tag-solid: var(--tag-green-solid); --tag-fg: var(--tag-green-fg); }
+.tag-chip[data-tag-color="teal"], .tag-swatch[data-tag-color="teal"] { --tag-solid: var(--tag-teal-solid); --tag-fg: var(--tag-teal-fg); }
+.tag-chip[data-tag-color="cyan"], .tag-swatch[data-tag-color="cyan"] { --tag-solid: var(--tag-cyan-solid); --tag-fg: var(--tag-cyan-fg); }
+.tag-chip[data-tag-color="blue"], .tag-swatch[data-tag-color="blue"] { --tag-solid: var(--tag-blue-solid); --tag-fg: var(--tag-blue-fg); }
+.tag-chip[data-tag-color="indigo"], .tag-swatch[data-tag-color="indigo"] { --tag-solid: var(--tag-indigo-solid); --tag-fg: var(--tag-indigo-fg); }
+.tag-chip[data-tag-color="violet"], .tag-swatch[data-tag-color="violet"] { --tag-solid: var(--tag-violet-solid); --tag-fg: var(--tag-violet-fg); }
+.tag-chip[data-tag-color="purple"], .tag-swatch[data-tag-color="purple"] { --tag-solid: var(--tag-purple-solid); --tag-fg: var(--tag-purple-fg); }
+.tag-chip[data-tag-color="pink"], .tag-swatch[data-tag-color="pink"] { --tag-solid: var(--tag-pink-solid); --tag-fg: var(--tag-pink-fg); }
+.tag-chip[data-tag-color="rose"], .tag-swatch[data-tag-color="rose"] { --tag-solid: var(--tag-rose-solid); --tag-fg: var(--tag-rose-fg); }
+
 @media (pointer: coarse) {
   :root { --ds-touch-min: 40px; }
   /* iOS Safari zooms the page into any text field under 16px on focus.
@@ -1183,4 +1259,19 @@ textarea {
   .guide-hero-glow, .guide-confetti span, .guide-hint-ring { animation: none !important; }
   .guide-confetti { display: none; }
   .guide-spotlight-ring { transition: none; }
+}
+
+/*
+ * The Agent launcher docked into a shared action bar (save bar, wizard
+ * footer, sticky form buttons): the bar keeps its right end clear for it
+ * (components/assistants/use-launcher-avoidance.ts sets --agent-reserve).
+ * The page launcher also publishes --agent-launcher-w / --agent-launcher-reserve
+ * on <html> while it shows, for layouts that want to keep clear of it.
+ */
+[data-agent-bar][data-agent-reserve] {
+  padding-inline-end: var(--agent-reserve) !important;
+}
+/* A shell page that scrolls keeps room below its last row for the Agent launcher (assistant-host.tsx). */
+html[data-agent-launcher] main[data-agent-scroll-room] {
+  padding-bottom: calc(var(--agent-launcher-reserve, 0px) + 0.5rem) !important;
 }

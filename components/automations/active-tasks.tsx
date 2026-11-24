@@ -238,7 +238,7 @@ export function ActiveTasksTab() {
 
       {data && (
         <Pagination page={filters.page} pageSize={filters.pageSize} total={data.total} onPageChange={(page) => update({ page })}
-          onPageSizeChange={(pageSize) => update({ pageSize })} pageSizeOptions={WAITING_PAGE_SIZES as unknown as number[]} noun="tasks" />
+          onPageSizeChange={(pageSize) => update({ pageSize })} pageSizeOptions={WAITING_PAGE_SIZES as unknown as number[]} pageSizeResetsPage={false} noun="tasks" />
       )}
 
       <ConfirmDialog

@@ -1,0 +1,75 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "353aa56f-3d19-56bc-8815-5b70903ac9ba",
+  "asset": {
+    "id": "353aa56f-3d19-56bc-8815-5b70903ac9ba",
+    "name": "Skill assessments",
+    "description": "Current and target level (1-5) per person and skill, agreed in career conversations.",
+    "columns": [
+      {
+        "id": "eac068a3-e85c-54ab-aff7-814cfaf8c659",
+        "required": false,
+        "key": "employee_name",
+        "name": "Employee",
+        "type": "text"
+      },
+      {
+        "id": "ab67105d-1e40-55da-9d56-7f53a64aa3e9",
+        "required": false,
+        "key": "employee_email",
+        "name": "Employee email",
+        "type": "email"
+      },
+      {
+        "id": "da321c41-69a6-51c2-bf69-af7efd8c0853",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "c7118e82-ee0f-5052-8cea-f209169c7f43",
+        "required": false,
+        "key": "skill",
+        "name": "Skill",
+        "type": "text"
+      },
+      {
+        "id": "49aab8c5-0ba4-5d67-b489-0244c768ea6b",
+        "required": false,
+        "key": "measure",
+        "name": "Measure",
+        "type": "select",
+        "options": [
+          "Current level",
+          "Target level"
+        ]
+      },
+      {
+        "id": "7c255afb-26e6-53e2-8e5e-780f2a37a488",
+        "required": false,
+        "key": "level",
+        "name": "Level (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "f2c4017c-aa3e-544c-8547-bb23d5c71dc6",
+        "required": false,
+        "key": "assessed_on",
+        "name": "Assessed on",
+        "type": "date"
+      }
+    ]
+  }
+}

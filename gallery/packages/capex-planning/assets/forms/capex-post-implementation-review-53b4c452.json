@@ -1,0 +1,291 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "53b4c452-239e-5cd7-a615-570921bc6bd0",
+  "asset": {
+    "id": "53b4c452-239e-5cd7-a615-570921bc6bd0",
+    "name": "CapEx post-implementation review",
+    "description": "Close a project: the final cost, whether it met its objectives, the benefits so far and the lessons learned. Closing asks the asset accountant to register the asset.",
+    "tags": [
+      "capex",
+      "close-out",
+      "review"
+    ],
+    "fields": [
+      {
+        "key": "project_ref",
+        "label": "Project",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "search_columns": [
+            "project_ref",
+            "title"
+          ],
+          "display_columns": [
+            "project_ref",
+            "title"
+          ],
+          "value_column": "project_ref",
+          "fill": [
+            {
+              "from": "title",
+              "to": "project_title"
+            },
+            {
+              "from": "approved_amount",
+              "to": "approved_amount"
+            },
+            {
+              "from": "spent",
+              "to": "final_cost"
+            },
+            {
+              "from": "category",
+              "to": "category"
+            },
+            {
+              "from": "business_unit",
+              "to": "business_unit"
+            },
+            {
+              "from": "useful_life",
+              "to": "useful_life"
+            }
+          ],
+          "sort": {
+            "column": "project_ref",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "project_title",
+        "label": "Project title",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "business_unit",
+        "label": "Business unit",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "useful_life",
+        "label": "Useful life (years)",
+        "type": "number",
+        "read_only": true
+      },
+      {
+        "key": "approved_amount",
+        "label": "Approved (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "read_only": true
+      },
+      {
+        "key": "final_cost",
+        "label": "Final cost (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "required": true
+      },
+      {
+        "key": "variance_pct",
+        "label": "Variance to approved",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(approved_amount > 0, ROUND((final_cost - approved_amount) / approved_amount * 100, 1), \"\")",
+          "include": true,
+          "format": {
+            "kind": "number",
+            "decimals": 1
+          },
+          "suffix": "%"
+        }
+      },
+      {
+        "key": "completion_date",
+        "label": "Completed on",
+        "type": "date",
+        "required": true,
+        "default": "{{today}}"
+      },
+      {
+        "key": "objectives_met",
+        "label": "Objectives met",
+        "type": "choice",
+        "options": [
+          "Fully met",
+          "Partly met",
+          "Not met"
+        ],
+        "required": true,
+        "display": "radio"
+      },
+      {
+        "key": "benefits_realised",
+        "label": "Benefits realised so far",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "key": "lessons",
+        "label": "Lessons learned",
+        "type": "textarea"
+      },
+      {
+        "key": "register_asset",
+        "label": "Register the asset now",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "project_ref",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "project_title",
+              "span": 1
+            },
+            {
+              "field_key": "category",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "business_unit",
+              "span": 1
+            },
+            {
+              "field_key": "useful_life",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "approved_amount",
+              "span": 1
+            },
+            {
+              "field_key": "final_cost",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "variance_pct",
+              "span": 1
+            },
+            {
+              "field_key": "completion_date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "objectives_met",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "benefits_realised",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "lessons",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "register_asset",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Close the project",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Project closed",
+            "text": "{{project_ref}} is closed. Thanks for the review.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Review another project"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Post-implementation review",
+      "subtitle": "Close the project and record what it delivered.",
+      "align": "left"
+    }
+  }
+}

@@ -1,0 +1,423 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "e2cd4e9d-16ea-5986-b7f5-4770533aa027",
+  "asset": {
+    "id": "e2cd4e9d-16ea-5986-b7f5-4770533aa027",
+    "name": "CRM daily sales checks",
+    "description": "Every weekday morning: customers renewing in 90, 60 and 30 days get a renewal note on their timeline (and at 30 days a renewal call for the account manager); open deals whose close date has passed get flagged so the owner updates the date or stage.",
+    "trigger_type": "schedule",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "schedule",
+        "label": "Weekdays 07:00",
+        "config": {
+          "schedule_mode": "daily",
+          "time_of_day": "07:00",
+          "timezone": "UTC"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "today",
+        "type": "set_variable",
+        "label": "Today",
+        "config": {
+          "name": "today_date",
+          "expression": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "customers",
+        "type": "update_data_table",
+        "label": "List customers",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "status",
+              "operator": "eq",
+              "value": "Customer"
+            }
+          ],
+          "sort_column": "renewal_date",
+          "sort_direction": "asc",
+          "limit": 500,
+          "output_rows_var": "customers",
+          "output_count_var": "customer_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each customer",
+        "config": {
+          "items": "{{customers}}",
+          "item_var": "acc"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "days",
+        "type": "set_variable",
+        "label": "Days to renewal",
+        "config": {
+          "name": "days_to_renewal",
+          "expression": "{{=ROUND(DAY_DIFF(today_date, acc.renewal_date), 0)}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 620
+        }
+      },
+      {
+        "id": "window",
+        "type": "switch_case",
+        "label": "Reminder window",
+        "config": {
+          "field": "{{days_to_renewal}}",
+          "cases": [
+            {
+              "value": "90",
+              "label": "90 days"
+            },
+            {
+              "value": "60",
+              "label": "60 days"
+            },
+            {
+              "value": "30",
+              "label": "30 days"
+            }
+          ],
+          "has_default": true
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      },
+      {
+        "id": "note",
+        "type": "update_data_table",
+        "label": "Renewal note",
+        "config": {
+          "table_id": "d94fcb41-7ceb-565a-bfdd-d46824060a9b",
+          "table_name": "CRM activities",
+          "operation": "insert",
+          "column_values": {
+            "activity_id": "ACT-{{=UPPER(LEFT(GUID(), 6))}}",
+            "type": "Note",
+            "subject": "Renewal in {{days_to_renewal}} days",
+            "account": "{{acc.name}}",
+            "account_id": "{{acc.account_id}}",
+            "owner": "{{acc.owner}}",
+            "date": "{{today_date}}",
+            "outcome": "Needs follow-up",
+            "notes": "Renews {{acc.renewal_date}} · ${{acc.arr}} ARR · health {{acc.health}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "is30",
+        "type": "condition",
+        "label": "30 days?",
+        "config": {
+          "branches": [
+            {
+              "label": "Call now",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{days_to_renewal}}",
+                  "operator": "equals",
+                  "value": "30"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 720,
+          "y": 1040
+        }
+      },
+      {
+        "id": "call",
+        "type": "call_sub_workflow",
+        "label": "Start the renewal call",
+        "executionMode": "async",
+        "config": {
+          "sub_workflow_id": "11039956-6d35-554f-9c9f-1105413ee9e3",
+          "sub_workflow_name": "CRM renewal call",
+          "input_mappings": {
+            "account_id": "{{acc.account_id}}",
+            "account": "{{acc.name}}",
+            "arr": "{{acc.arr}}",
+            "renewal_date": "{{acc.renewal_date}}",
+            "health": "{{acc.health}}",
+            "owner": "{{acc.owner}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1180
+        }
+      },
+      {
+        "id": "skip",
+        "type": "log",
+        "label": "Not due",
+        "config": {
+          "message": "{{acc.account_id}}: {{days_to_renewal}} days to renewal",
+          "level": "info"
+        },
+        "position": {
+          "x": 1040,
+          "y": 1320
+        }
+      },
+      {
+        "id": "open",
+        "type": "update_data_table",
+        "label": "List open deals",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "forecast",
+              "operator": "neq",
+              "value": "Closed"
+            },
+            {
+              "column": "forecast",
+              "operator": "neq",
+              "value": "Omitted"
+            }
+          ],
+          "limit": 500,
+          "output_rows_var": "open_deals",
+          "output_count_var": "open_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "deals",
+        "type": "loop",
+        "label": "Each open deal",
+        "config": {
+          "items": "{{open_deals}}",
+          "item_var": "deal"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "late",
+        "type": "condition",
+        "label": "Close date passed?",
+        "config": {
+          "branches": [
+            {
+              "label": "Slipped",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{=DAY_DIFF(deal.close_date, today_date)}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "flag",
+        "type": "update_data_table",
+        "label": "Flag the deal",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "update",
+          "match_column": "deal_id",
+          "match_value": "{{deal.deal_id}}",
+          "column_values": {
+            "next_step": "Close date passed: update the date or the stage"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1040
+        }
+      },
+      {
+        "id": "fine",
+        "type": "log",
+        "label": "On track",
+        "config": {
+          "message": "{{deal.deal_id}} closes {{deal.close_date}}",
+          "level": "info"
+        },
+        "position": {
+          "x": 1040,
+          "y": 1180
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Checked",
+        "config": {
+          "reason": "Checked {{customer_count}} customers and {{open_count}} open deals"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-today",
+        "source": "trigger",
+        "target": "today"
+      },
+      {
+        "id": "e-today-customers",
+        "source": "today",
+        "target": "customers"
+      },
+      {
+        "id": "e-customers-each",
+        "source": "customers",
+        "target": "each"
+      },
+      {
+        "id": "e-each-days-each_item",
+        "source": "each",
+        "target": "days",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-days-window",
+        "source": "days",
+        "target": "window"
+      },
+      {
+        "id": "e-window-note-90_days",
+        "source": "window",
+        "target": "note",
+        "label": "90 days"
+      },
+      {
+        "id": "e-window-note-60_days",
+        "source": "window",
+        "target": "note",
+        "label": "60 days"
+      },
+      {
+        "id": "e-window-note-30_days",
+        "source": "window",
+        "target": "note",
+        "label": "30 days"
+      },
+      {
+        "id": "e-window-skip-default",
+        "source": "window",
+        "target": "skip",
+        "label": "Default"
+      },
+      {
+        "id": "e-note-is30",
+        "source": "note",
+        "target": "is30"
+      },
+      {
+        "id": "e-is30-call-call_now",
+        "source": "is30",
+        "target": "call",
+        "label": "Call now"
+      },
+      {
+        "id": "e-is30-skip-else",
+        "source": "is30",
+        "target": "skip",
+        "label": "Else"
+      },
+      {
+        "id": "e-each-open-done",
+        "source": "each",
+        "target": "open",
+        "label": "Done"
+      },
+      {
+        "id": "e-open-deals",
+        "source": "open",
+        "target": "deals"
+      },
+      {
+        "id": "e-deals-late-each_item",
+        "source": "deals",
+        "target": "late",
+        "label": "Each Item"
+      },
+      {
+        "id": "e-late-flag-slipped",
+        "source": "late",
+        "target": "flag",
+        "label": "Slipped"
+      },
+      {
+        "id": "e-late-fine-else",
+        "source": "late",
+        "target": "fine",
+        "label": "Else"
+      },
+      {
+        "id": "e-deals-done-done",
+        "source": "deals",
+        "target": "done",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

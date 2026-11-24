@@ -1,0 +1,555 @@
+{
+  "format_version": 3,
+  "asset_type": "apps",
+  "id": "bfa8530f-0e4c-52f0-a99f-781b5c6a3c14",
+  "asset": {
+    "id": "bfa8530f-0e4c-52f0-a99f-781b5c6a3c14",
+    "name": "Team operations",
+    "slug": "team-ops",
+    "subtitle": "Throughput, bottlenecks and what is overdue",
+    "description": "A dashboard for team leads: KPIs, throughput, bottlenecks, cycle time, overdue work and announcements, filtered by team, period and person.",
+    "icon": "LayoutDashboard",
+    "color": "#0e7490",
+    "menu": [],
+    "settings": {
+      "nav": {
+        "style": "tabs",
+        "header_style": "plain",
+        "density": "compact"
+      },
+      "style": {
+        "default": {
+          "radius": "md",
+          "shadow": "sm"
+        },
+        "presets": [
+          {
+            "name": "Flat",
+            "style": {
+              "shadow": "none",
+              "colors": {
+                "background": "token:subtle"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "pages": [
+      {
+        "id": "2e0c92d2-f11f-5e98-9c99-e01ca75b3226",
+        "slug": "overview",
+        "title": "Overview",
+        "icon": "LayoutDashboard",
+        "position": 0,
+        "layout": {
+          "widgets": [
+            {
+              "id": "news",
+              "w": 12,
+              "h": 2,
+              "type": "announcement",
+              "config": {
+                "html": "<p><strong>This week:</strong> the Platform team is running the database failover test on Wednesday. Expect slower deploys between 14:00 and 16:00 UTC.</p>",
+                "tone": "info"
+              }
+            },
+            {
+              "id": "open",
+              "title": "Open tasks",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "assignee": {
+                  "filter": "person"
+                },
+                "team": {
+                  "filter": "team"
+                },
+                "status": "open",
+                "format": "number",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "Inbox",
+                "accent": "blue",
+                "click": {
+                  "page": "team"
+                }
+              }
+            },
+            {
+              "id": "done",
+              "title": "Completed",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "assignee": {
+                  "filter": "person"
+                },
+                "team": {
+                  "filter": "team"
+                },
+                "status": "completed",
+                "date_range": {
+                  "filter": "period"
+                },
+                "format": "number",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "CircleCheck",
+                "accent": "green"
+              }
+            },
+            {
+              "id": "runs",
+              "title": "Requests started",
+              "w": 3,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "runs",
+                "aggregate": "count",
+                "workflow_id": "3dbab949-b28a-54c8-810e-b962f5ca59bc",
+                "date_range": {
+                  "filter": "period"
+                },
+                "compare_previous": true,
+                "icon": "Play",
+                "accent": "violet",
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "cycle_avg",
+              "title": "Average cycle time (days)",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "cycle_days",
+                "table_id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+                "format": "number",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "Timer",
+                "accent": "amber"
+              }
+            },
+            {
+              "id": "flow",
+              "title": "Throughput: created versus completed",
+              "w": 8,
+              "h": 7,
+              "type": "throughput",
+              "config": {
+                "source": "tasks",
+                "assignee": {
+                  "filter": "person"
+                },
+                "team": {
+                  "filter": "team"
+                },
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "day"
+              }
+            },
+            {
+              "id": "sla",
+              "title": "On time",
+              "w": 4,
+              "h": 7,
+              "type": "sla",
+              "config": {
+                "source": "tasks",
+                "assignee": {
+                  "filter": "person"
+                },
+                "team": {
+                  "filter": "team"
+                },
+                "status": "open",
+                "at_risk_hours": 24
+              }
+            },
+            {
+              "id": "where",
+              "title": "Bottlenecks: where work waits",
+              "w": 6,
+              "h": 7,
+              "type": "bottleneck",
+              "config": {
+                "team": {
+                  "filter": "team"
+                },
+                "limit": 6
+              }
+            },
+            {
+              "id": "cycle",
+              "title": "Cycle time",
+              "w": 6,
+              "h": 7,
+              "type": "cycle_time",
+              "config": {
+                "source": "tasks",
+                "assignee": {
+                  "filter": "person"
+                },
+                "team": {
+                  "filter": "team"
+                },
+                "date_range": {
+                  "filter": "period"
+                },
+                "interval": "week"
+              }
+            }
+          ]
+        },
+        "filters": [
+          {
+            "id": "team",
+            "kind": "team",
+            "label": "Team",
+            "default": null
+          },
+          {
+            "id": "period",
+            "kind": "date_range",
+            "label": "Period",
+            "default": {
+              "preset": "30d"
+            }
+          },
+          {
+            "id": "person",
+            "kind": "user",
+            "label": "Person",
+            "default": null
+          }
+        ]
+      },
+      {
+        "id": "7ec39f67-11bb-578e-be4e-fb7adc39e831",
+        "slug": "team",
+        "title": "Team",
+        "icon": "Users",
+        "position": 1,
+        "layout": {
+          "widgets": [
+            {
+              "id": "people",
+              "title": "Open tasks per person (click to filter)",
+              "w": 6,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "tasks",
+                "chart": "horizontal_bar",
+                "group_by": "assignee",
+                "series_by": "none",
+                "click": {
+                  "filter": "person"
+                },
+                "interval": "day",
+                "aggregate": "count",
+                "team": {
+                  "filter": "team"
+                },
+                "status": "open",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "by_status",
+              "title": "Tasks by status (click to filter)",
+              "w": 6,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "tasks",
+                "chart": "donut",
+                "group_by": "status",
+                "series_by": "none",
+                "click": {
+                  "filter": "status"
+                },
+                "interval": "day",
+                "aggregate": "count",
+                "assignee": {
+                  "filter": "person"
+                },
+                "team": {
+                  "filter": "team"
+                },
+                "date_range": {
+                  "filter": "period"
+                },
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "list",
+              "title": "Tasks",
+              "w": 8,
+              "h": 9,
+              "type": "task_list",
+              "config": {
+                "scope": "all",
+                "assignee": {
+                  "filter": "person"
+                },
+                "team": {
+                  "filter": "team"
+                },
+                "status": {
+                  "filter": "status"
+                },
+                "date_range": {
+                  "filter": "period"
+                },
+                "limit": 10,
+                "show_claim": true,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "overdue",
+              "title": "Overdue",
+              "w": 4,
+              "h": 9,
+              "type": "overdue_list",
+              "config": {
+                "scope": "all",
+                "assignee": {
+                  "filter": "person"
+                },
+                "team": {
+                  "filter": "team"
+                },
+                "limit": 10,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "clear",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Show everyone",
+                    "icon": "UsersRound",
+                    "icon_position": "left",
+                    "style": "ghost",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "set_filter",
+                      "filter": "person",
+                      "value": null
+                    }
+                  },
+                  {
+                    "label": "New request",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Team work request"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "16fd26c0-2440-5566-8e16-f73761f45f32",
+                      "open": "drawer"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "end",
+                "gap": "md"
+              }
+            }
+          ]
+        },
+        "filters": [
+          {
+            "id": "team",
+            "kind": "team",
+            "label": "Team",
+            "default": null
+          },
+          {
+            "id": "period",
+            "kind": "date_range",
+            "label": "Period",
+            "default": {
+              "preset": "30d"
+            }
+          },
+          {
+            "id": "person",
+            "kind": "user",
+            "label": "Person",
+            "default": null
+          },
+          {
+            "id": "status",
+            "kind": "status",
+            "label": "Status",
+            "default": "open"
+          }
+        ]
+      },
+      {
+        "id": "2eac8fd7-4767-5afc-a3f4-0d3202506146",
+        "slug": "delivery",
+        "title": "Delivery",
+        "icon": "ChartColumn",
+        "position": 2,
+        "layout": {
+          "widgets": [
+            {
+              "id": "delivered",
+              "title": "Delivered per team (last four weeks)",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "team",
+                "interval": "day",
+                "aggregate": "sum",
+                "value_field": "delivered",
+                "table_id": "a94eca91-9810-58a8-adf1-09576ed3334a",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "weekly",
+              "title": "Delivered per team and week",
+              "w": 6,
+              "h": 7,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "a94eca91-9810-58a8-adf1-09576ed3334a",
+                "rows": "field",
+                "row_field": "team",
+                "columns": "field",
+                "column_field": "week",
+                "interval": "month",
+                "aggregate": "sum",
+                "value_field": "delivered"
+              }
+            },
+            {
+              "id": "planned",
+              "title": "Delivered against plan (four weeks)",
+              "w": 4,
+              "h": 3,
+              "type": "goal",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "delivered",
+                "table_id": "a94eca91-9810-58a8-adf1-09576ed3334a",
+                "format": "number",
+                "currency": "USD",
+                "target": 98,
+                "target_label": "items planned"
+              }
+            },
+            {
+              "id": "types",
+              "title": "Work items by type",
+              "w": 4,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "pie",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "type",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "cycle_team",
+              "title": "Average cycle time by team (days)",
+              "w": 4,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "team",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "cycle_days",
+                "table_id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "grid",
+              "title": "Work items",
+              "w": 12,
+              "h": 9,
+              "type": "data_grid",
+              "config": {
+                "table_id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+                "columns": [
+                  "item_ref",
+                  "title",
+                  "team",
+                  "type",
+                  "priority",
+                  "status",
+                  "opened_on",
+                  "closed_on",
+                  "cycle_days"
+                ],
+                "editable": false,
+                "group_by": "team",
+                "page_size": 25
+              }
+            }
+          ]
+        },
+        "filters": []
+      }
+    ]
+  }
+}

@@ -19,6 +19,9 @@
 
 import { getDb, hasPerm, type ServiceContext } from './context'
 import { canAddSubtask, requireTaskReach, taskDepth } from './tasks'
+import { normalizeTaskFields } from '../task-field-schema'
+import { isSecretField } from '../forms/task-outputs'
+import { isSecretField as isSecretFieldName } from '../assistants/form-values'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped client rows */
 
@@ -72,6 +75,8 @@ export interface TaskPanelData {
   subtasks: { items: TaskPanelSubtask[]; total: number; completed: number }
   latest: { kind: 'comment' | 'activity'; text: string; by: string | null; at: string } | null
   attachments: number
+  /** The task's form fields with a value (read-only preview: up to 10, secrets left out). */
+  fields?: Array<{ key: string; label: string; type: string; value: string | number | boolean | string[] }>
   links: { task: string; form: string | null; process: string | null }
   can: { progress: boolean; status: boolean; effort: boolean; subtasks: boolean; addSubtask: boolean }
   /** Here only through an invite (read only; they may comment). */
@@ -121,6 +126,26 @@ export function panelPermissions(input: { canComplete: boolean; reachable: boole
     : input.closed ? 'This task is closed.'
     : null
   return { can, readOnlyReason }
+}
+
+const PREVIEW_SKIP = new Set(['heading', 'divider', 'button', 'label', 'custom', 'data_table', 'attachments', 'list'])
+
+/** The task's form fields that have a value, for the quick view's read-only preview (secrets never leave the server). */
+export function fieldPreview(metadata: unknown): NonNullable<TaskPanelData['fields']> {
+  const meta = record(metadata)
+  const values = record(meta.template_values)
+  const out: NonNullable<TaskPanelData['fields']> = []
+  for (const f of normalizeTaskFields(meta.fields)) {
+    if (out.length >= 10) break
+    if (PREVIEW_SKIP.has(f.type) || isSecretField(f) || isSecretFieldName(f)) continue
+    const v = values[f.key]
+    if (v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length)) continue
+    const value = typeof v === 'number' || typeof v === 'boolean' ? v : Array.isArray(v) ? v.map((x) => (x && typeof x === 'object' ? String((x as any).label ?? (x as any).name ?? '') : String(x))).filter(Boolean)
+      : typeof v === 'object' ? String((v as any).label ?? (v as any).name ?? (v as any).display_name ?? (v as any).email ?? '') : String(v)
+    if (value === '' || (Array.isArray(value) && !value.length)) continue
+    out.push({ key: f.key, label: f.label, type: f.type, value: typeof value === 'string' && value.length > 500 ? `${value.slice(0, 499)}…` : value })
+  }
+  return out
 }
 
 export async function getTaskPanel(ctx: ServiceContext, taskId: string): Promise<TaskPanelData | null> {
@@ -220,6 +245,7 @@ export async function getTaskPanel(ctx: ServiceContext, taskId: string): Promise
     },
     latest,
     attachments: attachmentsResult.count ?? 0,
+    fields: fieldPreview(meta),
     links: {
       task: `/tasks/${task.id}`,
       form: hasForm || workflow ? `/tasks/${task.id}?tab=form` : null,

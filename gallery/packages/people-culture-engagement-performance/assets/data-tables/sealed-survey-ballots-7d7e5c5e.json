@@ -1,0 +1,103 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "7d7e5c5e-274e-562d-91a7-6f1231fbdc34",
+  "asset": {
+    "id": "7d7e5c5e-274e-562d-91a7-6f1231fbdc34",
+    "name": "Sealed survey ballots",
+    "description": "Temporary. Each answer is written here only when its survey closes, with no name, no time and its department, location and tenure merged into \"Other\" when that group has fewer people than the minimum group size. Publishing results turns the ballots into the Engagement results and deletes them.",
+    "columns": [
+      {
+        "id": "ee0ca9ef-fd9b-51d2-ad33-7dbdbc850261",
+        "required": true,
+        "key": "cycle_code",
+        "name": "Cycle code",
+        "type": "text"
+      },
+      {
+        "id": "38efc017-7ee7-50b2-918e-0ba21bb3727c",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "text"
+      },
+      {
+        "id": "38a9e2d7-e27f-51da-a432-b4d41c98efd0",
+        "required": false,
+        "key": "location",
+        "name": "Location",
+        "type": "text"
+      },
+      {
+        "id": "ada5d844-63c7-5433-91f7-ea009cc11fca",
+        "required": false,
+        "key": "tenure_band",
+        "name": "Tenure band",
+        "type": "text"
+      },
+      {
+        "id": "f4069aa4-2cfa-5a70-9b54-1797b72ce74d",
+        "required": false,
+        "key": "engagement",
+        "name": "Engagement (% favourable)",
+        "type": "number"
+      },
+      {
+        "id": "2dee6481-f3e0-59d2-871d-c36dbb220d54",
+        "required": false,
+        "key": "leadership",
+        "name": "Leadership (% favourable)",
+        "type": "number"
+      },
+      {
+        "id": "91a4af59-115a-5e98-97c5-fe7f4da8d440",
+        "required": false,
+        "key": "growth",
+        "name": "Growth (% favourable)",
+        "type": "number"
+      },
+      {
+        "id": "7dda5abc-4395-5ff7-8d6e-79a057688216",
+        "required": false,
+        "key": "wellbeing",
+        "name": "Wellbeing (% favourable)",
+        "type": "number"
+      },
+      {
+        "id": "ef25ae81-985b-51be-b920-4edec60c5c77",
+        "required": false,
+        "key": "belonging",
+        "name": "Belonging (% favourable)",
+        "type": "number"
+      },
+      {
+        "id": "40262e79-3e71-5b90-848b-bf0017241fab",
+        "required": false,
+        "key": "recognition",
+        "name": "Recognition (% favourable)",
+        "type": "number"
+      },
+      {
+        "id": "fa40317d-cf40-5cb9-98ee-d15d3a8dfdbb",
+        "required": false,
+        "key": "enps_points",
+        "name": "eNPS points",
+        "type": "number"
+      },
+      {
+        "id": "0e161531-a0ad-5bfc-944c-7f29c62d25f8",
+        "required": false,
+        "key": "comment",
+        "name": "Comment",
+        "type": "text"
+      },
+      {
+        "id": "9bb87214-6b18-5515-a4cf-849049afe133",
+        "required": false,
+        "key": "comment_driver",
+        "name": "Comment about",
+        "type": "text"
+      }
+    ]
+  }
+}

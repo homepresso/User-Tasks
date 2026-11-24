@@ -1,0 +1,3456 @@
+{
+  "format_version": 3,
+  "asset_type": "apps",
+  "id": "bde8451a-8a1d-5f5a-819c-c0cc1f73af85",
+  "asset": {
+    "id": "bde8451a-8a1d-5f5a-819c-c0cc1f73af85",
+    "name": "People & Culture",
+    "slug": "people-culture",
+    "subtitle": "Engagement, performance and growth",
+    "description": "Engagement surveys with anonymity-safe results, goals and OKRs, performance reviews with calibration, recognition and development plans in one app.",
+    "icon": "HeartPulse",
+    "color": "#c2410c",
+    "menu": [],
+    "settings": {
+      "nav": {
+        "style": "top",
+        "header_style": "plain",
+        "density": "comfortable"
+      },
+      "variables": [
+        {
+          "name": "goal_ref",
+          "type": "text",
+          "label": "Selected goal"
+        }
+      ],
+      "rules": [
+        {
+          "id": "kudos_sent",
+          "name": "Thank the giver",
+          "when": {
+            "type": "form_submitted",
+            "form_id": "d0c55636-0d87-5ba1-9c39-190e95c2d242"
+          },
+          "then": [
+            {
+              "type": "message",
+              "text": "Kudos sent: it is on the recognition wall.",
+              "tone": "success"
+            },
+            {
+              "type": "refresh",
+              "widgets": []
+            }
+          ]
+        },
+        {
+          "id": "goal_saved",
+          "name": "Refresh after a goal or check-in",
+          "when": {
+            "type": "form_submitted",
+            "form_id": "34632d26-8b59-5918-988c-c788cbda0f7c"
+          },
+          "then": [
+            {
+              "type": "message",
+              "text": "Goal updated.",
+              "tone": "success"
+            },
+            {
+              "type": "refresh",
+              "widgets": []
+            }
+          ]
+        }
+      ],
+      "style": {
+        "default": {
+          "radius": "lg",
+          "shadow": "sm",
+          "palette": [
+            "#c2410c",
+            "#d97706",
+            "#0f766e",
+            "#be185d",
+            "#7c3aed",
+            "#65a30d",
+            "#0369a1",
+            "#a16207"
+          ],
+          "value_colors": [
+            {
+              "value": "Positive",
+              "color": "#15803d"
+            },
+            {
+              "value": "Mixed",
+              "color": "#b45309"
+            },
+            {
+              "value": "Negative",
+              "color": "#b91c1c"
+            },
+            {
+              "value": "On track",
+              "color": "#15803d"
+            },
+            {
+              "value": "At risk",
+              "color": "#d97706"
+            },
+            {
+              "value": "Off track",
+              "color": "#b91c1c"
+            },
+            {
+              "value": "Done",
+              "color": "#0369a1"
+            }
+          ]
+        },
+        "presets": [
+          {
+            "name": "Hero",
+            "style": {
+              "background_image": {
+                "kind": "gradient",
+                "from": "#c2410c",
+                "to": "#d97706",
+                "angle": 120
+              },
+              "colors": {
+                "title": "#ffffff",
+                "text": "#fff7ed",
+                "muted": "#ffedd5"
+              },
+              "shadow": "md",
+              "padding": "spacious"
+            }
+          },
+          {
+            "name": "Callout",
+            "style": {
+              "colors": {
+                "background": "token:subtle",
+                "border": "token:border"
+              },
+              "shadow": "none"
+            }
+          }
+        ]
+      }
+    },
+    "pages": [
+      {
+        "id": "0b7fa32f-5621-596d-952a-318a6a2aba93",
+        "slug": "home",
+        "title": "Home",
+        "icon": "House",
+        "position": 0,
+        "layout": {
+          "widgets": [
+            {
+              "id": "hello",
+              "style": {
+                "preset": "Hero"
+              },
+              "w": 12,
+              "h": 2,
+              "type": "heading",
+              "config": {
+                "text": "{{var.greeting}}, {{sys.user.name}}",
+                "subtitle": "Your reviews, surveys, goals and the recognition coming your way.",
+                "level": 1
+              }
+            },
+            {
+              "id": "news",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "announcement",
+              "config": {
+                "html": "<p><strong>The November pulse is open until November 30.</strong> Four questions, two minutes. Your answers are sealed until it closes and results are only shown for groups of five or more.</p>",
+                "tone": "info"
+              }
+            },
+            {
+              "id": "go",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Give recognition",
+                    "icon": "Star",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Give recognition"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "d0c55636-0d87-5ba1-9c39-190e95c2d242",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Set a goal",
+                    "icon": "Target",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Set a goal"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "d54f6fe1-8fbd-5c19-b23c-ab29b40f9bce",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Request feedback",
+                    "icon": "MessageSquare",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Request feedback"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "9b7da813-440c-54a2-a341-e96a326b9eea",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Log a one-to-one",
+                    "icon": "CalendarClock",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Log a one-to-one"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "c641b09d-dac2-5e5d-90cb-4ac2ae102d83",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Admin",
+                    "icon": "Settings",
+                    "icon_position": "left",
+                    "style": "ghost",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "action": {
+                      "kind": "open_page",
+                      "page_slug": "admin"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "tasks_n",
+              "title": "Waiting for me",
+              "w": 3,
+              "h": 3,
+              "type": "metric",
+              "config": {
+                "source": "tasks",
+                "aggregate": "count",
+                "assignee": "me",
+                "status": "open",
+                "compare_previous": false,
+                "icon": "Inbox",
+                "accent": "amber",
+                "format": "number",
+                "currency": "USD"
+              }
+            },
+            {
+              "id": "kudos_n",
+              "title": "Kudos received",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "to_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "Star",
+                "accent": "rose"
+              }
+            },
+            {
+              "id": "goal_avg",
+              "title": "My goals: average progress",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "progress",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "owner_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "Target",
+                "accent": "teal"
+              }
+            },
+            {
+              "id": "pulse_rate",
+              "title": "November pulse participation",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "participation_pct",
+                "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "cycle_code",
+                    "op": "equals",
+                    "value": "PULSE-2026-11"
+                  }
+                ],
+                "interval": "week",
+                "target": 80,
+                "icon": "Users",
+                "accent": "violet"
+              }
+            },
+            {
+              "id": "mine",
+              "title": "Reviews and check-ins waiting for me",
+              "height": "auto",
+              "w": 6,
+              "h": 8,
+              "type": "task_list",
+              "config": {
+                "scope": "mine",
+                "status": "open",
+                "limit": 8,
+                "show_claim": true,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "surveys",
+              "title": "Surveys to answer",
+              "height": "auto",
+              "w": 6,
+              "h": 4,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "cycle_name",
+                  "subtitle": "Closes {{closes_on}}",
+                  "image_style": "none",
+                  "badge": "status",
+                  "badge_colors": [
+                    {
+                      "value": "Invited",
+                      "tone": "warning"
+                    }
+                  ],
+                  "fields": []
+                },
+                "actions": [
+                  {
+                    "kind": "open_form",
+                    "label": "Answer now",
+                    "form_id": "e15022ac-a3c4-5353-9094-da979e823409",
+                    "prefill": [],
+                    "params": {
+                      "cycle": {
+                        "from": "event",
+                        "key": "cycle_code"
+                      }
+                    }
+                  }
+                ],
+                "layout": "list",
+                "card_size": "md",
+                "sort_dir": "asc",
+                "show_search": false,
+                "page_size": 4,
+                "empty_text": "You are all caught up: no surveys waiting.",
+                "where": [
+                  {
+                    "column": "employee_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  },
+                  {
+                    "column": "status",
+                    "op": "equals",
+                    "value": "Invited"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "goals",
+              "title": "My goals",
+              "height": "auto",
+              "w": 6,
+              "h": 6,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "objective",
+                  "subtitle": "progress_bar",
+                  "image_style": "none",
+                  "badge": "status",
+                  "badge_colors": [
+                    {
+                      "value": "On track",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "At risk",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "Off track",
+                      "tone": "danger"
+                    },
+                    {
+                      "value": "Done",
+                      "tone": "info"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "quarter",
+                      "label": "Quarter",
+                      "icon": "Calendar"
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "kind": "open_form",
+                    "label": "Check in",
+                    "form_id": "34632d26-8b59-5918-988c-c788cbda0f7c",
+                    "prefill": [],
+                    "params": {
+                      "goal": {
+                        "from": "event",
+                        "key": "goal_ref"
+                      }
+                    }
+                  }
+                ],
+                "layout": "list",
+                "card_size": "md",
+                "sort_dir": "asc",
+                "show_search": false,
+                "page_size": 4,
+                "empty_text": "No goals yet: press Set a goal.",
+                "where": [
+                  {
+                    "column": "owner_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "thanks",
+              "title": "Recognition for me",
+              "height": "auto",
+              "w": 6,
+              "h": 6,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "from_name",
+                  "subtitle": "value",
+                  "description": "message",
+                  "image_style": "none",
+                  "badge": "value",
+                  "badge_colors": [],
+                  "fields": [],
+                  "footer": "given_on"
+                },
+                "actions": [],
+                "layout": "list",
+                "card_size": "md",
+                "sort": "given_on",
+                "sort_dir": "desc",
+                "show_search": false,
+                "page_size": 4,
+                "empty_text": "Nothing yet: why not recognise someone?",
+                "where": [
+                  {
+                    "column": "to_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "variables": [
+            {
+              "name": "greeting",
+              "type": "text",
+              "label": "Greeting",
+              "default": "Hello",
+              "url": false
+            }
+          ],
+          "rules": [
+            {
+              "id": "greet",
+              "name": "Greeting for the time of day",
+              "enabled": true,
+              "when": {
+                "type": "page_loaded"
+              },
+              "then": [
+                {
+                  "type": "set_variable",
+                  "values": [
+                    {
+                      "name": "greeting",
+                      "value": "{{= IF(TO_NUMBER(FORMAT_DATE(sys.now, \"H\")) < 12, \"Good morning\", IF(TO_NUMBER(FORMAT_DATE(sys.now, \"H\")) < 18, \"Good afternoon\", \"Good evening\"))}}"
+                    }
+                  ]
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "557bd35f-1a16-5b2f-97a0-0756e0069c81",
+        "slug": "engagement",
+        "title": "Engagement",
+        "icon": "HeartPulse",
+        "position": 1,
+        "layout": {
+          "widgets": [
+            {
+              "id": "eng",
+              "title": "Engagement (% favourable)",
+              "w": 3,
+              "h": 4,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "score",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": {
+                      "filter": "var.segment"
+                    }
+                  },
+                  {
+                    "column": "metric",
+                    "op": "equals",
+                    "value": "Engagement"
+                  }
+                ],
+                "interval": "week",
+                "target": 72,
+                "icon": "HeartPulse",
+                "accent": "amber"
+              }
+            },
+            {
+              "id": "enps",
+              "title": "eNPS",
+              "w": 3,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "score",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": {
+                      "filter": "var.segment"
+                    }
+                  },
+                  {
+                    "column": "metric",
+                    "op": "equals",
+                    "value": "eNPS"
+                  }
+                ],
+                "min": -100,
+                "max": 100,
+                "warn_at": 10,
+                "danger_at": 0,
+                "higher_is_better": true
+              }
+            },
+            {
+              "id": "part",
+              "title": "Participation",
+              "w": 3,
+              "h": 4,
+              "type": "gauge",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "score",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": {
+                      "filter": "var.segment"
+                    }
+                  },
+                  {
+                    "column": "metric",
+                    "op": "equals",
+                    "value": "Participation"
+                  }
+                ],
+                "min": 0,
+                "max": 100,
+                "warn_at": 70,
+                "danger_at": 50,
+                "higher_is_better": true
+              }
+            },
+            {
+              "id": "bench",
+              "title": "Against the benchmark",
+              "w": 3,
+              "h": 4,
+              "type": "goal",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "score",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": {
+                      "filter": "var.segment"
+                    }
+                  },
+                  {
+                    "column": "metric",
+                    "op": "equals",
+                    "value": "Engagement"
+                  }
+                ],
+                "target": 72,
+                "target_label": "sample industry benchmark"
+              }
+            },
+            {
+              "id": "note",
+              "style": {
+                "preset": "Callout"
+              },
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "text",
+              "config": {
+                "html": "<p>{{var.seg_note}} Pick a department, location or tenure in the filters, or click a department in the heat map.</p>"
+              }
+            },
+            {
+              "id": "heat",
+              "title": "Driver heat map by department (click a department)",
+              "height": "auto",
+              "w": 8,
+              "h": 8,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "rows": "field",
+                "row_field": "group",
+                "columns": "field",
+                "column_field": "metric",
+                "interval": "month",
+                "aggregate": "avg",
+                "value_field": "score",
+                "heat": true,
+                "totals": false,
+                "click": {
+                  "filter": "dept"
+                },
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "dimension",
+                    "op": "equals",
+                    "value": "Department"
+                  },
+                  {
+                    "column": "in_heatmap",
+                    "op": "equals",
+                    "value": "Yes"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "trend",
+              "title": "Engagement over time",
+              "w": 4,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "line",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "cycle_label",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "score",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": {
+                      "filter": "var.segment"
+                    }
+                  },
+                  {
+                    "column": "metric",
+                    "op": "equals",
+                    "value": "Engagement"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "drivers",
+              "title": "Drivers (% favourable)",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "metric",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "score",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": {
+                      "filter": "var.segment"
+                    }
+                  },
+                  {
+                    "column": "kind",
+                    "op": "equals",
+                    "value": "Driver"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "by_dept",
+              "title": "Engagement by department (click to filter)",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "click": {
+                  "filter": "dept"
+                },
+                "field": "group",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "score",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "dimension",
+                    "op": "equals",
+                    "value": "Department"
+                  },
+                  {
+                    "column": "metric",
+                    "op": "equals",
+                    "value": "Engagement"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "top",
+              "title": "Strongest questions (% favourable)",
+              "height": "auto",
+              "w": 6,
+              "h": 6,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "f067c11f-287b-5a81-82b0-0362bab6d03a",
+                "rows": "field",
+                "row_field": "question",
+                "columns": "none",
+                "interval": "month",
+                "aggregate": "avg",
+                "value_field": "favourable_pct",
+                "heat": true,
+                "totals": false,
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": {
+                      "filter": "var.segment"
+                    }
+                  },
+                  {
+                    "column": "rank_band",
+                    "op": "equals",
+                    "value": "Top 5"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "bottom",
+              "title": "Questions to focus on (% favourable)",
+              "height": "auto",
+              "w": 6,
+              "h": 6,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "f067c11f-287b-5a81-82b0-0362bab6d03a",
+                "rows": "field",
+                "row_field": "question",
+                "columns": "none",
+                "interval": "month",
+                "aggregate": "avg",
+                "value_field": "favourable_pct",
+                "heat": true,
+                "totals": false,
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": {
+                      "filter": "var.segment"
+                    }
+                  },
+                  {
+                    "column": "rank_band",
+                    "op": "equals",
+                    "value": "Bottom 5"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "themes",
+              "title": "What people are saying",
+              "height": "auto",
+              "w": 8,
+              "h": 9,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "f15757f7-cee4-5d98-ae50-d3fbfe83783b",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "theme",
+                  "subtitle": "{{mentions}} mentions · {{driver}}",
+                  "description": "summary",
+                  "image_style": "none",
+                  "badge": "sentiment",
+                  "badge_colors": [
+                    {
+                      "value": "Positive",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "Mixed",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "Negative",
+                      "tone": "danger"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "example",
+                      "label": "In their words",
+                      "icon": "MessageSquare"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "grid",
+                "card_size": "md",
+                "sort": "mentions",
+                "sort_dir": "desc",
+                "show_search": false,
+                "page_size": 6,
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "more",
+              "title": "More breakdowns",
+              "w": 4,
+              "h": 9,
+              "type": "tabs",
+              "config": {
+                "tabs": [
+                  {
+                    "label": "Location",
+                    "widgets": [
+                      "by_loc"
+                    ]
+                  },
+                  {
+                    "label": "Tenure",
+                    "widgets": [
+                      "by_ten"
+                    ]
+                  }
+                ],
+                "style": "segmented",
+                "lazy": true,
+                "remember": true
+              }
+            },
+            {
+              "id": "by_loc",
+              "title": "Engagement by location",
+              "height": "auto",
+              "w": 12,
+              "h": 8,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "rows": "field",
+                "row_field": "group",
+                "columns": "field",
+                "column_field": "metric",
+                "interval": "month",
+                "aggregate": "avg",
+                "value_field": "score",
+                "heat": true,
+                "totals": false,
+                "click": {
+                  "filter": "location"
+                },
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "dimension",
+                    "op": "equals",
+                    "value": "Location"
+                  },
+                  {
+                    "column": "kind",
+                    "op": "equals",
+                    "value": "Outcome"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "by_ten",
+              "title": "Engagement by tenure",
+              "height": "auto",
+              "w": 12,
+              "h": 8,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "rows": "field",
+                "row_field": "group",
+                "columns": "field",
+                "column_field": "metric",
+                "interval": "month",
+                "aggregate": "avg",
+                "value_field": "score",
+                "heat": true,
+                "totals": false,
+                "click": {
+                  "filter": "tenure"
+                },
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": {
+                      "filter": "cycle"
+                    }
+                  },
+                  {
+                    "column": "dimension",
+                    "op": "equals",
+                    "value": "Tenure"
+                  },
+                  {
+                    "column": "kind",
+                    "op": "equals",
+                    "value": "Outcome"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "privacy",
+              "title": "How anonymity works",
+              "style": {
+                "preset": "Callout"
+              },
+              "height": "auto",
+              "w": 12,
+              "h": 3,
+              "type": "text",
+              "config": {
+                "html": "<ul><li>Answers are <strong>sealed</strong> until the survey closes, then written without a name or time and turned into these results.</li><li>Any department, location or tenure group with <strong>fewer than five responses</strong> shows no scores (a dash), only its participation.</li><li>Comments are only shown as themes; nobody, including admins in this app, sees individual answers.</li></ul>"
+              }
+            }
+          ],
+          "variables": [
+            {
+              "name": "segment",
+              "type": "text",
+              "label": "Segment shown",
+              "default": "Company",
+              "url": false
+            },
+            {
+              "name": "seg_note",
+              "type": "text",
+              "label": "Anonymity note",
+              "default": "Showing the whole company.",
+              "url": false
+            }
+          ],
+          "rules": [
+            {
+              "id": "segment_on_load",
+              "name": "Work out the segment",
+              "enabled": true,
+              "when": {
+                "type": "page_loaded"
+              },
+              "then": [
+                {
+                  "type": "set_variable",
+                  "values": [
+                    {
+                      "name": "segment",
+                      "value": "{{= IF(NOT(IS_EMPTY(filter.dept)), CONCAT(\"Department: \", filter.dept), IF(NOT(IS_EMPTY(filter.location)), CONCAT(\"Location: \", filter.location), IF(NOT(IS_EMPTY(filter.tenure)), CONCAT(\"Tenure: \", filter.tenure), \"Company\")))}}"
+                    }
+                  ]
+                }
+              ],
+              "on_error_actions": []
+            },
+            {
+              "id": "segment_on_filter",
+              "name": "Segment follows the filters",
+              "enabled": true,
+              "when": {
+                "type": "filter_changed"
+              },
+              "then": [
+                {
+                  "type": "set_variable",
+                  "values": [
+                    {
+                      "name": "segment",
+                      "value": "{{= IF(NOT(IS_EMPTY(filter.dept)), CONCAT(\"Department: \", filter.dept), IF(NOT(IS_EMPTY(filter.location)), CONCAT(\"Location: \", filter.location), IF(NOT(IS_EMPTY(filter.tenure)), CONCAT(\"Tenure: \", filter.tenure), \"Company\")))}}"
+                    }
+                  ]
+                }
+              ],
+              "on_error_actions": []
+            },
+            {
+              "id": "segment_check",
+              "name": "Check the segment is big enough",
+              "enabled": true,
+              "when": {
+                "type": "variable_changed",
+                "variable": "var.segment"
+              },
+              "then": [
+                {
+                  "type": "table_lookup",
+                  "on_error": "continue",
+                  "result_var": "seg_row",
+                  "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                  "filter": {
+                    "match": "all",
+                    "conditions": [
+                      {
+                        "column": "segment",
+                        "operator": "eq",
+                        "value": "{{var.segment}}"
+                      },
+                      {
+                        "column": "cycle_label",
+                        "operator": "eq",
+                        "value": "{{filter.cycle}}"
+                      },
+                      {
+                        "column": "metric",
+                        "operator": "eq",
+                        "value": "Engagement"
+                      }
+                    ]
+                  },
+                  "limit": 1
+                },
+                {
+                  "type": "set_variable",
+                  "values": [
+                    {
+                      "name": "seg_note",
+                      "value": "{{= IF(var.seg_row.reportable == \"No\", CONCAT(var.segment, \": fewer than 5 responses, so scores are hidden to protect anonymity.\"), CONCAT(\"Showing \", var.segment, \" (\", var.seg_row.responses, \" responses).\"))}}"
+                    }
+                  ]
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": [
+          {
+            "id": "cycle",
+            "kind": "text",
+            "label": "Survey",
+            "default": "Q3 2026",
+            "options": [
+              "Q1 2026",
+              "Q2 2026",
+              "Q3 2026"
+            ]
+          },
+          {
+            "id": "dept",
+            "kind": "text",
+            "label": "Department",
+            "default": null,
+            "options": [
+              "Engineering",
+              "Product",
+              "Design",
+              "Sales",
+              "Customer Success",
+              "Marketing",
+              "Finance",
+              "People & Operations"
+            ]
+          },
+          {
+            "id": "location",
+            "kind": "text",
+            "label": "Location",
+            "default": null,
+            "options": [
+              "Denver HQ",
+              "Austin",
+              "Chicago",
+              "Remote (US)",
+              "Boise studio"
+            ]
+          },
+          {
+            "id": "tenure",
+            "kind": "text",
+            "label": "Tenure",
+            "default": null,
+            "options": [
+              "Less than 1 year",
+              "1-2 years",
+              "2-5 years",
+              "5+ years"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "b6748536-c439-5b29-980a-399c480be0ba",
+        "slug": "team",
+        "title": "My team",
+        "icon": "Users",
+        "position": 2,
+        "layout": {
+          "widgets": [
+            {
+              "id": "head",
+              "w": 12,
+              "h": 2,
+              "type": "page_header",
+              "config": {
+                "show_icon": true,
+                "show_breadcrumb": true,
+                "subtitle": "Your direct reports: reviews, goals, one-to-ones and feedback."
+              }
+            },
+            {
+              "id": "team_goals",
+              "title": "Team goal progress",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "progress",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "manager_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "Target",
+                "accent": "teal"
+              }
+            },
+            {
+              "id": "team_reviews",
+              "title": "Reviews in progress",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "manager_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  },
+                  {
+                    "column": "stage",
+                    "op": "not_equals",
+                    "value": "Acknowledged"
+                  }
+                ],
+                "interval": "week",
+                "icon": "ClipboardCheck",
+                "accent": "violet"
+              }
+            },
+            {
+              "id": "team_kudos",
+              "title": "Kudos my team received",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "to_department",
+                    "op": "equals",
+                    "value": "People & Operations"
+                  }
+                ],
+                "interval": "week",
+                "icon": "Star",
+                "accent": "rose"
+              }
+            },
+            {
+              "id": "team_eng",
+              "title": "People & Operations engagement",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "score",
+                "table_id": "46127ff2-0cda-52cc-9cd3-b2e5ea8f0fc0",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "cycle_label",
+                    "op": "equals",
+                    "value": "Q3 2026"
+                  },
+                  {
+                    "column": "segment",
+                    "op": "equals",
+                    "value": "Department: People & Operations"
+                  },
+                  {
+                    "column": "metric",
+                    "op": "equals",
+                    "value": "Engagement"
+                  }
+                ],
+                "interval": "week",
+                "target": 72,
+                "icon": "HeartPulse",
+                "accent": "amber"
+              }
+            },
+            {
+              "id": "stages",
+              "title": "My team’s reviews by stage",
+              "w": 4,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "stage",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "manager_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "board",
+              "title": "Review steps",
+              "w": 8,
+              "h": 7,
+              "type": "kanban",
+              "config": {
+                "scope": "all",
+                "workflow_id": "7ab8a1f9-ed8e-5eed-8430-bdaee04111d5",
+                "columns": [
+                  "todo",
+                  "in_progress",
+                  "completed"
+                ],
+                "allow_drag": true,
+                "per_column": 8
+              }
+            },
+            {
+              "id": "calendar",
+              "title": "One-to-ones and due dates",
+              "w": 6,
+              "h": 9,
+              "type": "task_calendar",
+              "config": {
+                "scope": "mine",
+                "status": "all",
+                "view": "month"
+              }
+            },
+            {
+              "id": "reports",
+              "title": "My team’s reviews",
+              "w": 6,
+              "h": 9,
+              "type": "data_grid",
+              "config": {
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "columns": [
+                  "employee_name",
+                  "stage",
+                  "due_date",
+                  "overdue"
+                ],
+                "editable": false,
+                "page_size": 10,
+                "where": [
+                  {
+                    "column": "manager_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "meetings",
+              "title": "Recent one-to-ones",
+              "height": "auto",
+              "w": 12,
+              "h": 6,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "b97fec2d-1c06-5195-80a7-f7346019f621",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "employee_name",
+                  "subtitle": "{{type}} · {{met_on}}",
+                  "description": "agenda",
+                  "image_style": "none",
+                  "badge": "mood",
+                  "badge_colors": [
+                    {
+                      "value": "Great",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "Good",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "Okay",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "Low",
+                      "tone": "danger"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "next_on",
+                      "label": "Next",
+                      "icon": "CalendarClock"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "grid",
+                "card_size": "sm",
+                "sort": "met_on",
+                "sort_dir": "desc",
+                "show_search": false,
+                "page_size": 6,
+                "where": [
+                  {
+                    "column": "manager_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": []
+      },
+      {
+        "id": "0370f199-052f-5008-a1c1-8ec7dfd9f7a5",
+        "slug": "goals",
+        "title": "Goals",
+        "icon": "Target",
+        "position": 3,
+        "layout": {
+          "widgets": [
+            {
+              "id": "go",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Set a goal",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Set a goal"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "d54f6fe1-8fbd-5c19-b23c-ab29b40f9bce",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Check in",
+                    "icon": "CircleCheck",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Goal check-in"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "34632d26-8b59-5918-988c-c788cbda0f7c",
+                      "open": "drawer"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "on_track",
+              "title": "Goals on track",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "status",
+                    "op": "equals",
+                    "value": "On track"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "CircleCheck",
+                "accent": "green"
+              }
+            },
+            {
+              "id": "at_risk",
+              "title": "At risk or off track",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "status",
+                    "op": "contains",
+                    "value": "At"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "OctagonAlert",
+                "accent": "amber"
+              }
+            },
+            {
+              "id": "avg",
+              "title": "Average progress",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "avg",
+                "field": "progress",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "format": "percent",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "Gauge",
+                "accent": "blue"
+              }
+            },
+            {
+              "id": "krs_n",
+              "title": "Key results",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "6d174f2d-1916-589a-ac03-91b5f271812d",
+                "format": "number",
+                "currency": "USD",
+                "interval": "week",
+                "icon": "ListChecks",
+                "accent": "violet"
+              }
+            },
+            {
+              "id": "okrs",
+              "title": "Company and department OKRs (click for key results)",
+              "height": "auto",
+              "max_h": 16,
+              "w": 8,
+              "h": 10,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "objective",
+                  "subtitle": "progress_bar",
+                  "image_style": "none",
+                  "badge": "status",
+                  "badge_colors": [
+                    {
+                      "value": "On track",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "At risk",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "Off track",
+                      "tone": "danger"
+                    },
+                    {
+                      "value": "Done",
+                      "tone": "info"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "owner_name",
+                      "label": "Owner",
+                      "icon": "UserRound"
+                    },
+                    {
+                      "key": "department",
+                      "label": "Team",
+                      "icon": "Building2"
+                    },
+                    {
+                      "key": "key_results",
+                      "label": "Key results",
+                      "icon": "ListChecks"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "grid",
+                "card_size": "md",
+                "sort": "goal_ref",
+                "sort_dir": "asc",
+                "show_search": false,
+                "page_size": 12,
+                "click_key": "goal_ref",
+                "where": [
+                  {
+                    "column": "level",
+                    "op": "not_equals",
+                    "value": "Individual"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  },
+                  {
+                    "column": "status",
+                    "op": "equals",
+                    "value": {
+                      "filter": "status"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "by_dept",
+              "title": "Goal status by department",
+              "height": "auto",
+              "w": 4,
+              "h": 10,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "rows": "field",
+                "row_field": "department",
+                "columns": "field",
+                "column_field": "status",
+                "interval": "month",
+                "aggregate": "count",
+                "heat": true,
+                "totals": false,
+                "click": {
+                  "filter": "dept"
+                },
+                "where": [
+                  {
+                    "column": "level",
+                    "op": "not_equals",
+                    "value": "Company"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "all",
+              "title": "Every goal",
+              "w": 12,
+              "h": 9,
+              "type": "data_grid",
+              "config": {
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "columns": [
+                  "goal_ref",
+                  "objective",
+                  "level",
+                  "owner_name",
+                  "department",
+                  "aligned_to",
+                  "progress_bar",
+                  "status",
+                  "last_check_in"
+                ],
+                "editable": false,
+                "group_by": "level",
+                "page_size": 25,
+                "where": [
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  },
+                  {
+                    "column": "status",
+                    "op": "equals",
+                    "value": {
+                      "filter": "status"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "rules": [
+            {
+              "id": "open_goal",
+              "name": "Open a goal with its key results",
+              "enabled": true,
+              "when": {
+                "type": "card_click",
+                "widget": "okrs"
+              },
+              "then": [
+                {
+                  "type": "open_target",
+                  "target": {
+                    "kind": "page",
+                    "page_slug": "goal",
+                    "params": {
+                      "goal_ref": {
+                        "from": "event",
+                        "key": "card.goal_ref"
+                      }
+                    }
+                  },
+                  "open_mode": {
+                    "mode": "panel_right",
+                    "width": "lg",
+                    "motion": "slide",
+                    "resizable": true
+                  },
+                  "title": "{{event.card.objective}}"
+                }
+              ],
+              "on_error_actions": []
+            }
+          ]
+        },
+        "filters": [
+          {
+            "id": "dept",
+            "kind": "text",
+            "label": "Department",
+            "default": null,
+            "options": [
+              "Company",
+              "Engineering",
+              "Product",
+              "Design",
+              "Sales",
+              "Customer Success",
+              "Marketing",
+              "Finance",
+              "People & Operations"
+            ]
+          },
+          {
+            "id": "status",
+            "kind": "text",
+            "label": "Status",
+            "default": null,
+            "options": [
+              "On track",
+              "At risk",
+              "Off track",
+              "Done"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "0363c60c-3d65-5a8a-bc8e-0983af19f317",
+        "slug": "goal",
+        "title": "Goal",
+        "icon": "Target",
+        "position": 4,
+        "layout": {
+          "widgets": [
+            {
+              "id": "kr",
+              "title": "Key results",
+              "w": 12,
+              "h": 6,
+              "type": "data_grid",
+              "config": {
+                "table_id": "6d174f2d-1916-589a-ac03-91b5f271812d",
+                "columns": [
+                  "key_result",
+                  "start_value",
+                  "current_value",
+                  "target_value",
+                  "unit",
+                  "progress_bar",
+                  "status"
+                ],
+                "editable": false,
+                "page_size": 10,
+                "where": [
+                  {
+                    "column": "goal",
+                    "op": "equals",
+                    "value": {
+                      "filter": "param.goal_ref"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "aligned",
+              "title": "Goals aligned to this one",
+              "height": "auto",
+              "w": 12,
+              "h": 5,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "objective",
+                  "subtitle": "progress_bar",
+                  "image_style": "none",
+                  "badge": "status",
+                  "badge_colors": [
+                    {
+                      "value": "On track",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "At risk",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "Off track",
+                      "tone": "danger"
+                    },
+                    {
+                      "value": "Done",
+                      "tone": "info"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "owner_name",
+                      "label": "Owner"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "list",
+                "card_size": "md",
+                "sort_dir": "asc",
+                "show_search": false,
+                "page_size": 10,
+                "empty_text": "No goals are aligned to this one yet.",
+                "where": [
+                  {
+                    "column": "aligned_to",
+                    "op": "equals",
+                    "value": {
+                      "filter": "param.goal_ref"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "go",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Check in on this goal",
+                    "icon": "CircleCheck",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Goal check-in"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "34632d26-8b59-5918-988c-c788cbda0f7c",
+                      "open": "drawer",
+                      "params": {
+                        "goal": {
+                          "from": "param",
+                          "name": "goal_ref"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "viewer"
+          },
+          "params": [
+            {
+              "name": "goal_ref",
+              "type": "text",
+              "label": "Goal",
+              "required": true
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "49cfafb4-8fb8-5dcf-96c1-9ffeeed2da83",
+        "slug": "performance",
+        "title": "Performance",
+        "icon": "ClipboardCheck",
+        "position": 5,
+        "layout": {
+          "widgets": [
+            {
+              "id": "in_progress",
+              "title": "Reviews in progress",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "stage",
+                    "op": "not_equals",
+                    "value": "Acknowledged"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "ClipboardCheck",
+                "accent": "violet"
+              }
+            },
+            {
+              "id": "overdue_n",
+              "title": "Overdue",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "overdue",
+                    "op": "equals",
+                    "value": "Yes"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "AlarmClock",
+                "accent": "rose"
+              }
+            },
+            {
+              "id": "cal_n",
+              "title": "Waiting for calibration",
+              "w": 3,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "stage",
+                    "op": "equals",
+                    "value": "Calibration"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "Scale",
+                "accent": "amber"
+              }
+            },
+            {
+              "id": "done_n",
+              "title": "Acknowledged",
+              "w": 3,
+              "h": 3,
+              "type": "goal",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "stage",
+                    "op": "equals",
+                    "value": "Acknowledged"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ],
+                "target": 149,
+                "target_label": "reviews in the cycle"
+              }
+            },
+            {
+              "id": "funnel",
+              "title": "Review pipeline by stage",
+              "w": 5,
+              "h": 8,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "stage",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "max_groups": 8,
+                "sort_by": "choices",
+                "where": [
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "grid9",
+              "title": "Calibration grid: rating by potential",
+              "height": "auto",
+              "w": 7,
+              "h": 8,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "rows": "field",
+                "row_field": "calibrated_rating",
+                "columns": "field",
+                "column_field": "potential",
+                "interval": "month",
+                "aggregate": "count",
+                "heat": true,
+                "where": [
+                  {
+                    "column": "in_calibration",
+                    "op": "equals",
+                    "value": "Yes"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "calibration",
+              "title": "Calibration (People team can edit ratings)",
+              "w": 12,
+              "h": 9,
+              "type": "data_grid",
+              "config": {
+                "table_id": "b75250a3-51b4-56df-83aa-38afc1d207b9",
+                "columns": [
+                  "employee_name",
+                  "department",
+                  "manager_name",
+                  "self_rating",
+                  "manager_rating",
+                  "calibrated_rating",
+                  "potential",
+                  "due_date"
+                ],
+                "editable": true,
+                "page_size": 15,
+                "where": [
+                  {
+                    "column": "stage",
+                    "op": "equals",
+                    "value": "Calibration"
+                  },
+                  {
+                    "column": "department",
+                    "op": "equals",
+                    "value": {
+                      "filter": "dept"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "overdue",
+              "title": "Overdue review steps",
+              "height": "auto",
+              "w": 6,
+              "h": 7,
+              "type": "overdue_list",
+              "config": {
+                "scope": "all",
+                "workflow_id": "7ab8a1f9-ed8e-5eed-8430-bdaee04111d5",
+                "limit": 8,
+                "open_in": "drawer"
+              }
+            },
+            {
+              "id": "sla",
+              "title": "Review steps on time",
+              "height": "auto",
+              "w": 6,
+              "h": 7,
+              "type": "sla",
+              "config": {
+                "source": "tasks",
+                "workflow_id": "7ab8a1f9-ed8e-5eed-8430-bdaee04111d5",
+                "at_risk_hours": 48
+              }
+            },
+            {
+              "id": "export",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Start a review",
+                    "icon": "Play",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Start a performance review"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "93994e2f-b73b-55be-b473-15ed152385a4",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Download open steps",
+                    "icon": "Download",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "action": {
+                      "kind": "download_report",
+                      "report_id": "ff7e4bc0-5965-55a9-a825-6a8ee80d8d01"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            }
+          ],
+          "options": {
+            "hidden": false,
+            "min_role": "contributor"
+          }
+        },
+        "filters": [
+          {
+            "id": "dept",
+            "kind": "text",
+            "label": "Department",
+            "default": null,
+            "options": [
+              "Engineering",
+              "Product",
+              "Design",
+              "Sales",
+              "Customer Success",
+              "Marketing",
+              "Finance",
+              "People & Operations"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "1f638cf3-6ceb-5dc6-82b5-c6a848e42f09",
+        "slug": "recognition",
+        "title": "Recognition",
+        "icon": "Star",
+        "position": 6,
+        "layout": {
+          "widgets": [
+            {
+              "id": "go",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Give recognition",
+                    "icon": "Star",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "lg",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "shortcut": "alt+k",
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Give recognition"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "d0c55636-0d87-5ba1-9c39-190e95c2d242",
+                      "open": "drawer"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "n",
+              "title": "Kudos given",
+              "w": 4,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "value",
+                    "op": "equals",
+                    "value": {
+                      "filter": "value"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "Star",
+                "accent": "rose"
+              }
+            },
+            {
+              "id": "pts",
+              "title": "Points awarded",
+              "w": 4,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "sum",
+                "field": "points",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "value",
+                    "op": "equals",
+                    "value": {
+                      "filter": "value"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "Zap",
+                "accent": "amber"
+              }
+            },
+            {
+              "id": "mine_n",
+              "title": "Kudos I gave",
+              "w": 4,
+              "h": 3,
+              "type": "kpi",
+              "config": {
+                "source": "table_rows",
+                "aggregate": "count",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "format": "number",
+                "currency": "USD",
+                "where": [
+                  {
+                    "column": "from_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ],
+                "interval": "week",
+                "icon": "Hand",
+                "accent": "teal"
+              }
+            },
+            {
+              "id": "wall",
+              "title": "Recognition wall",
+              "height": "auto",
+              "max_h": 18,
+              "w": 8,
+              "h": 14,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "headline",
+                  "subtitle": "{{to_department}} · {{given_on}}",
+                  "description": "message",
+                  "image_style": "none",
+                  "badge": "value",
+                  "badge_colors": [],
+                  "fields": [
+                    {
+                      "key": "points",
+                      "label": "Points",
+                      "icon": "Zap"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "list",
+                "card_size": "md",
+                "sort": "given_on",
+                "sort_dir": "desc",
+                "show_search": true,
+                "page_size": 8,
+                "where": [
+                  {
+                    "column": "value",
+                    "op": "equals",
+                    "value": {
+                      "filter": "value"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "leaders",
+              "title": "Kudos leaderboard",
+              "height": "auto",
+              "w": 4,
+              "h": 7,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "rows": "field",
+                "row_field": "to_name",
+                "columns": "none",
+                "interval": "month",
+                "aggregate": "sum",
+                "value_field": "points",
+                "heat": true,
+                "totals": false,
+                "where": [
+                  {
+                    "column": "value",
+                    "op": "equals",
+                    "value": {
+                      "filter": "value"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "values",
+              "title": "By value (click to filter)",
+              "w": 4,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "donut",
+                "group_by": "field",
+                "series_by": "none",
+                "click": {
+                  "filter": "value"
+                },
+                "field": "value",
+                "interval": "day",
+                "aggregate": "count",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "max_groups": 8
+              }
+            },
+            {
+              "id": "flow",
+              "title": "Who recognises whom: department to department",
+              "height": "auto",
+              "w": 12,
+              "h": 8,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+                "rows": "field",
+                "row_field": "from_department",
+                "columns": "field",
+                "column_field": "to_department",
+                "interval": "month",
+                "aggregate": "count",
+                "heat": true,
+                "where": [
+                  {
+                    "column": "value",
+                    "op": "equals",
+                    "value": {
+                      "filter": "value"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "filters": [
+          {
+            "id": "value",
+            "kind": "text",
+            "label": "Value",
+            "default": null,
+            "options": [
+              "Customer obsessed",
+              "Own it",
+              "Better together",
+              "Raise the bar",
+              "Do the right thing"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "c1e8c555-7cd2-5f79-bbc5-ed77c94bdbfd",
+        "slug": "growth",
+        "title": "Growth",
+        "icon": "GraduationCap",
+        "position": 7,
+        "layout": {
+          "widgets": [
+            {
+              "id": "go",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Create a development plan",
+                    "icon": "Plus",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Development plan"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "be12b759-7146-58bc-9ee9-ae876fe567ad",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Log a career conversation",
+                    "icon": "MessageSquare",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "visibility": {
+                      "app_roles": [
+                        "contributor",
+                        "editor"
+                      ],
+                      "teams": [],
+                      "roles": []
+                    },
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Log a one-to-one"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "c641b09d-dac2-5e5d-90cb-4ac2ae102d83",
+                      "open": "drawer"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "plan",
+              "title": "My development plan",
+              "height": "auto",
+              "w": 5,
+              "h": 5,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "90281922-a4f8-50c7-be76-3644ec3c0685",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "career_goal",
+                  "subtitle": "progress_bar",
+                  "image_style": "none",
+                  "badge": "status",
+                  "badge_colors": [
+                    {
+                      "value": "Complete",
+                      "tone": "success"
+                    },
+                    {
+                      "value": "In progress",
+                      "tone": "info"
+                    },
+                    {
+                      "value": "Agreed",
+                      "tone": "neutral"
+                    }
+                  ],
+                  "fields": [
+                    {
+                      "key": "focus_skill",
+                      "label": "Focus",
+                      "icon": "Target"
+                    },
+                    {
+                      "key": "next_review",
+                      "label": "Next review",
+                      "icon": "CalendarClock"
+                    },
+                    {
+                      "key": "manager_name",
+                      "label": "Manager",
+                      "icon": "UserRound"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "list",
+                "card_size": "md",
+                "sort_dir": "asc",
+                "show_search": false,
+                "page_size": 2,
+                "empty_text": "No plan yet: press Create a development plan.",
+                "where": [
+                  {
+                    "column": "employee_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "skills",
+              "title": "My skills: current and target level (1-5)",
+              "height": "auto",
+              "w": 7,
+              "h": 7,
+              "type": "pivot",
+              "config": {
+                "source": "table_rows",
+                "table_id": "353aa56f-3d19-56bc-8815-5b70903ac9ba",
+                "rows": "field",
+                "row_field": "skill",
+                "columns": "field",
+                "column_field": "measure",
+                "interval": "month",
+                "aggregate": "avg",
+                "value_field": "level",
+                "heat": true,
+                "totals": false,
+                "where": [
+                  {
+                    "column": "employee_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "actions",
+              "title": "My development actions",
+              "w": 12,
+              "h": 6,
+              "type": "data_grid",
+              "config": {
+                "table_id": "0c9a2634-1aec-5cf8-b7e9-fe25adfb1419",
+                "columns": [
+                  "action",
+                  "type",
+                  "skill",
+                  "due_date",
+                  "status"
+                ],
+                "editable": false,
+                "page_size": 10,
+                "where": [
+                  {
+                    "column": "employee_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "id": "company_skills",
+              "title": "Skills across the company (average current level)",
+              "w": 6,
+              "h": 7,
+              "type": "chart",
+              "config": {
+                "source": "table_rows",
+                "chart": "horizontal_bar",
+                "group_by": "field",
+                "series_by": "none",
+                "field": "skill",
+                "interval": "day",
+                "aggregate": "avg",
+                "value_field": "level",
+                "table_id": "353aa56f-3d19-56bc-8815-5b70903ac9ba",
+                "max_groups": 8,
+                "where": [
+                  {
+                    "column": "measure",
+                    "op": "equals",
+                    "value": "Current level"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "career",
+              "title": "My career conversations",
+              "height": "auto",
+              "w": 6,
+              "h": 7,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "b97fec2d-1c06-5195-80a7-f7346019f621",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "{{type}} · {{met_on}}",
+                  "subtitle": "manager_name",
+                  "description": "notes",
+                  "image_style": "none",
+                  "badge_colors": [],
+                  "fields": [
+                    {
+                      "key": "actions",
+                      "label": "Actions"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "list",
+                "card_size": "md",
+                "sort_dir": "asc",
+                "show_search": false,
+                "page_size": 4,
+                "empty_text": "No career conversations logged yet.",
+                "where": [
+                  {
+                    "column": "employee_email",
+                    "op": "equals",
+                    "value": {
+                      "filter": "sys.user.email"
+                    }
+                  },
+                  {
+                    "column": "type",
+                    "op": "equals",
+                    "value": "Career conversation"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "catalogue",
+              "title": "Learning catalogue",
+              "height": "auto",
+              "w": 12,
+              "h": 9,
+              "type": "card_view",
+              "config": {
+                "source": "table",
+                "table_id": "9d944cb2-57c4-5c20-9a6e-1445882a79f2",
+                "reference_inputs": {},
+                "allow_viewers": false,
+                "cache_ttl_s": 60,
+                "template": {
+                  "title": "item",
+                  "subtitle": "{{provider}} · {{hours}} h",
+                  "image_style": "none",
+                  "badge": "type",
+                  "badge_colors": [],
+                  "fields": [
+                    {
+                      "key": "skill",
+                      "label": "Skill",
+                      "icon": "Target"
+                    },
+                    {
+                      "key": "cost_label",
+                      "label": "Cost",
+                      "icon": "DollarSign"
+                    }
+                  ]
+                },
+                "actions": [],
+                "layout": "grid",
+                "card_size": "md",
+                "sort_dir": "asc",
+                "show_search": true,
+                "page_size": 6
+              }
+            }
+          ]
+        },
+        "filters": []
+      },
+      {
+        "id": "dd3d5d02-d87d-5c36-83a7-695bc84ee0d1",
+        "slug": "admin",
+        "title": "Admin",
+        "icon": "Settings",
+        "position": 8,
+        "layout": {
+          "widgets": [
+            {
+              "id": "head",
+              "w": 12,
+              "h": 2,
+              "type": "page_header",
+              "config": {
+                "show_icon": true,
+                "show_breadcrumb": true,
+                "subtitle": "Surveys, the question bank, reviews and the directory. People team and managers only."
+              }
+            },
+            {
+              "id": "go",
+              "height": "auto",
+              "w": 12,
+              "h": 2,
+              "type": "actions",
+              "config": {
+                "buttons": [
+                  {
+                    "label": "Launch a survey",
+                    "icon": "Rocket",
+                    "icon_position": "left",
+                    "style": "primary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Launch a survey"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "ba5a9692-20ac-5f30-8d7e-9c30fa744239",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Start a review",
+                    "icon": "Play",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Start a performance review"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "93994e2f-b73b-55be-b473-15ed152385a4",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Create action plan",
+                    "icon": "ListTodo",
+                    "icon_position": "left",
+                    "style": "secondary",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "open_mode": {
+                      "mode": "panel_right",
+                      "width": "md",
+                      "motion": "slide",
+                      "resizable": true,
+                      "title": "Create action plan"
+                    },
+                    "action": {
+                      "kind": "new_submission",
+                      "form_id": "fc106168-4888-59da-86c0-34e7660955d4",
+                      "open": "drawer"
+                    }
+                  },
+                  {
+                    "label": "Publish results",
+                    "icon": "ChartColumn",
+                    "icon_position": "left",
+                    "style": "outline",
+                    "color": "theme",
+                    "size": "md",
+                    "shape": "rounded",
+                    "full_width": false,
+                    "description": "Turn a closed survey’s sealed ballots into results now.",
+                    "confirm": {
+                      "title": "Publish results now?",
+                      "message": "The sealed ballots of the cycle you enter are turned into results (groups under the minimum size stay hidden) and deleted. Answers that arrive later no longer count."
+                    },
+                    "action": {
+                      "kind": "start_workflow",
+                      "workflow_id": "6408c047-3dda-5894-93cc-d9c8bdf0d3eb"
+                    }
+                  }
+                ],
+                "layout": "row",
+                "align": "start",
+                "gap": "md"
+              }
+            },
+            {
+              "id": "tabs",
+              "w": 12,
+              "h": 11,
+              "type": "tabs",
+              "config": {
+                "tabs": [
+                  {
+                    "label": "Survey cycles",
+                    "icon": "Calendar",
+                    "widgets": [
+                      "cycles"
+                    ]
+                  },
+                  {
+                    "label": "Question bank",
+                    "icon": "ListChecks",
+                    "widgets": [
+                      "questions"
+                    ]
+                  },
+                  {
+                    "label": "Participation",
+                    "icon": "Users",
+                    "widgets": [
+                      "participation"
+                    ]
+                  },
+                  {
+                    "label": "Action plans",
+                    "icon": "ClipboardList",
+                    "widgets": [
+                      "plans"
+                    ]
+                  },
+                  {
+                    "label": "Directory",
+                    "icon": "Contact",
+                    "widgets": [
+                      "people"
+                    ]
+                  }
+                ],
+                "style": "underline",
+                "lazy": true,
+                "remember": true
+              }
+            },
+            {
+              "id": "cycles",
+              "title": "Survey cycles",
+              "w": 12,
+              "h": 10,
+              "type": "data_grid",
+              "config": {
+                "table_id": "fa87c6c6-2171-5540-9c3e-348f366620ca",
+                "columns": [
+                  "name",
+                  "type",
+                  "status",
+                  "opens_on",
+                  "closes_on",
+                  "invited",
+                  "responded",
+                  "participation_pct",
+                  "min_group_size"
+                ],
+                "editable": true,
+                "page_size": 10
+              }
+            },
+            {
+              "id": "questions",
+              "title": "Question bank",
+              "w": 12,
+              "h": 10,
+              "type": "data_grid",
+              "config": {
+                "table_id": "bb9882a9-5419-58c4-b3e0-b7f821d0912b",
+                "columns": [
+                  "q_code",
+                  "question",
+                  "driver",
+                  "kind",
+                  "in_pulse",
+                  "active"
+                ],
+                "editable": true,
+                "group_by": "driver",
+                "page_size": 25
+              }
+            },
+            {
+              "id": "participation",
+              "title": "November pulse participation",
+              "w": 12,
+              "h": 10,
+              "type": "data_grid",
+              "config": {
+                "table_id": "7b85bba9-074a-50c1-b189-15dff41ee5ec",
+                "columns": [
+                  "employee_name",
+                  "department",
+                  "status",
+                  "responded_on",
+                  "reminders_sent"
+                ],
+                "editable": false,
+                "group_by": "status",
+                "page_size": 25,
+                "where": [
+                  {
+                    "column": "cycle_code",
+                    "op": "equals",
+                    "value": "PULSE-2026-11"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "plans",
+              "title": "Survey action plans",
+              "w": 12,
+              "h": 10,
+              "type": "data_grid",
+              "config": {
+                "table_id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+                "columns": [
+                  "plan_ref",
+                  "department",
+                  "driver",
+                  "focus",
+                  "owner_name",
+                  "status",
+                  "progress",
+                  "due_date"
+                ],
+                "editable": true,
+                "page_size": 20
+              }
+            },
+            {
+              "id": "people",
+              "title": "People directory",
+              "w": 12,
+              "h": 10,
+              "type": "data_grid",
+              "config": {
+                "table_id": "dd843f75-566b-550e-a932-995223d44564",
+                "columns": [
+                  "name",
+                  "job_title",
+                  "department",
+                  "manager_name",
+                  "location",
+                  "tenure_band",
+                  "status"
+                ],
+                "editable": true,
+                "group_by": "department",
+                "page_size": 25
+              }
+            }
+          ],
+          "options": {
+            "hidden": true,
+            "min_role": "contributor"
+          }
+        },
+        "filters": []
+      }
+    ]
+  }
+}

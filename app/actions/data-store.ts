@@ -1,5 +1,6 @@
 'use server'
 
+import { normalizeTagList } from '@/lib/tags/normalize'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions-server'
@@ -26,6 +27,7 @@ export async function createCustomTable(formData: FormData) {
 
   const name = formData.get('name') as string
   const description = formData.get('description') as string
+  const tags = parseFormTags(formData.get('tags'))
   const slug = tableSlug(name)
 
   // A repeated submit (double click, retry) must not add a second table.
@@ -50,6 +52,7 @@ export async function createCustomTable(formData: FormData) {
       { id: crypto.randomUUID(), name: 'ID', type: 'number', key: 'id' },
       { id: crypto.randomUUID(), name: 'Date Created', type: 'date', key: 'date_created' },
     ],
+    ...(tags.length ? { tags } : {}),
     created_by: user.id,
   }).select('id').single()
 
@@ -63,6 +66,12 @@ export async function createCustomTable(formData: FormData) {
   }
   revalidatePath('/data')
   return { id: (created as any)?.id as string | undefined }
+}
+
+/** Tags from the create dialog (a JSON array in the form data). */
+function parseFormTags(value: FormDataEntryValue | null): string[] {
+  if (typeof value !== 'string' || !value.trim()) return []
+  try { return normalizeTagList(JSON.parse(value)) } catch { throw new Error('Tags must be at most 30 names of at most 60 characters') }
 }
 
 function tableSlug(name: string) {

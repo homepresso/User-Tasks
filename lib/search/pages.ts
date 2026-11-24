@@ -59,6 +59,7 @@ export const PAGE_SHORTCUTS: PageShortcut[] = [
   { title: 'Activity', href: '/activity', area: 'Observability', keywords: 'activity events traces history' },
   { title: 'Settings', href: '/settings', area: 'Settings', keywords: 'profile preferences organizations account' },
   { title: 'Theme', href: '/settings/theme', area: 'Settings', keywords: 'theme colours colors branding logo appearance' },
+  { title: 'Tags', href: '/settings/tags', area: 'Settings', keywords: 'tags tag colours colors labels rename merge', requires: ['settings.view'] },
   { title: 'Governance', href: '/settings/governance', area: 'Settings', keywords: 'roles permissions access security' },
   { title: 'Roles & permissions', href: '/settings/governance?tab=roles', area: 'Settings', keywords: 'roles permissions rbac' },
   { title: 'Object permissions', href: '/settings/governance?tab=objects', area: 'Settings', keywords: 'object permissions sharing access' },

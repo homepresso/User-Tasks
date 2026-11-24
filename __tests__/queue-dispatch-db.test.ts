@@ -26,7 +26,7 @@ const OTHER_WF = '0c000000-0000-4000-8000-0000000000b1'
 const TOP_PRIORITY = 1_000_000
 
 const WORKER_FNS = [
-  'public.claim_jobs(text, integer)',
+  'public.claim_jobs(text, integer, integer)',
   'public.release_jobs(uuid[], text)',
   'public.complete_job(uuid, jsonb)',
   'public.purge_queue_history(timestamp with time zone, integer)',

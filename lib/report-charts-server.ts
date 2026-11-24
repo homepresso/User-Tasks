@@ -22,6 +22,8 @@ import { getReportValue, type ReportConfig, type ReportFilter } from '@/lib/repo
 /* eslint-disable @typescript-eslint/no-explicit-any -- supabase clients are untyped here */
 
 export interface ReportChartRunOptions {
+  /** The person reading (UserTasks instance sources: instance admins only). */
+  actorId?: string | null
   /** API key table scope (data tables). */
   scopedTableIds?: string[] | null
   /** The caller's permissions (service-role surfaces); null = RLS only (session client). */
@@ -80,7 +82,7 @@ export async function executeReportCharts(
     }
     try {
       // One row more than the cap tells a truncated read apart from an exact one.
-      const preview = await executeReportPreview(supabase, tenantId, derived, options.scopedTableIds, options.permissions ?? null, { maxRows: cap + 1 })
+      const preview = await executeReportPreview(supabase, tenantId, derived, options.scopedTableIds, options.permissions ?? null, { maxRows: cap + 1, actorId: options.actorId ?? null })
       const truncated = preview.data.length > cap
       const rows = truncated ? preview.data.slice(0, cap) : preview.data
       for (const chart of group.charts) {

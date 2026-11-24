@@ -234,8 +234,7 @@ export function ListRowDialog({ mode, config, rows, index, title, isNew, returnF
               ? 'fixed inset-0 h-dvh w-full pb-[env(safe-area-inset-bottom)]'
               : 'ds-dialog fixed left-1/2 top-1/2 max-h-[calc(100dvh-48px)] w-[min(780px,calc(100vw-32px))] [transform:translate(-50%,-50%)] rounded-xl shadow-elev-3',
           )}
-          // A row's form is a short task: the Agent's in-dialog button would cover its footer (it stays on the page).
-          data-agent-no-host="" data-row-form={mode} data-row-form-layout={layout.sheet ? 'sheet' : 'dialog'}
+          data-row-form={mode} data-row-form-layout={layout.sheet ? 'sheet' : 'dialog'}
           onEscapeKeyDown={(e) => {
             // Escape in an open dropdown (a choice column's AutocompleteSelect, a lookup) closes that, not the row's form:
             // the floating layer marks it handled (components/ui/floating-layer.tsx).

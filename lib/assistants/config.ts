@@ -78,7 +78,7 @@ function access(raw: unknown): CapabilityAccess {
   return { enabled: r.enabled === true, roles: ids(r.roles), teams: ids(r.teams) }
 }
 
-export const DEFAULT_AGENT_SETTINGS: AgentSettings = { enabled: false, roles: [], teams: [], tools: { form: true, task: true, designer: true, admin: true }, all_forms: true, task_actions: true, profiles: [], thinking_level: 'default', thinking_levels: {}, dictation: { ...DEFAULT_DICTATION } }
+export const DEFAULT_AGENT_SETTINGS: AgentSettings = { enabled: false, roles: [], teams: [], tools: { form: true, task: true, designer: true, admin: true }, all_forms: true, task_actions: true, import_ai: false, profiles: [], thinking_level: 'default', thinking_levels: {}, dictation: { ...DEFAULT_DICTATION } }
 
 /** Is a stored value the first release's per-capability shape? */
 export function isLegacyCapabilities(raw: unknown): boolean {
@@ -99,7 +99,7 @@ export function legacyToAgentSettings(raw: unknown): AgentSettings {
   const tools = enabled
     ? { form: caps.form.enabled, task: caps.task.enabled, designer: caps.designer.enabled, admin: caps.designer.enabled }
     : { ...DEFAULT_AGENT_SETTINGS.tools }
-  return { enabled, roles, teams, tools, all_forms: obj(r.form).all_forms !== false, task_actions: true, profiles: [], thinking_level: 'default', thinking_levels: {}, dictation: normalizeDictation(r.dictation) }
+  return { enabled, roles, teams, tools, all_forms: obj(r.form).all_forms !== false, task_actions: true, import_ai: false, profiles: [], thinking_level: 'default', thinking_levels: {}, dictation: normalizeDictation(r.dictation) }
 }
 
 /** The stored value (either version) as the Agent's settings. */
@@ -113,6 +113,8 @@ export function normalizeAgentSettings(raw: unknown): AgentSettings {
     all_forms: r.all_forms !== false,
     // Absent (settings saved before task actions) = on.
     task_actions: r.task_actions !== false,
+    // Absent = off: the PDF importer's AI assist is opt-in per workspace.
+    import_ai: r.import_ai === true,
     // Version 3: profiles. Version 2: model rules read as model-only profiles (no data loss).
     profiles: Array.isArray(r.profiles) ? normalizeProfiles(r.profiles) : profilesFromModelRules(normalizeModelRules(r.model_rules)),
     // Absent (settings saved before thinking levels) = the provider's default.

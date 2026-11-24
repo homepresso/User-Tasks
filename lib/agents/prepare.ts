@@ -143,7 +143,8 @@ export async function buildAgentRun(params: {
   const config: AgentConfig = {
     baseUrl: String(loaded.integration.config.base_url ?? ''),
     apiKey: endpoint.apiKey,
-    model: String(a.model ?? '').trim() || DEFAULT_MODEL[endpoint.kind] || 'gpt-4.1',
+    // The agent's model → the connection's own model (Baseten stores one) → the provider default.
+    model: String(a.model ?? '').trim() || String(loaded.integration.config.default_model ?? '').trim() || DEFAULT_MODEL[endpoint.kind] || 'gpt-4.1',
     systemPrompt: buildSystemPrompt(a, outputConfig, tableNames),
     temperature: temperature === null ? null : Math.max(0, Math.min(2, temperature)),
     maxTokens: intSetting(a.max_tokens, 4096, 1, AGENT_CAPS.maxTokens),

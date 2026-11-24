@@ -15,7 +15,8 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { serverRead } from '@/lib/server-read'
 import { useIntegrationDependencies, AssetDependencyDialog } from '@/components/shared/asset-dependencies'
-import { InlineTagEditor, TagFilterBar, type TagDefinition } from "@/components/ui/tag-manager"
+import { InlineTagEditor, TagFilterBar } from "@/components/ui/tag-manager"
+import { TagList } from "@/components/ui/tag-chip"
 import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ConnectorsCatalog } from "@/components/connectors/connectors-catalog"
@@ -42,7 +43,8 @@ import { InlineNotice } from "@/components/ui/inline-notice"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { deleteIntegration } from "@/app/actions/integrations"
 import { addMcpServer, deleteMcpServer } from "@/app/actions/mcp-servers"
-import { createTagDefinition, setIntegrationTags, setReferenceTags, updateTagDefinitionColor } from "@/app/actions/tags"
+import { applyObjectTags } from "@/app/actions/tags"
+import { BulkTagsDialog, ObjectTagsDialog } from "@/components/ui/object-tags-dialog"
 import { bulkDeleteWithJob, runInlineJob, useJobs } from "@/components/jobs/jobs-provider"
 import { createIntegrationObject, deleteIntegrationObject, generateIntegrationObjectReferences } from "@/app/actions/integration-objects"
 import { resolveStorageUrl } from "@/lib/storage/refs"
@@ -76,11 +78,10 @@ interface IntegrationsViewProps {
   integrations: any[]
   references: any[]
   connectors?: any[]
-  initialTagDefs?: TagDefinition[]
   mcpServers?: any[]
 }
 
-export function IntegrationsView({ description, actions, integrations, references, connectors = [], initialTagDefs = [], mcpServers = [] }: IntegrationsViewProps) {
+export function IntegrationsView({ description, actions, integrations, references, connectors = [], mcpServers = [] }: IntegrationsViewProps) {
   // ?tab= and ?q= (header search box) pick the tab and filter it.
   const searchParams = useSearchParams()
   const linkedTab = (tab: string | null) => (["integrations", "references", "connectors", "objects", "mcp"] as const).find((t) => t === tab) ?? null
@@ -111,9 +112,9 @@ export function IntegrationsView({ description, actions, integrations, reference
   const [usageLoading, setUsageLoading] = useState(false)
   const [selectedRefs, setSelectedRefs] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
-  const [bulkTagInput, setBulkTagInput] = useState('')
+  const [bulkTagsOpen, setBulkTagsOpen] = useState(false)
+  const [tagsTarget, setTagsTarget] = useState<null | { type: 'integrations' | 'references'; id: string; name: string; tags: string[] }>(null)
   const [refIntegrationFilter, setRefIntegrationFilter] = useState<string | null>(null)
-  const [tagDefs, setTagDefs] = useState<TagDefinition[]>(initialTagDefs)
   const [notice, setNotice] = useState<{ tone: 'success' | 'warning' | 'error'; message: string } | null>(null)
   const [confirmState, setConfirmState] = useState<null | { title: string; description: string; destructive?: boolean; action: () => Promise<void> | void }>(null)
   const [confirmBusy, setConfirmBusy] = useState(false)
@@ -123,25 +124,6 @@ export function IntegrationsView({ description, actions, integrations, reference
   const [integrationToDelete, setIntegrationToDelete] = useState<{ id: string; name: string } | null>(null)
   const [integrationDeleting, setIntegrationDeleting] = useState(false)
   const [exportTarget, setExportTarget] = useState<{ id: string; name: string } | null>(null)
-
-  async function createTagDef(name: string, color: string) {
-    const result = await createTagDefinition('integrations', name, color)
-    if (result.ok) setTagDefs(prev => [...prev, result.data])
-    else setNotice({ tone: 'error', message: result.error })
-  }
-
-  async function updateTagDefColor(name: string, color: string) {
-    const def = tagDefs.find(d => d.name === name)
-    if (!def) return
-    const result = await updateTagDefinitionColor('integrations', def.id, color)
-    if (result.ok) setTagDefs(prev => prev.map(d => d.name === name ? { ...d, color } : d))
-    else setNotice({ tone: 'error', message: result.error })
-  }
-
-  // Tags on an integration or a reference (integrations.edit / manage_references).
-  function saveItemTags(table: "integrations" | "integration_references", id: string, tags: string[]) {
-    return table === "integrations" ? setIntegrationTags(id, tags) : setReferenceTags(id, tags)
-  }
 
   function openRefTest(ref: any) {
     const defaults: Record<string, string> = {}
@@ -299,18 +281,19 @@ export function IntegrationsView({ description, actions, integrations, reference
   }
 
   async function addTagToItem(table: "integrations" | "integration_references", id: string, currentTags: string[], tag: string) {
-    if (!tag.trim() || currentTags.includes(tag.trim())) return
-    const updated = [...currentTags, tag.trim().toLowerCase()]
-    const result = await saveItemTags(table, id, updated)
-    if (!result.ok) setNotice({ tone: 'error', message: result.error })
+    void currentTags
+    const result = await applyObjectTags({ type: table === 'integrations' ? 'integrations' : 'references', ids: [id], add: [tag] })
     queryClient.invalidateQueries({ queryKey: ['integrations'] })
+    queryClient.invalidateQueries({ queryKey: ['integration-references'] })
+    if (!result.ok) { setNotice({ tone: 'error', message: result.error }); throw new Error(result.error) }
   }
 
   async function removeTagFromItem(table: "integrations" | "integration_references", id: string, currentTags: string[], tag: string) {
-    const updated = currentTags.filter((t) => t !== tag)
-    const result = await saveItemTags(table, id, updated)
-    if (!result.ok) setNotice({ tone: 'error', message: result.error })
+    void currentTags
+    const result = await applyObjectTags({ type: table === 'integrations' ? 'integrations' : 'references', ids: [id], remove: [tag] })
     queryClient.invalidateQueries({ queryKey: ['integrations'] })
+    queryClient.invalidateQueries({ queryKey: ['integration-references'] })
+    if (!result.ok) { setNotice({ tone: 'error', message: result.error }); throw new Error(result.error) }
   }
 
   function ItemTagEditor({ id, tags, table }: { id: string; tags: string[]; table: "integrations" | "integration_references" }) {
@@ -318,13 +301,11 @@ export function IntegrationsView({ description, actions, integrations, reference
       <div className="mt-1">
         <InlineTagEditor
           tags={tags ?? []}
-          tagDefinitions={tagDefs}
+          suggestions={allTags}
           selectedTag={selectedTag}
           onSelectTag={setSelectedTag}
           onAdd={(tag) => addTagToItem(table, id, tags ?? [], tag)}
           onRemove={(tag) => removeTagFromItem(table, id, tags ?? [], tag)}
-          onCreateDefinition={createTagDef}
-          onUpdateDefinitionColor={updateTagDefColor}
         />
       </div>
     )
@@ -359,7 +340,7 @@ export function IntegrationsView({ description, actions, integrations, reference
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem icon={<ExternalLink />} onSelect={() => router.push(`/integrations/${integration.id}`)}>Open</DropdownMenuItem>
-          <DropdownMenuItem icon={<TagIcon />} onSelect={() => setEditingTags(integration.id)}>Edit tags</DropdownMenuItem>
+          <DropdownMenuItem icon={<TagIcon />} onSelect={() => setTagsTarget({ type: 'integrations', id: integration.id, name: integration.name, tags: (integration.tags as string[]) ?? [] })}>Tags…</DropdownMenuItem>
           <DropdownMenuItem icon={<MapIcon />} onSelect={() => { setDepsId(integration.id); setDepsName(integration.name) }}>Dependency map</DropdownMenuItem>
           <DropdownMenuItem icon={<Download />} onSelect={() => setExportTarget({ id: integration.id, name: integration.name })}>Export</DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -452,7 +433,7 @@ export function IntegrationsView({ description, actions, integrations, reference
               </>
             )}
           </div>
-          <TagFilterBar tags={allTags} tagDefinitions={tagDefs} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
+          <TagFilterBar tags={allTags} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
         </div>
       )}
 
@@ -517,10 +498,7 @@ export function IntegrationsView({ description, actions, integrations, reference
                       </span>
                     )}
                     {tags.length > 0 && editingTags !== integration.id && (
-                      <span className="flex min-w-0 items-center gap-1 overflow-hidden">
-                        {tags.slice(0, 2).map((t) => <Tag key={t} className="truncate">{t}</Tag>)}
-                        {tags.length > 2 && <span className="num shrink-0">+{tags.length - 2}</span>}
-                      </span>
+                      <TagList tags={tags} max={2} size="xs" maxWidthClass="max-w-[8rem]" className="relative z-[1] flex-nowrap overflow-hidden" />
                     )}
                     <span className="relative z-[1] ml-auto shrink-0">
                       {renderIntegrationMenu(integration)}
@@ -543,6 +521,7 @@ export function IntegrationsView({ description, actions, integrations, reference
                 {sortTH("Name", "name", false, "title")}
                 {sortTH("Type", "type", false, "status")}
                 <TH col="status">Status</TH>
+                <TH col="text" className="w-56" data-tags-column>Tags</TH>
                 {sortTH("References", "references", true, "number")}
                 {sortTH("Updated", "updated_at", false, "date")}
                 <TH col="actions"><span className="sr-only">Actions</span></TH>
@@ -570,15 +549,15 @@ export function IntegrationsView({ description, actions, integrations, reference
                           </Link>
                           <span className="block truncate font-mono text-xs text-fg-muted" title={config?.base_url || undefined}>{config?.base_url || 'No endpoint configured'}</span>
                         </div>
-                        {tags.length > 0 && (
-                          <span className="ml-auto hidden shrink-0 gap-1 lg:flex">
-                            {tags.slice(0, 2).map((t) => <Tag key={t}>{t}</Tag>)}
-                          </span>
-                        )}
                       </div>
                     </TD>
                     <TD className="whitespace-nowrap text-fg-muted">{typeLabels[integration.type] ?? integration.type}</TD>
                     <TD><StatusPill status={integration.is_active ? "active" : "inactive"} /></TD>
+                    <TD className="max-w-56" data-tags-cell="" onClick={(e) => e.stopPropagation()}>
+                      {tags.length > 0
+                        ? <TagList tags={tags} max={3} size="xs" maxWidthClass="max-w-[8rem]" selectedTag={selectedTag} onTagClick={(t) => setSelectedTag(selectedTag === t ? null : t)} />
+                        : <span className="text-fg-subtle">—</span>}
+                    </TD>
                     <TD numeric>{refCount}</TD>
                     <TD className="whitespace-nowrap text-fg-muted">
                       <Tooltip content={formatAbsolute(updated)}><span className="num">{formatRelative(updated)}</span></Tooltip>
@@ -601,6 +580,14 @@ export function IntegrationsView({ description, actions, integrations, reference
         />
       )}
 
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type={tagsTarget.type} id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['integrations'], ['integration-references']]} />
+      )}
+      {bulkTagsOpen && (
+        <BulkTagsDialog open onOpenChange={setBulkTagsOpen} type="references" ids={[...selectedRefs]} invalidate={[['integrations'], ['integration-references']]}
+          onDone={(message) => { setNotice({ tone: 'success', message }); setSelectedRefs(new Set()) }} />
+      )}
       <ConfirmDialog
         open={Boolean(integrationToDelete)}
         onOpenChange={(open) => { if (!open) setIntegrationToDelete(null) }}
@@ -682,23 +669,7 @@ export function IntegrationsView({ description, actions, integrations, reference
                 {selectedRefs.size > 0 && (
                   <div className="ml-auto flex items-center gap-2" role="toolbar" aria-label="Selected references">
                     <span className="num text-xs text-fg-muted">{selectedRefs.size} selected</span>
-                    <Input
-                      size="sm"
-                      aria-label="Add a tag to the selected references"
-                      value={bulkTagInput}
-                      onChange={e => setBulkTagInput(e.target.value)}
-                      onKeyDown={async e => {
-                        if (e.key === 'Enter' && bulkTagInput.trim()) {
-                          const outcome = await runInlineJob(jobs, 'references.add_tag', { ids: [...selectedRefs], tag: bulkTagInput }, {
-                            onSuccess: () => queryClient.invalidateQueries({ queryKey: ['integrations'] }),
-                          })
-                          if (outcome.status === 'failed') setNotice({ tone: 'error', message: outcome.error })
-                          setBulkTagInput(''); setSelectedRefs(new Set())
-                        }
-                      }}
-                      placeholder="Add tag…"
-                      className="w-32"
-                    />
+                    <Button size="sm" variant="secondary" leadingIcon={<TagIcon />} onClick={() => setBulkTagsOpen(true)} data-bulk-tags>Tags…</Button>
                     <Button
                       size="sm"
                       variant="danger-ghost"

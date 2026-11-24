@@ -22,8 +22,14 @@ type Query = Record<string, string | string[] | undefined>
  * sign-in in a new tab lands (the full app page, or the same /embed/ page
  * when there is no app twin).
  */
-export async function EmbedSignedOut({ embedPath, appPath, query, quiet = false }: {
+export async function EmbedSignedOut({ embedPath, appPath, query, quiet = false, signInHref = null }: {
   embedPath: string; appPath: string; query: Query
+  /**
+   * Where to sign in instead of /login when automatic sign-in doesn't apply
+   * (embedded apps: the workspace sign-in page, lib/apps/sign-in-server.ts),
+   * returning to `appPath`.
+   */
+  signInHref?: string | null
   /** A host that reveals the frame only once it has a size (e.g. the SharePoint form host page): the silent phases take no space at all. */
   quiet?: boolean
 }) {
@@ -31,8 +37,9 @@ export async function EmbedSignedOut({ embedPath, appPath, query, quiet = false 
   const where = frameContext((name) => h.get(name))
   const orgHint = cleanOrgHint(query[LAUNCH_ORG_PARAM])
   const auto = await resolveAutoSso({ org: orgHint, purpose: 'launch' })
-  if (where === 'top') redirect(auto ? autoSsoPath({ redirect: embedPath, org: auto.org }) : `/login?redirect=${encodeURIComponent(appPath)}`)
-  const loginHref = auto ? autoSsoPath({ redirect: appPath, org: auto.org }) : `/login?redirect=${encodeURIComponent(appPath)}`
+  const standard = signInHref ?? `/login?redirect=${encodeURIComponent(appPath)}`
+  if (where === 'top') redirect(auto ? autoSsoPath({ redirect: embedPath, org: auto.org }) : standard)
+  const loginHref = auto ? autoSsoPath({ redirect: appPath, org: auto.org }) : standard
   if (auto) {
     // In EmbedFrame: transparent like the page it stands in for, and the host sizes it (usertasks:resize / add-in part message).
     return (

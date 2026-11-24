@@ -26,7 +26,7 @@ import { getExtensionManifest } from '@/lib/extensions/registry'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { TrialStart } from '@/components/licensing/trial-start'
-import { EditionSwitchCard } from './edition-switch-card'
+import { EditionSummaryCard, EditionSwitchCard } from './edition-switch-card'
 
 const LICENCE: Record<string, { label: string; tone: Tone }> = {
   not_required: { label: 'Free', tone: 'neutral' },
@@ -158,8 +158,9 @@ export function ExtensionsAdmin() {
           )
         })}
       </div>
+      {data?.edition && <EditionSummaryCard edition={data.edition} />}
       {(data?.editions ?? []).map((edition) => (
-        <EditionSwitchCard key={edition.id} edition={edition} onStartTrial={() => setTrialFor({ id: edition.extension_id, name: edition.name, days: edition.trial_days })} />
+        <EditionSwitchCard key={edition.id} edition={edition} onStartTrial={() => { if (edition.trial_extension) setTrialFor({ id: edition.trial_extension.id, name: edition.trial_extension.name, days: edition.trial_days }) }} />
       ))}
       {data && <p className="text-xs text-fg-subtle">UserTasks {data.platform_version}</p>}
       {trialFor && (

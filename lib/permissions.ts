@@ -2,7 +2,7 @@ import { extensionPermissionGroups, extensionPermissionsImpliedBy, hasExtensionI
 
 /* ── Permission keys ── */
 
-export const PERMISSION_PAYLOAD_VERSION = 20
+export const PERMISSION_PAYLOAD_VERSION = 22
 
 export const PERMISSION_KEYS = [
   'tasks.create', 'tasks.view_own', 'tasks.view_all', 'tasks.assign', 'tasks.complete',
@@ -16,6 +16,8 @@ export const PERMISSION_KEYS = [
   'extensibility.view', 'extensibility.create', 'extensibility.edit', 'extensibility.delete',
   'data.view', 'data.create', 'data.edit_schema', 'data.manage_rows', 'data.delete',
   'reports.view', 'reports.create', 'reports.edit_own', 'reports.share', 'reports.delete',
+  'apps.view', 'apps.manage',
+  'tags.manage',
   'team.view_members', 'team.invite', 'team.remove', 'team.change_roles',
   'org.view', 'org.manage', 'projects.view', 'projects.manage',
   'settings.view', 'settings.edit', 'settings.manage_api_keys',
@@ -106,6 +108,10 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     { key: 'reports.share', label: 'Share reports', description: 'Share reports with the team' },
     { key: 'reports.delete', label: 'Delete reports', description: 'Delete reports' },
   ]},
+  { key: 'apps', label: 'Apps', permissions: [
+    { key: 'apps.view', label: 'Use apps', description: 'Open the apps shared with them (an app\u2019s audience names them, a team they are in or a role they hold) from the Apps menu. Every role by default' },
+    { key: 'apps.manage', label: 'Build apps', description: 'Create apps, edit every app in the workspace (pages, widgets, menu, audience, editors) and delete them. People named as an app\u2019s editors can edit that app without it. Owner, Admin and Manager by default' },
+  ]},
   { key: 'team', label: 'Team', permissions: [
     { key: 'team.view_members', label: 'View members', description: 'View team members' },
     { key: 'team.invite', label: 'Invite members', description: 'Invite new members to the organisation' },
@@ -123,6 +129,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     { key: 'settings.edit', label: 'Edit settings', description: 'Edit branding, name, and configuration' },
     { key: 'settings.manage_api_keys', label: 'Manage API keys', description: 'Create and revoke API keys' },
     { key: 'settings.manage_webhooks', label: 'Manage webhooks', description: 'Configure webhook endpoints' },
+    { key: 'tags.manage', label: 'Manage tags', description: 'Choose tag colours and descriptions, rename and merge tags across every object, and switch automatic tag colours on or off (Settings → Tags). Owner, Admin and Manager by default' },
     { key: 'assistants.manage', label: 'Manage the Agent', description: 'Set the AI provider key and model for the Agent (the AI assistant on every screen), turn it on or off, choose who may use it and set its limits' },
     { key: 'sync.view', label: 'View GitHub sync', description: 'See sync status, pending changes, and deployment history' },
     { key: 'sync.manage', label: 'Manage GitHub sync', description: 'Connect repositories, change sync mode, and commit queued changes' },

@@ -1,0 +1,81 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "a6eb6ba9-2f7e-5f76-8ffa-f6379178705a",
+  "asset": {
+    "id": "a6eb6ba9-2f7e-5f76-8ffa-f6379178705a",
+    "name": "CRM deal line items",
+    "description": "Products on each deal (child records of CRM deals): quantity, list price, discount and line total in USD.",
+    "columns": [
+      {
+        "id": "659d861e-5ed9-5605-9a1e-075e1ab86351",
+        "required": true,
+        "key": "line_id",
+        "name": "Line",
+        "type": "text"
+      },
+      {
+        "id": "205bb8d9-2e0c-5ade-aed2-45f1035f90be",
+        "required": true,
+        "key": "deal_id",
+        "name": "Deal ID",
+        "type": "text"
+      },
+      {
+        "id": "6bab2750-af6d-5bc0-89eb-537011160bd9",
+        "required": false,
+        "key": "product",
+        "name": "Product",
+        "type": "text"
+      },
+      {
+        "id": "70c04ca5-ebab-5f39-b8f8-f2f913f8c41f",
+        "required": false,
+        "key": "sku",
+        "name": "SKU",
+        "type": "text"
+      },
+      {
+        "id": "25ffbea9-37d4-52f7-9e79-3f64d72c2b71",
+        "required": false,
+        "key": "family",
+        "name": "Family",
+        "type": "select",
+        "options": [
+          "Platform",
+          "Add-on",
+          "Services",
+          "Support"
+        ]
+      },
+      {
+        "id": "b13d9a72-88e7-5e0d-83e0-ee12b7604a9e",
+        "required": false,
+        "key": "qty",
+        "name": "Quantity",
+        "type": "number"
+      },
+      {
+        "id": "6bf3bd82-cbdf-57b2-9fb7-244b6c4a0fa3",
+        "required": false,
+        "key": "unit_price",
+        "name": "Unit price (USD)",
+        "type": "number"
+      },
+      {
+        "id": "d7024887-89fd-5a08-9909-fc5908f7cc2e",
+        "required": false,
+        "key": "discount_pct",
+        "name": "Discount %",
+        "type": "number"
+      },
+      {
+        "id": "00418eb4-1262-5fe6-99df-43e166df7872",
+        "required": false,
+        "key": "line_total",
+        "name": "Line total (USD)",
+        "type": "number"
+      }
+    ]
+  }
+}

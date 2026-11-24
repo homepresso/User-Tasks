@@ -44,6 +44,8 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { rateLimit } from '@/lib/rate-limit'
+import { technicalSummary } from '@/lib/agents/errors'
+import { reportAgentError } from '@/lib/agents/error-trigger-dispatch'
 import { htmlToPlainText } from '@/lib/html-sanitize'
 import type { ServiceContext } from '@/lib/services/context'
 import { resolveThinkingLevel, type ThinkingLevel } from '@/lib/agents/reasoning'
@@ -117,7 +119,7 @@ export function parseChatRequest(body: unknown): ChatRequest {
   const context = b.context && typeof b.context === 'object' ? b.context : {}
   const str = (v: unknown, n = 200) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null)
   const designer = context.designer && typeof context.designer === 'object' ? context.designer : null
-  const areas: DesignerContext['area'][] = ['workflow', 'form', 'data', 'decision_table', 'extensibility', 'general', 'report', 'agent', 'integration', 'email_template', 'page']
+  const areas: DesignerContext['area'][] = ['workflow', 'form', 'data', 'decision_table', 'extensibility', 'general', 'report', 'agent', 'integration', 'email_template', 'page', 'app']
   const decision = b.decision && typeof b.decision === 'object' && typeof b.decision.tool_call_id === 'string'
     ? { tool_call_id: String(b.decision.tool_call_id).slice(0, 100), approved: b.decision.approved === true }
     : null
@@ -409,7 +411,7 @@ export async function prepareAssistantTurn(ctx: ServiceContext, request: ChatReq
     connection: { ...connection, thinking: resolveThinkingLevel({ rule: ruleThinking, group: row.agent.thinking_levels?.[capability], base: row.agent.thinking_level }) },
     profile: profile ? { id: profile.id, name: profile.name } : null,
     // The profile's instructions only ever come AFTER ours (and say ours win).
-    instructions: withProfileInstructions([assistantInstructions({ groups, openItem: Boolean(openItem), canBuild: tools.some((t) => t.mode === 'write' && !ADMIN_WRITE_SET.has(t.name) && !t.name.startsWith('task_')), admin: adminOn ? { canChange: adminCanChange } : null, taskActions }), personBlock].filter(Boolean).join('\n\n'), profile),
+    instructions: withProfileInstructions([assistantInstructions({ groups, openItem: Boolean(openItem), canBuild: tools.some((t) => t.mode === 'write' && !ADMIN_WRITE_SET.has(t.name) && !t.name.startsWith('task_')), apps: tools.some((t) => t.name === 'apps_apply_spec'), admin: adminOn ? { canChange: adminCanChange } : null, taskActions }), personBlock].filter(Boolean).join('\n\n'), profile),
     context: Object.keys(context).length ? context : null,
     tools,
     limits: { ...(groups.includes('designer') || adminOn ? CAPABILITY_LIMITS.designer : CAPABILITY_LIMITS[capability]), maxTokens: limits.max_request_tokens || 0 },
@@ -417,7 +419,7 @@ export async function prepareAssistantTurn(ctx: ServiceContext, request: ChatReq
 }
 
 /** Run the prepared turn, record its usage, return the result. */
-export async function runPreparedTurn(ctx: ServiceContext, prepared: PreparedTurn, request: ChatRequest, deps: ChatDeps & { onEvent: (e: AssistantEvent) => void; signal?: AbortSignal }): Promise<TurnResult> {
+export async function runPreparedTurn(ctx: ServiceContext, prepared: PreparedTurn, request: ChatRequest, deps: ChatDeps & { onEvent: (e: AssistantEvent) => void; signal?: AbortSignal; conversationId?: string | null }): Promise<TurnResult> {
   const result = await runAssistantTurn({
     connection: prepared.connection,
     instructions: prepared.instructions,
@@ -431,7 +433,25 @@ export async function runPreparedTurn(ctx: ServiceContext, prepared: PreparedTur
     signal: deps.signal,
     fetchImpl: deps.fetchImpl,
   })
-  // A request that never reached the model or a tool (a stale decision) is not usage.
+  if (result.failure || result.retries) {
+    // Telemetry: provider failures and retries (sanitised: code, provider, status, request id, attempts — never the body or keys).
+    const d = result.failure?.details
+    console.warn(`[assistants] provider ${result.failure ? `failure ${result.failure.code}` : 'recovered'} (${prepared.connection.provider}${d?.status ? ` HTTP ${d.status}` : ''}${d?.request_id ? ` request ${d.request_id}` : ''}; ${result.retries ?? 0} retr${result.retries === 1 ? 'y' : 'ies'})`)
+  }
+  // A final failure (after the retries; never a stop) starts the workspace's Agent error workflows (source system_agent).
+  if (result.status === 'failed') {
+    const view = result.failure
+    await reportAgentError(deps.serviceDb, {
+      tenantId: ctx.tenantId, source: 'system_agent',
+      code: view?.code ?? 'unknown', message: view?.message ?? 'Something went wrong while the Agent was working.',
+      summary: view ? technicalSummary(view) : 'unknown',
+      provider: view?.details.provider ?? prepared.connection.provider, model: prepared.connection.model,
+      profileId: prepared.profile?.id ?? null, profileName: prepared.profile?.name ?? null,
+      conversationId: deps.conversationId ?? null, userId: ctx.actorId ?? null,
+      attempts: view?.details.attempts ?? null, requestId: view?.details.request_id ?? null,
+    })
+  }
+  // A request that never got a model answer or ran a tool (a stale decision, or a provider failure after its retries) is not usage.
   if (result.llmCalls || result.toolCalls) await recordAssistantUsage(deps.serviceDb, {
     tenantId: ctx.tenantId,
     userId: ctx.actorId,
@@ -444,7 +464,7 @@ export async function runPreparedTurn(ctx: ServiceContext, prepared: PreparedTur
     llmCalls: result.llmCalls,
     toolCalls: result.toolCalls,
     usageMissing: result.usageMissing,
-    error: result.error ?? null,
+    error: result.failure ? `${result.error} [${result.failureDetail ?? result.failure.code}]` : result.error ?? null,
   })
   return result
 }

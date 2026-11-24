@@ -143,6 +143,41 @@ No compile, no memory check.
 - `NEXT_BUILD_CPUS` (default 2 in Docker) sets the static-page workers, each
   a Node process.
 
+#### Server memory
+
+A running server's idle memory is mostly the code it has loaded. Next.js 16
+preloads every page and route module when the server starts
+(`experimental.preloadEntriesOnStart`, on by default): here that is about
+3,900 modules — the gallery catalogue, the docs registry, the SQL Server and
+MSAL drivers and every other page — whether or not anyone opens them.
+`next.config.ts` turns it **off** unless `NEXT_PRELOAD_ENTRIES=true`, so each
+page loads on its first request (a one-off delay of tens of milliseconds on
+a fast machine, more on a Raspberry Pi) and the server only holds what is used.
+Modules are never unloaded, so a server whose users open every page ends
+up where preloading starts.
+
+Measured (November 2026), `node .next/standalone/server.js` with no
+requests, 20 s after `Ready`:
+
+| | idle RSS | modules loaded at start |
+|---|---|---|
+| macOS arm64, preload on (Next's default) | 416 MiB | — |
+| macOS arm64, preload off (the default here) | 140 MiB | — |
+| Docker image 0.3.0, Pi-sized limits (1 GiB, 4 CPUs), preload on | 414 MiB | 3,861 |
+| same, preload off (and `--max-old-space-size=192`) | 113 MiB | 661 |
+
+Throughput under load was the same either way; pages still render, only
+their first request is slower.
+
+- **Self-hosted (`npm start`, the Docker image, the installers):** off by
+  default. `NEXT_PRELOAD_ENTRIES=true` restores Next's behaviour when you
+  prefer an even first request to idle memory. `npm start` reads it when it
+  starts; the standalone server (Docker) has its Next config fixed at build
+  time, so pass `--build-arg NEXT_PRELOAD_ENTRIES=true` to `docker build`.
+- **Vercel / cloud:** no effect. Vercel functions run Next.js in minimal mode,
+  which never preloads (`next-server.js` skips it when `minimalMode` is
+  set), so cold starts are unchanged whatever the setting.
+
 Other `npm run stack` commands:
 
 | Command | What it does |

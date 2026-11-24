@@ -5,9 +5,11 @@ import { DOCUMENT_PAGES } from './content/documents'
 import { MEDIA_PAGES } from './content/media'
 import { TASK_PAGES } from './content/tasks'
 import { FORM_WIZARD_PAGE } from './content/form-wizard'
+import { APPS_PAGE } from './content/apps'
 import { SURVEY_CONTROLS_PAGE } from './content/survey-controls'
 import { INFOPATH_IMPORT_PAGE } from './content/infopath-import'
 import { NINTEX_IMPORT_PAGE } from './content/nintex-import'
+import { PDF_IMPORT_PAGE } from './content/pdf-import'
 import { INTEGRATION_PAGES } from './content/integrations'
 import { BUILDING_BLOCK_PAGES } from './content/building-blocks'
 import { GOVERNANCE_PAGES } from './content/governance'
@@ -23,7 +25,7 @@ import { SELF_HOSTING_GUIDE_PAGES } from './content/self-hosting-guide'
 /** The form wizard, survey controls and InfoPath import pages right after Forms. */
 function withFormWizard(pages: DocPageDef[]): DocPageDef[] {
   const at = pages.findIndex((page) => page.slug === 'tasks/forms')
-  const extra = [FORM_WIZARD_PAGE, SURVEY_CONTROLS_PAGE, INFOPATH_IMPORT_PAGE, NINTEX_IMPORT_PAGE]
+  const extra = [FORM_WIZARD_PAGE, SURVEY_CONTROLS_PAGE, INFOPATH_IMPORT_PAGE, PDF_IMPORT_PAGE, NINTEX_IMPORT_PAGE]
   return at < 0 ? [...pages, ...extra] : [...pages.slice(0, at + 1), ...extra, ...pages.slice(at + 1)]
 }
 
@@ -34,7 +36,7 @@ export const DOC_SECTIONS: DocSectionDef[] = [
   { title: 'Workflows', pages: WORKFLOW_PAGES },
   { title: 'Documents', pages: DOCUMENT_PAGES },
   { title: 'Media (images, audio, video)', pages: MEDIA_PAGES },
-  { title: 'Tasks', pages: withFormWizard(TASK_PAGES) },
+  { title: 'Tasks', pages: [...withFormWizard(TASK_PAGES), APPS_PAGE] },
   { title: 'Integrations', pages: INTEGRATION_PAGES },
   { title: 'SharePoint Server', pages: SHAREPOINT_PAGES },
   { title: 'Building blocks', pages: BUILDING_BLOCK_PAGES },

@@ -1,0 +1,113 @@
+{
+  "id": "0ddb671e-c384-516f-8072-12f0ed964e7a",
+  "slug": "people-culture-engagement-performance",
+  "title": "People & Culture: engagement, performance and growth",
+  "category": "hr-people",
+  "summary": "A complete people app: anonymity-safe engagement surveys and pulses, goals and OKRs, performance reviews with peer feedback and calibration, a recognition wall and development plans.",
+  "description": "People & Culture is a ready-made app for the whole employee lifecycle after onboarding. Everyone opens it from the Apps menu and lands on Home: a greeting, their open review steps and check-ins, the surveys they still have to answer, their goals and the kudos they received.\n\nEngagement surveys run themselves. Launch a survey picks the audience, the dates, a reminder and the minimum group size; the Survey cycle workflow invites everyone, reminds people who have not answered, closes the survey and publishes the results. Answers are sealed: the Survey response workflow records only that someone answered, waits until the survey closes, then writes a ballot with no name and no time (small departments, locations and tenure groups merged into \"Other\"). Publish survey results turns the ballots into % favourable per driver, eNPS and participation for the company and every segment, hides any segment with fewer than five responses, groups comments into themes and deletes the ballots.\n\nThe Engagement page shows the engagement score against a benchmark, eNPS and participation gauges, a driver heat map by department, the strongest and weakest questions, location and tenure breakdowns and what people are saying. Filters for survey, department, location and tenure (or a click on the heat map) move every widget to that segment, and the page says when a segment is too small to show.\n\nPerformance reviews follow a self review, peer nominations (each peer gets a feedback task), a manager review with ratings and a written summary, calibration by the People partner, the review conversation and the employee's acknowledgement, each with due dates, reminders and escalation. Goals and OKRs have key results as child records, check-ins and weekly reminders; the recognition wall has a leaderboard; development plans link to a skills framework and learning catalogue. 150 fictional employees, three quarters of survey results, a review cycle in progress, 51 goals and 200 kudos make it useful straight after install.",
+  "trigger": "app",
+  "entry_app": "bde8451a-8a1d-5f5a-819c-c0cc1f73af85",
+  "entry_workflow": "134b0ea3-c488-5006-b099-bd1ba3764be8",
+  "entry_form": "d0c55636-0d87-5ba1-9c39-190e95c2d242",
+  "start": "Open People & Culture from the Apps menu. Press Give recognition to try it: the form opens in a side panel and the kudos lands on the recognition wall.",
+  "difficulty": "advanced",
+  "setup_minutes": 20,
+  "tags": [
+    "engagement",
+    "survey",
+    "enps",
+    "performance review",
+    "okr",
+    "goals",
+    "recognition",
+    "development",
+    "calibration",
+    "app",
+    "showcase"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Assignees: pick your People partner. They calibrate reviews, agree survey action plans and support plans that need help (change it to a team later).",
+    "Open Apps → People & Culture → Settings → Audience: add everyone as viewers (they read dashboards, answer surveys, give kudos, set goals and plans) and the People team and managers as contributors (My team, Performance, Admin, editable calibration and question bank).",
+    "Replace the People directory with your own employees (import a CSV or sync your HR system). Department, location and tenure band drive the survey segments.",
+    "Edit the question bank and the Engagement survey form to your own questions; keep the matrix row keys if you change the wording.",
+    "Restrict who can edit forms and view workflow runs to the People team if you promise strict anonymity (see \"How anonymity works\" in the readme).",
+    "Delete the sample goals, reviews and kudos when you go live; keep the published results to compare trends, or delete them too."
+  ],
+  "steps": [
+    {
+      "title": "Launch a survey",
+      "body": "Admin → Launch a survey: audience, dates, reminder and minimum group size. Invitations go out on the open date."
+    },
+    {
+      "title": "Answers are sealed",
+      "body": "Each answer only marks the person as responded; the ballot is written without a name or time when the survey closes."
+    },
+    {
+      "title": "Results are published",
+      "body": "Ballots become % favourable, eNPS and participation per segment; segments under five are hidden; comments become themes."
+    },
+    {
+      "title": "Act on it",
+      "body": "The People partner agrees action plans with each team; owners get a 30-day check-in."
+    },
+    {
+      "title": "Reviews and goals",
+      "body": "Self, peer and manager reviews with calibration and acknowledgement; OKRs with key results and check-ins."
+    },
+    {
+      "title": "Recognise and grow",
+      "body": "Kudos on the wall, development plans, skills and career conversations."
+    }
+  ],
+  "sample_input": {
+    "recipient": "maya.patel@fernhill.example",
+    "to_name": "Maya Patel",
+    "to_department": "People & Operations",
+    "value": "Better together",
+    "message": "Ran a brilliant manager workshop on career conversations.",
+    "points": "25"
+  },
+  "expect": "completed",
+  "icon": "smile",
+  "screenshots": [
+    {
+      "file": "screenshots/home.webp",
+      "caption": "Home: a personal greeting, what is waiting for you, surveys to answer, your goals and the recognition coming your way."
+    },
+    {
+      "file": "screenshots/engagement.webp",
+      "caption": "Engagement: score against the benchmark, eNPS, participation, a driver heat map by department and comment themes. Groups under five show no scores."
+    },
+    {
+      "file": "screenshots/goals.webp",
+      "caption": "Goals: company and department OKRs with progress, status by department and every goal; click a card for its key results."
+    },
+    {
+      "file": "screenshots/performance.webp",
+      "caption": "Performance: the review pipeline, a calibration grid of rating by potential and the editable calibration list."
+    },
+    {
+      "file": "screenshots/recognition-dark.webp",
+      "caption": "Recognition wall in dark mode: kudos feed, leaderboard, values and who recognises whom.",
+      "theme": "dark"
+    },
+    {
+      "file": "screenshots/give-recognition.webp",
+      "caption": "Give recognition opens in a slide-in panel: pick a colleague and a value, say what they did."
+    }
+  ]
+}

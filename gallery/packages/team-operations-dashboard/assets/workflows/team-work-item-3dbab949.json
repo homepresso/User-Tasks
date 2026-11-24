@@ -1,0 +1,361 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "3dbab949-b28a-54c8-810e-b962f5ca59bc",
+  "asset": {
+    "id": "3dbab949-b28a-54c8-810e-b962f5ca59bc",
+    "name": "Team work item",
+    "description": "A request from the Team work request form: logged as a work item, triaged by the team lead, delivered, and closed with its cycle time.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Request sent",
+        "config": {
+          "form_id": "16fd26c0-2440-5566-8e16-f73761f45f32",
+          "form_name": "Team work request"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Item reference",
+        "config": {
+          "name": "item_ref",
+          "expression": "OPS-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "opened",
+        "type": "set_variable",
+        "label": "Opened on",
+        "config": {
+          "name": "opened_on",
+          "expression": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{item_ref}} · {{form.team}} · {{form.title}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the work item",
+        "config": {
+          "table_id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+          "table_name": "Work items",
+          "operation": "insert",
+          "column_values": {
+            "item_ref": "{{item_ref}}",
+            "title": "{{form.title}}",
+            "team": "{{form.team}}",
+            "type": "{{form.type}}",
+            "priority": "{{form.priority}}",
+            "status": "Open",
+            "opened_on": "{{opened_on}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "triage",
+        "type": "user_task",
+        "label": "Triage",
+        "config": {
+          "task_title": "Triage: {{form.title}} ({{form.team}})",
+          "task_description": "<p><strong>{{form.type}}</strong> for {{form.team}}, priority {{form.priority}}, needed by {{form.needed_by}}.</p><p>{{form.details}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Accept",
+            "Decline"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "da553c5e-2e18-5d78-aa95-699ae71f3fc3",
+          "fields": [
+            {
+              "key": "plan",
+              "label": "Plan or reason",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "plan",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "accept",
+              "label": "Accept",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Accept"
+            },
+            {
+              "id": "decline",
+              "label": "Decline",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Decline"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Triage",
+            "align": "left",
+            "subtitle": "{{item_ref}} · {{form.priority}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "accepted",
+        "type": "update_data_table",
+        "label": "Mark in progress",
+        "config": {
+          "table_id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+          "table_name": "Work items",
+          "operation": "update",
+          "match_column": "item_ref",
+          "match_value": "{{item_ref}}",
+          "column_values": {
+            "status": "In progress"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "deliver",
+        "type": "user_task",
+        "label": "Deliver",
+        "config": {
+          "task_title": "Deliver: {{form.title}}",
+          "task_description": "<p>{{form.details}}</p><p>Plan: {{task_data.plan}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "4511cbf9-1a3d-5063-8a0c-7090526c25ae",
+          "fields": [
+            {
+              "key": "delivered",
+              "label": "What was delivered",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "delivered",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Deliver",
+            "align": "left",
+            "subtitle": "{{item_ref}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "done",
+        "type": "update_data_table",
+        "label": "Mark done",
+        "config": {
+          "table_id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+          "table_name": "Work items",
+          "operation": "update",
+          "match_column": "item_ref",
+          "match_value": "{{item_ref}}",
+          "column_values": {
+            "status": "Done",
+            "closed_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "cycle_days": "{{=DAY_DIFF(opened_on, FORMAT_DATE(NOW(), \"YYYY-MM-DD\"))}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Delivered",
+        "config": {
+          "reason": "{{item_ref}} delivered"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "declined",
+        "type": "update_data_table",
+        "label": "Close: declined",
+        "config": {
+          "table_id": "3b6ba1af-5163-5628-b039-776d9c3800a3",
+          "table_name": "Work items",
+          "operation": "update",
+          "match_column": "item_ref",
+          "match_value": "{{item_ref}}",
+          "column_values": {
+            "status": "Done",
+            "closed_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "cycle_days": "0"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      },
+      {
+        "id": "end_declined",
+        "type": "end_workflow",
+        "label": "Declined",
+        "config": {
+          "reason": "{{item_ref}} declined"
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-opened",
+        "source": "ref",
+        "target": "opened"
+      },
+      {
+        "id": "e-opened-title",
+        "source": "opened",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-triage",
+        "source": "log",
+        "target": "triage"
+      },
+      {
+        "id": "e-triage-accepted-accept",
+        "source": "triage",
+        "target": "accepted",
+        "label": "Accept"
+      },
+      {
+        "id": "e-triage-declined-decline",
+        "source": "triage",
+        "target": "declined",
+        "label": "Decline"
+      },
+      {
+        "id": "e-accepted-deliver",
+        "source": "accepted",
+        "target": "deliver"
+      },
+      {
+        "id": "e-deliver-done-done",
+        "source": "deliver",
+        "target": "done",
+        "label": "Done"
+      },
+      {
+        "id": "e-done-end",
+        "source": "done",
+        "target": "end"
+      },
+      {
+        "id": "e-declined-end_declined",
+        "source": "declined",
+        "target": "end_declined"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

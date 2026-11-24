@@ -1,0 +1,191 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "42abc3cd-fb85-5992-996c-eb96d112a990",
+  "asset": {
+    "id": "42abc3cd-fb85-5992-996c-eb96d112a990",
+    "name": "CapEx budget allocation",
+    "description": "Set or adjust a capital budget line (business unit × category × quarter) for a fiscal year. Finance only. The business unit’s totals follow.",
+    "tags": [
+      "capex",
+      "budget",
+      "finance"
+    ],
+    "fields": [
+      {
+        "key": "fiscal_year",
+        "label": "Fiscal year",
+        "type": "choice",
+        "options": [
+          "2026",
+          "2027",
+          "2028"
+        ],
+        "required": true,
+        "default": "2027"
+      },
+      {
+        "key": "bu_code",
+        "label": "Business unit",
+        "type": "choice",
+        "options": [
+          "PRD",
+          "LOG",
+          "ENG",
+          "ITS",
+          "FAC",
+          "COM"
+        ],
+        "required": true,
+        "option_labels": {
+          "PRD": "Production",
+          "LOG": "Logistics",
+          "ENG": "Engineering & R&D",
+          "ITS": "IT",
+          "FAC": "Facilities & EHS",
+          "COM": "Commercial"
+        }
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "choice",
+        "options": [
+          "Equipment",
+          "IT",
+          "Facilities",
+          "Vehicles",
+          "R&D"
+        ],
+        "required": true
+      },
+      {
+        "key": "quarter",
+        "label": "Quarter",
+        "type": "choice",
+        "options": [
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4"
+        ],
+        "required": true,
+        "display": "radio"
+      },
+      {
+        "key": "change_type",
+        "label": "Change",
+        "type": "choice",
+        "options": [
+          "Set to",
+          "Increase by",
+          "Decrease by"
+        ],
+        "required": true,
+        "default": "Set to",
+        "display": "radio"
+      },
+      {
+        "key": "amount",
+        "label": "Amount (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "required": true
+      },
+      {
+        "key": "reason",
+        "label": "Reason",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "Board-approved plan, reforecast, transfer between lines…"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "fiscal_year",
+              "span": 1
+            },
+            {
+              "field_key": "bu_code",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "category",
+              "span": 1
+            },
+            {
+              "field_key": "quarter",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "change_type",
+              "span": 1
+            },
+            {
+              "field_key": "amount",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "reason",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Save allocation",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Budget updated",
+            "text": "The budget line and the business unit totals are updated.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Change another line"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Budget allocation",
+      "subtitle": "Capital budget lines in USD.",
+      "align": "left"
+    }
+  }
+}

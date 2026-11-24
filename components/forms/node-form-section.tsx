@@ -4,6 +4,7 @@ import { isPaged } from '@/lib/forms/layout'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import * as Dialog from '@radix-ui/react-dialog'
+import { DialogAgentSlot } from '@/components/ui/dialog'
 import { ExternalLink, Library, Link2, PencilRuler, Search, Unlink, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePermissions } from '@/lib/permissions-context'
@@ -25,6 +26,7 @@ import { useWorkflowDataScope } from './designer/workflow-data-panel'
 import type { PickerNodeLike } from '@/lib/workflow-data-picker'
 import { isSecretField, saveToVariableMap, suggestedSaveTargets } from '@/lib/forms/task-outputs'
 import { setVariableNames } from '@/lib/workflow-set-variable'
+import { TagList } from '@/components/ui/tag-chip'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
@@ -376,6 +378,7 @@ export function SavedFormPicker({ open, onOpenChange, currentId, replacing, onPi
         <Dialog.Content aria-describedby={undefined} className="fixed left-1/2 top-1/2 z-50 flex max-h-[80vh] w-[min(36rem,94vw)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl shadow-xl dialog-content bg-panel text-fg" data-testid="saved-form-picker">
           <div className="flex items-center gap-2 border-b px-4 py-3 border-border">
             <Dialog.Title className="flex-1 text-sm font-semibold">Use a saved form</Dialog.Title>
+            <DialogAgentSlot className="mt-0" />
             <Dialog.Close className="rounded p-1" aria-label="Close"><X size={14} /></Dialog.Close>
           </div>
           <div className="px-4 pt-3">
@@ -401,7 +404,7 @@ export function SavedFormPicker({ open, onOpenChange, currentId, replacing, onPi
                 >
                   <p className="text-sm font-medium">{form.name} <span className="text-2xs font-normal text-fg-muted">v{form.version} · {form.field_count} field{form.field_count === 1 ? '' : 's'} · used {form.usage_count}×</span></p>
                   {form.description && <p className="text-2xs text-fg-muted">{form.description}</p>}
-                  {form.tags.length > 0 && <p className="mt-1 flex flex-wrap gap-1">{form.tags.map((t) => <span key={t} className="rounded-full border px-1.5 text-2xs border-border">{t}</span>)}</p>}
+                  {form.tags.length > 0 && <p className="mt-1"><TagList tags={form.tags} max={0} size="xs" /></p>}
                 </button>
               </li>
             ))}

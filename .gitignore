@@ -70,3 +70,20 @@ supabase/.temp
 /dist/release/
 /__tests__/.install-scripts-*/
 !deploy/install/release-key.pub.pem
+.pdf-import-shots/
+.tag-colour-shots/
+.apps-phase3-shots/
+.typed-test-inputs-shots/
+.agent-errors-shots/
+.email-editor-shots/
+.agent-costs-shots/
+.data-event-shots/
+.extensions-shots/
+.infra-addon-shots/
+
+# Paid extensions copied into a local Enterprise build context (never committed)
+/.ext-local/
+# Built internal packages (npm run internal:pack)
+/internal/dist/
+# Cloud admin screenshots and verification output
+/internal/verify/

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "fd9872f2-df64-53b7-9adf-346133e73589",
+  "asset": {
+    "id": "fd9872f2-df64-53b7-9adf-346133e73589",
+    "name": "Survey reminder",
+    "description": "Sent to people who have not answered yet, a few days before the survey closes.",
+    "subject": "Reminder: {{survey_name}} closes on {{closes_on}}",
+    "is_default": false,
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#2a211c\">\n  <h2 style=\"margin:0 0 12px;color:#9a3412\">A few days left</h2>\n  <p>Hi {{item.employee_name}},</p>\n  <p>There is still time to answer the <strong>{{survey_name}}</strong>; it closes on {{closes_on}}.</p>\n  <p>Results are only shown for groups of {{min_group}} or more.</p>\n  <p><a href=\"{{survey_link}}\">Answer the survey</a></p>\n  <p style=\"color:#7c6f64;font-size:13px\">People &amp; Culture · Fernhill Labs</p>\n</div>",
+    "text_body": "A few days left\n\nHi {{item.employee_name}},\n\nThere is still time to answer the {{survey_name}}; it closes on {{closes_on}}.\n\nResults are only shown for groups of {{min_group}} or more.\n\nAnswer the survey"
+  }
+}

@@ -39,12 +39,15 @@ import type { TaskFieldDef } from '@/lib/task-field-schema'
 import { TaskDescription } from '@/components/tasks/task-description'
 import { getTaskCode } from '@/components/tasks/timesheet-helpers'
 import { TimelineButton } from '@/components/timeline/timeline-sheet'
+import { EditableTagList } from '@/components/ui/tag-color-popover'
 
 interface TaskHeaderProps {
   task: {
     id: string
     title: string
     subtitle?: string | null
+    /** Free-text tags (coloured chips; recolourable with tags.manage). */
+    tags?: string[] | null
     description: string | null
     status: string
     priority: string
@@ -428,6 +431,12 @@ export function TaskHeader({ task, tenant, assigneeName, assignerName, collabora
           <dt className="mb-1 text-xs text-fg-muted">Status</dt>
           <dd><StatusPill status={task.status || 'todo'} /></dd>
         </div>
+        {Array.isArray(task.tags) && task.tags.length > 0 && (
+          <div className="col-span-2 min-w-0 md:col-span-4" data-task-tags>
+            <dt className="mb-1 text-xs text-fg-muted">Tags</dt>
+            <dd><EditableTagList tags={task.tags} /></dd>
+          </div>
+        )}
       </dl>
 
       {showDescription && task.description && (

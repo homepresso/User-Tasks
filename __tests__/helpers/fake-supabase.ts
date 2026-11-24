@@ -26,6 +26,9 @@ interface QueryBuilder extends PromiseLike<Result> {
   gte(col: string, val: unknown): QueryBuilder
   in(col: string, vals: unknown[]): QueryBuilder
   is(col: string, val: unknown): QueryBuilder
+  not(col: string, op: string, val: unknown): QueryBuilder
+  or(expr: string): QueryBuilder
+  range(from: number, to: number): QueryBuilder
   ilike(col: string, pattern: string): QueryBuilder
   contains(col: string, val: unknown): QueryBuilder
   order(...args: unknown[]): QueryBuilder
@@ -39,6 +42,8 @@ export interface FakeCall {
   rpc?: string
   op: 'select' | 'insert' | 'upsert' | 'update' | 'delete' | 'rpc'
   args?: unknown
+  /** The select() column list, as passed. */
+  columns?: string
 }
 
 export interface FakeSupabase {
@@ -47,6 +52,8 @@ export interface FakeSupabase {
   calls: FakeCall[]
   rpcs: Record<string, (args: Record<string, unknown>) => { data?: unknown; error?: { message: string; code?: string } | null }>
   count: (table: string, op?: FakeCall['op']) => number
+  /** Tables that answer with this error (e.g. a migration not applied). */
+  errors: Record<string, { message: string; code?: string }>
 }
 
 /** A column or a JSON path (`col->key->>leaf`, the last ->> compares as text). */
@@ -75,6 +82,7 @@ export function createFakeSupabase(seed: Record<string, Row[]> = {}): FakeSupaba
   for (const [name, rows] of Object.entries(seed)) tables[name] = rows.map((r) => ({ ...r }))
   const calls: FakeCall[] = []
   const rpcs: FakeSupabase['rpcs'] = {}
+  const errors: FakeSupabase['errors'] = {}
 
   function builder(table: string): QueryBuilder {
     let op: FakeCall['op'] = 'select'
@@ -82,13 +90,16 @@ export function createFakeSupabase(seed: Record<string, Row[]> = {}): FakeSupaba
     let selectAfterWrite = false
     const filters: Filter[] = []
     let limitN: number | undefined
+    let offsetN = 0
+    let columns: string | undefined
     let mode: 'many' | 'single' | 'maybeSingle' = 'many'
     let head = false
     let conflictCols: string[] = ['id']
 
     const rowsOf = () => (tables[table] ??= [])
     const run = (): Result => {
-      calls.push({ table, op, args: payload })
+      calls.push({ table, op, args: payload, ...(columns !== undefined ? { columns } : {}) })
+      if (errors[table]) return { data: null, error: errors[table] }
       const all = rowsOf()
       if (op === 'insert') {
         const list = (Array.isArray(payload) ? payload : [payload]) as Row[]
@@ -115,7 +126,7 @@ export function createFakeSupabase(seed: Record<string, Row[]> = {}): FakeSupaba
         tables[table] = all.filter((r) => !matched.includes(r))
         return shape(null)
       }
-      const limited = limitN === undefined ? matched : matched.slice(0, limitN)
+      const limited = limitN === undefined ? matched.slice(offsetN) : matched.slice(offsetN, offsetN + limitN)
       if (head) return { data: null, error: null, count: matched.length }
       return shape(limited.map((r) => structuredClone(r)))
     }
@@ -131,8 +142,9 @@ export function createFakeSupabase(seed: Record<string, Row[]> = {}): FakeSupaba
     }
 
     const api: QueryBuilder = {
-      select(_cols?: string, opts?: { head?: boolean }) {
+      select(cols?: string, opts?: { head?: boolean }) {
         if (op !== 'select') selectAfterWrite = true
+        else columns = cols
         if (opts?.head) head = true
         return api
       },
@@ -158,6 +170,14 @@ export function createFakeSupabase(seed: Record<string, Row[]> = {}): FakeSupaba
         return api
       },
       contains(col: string, val: unknown) { filters.push((r) => containsValue(r[col], val)); return api },
+      not(col: string, operator: string, val: unknown) {
+        if (operator === 'is') filters.push((r) => (columnValue(r, col) ?? null) !== val)
+        else if (operator === 'eq') filters.push((r) => columnValue(r, col) !== val)
+        return api
+      },
+      // PostgREST logic trees are not evaluated: every row passes (tests filter with eq / in / is).
+      or() { return api },
+      range(from: number, to: number) { offsetN = from; limitN = to - from + 1; return api },
       order() { return api },
       limit(n: number) { limitN = n; return api },
       single() { mode = 'single'; return Promise.resolve(run()) },
@@ -171,6 +191,7 @@ export function createFakeSupabase(seed: Record<string, Row[]> = {}): FakeSupaba
 
   const client = {
     from: (table: string) => builder(table),
+    auth: { admin: { updateUserById: async () => ({ data: null, error: null }) } },
     rpc: async (name: string, args: Record<string, unknown>) => {
       calls.push({ rpc: name, op: 'rpc', args })
       const handler = rpcs[name]
@@ -186,5 +207,6 @@ export function createFakeSupabase(seed: Record<string, Row[]> = {}): FakeSupaba
     calls,
     rpcs,
     count: (table, op) => calls.filter((c) => c.table === table && (!op || c.op === op)).length,
+    errors,
   }
 }

@@ -219,6 +219,26 @@ describe('gallery pages', () => {
     expect(html).toContain('"@type":"SoftwareApplication"')
   })
 
+  it('shows the app, its screenshots and pages for an app-first package', () => {
+    const appPkg = {
+      ...pkg, trigger: 'app' as const,
+      app: { id: 'a', name: 'Expense desk', slug: 'expense-desk', subtitle: null, description: null, icon: 'Receipt', color: null, embed_origins: [],
+        pages: [{ slug: 'home', title: 'Home', hidden: false, widgets: ['actions', 'kpi', 'kpi'] }, { slug: 'secret', title: 'Hidden page', hidden: true, widgets: [] }] },
+      screenshots: [{ src: '/gallery/screenshots/expense-desk/home.webp', caption: 'Home with the main buttons.', theme: 'light' as const }, { src: '/gallery/screenshots/expense-desk/dark.webp', caption: 'Insights in dark mode.', theme: 'dark' as const }],
+    }
+    const html = renderToStaticMarkup(createElement(GalleryPackagePage, { pkg: appPkg }))
+    expect(html).toContain('id="app"')
+    expect(html).toContain('href="#app"')
+    expect(html).toContain('data-testid="package-screenshots"')
+    expect(html).toContain('src="/gallery/screenshots/expense-desk/home.webp" alt="Home with the main buttons."')
+    expect(html).toContain('Dark mode')
+    expect(html).toContain('Expense desk: 1 page, ready to share')
+    expect(html).toContain('actions, kpi')
+    expect(html).not.toContain('Hidden page')
+    // Workflow packages without screenshots have no app section.
+    expect(renderToStaticMarkup(createElement(GalleryPackagePage, { pkg }))).not.toContain('id="app"')
+  })
+
   it('keeps the install links unchanged (same file, download name and test id)', () => {
     const html = renderToStaticMarkup(createElement(GalleryPackagePage, { pkg }))
     expect(count(html, /data-testid="download-package"/g)).toBe(1)

@@ -1,0 +1,801 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "d53b0a5c-cc65-50a6-ab52-9b37d067d911",
+  "asset": {
+    "id": "d53b0a5c-cc65-50a6-ab52-9b37d067d911",
+    "name": "CapEx change request",
+    "description": "A change request on an approved project: logged, approved at once within 10% of the approved amount, otherwise re-approved by the finance controller, the CFO and (revised total over $250,000) the CEO. Approval raises the approved amount and commits the extra budget.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Change requested",
+        "config": {
+          "form_id": "6337a740-a278-5424-89d6-2004887e3bd1",
+          "form_name": "CapEx change request"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Change reference",
+        "config": {
+          "name": "cr_ref",
+          "expression": "CR-{{=RIGHT(FORMAT_DATE(NOW(), \"YYYY\"), 2)}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "project",
+        "type": "update_data_table",
+        "label": "Read the project",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "get",
+          "match_column": "project_ref",
+          "match_value": "{{form.project_ref}}",
+          "output_row_var": "proj"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "before",
+        "type": "set_variable",
+        "label": "Approved before",
+        "config": {
+          "name": "approved_before",
+          "expression": "{{=COALESCE(proj.approved_amount, 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "revised",
+        "type": "set_variable",
+        "label": "Revised total",
+        "config": {
+          "name": "revised_total",
+          "expression": "{{=approved_before + form.additional_amount}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "pct",
+        "type": "set_variable",
+        "label": "Overrun %",
+        "config": {
+          "name": "cr_overrun",
+          "expression": "{{=IF(approved_before > 0, ROUND(form.additional_amount / approved_before * 100, 1), 100)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{cr_ref}} · {{form.project_ref}} · +${{form.additional_amount}} ({{cr_overrun}}%)"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the change request",
+        "config": {
+          "table_id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+          "table_name": "CapEx change requests",
+          "operation": "insert",
+          "column_values": {
+            "cr_ref": "{{cr_ref}}",
+            "project_ref": "{{form.project_ref}}",
+            "project_title": "{{proj.title}}",
+            "business_unit": "{{proj.business_unit}}",
+            "requested_by": "{{submitted_by_name}}",
+            "original_amount": "{{approved_before}}",
+            "additional_amount": "{{form.additional_amount}}",
+            "revised_amount": "{{revised_total}}",
+            "overrun_pct": "{{cr_overrun}}",
+            "reason": "{{form.reason}}",
+            "status": "Pending re-approval"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "size",
+        "type": "condition",
+        "label": "More than 10% over?",
+        "config": {
+          "branches": [
+            {
+              "label": "Re-approval",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{cr_overrun}}",
+                  "operator": "gt",
+                  "value": "10"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "ctrl",
+        "type": "user_task",
+        "label": "Finance controller re-approval",
+        "config": {
+          "task_title": "Finance controller: {{cr_ref}} +{{=REPLACE(FORMAT_CURRENCY(form.additional_amount, \"USD\"), \".00\", \"\")}} on {{form.project_ref}}",
+          "task_description": "<p>Change request <strong>{{cr_ref}}</strong> for <strong>{{form.project_ref}} {{proj.title}}</strong> ({{proj.business_unit}}).</p><ul><li>Approved: ${{approved_before}} · spent so far ${{=COALESCE(proj.spent, 0)}}</li><li>Additional: <strong>${{form.additional_amount}}</strong> ({{cr_overrun}}% over) → revised total <strong>${{revised_total}}</strong></li><li>Reason: {{form.reason}}</li></ul><p>{{form.justification}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "a3b60a1e-4cc6-55ee-8b4e-d378353d89e1",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital change request",
+            "align": "left",
+            "subtitle": "{{cr_ref}} · {{cr_overrun}}% over"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 80,
+          "y": 1320
+        }
+      },
+      {
+        "id": "cfo",
+        "type": "user_task",
+        "label": "CFO re-approval",
+        "config": {
+          "task_title": "CFO: {{cr_ref}} +{{=REPLACE(FORMAT_CURRENCY(form.additional_amount, \"USD\"), \".00\", \"\")}} on {{form.project_ref}}",
+          "task_description": "<p>Change request <strong>{{cr_ref}}</strong> for <strong>{{form.project_ref}} {{proj.title}}</strong> ({{proj.business_unit}}).</p><ul><li>Approved: ${{approved_before}} · spent so far ${{=COALESCE(proj.spent, 0)}}</li><li>Additional: <strong>${{form.additional_amount}}</strong> ({{cr_overrun}}% over) → revised total <strong>${{revised_total}}</strong></li><li>Reason: {{form.reason}}</li></ul><p>{{form.justification}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "22bb90c5-787a-5082-92b0-4129c68e6809",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital change request",
+            "align": "left",
+            "subtitle": "{{cr_ref}} · {{cr_overrun}}% over"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": 80,
+          "y": 1460
+        }
+      },
+      {
+        "id": "big",
+        "type": "condition",
+        "label": "Revised total over $250,000?",
+        "config": {
+          "branches": [
+            {
+              "label": "CEO",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{revised_total}}",
+                  "operator": "gt",
+                  "value": "250000"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 80,
+          "y": 1600
+        }
+      },
+      {
+        "id": "ceo",
+        "type": "user_task",
+        "label": "CEO re-approval",
+        "config": {
+          "task_title": "CEO: {{cr_ref}} +{{=REPLACE(FORMAT_CURRENCY(form.additional_amount, \"USD\"), \".00\", \"\")}} on {{form.project_ref}}",
+          "task_description": "<p>Change request <strong>{{cr_ref}}</strong> for <strong>{{form.project_ref}} {{proj.title}}</strong> ({{proj.business_unit}}).</p><ul><li>Approved: ${{approved_before}} · spent so far ${{=COALESCE(proj.spent, 0)}}</li><li>Additional: <strong>${{form.additional_amount}}</strong> ({{cr_overrun}}% over) → revised total <strong>${{revised_total}}</strong></li><li>Reason: {{form.reason}}</li></ul><p>{{form.justification}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Approve",
+            "Reject"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "e7b48267-85fa-57e3-8e27-3e83b349d685",
+          "fields": [
+            {
+              "key": "comment",
+              "label": "Comment",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "comment",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "approve",
+              "label": "Approve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Approve"
+            },
+            {
+              "id": "reject",
+              "label": "Reject",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Reject"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital change request",
+            "align": "left",
+            "subtitle": "{{cr_ref}} · {{cr_overrun}}% over"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 4320
+        },
+        "position": {
+          "x": -240,
+          "y": 1740
+        }
+      },
+      {
+        "id": "re_ok",
+        "type": "set_variable",
+        "label": "Re-approved",
+        "config": {
+          "name": "cr_status",
+          "expression": "Approved"
+        },
+        "position": {
+          "x": 80,
+          "y": 1880
+        }
+      },
+      {
+        "id": "auto",
+        "type": "set_variable",
+        "label": "Within tolerance",
+        "config": {
+          "name": "cr_status",
+          "expression": "Auto-approved"
+        },
+        "position": {
+          "x": 720,
+          "y": 1180
+        }
+      },
+      {
+        "id": "raise",
+        "type": "update_data_table",
+        "label": "Raise the approved amount",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{form.project_ref}}",
+          "column_values": {
+            "approved_amount": "{{revised_total}}",
+            "utilisation_pct": "{{=IF(revised_total > 0, ROUND(COALESCE(proj.spent, 0) / revised_total * 100, 1), 0)}}",
+            "spend_alert": ""
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "line",
+        "type": "update_data_table",
+        "label": "Read the budget line",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "get",
+          "match_column": "budget_key",
+          "match_value": "{{proj.budget_key}}",
+          "output_row_var": "budget_line"
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "commit_line",
+        "type": "update_data_table",
+        "label": "Commit the extra budget",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "update",
+          "match_column": "budget_key",
+          "match_value": "{{proj.budget_key}}",
+          "column_values": {
+            "committed": "{{=COALESCE(budget_line.committed, 0) + form.additional_amount}}",
+            "available": "{{=COALESCE(budget_line.available, 0) - form.additional_amount}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "bu",
+        "type": "update_data_table",
+        "label": "Read the business unit",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "get",
+          "match_column": "bu_key",
+          "match_value": "{{proj.bu_code}}-{{proj.fiscal_year}}",
+          "output_row_var": "bu_row"
+        },
+        "position": {
+          "x": 400,
+          "y": 1740
+        }
+      },
+      {
+        "id": "commit_bu",
+        "type": "update_data_table",
+        "label": "Commit at business unit level",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "update",
+          "match_column": "bu_key",
+          "match_value": "{{proj.bu_code}}-{{proj.fiscal_year}}",
+          "column_values": {
+            "committed": "{{=COALESCE(bu_row.committed, 0) + form.additional_amount}}",
+            "available": "{{=COALESCE(bu_row.available, 0) - form.additional_amount}}",
+            "committed_pct": "{{=IF(COALESCE(bu_row.budget, 0) > 0, ROUND((COALESCE(bu_row.committed, 0) + form.additional_amount) / bu_row.budget * 100, 1), 0)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      },
+      {
+        "id": "decided",
+        "type": "update_data_table",
+        "label": "Record the decision",
+        "config": {
+          "table_id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+          "table_name": "CapEx change requests",
+          "operation": "update",
+          "match_column": "cr_ref",
+          "match_value": "{{cr_ref}}",
+          "column_values": {
+            "status": "{{cr_status}}",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 2020
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Tell the requester",
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "79d5f310-8b7b-5991-bae4-32164ee458e2"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 2160
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Decided",
+        "config": {
+          "reason": "{{cr_ref}} {{cr_status}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 2300
+        }
+      },
+      {
+        "id": "no",
+        "type": "set_variable",
+        "label": "Rejected",
+        "config": {
+          "name": "cr_status",
+          "expression": "Rejected"
+        },
+        "position": {
+          "x": 1040,
+          "y": 1320
+        }
+      },
+      {
+        "id": "rejected",
+        "type": "update_data_table",
+        "label": "Record the rejection",
+        "config": {
+          "table_id": "7a0bf351-ef5d-57a6-af19-5a3611935680",
+          "table_name": "CapEx change requests",
+          "operation": "update",
+          "match_column": "cr_ref",
+          "match_value": "{{cr_ref}}",
+          "column_values": {
+            "status": "Rejected",
+            "decided_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 1460
+        }
+      },
+      {
+        "id": "mail_no",
+        "type": "send_email",
+        "label": "Tell the requester",
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "79d5f310-8b7b-5991-bae4-32164ee458e2"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 1040,
+          "y": 1600
+        }
+      },
+      {
+        "id": "end_no",
+        "type": "end_workflow",
+        "label": "Rejected",
+        "config": {
+          "reason": "{{cr_ref}} rejected"
+        },
+        "position": {
+          "x": 1040,
+          "y": 1740
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-project",
+        "source": "ref",
+        "target": "project"
+      },
+      {
+        "id": "e-project-before",
+        "source": "project",
+        "target": "before"
+      },
+      {
+        "id": "e-before-revised",
+        "source": "before",
+        "target": "revised"
+      },
+      {
+        "id": "e-revised-pct",
+        "source": "revised",
+        "target": "pct"
+      },
+      {
+        "id": "e-pct-title",
+        "source": "pct",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-size",
+        "source": "log",
+        "target": "size"
+      },
+      {
+        "id": "e-size-ctrl-re_approval",
+        "source": "size",
+        "target": "ctrl",
+        "label": "Re-approval"
+      },
+      {
+        "id": "e-size-auto-else",
+        "source": "size",
+        "target": "auto",
+        "label": "Else"
+      },
+      {
+        "id": "e-ctrl-cfo-approve",
+        "source": "ctrl",
+        "target": "cfo",
+        "label": "Approve"
+      },
+      {
+        "id": "e-ctrl-no-reject",
+        "source": "ctrl",
+        "target": "no",
+        "label": "Reject"
+      },
+      {
+        "id": "e-cfo-big-approve",
+        "source": "cfo",
+        "target": "big",
+        "label": "Approve"
+      },
+      {
+        "id": "e-cfo-no-reject",
+        "source": "cfo",
+        "target": "no",
+        "label": "Reject"
+      },
+      {
+        "id": "e-big-ceo-ceo",
+        "source": "big",
+        "target": "ceo",
+        "label": "CEO"
+      },
+      {
+        "id": "e-big-re_ok-else",
+        "source": "big",
+        "target": "re_ok",
+        "label": "Else"
+      },
+      {
+        "id": "e-ceo-re_ok-approve",
+        "source": "ceo",
+        "target": "re_ok",
+        "label": "Approve"
+      },
+      {
+        "id": "e-ceo-no-reject",
+        "source": "ceo",
+        "target": "no",
+        "label": "Reject"
+      },
+      {
+        "id": "e-re_ok-raise",
+        "source": "re_ok",
+        "target": "raise"
+      },
+      {
+        "id": "e-auto-raise",
+        "source": "auto",
+        "target": "raise"
+      },
+      {
+        "id": "e-raise-line",
+        "source": "raise",
+        "target": "line"
+      },
+      {
+        "id": "e-line-commit_line",
+        "source": "line",
+        "target": "commit_line"
+      },
+      {
+        "id": "e-commit_line-bu",
+        "source": "commit_line",
+        "target": "bu"
+      },
+      {
+        "id": "e-bu-commit_bu",
+        "source": "bu",
+        "target": "commit_bu"
+      },
+      {
+        "id": "e-commit_bu-decided",
+        "source": "commit_bu",
+        "target": "decided"
+      },
+      {
+        "id": "e-decided-mail",
+        "source": "decided",
+        "target": "mail"
+      },
+      {
+        "id": "e-mail-done",
+        "source": "mail",
+        "target": "done"
+      },
+      {
+        "id": "e-no-rejected",
+        "source": "no",
+        "target": "rejected"
+      },
+      {
+        "id": "e-rejected-mail_no",
+        "source": "rejected",
+        "target": "mail_no"
+      },
+      {
+        "id": "e-mail_no-end_no",
+        "source": "mail_no",
+        "target": "end_no"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

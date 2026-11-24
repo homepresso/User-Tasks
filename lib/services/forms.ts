@@ -35,7 +35,7 @@ import {
 } from '@/lib/forms/form-theme'
 import { compactLayoutForSave } from '@/lib/forms/layout'
 import { layoutDataTarget } from '@/lib/forms/data-target'
-import { fieldDefinitionProblems, normalizeTaskFields } from '@/lib/task-field-schema'
+import { fieldDefinitionProblems, normalizeTaskFields, reservedFieldKeyProblems } from '@/lib/task-field-schema'
 import { tableChangesProblem, tableChangesTargets, type TableChangesConfig } from '@/lib/forms/table-changes'
 import { layoutFormRules } from '@/lib/forms/form-rules'
 import { allActions } from '@/lib/forms/field-buttons'
@@ -43,7 +43,7 @@ import { buttonProblems, normalizeFormButtons, redirectAllowlistFromEnv, safeRed
 import { appUrlOrLocalhost } from '@/lib/config/bootstrap'
 import { formPageOf, withoutFormPageLinks } from '@/lib/forms/form-page'
 import { sortAvailableForms, type AvailableForm } from '@/lib/forms/available-forms'
-import { requiredParamsWithoutDefault } from '@/lib/forms/form-params'
+import { requiredParamsWithoutDefault, reservedFormContextNames } from '@/lib/forms/form-params'
 import { getDb, hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { applyPage, audit, dbError, ilikeTerm, serviceRoleClient, syncChange, type Page } from './_shared'
 
@@ -214,6 +214,11 @@ export function validateFormContent(input: { fields: unknown; layout?: unknown; 
   if (input.fields.length > FORM_LIMITS.fields) throw ServiceError.validation(`A form can have at most ${FORM_LIMITS.fields} fields`)
   if (input.buttons !== undefined && input.buttons !== null && !Array.isArray(input.buttons)) throw ServiceError.validation('buttons must be an array')
   const theme = validateThemeRef(input.theme)
+  // Reserved keys (outcome, id…; item / row / parent / index / form inside a repeating section) would be dropped silently.
+  const reserved = Object.entries(reservedFieldKeyProblems(input.fields))[0]
+  if (reserved) throw ServiceError.validation(`Field "${reserved[0]}": ${reserved[1]}`, { fields: Object.fromEntries([reserved]) })
+  const reservedName = reservedFormContextNames(input.layout)[0]
+  if (reservedName) throw ServiceError.validation(`The ${reservedName.kind} ${reservedName.problem}`)
   const def = normalizeFormDefinition({ fields: input.fields, layout: input.layout, theme, buttons: input.buttons, header: input.header })
   const editableTables = new Set(def.fields.filter((f) => f.type === 'data_table' && f.data_table?.mode === 'edit').map((f) => f.key))
   const buttonIssue = Object.entries(buttonProblems(def.buttons ?? [], { policy: redirectPolicy(), editableTables }))[0]

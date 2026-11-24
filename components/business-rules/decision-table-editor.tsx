@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { updateDecisionTable } from '@/app/actions/business-rules'
+import { TagInput } from '@/components/ui/tag-input'
 import { evaluateDecisionTable } from '@/lib/decision-table-engine'
 
 const FIELD_TYPES = [
@@ -107,6 +108,7 @@ export function DecisionTableEditor({ table }: { table: any }) {
   const importRef = useRef<HTMLInputElement>(null)
   const [name, setName] = useState(table.name ?? '')
   const [description, setDescription] = useState(table.description ?? '')
+  const [tags, setTags] = useState<string[]>(Array.isArray(table.tags) ? table.tags : [])
   const [inputs, setInputs] = useState<any[]>(normalizeFields(table.inputs))
   const [outputs, setOutputs] = useState<any[]>(normalizeFields(table.outputs))
   const [rules, setRules] = useState<any[]>(normalizeRules(table.rules))
@@ -125,7 +127,7 @@ export function DecisionTableEditor({ table }: { table: any }) {
   async function handleSave() {
     setSaving(true)
     try {
-      await updateDecisionTable(table.id, { name, description, inputs, outputs, rules })
+      await updateDecisionTable(table.id, { name, description, inputs, outputs, rules, tags })
       router.refresh()
     } catch (err: any) {
       setNotice({ tone: 'error', message: err.message ?? 'Failed to save business rule' })
@@ -247,6 +249,9 @@ export function DecisionTableEditor({ table }: { table: any }) {
                   rows={4}
                   className="resize-none"
                 />
+              </Field>
+              <Field label="Tags" optional>
+                <TagInput value={tags} onChange={setTags} aria-label="Tags" />
               </Field>
             </CardBody>
           </Panel>

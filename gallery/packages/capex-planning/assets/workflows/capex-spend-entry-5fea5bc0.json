@@ -1,0 +1,409 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "5fea5bc0-5301-5191-9907-b9b7df06df3e",
+  "asset": {
+    "id": "5fea5bc0-5301-5191-9907-b9b7df06df3e",
+    "name": "CapEx spend entry",
+    "description": "An invoice or payment from the CapEx actual spend form: added to the spend ledger, rolled up to the project, its budget line and business unit, and spend over 110% of the approved amount asks the owner for a change request.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Spend recorded",
+        "config": {
+          "form_id": "89bb28aa-6c1b-5f1b-bee4-6f169ad5d81d",
+          "form_name": "CapEx actual spend"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "project",
+        "type": "update_data_table",
+        "label": "Read the project",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "get",
+          "match_column": "project_ref",
+          "match_value": "{{form.project_ref}}",
+          "output_row_var": "proj"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{form.project_ref}} · {{=REPLACE(FORMAT_CURRENCY(form.amount, \"USD\"), \".00\", \"\")}} · {{form.vendor}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "ledger",
+        "type": "update_data_table",
+        "label": "Add to the spend ledger",
+        "config": {
+          "table_id": "4bf6f42d-8528-539a-b2ae-b34d6f2a1da1",
+          "table_name": "CapEx spend",
+          "operation": "insert",
+          "column_values": {
+            "project_ref": "{{form.project_ref}}",
+            "title": "{{proj.title}}",
+            "business_unit": "{{proj.business_unit}}",
+            "category": "{{proj.category}}",
+            "fiscal_year": "{{=FORMAT_DATE(form.invoice_date, \"YYYY\")}}",
+            "period": "{{=FORMAT_DATE(form.invoice_date, \"YYYY-MM\")}}",
+            "entry_type": "Actual",
+            "amount": "{{form.amount}}",
+            "vendor": "{{form.vendor}}",
+            "invoice_ref": "{{form.invoice_ref}}",
+            "description": "{{form.description}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "spent",
+        "type": "set_variable",
+        "label": "Spent to date",
+        "config": {
+          "name": "new_spent",
+          "expression": "{{=COALESCE(proj.spent, 0) + form.amount}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "util",
+        "type": "set_variable",
+        "label": "Spent % of approved",
+        "config": {
+          "name": "util_pct",
+          "expression": "{{=IF(COALESCE(proj.approved_amount, 0) > 0, ROUND(new_spent / proj.approved_amount * 100, 1), 0)}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "roll_project",
+        "type": "update_data_table",
+        "label": "Update the project",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{form.project_ref}}",
+          "column_values": {
+            "spent": "{{new_spent}}",
+            "utilisation_pct": "{{util_pct}}",
+            "stage": "{{=IF(proj.stage = \"PO raised\", \"In delivery\", proj.stage)}}",
+            "spend_alert": "{{=IF(util_pct >= 100, \"At or over 100%\", IF(util_pct >= 80, \"80% used\", \"\"))}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "line",
+        "type": "update_data_table",
+        "label": "Read the budget line",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "get",
+          "match_column": "budget_key",
+          "match_value": "{{proj.budget_key}}",
+          "output_row_var": "budget_line"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "roll_line",
+        "type": "update_data_table",
+        "label": "Update the budget line",
+        "config": {
+          "table_id": "e2d372d5-fdb1-5470-a680-01e68094fa3c",
+          "table_name": "CapEx budgets",
+          "operation": "update",
+          "match_column": "budget_key",
+          "match_value": "{{proj.budget_key}}",
+          "column_values": {
+            "spent": "{{=COALESCE(budget_line.spent, 0) + form.amount}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "bu",
+        "type": "update_data_table",
+        "label": "Read the business unit",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "get",
+          "match_column": "bu_key",
+          "match_value": "{{proj.bu_code}}-{{proj.fiscal_year}}",
+          "output_row_var": "bu_row"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "roll_bu",
+        "type": "update_data_table",
+        "label": "Update the business unit",
+        "config": {
+          "table_id": "c36701f5-4df0-53c3-817c-bcd9a62d749f",
+          "table_name": "CapEx business units",
+          "operation": "update",
+          "match_column": "bu_key",
+          "match_value": "{{proj.bu_code}}-{{proj.fiscal_year}}",
+          "column_values": {
+            "spent": "{{=COALESCE(bu_row.spent, 0) + form.amount}}",
+            "spent_pct": "{{=IF(COALESCE(bu_row.budget, 0) > 0, ROUND((COALESCE(bu_row.spent, 0) + form.amount) / bu_row.budget * 100, 1), 0)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "overrun",
+        "type": "condition",
+        "label": "More than 10% over?",
+        "config": {
+          "branches": [
+            {
+              "label": "Over 110%",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{util_pct}}",
+                  "operator": "gt",
+                  "value": "110"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "ask_cr",
+        "type": "user_task",
+        "label": "Ask for a change request",
+        "config": {
+          "task_title": "Overspend: {{form.project_ref}} is at {{util_pct}}% of its approved amount",
+          "task_description": "<p><strong>{{proj.title}}</strong> has spent <strong>${{new_spent}}</strong> of <strong>${{proj.approved_amount}}</strong> approved ({{util_pct}}%). More than 10% over needs a change request and re-approval.</p><p>Raise one from the CapEx planner (Projects → Change request).</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Change request raised",
+            "Spend will be recovered"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{=COALESCE(proj.owner_id, workflow_owner_id)}}",
+          "fields": [
+            {
+              "key": "note",
+              "label": "Note",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "note",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "change_request_raised",
+              "label": "Change request raised",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Change request raised"
+            },
+            {
+              "id": "spend_will_be_recovered",
+              "label": "Spend will be recovered",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Spend will be recovered"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Capital overspend",
+            "align": "left",
+            "subtitle": "{{form.project_ref}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 80,
+          "y": 1740
+        }
+      },
+      {
+        "id": "end_flag",
+        "type": "end_workflow",
+        "label": "Owner asked",
+        "config": {
+          "reason": "{{form.project_ref}} at {{util_pct}}%: {{outcome}}"
+        },
+        "position": {
+          "x": 80,
+          "y": 1880
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Recorded",
+        "config": {
+          "reason": "{{form.project_ref}}: ${{form.amount}} recorded, {{util_pct}}% of approved"
+        },
+        "position": {
+          "x": 720,
+          "y": 1740
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-project",
+        "source": "trigger",
+        "target": "project"
+      },
+      {
+        "id": "e-project-title",
+        "source": "project",
+        "target": "title"
+      },
+      {
+        "id": "e-title-ledger",
+        "source": "title",
+        "target": "ledger"
+      },
+      {
+        "id": "e-ledger-spent",
+        "source": "ledger",
+        "target": "spent"
+      },
+      {
+        "id": "e-spent-util",
+        "source": "spent",
+        "target": "util"
+      },
+      {
+        "id": "e-util-roll_project",
+        "source": "util",
+        "target": "roll_project"
+      },
+      {
+        "id": "e-roll_project-line",
+        "source": "roll_project",
+        "target": "line"
+      },
+      {
+        "id": "e-line-roll_line",
+        "source": "line",
+        "target": "roll_line"
+      },
+      {
+        "id": "e-roll_line-bu",
+        "source": "roll_line",
+        "target": "bu"
+      },
+      {
+        "id": "e-bu-roll_bu",
+        "source": "bu",
+        "target": "roll_bu"
+      },
+      {
+        "id": "e-roll_bu-overrun",
+        "source": "roll_bu",
+        "target": "overrun"
+      },
+      {
+        "id": "e-overrun-ask_cr-over_110_",
+        "source": "overrun",
+        "target": "ask_cr",
+        "label": "Over 110%"
+      },
+      {
+        "id": "e-overrun-done-else",
+        "source": "overrun",
+        "target": "done",
+        "label": "Else"
+      },
+      {
+        "id": "e-ask_cr-end_flag-change_request_raised",
+        "source": "ask_cr",
+        "target": "end_flag",
+        "label": "Change request raised"
+      },
+      {
+        "id": "e-ask_cr-end_flag-spend_will_be_recovered",
+        "source": "ask_cr",
+        "target": "end_flag",
+        "label": "Spend will be recovered"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

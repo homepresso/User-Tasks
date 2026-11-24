@@ -17,18 +17,15 @@ import { loadLocalEnv, missingEnvMessage, missingProviderEnv } from './local-env
 import { loadMigrations } from './db/migrations'
 import { computeStatus, describeTarget, migrate, readApplied, repair } from './db/runner'
 import { connect, decodeSettings, defaultActor, encodeSetting, loadInstanceConfig, notifyConfigChanged, readSettingRows, upsertSettingRow } from './instance'
-import { runRollback, runSwitch } from './switch/engine'
 import { loadCliKeyring } from './kms'
 import { runKms } from './kms-cli'
+import { ROLLUPS_ACTIONS, rpcRollupCall, runRollupsCommand, sqlRollupCall, type RollupsAction } from './rollups-cli'
 import { housekeepingSummary, resolveHousekeepingOption, runHousekeepingCommand, type HousekeepingAction } from './housekeeping-cli'
 import { housekeepingFindings, rpcHousekeeping, sqlHousekeeping } from '@/lib/admin/housekeeping'
 import type { InstanceConfig } from '@/lib/config'
-import { hasSwitchLog, listRecords } from './switch/log'
-import { SWITCH_PLANS } from './switch/plans'
-import type { SwitchOptions } from './switch/types'
-import { serviceSqlClient, NEEDS_DIRECT_REMEDY, type ServiceApiClient } from '@/lib/admin/ops/service-sql'
+import { hasSwitchLog, listRecords } from '@/lib/admin/switch/log'
+import { serviceSqlClient, type ServiceApiClient } from '@/lib/admin/ops/service-sql'
 import type { SqlClient } from '@/lib/admin/ops/instance-db'
-import { DIRECT_ONLY_SWITCH_AREAS } from '@/lib/admin/switch-runtime'
 import { setUiSwitching } from '@/lib/admin/switch/ui-lock'
 
 /**
@@ -49,23 +46,13 @@ Usage:
   usertasks-admin status [--json]
   usertasks-admin providers list [--area <area>] [--on-prem] [--aws] [--azure] [--gcp] [--json]
   usertasks-admin doctor [--area <a,b>] [--read-only] [--email-to <address>] [--json]
-  usertasks-admin switch <area> --to <provider> [--dry-run] [--yes] [--backup-dir <dir>]
-                         [--set <option>=<value>]... [--secret <option>=<value>]... [--no-dump] [--force]
-      database   --target-url <postgres://…> | --target-host <h> [--target-port 5432] --target-database <db> --target-user <u>
-                 [--target-password <pw|secret://name>] (or TARGET_DATABASE_PASSWORD) [--target-sslmode require|verify-full]
-                 [--target-ca <pem file>] [--target-auth password|azure|gcp|aws] [--prepare-only] [--dir <migrations>]
-      auth       [--map google=oidc:google,azure=oidc:entra]
-      storage    [--bucket <name>]... [--prefix <key prefix>] [--overwrite]
-      scheduler  [--base-url <url>] [--no-secrets]
-      email      [--test-to <address>]
-      cache      (validated config: connection, read/write and a rate-limit round trip)
-      kms        [--set aws_kms_key_id=… | --set vault_transit_key=… | …] (re-wraps the data keys)
+  usertasks-admin switch <area> --to <provider> …        (Infrastructure add-on: move a service to another provider)
   usertasks-admin kms status [--json]
   usertasks-admin kms rotate [--activate-in <seconds>] [--yes]
   usertasks-admin kms rewrap [--batch <n>] [--restart] [--dry-run] [--yes]
   usertasks-admin kms rewrap-keys [--force] [--dry-run] [--yes]
   usertasks-admin kms prune [--dry-run] [--yes]
-  usertasks-admin rollback <switch-id> [--dry-run] [--yes] [--backup-dir <dir>]
+  usertasks-admin rollback <switch-id> …                  (Infrastructure add-on: undo a switch or settings change)
   usertasks-admin history [--limit <n>] [--json]
   usertasks-admin instance-admins list | add <email>... | remove <email>...
   usertasks-admin ui-switching status | on | off   (cloud edition: allow provider changes from Settings → Infrastructure)
@@ -79,6 +66,10 @@ Usage:
       enabled true|false · interval_minutes 15|30|60|…|1440 · cron_history_hours 1–2160 (or 12h, 1d)
       http_response_minutes 5–10080 (or 30m, 1h)
   usertasks-admin housekeeping run [--dry-run] [--json]
+  usertasks-admin rollups status [--json]                  (report rollups: coverage, backfill, queued rebuilds)
+  usertasks-admin rollups backfill [--tenant <workspace id>] [--max-seconds <n>]   (resumable)
+  usertasks-admin rollups rebuild --tenant <workspace id> [--from <YYYY-MM-DD> --to <YYYY-MM-DD>]
+  usertasks-admin rollups reconcile [--tenant <workspace id>]
   usertasks-admin bootstrap --email <email> --password <password> --org <name> [--name <full name>]
                             [--api-key <key name>] [--if-missing]
   usertasks-admin setup-code [status]   (first-run /setup code: print a new one, or show whether setup is needed)
@@ -104,7 +95,8 @@ Usage:
 
 Areas: database, auth, storage, realtime, scheduler, email, secrets, cache, kms.
 Global: --db-url <url> (default MIGRATION_DATABASE_URL, then DATABASE_URL), --actor <name>.
-Backups: --backup-dir, else BACKUP_DIR, else ./backups/switches (private: 0700).
+switch and rollback come with the Infrastructure add-on (a paid extension, licensed per deployment): with it in this
+build and licensed, \`usertasks-admin switch --help\` shows their options. Without it the current providers keep running.
 bootstrap and setup-code also read .env.local and .env from the current folder (variables already set win).`
 
 export interface CliIO {
@@ -120,6 +112,8 @@ export const defaultIO: CliIO = {
 }
 
 const OPTIONS = {
+  from: { type: 'string' },
+  'max-seconds': { type: 'string' },
   'dry-run': { type: 'boolean' },
   'include-all': { type: 'boolean' },
   owner: { type: 'string' },
@@ -192,12 +186,11 @@ export type Command =
   | { kind: 'status' }
   | { kind: 'providers' }
   | { kind: 'doctor'; areas: ProviderArea[] }
-  | { kind: 'switch'; area: ProviderArea; options: SwitchOptions }
-  | { kind: 'rollback'; id: string }
   | { kind: 'history' }
   | { kind: 'instance-admins'; action: 'list' | 'add' | 'remove'; emails: string[] }
   | { kind: 'ui-switching'; action: 'status' | 'on' | 'off' }
   | { kind: 'housekeeping'; action: HousekeepingAction; args: string[] }
+  | { kind: 'rollups'; action: RollupsAction }
   | { kind: 'egress'; action: EgressAction; args: string[] }
   | { kind: 'embed'; action: EmbedAction; args: string[] }
   | { kind: 'db'; action: 'migrate' | 'status' | 'repair'; rest: string[] }
@@ -210,23 +203,7 @@ export type Command =
   | { kind: 'licence'; action: LicenceAction; args: string[] }
   | { kind: 'entitlements'; action: EntitlementsAction }
 
-function pairs(list: string[] | undefined, flag: string): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const item of list ?? []) {
-    const eq = item.indexOf('=')
-    if (eq < 1) throw new UsageError(`${flag} expects <option>=<value>, got "${item}"`)
-    const key = item.slice(0, eq).trim()
-    if (!/^[a-z][a-z0-9_]{0,62}$/.test(key)) throw new UsageError(`${flag}: invalid option name "${key}"`)
-    out[key] = item.slice(eq + 1)
-  }
-  return out
-}
-
 export class UsageError extends Error {}
-
-export function backupRoot(values: ParsedValues, env: NodeJS.ProcessEnv): string {
-  return path.resolve(values['backup-dir'] || env.BACKUP_DIR || 'backups/switches')
-}
 
 /** argv → command (throws UsageError). Pure: no I/O. */
 export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.env): { command: Command; values: ParsedValues } {
@@ -254,53 +231,6 @@ export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.en
       })
       return { command: { kind: 'doctor', areas }, values }
     }
-    case 'switch': {
-      const area = parseArea(sub)
-      if (!area) throw new UsageError(sub ? `Unknown area "${sub}". Areas: database, ${PROVIDER_AREAS.filter((a) => a !== 'db').join(', ')}` : 'switch needs an area')
-      if (!values.to) throw new UsageError('switch needs --to <provider>')
-      if (rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
-      const options: SwitchOptions = {
-        to: values.to.trim().toLowerCase(),
-        dryRun: values['dry-run'] === true,
-        yes: values.yes === true,
-        backupRoot: backupRoot(values, env),
-        set: pairs(values.set, '--set'),
-        secret: pairs(values.secret, '--secret'),
-        flags: {
-          'target-url': values['target-url'],
-          'target-host': values['target-host'],
-          'target-port': values['target-port'],
-          'target-database': values['target-database'],
-          'target-user': values['target-user'],
-          // Prefer the environment (or a secret:// reference) over the command line, which `ps` shows.
-          'target-password': values['target-password'] ?? env.TARGET_DATABASE_PASSWORD,
-          'target-sslmode': values['target-sslmode'],
-          'target-ca': values['target-ca'],
-          'target-auth': values['target-auth'],
-          'prepare-only': values['prepare-only'],
-          dir: values.dir,
-          map: values.map,
-          bucket: values.bucket,
-          prefix: values.prefix,
-          overwrite: values.overwrite,
-          columns: values.columns,
-          'base-url': values['base-url'],
-          'no-secrets': values['no-secrets'],
-          'test-to': values['test-to'],
-        },
-        noDump: values['no-dump'] === true,
-        actor: values.actor || defaultActor(),
-        force: values.force === true,
-      }
-      if (area === 'db' && !options.flags['target-url'] && !(options.flags['target-host'] && options.flags['target-database'] && options.flags['target-user'])) {
-        throw new UsageError('switch database needs --target-url <postgres://…> (or --target-host, --target-database and --target-user)')
-      }
-      if (options.flags['target-auth'] && !['password', 'azure', 'gcp', 'aws'].includes(String(options.flags['target-auth']))) throw new UsageError('--target-auth must be password, azure, gcp or aws')
-      return { command: { kind: 'switch', area, options }, values }
-    }
-    case 'rollback':
-      if (!sub) throw new UsageError('rollback needs a switch id (see `usertasks-admin history`)')
-      return { command: { kind: 'rollback', id: sub }, values }
     case 'history':
       if (values.limit && !/^\d+$/.test(values.limit)) throw new UsageError('--limit must be a number')
       return { command: { kind: 'history' }, values }
@@ -316,6 +246,12 @@ export function parseCommand(argv: string[], env: NodeJS.ProcessEnv = process.en
       if (!['status', 'on', 'off'].includes(action)) throw new UsageError(`Unknown command: ui-switching ${sub}`)
       if (rest.length) throw new UsageError(`Unexpected argument: ${rest[0]}`)
       return { command: { kind: 'ui-switching', action }, values }
+    }
+    case 'rollups': {
+      const action = (sub ?? 'status') as RollupsAction
+      if (!ROLLUPS_ACTIONS.includes(action)) throw new UsageError(`Unknown command: rollups ${sub}`)
+      if (values['max-seconds'] !== undefined && !(Number(values['max-seconds']) > 0)) throw new UsageError('--max-seconds must be a positive number')
+      return { command: { kind: 'rollups', action }, values }
     }
     case 'egress': {
       const action = (sub ?? 'show') as EgressAction
@@ -462,6 +398,8 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
     const { runInstallCommand } = await import('./install-cli')
     return runInstallCommand(argv.slice(1), io)
   }
+  // switch / rollback: the Infrastructure add-on's commands (their own flags), licence-checked here first.
+  if (argv[0] === 'switch' || argv[0] === 'rollback') return runAddonCommand(argv[0], argv.slice(1), io)
   let command: Command
   let values: ParsedValues
   try {
@@ -554,31 +492,6 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
         return report.ok ? 0 : 1
       }, io.err)
 
-    case 'switch': {
-      if (!url && DIRECT_ONLY_SWITCH_AREAS.includes(command.area)) {
-        io.err(`Switching ${areaName(command.area)} copies data and needs a direct connection: set DATABASE_URL (or --db-url). On Supabase: ${NEEDS_DIRECT_REMEDY.replace(/^add /, 'use ')}.`)
-        return 2
-      }
-      const plan = SWITCH_PLANS[command.area]
-      const code = await withStore(url, io, async (db, dbUrl, viaApi) => {
-        if (viaApi) io.err('No DATABASE_URL: switching through the Supabase service-role API (configuration only).')
-        const result = await runSwitch({ db, dbUrl, area: command.area, plan, options: command.options, io: { log: io.out, warn: io.err } })
-        return result.code
-      })
-      return code ?? needDb(NO_STORE)
-    }
-
-    case 'rollback': {
-      const code = await withStore(url, io, async (db, dbUrl) => {
-        const result = await runRollback({
-          db, dbUrl, id: command.id, plans: SWITCH_PLANS, yes: values.yes === true, dryRun: values['dry-run'] === true,
-          backupRoot: backupRoot(values, io.env), actor: values.actor || defaultActor(), io: { log: io.out, warn: io.err },
-        }).catch((error: Error) => { io.err(error.message); return { code: 1 as const } })
-        return result.code
-      })
-      return code ?? needDb(NO_STORE)
-    }
-
     case 'history': {
       const code = await withStore(url, io, async (db) => {
         if (!(await hasSwitchLog(db))) { io.err('No switch log in this database (apply the migrations: usertasks-admin db migrate).'); return 1 }
@@ -650,6 +563,14 @@ export async function run(argv: string[], io: CliIO = defaultIO): Promise<number
     case 'embed': {
       const code = await withStore(url, io, (db) => runEmbedCommand(command.action, command.args, db, io, { json: values.json, all: values.all }))
       return code ?? needDb('read and write instance settings')
+    }
+
+    case 'rollups': {
+      const opts = { tenant: values.tenant, from: values.from, to: values.to, maxSeconds: values['max-seconds'] ? Number(values['max-seconds']) : undefined, json: values.json }
+      if (url) return withDb(url, (db) => runRollupsCommand(command.action, sqlRollupCall(db!), opts, io), io.err)
+      const api = await supabaseApi(io)
+      if (!api) return needDb('reach the app database')
+      return runRollupsCommand(command.action, rpcRollupCall(api.rpc), opts, io)
     }
 
     case 'housekeeping':
@@ -795,6 +716,61 @@ async function runExt(action: 'migrate' | 'status', values: ParsedValues, url: s
  * (never overriding what's set), then say plainly what's missing — the
  * usual cause is running from another folder.
  */
+/** --db-url / --actor from an add-on command's arguments (the add-on parses the rest). */
+export function globalFlags(argv: string[]): { dbUrl?: string; actor?: string } {
+  const out: { dbUrl?: string; actor?: string } = {}
+  for (let i = 0; i < argv.length; i++) {
+    const eq = argv[i].indexOf('=')
+    const flag = eq > 0 ? argv[i].slice(0, eq) : argv[i]
+    const value = eq > 0 ? argv[i].slice(eq + 1) : argv[i + 1]
+    if (flag === '--db-url' && value) out.dbUrl = value
+    if (flag === '--actor' && value) out.actor = value
+  }
+  return out
+}
+
+export const ADDON_CLI_MISSING = (name: string) =>
+  `usertasks-admin ${name} is part of the Infrastructure add-on, a paid extension that is not in this build. ` +
+  'This instance keeps running on its current providers without it (status, doctor and history work as before). ' +
+  'To change providers: get the add-on and a licence (Settings → Extensions and Settings → Licence, or usertasks-admin licence install <file>), ' +
+  'then run this command from a build that includes it.'
+
+/**
+ * `usertasks-admin switch|rollback`: run by the Infrastructure add-on when
+ * this build includes it and the instance has a licence for
+ * infrastructure-separation (the licences installed in the database and
+ * USERTASKS_LICENCE[_FILE], checked offline; an expired licence works for 24
+ * hours, then changes stop). Otherwise a clear refusal (exit 2).
+ */
+export async function runAddonCommand(name: 'switch' | 'rollback', argv: string[], io: CliIO): Promise<number> {
+  const { getServerExtensions } = await import('@/lib/extensions/server-registry')
+  const ext = getServerExtensions().find((s) => s.infrastructure?.cli?.[name])
+  if (!ext) { io.err(ADDON_CLI_MISSING(name)); return 2 }
+  const command = ext.infrastructure!.cli![name]
+  const flags = globalFlags(argv)
+  const url = flags.dbUrl || io.env.MIGRATION_DATABASE_URL || io.env.DATABASE_URL
+  const withAddonStore = <T,>(fn: (db: SqlClient, dbUrl: string, viaApi: boolean) => Promise<T>) => withStore(url, io, fn)
+  if (argv.includes('--help') || argv.includes('-h')) { io.out(command.usage); return 0 }
+  const refusal = await withAddonStore(async (db) => {
+    const { LICENCES_SETTING, envLicences, storedLicences } = await import('@/lib/licensing/store')
+    const { instanceHostnames } = await import('@/lib/licensing/instance')
+    const { infrastructureDecision } = await import('@/lib/infrastructure/licence-gate')
+    const { licensingDeps } = await import('@/lib/licensing/service')
+    const store = sqlLicenceStore(db)
+    const stored = storedLicences(await store.readSetting(LICENCES_SETTING)).map((raw) => ({ source: 'setting' as const, raw }))
+    const instanceId = await store.readSetting('instance.id')
+    const decision = infrastructureDecision([...stored, ...(await envLicences({ env: io.env }))], {
+      instanceId: typeof instanceId === 'string' ? instanceId : null, hostnames: instanceHostnames(io.env.APP_URL),
+    }, licensingDeps.now(), licensingDeps.keyring())
+    if (!decision.allowed) return `usertasks-admin ${name} needs a licence for the Infrastructure add-on: ${decision.reason ?? 'not licensed'} The current providers keep running.`
+    if (decision.reason) io.err(`warning: ${decision.reason}`)
+    return ''
+  })
+  if (refusal === null) { io.err(`Set DATABASE_URL (or --db-url) to ${NO_STORE}.`); return 2 }
+  if (refusal) { io.err(refusal); return 2 }
+  return command.run({ argv, io, withStore: withAddonStore, actor: flags.actor || defaultActor() })
+}
+
 export function providerEnvReady(io: CliIO, dir: string = process.cwd()): boolean {
   const loaded = loadLocalEnv(dir, io.env)
   const missing = missingProviderEnv(io.env)

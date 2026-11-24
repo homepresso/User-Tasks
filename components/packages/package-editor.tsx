@@ -26,10 +26,11 @@ import { createPackageAction, previewPackageAction, updatePackageAction } from '
 import { addToDraft, dependenciesToLeaveOut, filterContents, membershipIndex, refKey, type AssetRefLike, type Membership } from '@/lib/packages/asset-picker'
 import { AssetPicker, TYPE_ICON } from './asset-picker'
 import { Modal } from './requirements-form'
+import { TagInput } from '@/components/ui/tag-input'
 import type { PackageItemInput } from '@/lib/services/packages'
 
 type Ref = { type: string; id: string }
-type Pkg = { id: string; name: string; description: string | null; readme: string | null; roots: Ref[]; items: Ref[]; excluded: Ref[]; data_modes: Record<string, string> }
+type Pkg = { id: string; name: string; description: string | null; readme: string | null; roots: Ref[]; items: Ref[]; excluded: Ref[]; data_modes: Record<string, string>; tags?: string[] }
 
 const key = refKey
 /** Show the filter above the package's own list from this many items. */
@@ -40,6 +41,7 @@ export function PackageEditor({ open, pkg, onOpenChange, onSaved }: { open: bool
   const [name, setName] = useState(pkg?.name ?? '')
   const [description, setDescription] = useState(pkg?.description ?? '')
   const [readme, setReadme] = useState(pkg?.readme ?? '')
+  const [tags, setTags] = useState<string[]>(pkg?.tags ?? [])
   const [roots, setRoots] = useState<Ref[]>(pkg?.roots ?? [])
   const [items, setItems] = useState<Ref[]>(pkg?.items ?? [])
   const [excluded, setExcluded] = useState<Ref[]>(pkg?.excluded ?? [])
@@ -98,7 +100,7 @@ export function PackageEditor({ open, pkg, onOpenChange, onSaved }: { open: bool
     await saveGuard.run(async () => {
       setBusy(true)
       setError(null)
-      const input = { name, description: description || null, readme: readme || null, roots: roots as PackageItemInput[], items: items as PackageItemInput[], excluded: excluded as PackageItemInput[], data_modes: dataModes }
+      const input = { name, description: description || null, readme: readme || null, roots: roots as PackageItemInput[], items: items as PackageItemInput[], excluded: excluded as PackageItemInput[], data_modes: dataModes, tags }
       const result = pkg ? await updatePackageAction(pkg.id, input) : await createPackageAction(input)
       setBusy(false)
       if (!result.ok) { setError(result.error); return }
@@ -132,6 +134,7 @@ export function PackageEditor({ open, pkg, onOpenChange, onSaved }: { open: bool
       <div className="mb-5 grid gap-4 sm:grid-cols-2">
         <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Invoice approval" data-testid="package-name" /></Field>
         <Field label="Description" optional><Input value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
+        <Field label="Tags" optional className="sm:col-span-2"><TagInput value={tags} onChange={setTags} listInline aria-label="Tags" /></Field>
         <Field label="Readme" optional description="Markdown, shown before install." className="sm:col-span-2">
           <Textarea rows={3} value={readme} onChange={(e) => setReadme(e.target.value)} />
         </Field>

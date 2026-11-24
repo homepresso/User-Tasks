@@ -1,0 +1,91 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "5d583110-8550-541c-a3b9-2dc8357ff4a6",
+  "asset": {
+    "id": "5d583110-8550-541c-a3b9-2dc8357ff4a6",
+    "name": "Skills framework rows",
+    "rows": [
+      {
+        "id": "d7ace956-11cc-5030-92b9-4172e74cd658",
+        "data": {
+          "skill": "Communication",
+          "category": "Collaboration",
+          "description": "Shares ideas clearly in writing and in person, and adapts to the audience."
+        }
+      },
+      {
+        "id": "4365fc5f-0801-59d7-b765-e80dd77d0456",
+        "data": {
+          "skill": "Customer focus",
+          "category": "Customer",
+          "description": "Understands customer problems and uses them to shape the work."
+        }
+      },
+      {
+        "id": "b6f6eb06-e6c4-511e-b036-85f4df353d06",
+        "data": {
+          "skill": "Problem solving",
+          "category": "Craft",
+          "description": "Breaks down ambiguous problems and finds simple, durable solutions."
+        }
+      },
+      {
+        "id": "914018e0-a75e-5e24-8ffd-7004122c164b",
+        "data": {
+          "skill": "Technical depth",
+          "category": "Craft",
+          "description": "Deep knowledge of the tools and practices of the discipline."
+        }
+      },
+      {
+        "id": "1a43f49a-739d-542e-a679-e77cd66f329d",
+        "data": {
+          "skill": "Collaboration",
+          "category": "Collaboration",
+          "description": "Works across teams, gives and asks for help, shares credit."
+        }
+      },
+      {
+        "id": "8fd48bdc-db6b-596a-9847-0136765ad51a",
+        "data": {
+          "skill": "Ownership",
+          "category": "Leadership",
+          "description": "Takes responsibility for outcomes and follows through."
+        }
+      },
+      {
+        "id": "d337a9eb-1205-5383-80e2-77326b837b61",
+        "data": {
+          "skill": "Coaching",
+          "category": "Leadership",
+          "description": "Helps others grow through feedback, mentoring and delegation."
+        }
+      },
+      {
+        "id": "cf050353-645b-582b-94f7-5a86b0a87b16",
+        "data": {
+          "skill": "Data literacy",
+          "category": "Craft",
+          "description": "Reads, questions and uses data to make decisions."
+        }
+      },
+      {
+        "id": "c7d8581e-01fd-5876-8d09-56888c781c3c",
+        "data": {
+          "skill": "Planning and prioritising",
+          "category": "Leadership",
+          "description": "Plans work, sets priorities and says no to the right things."
+        }
+      },
+      {
+        "id": "3006c0da-e8ba-59d7-ab5b-9e8042de0d32",
+        "data": {
+          "skill": "Inclusion",
+          "category": "Collaboration",
+          "description": "Makes space for different perspectives and backgrounds."
+        }
+      }
+    ]
+  }
+}

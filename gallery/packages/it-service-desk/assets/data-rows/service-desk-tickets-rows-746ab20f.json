@@ -1,0 +1,221 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "746ab20f-5436-50e7-b277-19c420b69652",
+  "asset": {
+    "id": "746ab20f-5436-50e7-b277-19c420b69652",
+    "name": "Service desk tickets rows",
+    "rows": [
+      {
+        "id": "1bcdd424-9a03-50ac-bf7c-8246fb53f5a8",
+        "data": {
+          "ticket_ref": "INC-10231",
+          "title": "Laptop will not charge",
+          "requester": "Maya Patel",
+          "category": "Hardware",
+          "priority": "P3 · Normal",
+          "status": "Resolved",
+          "agent": "Sam Torres",
+          "opened_on": "2026-10-28",
+          "sla_state": "Met",
+          "resolution": "Replaced the charger."
+        }
+      },
+      {
+        "id": "13896b7a-8406-515e-b59d-091e07a383d1",
+        "data": {
+          "ticket_ref": "INC-10236",
+          "title": "Cannot connect to VPN from home",
+          "requester": "Liam Chen",
+          "category": "Network & VPN",
+          "priority": "P2 · High",
+          "status": "Resolved",
+          "agent": "Priya Raman",
+          "opened_on": "2026-10-30",
+          "sla_state": "Met",
+          "resolution": "Reissued the VPN certificate."
+        }
+      },
+      {
+        "id": "e811a712-82d5-5b70-ba83-4355215effe9",
+        "data": {
+          "ticket_ref": "INC-10240",
+          "title": "Access to the finance shared drive",
+          "requester": "Noah Fischer",
+          "category": "Access & accounts",
+          "priority": "P3 · Normal",
+          "status": "Resolved",
+          "agent": "Sam Torres",
+          "opened_on": "2026-11-02",
+          "sla_state": "Met",
+          "resolution": "Added to the Finance group."
+        }
+      },
+      {
+        "id": "ca21c31e-aea8-5d4d-9a9f-c1a3612a7fb8",
+        "data": {
+          "ticket_ref": "INC-10244",
+          "title": "Outlook keeps asking for my password",
+          "requester": "Grace Kim",
+          "category": "Email & calendar",
+          "priority": "P3 · Normal",
+          "status": "Resolved",
+          "agent": "Priya Raman",
+          "opened_on": "2026-11-04",
+          "sla_state": "Breached",
+          "resolution": "Cleared cached credentials."
+        }
+      },
+      {
+        "id": "2e9a0cc1-460b-58ff-95e8-7349314c8713",
+        "data": {
+          "ticket_ref": "INC-10249",
+          "title": "Third-floor printer jams on every job",
+          "requester": "Amara Nwosu",
+          "category": "Printing",
+          "priority": "P4 · Low",
+          "status": "In progress",
+          "agent": "Sam Torres",
+          "opened_on": "2026-11-09",
+          "sla_state": "On track",
+          "resolution": ""
+        }
+      },
+      {
+        "id": "892ae4f6-58c2-579f-bccd-e1d04346caaa",
+        "data": {
+          "ticket_ref": "INC-10252",
+          "title": "Design app licence expired",
+          "requester": "Sofia Lindqvist",
+          "category": "Software",
+          "priority": "P2 · High",
+          "status": "In progress",
+          "agent": "Priya Raman",
+          "opened_on": "2026-11-12",
+          "sla_state": "At risk",
+          "resolution": ""
+        }
+      },
+      {
+        "id": "742710a9-f9b9-5e46-91e8-b3caaf5efb21",
+        "data": {
+          "ticket_ref": "INC-10255",
+          "title": "New monitor for a hot desk",
+          "requester": "Daniel Okafor",
+          "category": "Hardware",
+          "priority": "P4 · Low",
+          "status": "New",
+          "agent": "",
+          "opened_on": "2026-11-14",
+          "sla_state": "On track",
+          "resolution": ""
+        }
+      },
+      {
+        "id": "dd259931-cdfa-5348-b920-4d97a21f0fd2",
+        "data": {
+          "ticket_ref": "INC-10257",
+          "title": "Wi-Fi drops in meeting room B",
+          "requester": "Maya Patel",
+          "category": "Network & VPN",
+          "priority": "P2 · High",
+          "status": "Waiting on requester",
+          "agent": "Jonas Berg",
+          "opened_on": "2026-11-15",
+          "sla_state": "At risk",
+          "resolution": ""
+        }
+      },
+      {
+        "id": "eb1d3aea-8d30-5d1c-9241-719fcc77b52f",
+        "data": {
+          "ticket_ref": "INC-10260",
+          "title": "Reset multi-factor authentication",
+          "requester": "Liam Chen",
+          "category": "Access & accounts",
+          "priority": "P1 · Critical",
+          "status": "Resolved",
+          "agent": "Jonas Berg",
+          "opened_on": "2026-11-16",
+          "sla_state": "Met",
+          "resolution": "New authenticator enrolled."
+        }
+      },
+      {
+        "id": "b9e7e4d7-9572-5c1a-bf2c-135046ebd2ec",
+        "data": {
+          "ticket_ref": "INC-10262",
+          "title": "Shared calendar not syncing",
+          "requester": "Grace Kim",
+          "category": "Email & calendar",
+          "priority": "P3 · Normal",
+          "status": "In progress",
+          "agent": "Jonas Berg",
+          "opened_on": "2026-11-17",
+          "sla_state": "Breached",
+          "resolution": ""
+        }
+      },
+      {
+        "id": "9c667af4-2ed6-5678-85fb-bf9d58926147",
+        "data": {
+          "ticket_ref": "INC-10265",
+          "title": "Install data analysis add-in",
+          "requester": "Noah Fischer",
+          "category": "Software",
+          "priority": "P3 · Normal",
+          "status": "New",
+          "agent": "",
+          "opened_on": "2026-11-18",
+          "sla_state": "On track",
+          "resolution": ""
+        }
+      },
+      {
+        "id": "d56919c7-1f72-583b-bcea-a6ddc2a48bf9",
+        "data": {
+          "ticket_ref": "INC-10268",
+          "title": "Badge reader rejects my card",
+          "requester": "Amara Nwosu",
+          "category": "Access & accounts",
+          "priority": "P2 · High",
+          "status": "New",
+          "agent": "",
+          "opened_on": "2026-11-19",
+          "sla_state": "On track",
+          "resolution": ""
+        }
+      },
+      {
+        "id": "2f5b7ce1-df47-5a62-bcf9-78ead1146e48",
+        "data": {
+          "ticket_ref": "INC-10270",
+          "title": "Keyboard missing keys",
+          "requester": "Daniel Okafor",
+          "category": "Hardware",
+          "priority": "P4 · Low",
+          "status": "Resolved",
+          "agent": "Sam Torres",
+          "opened_on": "2026-11-19",
+          "sla_state": "Met",
+          "resolution": "Swapped from stock."
+        }
+      },
+      {
+        "id": "3d9dfa53-aff1-5448-a0d0-8a31bf93bd38",
+        "data": {
+          "ticket_ref": "INC-10273",
+          "title": "Mail delivery delayed for the whole team",
+          "requester": "Sofia Lindqvist",
+          "category": "Email & calendar",
+          "priority": "P1 · Critical",
+          "status": "In progress",
+          "agent": "Priya Raman",
+          "opened_on": "2026-11-20",
+          "sla_state": "At risk",
+          "resolution": ""
+        }
+      }
+    ]
+  }
+}

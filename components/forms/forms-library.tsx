@@ -19,11 +19,12 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PageHeader } from '@/components/ui/page-header'
 import { Tabs } from '@/components/ui/tabs'
 import { Tag } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { TagChip } from '@/components/ui/tag-chip'
 import { Table, TBody, TD, TH, THead, TR, TableSkeleton } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ExportAssetDialog, useImportConfig } from '@/components/shared/config-transfer'
 import { InfoPathImportDialog } from './infopath-import-dialog'
+import { PdfImportDialog } from '@/components/importers/pdf-import-dialog'
 import { ExtensionImporterMenuItems, ImporterDialog, type ResolvedImporter } from '@/components/extensions/importers'
 import { usePermissions } from '@/lib/permissions-context'
 import { serverRead } from '@/lib/server-read'
@@ -42,6 +43,8 @@ import { publicFormPageUrl } from '@/lib/forms/form-page-url'
 import { AVAILABLE_FORMS_QUERY_KEY } from '@/lib/forms/available-forms'
 import { FormAccessSections, FormDetailsEditor } from './form-details-editor'
 import { FilterMenu, FormDetailsSheet, RelativeDate, THEME_SOURCE_LABELS, type FormListItem } from './forms-library-parts'
+import { ObjectTagsDialog } from '@/components/ui/object-tags-dialog'
+import { Tag as TagIcon } from 'lucide-react'
 
 /**
  * Forms library (Automations → Forms): reusable task forms — list, search,
@@ -78,6 +81,7 @@ export function FormsLibrary() {
   const [tab, setTab] = useState<'forms' | 'themes'>('forms')
   const [search, setSearch] = useState('')
   const [tags, setTags] = useState<string[]>([])
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[] }>(null)
   const [themeFilter, setThemeFilter] = useState<string[]>([])
   const [useFilter, setUseFilter] = useState<string[]>([])
   const [notice, setNotice] = useState<{ tone: 'error' | 'success'; message: string } | null>(null)
@@ -159,12 +163,18 @@ export function FormsLibrary() {
   const importConfig = useImportConfig({ onImported: () => void refresh() })
   const [infoPathOpen, setInfoPathOpen] = useState(false)
   const [infoPathFile, setInfoPathFile] = useState<File | null>(null)
+  const [pdfOpen, setPdfOpen] = useState(false)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
   // Importers contributed by extensions (e.g. SharePoint form libraries), listed under the core ones.
   const [extImporter, setExtImporter] = useState<ResolvedImporter | null>(null)
   useEffect(() => {
     // From the public "Migrate from InfoPath" page: open the importer with the file kept in this browser (if any).
     if (searchParams.get('import') === 'infopath' && canEdit) {
       void import('@/lib/infopath/pending-file').then(({ takePendingInfoPath }) => takePendingInfoPath()).then((file) => { setInfoPathFile(file); setInfoPathOpen(true) })
+    }
+    // From the public "Try a PDF form" preview: the PDF importer with the file kept in this browser (if any).
+    if (searchParams.get('import') === 'pdf' && canEdit) {
+      void import('@/lib/infopath/pending-file').then(({ takePendingInfoPath }) => takePendingInfoPath()).then((file) => { setPdfFile(file && /\.pdf$/i.test(file.name) ? file : null); setPdfOpen(true) })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a link opens it once
   }, [searchParams])
@@ -180,11 +190,14 @@ export function FormsLibrary() {
           <Button size="sm" variant="secondary" leadingIcon={<Upload />} trailingIcon={<ChevronDown />} data-testid="import-menu">Import</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => importConfig.pick()} data-testid="import-usertasks">
-            <FileJson className="size-4" aria-hidden /> UserTasks form (.json / package)
+          <DropdownMenuItem onSelect={() => importConfig.pick()} data-testid="import-usertasks" icon={<FileJson />}>
+            UserTasks form (.json / package)
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setInfoPathOpen(true)} data-testid="import-infopath">
-            <FileCode2 className="size-4" aria-hidden /> InfoPath form (.xsn)
+          <DropdownMenuItem onSelect={() => setInfoPathOpen(true)} data-testid="import-infopath" icon={<FileCode2 />}>
+            InfoPath form (.xsn)
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setPdfOpen(true)} data-testid="import-pdf" icon={<FileText />}>
+            PDF form (.pdf)
           </DropdownMenuItem>
           <ExtensionImporterMenuItems produces="form" onPick={setExtImporter} />
         </DropdownMenuContent>
@@ -208,6 +221,7 @@ export function FormsLibrary() {
 
       {importConfig.element}
       {extImporter && <ImporterDialog importer={extImporter} open onOpenChange={(o) => { if (!o) setExtImporter(null) }} onImported={() => void refresh()} />}
+      <PdfImportDialog open={pdfOpen} onOpenChange={(o) => { setPdfOpen(o); if (!o) setPdfFile(null) }} initialFile={pdfFile} onImported={() => void refresh()} />
       <InfoPathImportDialog open={infoPathOpen} onOpenChange={(o) => { setInfoPathOpen(o); if (!o) setInfoPathFile(null) }} initialFile={infoPathFile} onImported={() => void refresh()} />
       {notice && <div className="mb-4"><InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} /></div>}
 
@@ -265,11 +279,9 @@ export function FormsLibrary() {
                         <div className="flex min-w-0 flex-wrap items-center gap-1">
                           {/* A tag filters the list by it (click again to clear). */}
                           {form.tags.slice(0, 3).map((t) => (
-                            <button key={t} type="button" onClick={() => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))}
-                              aria-pressed={tags.includes(t)} title={tags.includes(t) ? `Stop filtering by ${t}` : `Show forms tagged ${t}`}
-                              className="max-w-full rounded-sm">
-                              <Tag className={cn('max-w-[10rem] truncate', tags.includes(t) && 'text-primary-text')}>{t}</Tag>
-                            </button>
+                            <TagChip key={t} name={t} size="xs" maxWidthClass="max-w-[10rem]" selected={tags.includes(t)}
+                              title={tags.includes(t) ? `Stop filtering by ${t}` : `Show forms tagged ${t}`}
+                              onClick={() => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]))} />
                           ))}
                           {form.tags.length > 3 && <span className="text-2xs text-fg-subtle" title={form.tags.slice(3).join(', ')}>+{form.tags.length - 3}</span>}
                         </div>
@@ -287,7 +299,7 @@ export function FormsLibrary() {
                           {/* The designer page (a link: ⌘-click opens it in a new tab). */}
                           <Link href={formDesignerHref(form.id)} data-testid="edit-form">{canEdit ? 'Edit' : 'View'}</Link>
                         </Button>
-                        <FormRowMenu form={form} canSubmit={canSubmit} canEdit={canEdit} canDelete={canDelete}
+                        <FormRowMenu form={form} canSubmit={canSubmit} canEdit={canEdit} canDelete={canDelete} onTags={() => setTagsTarget({ id: form.id, name: form.name, tags: form.tags })}
                           onCopyLink={() => void copyLink(form)} onQr={() => setQrOf(form)} onSubmissions={() => setSubmissionsOf(form)}
                           onDuplicate={() => void duplicate(form)} onSettings={() => setDetails(form)} onDetails={() => setSheetOf(form)}
                           onExport={() => setExportOf(form)} onDelete={() => setConfirmDelete(form)} />
@@ -362,16 +374,20 @@ export function FormsLibrary() {
           await refresh()
         }}
       />
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="forms" id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['forms-library']]} />
+      )}
     </div>
   )
 }
 
 /** A row's overflow menu: everything but Open and Edit. */
-function FormRowMenu({ form, canSubmit, canEdit, canDelete, onCopyLink, onQr, onSubmissions, onDuplicate, onSettings, onDetails, onExport, onDelete }: {
+function FormRowMenu({ form, canSubmit, canEdit, canDelete, onCopyLink, onQr, onSubmissions, onDuplicate, onSettings, onDetails, onExport, onDelete, onTags }: {
   form: FormListItem
   canSubmit: boolean; canEdit: boolean; canDelete: boolean
   onCopyLink: () => void; onQr: () => void; onSubmissions: () => void; onDuplicate: () => void
-  onSettings: () => void; onDetails: () => void; onExport: () => void; onDelete: () => void
+  onSettings: () => void; onDetails: () => void; onExport: () => void; onDelete: () => void; onTags: () => void
 }) {
   return (
     <DropdownMenu>
@@ -385,6 +401,7 @@ function FormRowMenu({ form, canSubmit, canEdit, canDelete, onCopyLink, onQr, on
         {canSubmit && <DropdownMenuItem icon={<Inbox />} onSelect={onSubmissions} data-testid="form-submissions-button">Submissions</DropdownMenuItem>}
         {canEdit && <DropdownMenuItem icon={<Copy />} onSelect={onDuplicate}>Duplicate</DropdownMenuItem>}
         {canEdit && <DropdownMenuItem icon={<Settings2 />} onSelect={onSettings} data-testid="form-details-button">Settings</DropdownMenuItem>}
+        <DropdownMenuItem icon={<TagIcon />} onSelect={onTags} data-form-tags-button>Tags…</DropdownMenuItem>
         <DropdownMenuItem icon={<Download />} onSelect={onExport} data-testid="export-asset">Export…</DropdownMenuItem>
         {/* Actions contributed by extensions for forms. */}
         <ExtensionMenuItems objectType="form" items={[form as unknown as Record<string, unknown>]} />

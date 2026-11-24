@@ -1,10 +1,10 @@
 'use client'
 
 import { ExtensionToolbarActions } from '@/components/extensions/item-actions'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { insertRow, deleteRow } from '@/app/actions/data-store'
-import { getGridViews, gridOptions, writeGridCells, writeGridRows } from '@/app/actions/data-grid'
+import { getGridViews, gridOptions, saveGridViews, writeGridCells, writeGridRows } from '@/app/actions/data-grid'
 import { bulkDeleteWithJob, useJobs } from '@/components/jobs/jobs-provider'
 import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
@@ -21,10 +21,10 @@ import { TableEmpty, tdClass, thClass, trClass } from '@/components/ui/table'
 import {
   Plus, Trash2, Upload, FileText, ExternalLink, Loader2, Check, X,
   PanelRightOpen, ArrowUp, ArrowDown, Type, Hash, Calendar, ToggleLeft,
-  List, Paperclip, AlignLeft, Link2, Columns3, Lock, Settings2, ChevronLeft, ChevronRight, PencilLine,
+  List, Paperclip, AlignLeft, Link2, Columns3, Lock, Settings2, ChevronLeft, ChevronRight, PencilLine, ChevronDown, ChevronsDownUp, ChevronsUpDown,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RowDetailDrawer, uploadRowFile } from './row-detail-drawer'
 import { AddRowSheet } from './add-row-sheet'
 import { GridViewSettings } from './grid-view-settings'
@@ -51,6 +51,21 @@ import { normalizePeopleValue } from '@/lib/forms/people-field'
 import { useEditAll } from '@/components/grid/use-edit-all'
 import { EDIT_ALL_CHANGED_WASH, EDIT_ALL_FIELD, EDIT_ALL_READONLY, EditAllBar } from '@/components/grid/edit-all-bar'
 import { useLeaveGuard } from '@/hooks/use-leave-guard'
+import { ChildRecords, ChildToggle, type ChildExpandState, type RelationWithName } from './child-records'
+import {
+  GROUPABLE_TYPES, GROUPING_LIMITS, expandStateKey, groupFilters, groupId, groupLabel, normalizeGroupBy, parseExpandState, rootsOnlyFilter,
+  type ChildRelation, type GroupNode,
+} from '@/lib/grid/grouping'
+
+/** A line of a grouped grid: a group header, a row, or a group's "show more" / loading line. */
+type GroupItem =
+  | { kind: 'group'; id: string; path: Array<string | null>; level: number; node: GroupNode; open: boolean }
+  | { kind: 'row'; row: DataRow }
+  | { kind: 'more'; id: string; shown: number; total: number; level: number }
+  | { kind: 'loading'; id: string; level: number }
+
+/** Leaf groups "Expand all" opens at most (each loads its rows). */
+const EXPAND_ALL_LEAVES = 50
 
 interface UserRef {
   id: string
@@ -145,7 +160,9 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
   const refreshRows = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['custom-table-rows', tableId] })
     queryClient.invalidateQueries({ queryKey: ['binding-table', tableId] })
+    queryClient.invalidateQueries({ queryKey: ['data-child-counts'] })
   }, [queryClient, tableId])
+  const { userId } = usePermissions()
   const [newRow, setNewRow] = useState<Record<string, any>>({})
   const [inlineAdd, setInlineAdd] = useState(false)
   const [sheetAdd, setSheetAdd] = useState(false)
@@ -188,7 +205,7 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
   }, [tableId])
   const view = useMemo(() => pickView(views, viewId, tableColumns), [views, viewId, tableColumns])
   const chooseView = (id: string) => {
-    setViewId(id); setPage(1); setEditing(null)
+    setViewId(id); setPage(1); setEditing(null); setGroupOverride(null)
     if (ea.current()) ea.stop()
     try { localStorage.setItem(`ut-data-view:${tableId}`, id) } catch { /* private mode */ }
   }
@@ -199,25 +216,213 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
   const canAdd = can('data.manage_rows') && (!saved || view.allow_add === true)
   const canDelete = can('data.manage_rows') && (!saved || view.allow_delete === true)
 
+  /* ── Grouping (lib/grid/grouping.ts): by up to two columns, counted over the whole filtered result on the server ── */
+  const [groupOverride, setGroupOverride] = useState<string[] | null>(null)
+  const groupableCols = useMemo(() => tableColumns.filter((c) => GROUPABLE_TYPES.has(c.type)), [tableColumns])
+  const groupBy = useMemo(() => normalizeGroupBy(groupOverride ?? view.group_by ?? [], new Set(groupableCols.map((c) => c.key))), [groupOverride, view.group_by, groupableCols])
+  const groupKey = groupBy.join(',')
+  const grouped = groupBy.length > 0
+  const [groupNotice, setGroupNotice] = useState<string | null>(null)
+
+  // Child records (custom_tables.child_relations): a same-table hierarchy may list only its top-level rows.
+  const { data: relationData } = useQuery({
+    queryKey: ['data-child-relations', tableId],
+    staleTime: 30_000,
+    queryFn: async () => ((await serverRead('data.childRelations', { tableId })).data ?? { relations: [], available: false }) as { relations: ChildRelation[]; available: boolean },
+  })
+  const rootFilters = useMemo(() => rootsOnlyFilter(relationData?.relations ?? [], tableId, columns), [relationData, tableId, columns])
+  const rootKey = JSON.stringify(rootFilters)
+
+  // Expand / collapse state, per user per view (localStorage).
+  const groupStateKey = expandStateKey('groups', tableId, view.id, userId)
+  const childStateKey = expandStateKey('children', tableId, view.id, userId)
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set())
+  const [openChildren, setOpenChildren] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    try { setOpenGroups(new Set(parseExpandState(localStorage.getItem(groupStateKey)))) } catch { setOpenGroups(new Set()) }
+  }, [groupStateKey])
+  useEffect(() => {
+    try { setOpenChildren(new Set(parseExpandState(localStorage.getItem(childStateKey)))) } catch { setOpenChildren(new Set()) }
+  }, [childStateKey])
+  const persistGroups = useCallback((next: Set<string>) => {
+    setOpenGroups(next)
+    try { localStorage.setItem(groupStateKey, JSON.stringify([...next].slice(-500))) } catch { /* private mode */ }
+  }, [groupStateKey])
+  const childExpand = useMemo<ChildExpandState>(() => ({
+    isOpen: (key) => openChildren.has(key),
+    toggle: (key) => setOpenChildren((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      try { localStorage.setItem(childStateKey, JSON.stringify([...next].slice(-500))) } catch { /* private mode */ }
+      return next
+    }),
+  }), [openChildren, childStateKey])
+
   // Rows: one page from the server (search debounced).
   useEffect(() => {
     const t = setTimeout(() => { setSearch(searchText.trim()); setPage(1) }, 300)
     return () => clearTimeout(t)
   }, [searchText])
-  const { data: pageData, isFetching } = useQuery({
-    queryKey: ['custom-table-rows', tableId, page, pageSize, search, sortCol, sortDir],
+  const { data: pageData, isFetching: pageFetching } = useQuery({
+    queryKey: ['custom-table-rows', tableId, page, pageSize, search, sortCol, sortDir, rootKey],
+    enabled: !grouped,
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const { data, error } = await serverRead('data.rowPage', { tableId, limit: pageSize, offset: (page - 1) * pageSize, search: search || undefined, sort: sortCol ?? undefined, dir: sortCol ? sortDir : undefined })
+      const { data, error } = await serverRead('data.rowPage', { tableId, limit: pageSize, offset: (page - 1) * pageSize, search: search || undefined, sort: sortCol ?? undefined, dir: sortCol ? sortDir : undefined, filters: rootFilters.length ? rootFilters : undefined })
       if (error) throw new Error(error.message)
       return data as { rows: DataRow[]; total: number; truncated: boolean }
     },
   })
+
+  // Grouped: the group tree (counts, sums) for the whole filtered result, then the rows of each open group.
+  const sumCols = useMemo(() => gridCols.filter((c) => (c.control === 'number' || c.control === 'currency') && !c.control_options?.formula).map((c) => c.key).slice(0, GROUPING_LIMITS.sums), [gridCols])
+  const groupDirection = sortCol && groupBy.includes(sortCol) ? groupBy.map((k) => (k === sortCol ? sortDir : 'asc')) : undefined
+  const { data: groupData, isFetching: groupsFetching } = useQuery({
+    queryKey: ['custom-table-rows', tableId, 'groups', groupKey, search, sumCols.join(','), groupDirection?.join(',') ?? '', rootKey],
+    enabled: grouped,
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const { data, error } = await serverRead('data.rowGroups', { tableId, groupBy, search: search || undefined, sum: sumCols, direction: groupDirection, filters: rootFilters.length ? rootFilters : undefined })
+      if (error) throw new Error(error.message)
+      return { ...(data as { groups: GroupNode[]; total: number; exact: boolean; truncated: boolean; groups_truncated: boolean }), key: groupKey }
+    },
+  })
+  const tree = useMemo(() => (grouped && groupData?.key === groupKey ? groupData.groups : []), [grouped, groupData, groupKey])
+  const gid = useCallback((path: Array<string | null>) => `${groupKey}|${groupId(path)}`, [groupKey])
+  const openLeaves = useMemo(() => {
+    const out: Array<Array<string | null>> = []
+    for (const g of tree) {
+      if (!openGroups.has(gid([g.value]))) continue
+      if (groupBy.length > 1) { for (const sub of g.groups ?? []) if (openGroups.has(gid([g.value, sub.value]))) out.push([g.value, sub.value]) }
+      else out.push([g.value])
+    }
+    return out
+  }, [tree, openGroups, gid, groupBy.length])
+  const [groupLimits, setGroupLimits] = useState<Record<string, number>>({})
+  const groupQueries = useQueries({
+    queries: openLeaves.map((path) => {
+      const id = gid(path)
+      const limit = Math.min(GRID_LIMITS.pageSize, groupLimits[id] ?? pageSize)
+      return {
+        queryKey: ['custom-table-rows', tableId, 'group', id, limit, search, sortCol, sortDir, rootKey],
+        placeholderData: (prev: unknown) => prev,
+        queryFn: async () => {
+          const { data, error } = await serverRead('data.rowPage', { tableId, limit, offset: 0, search: search || undefined, sort: sortCol ?? undefined, dir: sortCol ? sortDir : undefined, filters: [...rootFilters, ...groupFilters(groupBy, path)] })
+          if (error) throw new Error(error.message)
+          return data as { rows: DataRow[]; total: number; truncated: boolean }
+        },
+      }
+    }),
+  })
+  const groupRowsSig = openLeaves.map((p, i) => `${gid(p)}@${groupQueries[i]?.dataUpdatedAt ?? 0}`).join(',')
+  const groupRowsByLeaf = useMemo(() => {
+    const map = new Map<string, { rows: DataRow[]; loading: boolean }>()
+    openLeaves.forEach((p, i) => map.set(gid(p), { rows: (groupQueries[i]?.data as { rows: DataRow[] } | undefined)?.rows ?? [], loading: !groupQueries[i]?.data }))
+    return map
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- groupQueries is a new array each render; groupRowsSig tracks its data
+  }, [groupRowsSig])
+  const isFetching = grouped ? groupsFetching || groupQueries.some((q) => q.isFetching) : pageFetching
+
   const [localRows, setLocalRows] = useState<DataRow[]>([])
-  useEffect(() => { setLocalRows(pageData?.rows ?? []) }, [pageData])
-  const total = pageData?.total ?? 0
-  useEffect(() => { if (pageData && !search) onTotal?.(pageData.total) }, [pageData, search, onTotal])
+  useEffect(() => {
+    if (grouped) setLocalRows(openLeaves.flatMap((p) => groupRowsByLeaf.get(gid(p))?.rows ?? []))
+    else setLocalRows(pageData?.rows ?? [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- openLeaves / gid change with groupRowsByLeaf
+  }, [grouped, pageData, groupRowsByLeaf])
+  const total = grouped ? groupData?.total ?? 0 : pageData?.total ?? 0
+  useEffect(() => {
+    // (A hierarchy listing only its top-level rows reports those.)
+    if (search) return
+    if (!grouped && pageData) onTotal?.(pageData.total)
+    if (grouped && groupData?.exact) onTotal?.(groupData.total)
+  }, [pageData, groupData, grouped, search, onTotal])
   const pages = Math.max(1, Math.ceil(total / pageSize))
+
+  // Child counts of the loaded rows, per relation (one read).
+  const { data: childInfo } = useQuery({
+    queryKey: ['data-child-counts', tableId, localRows.map((r) => r.id).join(',')],
+    enabled: (relationData?.relations.length ?? 0) > 0 && localRows.length > 0,
+    staleTime: 15_000,
+    placeholderData: (prev) => prev,
+    queryFn: async () => ((await serverRead('data.childCounts', { tableId, rowIds: localRows.map((r) => r.id).slice(0, GROUPING_LIMITS.countParents) })).data ?? { relations: [], counts: {} }) as { relations: RelationWithName[]; counts: Record<string, Record<string, number>> },
+  })
+  const childRels = useMemo(() => childInfo?.relations ?? [], [childInfo])
+  const hasChildren = childRels.length > 0
+
+  function toggleGroup(id: string) {
+    const next = new Set(openGroups)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    persistGroups(next)
+  }
+  function expandAllGroups() {
+    const next = new Set<string>()
+    let leaves = 0
+    for (const g of tree) {
+      if (leaves >= EXPAND_ALL_LEAVES) break
+      next.add(gid([g.value]))
+      if (groupBy.length > 1) {
+        for (const sub of g.groups ?? []) { if (leaves >= EXPAND_ALL_LEAVES) break; next.add(gid([g.value, sub.value])); leaves++ }
+      } else leaves++
+    }
+    persistGroups(next)
+    const totalLeaves = groupBy.length > 1 ? tree.reduce((n, g) => n + (g.groups?.length ?? 0), 0) : tree.length
+    setGroupNotice(totalLeaves > EXPAND_ALL_LEAVES ? `Opened the first ${EXPAND_ALL_LEAVES} of ${totalLeaves} groups — open the others one at a time, or search to narrow them.` : null)
+  }
+  function collapseAllGroups() { persistGroups(new Set()); setGroupNotice(null) }
+  function chooseGroupBy(level: number, key: string) {
+    const next = [...groupBy]
+    if (key) next[level] = key
+    else next.splice(level)
+    setGroupOverride(next.filter(Boolean).filter((k, i, a) => a.indexOf(k) === i))
+    setGroupLimits({})
+    setPage(1)
+  }
+  const groupingChanged = groupOverride !== null && groupKey !== (normalizeGroupBy(view.group_by ?? []).join(','))
+  async function saveGroupingToView() {
+    const next = views.map((v) => (v.id === view.id ? { ...v, group_by: groupBy.length ? groupBy : undefined } : v))
+    const res = await saveGridViews(tableId, next)
+    if (!res.ok) { setNotice({ tone: 'danger', message: res.error }); return }
+    queryClient.setQueryData(['data-grid-views', tableId], res.data.views)
+    setGroupOverride(null)
+    setAnnounce('Grouping saved to the view')
+  }
+  const colByKeyAll = useMemo(() => new Map(gridCols.map((c) => [c.key, c])), [gridCols])
+  function formatSum(key: string, value: number) {
+    const col = colByKeyAll.get(key)
+    if (col?.control === 'currency') {
+      try { return new Intl.NumberFormat('en-US', { style: 'currency', currency: col.control_options?.currency || 'USD' }).format(value) } catch { /* unknown code */ }
+    }
+    return value.toLocaleString('en-US', { maximumFractionDigits: col?.control_options?.decimals ?? 2 })
+  }
+
+  // The lines of a grouped grid, in order (rows in the same order as localRows).
+  const groupItems = useMemo<GroupItem[]>(() => {
+    if (!grouped) return []
+    const items: GroupItem[] = []
+    const leaf = (path: Array<string | null>, node: GroupNode, level: number) => {
+      const id = gid(path)
+      const entry = groupRowsByLeaf.get(id)
+      if (!entry || entry.loading) { items.push({ kind: 'loading', id, level }); return }
+      for (const row of entry.rows) items.push({ kind: 'row', row })
+      if (entry.rows.length < node.count) items.push({ kind: 'more', id, shown: entry.rows.length, total: node.count, level })
+    }
+    for (const g of tree) {
+      const id = gid([g.value])
+      const open = openGroups.has(id)
+      items.push({ kind: 'group', id, path: [g.value], level: 0, node: g, open })
+      if (!open) continue
+      if (groupBy.length > 1) {
+        for (const sub of g.groups ?? []) {
+          const subId = gid([g.value, sub.value])
+          const subOpen = openGroups.has(subId)
+          items.push({ kind: 'group', id: subId, path: [g.value, sub.value], level: 1, node: sub, open: subOpen })
+          if (subOpen) leaf([g.value, sub.value], sub, 1)
+        }
+      } else leaf([g.value], g, 0)
+    }
+    return items
+  }, [grouped, tree, openGroups, gid, groupBy.length, groupRowsByLeaf])
+
 
   // People (people cells) — only when the view has one.
   const { data: people = NO_PEOPLE } = useQuery({
@@ -332,7 +537,7 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
       const server = savedRows.get(r.id) as Partial<DataRow> | undefined
       return server ? { ...r, data: (server.data as DataRow['data'] | undefined) ?? r.data, updated_at: server.updated_at ?? r.updated_at, updated_by: server.updated_by ?? r.updated_by } : r
     }))
-    if (outcome.inserted.length) refreshRows()
+    if (outcome.inserted.length || grouped) refreshRows()
     const left = hasChanges(outcome.state) || errorCount(outcome.state) > 0 || Object.keys(outcome.state.conflicts).length > 0
     const parts = [`Saved ${plural(outcome.saved, 'row')}`]
     if (outcome.failed) parts.push(`${plural(outcome.failed, 'row')} not saved — see the marked cells`)
@@ -489,11 +694,13 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
     if (outcome.cellError) setCellErrors((e) => ({ ...e, [errKey]: outcome.cellError! }))
     if (outcome.notice) setNotice(outcome.notice)
     setAnnounce(outcome.announce)
+    // The row may belong to another group now (or its children link value changed).
+    if (!outcome.cellError && (groupBy.includes(col.key) || hasChildren)) refreshRows()
   }
 
   // Columns drawn in the grid.
   const legacyColumns = columns.filter(c => c.name !== 'ID' && c.name !== 'Date Created')
-  const leadCols = 2
+  const leadCols = hasChildren ? 3 : 2
   const colCount = gridCols.length + leadCols + 2
 
   const lineCount = localRows.length + (session?.added.length ?? 0)
@@ -502,7 +709,7 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
     const cc = Math.max(0, Math.min(gridCols.length - 1, c))
     setFocus({ r: rr, c: cc })
     const el = scrollRef.current
-    if (el && localRows.length > WINDOW_FROM) {
+    if (el && windowed) {
       const y = rr * ROW_HEIGHT
       if (y < el.scrollTop) el.scrollTop = y
       else if (y + ROW_HEIGHT * 2 > el.scrollTop + el.clientHeight) el.scrollTop = y - el.clientHeight + ROW_HEIGHT * 2
@@ -577,7 +784,8 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
   }
 
   // Windowing: only the rows in view (plus overscan) are drawn on long pages.
-  const windowed = localRows.length > WINDOW_FROM
+  // Not while grouped or with child panels open (rows are no longer one height).
+  const windowed = !grouped && localRows.length > WINDOW_FROM && !localRows.some((row) => childRels.some((rel) => openChildren.has(`${row.id}:${rel.id}`)))
   const first = windowed ? Math.max(0, Math.floor(scroll.top / ROW_HEIGHT) - OVERSCAN) : 0
   const last = windowed ? Math.min(localRows.length, Math.ceil((scroll.top + scroll.height) / ROW_HEIGHT) + OVERSCAN) : localRows.length
   // Keep the focused / edited row drawn (focus must not land on a removed element).
@@ -589,195 +797,8 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
     setPage(1)
   }
 
-  if (columns.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-panel">
-        <EmptyState
-          size="sm"
-          icon={Columns3}
-          title="This table has no columns yet"
-          description="Add columns on the Schema tab, then come back to add rows."
-        />
-      </div>
-    )
-  }
-
-  const stickyEdge = scroll.left && 'shadow-[6px_0_6px_-6px_var(--ds-border-strong)]'
-
-  function sortHeader({ id, label, numeric, icon: Icon, className, locked }: { id: string; label: string; numeric?: boolean; icon?: typeof Type; className?: string; locked?: boolean }) {
-    const active = sortCol === id
-    return (
-      <th
-        key={id}
-        scope="col"
-        aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
-        className={cn(thClass, 'h-auto min-h-8 whitespace-normal py-1.5', numeric && 'text-right', className)}
-      >
-        <button
-          type="button"
-          onClick={() => toggleSort(id)}
-          className={cn('inline-flex max-w-full items-center gap-1.5 text-left hover:text-fg', numeric && 'flex-row-reverse text-right', active && 'text-fg')}
-        >
-          {Icon && <Icon className="size-3.5 shrink-0 text-fg-muted" aria-hidden="true" />}
-          <span className="line-clamp-2 break-words">{label}</span>
-          {locked && <Lock className="size-3 shrink-0 text-fg-muted" aria-label="read-only" />}
-          {active && (sortDir === 'asc' ? <ArrowUp className="size-3.5 shrink-0" aria-hidden="true" /> : <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />)}
-        </button>
-      </th>
-    )
-  }
-
-  const iconFor = (col: GridColumnDef) => {
-    const schema = columns.find((c) => columnKey(c) === col.key)
-    return schema ? COLUMN_TYPE_ICON[schema.type] ?? Type : Type
-  }
-
-  return (
-    <GridSurfaceProvider value={surface}>
-    <GridLabelsProvider value={labels}>
-    <div className="space-y-3" data-data-grid data-view={view.id} data-inline={inline || undefined}>
-      {/* Toolbar: view, search, match count / selection, settings, add row */}
-      <div className="flex flex-wrap items-center gap-2">
-        {(views.length > 0 || can('data.edit_schema')) && (
-          <select aria-label="View" className="h-8 rounded-md border border-border bg-panel px-2 text-ui disabled:opacity-50" value={view.id} onChange={(e) => chooseView(e.target.value)} data-testid="grid-view-select"
-            disabled={dirty} title={dirty ? 'Save or cancel your changes to switch views' : undefined}>
-            {views.length === 0 && <option value="default">All columns</option>}
-            {views.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-          </select>
-        )}
-        <SearchInput
-          value={searchText}
-          onValueChange={setSearchText}
-          placeholder="Search rows by any value or ID…"
-          aria-label="Search rows"
-          wrapperClassName="w-full max-w-sm"
-        />
-        {search && (
-          <span className="num text-xs text-fg-muted">
-            {plural(total, 'match', 'matches')}{pageData?.truncated ? ' in the newest rows' : ''}
-          </span>
-        )}
-        {inline && !session && <span className="inline-flex items-center gap-1 rounded-full bg-primary-wash px-2 py-0.5 text-2xs font-medium text-primary-text" data-testid="grid-inline-badge">Inline editing</span>}
-        {selectedRows.size > 0 && (
-          <div className="flex items-center gap-1 rounded-md bg-primary-wash py-0.5 pl-3 pr-1">
-            <span className="num text-ui font-medium text-primary-text">{selectedRows.size} selected</span>
-            <ExtensionToolbarActions objectType="data_row" items={localRows.filter((r) => selectedRows.has(r.id)).map((r) => ({ ...(r.data as Record<string, unknown>), id: r.id }))} />
-            {canDelete && (
-              <Button size="sm" variant="danger-ghost" leadingIcon={<Trash2 />} onClick={() => setConfirmBulk(true)} disabled={deleting}>
-                Delete
-              </Button>
-            )}
-            <IconButton size="sm" label="Clear selection" icon={<X />} onClick={() => setSelectedRows(new Set())} />
-          </div>
-        )}
-        <div className="ml-auto flex items-center gap-2">
-          {can('data.edit_schema') && (
-            <Button variant="secondary" size="sm" leadingIcon={<Settings2 />} onClick={() => setSettingsOpen(true)} data-testid="grid-view-settings-open">
-              View settings
-            </Button>
-          )}
-          {inline && !session && (
-            <Tooltip content="Every row on this page becomes editable at once; save them together" kbd="⇧E">
-              <Button variant="secondary" size="sm" leadingIcon={<PencilLine />} onClick={startEditAll} data-testid="grid-edit-all" aria-keyshortcuts="Shift+E">
-                Edit all
-              </Button>
-            </Tooltip>
-          )}
-          {canAdd && !session && (
-            <Tooltip content="Add a row in a panel" kbd="⇧N inline">
-              <Button variant="secondary" size="sm" leadingIcon={<Plus />} onClick={() => setSheetAdd(true)}>
-                Add row
-              </Button>
-            </Tooltip>
-          )}
-        </div>
-      </div>
-
-      {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
-      <p className="sr-only" role="status" aria-live="polite" data-testid="grid-announce">{announce}</p>
-      {session && (
-        <EditAllBar changedRows={changedRowCount(session)} errors={errorCount(session)} conflicts={Object.keys(session.conflicts).length} canUndo={canUndo(session)}
-          saving={batchSaving} onUndo={ea.undo} onCancel={cancelEditAll} onSave={() => { void saveAll() }}
-          hint="Type to edit · Tab / Enter move on · Esc reverts · paste a block from a spreadsheet · Ctrl/⌘ D fills down" />
-      )}
-
-      <div className="relative">
-        <div
-          ref={scrollRef}
-          onScroll={updateScroll}
-          role="region"
-          aria-label="Table rows"
-          tabIndex={inline ? -1 : 0}
-          data-table-scroll
-          className="scrollbar-thin max-h-[calc(100vh-280px)] min-h-48 overflow-auto overscroll-x-contain rounded-lg border border-border bg-panel [-webkit-overflow-scrolling:touch]"
-        >
-          <table ref={gridRef} role={inline ? 'grid' : undefined} aria-label={session ? 'Rows (editing all rows)' : inline ? 'Rows (editable)' : undefined} aria-rowcount={inline ? total + 1 + (session?.added.length ?? 0) : undefined}
-            aria-colcount={session ? colCount : undefined} aria-multiselectable={session ? true : undefined} data-edit-all={session ? true : undefined}
-            onPaste={session ? ea.onPaste : undefined} onCopy={session ? ea.onCopy : undefined}
-            aria-busy={isFetching || undefined} className="w-full border-separate border-spacing-0 text-left text-ui text-fg">
-            <thead className="sticky top-0 z-[3]">
-              <tr>
-                <th scope="col" className={cn(thClass, STICKY_SELECT, 'z-[4]')}>
-                  <Checkbox
-                    checked={allSelected}
-                    ref={(el) => { if (el) el.indeterminate = someSelected }}
-                    onChange={toggleAll}
-                    aria-label="Select all rows on this page"
-                  />
-                </th>
-                {sortHeader({ id: '_row_id', label: 'Row', className: cn(STICKY_ID, 'z-[4]', stickyEdge) })}
-                {gridCols.map((col) => sortHeader({
-                  id: col.key,
-                  label: col.label || 'Untitled',
-                  numeric: numericControl(col),
-                  icon: iconFor(col),
-                  locked: inline && !editableCol(col),
-                  className: cn('min-w-28 max-w-60', col.control === 'boolean' && 'text-center'),
-                }))}
-                {sortHeader({ id: '_updated_at', label: 'Last edited', className: 'min-w-44' })}
-                <th scope="col" className={cn(thClass, 'w-px')}><span className="sr-only">Actions</span></th>
-              </tr>
-              {inlineAdd && canAdd && !session && (
-                <tr className="bg-subtle">
-                  <td className={cn(tdClass, STICKY_SELECT, 'border-b border-border bg-subtle')} />
-                  <td className={cn(tdClass, STICKY_ID, 'border-b border-border bg-subtle text-xs text-fg-muted', stickyEdge)}>New</td>
-                  {gridCols.map((gc) => {
-                    const col = legacyColumns.find((c) => columnKey(c) === gc.key)
-                    return (
-                      <td key={gc.key} className={cn(tdClass, 'min-w-28 border-b border-border px-1.5')}>
-                        {col && (
-                          <InlineCellEditor
-                            column={col}
-                            value={newRow[columnKey(col)]}
-                            onChange={(value) => setNewRow({ ...newRow, [columnKey(col)]: value })}
-                            uploading={uploading === columnKey(col)}
-                            onUpload={(file) => uploadNewRowFile(file, columnKey(col))}
-                          />
-                        )}
-                      </td>
-                    )
-                  })}
-                  <td className={cn(tdClass, 'border-b border-border text-xs text-fg-muted')}>
-                    <span className="inline-flex items-center gap-1"><Kbd>⇧N</Kbd> to hide</span>
-                  </td>
-                  <td className={cn(tdClass, 'border-b border-border text-right')}>
-                    <Button size="sm" onClick={handleAddRow} loading={addRowGuard.pending}>Add</Button>
-                  </td>
-                </tr>
-              )}
-            </thead>
-            <tbody>
-              {localRows.length === 0 && !isFetching && (
-                search ? (
-                  <TableEmpty colSpan={colCount} variant="no-results" title={`No rows match “${search}”`} action={{ label: 'Clear search', onClick: () => setSearchText('') }} />
-                ) : (
-                  <TableEmpty colSpan={colCount} icon={Plus} title="No rows yet" description="Add the first row, or import rows from a file."
-                    action={canAdd ? { label: 'Add row', onClick: () => setSheetAdd(true) } : undefined} />
-                )
-              )}
-              {windowed && first > 0 && <tr aria-hidden style={{ height: first * ROW_HEIGHT }}><td colSpan={colCount} /></tr>}
-              {drawn.map((row, i) => {
-                const r = first + i
+  /** One data row (with its open child-record panels under it); `r` is its index among the loaded rows (focus / edit-all coordinates). */
+  function renderRow(row: DataRow, r: number) {
                 const editor = row.updater ?? row.creator
                 const editorName = editor?.display_name ?? editor?.email ?? null
                 const selected = selectedRows.has(row.id)
@@ -786,9 +807,11 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
                   ? 'bg-panel bg-[image:linear-gradient(var(--theme-primary-light),var(--theme-primary-light))]'
                   : 'bg-panel group-hover/row:bg-subtle'
                 const rowLabel = String(row.data?.id ?? row.id.slice(0, 8))
+                const openRels = childRels.filter((rel) => openChildren.has(`${row.id}:${rel.id}`))
                 return (
+                  <Fragment key={row.id}>
                   <tr
-                    key={row.id}
+                    data-row-id={row.id}
                     data-selected={selected || undefined}
                     aria-rowindex={inline ? (page - 1) * pageSize + r + 2 : undefined}
                     tabIndex={inline ? undefined : 0}
@@ -807,6 +830,14 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
                         </button>
                       </Tooltip>
                     </td>
+                    {hasChildren && (
+                      <td className={cn(tdClass, 'w-px whitespace-nowrap px-1')} onClick={(e) => e.stopPropagation()} data-child-cell>
+                        {childRels.map((rel) => (
+                          <ChildToggle key={rel.id} relation={rel} count={childInfo?.counts[rel.id]?.[row.id]} open={openChildren.has(`${row.id}:${rel.id}`)}
+                            onToggle={() => childExpand.toggle(`${row.id}:${rel.id}`)} rowLabel={rowLabel} />
+                        ))}
+                      </td>
+                    )}
                     {gridCols.map((col, c) => {
                       if (session) return editAllCell(row.id, { ...(row.data ?? {}), ...(session.drafts[row.id] ?? {}) }, col, r, c, rowLabel)
                       const value = getCellValue(row.data, { key: col.key, name: col.label })
@@ -898,8 +929,285 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
                       </div>
                     </td>
                   </tr>
+                  {openRels.map((rel) => (
+                    <tr key={rel.id} data-child-panel={`${row.id}:${rel.id}`}>
+                      <td colSpan={colCount} className="border-b border-border-subtle bg-subtle/40 px-3">
+                        <div className="sticky left-3 max-w-[calc(100vw-6rem)]">
+                          <ChildRecords parentTableId={tableId} parentRowId={row.id} relation={rel} depth={0} ancestors={[row.id]} expand={childExpand} canManage={can('data.manage_rows')} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  </Fragment>
                 )
-              })}
+  }
+
+  /** A line of the grouped grid: a group header (toggle, value, count, sums), a row, or a group's "show more" / loading line. */
+  function renderGroupItem(item: GroupItem) {
+    if (item.kind === 'row') return renderRow(item.row, rowIndex.get(item.row.id) ?? 0)
+    const indent = { paddingLeft: `calc(0.75rem + ${item.level * 1.5}rem)` }
+    if (item.kind === 'loading') {
+      return (
+        <tr key={`${item.id}:loading`} aria-hidden><td colSpan={colCount} className={cn(tdClass, 'text-xs text-fg-muted')} style={indent}>
+          <span className="sticky left-3 inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> Loading rows…</span>
+        </td></tr>
+      )
+    }
+    if (item.kind === 'more') {
+      const limit = Math.min(GRID_LIMITS.pageSize, groupLimits[item.id] ?? pageSize)
+      const capped = limit >= GRID_LIMITS.pageSize
+      return (
+        <tr key={`${item.id}:more`} data-group-more={item.id}><td colSpan={colCount} className={cn(tdClass, 'border-b border-border-subtle text-xs text-fg-muted')} style={indent}>
+          <span className="sticky left-3 inline-flex items-center gap-2">
+            <span className="num">Showing {item.shown} of {item.total}</span>
+            {capped
+              ? <span>— search to narrow this group</span>
+              : <Button size="sm" variant="ghost" onClick={() => setGroupLimits((m) => ({ ...m, [item.id]: Math.min(GRID_LIMITS.pageSize, limit + pageSize) }))}>Show more</Button>}
+          </span>
+        </td></tr>
+      )
+    }
+    const key = groupBy[item.level]
+    const schema = tableColumns.find((c) => c.key === key)
+    const label = groupLabel(item.node.value, schema?.type)
+    const sums = Object.entries(item.node.sums ?? {}).filter(([k]) => sumCols.includes(k))
+    const Chevron = item.open ? ChevronDown : ChevronRight
+    return (
+      <tr key={item.id} data-group-row={item.id} data-group-level={item.level} className={item.level === 0 ? 'bg-subtle' : 'bg-subtle/50'}>
+        <td colSpan={colCount} className={cn(tdClass, 'border-b border-border py-1.5')} style={indent}>
+          <button type="button" onClick={() => toggleGroup(item.id)} aria-expanded={item.open} className="sticky left-3 inline-flex max-w-full items-center gap-2 text-left text-ui hover:text-fg"
+            aria-label={`${schema?.name ?? key}: ${label}, ${plural(item.node.count, 'row')}. ${item.open ? 'Collapse' : 'Expand'}`}>
+            <Chevron className="size-4 shrink-0 text-fg-muted" aria-hidden />
+            <span className="text-xs text-fg-muted">{schema?.name ?? key}:</span>
+            <span className={cn('truncate font-medium', item.node.value === null ? 'italic text-fg-muted' : 'text-fg')}>{label}</span>
+            <span className="num rounded-full bg-panel px-1.5 py-0.5 text-2xs text-fg-muted">{item.node.count}</span>
+            {sums.map(([k, v]) => (
+              <span key={k} className="num text-xs text-fg-muted">{colByKeyAll.get(k)?.label ?? k}: <span className="text-fg">{formatSum(k, v)}</span></span>
+            ))}
+          </button>
+        </td>
+      </tr>
+    )
+  }
+  const rowIndex = new Map(localRows.map((row, i) => [row.id, i]))
+
+  if (columns.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-panel">
+        <EmptyState
+          size="sm"
+          icon={Columns3}
+          title="This table has no columns yet"
+          description="Add columns on the Schema tab, then come back to add rows."
+        />
+      </div>
+    )
+  }
+
+  const stickyEdge = scroll.left && 'shadow-[6px_0_6px_-6px_var(--ds-border-strong)]'
+
+  function sortHeader({ id, label, numeric, icon: Icon, className, locked }: { id: string; label: string; numeric?: boolean; icon?: typeof Type; className?: string; locked?: boolean }) {
+    const active = sortCol === id
+    return (
+      <th
+        key={id}
+        scope="col"
+        aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}
+        className={cn(thClass, 'h-auto min-h-8 whitespace-normal py-1.5', numeric && 'text-right', className)}
+      >
+        <button
+          type="button"
+          onClick={() => toggleSort(id)}
+          className={cn('inline-flex max-w-full items-center gap-1.5 text-left hover:text-fg', numeric && 'flex-row-reverse text-right', active && 'text-fg')}
+        >
+          {Icon && <Icon className="size-3.5 shrink-0 text-fg-muted" aria-hidden="true" />}
+          <span className="line-clamp-2 break-words">{label}</span>
+          {locked && <Lock className="size-3 shrink-0 text-fg-muted" aria-label="read-only" />}
+          {active && (sortDir === 'asc' ? <ArrowUp className="size-3.5 shrink-0" aria-hidden="true" /> : <ArrowDown className="size-3.5 shrink-0" aria-hidden="true" />)}
+        </button>
+      </th>
+    )
+  }
+
+  const iconFor = (col: GridColumnDef) => {
+    const schema = columns.find((c) => columnKey(c) === col.key)
+    return schema ? COLUMN_TYPE_ICON[schema.type] ?? Type : Type
+  }
+
+  return (
+    <GridSurfaceProvider value={surface}>
+    <GridLabelsProvider value={labels}>
+    <div className="space-y-3" data-data-grid data-view={view.id} data-inline={inline || undefined}>
+      {/* Toolbar: view, search, match count / selection, settings, add row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {(views.length > 0 || can('data.edit_schema')) && (
+          <select aria-label="View" className="h-8 rounded-md border border-border bg-panel px-2 text-ui disabled:opacity-50" value={view.id} onChange={(e) => chooseView(e.target.value)} data-testid="grid-view-select"
+            disabled={dirty} title={dirty ? 'Save or cancel your changes to switch views' : undefined}>
+            {views.length === 0 && <option value="default">All columns</option>}
+            {views.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+          </select>
+        )}
+        <SearchInput
+          value={searchText}
+          onValueChange={setSearchText}
+          placeholder="Search rows by any value or ID…"
+          aria-label="Search rows"
+          wrapperClassName="w-full max-w-sm"
+        />
+        {search && (
+          <span className="num text-xs text-fg-muted">
+            {plural(total, 'match', 'matches')}{pageData?.truncated ? ' in the newest rows' : ''}
+          </span>
+        )}
+        {groupableCols.length > 0 && (
+          <div className="flex items-center gap-1" data-testid="grid-group-by">
+            <select aria-label="Group by" className="h-8 max-w-44 rounded-md border border-border bg-panel px-2 text-ui disabled:opacity-50" value={groupBy[0] ?? ''} onChange={(e) => chooseGroupBy(0, e.target.value)}
+              disabled={dirty} title={dirty ? 'Save or cancel your changes to change the grouping' : undefined} data-testid="grid-group-by-1">
+              <option value="">No grouping</option>
+              {groupableCols.map((c) => <option key={c.key} value={c.key}>Group by {c.name}</option>)}
+            </select>
+            {grouped && (
+              <select aria-label="Then group by" className="h-8 max-w-40 rounded-md border border-border bg-panel px-2 text-ui disabled:opacity-50" value={groupBy[1] ?? ''} onChange={(e) => chooseGroupBy(1, e.target.value)}
+                disabled={dirty} data-testid="grid-group-by-2">
+                <option value="">Then by…</option>
+                {groupableCols.filter((c) => c.key !== groupBy[0]).map((c) => <option key={c.key} value={c.key}>Then by {c.name}</option>)}
+              </select>
+            )}
+            {grouped && <IconButton size="sm" label="Expand all groups" icon={<ChevronsUpDown />} onClick={expandAllGroups} data-testid="grid-groups-expand" />}
+            {grouped && <IconButton size="sm" label="Collapse all groups" icon={<ChevronsDownUp />} onClick={collapseAllGroups} data-testid="grid-groups-collapse" />}
+            {groupingChanged && saved && can('data.edit_schema') && (
+              <Button size="sm" variant="ghost" onClick={() => { void saveGroupingToView() }} data-testid="grid-group-save">Save to view</Button>
+            )}
+          </div>
+        )}
+        {inline && !session && <span className="inline-flex items-center gap-1 rounded-full bg-primary-wash px-2 py-0.5 text-2xs font-medium text-primary-text" data-testid="grid-inline-badge">Inline editing</span>}
+        {selectedRows.size > 0 && (
+          <div className="flex items-center gap-1 rounded-md bg-primary-wash py-0.5 pl-3 pr-1">
+            <span className="num text-ui font-medium text-primary-text">{selectedRows.size} selected</span>
+            <ExtensionToolbarActions objectType="data_row" items={localRows.filter((r) => selectedRows.has(r.id)).map((r) => ({ ...(r.data as Record<string, unknown>), id: r.id }))} />
+            {canDelete && (
+              <Button size="sm" variant="danger-ghost" leadingIcon={<Trash2 />} onClick={() => setConfirmBulk(true)} disabled={deleting}>
+                Delete
+              </Button>
+            )}
+            <IconButton size="sm" label="Clear selection" icon={<X />} onClick={() => setSelectedRows(new Set())} />
+          </div>
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          {can('data.edit_schema') && (
+            <Button variant="secondary" size="sm" leadingIcon={<Settings2 />} onClick={() => setSettingsOpen(true)} data-testid="grid-view-settings-open">
+              View settings
+            </Button>
+          )}
+          {inline && !session && (
+            <Tooltip content="Every row on this page becomes editable at once; save them together" kbd="⇧E">
+              <Button variant="secondary" size="sm" leadingIcon={<PencilLine />} onClick={startEditAll} data-testid="grid-edit-all" aria-keyshortcuts="Shift+E">
+                Edit all
+              </Button>
+            </Tooltip>
+          )}
+          {canAdd && !session && (
+            <Tooltip content="Add a row in a panel" kbd="⇧N inline">
+              <Button variant="secondary" size="sm" leadingIcon={<Plus />} onClick={() => setSheetAdd(true)}>
+                Add row
+              </Button>
+            </Tooltip>
+          )}
+        </div>
+      </div>
+
+      {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
+      {grouped && groupNotice && <InlineNotice tone="info" message={groupNotice} onDismiss={() => setGroupNotice(null)} />}
+      {grouped && groupData && !groupData.exact && groupData.truncated && (
+        <InlineNotice tone="warning" message="Groups are counted from the newest 2,000 rows until the database update for grouping is applied (migration 20270119090000)." />
+      )}
+      <p className="sr-only" role="status" aria-live="polite" data-testid="grid-announce">{announce}</p>
+      {session && (
+        <EditAllBar changedRows={changedRowCount(session)} errors={errorCount(session)} conflicts={Object.keys(session.conflicts).length} canUndo={canUndo(session)}
+          saving={batchSaving} onUndo={ea.undo} onCancel={cancelEditAll} onSave={() => { void saveAll() }}
+          hint="Type to edit · Tab / Enter move on · Esc reverts · paste a block from a spreadsheet · Ctrl/⌘ D fills down" />
+      )}
+
+      <div className="relative">
+        <div
+          ref={scrollRef}
+          onScroll={updateScroll}
+          role="region"
+          aria-label="Table rows"
+          tabIndex={inline ? -1 : 0}
+          data-table-scroll
+          className="scrollbar-thin max-h-[calc(100vh-280px)] min-h-48 overflow-auto overscroll-x-contain rounded-lg border border-border bg-panel [-webkit-overflow-scrolling:touch]"
+        >
+          <table ref={gridRef} role={inline ? 'grid' : undefined} aria-label={session ? 'Rows (editing all rows)' : inline ? 'Rows (editable)' : undefined} aria-rowcount={inline ? total + 1 + (session?.added.length ?? 0) : undefined}
+            aria-colcount={session ? colCount : undefined} aria-multiselectable={session ? true : undefined} data-edit-all={session ? true : undefined}
+            onPaste={session ? ea.onPaste : undefined} onCopy={session ? ea.onCopy : undefined}
+            aria-busy={isFetching || undefined} className="w-full border-separate border-spacing-0 text-left text-ui text-fg">
+            <thead className="sticky top-0 z-[3]">
+              <tr>
+                <th scope="col" className={cn(thClass, STICKY_SELECT, 'z-[4]')}>
+                  <Checkbox
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = someSelected }}
+                    onChange={toggleAll}
+                    aria-label="Select all rows on this page"
+                  />
+                </th>
+                {sortHeader({ id: '_row_id', label: 'Row', className: cn(STICKY_ID, 'z-[4]', stickyEdge) })}
+                {hasChildren && <th scope="col" className={cn(thClass, 'w-px whitespace-nowrap')} title={childRels.map((r) => r.label || r.table_name).join(', ')}>{childRels.length === 1 ? (childRels[0].label || childRels[0].table_name || 'Children') : 'Children'}</th>}
+                {gridCols.map((col) => sortHeader({
+                  id: col.key,
+                  label: col.label || 'Untitled',
+                  numeric: numericControl(col),
+                  icon: iconFor(col),
+                  locked: inline && !editableCol(col),
+                  className: cn('min-w-28 max-w-60', col.control === 'boolean' && 'text-center'),
+                }))}
+                {sortHeader({ id: '_updated_at', label: 'Last edited', className: 'min-w-44' })}
+                <th scope="col" className={cn(thClass, 'w-px')}><span className="sr-only">Actions</span></th>
+              </tr>
+              {inlineAdd && canAdd && !session && (
+                <tr className="bg-subtle">
+                  <td className={cn(tdClass, STICKY_SELECT, 'border-b border-border bg-subtle')} />
+                  <td className={cn(tdClass, STICKY_ID, 'border-b border-border bg-subtle text-xs text-fg-muted', stickyEdge)}>New</td>
+                  {hasChildren && <td className={cn(tdClass, 'border-b border-border bg-subtle')} />}
+                  {gridCols.map((gc) => {
+                    const col = legacyColumns.find((c) => columnKey(c) === gc.key)
+                    return (
+                      <td key={gc.key} className={cn(tdClass, 'min-w-28 border-b border-border px-1.5')}>
+                        {col && (
+                          <InlineCellEditor
+                            column={col}
+                            value={newRow[columnKey(col)]}
+                            onChange={(value) => setNewRow({ ...newRow, [columnKey(col)]: value })}
+                            uploading={uploading === columnKey(col)}
+                            onUpload={(file) => uploadNewRowFile(file, columnKey(col))}
+                          />
+                        )}
+                      </td>
+                    )
+                  })}
+                  <td className={cn(tdClass, 'border-b border-border text-xs text-fg-muted')}>
+                    <span className="inline-flex items-center gap-1"><Kbd>⇧N</Kbd> to hide</span>
+                  </td>
+                  <td className={cn(tdClass, 'border-b border-border text-right')}>
+                    <Button size="sm" onClick={handleAddRow} loading={addRowGuard.pending}>Add</Button>
+                  </td>
+                </tr>
+              )}
+            </thead>
+            <tbody>
+              {(grouped ? tree.length === 0 && !groupsFetching && groupData?.key === groupKey : localRows.length === 0 && !isFetching) && (
+                search ? (
+                  <TableEmpty colSpan={colCount} variant="no-results" title={`No rows match “${search}”`} action={{ label: 'Clear search', onClick: () => setSearchText('') }} />
+                ) : (
+                  <TableEmpty colSpan={colCount} icon={Plus} title="No rows yet" description="Add the first row, or import rows from a file."
+                    action={canAdd ? { label: 'Add row', onClick: () => setSheetAdd(true) } : undefined} />
+                )
+              )}
+              {windowed && first > 0 && <tr aria-hidden style={{ height: first * ROW_HEIGHT }}><td colSpan={colCount} /></tr>}
+              {grouped
+                ? groupItems.map((item) => renderGroupItem(item))
+                : drawn.map((row, i) => renderRow(row, first + i))}
               {windowed && last < localRows.length && <tr aria-hidden style={{ height: (localRows.length - last) * ROW_HEIGHT }}><td colSpan={colCount} /></tr>}
               {session?.added.map((added, i) => {
                 const r = localRows.length + i
@@ -908,6 +1216,7 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
                   <tr key={added.id} aria-rowindex={total + 2 + i} data-edit-all-new={added.id} className={cn(trClass, '[&>td]:border-b [&>td]:border-border-subtle')}>
                     <td className={cn(tdClass, STICKY_SELECT, 'bg-panel')} />
                     <td className={cn(tdClass, STICKY_ID, 'bg-panel text-xs font-medium text-primary-text', stickyEdge)}>New</td>
+                    {hasChildren && <td className={tdClass} />}
                     {gridCols.map((col, c) => editAllCell(added.id, added.values, col, r, c, label))}
                     <td className={cn(tdClass, 'text-xs text-fg-muted')}>Not saved yet</td>
                     <td className={cn(tdClass, 'w-px whitespace-nowrap text-right')}>
@@ -931,10 +1240,12 @@ export function DataGrid({ tableId, tenantId, columns, onTotal }: DataGridProps)
       {/* Server-side paging */}
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-fg-muted">
         <span className="num">
-          {total ? `${(page - 1) * pageSize + 1}–${Math.min(total, page * pageSize)} of ${total}` : ''}
+          {grouped
+            ? (groupData ? `${plural(groupData.total, 'row')} in ${plural(tree.length, 'group')}${groupData.groups_truncated ? ' (more groups not shown)' : ''}` : '')
+            : total ? `${(page - 1) * pageSize + 1}–${Math.min(total, page * pageSize)} of ${total}` : ''}
           {isFetching && <Loader2 className="ml-1 inline size-3 animate-spin" aria-hidden />}
         </span>
-        {pages > 1 && (
+        {!grouped && pages > 1 && (
           <nav aria-label="Pages" className="flex items-center gap-1">
             <IconButton size="sm" label="Previous page" icon={<ChevronLeft />} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} />
             <span className="num">Page {page} of {pages}</span>

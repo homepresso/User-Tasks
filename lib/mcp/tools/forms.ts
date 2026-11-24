@@ -295,6 +295,26 @@ export function registerFormTools(server: McpToolServer, ctx: McpContext) {
     return submitForm(svc(), args.form_id, { values: args.values, button_id: args.button_id, idempotency_key: args.idempotency_key, params: args.params, variables: args.variables }, { source: 'api' })
   }))
 
+  server.tool('forms_data_event', 'Map to data event — where a form\'s data goes when it is submitted (forms.edit). Without `plan`: the form\'s data events (rule steps that write a data table / call an API reference / start a workflow, bar buttons that start workflows, a saving data binding or target, workflows whose Form submitted trigger names it) and its sources (the form, each repeating section / List with their fields). With `plan` { destination: direct | workflow, steps: [{ id: "step_1", target { kind: table | reference, id, name }, source ("" = once for the form, else a repeating section / List key = once per item), map { <column or input>: { kind: field, key } | { kind: parent, step, path? } (an earlier step\'s new id; path row_id default, row.<column> for a lookup) | { kind: text, value } }, id_path? (reference: response path of the new id) }], open_access? (direct), workflow_name? }: direct → the Before submit rule and variables to append to layout.rules / layout.variables (forms_draft_save); workflow → the draft workflow it would create (outline, validation errors, wiring warnings). Nothing is stored; create the workflow with forms_data_event_create_workflow.', {
+    form_id: z.string().describe('Form ID'),
+    plan: jsonObject.optional().describe('The plan (see the description); omit to get the data events and sources'),
+    new_tables: z.array(jsonObject).optional().describe('workflow: tables to create first from the form structure [{ source, name, columns [{ key, name, type text|number|date|boolean|select|file|longtext, options? }] }]; steps name them target.id "new:<source>" ("new:form" for the form) with new_table: true'),
+  }, async (args) => run(async () => {
+    const svcMod = await import('@/lib/services/form-data-event')
+    if (!args.plan) return svcMod.getDataEventStatus(svc(), args.form_id)
+    if ((args.plan as { destination?: string }).destination === 'workflow') return svcMod.planDataEventWorkflow(svc(), { form_id: args.form_id, plan: args.plan, new_tables: args.new_tables })
+    return svcMod.planDataEventRule(svc(), { form_id: args.form_id, plan: args.plan })
+  }))
+
+  server.tool('forms_data_event_create_workflow', 'Map to data event → Send to a workflow: create a DRAFT workflow started by the form\'s Form submitted trigger, with an insert / API step per plan step and a loop per repeating section / List (child rows linked to the parent\'s new id), after creating any new_tables (data.create). Refused while the plan has errors or the workflow would not validate cleanly (no wiring warnings). Needs forms.edit and workflows.create; publish it with workflows_publish (workflows.activate). Same plan shape as forms_data_event (destination workflow).', {
+    form_id: z.string().describe('Form ID'),
+    plan: jsonObject.describe('The plan (forms_data_event)'),
+    new_tables: z.array(jsonObject).optional().describe('Tables to create first (forms_data_event)'),
+  }, async (args) => run(async () => {
+    const { createDataEventWorkflow } = await import('@/lib/services/form-data-event')
+    return createDataEventWorkflow(svc(), { form_id: args.form_id, plan: { ...args.plan, destination: 'workflow' }, new_tables: args.new_tables })
+  }))
+
   server.tool('forms_submissions_list', 'List submissions of a form, newest first (values, button, outcome, submitter, source standalone / api / task, and `submission`: the metadata workflows see as {{submission.*}} — id, reference, submitted_at, submitted_by { id, name, email }, form { id, name, version }, source page / run_dialog / api / task). Everyone sees their own; forms.edit sees all.', {
     form_id: z.string().describe('Form ID'),
     submitted_by: z.string().optional().describe('Only this submitter (user id)'),

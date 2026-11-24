@@ -1,0 +1,244 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+  "asset": {
+    "id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+    "name": "CRM deals",
+    "description": "Opportunities: stage, amount and weighted amount in USD, probability, forecast category, close date and owner.",
+    "columns": [
+      {
+        "id": "de390cc2-38a6-5c88-a1b7-1a91679b08b7",
+        "required": true,
+        "key": "deal_id",
+        "name": "Deal ID",
+        "type": "text"
+      },
+      {
+        "id": "682ab1cb-8d08-5e27-96e7-4e7b8f2ee640",
+        "required": true,
+        "key": "name",
+        "name": "Deal",
+        "type": "text"
+      },
+      {
+        "id": "4f5e4be3-99a1-5a8e-be7a-aade289c678e",
+        "required": false,
+        "key": "account",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "e9568d1f-a859-589c-8471-12ebb84d52ee",
+        "required": false,
+        "key": "account_id",
+        "name": "Account ID",
+        "type": "text"
+      },
+      {
+        "id": "d23b2243-f411-5bc0-bf71-dfaf305ed0ba",
+        "required": false,
+        "key": "contact",
+        "name": "Main contact",
+        "type": "text"
+      },
+      {
+        "id": "a64a0fba-39a6-5fc5-918a-ee7bdb69865b",
+        "required": false,
+        "key": "owner",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "311f99c1-8095-5e55-8003-bf1d4b780781",
+        "required": false,
+        "key": "region",
+        "name": "Region",
+        "type": "select",
+        "options": [
+          "West",
+          "Central",
+          "East",
+          "EMEA",
+          "APAC"
+        ]
+      },
+      {
+        "id": "b899dd45-7272-5f98-b04d-031bad8455dd",
+        "required": false,
+        "key": "type",
+        "name": "Type",
+        "type": "select",
+        "options": [
+          "New business",
+          "Expansion",
+          "Renewal"
+        ]
+      },
+      {
+        "id": "99c75d27-4f9a-5a5d-a808-b4cfb0452b62",
+        "required": false,
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "Prospecting",
+          "Qualification",
+          "Proposal",
+          "Negotiation",
+          "Closed won",
+          "Closed lost"
+        ]
+      },
+      {
+        "id": "d7af016a-4a74-59bd-b793-7e27ced08ec5",
+        "required": false,
+        "key": "amount",
+        "name": "Amount (USD)",
+        "type": "number"
+      },
+      {
+        "id": "9f959226-1709-50cd-b6c2-fe0bf1ed8827",
+        "required": false,
+        "key": "probability",
+        "name": "Probability %",
+        "type": "number"
+      },
+      {
+        "id": "d4309bd2-b3bd-529c-ad0a-fe50d1285a05",
+        "required": false,
+        "key": "weighted",
+        "name": "Weighted (USD)",
+        "type": "number"
+      },
+      {
+        "id": "75751565-b0fd-5f18-974b-e3d396fb8581",
+        "required": false,
+        "key": "close_date",
+        "name": "Close date",
+        "type": "date"
+      },
+      {
+        "id": "ec51de39-38d7-5c64-ad9c-7565e2d9737d",
+        "required": false,
+        "key": "forecast",
+        "name": "Forecast",
+        "type": "select",
+        "options": [
+          "Pipeline",
+          "Best case",
+          "Commit",
+          "Closed",
+          "Omitted"
+        ]
+      },
+      {
+        "id": "137fd01c-2c5b-56b0-addd-ee03fe22123a",
+        "required": false,
+        "key": "next_step",
+        "name": "Next step",
+        "type": "text"
+      },
+      {
+        "id": "486fd010-2d3c-5130-bd3d-ef29ee2d3455",
+        "required": false,
+        "key": "source",
+        "name": "Source",
+        "type": "select",
+        "options": [
+          "Website",
+          "Webinar",
+          "Referral",
+          "Trade show",
+          "Partner",
+          "Outbound",
+          "Paid search"
+        ]
+      },
+      {
+        "id": "51408d79-944f-5ab3-981c-772a66db906f",
+        "required": false,
+        "key": "created_on",
+        "name": "Created",
+        "type": "date"
+      },
+      {
+        "id": "3318efe2-4abe-595a-abd6-ff7cb6db1907",
+        "required": false,
+        "key": "discount_pct",
+        "name": "Discount %",
+        "type": "number"
+      },
+      {
+        "id": "64b6167e-cc67-5f72-87ea-e3675977d8b0",
+        "required": false,
+        "key": "last_activity",
+        "name": "Last activity",
+        "type": "date"
+      },
+      {
+        "id": "9474d4e0-a84c-542e-8414-c80457bbb9f4",
+        "required": false,
+        "key": "forecast_override",
+        "name": "Manager override",
+        "type": "select",
+        "options": [
+          "Pipeline",
+          "Best case",
+          "Commit",
+          "Omitted"
+        ]
+      },
+      {
+        "id": "9a4253bd-dab2-5418-8324-2aa19e87fcd6",
+        "required": false,
+        "key": "forecast_final",
+        "name": "Final forecast",
+        "type": "select",
+        "options": [
+          "Pipeline",
+          "Best case",
+          "Commit",
+          "Closed",
+          "Omitted"
+        ]
+      },
+      {
+        "id": "000e17cd-66d0-53b3-b2a2-0a3b8b2219e3",
+        "required": false,
+        "key": "override_note",
+        "name": "Override note",
+        "type": "text"
+      },
+      {
+        "id": "07553dba-5008-5ccd-b460-4f92c9719aab",
+        "required": false,
+        "key": "next_best_action",
+        "name": "Next best action",
+        "type": "text"
+      },
+      {
+        "id": "0db300b9-d1a9-5750-95fd-8132ded68396",
+        "required": false,
+        "key": "ai_summary",
+        "name": "AI summary",
+        "type": "longtext"
+      },
+      {
+        "id": "c89d66d2-7f09-58dd-b854-d6f1e5ddc7c6",
+        "required": false,
+        "key": "summary_on",
+        "name": "Summarized on",
+        "type": "date"
+      },
+      {
+        "id": "c5289a6e-a89b-5423-b0f9-8bef953e7846",
+        "required": false,
+        "key": "stage_seen",
+        "name": "Stage (automation)",
+        "type": "text"
+      }
+    ],
+    "audit_changes": true
+  }
+}

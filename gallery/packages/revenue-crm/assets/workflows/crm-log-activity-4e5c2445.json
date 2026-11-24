@@ -1,0 +1,223 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "4e5c2445-3b4a-5899-971e-6907a4b21983",
+  "asset": {
+    "id": "4e5c2445-3b4a-5899-971e-6907a4b21983",
+    "name": "CRM log activity",
+    "description": "Saves a logged call, email, meeting, demo or note, updates the account’s and the deal’s last activity and, with a follow-up date, gives the rep a task due that day.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Activity logged",
+        "config": {
+          "form_id": "834786c2-04da-5925-9632-362a7be6e5d5",
+          "form_name": "Log activity"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "insert",
+        "type": "update_data_table",
+        "label": "Save the activity",
+        "config": {
+          "table_id": "d94fcb41-7ceb-565a-bfdd-d46824060a9b",
+          "table_name": "CRM activities",
+          "operation": "insert",
+          "column_values": {
+            "activity_id": "ACT-{{=UPPER(LEFT(GUID(), 6))}}",
+            "type": "{{form.type}}",
+            "subject": "{{form.subject}}",
+            "account": "{{form.account}}",
+            "account_id": "{{form.account_id}}",
+            "deal_id": "{{form.deal_id}}",
+            "contact": "{{form.contact}}",
+            "owner": "{{submitted_by_name}}",
+            "date": "{{form.date}}",
+            "duration_min": "{{form.duration_min}}",
+            "outcome": "{{form.activity_outcome}}",
+            "follow_up": "{{form.follow_up}}",
+            "notes": "{{form.notes}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "touch",
+        "type": "update_data_table",
+        "label": "Update last activity",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "update",
+          "match_column": "account_id",
+          "match_value": "{{form.account_id}}",
+          "column_values": {
+            "last_activity": "{{form.date}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "touch_deal",
+        "type": "update_data_table",
+        "label": "Update the deal’s last activity",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "update",
+          "match_column": "deal_id",
+          "match_value": "{{form.deal_id}}",
+          "column_values": {
+            "last_activity": "{{form.date}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "fu",
+        "type": "condition",
+        "label": "Follow-up date?",
+        "config": {
+          "branches": [
+            {
+              "label": "Follow up",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.follow_up}}",
+                  "operator": "is_not_empty",
+                  "value": ""
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "followup",
+        "type": "user_task",
+        "label": "Follow up",
+        "config": {
+          "task_title": "Follow up with {{form.account}}: {{form.subject}}",
+          "task_description": "<p>Your {{form.type}} with <strong>{{form.contact}}</strong> at {{form.account}} on {{form.date}} ({{form.activity_outcome}}).</p><p>{{form.notes}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Follow-up",
+            "align": "left",
+            "subtitle": "{{form.account}}"
+          },
+          "due_date_mode": "absolute",
+          "due_date": "{{form.follow_up}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "end_fu",
+        "type": "end_workflow",
+        "label": "Followed up",
+        "config": {
+          "reason": "Follow-up done"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Logged",
+        "config": {
+          "reason": "{{form.type}} with {{form.account}} logged"
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-insert",
+        "source": "trigger",
+        "target": "insert"
+      },
+      {
+        "id": "e-insert-touch",
+        "source": "insert",
+        "target": "touch"
+      },
+      {
+        "id": "e-touch-touch_deal",
+        "source": "touch",
+        "target": "touch_deal"
+      },
+      {
+        "id": "e-touch_deal-fu",
+        "source": "touch_deal",
+        "target": "fu"
+      },
+      {
+        "id": "e-fu-followup-follow_up",
+        "source": "fu",
+        "target": "followup",
+        "label": "Follow up"
+      },
+      {
+        "id": "e-fu-end-else",
+        "source": "fu",
+        "target": "end",
+        "label": "Else"
+      },
+      {
+        "id": "e-followup-end_fu-done",
+        "source": "followup",
+        "target": "end_fu",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

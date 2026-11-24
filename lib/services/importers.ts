@@ -160,6 +160,7 @@ export function normalizeReport(raw: unknown, fallback: { title: string; source:
     ...(i?.mappedTo ? { mappedTo: String(i.mappedTo).slice(0, 300) } : {}),
     ...(i?.detail ? { detail: String(i.detail).slice(0, 2000) } : {}),
     ...(i?.location ? { location: String(i.location).slice(0, 300) } : {}),
+    ...(i?.origin === 'ai' ? { origin: 'ai' as const } : {}),
   }))
   const coverage = importCoverage(items)
   const score = Math.max(0, Math.min(100, Math.round(Number(r.complexity?.score) || 0)))

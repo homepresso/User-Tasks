@@ -278,7 +278,7 @@ function WizardSession({ projectId, onSaved }: { projectId: string | null; onSav
           </div>
         )}
       </div>
-      <div className="sticky bottom-0 z-10 -mx-1 flex items-center justify-between gap-2 border-t border-border bg-canvas/95 px-1 py-3 backdrop-blur">
+      <div className="sticky bottom-0 z-10 -mx-1 flex items-center justify-between gap-2 border-t border-border bg-canvas/95 px-1 py-3 backdrop-blur" data-agent-bar="">
         <Button variant="secondary" leadingIcon={<ArrowLeft />} onClick={() => goTo(step - 1)} disabled={step === 0} data-testid="wizard-back">Back</Button>
         <span className="text-xs text-fg-muted sm:hidden">Step {step + 1} of {WIZARD_STEPS.length}</span>
         {current.id === 'review'

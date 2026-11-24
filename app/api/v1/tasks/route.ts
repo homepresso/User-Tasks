@@ -5,6 +5,7 @@ import { wantsStrippedHtml, withDescriptionTexts } from '@/lib/task-description-
 import { withUnread } from '@/lib/services/task-reads'
 import { fromApiAuth, isServiceError } from '@/lib/services/context'
 import type { ApiKeySuccessResult } from '@/lib/api-auth'
+import { invalidTaskStatusMessage } from '@/lib/tasks/status-filter'
 
 async function listReportsScope(auth: ApiKeySuccessResult, params: URLSearchParams) {
   if (!auth.permissions.includes('tasks.view_own') && !auth.permissions.includes('tasks.view_all')) {
@@ -44,6 +45,8 @@ export async function GET(request: NextRequest) {
 
   const { limit, offset } = parsePagination(params)
   const status = params.get('status')?.split(',').map(s => s.trim()).filter(Boolean)
+  const badStatus = invalidTaskStatusMessage(status)
+  if (badStatus) return err(badStatus, 400)
   const assigneeId = params.get('assignee_id')
   const isWorkflowTask = params.get('is_workflow_task')
   const priority = params.get('priority')?.split(',').map(s => s.trim()).filter(Boolean)

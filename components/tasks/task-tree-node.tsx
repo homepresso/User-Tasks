@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { IconButton } from '@/components/ui/icon-button'
 import { formatDay } from '@/lib/format/date'
 import { SubtaskForm } from './subtask-form'
+import { TaskTags } from './task-tags'
 
 export interface TreeTask {
   id: string
@@ -135,6 +136,7 @@ export function TaskTreeNode({
             {task.title}
           </Link>
           {task.subtitle && <span className="block truncate text-xs text-fg-muted" data-task-tree-subtitle>{task.subtitle}</span>}
+          {task.tags?.length ? <TaskTags tags={task.tags} max={3} className="mt-0.5" /> : null}
           {/* Phones: the estimate and due date go under the title. */}
           {(estimate > 0 || task.due_date) && (
             <span className="mt-0.5 flex gap-2 text-xs text-fg-muted sm:hidden">

@@ -1,0 +1,511 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "c9c37320-5b8f-5f73-986e-0619723f0219",
+  "asset": {
+    "id": "c9c37320-5b8f-5f73-986e-0619723f0219",
+    "name": "Engagement survey",
+    "description": "The quarterly engagement survey: six short pages of agreement questions (Engagement, Leadership, Growth, Wellbeing, Belonging, Recognition), how likely you are to recommend working here (eNPS) and one open comment. Each answer starts the Survey response workflow, which seals it until the survey closes.",
+    "tags": [
+      "survey",
+      "engagement",
+      "people"
+    ],
+    "fields": [
+      {
+        "key": "cycle_code",
+        "label": "Survey",
+        "type": "text",
+        "read_only": true,
+        "default": "{{param.cycle}}",
+        "help_text": "Your answers count towards this survey."
+      },
+      {
+        "key": "privacy",
+        "label": "Your privacy",
+        "type": "label",
+        "default": "Your answers are sealed until the survey closes, then counted with everyone else's. Results are only shown for groups of five or more, and nobody can see your individual answers."
+      },
+      {
+        "key": "engagement",
+        "label": "About Fernhill Labs",
+        "type": "matrix",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "Strongly disagree",
+          "2": "Disagree",
+          "3": "Neutral",
+          "4": "Agree",
+          "5": "Strongly agree"
+        },
+        "survey": {
+          "rows": [
+            {
+              "key": "eng1",
+              "label": "I am proud to work for Fernhill Labs"
+            },
+            {
+              "key": "eng2",
+              "label": "I rarely think about looking for a job at another company"
+            },
+            {
+              "key": "eng3",
+              "label": "Fernhill Labs motivates me to go beyond what I would in a similar role elsewhere"
+            }
+          ]
+        }
+      },
+      {
+        "key": "leadership",
+        "label": "Leadership",
+        "type": "matrix",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "Strongly disagree",
+          "2": "Disagree",
+          "3": "Neutral",
+          "4": "Agree",
+          "5": "Strongly agree"
+        },
+        "survey": {
+          "rows": [
+            {
+              "key": "lea1",
+              "label": "Our leaders have communicated a vision that motivates me"
+            },
+            {
+              "key": "lea2",
+              "label": "I have confidence in the decisions our leadership team makes"
+            },
+            {
+              "key": "lea3",
+              "label": "My manager keeps me informed about what is happening"
+            }
+          ]
+        }
+      },
+      {
+        "key": "growth",
+        "label": "Growth",
+        "type": "matrix",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "Strongly disagree",
+          "2": "Disagree",
+          "3": "Neutral",
+          "4": "Agree",
+          "5": "Strongly agree"
+        },
+        "survey": {
+          "rows": [
+            {
+              "key": "gro1",
+              "label": "I have access to the learning and development I need to do my job well"
+            },
+            {
+              "key": "gro2",
+              "label": "I can see a path for me to advance my career here"
+            },
+            {
+              "key": "gro3",
+              "label": "My manager has a useful conversation with me about my growth at least every quarter"
+            }
+          ]
+        }
+      },
+      {
+        "key": "wellbeing",
+        "label": "Wellbeing",
+        "type": "matrix",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "Strongly disagree",
+          "2": "Disagree",
+          "3": "Neutral",
+          "4": "Agree",
+          "5": "Strongly agree"
+        },
+        "survey": {
+          "rows": [
+            {
+              "key": "wel1",
+              "label": "My workload is manageable most weeks"
+            },
+            {
+              "key": "wel2",
+              "label": "I can switch off from work when I need to"
+            },
+            {
+              "key": "wel3",
+              "label": "I feel supported when things get stressful"
+            }
+          ]
+        }
+      },
+      {
+        "key": "belonging",
+        "label": "Belonging",
+        "type": "matrix",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "Strongly disagree",
+          "2": "Disagree",
+          "3": "Neutral",
+          "4": "Agree",
+          "5": "Strongly agree"
+        },
+        "survey": {
+          "rows": [
+            {
+              "key": "bel1",
+              "label": "I feel I belong at Fernhill Labs"
+            },
+            {
+              "key": "bel2",
+              "label": "I can be myself at work without worrying about how I will be received"
+            },
+            {
+              "key": "bel3",
+              "label": "Perspectives like mine are included in decisions that affect me"
+            }
+          ]
+        }
+      },
+      {
+        "key": "recognition",
+        "label": "Recognition",
+        "type": "matrix",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "Strongly disagree",
+          "2": "Disagree",
+          "3": "Neutral",
+          "4": "Agree",
+          "5": "Strongly agree"
+        },
+        "survey": {
+          "rows": [
+            {
+              "key": "rec1",
+              "label": "When I do great work, it is recognised"
+            },
+            {
+              "key": "rec2",
+              "label": "I receive useful feedback on my work"
+            },
+            {
+              "key": "rec3",
+              "label": "I know how my work contributes to the goals of Fernhill Labs"
+            }
+          ]
+        }
+      },
+      {
+        "key": "enps",
+        "label": "How likely are you to recommend Fernhill Labs as a place to work?",
+        "type": "nps",
+        "required": true,
+        "survey": {
+          "low_label": "Not at all likely",
+          "high_label": "Extremely likely",
+          "bands": true
+        }
+      },
+      {
+        "key": "comment_driver",
+        "label": "Your comment is mostly about",
+        "type": "choice",
+        "options": [
+          "Engagement",
+          "Leadership",
+          "Growth",
+          "Wellbeing",
+          "Belonging",
+          "Recognition"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "comment",
+        "label": "What is one thing we should start, stop or keep doing?",
+        "type": "textarea",
+        "placeholder": "Please do not include names: comments are grouped into themes.",
+        "max_length": 1500
+      }
+    ],
+    "layout": {
+      "mode": "steps",
+      "rows": [],
+      "pages": [
+        {
+          "id": "page_1",
+          "title": "Welcome",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "cycle_code",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "privacy",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "shield",
+          "description": "About five minutes."
+        },
+        {
+          "id": "page_2",
+          "title": "About us",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "engagement",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "heart"
+        },
+        {
+          "id": "page_3",
+          "title": "Leadership",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "leadership",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "flag"
+        },
+        {
+          "id": "page_4",
+          "title": "Growth",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "growth",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "trending-up"
+        },
+        {
+          "id": "page_5",
+          "title": "Wellbeing",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "wellbeing",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "sun"
+        },
+        {
+          "id": "page_6",
+          "title": "Belonging",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "belonging",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "users"
+        },
+        {
+          "id": "page_7",
+          "title": "Recognition",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "recognition",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "star"
+        },
+        {
+          "id": "page_8",
+          "title": "Last words",
+          "rows": [
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "enps",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "comment_driver",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "columns": 2,
+              "cells": [
+                {
+                  "field_key": "comment",
+                  "span": 2
+                }
+              ]
+            }
+          ],
+          "icon": "message-square"
+        }
+      ],
+      "page_settings": {
+        "indicator": "progress",
+        "review": true,
+        "review_title": "Check your answers",
+        "next_label": "Next",
+        "resume": true
+      },
+      "params": [
+        {
+          "name": "cycle",
+          "label": "Survey cycle",
+          "type": "text",
+          "source": "url",
+          "default": "ENG-2026-Q4",
+          "include": true,
+          "description": "The cycle code the answer counts towards."
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#C2410C",
+            "background": "#FFFFFF",
+            "text": "#2A211C",
+            "page": "#FFF4EC",
+            "page_to": "#FFFBF7"
+          }
+        },
+        "radius": 14,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send my answers",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Thank you",
+            "text": "Your answers are sealed until the survey closes. Results are shared for groups of five or more.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Back to the start"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Engagement survey",
+      "subtitle": "Six short pages, about five minutes. Results are only shown for groups of five or more.",
+      "align": "left"
+    }
+  }
+}

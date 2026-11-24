@@ -29,9 +29,12 @@ import { READ_ONLY_BUILTIN_TOOLS, type AgentTool } from './agent-tool-defs'
 import { withoutFileContents, type AgentContentPart } from './agent-files'
 import {
   agentProviderKind, chatBodyParams, classifyHttpStatus, isRetryableKind, parseRetryAfterHeader, providerErrorMessage,
-  resolveChatUrl, retryDelayMs, type AgentErrorKind, type AgentProviderKind,
+  resolveChatUrl, type AgentErrorKind, type AgentProviderKind,
 } from './agents/provider'
+import { classifyFailure, describeFailure, isQuotaFailure, requestIdFrom, retryStatusMessage, technicalSummary, type AgentFailureView, type ProviderFailure } from './agents/errors'
+import { decideRetry, providerWaitMs, retryPolicy, type RetryPolicy } from './agents/retry'
 import { SAFETY_PREAMBLE, forStorage, redactString, wrapUntrusted } from './agents/safety'
+import { withWorkflowData } from './agents/workflow-data'
 import { ChatStreamAssembler, SseParser, StreamProviderError, type StreamDelta } from './agents/stream'
 import { fromMessagesResponse } from './agents/anthropic-messages'
 import { blockingErrors, extractJsonObject, outputInstruction, repairMessage, validateOutputs, type OutputVariableSpec } from './agents/outputs'
@@ -123,6 +126,10 @@ export interface AgentIterationEvent {
   error?: string
   text?: string
   toolCallDelta?: { index: number; id?: string; name?: string; arguments_delta?: string }
+  /** type 'retry': the attempt about to be made, of how many, after how long. */
+  retry?: { attempt: number; max_attempts: number; delay_ms: number; code: string }
+  /** type 'error' from a provider failure: the friendly view. */
+  failure?: AgentFailureView
 }
 
 /** A tool call waiting for a person's decision. */
@@ -155,6 +162,8 @@ export interface AgentResult {
   status: 'completed' | 'failed' | 'awaiting_approval'
   /** Populated when status === 'failed'. */
   error?: string
+  /** A provider failure as a person reads it (friendly message + sanitised technical details: lib/agents/errors.ts). */
+  failure?: AgentFailureView
   error_kind?: AgentErrorKind | 'budget' | 'max_iterations' | 'timeout' | 'cancelled' | 'outputs'
   response: string
   iterations: number
@@ -232,6 +241,12 @@ export interface ExecuteAgentOptions {
    * `files` back the read_attached_file tool (by id or name). Never logged.
    */
   attachments?: { parts: AgentContentPart[]; files: Array<{ id?: string; name: string; mime_type: string; bytes: Uint8Array }> }
+  /**
+   * Run Agent's "Use this workflow's data as context": the run's data block
+   * (lib/agents/workflow-data.ts), put in the user turn before the prompt.
+   * Not part of the stored input message.
+   */
+  workflowContext?: string
 }
 
 /** Characters of one tool result the model sees. */
@@ -368,29 +383,56 @@ async function readStream(resp: Response, onDelta: (d: StreamDelta) => void, idl
   return { json: assembler.result(), firstTokenMs }
 }
 
-/** One chat completion with retries (streamed when `stream` is set and the provider allows it). */
+/** A failed model call: the technical message (kept for run logs), its kind and what the friendly view needs. */
+export interface ModelCallFailure { ok: false; error: string; kind: AgentErrorKind | 'cancelled'; attempts: number; failure: ProviderFailure }
+
+/** Progress of a retry, for the caller's status line ("retrying in 6 s (attempt 2 of 4)"). */
+export interface RetryInfo { attempt: number; nextAttempt: number; maxAttempts: number; delayMs: number; kind: AgentErrorKind; status: number | null }
+
+/**
+ * One chat completion with retries (streamed when `stream` is set and the
+ * provider allows it). Retry policy: lib/agents/retry.ts — `policy` (or the
+ * older `maxRetries`) over the env defaults; only this model call is
+ * retried, never a tool.
+ */
 export async function callModel(
   url: string,
   headers: Record<string, string>,
   body: Record<string, unknown>,
   opts: {
-    deadline: number; signal?: AbortSignal; fetchImpl: typeof fetch; sleep: (ms: number) => Promise<void>; maxRetries: number
-    onRetry?: (attempt: number, message: string, delay: number) => void
+    deadline: number; signal?: AbortSignal; fetchImpl: typeof fetch; sleep: (ms: number) => Promise<void>
+    /** Retries after the first attempt (older callers); `policy.maxAttempts` wins when both are set. */
+    maxRetries?: number
+    policy?: Partial<RetryPolicy>
+    /** Provider kind (named in the failure's technical details). */
+    provider?: string
+    onRetry?: (attempt: number, message: string, delay: number, info: RetryInfo) => void
     stream?: { state: StreamState; onDelta: (d: StreamDelta) => void; onReset: () => void }
     /** 'anthropic': the body is a native Messages request (lib/agents/anthropic-messages); replies come back in the chat-completion shape. */
     dialect?: 'openai' | 'anthropic'
+    random?: () => number
   },
-): Promise<{ ok: true; json: any; attempts: number; streamed: boolean; firstTokenMs: number | null } | { ok: false; error: string; kind: AgentErrorKind | 'cancelled'; attempts: number }> {
+): Promise<{ ok: true; json: any; attempts: number; streamed: boolean; firstTokenMs: number | null; retries: number } | ModelCallFailure> {
+  const policy = retryPolicy({ ...(opts.maxRetries !== undefined ? { maxAttempts: Math.max(0, opts.maxRetries) + 1 } : {}), ...(opts.policy ?? {}) })
+  let waited = 0
+  const fail = (error: string, kind: AgentErrorKind | 'cancelled', attempts: number, extra: Partial<ProviderFailure> = {}): ModelCallFailure => ({
+    ok: false, error, kind, attempts,
+    failure: { kind, status: null, message: error, attempts, provider: opts.provider ?? null, ...extra },
+  })
   let attempt = 0
   for (;;) {
     attempt++
-    if (opts.signal?.aborted) return { ok: false, error: 'Agent run was cancelled', kind: 'cancelled', attempts: attempt - 1 }
+    if (opts.signal?.aborted) return fail('Agent run was cancelled', 'cancelled', attempt - 1)
     const remaining = opts.deadline - Date.now()
-    if (remaining <= 0) return { ok: false, error: 'Agent run exceeded its time budget', kind: 'timeout', attempts: attempt - 1 }
+    if (remaining <= 0) return fail('Agent run exceeded its time budget', 'timeout', attempt - 1)
     const streaming = Boolean(opts.stream?.state.enabled)
     let kind: AgentErrorKind
     let message: string
     let retryAfter: number | null = null
+    let status: number | null = null
+    let errBody: string | null = null
+    let errorType: string | null = null
+    let requestId: string | null = null
     let emitted = false
     // Streaming: the whole call may take the run's remaining time, but the
     // stream must not go silent for longer than STREAM_IDLE_MS.
@@ -417,20 +459,25 @@ export async function callModel(
       const contentType = String(resp.headers?.get?.('content-type') ?? '')
       if (resp.ok && streaming && contentType.includes('text/event-stream')) {
         const { json, firstTokenMs } = await readStream(resp, (d) => { emitted = true; opts.stream!.onDelta(d) }, touch)
-        return { ok: true, json, attempts: attempt, streamed: true, firstTokenMs }
+        return { ok: true, json, attempts: attempt, streamed: true, firstTokenMs, retries: attempt - 1 }
       }
       if (resp.ok) {
         // Not a stream (provider ignored `stream`, or streaming is off): the usual JSON.
         const raw = await resp.json().catch(() => null)
         const json = anthropic ? fromMessagesResponse(raw) : raw
-        if (json && typeof json === 'object') return { ok: true, json, attempts: attempt, streamed: false, firstTokenMs: null }
+        if (json && typeof json === 'object') return { ok: true, json, attempts: attempt, streamed: false, firstTokenMs: null, retries: attempt - 1 }
         kind = 'provider_unavailable'
         message = 'Provider returned a response that is not JSON'
       } else {
         const errText = await resp.text().catch(() => '')
         kind = classifyHttpStatus(resp.status)
+        status = resp.status
+        errBody = redactString(errText).slice(0, 4_000)
+        requestId = requestIdFrom(resp.headers)
+        // Out of credit (402, or a 429 that says insufficient_quota): no retry can help.
+        if ((kind === 'rate_limited' || kind === 'quota') && isQuotaFailure(resp.status, errText)) kind = 'quota'
         message = providerErrorMessage(kind, resp.status, redactString(errText), url)
-        retryAfter = parseRetryAfterHeader(resp.headers?.get?.('retry-after') ?? null)
+        retryAfter = providerWaitMs(resp.headers) ?? parseRetryAfterHeader(resp.headers?.get?.('retry-after') ?? null)
         // A provider / model / gateway that rejects streaming (or its usage option): fall back, without counting it as a retry.
         // (A rejected thinking level is not a streaming problem: the turn retries without it.)
         if (streaming && !anthropic && !/reasoning_effort|output_config|\beffort\b/i.test(errText) && (resp.status === 400 || resp.status === 404 || resp.status === 405 || resp.status === 415 || resp.status === 422 || resp.status === 501)) {
@@ -442,10 +489,11 @@ export async function callModel(
         }
       }
     } catch (err: any) {
-      if (opts.signal?.aborted) return { ok: false, error: 'Agent run was cancelled', kind: 'cancelled', attempts: attempt }
+      if (opts.signal?.aborted) return fail('Agent run was cancelled', 'cancelled', attempt)
       if (err instanceof StreamProviderError) {
-        kind = err.retryable ? 'provider_unavailable' : 'bad_request'
+        kind = err.retryable ? (/rate|throttl/i.test(`${err.errorType ?? ''} ${err.message}`) ? 'rate_limited' : 'provider_unavailable') : 'bad_request'
         message = err.message
+        errorType = err.errorType ?? null
       } else {
         const timedOut = err?.name === 'TimeoutError' || err?.name === 'AbortError' || idleAbort.signal.aborted
         kind = timedOut ? 'timeout' : 'network'
@@ -454,13 +502,17 @@ export async function callModel(
     } finally {
       if (idleTimer) clearTimeout(idleTimer)
     }
-    if (!isRetryableKind(kind) || attempt > opts.maxRetries) return { ok: false, error: message, kind, attempts: attempt }
-    const delay = retryDelayMs(attempt, retryAfter)
-    if (Date.now() + delay >= opts.deadline) return { ok: false, error: message, kind, attempts: attempt }
+    const details = { status, body: errBody, errorType, requestId, retryAfterMs: retryAfter }
+    if (!isRetryableKind(kind)) return fail(message, kind, attempt, details)
+    const decision = decideRetry({ attempt, waitedMs: waited, hintMs: retryAfter, deadline: opts.deadline, policy, random: opts.random })
+    if (!decision.retry) return fail(message, kind, attempt, details)
     // Text already shown for this attempt is discarded before the retry.
     if (emitted) opts.stream?.onReset()
-    opts.onRetry?.(attempt, message, delay)
-    await opts.sleep(delay)
+    opts.onRetry?.(attempt, message, decision.delayMs, { attempt, nextAttempt: attempt + 1, maxAttempts: policy.maxAttempts, delayMs: decision.delayMs, kind, status })
+    console.warn(`[agents] provider call failed (${opts.provider ?? 'provider'}${status ? ` HTTP ${status}` : ''}, ${kind}); retrying in ${decision.delayMs} ms (attempt ${attempt + 1} of ${policy.maxAttempts})`)
+    waited += decision.delayMs
+    if (opts.signal?.aborted) return fail('Agent run was cancelled', 'cancelled', attempt)
+    await opts.sleep(decision.delayMs)
   }
 }
 
@@ -489,7 +541,8 @@ export async function executeAgent(config: AgentConfig, userMessage: string, opt
   const fetchImpl = options.fetchImpl ?? fetch
   const sleep = options.sleep ?? defaultSleep
   const streamState: StreamState | null = options.stream && onEvent ? { enabled: true, includeUsage: true } : null
-  const maxRetries = Math.max(0, options.maxRetries ?? 3)
+  // Retries per model call: the caller's maxRetries, else the policy (env AGENT_RETRY_*, default 4 attempts within 45 s of waiting).
+  const maxRetries = options.maxRetries !== undefined ? Math.max(0, options.maxRetries) : undefined
   const runtime = options.toolRuntime ?? (await legacyRuntime(options))
 
   const startTime = Date.now() - (resume?.state.elapsed_ms ?? 0)
@@ -536,7 +589,8 @@ export async function executeAgent(config: AgentConfig, userMessage: string, opt
         messages.push({ role: turn.role, content: String(turn.content).slice(0, 20_000) })
       }
     }
-    messages.push({ role: 'user', content: attachments?.parts.length ? [{ type: 'text', text: userMessage }, ...attachments.parts] : userMessage })
+    const userText = withWorkflowData(options.workflowContext, userMessage)
+    messages.push({ role: 'user', content: attachments?.parts.length ? [{ type: 'text', text: userText }, ...attachments.parts] : userText })
   }
 
   const base = () => ({
@@ -544,9 +598,9 @@ export async function executeAgent(config: AgentConfig, userMessage: string, opt
     duration_ms: Date.now() - startTime, steps, ...(runtime?.generatedFiles.length ? { files: runtime.generatedFiles } : {}),
     ...(shareFacts ? { shared_facts: { facts: { ...facts }, writers: { ...factWriters } } } : {}),
   })
-  const failed = (error: string, kind: AgentResult['error_kind']): AgentResult => {
-    onEvent?.({ type: 'error', error })
-    return { status: 'failed', error, error_kind: kind, response: `Agent error: ${error}`, ...base() }
+  const failed = (error: string, kind: AgentResult['error_kind'], failure?: AgentFailureView): AgentResult => {
+    onEvent?.({ type: 'error', error, ...(failure ? { failure } : {}) })
+    return { status: 'failed', error, error_kind: kind, response: `Agent error: ${error}`, ...(failure ? { failure } : {}), ...base() }
   }
 
   const openaiTools = tools.length > 0 ? toolsToOpenAIFormat(tools) : undefined
@@ -666,8 +720,8 @@ export async function executeAgent(config: AgentConfig, userMessage: string, opt
     if (streamState && streamState.includeUsage && !streamUsageOption(provider)) streamState.includeUsage = false
     const iteration = iterationCount
     const call = await callModel(url, headers, body, {
-      deadline, signal, fetchImpl, sleep, maxRetries,
-      onRetry: (attempt, message, delay) => onEvent?.({ type: 'retry', iteration: iterationCount, message: `Retrying in ${Math.round(delay / 100) / 10}s (attempt ${attempt + 1}): ${message}` }),
+      deadline, signal, fetchImpl, sleep, ...(maxRetries !== undefined ? { maxRetries } : {}), provider,
+      onRetry: (_attempt, _message, _delay, info) => onEvent?.({ type: 'retry', iteration: iterationCount, message: retryStatusMessage(info), retry: { attempt: info.nextAttempt, max_attempts: info.maxAttempts, delay_ms: info.delayMs, code: classifyFailure({ kind: info.kind, status: info.status, message: '' }) } }),
       ...(streamState ? {
         stream: {
           state: streamState,
@@ -681,7 +735,11 @@ export async function executeAgent(config: AgentConfig, userMessage: string, opt
     })
     if (!call.ok) {
       steps.push({ type: 'llm', iteration: iterationCount, started_at: new Date(callStart).toISOString(), duration_ms: Date.now() - callStart, attempts: call.attempts, error: call.error, ...(call.kind !== 'cancelled' ? { error_kind: call.kind } : {}) })
-      return failed(call.error, call.kind)
+      if (call.kind === 'cancelled') return failed(call.error, call.kind)
+      // The run's error: the friendly message, then the technical detail (the run log / trace keeps both).
+      const view = describeFailure(call.failure, { audience: 'agent' })
+      console.warn(`[agents] model call failed: ${view.code} (${technicalSummary(view)})`)
+      return failed(`${view.message} — Details: ${call.error}`, call.kind, view)
     }
 
     const apiResponse = call.json

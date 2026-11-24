@@ -34,6 +34,7 @@ import { addToDraft } from '@/lib/packages/asset-picker'
 import { dependentsOf, describeDependents, itemDependencyGraph, itemKey, removeFromLists, versionChanges, versionItemRefs, type Dependent, type ItemGraph } from '@/lib/packages/items'
 import { hasPerm, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { audit, dbError, serviceRoleClient } from './_shared'
+import { selectWithTags } from './tags-column'
 import { assertItemsExist, loadPackage, normalizeItems, PACKAGE_ASSET_TYPES, PACKAGE_COLUMNS, PACKAGE_LIMITS, presentPackage, type PackageItemInput, type PackageRow } from './packages'
 
 export interface PackageItemRef { type: DependencyAssetType; id: string; name: string; label: string }
@@ -77,6 +78,7 @@ const TABLE: Record<DependencyAssetType, { table: string; name: string }> = {
   email_template: { table: 'email_templates', name: 'name' }, agent: { table: 'agents', name: 'name' }, report: { table: 'reports', name: 'name' }, role: { table: 'roles', name: 'name' },
   mcp_server: { table: 'mcp_servers', name: 'name' }, retention_policy: { table: 'retention_policies', name: 'name' }, log_destination: { table: 'log_destinations', name: 'name' },
   form: { table: 'forms', name: 'name' }, form_theme: { table: 'form_themes', name: 'name' }, form_control: { table: 'form_controls', name: 'name' },
+  app: { table: 'apps', name: 'name' },
 }
 const TYPE_ORDER = Object.keys(PACKAGE_ASSET_TYPES) as DependencyAssetType[]
 
@@ -177,8 +179,8 @@ export async function listPackageItems(ctx: ServiceContext, packageId: string): 
 }
 
 async function saveLists(ctx: ServiceContext, db: AnySupabaseClient, pkg: PackageRow, lists: { roots: PackageItemInput[]; items: PackageItemInput[]; excluded: PackageItemInput[] }, summary: string, metadata: Record<string, unknown>) {
-  const { data, error } = await (db as any).from('packages').update({ roots: lists.roots, items: lists.items, excluded: lists.excluded })
-    .eq('id', pkg.id).eq('tenant_id', ctx.tenantId).select(PACKAGE_COLUMNS).single()
+  const { data, error } = await selectWithTags(PACKAGE_COLUMNS, (columns) => (db as any).from('packages').update({ roots: lists.roots, items: lists.items, excluded: lists.excluded })
+    .eq('id', pkg.id).eq('tenant_id', ctx.tenantId).select(columns).single())
   if (error) throw dbError(error)
   await audit({ ...ctx, supabase: db }, { objectType: 'package', objectId: pkg.id, action: 'update', summary, metadata })
   return presentPackage(data)

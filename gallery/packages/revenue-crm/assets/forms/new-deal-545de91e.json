@@ -1,0 +1,285 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "545de91e-3499-5bdb-9f8e-e28919d7e562",
+  "asset": {
+    "id": "545de91e-3499-5bdb-9f8e-e28919d7e562",
+    "name": "New deal",
+    "description": "Open a deal on an account. Its probability, forecast category and first task follow from the stage.",
+    "tags": [
+      "crm",
+      "deals"
+    ],
+    "fields": [
+      {
+        "key": "account",
+        "label": "Account",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "search_columns": [
+            "name",
+            "account_id",
+            "city"
+          ],
+          "display_columns": [
+            "name",
+            "industry",
+            "region"
+          ],
+          "value_column": "name",
+          "fill": [
+            {
+              "from": "account_id",
+              "to": "account_id"
+            },
+            {
+              "from": "region",
+              "to": "region"
+            },
+            {
+              "from": "owner",
+              "to": "owner"
+            }
+          ],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        },
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.account}}"
+          }
+        }
+      },
+      {
+        "key": "account_id",
+        "label": "Account ID",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "region",
+        "label": "Region",
+        "type": "choice",
+        "options": [
+          "West",
+          "Central",
+          "East",
+          "EMEA",
+          "APAC"
+        ],
+        "read_only": true
+      },
+      {
+        "key": "name",
+        "label": "Deal name",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Sensor Hub expansion"
+      },
+      {
+        "key": "type",
+        "label": "Type",
+        "type": "choice",
+        "options": [
+          "New business",
+          "Expansion",
+          "Renewal"
+        ],
+        "required": true,
+        "default": "New business"
+      },
+      {
+        "key": "stage",
+        "label": "Stage",
+        "type": "choice",
+        "options": [
+          "Prospecting",
+          "Qualification",
+          "Proposal",
+          "Negotiation"
+        ],
+        "required": true,
+        "default": "Prospecting"
+      },
+      {
+        "key": "amount",
+        "label": "Amount (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "required": true
+      },
+      {
+        "key": "close_date",
+        "label": "Close date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "owner",
+        "label": "Owner",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "contact",
+        "label": "Main contact",
+        "type": "text"
+      },
+      {
+        "key": "source",
+        "label": "Source",
+        "type": "choice",
+        "options": [
+          "Website",
+          "Webinar",
+          "Referral",
+          "Trade show",
+          "Partner",
+          "Outbound",
+          "Paid search"
+        ]
+      },
+      {
+        "key": "next_step",
+        "label": "Next step",
+        "type": "textarea"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "account",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "account_id",
+              "span": 1
+            },
+            {
+              "field_key": "region",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "name",
+              "span": 1
+            },
+            {
+              "field_key": "type",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "stage",
+              "span": 1
+            },
+            {
+              "field_key": "amount",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "close_date",
+              "span": 1
+            },
+            {
+              "field_key": "owner",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "contact",
+              "span": 1
+            },
+            {
+              "field_key": "source",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "next_step",
+              "span": 2
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "account",
+          "label": "Account",
+          "type": "text",
+          "source": "context"
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Create deal",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Deal created",
+            "text": "{{name}} is on the pipeline board in {{stage}}.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "New deal",
+      "subtitle": "Amounts in USD.",
+      "align": "left"
+    }
+  }
+}

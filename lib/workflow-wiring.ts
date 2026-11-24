@@ -25,6 +25,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- node config is free-form JSON */
 
+import { AGENT_ERROR_VARIABLES } from './agents/error-trigger'
 import { extractFunctionExpressions, normalizeIndexPath } from './expression-resolver'
 import { parseFunctionCall, tokenizeFormula } from './expression-functions'
 import {
@@ -59,9 +60,11 @@ export interface WiringWarning {
    * with nobody assigned); `assigned_for_testing`: an info note — the task
    * is assigned to the workflow's creator for testing (the Agent's default);
    * `import_review`: what an importer could not wire (config._import_review,
-   * e.g. a column the connected list does not have) until marked reviewed.
+   * e.g. a column the connected list does not have) until marked reviewed;
+   * `template_variable`: an email template variable the step does not map
+   * and the run has no same-named value for (it renders blank).
    */
-  kind: 'reference' | 'config_key' | 'syntax' | 'prefill' | 'unassigned' | 'assigned_for_testing' | 'import_review'
+  kind: 'reference' | 'config_key' | 'syntax' | 'prefill' | 'unassigned' | 'assigned_for_testing' | 'import_review' | 'template_variable'
   /** `info` for notes that need no fix (assigned_for_testing); warnings otherwise. */
   severity?: 'warning' | 'info'
   message: string
@@ -86,17 +89,18 @@ export interface WiringInput {
 const TRIGGER_TYPES = new Set([
   'task_created', 'task_received', 'task_submitted', 'task_updated', 'task_completed', 'task_rejected',
   'workflow_error', 'workflow_sla', 'retention_policy_review', 'retention_policy_executed', 'data_table_event', 'form_submitted',
-  'middleware_received', 'schedule', 'webhook_received', 'esign_event', 'manual',
+  'middleware_received', 'schedule', 'webhook_received', 'esign_event', 'agent_error', 'manual',
 ])
 
 /** Triggers whose run variables are fully known (everything else may carry extra, dynamic names). */
-const CLOSED_TRIGGERS = new Set(['form_submitted', 'schedule', 'workflow_error', 'esign_event'])
+const CLOSED_TRIGGERS = new Set(['form_submitted', 'schedule', 'workflow_error', 'esign_event', 'agent_error'])
 
 /** Variables a trigger sets beyond what the data picker lists. */
 const TRIGGER_VARIABLES: Record<string, readonly string[]> = {
   form_submitted: ['task_id'],
   schedule: ['scheduled_at'],
   workflow_error: ['error_workflow_id', 'error_workflow_name', 'error_run_id', 'error_message', 'error_node', 'error_node_id', 'error_node_type', 'error_timestamp'],
+  agent_error: AGENT_ERROR_VARIABLES,
   esign_event: ['esign_event', 'esign_provider', 'esign_integration_id', 'esign_envelope_id', 'esign_status', 'esign_recipient', 'esign_envelope'],
   data_table_event: ['data_event', 'data_event_type', 'data_table_id', 'data_table_name', 'data_row_id', 'data_row', 'row', 'row_id', 'previous_row', 'changed_fields'],
   webhook_received: ['_raw'],
@@ -489,7 +493,8 @@ export function validateWorkflowWiring(input: WiringInput): WiringWarning[] {
     for (const note of importReviewNotes(node.config)) warnings.push({ ...base, kind: 'import_review', key: '_import_review', message: note })
     if (node.type === 'user_task') warnings.push(...prefillWarnings(node, input.linkedForms, scope.formKeys).map((w) => ({ ...base, ...w })))
     if (node.type === 'user_task') warnings.push(...assignmentWarnings(node, triggers).map((w) => ({ ...base, ...w })))
-    if (!strings.length) continue
+    const templateRefs = unmappedTemplateVariables(node)
+    if (!strings.length && !templateRefs.length) continue
 
     const ancestors = ancestorsOf(node.id)
     const upstreamTasks: NodeInfo[] = []
@@ -618,6 +623,22 @@ export function validateWorkflowWiring(input: WiringInput): WiringWarning[] {
       }
     }
 
+    // Email template variables the step leaves unmapped: fine when the run
+    // has a value of that name (it is read as before), blank otherwise.
+    for (const ref of templateRefs) {
+      if (isKnown(normalizeIndexPath(ref.name))) continue
+      const correction = fieldCorrection(ref.name)
+      const close = correction ? null : closestMatch(ref.name, candidates())
+      const suggestion = correction?.suggestion ?? (close ? `{{${close}}}` : undefined)
+      warnings.push({
+        ...base, kind: 'template_variable', key: `${ref.mappingKey}.${ref.name}`, reference: `{{${ref.name}}}`,
+        message: open
+          ? `${ref.noun} variable "${ref.label}" is not mapped — it reads {{${ref.name}}} from the run, which may not be set; map it to be sure`
+          : `${ref.noun} variable "${ref.label}" is not mapped and nothing before "${node.label}" sets {{${ref.name}}} — map it or it will be blank`,
+        ...(suggestion ? { suggestion } : {}),
+      })
+    }
+
     for (const { key, text } of strings) {
       const scan = scanExpression(text)
       for (const spaced of scan.spaced) {
@@ -636,6 +657,27 @@ export function validateWorkflowWiring(input: WiringInput): WiringWarning[] {
     }
   }
   return warnings
+}
+
+// ─── Email template variables ──────────────────────────────────────────
+
+/**
+ * Custom variables of a step's email template (the designer's snapshot,
+ * `_template_variables` / `_notification_template_variables`) with no
+ * mapping in `template_variables` / `notification_template_variables`.
+ */
+export function unmappedTemplateVariables(node: { type: string; config?: Record<string, any> | null }): Array<{ name: string; label: string; mappingKey: string; noun: string }> {
+  const c = node.config ?? {}
+  const pick = (templateId: unknown, snapshot: unknown, mappings: unknown, mappingKey: string, noun: string) => {
+    if (!templateId || !Array.isArray(snapshot)) return []
+    const map = (mappings && typeof mappings === 'object' ? mappings : {}) as Record<string, unknown>
+    return (snapshot as Array<{ name?: unknown; label?: unknown; source?: unknown }>)
+      .filter((v) => v && typeof v.name === 'string' && v.source === 'custom' && !filledText(map[v.name as string]))
+      .map((v) => ({ name: String(v.name), label: String(v.label || v.name), mappingKey, noun }))
+  }
+  if (node.type === 'send_email') return pick(c.email_template_id, c._template_variables, c.template_variables, 'template_variables', 'Template')
+  if (node.type === 'user_task') return pick(c.notification_template_id, c._notification_template_variables, c.notification_template_variables, 'notification_template_variables', 'Notification template')
+  return []
 }
 
 // ─── User Task assignment ──────────────────────────────────────────────
@@ -844,8 +886,8 @@ const OUTPUT_VAR_TYPES = new Set(['math', 'modify_string', 'text_template', 'for
  */
 const KNOWN_CONFIG_KEYS: Record<string, readonly string[]> = {
   update_data_table: ['table_id', 'operation', 'column_values', 'field_mappings', 'data', 'values', 'filters', 'limit', 'offset', 'sort_column', 'sort_direction', 'row_id', 'row_match_field', 'row_match_value', 'match_column', 'match_value', 'output_row_id_var', 'output_row_var', 'output_rows_var', 'output_count_var', 'live_reference', 'auto_create_columns', 'apply_retention_policy', 'retention_policy_id'],
-  user_task: ['task_title', 'task_description', 'task_priority', 'outcomes', 'assignment_type', 'assignee_id', 'assignee_variable', 'team_id', 'form_id', 'form_version', 'field_values', 'form_params', 'due_date', 'due_date_mode', 'due_offset_amount', 'due_offset_unit', 'completion_rule', 'min_responses', 'notification_template_id', 'queue_behaviour', 'allow_redirect', 'allow_invite_on_redirect', 'reminders', 'escalation_enabled', 'escalation_type', 'escalation_user_id', 'escalation_team_id', 'escalate_after_minutes'],
-  send_email: ['to', 'subject', 'body', 'from', 'reply_to', 'attachments', 'email_template_id', 'content_type', 'output_var'],
+  user_task: ['task_title', 'task_description', 'task_priority', 'outcomes', 'assignment_type', 'assignee_id', 'assignee_variable', 'team_id', 'form_id', 'form_version', 'field_values', 'form_params', 'due_date', 'due_date_mode', 'due_offset_amount', 'due_offset_unit', 'completion_rule', 'min_responses', 'notification_template_id', 'notification_template_variables', 'queue_behaviour', 'allow_redirect', 'allow_invite_on_redirect', 'reminders', 'escalation_enabled', 'escalation_type', 'escalation_user_id', 'escalation_team_id', 'escalate_after_minutes'],
+  send_email: ['to', 'subject', 'body', 'from', 'reply_to', 'attachments', 'email_template_id', 'template_variables', 'content_type', 'output_var'],
   set_variable: ['name', 'expression', 'assignments'],
   date_math: ['date', 'date2', 'amount', 'unit', 'operation', 'output_var'],
   format_date: ['date', 'format', 'custom_format', 'output_var'],

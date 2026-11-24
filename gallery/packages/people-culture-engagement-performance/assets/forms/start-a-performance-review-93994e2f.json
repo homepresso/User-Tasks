@@ -1,0 +1,197 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "93994e2f-b73b-55be-b473-15ed152385a4",
+  "asset": {
+    "id": "93994e2f-b73b-55be-b473-15ed152385a4",
+    "name": "Start a performance review",
+    "description": "Start one person's review in a cycle: self review, peer feedback, manager review, calibration, sharing and acknowledgement, each with a due date.",
+    "tags": [
+      "performance",
+      "review",
+      "admin"
+    ],
+    "fields": [
+      {
+        "key": "employee",
+        "label": "Employee",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "search_columns": [
+            "name",
+            "department",
+            "job_title"
+          ],
+          "display_columns": [
+            "name",
+            "job_title",
+            "department"
+          ],
+          "value_column": "email",
+          "fill": [
+            {
+              "from": "name",
+              "to": "employee_name"
+            },
+            {
+              "from": "department",
+              "to": "department"
+            },
+            {
+              "from": "manager_name",
+              "to": "manager_name"
+            }
+          ],
+          "filters": [],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "employee_name",
+        "label": "Name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "manager_name",
+        "label": "Manager",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "employee_user",
+        "label": "Employee (user)",
+        "type": "user",
+        "required": true,
+        "help_text": "Gets the self review and the acknowledgement."
+      },
+      {
+        "key": "manager_user",
+        "label": "Manager (user)",
+        "type": "user",
+        "required": true,
+        "help_text": "Writes the manager review and shares it."
+      },
+      {
+        "key": "cycle",
+        "label": "Cycle",
+        "type": "text",
+        "required": true,
+        "default": "H2 2026 performance review"
+      },
+      {
+        "key": "self_due",
+        "label": "Self review due",
+        "type": "date",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "employee",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "employee_name",
+              "span": 1
+            },
+            {
+              "field_key": "department",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "manager_name",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "employee_user",
+              "span": 1
+            },
+            {
+              "field_key": "manager_user",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "cycle",
+              "span": 1
+            },
+            {
+              "field_key": "self_due",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Start review",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Review started",
+            "text": "The self review is with the employee.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Start a performance review",
+      "subtitle": "One person, every stage with a due date.",
+      "align": "left"
+    }
+  }
+}

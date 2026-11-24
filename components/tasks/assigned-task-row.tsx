@@ -21,6 +21,7 @@ import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@
 import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { MobileTaskCard } from "@/components/tasks/mobile-task-card"
+import { TaskTags } from "@/components/tasks/task-tags"
 import { UnreadDot, unreadTitleClass } from "@/components/tasks/unread-dot"
 import { showsUnread } from "@/lib/tasks/unread"
 
@@ -39,6 +40,8 @@ interface AssignedTaskRowProps {
     created_at?: string | null
     updated_at?: string | null
     workflow_run_id?: string | null
+    /** Free-text tags (coloured chips). */
+    tags?: string[] | null
     tenant: { id: string; name: string; slug: string; branding: any } | null
     assignee: {
       id: string
@@ -135,7 +138,7 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
     // Phones: one card per task (the table header is hidden); tapping opens the task.
     return (
       <>
-        <MobileTaskCard as="tr" colSpan={ASSIGNED_TASK_COLUMNS} href={`/tasks/${task.id}`} title={task.title} done={isDone} unread={unread}
+        <MobileTaskCard as="tr" colSpan={ASSIGNED_TASK_COLUMNS} href={`/tasks/${task.id}`} title={task.title} done={isDone} unread={unread} tags={task.tags}
           code={getTaskCode(task)} meta={[assigneeLabel, ...secondary].join(" · ")}
           leading={<TaskFollowButton taskId={task.id} following={following} />}
           actions={(
@@ -197,8 +200,9 @@ export function AssignedTaskRow({ task, following }: AssignedTaskRowProps) {
               <OrgBadge name={task.tenant.name} slug={task.tenant.slug} color={task.tenant.branding?.primary_color} size="sm" />
             )}
           </button>
-          {(secondary.length > 0 || acceptance || task.assignee_rank || task.estimated_completion || task.followed_via_run || task.shared_with_me) && (
+          {(secondary.length > 0 || acceptance || task.assignee_rank || task.estimated_completion || task.followed_via_run || task.shared_with_me || (task.tags?.length ?? 0) > 0) && (
             <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pl-[22px] text-xs text-fg-muted">
+              <TaskTags tags={task.tags} max={3} />
               {task.shared_with_me && <SharedWithMeBadge shared={task.shared_with_me} />}
               {task.followed_via_run && (
                 <Badge tone="info" data-followed-via-run={task.followed_via_run.run_id}>

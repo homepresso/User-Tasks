@@ -1,15 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { databaseUrl } from '@/lib/config/bootstrap'
-import { backgroundRuntime } from '@/lib/admin/switch-runtime'
 
 /**
- * Background provider switches (Settings → Infrastructure) from the job
- * registry, every minute: when a switch is queued, or a background switch
- * was interrupted (its process died while it ran), it starts this
- * process's switch runner (long-running process: it keeps going after the
- * tick returns and resumes, skipping the steps already done) — or, on
- * serverless, runs one time-boxed chunk of the database switch within the
- * job's budget; the next tick continues it.
+ * Background provider switches, every minute from the job registry (and
+ * /api/cron/provider-switches): when a switch queued from Settings →
+ * Infrastructure is waiting or was interrupted, the Infrastructure add-on
+ * runs or continues it (lib/extensions/sdk InfrastructureProvider.runQueued).
+ * Without the add-on, or without its licence, nothing runs: a queued switch
+ * stays queued (the running providers are untouched — a switch only writes
+ * the new provider at its end) until the add-on is licensed again.
  */
 
 export function providerSwitchesEnabled(): boolean {
@@ -28,15 +27,12 @@ export async function hasProviderSwitchWork(supabase: SupabaseClient): Promise<b
   return !error && (data ?? []).length > 0
 }
 
-export async function runProviderSwitchesJob(options: { supabase?: SupabaseClient; deadline?: number } = {}): Promise<{ started: boolean } | { chunks: number } | { skipped: string }> {
+export async function runProviderSwitchesJob(options: { supabase?: SupabaseClient; deadline?: number } = {}): Promise<Record<string, unknown>> {
   if (!providerSwitchesEnabled()) return { skipped: 'no DATABASE_URL' }
   if (options.supabase && !(await hasProviderSwitchWork(options.supabase))) return { skipped: 'nothing queued' }
-  const runner = await import('@/lib/admin/switch/app-runner')
-  if (backgroundRuntime().available) {
-    runner.kickSwitchRunner()
-    return { started: true }
-  }
-  // Serverless: one chunk of a chunked switch (the database copy), awaited within this job's budget.
-  const deadline = Math.min(options.deadline ?? Date.now() + 40_000, Date.now() + runner.chunkBudgetMs()) - 3_000
-  return { chunks: await runner.runSwitchChunk(deadline) }
+  const { infrastructureAddon } = await import('@/lib/infrastructure/provider')
+  const addon = await infrastructureAddon()
+  if (addon.state !== 'ready') return { skipped: addon.state === 'missing' ? 'the Infrastructure add-on is not installed' : 'the Infrastructure add-on is not licensed' }
+  if (!addon.resolved.provider.runQueued) return { skipped: 'the add-on has no background runner' }
+  return addon.resolved.provider.runQueued({ ctx: addon.resolved.ctx, deadline: options.deadline })
 }

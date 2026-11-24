@@ -1,0 +1,273 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "b822360b-cbab-57da-a22a-8ff028bd11f5",
+  "asset": {
+    "id": "b822360b-cbab-57da-a22a-8ff028bd11f5",
+    "name": "CRM lead conversion",
+    "description": "Converts a qualified lead: finds or creates the account, adds the contact, opens a deal in Qualification and marks the lead converted.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Convert lead submitted",
+        "config": {
+          "form_id": "90c255ba-f813-53bb-b7ff-5c9e68d43e7a",
+          "form_name": "Convert lead"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "find",
+        "type": "update_data_table",
+        "label": "Find the account",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "name",
+              "operator": "eq",
+              "value": "{{form.company}}"
+            }
+          ],
+          "limit": 1,
+          "output_rows_var": "existing",
+          "output_count_var": "existing_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "new",
+        "type": "condition",
+        "label": "New account?",
+        "config": {
+          "branches": [
+            {
+              "label": "New account",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{existing_count}}",
+                  "operator": "equals",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "acc_new",
+        "type": "set_variable",
+        "label": "New account ID",
+        "config": {
+          "name": "account_id",
+          "expression": "ACC-{{=UPPER(LEFT(GUID(), 6))}}"
+        },
+        "position": {
+          "x": 80,
+          "y": 480
+        }
+      },
+      {
+        "id": "acc",
+        "type": "update_data_table",
+        "label": "Create the account",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "insert",
+          "column_values": {
+            "account_id": "{{account_id}}",
+            "name": "{{form.company}}",
+            "industry": "{{form.industry}}",
+            "tier": "{{=IF(form.employees >= 5000, \"Strategic\", IF(form.employees >= 1000, \"Enterprise\", IF(form.employees >= 200, \"Mid-market\", \"SMB\")))}}",
+            "region": "{{form.region}}",
+            "owner": "{{form.owner}}",
+            "status": "Prospect",
+            "arr": "0",
+            "health": "Watch",
+            "health_score": "60",
+            "employees": "{{form.employees}}",
+            "last_activity": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 80,
+          "y": 620
+        }
+      },
+      {
+        "id": "acc_old",
+        "type": "set_variable",
+        "label": "Existing account ID",
+        "config": {
+          "name": "account_id",
+          "expression": "{{=FIRST(existing).account_id}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 480
+        }
+      },
+      {
+        "id": "contact",
+        "type": "update_data_table",
+        "label": "Add the contact",
+        "config": {
+          "table_id": "f055a2ac-22a3-5e94-b144-6dd4b846e645",
+          "table_name": "CRM contacts",
+          "operation": "insert",
+          "column_values": {
+            "contact_id": "CON-{{=UPPER(LEFT(GUID(), 6))}}",
+            "name": "{{form.name}}",
+            "title": "{{form.title}}",
+            "account": "{{form.company}}",
+            "account_id": "{{account_id}}",
+            "email": "{{form.email}}",
+            "role": "Champion",
+            "last_contacted": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "deal",
+        "type": "update_data_table",
+        "label": "Open the deal",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "insert",
+          "column_values": {
+            "deal_id": "DL-{{=UPPER(LEFT(GUID(), 6))}}",
+            "name": "{{form.deal_name}}",
+            "account": "{{form.company}}",
+            "account_id": "{{account_id}}",
+            "contact": "{{form.name}}",
+            "owner": "{{form.owner}}",
+            "region": "{{form.region}}",
+            "type": "New business",
+            "stage": "Qualification",
+            "amount": "{{form.amount}}",
+            "close_date": "{{form.close_date}}",
+            "next_step": "{{form.next_step}}",
+            "source": "Website",
+            "created_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "discount_pct": "0"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "lead",
+        "type": "update_data_table",
+        "label": "Mark the lead converted",
+        "config": {
+          "table_id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+          "table_name": "CRM leads",
+          "operation": "update",
+          "match_column": "lead_id",
+          "match_value": "{{form.lead_id}}",
+          "column_values": {
+            "status": "Converted"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Converted",
+        "config": {
+          "reason": "{{form.lead_id}} converted to {{form.company}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-find",
+        "source": "trigger",
+        "target": "find"
+      },
+      {
+        "id": "e-find-new",
+        "source": "find",
+        "target": "new"
+      },
+      {
+        "id": "e-new-acc_new-new_account",
+        "source": "new",
+        "target": "acc_new",
+        "label": "New account"
+      },
+      {
+        "id": "e-acc_new-acc",
+        "source": "acc_new",
+        "target": "acc"
+      },
+      {
+        "id": "e-acc-contact",
+        "source": "acc",
+        "target": "contact"
+      },
+      {
+        "id": "e-new-acc_old-else",
+        "source": "new",
+        "target": "acc_old",
+        "label": "Else"
+      },
+      {
+        "id": "e-acc_old-contact",
+        "source": "acc_old",
+        "target": "contact"
+      },
+      {
+        "id": "e-contact-deal",
+        "source": "contact",
+        "target": "deal"
+      },
+      {
+        "id": "e-deal-lead",
+        "source": "deal",
+        "target": "lead"
+      },
+      {
+        "id": "e-lead-end",
+        "source": "lead",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

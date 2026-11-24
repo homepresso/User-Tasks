@@ -223,7 +223,7 @@ describe('first-party CLI client migration', () => {
     const block = sql.slice(sql.indexOf('-- Every scope'), sql.indexOf('],', sql.indexOf('-- Every scope')))
     const seeded = [...block.matchAll(/'([a-z]+:[a-z]+)'/g)].map((m) => m[1])
     // Later migrations append scopes added since (array_append on usertasks-cli).
-    for (const file of ['20261024000001_observability_permission.sql', '20261103400000_packages.sql']) {
+    for (const file of ['20261024000001_observability_permission.sql', '20261103400000_packages.sql', '20270120090000_apps.sql']) {
       const appended = readFileSync(path.resolve(__dirname, `../supabase/migrations/${file}`), 'utf8')
       seeded.push(...[...appended.matchAll(/array_append\(allowed_scopes, '([a-z]+:[a-z]+)'\)/g)].map((m) => m[1]))
     }

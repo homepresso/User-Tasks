@@ -41,6 +41,7 @@ export const LICENCE_KEYRING: readonly LicenceKey[] = [
   // here, e.g.:
   // { kid: 'trial-1', kind: 'trial', trialSkus: ['sharepoint-se'], public_key: '…', fingerprint: '…', note: 'Self-serve trial key (2026).' },
   // Until it is here, trials are unavailable (the issuer refuses and the site shows "Contact us").
+  { kid: 'trial-1', kind: 'trial', trialSkus: ['sharepoint-se'], public_key: 'MCowBQYDK2VwAyEAlk0BG0n6rC1hdF3CcaTqOXC/YqJ0qLpGWxHXQ03BoU4=', fingerprint: '4a:a6:c5:a4:9e:fa:6c:86:db:4c:ab:d5:8d:17:3a:68', note: 'Self-serve trial key (November 2026).' },
 ]
 
 /** The keyring's trial-only keys. */

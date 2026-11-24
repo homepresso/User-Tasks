@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { BookOpen, ChevronDown, PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
 import { SidebarNavItem, isNavItemActive, sidebarFocus, sidebarItemClass, sidebarMuted, sidebarText, type NavBadgeTone } from "./sidebar-nav-item"
 import { SidebarFormsMenu } from "./available-forms-menu"
+import { SidebarAppsMenu } from "@/components/apps/apps-menu"
 import { SidebarDecorations } from "./sidebar-decorations"
 import { navIcon } from "./nav-icons"
 import { HeaderFormsMenu } from "./header-forms-menu"
@@ -14,6 +15,7 @@ import { LogoMark } from "@/components/brand/logo"
 import { NAV_PRIMARY, NAV_SETTINGS, resolveNavGroups } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/stores/app-store"
+import { useShellSidebar } from "@/hooks/use-shell-sidebar"
 import { usePermissions } from "@/lib/permissions-context"
 import { hasExtensibilityFeatureAccess } from "@/lib/extensibility-access"
 import { useIsManager } from "@/hooks/use-is-manager"
@@ -64,7 +66,9 @@ export function useNavGroupState() {
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { sidebarCollapsed: collapsed, toggleSidebar, openTasks, removeOpenTask } = useAppStore()
+  const { openTasks, removeOpenTask } = useAppStore()
+  // Folded inside apps (they get the room), the person's preference elsewhere: hooks/use-shell-sidebar.ts.
+  const { collapsed, toggle: toggleSidebar, inApp } = useShellSidebar()
   const { can, permissions } = usePermissions()
   const isManager = useIsManager(can("tasks.view_own"))
   // Pending counts beside My tasks (queued included) / Task tracker (the sidebar is always mounted: it keeps them fresh).
@@ -108,6 +112,7 @@ export function Sidebar({ user }: SidebarProps) {
       )}
       aria-label="Main"
       data-collapsed={collapsed || undefined}
+      data-in-app={inApp || undefined}
     >
       {!collapsed && <SidebarDecorations />}
 
@@ -162,6 +167,8 @@ export function Sidebar({ user }: SidebarProps) {
             ))}
             {/* People without the Forms library still get their available forms. */}
             {!can("forms.view") && <li><SidebarFormsMenu collapsed={collapsed} /></li>}
+            {/* Apps shared with this person, and New / Manage for builders (hidden when there are none). */}
+            <li><SidebarAppsMenu collapsed={collapsed} /></li>
           </ul>
 
           {sections.map((group) => {
@@ -210,11 +217,11 @@ export function Sidebar({ user }: SidebarProps) {
                 {!collapsed && <span className="truncate">Help &amp; docs</span>}
               </a>
             </Tooltip>
-            <Tooltip content={collapsed ? "Expand sidebar" : "Collapse sidebar"} side="right">
+            <Tooltip content={collapsed ? (inApp ? "Show the UserTasks menu (while in this app)" : "Expand sidebar") : "Collapse sidebar"} side="right">
               <button
                 type="button"
                 onClick={toggleSidebar}
-                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                aria-label={collapsed ? (inApp ? "Show the UserTasks menu" : "Expand sidebar") : "Collapse sidebar"}
                 aria-expanded={!collapsed}
                 className={cn(sidebarItemClass, "w-auto justify-center px-0", collapsed ? "w-full" : "w-8")}
                 data-sidebar-toggle

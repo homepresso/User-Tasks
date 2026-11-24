@@ -1,0 +1,68 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "54166558-8ae2-5d41-a80a-ec0f1ee93f45",
+  "asset": {
+    "id": "54166558-8ae2-5d41-a80a-ec0f1ee93f45",
+    "name": "CapEx vendors",
+    "description": "Approved capital suppliers: category, payment terms, preferred status, rating and actual spend this year (USD).",
+    "columns": [
+      {
+        "id": "b968a474-c035-5eae-a1f9-7fb6cdc10f27",
+        "required": true,
+        "key": "vendor",
+        "name": "Vendor",
+        "type": "text"
+      },
+      {
+        "id": "c170276f-f369-5fdb-bfb1-c62733dd70d6",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Equipment",
+          "IT",
+          "Facilities",
+          "Vehicles",
+          "R&D"
+        ]
+      },
+      {
+        "id": "debbc372-ffbe-56ce-8709-dbc8eb44dc4d",
+        "required": false,
+        "key": "contact_email",
+        "name": "Accounts email",
+        "type": "text"
+      },
+      {
+        "id": "99ae6e90-354f-5fab-bd4b-833d901bec73",
+        "required": false,
+        "key": "payment_terms",
+        "name": "Payment terms",
+        "type": "text"
+      },
+      {
+        "id": "663c05a2-50c8-5d3d-9880-a8d402cddd03",
+        "required": false,
+        "key": "preferred",
+        "name": "Preferred",
+        "type": "boolean"
+      },
+      {
+        "id": "9cb88e39-2deb-5b70-bad9-622409277728",
+        "required": false,
+        "key": "rating",
+        "name": "Rating (1-5)",
+        "type": "number"
+      },
+      {
+        "id": "197d9756-05c5-5ffb-9c05-e0b026ab95f3",
+        "required": false,
+        "key": "spend_ytd",
+        "name": "Spend this year (USD)",
+        "type": "number"
+      }
+    ]
+  }
+}

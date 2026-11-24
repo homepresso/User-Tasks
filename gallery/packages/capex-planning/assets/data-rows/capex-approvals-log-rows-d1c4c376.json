@@ -1,0 +1,3235 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+  "asset": {
+    "id": "d1c4c376-dc8d-5270-828a-f5d416688009",
+    "name": "CapEx approvals log rows",
+    "rows": [
+      {
+        "id": "c13a5456-b6b1-568e-a33c-c4119acbee9d",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-03",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "a54e7e6c-16bb-5432-af57-ff29cc50feea",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-06",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "f5f0ab28-815f-55eb-bd72-ea892a4eb494",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-06",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "3b8aae11-c396-58aa-afc7-555b87b5b719",
+        "data": {
+          "project_ref": "CPX-26-001",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-10",
+          "days_taken": 3.3000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "31c9248c-b692-52ea-b5b9-3010f2ad46e4",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-06",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "3f7e5949-ae14-599f-9ea4-35ad5c219813",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-08",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "f79d1464-0621-514a-9f94-a7db4f1a0837",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-10",
+          "days_taken": 1.9000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "2cbcb491-8c2b-5e0f-acbe-25321312bf52",
+        "data": {
+          "project_ref": "CPX-26-002",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-12",
+          "days_taken": 1.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "96920b83-cb8c-5af8-ad0f-2e9fa361f19b",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-12-07",
+          "days_taken": 2.4000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "5198501f-3c73-51af-832c-630ced4ae00f",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-08",
+          "days_taken": 0.7000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "9fb052c3-9a66-50c2-89db-891534e72d6b",
+        "data": {
+          "project_ref": "CPX-26-003",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-08",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "43c81ed7-ef90-512d-a200-b30d699ad81b",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-08",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "251767a8-c1c6-5e32-b6c1-cf4ffd17e2ce",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-10",
+          "days_taken": 2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "f0577acc-0f00-500d-8f60-7103aae81e95",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-13",
+          "days_taken": 2.4000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "8e57ea2c-17c9-59f0-8b52-c63655e4bb6a",
+        "data": {
+          "project_ref": "CPX-26-004",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-15",
+          "days_taken": 2.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "5dc2e4e0-fa51-57ec-b0e4-873fd35a946a",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-08",
+          "days_taken": 1.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "ff696e76-2f44-56a2-907b-9d7dbe19c77d",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-09",
+          "days_taken": 0.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "88f4e6e4-15d1-5215-869e-e3538936b00b",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-11",
+          "days_taken": 2.4000000000000004,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "b51dd5c2-0d9f-5af4-91d6-3cb862b9092a",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-14",
+          "days_taken": 2.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "9bda1291-57a3-599e-9d81-ea0c0895c0ed",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-17",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "e386572b-2e75-501c-b9d5-61202b299243",
+        "data": {
+          "project_ref": "CPX-26-005",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-21",
+          "days_taken": 4.3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "0ddc470a-acba-5fe3-9707-b2967ba32945",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-10",
+          "days_taken": 2.1,
+          "tier": "Tier 1"
+        }
+      },
+      {
+        "id": "546a6dce-b358-571d-b5ec-ed20d9d56966",
+        "data": {
+          "project_ref": "CPX-26-006",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-12",
+          "days_taken": 2.5,
+          "tier": "Tier 1"
+        }
+      },
+      {
+        "id": "2ad8b4c5-5f80-5860-87e3-b9f7e594a81e",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-09",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "fe37ad1f-4a4d-51de-a1cf-042cc196a6d8",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-12",
+          "days_taken": 3.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "7456b93a-5fd3-5fd2-82df-c67d14328264",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-15",
+          "days_taken": 2.7,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "7dcdb508-a011-584e-b1a4-32c9e5055f04",
+        "data": {
+          "project_ref": "CPX-26-007",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-17",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "341fe7ce-c5ae-535c-a556-3e8e76e62e5e",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-12",
+          "days_taken": 2.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "6640b263-59a0-5d02-96fa-4028b38fe598",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-14",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "ad7496f3-851e-5498-9f18-ff507a848a8b",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-17",
+          "days_taken": 2.7,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "c4bb6c63-fcfa-585c-bd0c-c58a035388b3",
+        "data": {
+          "project_ref": "CPX-26-008",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-19",
+          "days_taken": 2.3000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "09869e3c-d249-5be4-8213-20ca84c58949",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-12",
+          "days_taken": 1.4000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "7f79f98f-7359-5422-a852-6b857fab2203",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-15",
+          "days_taken": 2.7,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "6699736e-c052-5909-9431-93e11b5d837e",
+        "data": {
+          "project_ref": "CPX-26-009",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-17",
+          "days_taken": 2.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "371e0607-5bae-5a18-9547-ce6c615407fd",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-15",
+          "days_taken": 3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "e454bcc8-2932-5e17-9c47-9e4c37c50c0c",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-15",
+          "days_taken": 0.9,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "2d517942-e71d-5b00-a85a-5be22d3a9678",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-18",
+          "days_taken": 2.7,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "f564c045-21fe-5e65-8a64-c4f08121127f",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-19",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "28e6b3c1-f923-5026-8923-60f6369bf485",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-22",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "1792a0cb-d441-5249-bb26-718478978161",
+        "data": {
+          "project_ref": "CPX-26-010",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-24",
+          "days_taken": 2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "6a228560-999e-5f80-9623-1169a891d364",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-15",
+          "days_taken": 2.7,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "9b35c606-9284-5792-b6c2-4ac8ffa6f1e7",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-17",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "2d183f64-7284-5392-a6e7-f341847baa66",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-19",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "13a09b92-edf4-5ed0-b66e-9f52a94517e6",
+        "data": {
+          "project_ref": "CPX-26-011",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-21",
+          "days_taken": 2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "ac7034ff-a70c-5b7f-886e-1db4cec32d19",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-17",
+          "days_taken": 3.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "1e94b34e-da68-5532-936e-c89ee614d8e6",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-20",
+          "days_taken": 3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "6ba73f01-5f22-55b0-8aaa-5a51e828f690",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-23",
+          "days_taken": 3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "6c0e74b1-b374-503a-af8c-240236bd6729",
+        "data": {
+          "project_ref": "CPX-26-012",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-24",
+          "days_taken": 1.8,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "60057da4-079c-583f-92fd-85ed9aaabd55",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-16",
+          "days_taken": 1.4000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "0ce0281b-12d7-5102-89c1-cbf1b071281a",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-18",
+          "days_taken": 2.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "65a7deb0-b6cb-5eb5-898b-7e02b710904a",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-19",
+          "days_taken": 1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "d5ee4298-1fa7-5fb8-91e7-6ed400f24167",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-22",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "a53e426b-eec3-5548-8875-565e30b5bd4a",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-23",
+          "days_taken": 1.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "0dc59183-2f42-5ddc-9c59-870e1ab2c235",
+        "data": {
+          "project_ref": "CPX-26-013",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-29",
+          "days_taken": 5.300000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "d8bd6130-996a-59ff-84fa-7d832c6280e9",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-18",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "442da101-4d89-5d1e-b2bd-75af58e3409f",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-20",
+          "days_taken": 1.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "8bbd9a98-c646-543b-843b-92b43d484dac",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-22",
+          "days_taken": 1.8,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "2a2624e1-06a3-5d31-a9d8-06618ac5a67b",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-23",
+          "days_taken": 1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "43f54f38-6bd0-5ef5-bb67-e030f65f14e0",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-25",
+          "days_taken": 2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "c16b1ba0-7fee-524b-819a-7d37faa30800",
+        "data": {
+          "project_ref": "CPX-26-014",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-12-02",
+          "days_taken": 7,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "823ec4da-f047-5dcf-bc1d-ff41dd267fc5",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-19",
+          "days_taken": 2.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "b1834a76-b156-58eb-95ce-ecd9660dcabd",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-21",
+          "days_taken": 1.9000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "fb7e5401-2942-5efb-beb7-50bafcabdd3a",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-22",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "2c5f9e20-cf30-56d9-bf1c-363f717073d0",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-23",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "a13639f1-9dcb-5ae7-bbbe-0774d4354a5e",
+        "data": {
+          "project_ref": "CPX-26-015",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-26",
+          "days_taken": 2.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "37add3df-18c3-5d06-ab7f-4cf8130e7e93",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-20",
+          "days_taken": 2.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "dd68b562-04dd-5cb1-85fd-fef2b686fb13",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-23",
+          "days_taken": 3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "f7c51566-a5b3-5f43-8f22-e7197d567d65",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-26",
+          "days_taken": 2.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "abb6f057-a5c5-5677-a770-05508d04f4a2",
+        "data": {
+          "project_ref": "CPX-26-016",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-30",
+          "days_taken": 4.3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "b827af0f-03b3-5056-a36a-272046554706",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-19",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "256d7bc2-aebb-5d2c-9ddf-397a87775255",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-20",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "be3e6302-704a-5feb-9b9a-fa0e608b715e",
+        "data": {
+          "project_ref": "CPX-26-017",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-24",
+          "days_taken": 4.1000000000000005,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "b1476fc5-52fd-5f15-b88d-712e5d508567",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-21",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "116a1f2d-c958-5bca-a26a-23315b404d91",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-22",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "4d1793d9-9d64-5d98-b350-b018139c86ac",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-24",
+          "days_taken": 1.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "06ae2e8d-5209-5c59-94bb-1e036051c69e",
+        "data": {
+          "project_ref": "CPX-26-018",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-26",
+          "days_taken": 2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "8ea2b3e6-d1cc-579b-99a9-82f58a1a91f3",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-22",
+          "days_taken": 1.3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "a53b6ba0-80e5-5656-b7ac-3a1af6cc7dee",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-23",
+          "days_taken": 1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "34031250-700d-5fb0-9284-fd835dfa7a1b",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-24",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "fc7ee5a3-cb42-509f-9a19-1168fb5705c4",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-26",
+          "days_taken": 2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "358d696a-9c4b-5bf8-9a88-eba2d616b44d",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-27",
+          "days_taken": 1.3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "9ccd1e22-7119-50b0-a385-f34555757b3b",
+        "data": {
+          "project_ref": "CPX-26-019",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-31",
+          "days_taken": 3.4000000000000004,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "59454cbb-b577-5525-8d2a-ef70dadeadb3",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-23",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "8bc96397-0ab4-55e8-93d6-53e71db07cb6",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-24",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "0236cd9a-2e7a-5c64-a513-3ed8270baa24",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-26",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "b9582a06-ac91-59c8-8915-b9f154e05f28",
+        "data": {
+          "project_ref": "CPX-26-020",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-28",
+          "days_taken": 1.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "cb6c6ab1-897d-59be-9bf5-410d32572bb1",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-04",
+          "days_taken": 1.8,
+          "tier": "Tier 1"
+        }
+      },
+      {
+        "id": "8607bf4b-6771-5ca6-a45d-d13f8a122c7a",
+        "data": {
+          "project_ref": "CPX-26-021",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-06",
+          "days_taken": 1.9000000000000001,
+          "tier": "Tier 1"
+        }
+      },
+      {
+        "id": "3ba69c04-d84c-53b7-b926-262df9ddce36",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-07",
+          "days_taken": 3.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "7b275c19-30c6-5db4-8be2-49d52249bbde",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-09",
+          "days_taken": 2.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "aadd0655-13ca-5d95-bf5e-8bd28bdc0a8e",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-12",
+          "days_taken": 2.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "5934905c-0fa1-54cb-aaaa-e9a659a9b8eb",
+        "data": {
+          "project_ref": "CPX-26-022",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-12",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "a0950af4-aff3-58ff-afcf-45da312e4ea0",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-06",
+          "days_taken": 1.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "1cbbaba3-44f4-5272-b782-aed7381ad6c2",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-08",
+          "days_taken": 2.3000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "ea142dc6-d85a-5252-944d-13c6a2390e58",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-10",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "588ad257-61e2-55da-baea-f392b6d1cfb2",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-13",
+          "days_taken": 2.4000000000000004,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "c6ebd1f1-defe-51a3-beae-f96a792671fa",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-15",
+          "days_taken": 2.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "5083abcc-71a9-535e-94ed-7522d082623f",
+        "data": {
+          "project_ref": "CPX-26-023",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-19",
+          "days_taken": 4.1000000000000005,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "e09c40af-c825-5ced-9747-e533981b0eae",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-06",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "39532794-be74-5ec8-b451-c9657601692b",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-07",
+          "days_taken": 0.8,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "ec05bfcf-cc44-503d-a883-4f3300f04a94",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-08",
+          "days_taken": 1.3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "3c54d51b-5175-5429-8991-2776b86e5b79",
+        "data": {
+          "project_ref": "CPX-26-024",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-09",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "96a54d4a-4a86-5226-8f94-0d8fc17cb739",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-07",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "d6dc9018-7c5a-58b1-a0e8-d4ea2f49cdb3",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-09",
+          "days_taken": 2.3000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "273d540d-7161-5d58-a616-175588dfc9a3",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-12",
+          "days_taken": 2.3000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "ebfb801d-022b-57e8-b67c-9d26a47aeba2",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-14",
+          "days_taken": 2.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "49f6b387-caa4-5a97-903e-88ccf30b6e8d",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-15",
+          "days_taken": 0.9,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "53881f4c-440a-5842-8f49-838b3d1669bb",
+        "data": {
+          "project_ref": "CPX-26-025",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-24",
+          "days_taken": 8.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "34e0d216-08f5-57cb-91bc-fae6df2773ce",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-11",
+          "days_taken": 3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "10db541c-e7a8-5556-a300-92be8d319935",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-13",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "00ffbf79-0c97-5929-bfc1-a81e4247f38d",
+        "data": {
+          "project_ref": "CPX-26-026",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-16",
+          "days_taken": 3.4000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "dcdca713-8361-52c8-b197-bb09c1f7b6e7",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-11",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "a086b754-9581-52ed-9a5a-b30e1e8facec",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-12",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "94c3838c-f356-5342-ba65-645c224d5dff",
+        "data": {
+          "project_ref": "CPX-26-027",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-14",
+          "days_taken": 2.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "e11b2d41-9831-5946-915a-ec657ff7c539",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-12",
+          "days_taken": 2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "5874187a-741a-5997-ab52-018dd76621d1",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-13",
+          "days_taken": 1.9000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "e43e9e83-8fe9-510b-a3e3-8a97a80123a8",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-17",
+          "days_taken": 3.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "018924e5-4400-5980-9a24-5ece65f94a34",
+        "data": {
+          "project_ref": "CPX-26-028",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-19",
+          "days_taken": 2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "99925c07-9a38-5976-8b6a-5054bd94d44a",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-12",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "429f30b6-504c-5b70-aa94-73f13fe7543c",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-15",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "4c1a5c1b-3284-5ce9-aec2-e37817dd0d9a",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-16",
+          "days_taken": 1.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "976b21a3-1279-5d1c-ba01-6a711a1bfe58",
+        "data": {
+          "project_ref": "CPX-26-029",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-16",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "d3c6c533-c9c6-55b0-81d8-f603b9224f45",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-13",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "9f5bf8ae-20a5-5550-b6ad-cc30f5bacf1f",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-16",
+          "days_taken": 3.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "c52280e5-80cf-5bda-a9fa-7f55b6f38137",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-17",
+          "days_taken": 1.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "427758d0-858f-5265-9cd0-d7f1963c7ff6",
+        "data": {
+          "project_ref": "CPX-26-030",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-19",
+          "days_taken": 1.4000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "a9387948-db5c-5fe8-8acf-8d4a9c12c6b6",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-14",
+          "days_taken": 1.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "f0dd094d-772a-57a8-82ac-a3cccf4949e5",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-16",
+          "days_taken": 1.8,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "8a98644d-d539-521f-a73c-ad6e49c387a7",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-17",
+          "days_taken": 0.7000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "30c7b09b-6a68-5fa3-a10f-2abf1208faec",
+        "data": {
+          "project_ref": "CPX-26-031",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-10-17",
+          "days_taken": 0.7000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "c7da391d-5141-5e13-bf60-de9dcfe3ceee",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-15",
+          "days_taken": 1.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "f9234641-87cc-5777-a238-64cea1c21b42",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-18",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "923c5ddc-a178-545b-bef7-2cb32648e3f7",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-19",
+          "days_taken": 1.3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "b3668a1d-6ffa-512a-9dfc-dc96cd46a0d8",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-23",
+          "days_taken": 4.1000000000000005,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "5c72aca3-0fe3-55c1-bfda-02a1420a61fc",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-26",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "cab2b955-42a5-5ec4-b5ea-16812c8f94cb",
+        "data": {
+          "project_ref": "CPX-26-032",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-27",
+          "days_taken": 0.8,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "2f43f6d2-d5b6-54ca-bf86-d7167820cbdb",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-17",
+          "days_taken": 2.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "0492c8ce-3c17-5593-a9e6-b2f45a095935",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-17",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "d6ea1aac-e822-57ea-aafc-d06e775d5aa6",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-18",
+          "days_taken": 0.7000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "eddf9e3b-44ef-565b-9df2-beadfc3d2cdd",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-19",
+          "days_taken": 1.4000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "30f6cc9e-6a79-5750-ab7c-870929448a1e",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-20",
+          "days_taken": 1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "3ed1f4b7-de97-54c1-a797-1e973fed83f7",
+        "data": {
+          "project_ref": "CPX-26-033",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-23",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "04b534c2-1c27-568d-be9f-06b8472f72d6",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-17",
+          "days_taken": 1.3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "ffdf803e-187d-5581-964f-d5de93713230",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-19",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "49fda28f-db51-5089-be70-4c2d764ebd49",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-10-22",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "a8a63fe7-3fb6-5ea5-b3f8-758ae09bdd06",
+        "data": {
+          "project_ref": "CPX-26-034",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-26",
+          "days_taken": 3.8000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "9217eeb5-a3b5-5dd7-aa01-6f72dcfc3c1b",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-18",
+          "days_taken": 1.8,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "8a409015-33ec-5e43-967b-589f88708d9e",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-11-20",
+          "days_taken": 1.8,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "6f477ec2-7fa8-533c-88a4-2ed12635e684",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-23",
+          "days_taken": 2.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "0677d33f-940f-5cee-a7ea-929119badd93",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-24",
+          "days_taken": 1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "29005ce2-6d0e-5432-9778-32d1065e5924",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-27",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "41d6287f-841b-5eed-abfd-a9beadae52af",
+        "data": {
+          "project_ref": "CPX-26-035",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-12-02",
+          "days_taken": 5.800000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "6af5d749-bcf3-53bc-aded-df007b62f862",
+        "data": {
+          "project_ref": "CPX-26-036",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2025-12-19",
+          "days_taken": 1.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "566c15d1-822a-5f19-8dd2-327b509fe2bc",
+        "data": {
+          "project_ref": "CPX-26-036",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Rejected",
+          "comment": "Defer to next year: budget is fully committed.",
+          "decided_on": "2025-12-22",
+          "days_taken": 2.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "ce724334-edc8-5b9b-a286-299b6d4829aa",
+        "data": {
+          "project_ref": "CPX-26-037",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-10-20",
+          "days_taken": 1.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "3f2f156f-95c6-5768-830c-b329b8faf19d",
+        "data": {
+          "project_ref": "CPX-26-037",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Rejected",
+          "comment": "Payback too long for the risk.",
+          "decided_on": "2025-10-22",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "63dd370b-3888-5376-9af3-791fb2f1347f",
+        "data": {
+          "project_ref": "CPX-26-038",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-11-21",
+          "days_taken": 1.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "ef022104-ea87-52e0-be85-dd83a2c7173a",
+        "data": {
+          "project_ref": "CPX-26-038",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Rejected",
+          "comment": "Please combine with the Line 3 programme.",
+          "decided_on": "2025-11-24",
+          "days_taken": 3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "cf626385-650d-52c6-8209-9812942f0b66",
+        "data": {
+          "project_ref": "CPX-26-039",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-12-22",
+          "days_taken": 1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "db90308f-6e39-5f9a-98fa-bf444b07f6e2",
+        "data": {
+          "project_ref": "CPX-26-039",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Rejected",
+          "comment": "Defer to next year: budget is fully committed.",
+          "decided_on": "2025-12-24",
+          "days_taken": 2.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "16ca126a-6926-5b6d-887a-2e2d0e7eaf88",
+        "data": {
+          "project_ref": "CPX-26-040",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-10-24",
+          "days_taken": 2.4000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "7b3de970-c7c0-565f-835f-da52a4e323e6",
+        "data": {
+          "project_ref": "CPX-26-040",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Rejected",
+          "comment": "Payback too long for the risk.",
+          "decided_on": "2025-10-27",
+          "days_taken": 2.7,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "6a4e680c-f352-5151-b19a-9ae4053b257a",
+        "data": {
+          "project_ref": "CPX-26-041",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2025-11-04",
+          "days_taken": 1.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "3016b133-0dbc-5e3b-a3e5-492385024c2f",
+        "data": {
+          "project_ref": "CPX-26-041",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2025-11-05",
+          "days_taken": 0.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "13e1b31c-2c99-598e-8cdc-c4ed1e3beed2",
+        "data": {
+          "project_ref": "CPX-26-041",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Rejected",
+          "comment": "Please combine with the Line 3 programme.",
+          "decided_on": "2025-11-07",
+          "days_taken": 2.7,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "c81fe404-6ac5-5ca8-9cfa-803e1c17ea16",
+        "data": {
+          "project_ref": "CPX-26-042",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2025-12-06",
+          "days_taken": 2.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "bb26197a-9193-55d2-98ec-e8af1cd1ed56",
+        "data": {
+          "project_ref": "CPX-26-042",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Rejected",
+          "comment": "Payback too long for the risk.",
+          "decided_on": "2025-12-09",
+          "days_taken": 2.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "3fd0d019-6fce-59a4-a560-56932c942bdf",
+        "data": {
+          "project_ref": "CPX-26-043",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Changes requested",
+          "comment": "Add a second quote and phase the spend.",
+          "decided_on": "2025-10-06",
+          "days_taken": 1.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "9eaa0331-6114-5b0d-b09e-7534d9d3f0a3",
+        "data": {
+          "project_ref": "CPX-26-044",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Changes requested",
+          "comment": "Add a second quote and phase the spend.",
+          "decided_on": "2025-11-09",
+          "days_taken": 3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "4a8ba740-ef37-53eb-99d7-7de95b9db4bb",
+        "data": {
+          "project_ref": "CPX-26-045",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Changes requested",
+          "comment": "Add a second quote and phase the spend.",
+          "decided_on": "2025-12-10",
+          "days_taken": 3.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "9021ec7e-23be-5926-a647-fae65100f20a",
+        "data": {
+          "project_ref": "CPX-27-052",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-09-05",
+          "days_taken": 2,
+          "tier": "Tier 1"
+        }
+      },
+      {
+        "id": "369b8940-37df-5cdf-80b0-ea5a6a68a82e",
+        "data": {
+          "project_ref": "CPX-27-053",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-10-07",
+          "days_taken": 3.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "6b2c104b-b958-520a-83de-f2fd2978fad2",
+        "data": {
+          "project_ref": "CPX-27-054",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-11-05",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "6d644c59-2890-5fd0-bc35-86349ed4569a",
+        "data": {
+          "project_ref": "CPX-27-055",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-09-08",
+          "days_taken": 2.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "23d2efdc-9536-5ed6-b825-41f36c64a2f8",
+        "data": {
+          "project_ref": "CPX-27-056",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-10-09",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "157682ce-0461-50b5-9167-2394f7e3d55e",
+        "data": {
+          "project_ref": "CPX-27-056",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-10-10",
+          "days_taken": 1.1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "b88c6724-d3a9-5299-85fb-b60b890f19bf",
+        "data": {
+          "project_ref": "CPX-27-057",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-11-10",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "4d7c57b3-c3f7-5a0f-8773-799a7679e0ad",
+        "data": {
+          "project_ref": "CPX-27-058",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-09-11",
+          "days_taken": 2.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "d939b68c-a4c7-55b1-8a29-de78b066741d",
+        "data": {
+          "project_ref": "CPX-27-058",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-09-14",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "898a82a3-1a67-5db5-b989-adfad353eefd",
+        "data": {
+          "project_ref": "CPX-27-059",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-10-11",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "c0c4e719-23de-5fec-be70-9c08b9a4e035",
+        "data": {
+          "project_ref": "CPX-27-059",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-10-13",
+          "days_taken": 1.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "0dea7db5-ca79-50bc-9b09-0e78d205a26a",
+        "data": {
+          "project_ref": "CPX-27-060",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-11-12",
+          "days_taken": 1,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "770133c1-da74-5c36-9385-78a408dc7350",
+        "data": {
+          "project_ref": "CPX-27-060",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-11-13",
+          "days_taken": 1.9000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "6245d20f-f1f4-5941-96fb-bfa76afc8c86",
+        "data": {
+          "project_ref": "CPX-27-061",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-09-12",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "8fc2825b-d65e-5564-910f-240eae3183f7",
+        "data": {
+          "project_ref": "CPX-27-061",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-09-15",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "675c81c9-76f3-5204-b0b8-c7a2d8498c98",
+        "data": {
+          "project_ref": "CPX-27-062",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-10-14",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "0fe35224-e3a1-57ee-8fef-af4be02c128b",
+        "data": {
+          "project_ref": "CPX-27-062",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-10-17",
+          "days_taken": 3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "9eadc16c-5be5-5fc7-9768-0f0f5ff8b1df",
+        "data": {
+          "project_ref": "CPX-27-062",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-10-19",
+          "days_taken": 1.3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "64150e12-3fed-57f1-839c-33a73e9ff699",
+        "data": {
+          "project_ref": "CPX-27-063",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-11-15",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "e8f74b31-fa04-5709-ab28-7ad34054d8a1",
+        "data": {
+          "project_ref": "CPX-27-063",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-11-18",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "2c5814ea-a14b-5119-be6b-9fb1fdebefdc",
+        "data": {
+          "project_ref": "CPX-27-063",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-11-20",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "ddc226aa-5f9d-5adc-a8f6-f116a219d6d3",
+        "data": {
+          "project_ref": "CPX-27-064",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-09-16",
+          "days_taken": 1.4000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "347f6af7-3db9-54c3-a597-297829b3d8f5",
+        "data": {
+          "project_ref": "CPX-27-064",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-09-18",
+          "days_taken": 2.3000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "839ef5af-58dd-5bdd-9dad-42345f55f283",
+        "data": {
+          "project_ref": "CPX-27-064",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-09-19",
+          "days_taken": 0.8,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "abaa2391-97e0-5640-9b4f-b43458aa7339",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-10-17",
+          "days_taken": 1.1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "2de3195d-cc0e-5ac7-9e4d-755678995ee9",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-10-18",
+          "days_taken": 1.3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "d0ada2e4-2644-5c3f-adf4-73fd5111828d",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-10-19",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "4321494d-dace-5b9d-bb9a-e084e9577965",
+        "data": {
+          "project_ref": "CPX-27-065",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-10-23",
+          "days_taken": 4.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "23c37c1f-ed59-541d-91e7-526980b5bc75",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-11-17",
+          "days_taken": 0.8,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "9234f958-d264-5829-9a5d-52bca7a0cdc4",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-11-19",
+          "days_taken": 2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "2ce703ae-3261-5479-a4bf-a6996063e755",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-11-21",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "6670fe9c-3c6d-555b-8005-473dd769dc06",
+        "data": {
+          "project_ref": "CPX-27-066",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-11-25",
+          "days_taken": 3.8000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "93c3492a-a387-50b9-8516-b842327db4da",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-09-20",
+          "days_taken": 2.8000000000000003,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "a0184a14-97a3-5aa4-9bcc-6516542d5267",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-09-22",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "a68e662e-de36-586f-b82d-4b67698deab9",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-09-23",
+          "days_taken": 0.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "dfdf94b2-c119-5959-b64b-ec36410e938d",
+        "data": {
+          "project_ref": "CPX-27-067",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-09-26",
+          "days_taken": 3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "6798f9c9-bf31-54d5-a9d5-75db5376441a",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-10-22",
+          "days_taken": 3.1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "cdbeb4ad-2a27-55b5-a52c-6df6468f5a7c",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-10-24",
+          "days_taken": 2.4000000000000004,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "648bf4a5-4ea9-588e-a623-9582f65405f7",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-10-26",
+          "days_taken": 2.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "765eff65-3b20-5176-9fed-7000c4e77270",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-10-29",
+          "days_taken": 2.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "b6032f6f-2d97-5ed7-8688-77e3be793417",
+        "data": {
+          "project_ref": "CPX-27-068",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-11-01",
+          "days_taken": 3.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "56d63ded-89bf-5436-8536-233e72f62057",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-11-21",
+          "days_taken": 1.9000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "f1498915-792c-5650-8faa-ca9289664fbd",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-11-22",
+          "days_taken": 0.9,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "82da4d8f-8cf2-55c5-b0ca-568ddb3a907d",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-11-25",
+          "days_taken": 2.7,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "1f3abdac-4e84-5b5c-8edf-51aaf8633de5",
+        "data": {
+          "project_ref": "CPX-27-069",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-11-27",
+          "days_taken": 2.2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "a55aee50-8aee-5cb4-a513-f8bd91062c2e",
+        "data": {
+          "project_ref": "CPX-27-070",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Changes requested",
+          "comment": "Add a second quote and phase the spend.",
+          "decided_on": "2026-09-23",
+          "days_taken": 2.9000000000000004,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "483aefe4-9742-5e68-bb9f-30016de209ff",
+        "data": {
+          "project_ref": "CPX-27-071",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Changes requested",
+          "comment": "Add a second quote and phase the spend.",
+          "decided_on": "2026-10-24",
+          "days_taken": 2.2,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "69cdb7fe-fe13-5d4a-a668-804748b01d43",
+        "data": {
+          "project_ref": "CPX-27-072",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Changes requested",
+          "comment": "Add a second quote and phase the spend.",
+          "decided_on": "2026-11-23",
+          "days_taken": 0.8,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "cbf1ed8d-4fee-5525-bbf5-3c3df799eede",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-09-24",
+          "days_taken": 0.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "47703797-1bb7-5866-a9da-848e35001205",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-09-27",
+          "days_taken": 2.7,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "b6314716-8a66-5718-9475-dfccc354289f",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-09-29",
+          "days_taken": 2.6,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "9538dd93-cc04-5d2b-b2a4-75df3db047db",
+        "data": {
+          "project_ref": "CPX-27-073",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-10-02",
+          "days_taken": 2.3000000000000003,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "86938bd9-63ae-5f7c-a837-e14137f1a398",
+        "data": {
+          "project_ref": "CPX-27-074",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-10-26",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "e577bc95-d368-583f-84a9-3e793b640987",
+        "data": {
+          "project_ref": "CPX-27-074",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-10-28",
+          "days_taken": 1.3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "a40ebe38-474d-543d-9475-c29b5af357a7",
+        "data": {
+          "project_ref": "CPX-27-074",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-10-29",
+          "days_taken": 1.3,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "328050d4-cd06-5385-832c-29d4adb04347",
+        "data": {
+          "project_ref": "CPX-27-075",
+          "step": "Department head",
+          "approver": "Daniel Okafor",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-11-27",
+          "days_taken": 1.5,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "c7534760-b29c-5249-a17c-7063e6057909",
+        "data": {
+          "project_ref": "CPX-27-075",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-11-28",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "2d80b5c1-4b95-5833-94e6-a23a4131e81e",
+        "data": {
+          "project_ref": "CPX-27-075",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-12-01",
+          "days_taken": 3.7,
+          "tier": "Tier 2"
+        }
+      },
+      {
+        "id": "82ec7aa0-5ac1-563a-a07a-b8ab2ed474b0",
+        "data": {
+          "project_ref": "CPX-27-076",
+          "step": "Department head",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-09-03",
+          "days_taken": 1.2000000000000002,
+          "tier": "Tier 1"
+        }
+      },
+      {
+        "id": "326e7ee0-c4c4-5fb6-a25b-6ddd30c47aad",
+        "data": {
+          "project_ref": "CPX-27-076",
+          "step": "CIO review",
+          "approver": "Grace Kim",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-09-06",
+          "days_taken": 3.1,
+          "tier": "Tier 1"
+        }
+      },
+      {
+        "id": "6df7af16-5a1d-59ef-a272-952e4122f541",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "step": "Department head",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-10-04",
+          "days_taken": 1.7000000000000002,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "016404b6-7e3f-5ccc-b21f-ec54c6b76e4d",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-10-06",
+          "days_taken": 1.8,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "82696480-f23f-54b9-8530-9c3e4d41d8f7",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-10-07",
+          "days_taken": 0.6000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "53db9ca0-3321-5f56-b934-2e03f412d238",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-10-10",
+          "days_taken": 3.7,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "900b3e22-061c-563f-919e-6f15da4b6c45",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-10-12",
+          "days_taken": 1.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "f1aae731-2cb1-595c-bf81-8dee85236fba",
+        "data": {
+          "project_ref": "CPX-27-077",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Approved, within plan.",
+          "decided_on": "2026-10-14",
+          "days_taken": 2.5,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "9f913047-0fc0-527f-8c0c-e5880aee62b0",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "step": "Department head",
+          "approver": "Maya Patel",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-11-04",
+          "days_taken": 0.7000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "37396857-11a5-50fb-873a-5710fb6e88e8",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-11-05",
+          "days_taken": 0.8,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "7c8467e4-4e77-5d3b-aa0d-e6bd13aabad6",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-11-07",
+          "days_taken": 1.9000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "af520387-2346-55f4-9b85-bf77659c88e2",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "step": "CFO",
+          "approver": "Robert Chen",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-11-08",
+          "days_taken": 1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "81dbed44-284e-55a7-b8dd-8858ce958c1c",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "step": "CEO",
+          "approver": "Olivia Grant",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-11-10",
+          "days_taken": 2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "0f50df86-bed3-5f52-8377-9cacdb1491f5",
+        "data": {
+          "project_ref": "CPX-27-078",
+          "step": "Capital committee",
+          "approver": "Capital committee",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-11-13",
+          "days_taken": 3.4000000000000004,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "0ec1435d-16e8-509f-a61e-be5369c12781",
+        "data": {
+          "project_ref": "CPX-27-079",
+          "step": "Department head",
+          "approver": "Marcus Hale",
+          "decision": "Approved",
+          "comment": "Approved: track benefits monthly.",
+          "decided_on": "2026-09-06",
+          "days_taken": 1.3,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "4516aa49-10b9-5021-bf9d-4393df4cd51a",
+        "data": {
+          "project_ref": "CPX-27-079",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Approved.",
+          "decided_on": "2026-09-08",
+          "days_taken": 2.6,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "d2f5c896-429e-5c11-9602-8edeb5fe04a7",
+        "data": {
+          "project_ref": "CPX-27-079",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Rejected",
+          "comment": "Payback too long for the risk.",
+          "decided_on": "2026-09-10",
+          "days_taken": 2,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "a9dc40ce-65ca-5312-b02a-7ae4d0b04f59",
+        "data": {
+          "project_ref": "CPX-27-080",
+          "step": "Department head",
+          "approver": "Priya Raman",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-10-06",
+          "days_taken": 0.7000000000000001,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "a87733d4-f296-5b12-9774-179bf4482258",
+        "data": {
+          "project_ref": "CPX-27-080",
+          "step": "Safety review",
+          "approver": "Sam Torres",
+          "decision": "Approved",
+          "comment": "Good business case.",
+          "decided_on": "2026-10-07",
+          "days_taken": 1,
+          "tier": "Tier 3"
+        }
+      },
+      {
+        "id": "b547dc5b-0e92-5d65-9f72-a2930baef226",
+        "data": {
+          "project_ref": "CPX-27-080",
+          "step": "Finance controller",
+          "approver": "Elena Novak",
+          "decision": "Rejected",
+          "comment": "Please combine with the Line 3 programme.",
+          "decided_on": "2026-10-09",
+          "days_taken": 1.3,
+          "tier": "Tier 3"
+        }
+      }
+    ]
+  }
+}

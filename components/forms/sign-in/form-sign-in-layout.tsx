@@ -107,9 +107,16 @@ function Heading({ settings, tone, headings, size = 'md', center = false, onColo
   )
 }
 
-/** Panel CSS variables: the link / focus colour for the panel's tone. */
+/**
+ * Panel CSS variables: the link / focus colour for the panel's tone. A dark
+ * panel also sets --theme-card-text: app/globals.css colours every label and
+ * heading with it (unlayered, so it beats the text-zinc-* utilities), which
+ * left them ink on the dark card.
+ */
 function panelVars(colors: SignInColors, tone: PanelTone): CSSProperties {
-  return { '--fsi-ink': tone === 'dark' ? colors.accentOnDark : colors.accentInk } as CSSProperties
+  return tone === 'dark'
+    ? { '--fsi-ink': colors.accentOnDark, '--theme-card-text': '#f4f4f5' } as CSSProperties
+    : { '--fsi-ink': colors.accentInk } as CSSProperties
 }
 
 /** The theme's canvas image (a workspace theme's gradient / texture; none in the UserTasks look). */

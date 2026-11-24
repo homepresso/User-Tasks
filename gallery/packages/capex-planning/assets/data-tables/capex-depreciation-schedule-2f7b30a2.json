@@ -1,0 +1,83 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "2f7b30a2-32b6-56ad-88c1-f17b990829fc",
+  "asset": {
+    "id": "2f7b30a2-32b6-56ad-88c1-f17b990829fc",
+    "name": "CapEx depreciation schedule",
+    "description": "Straight-line depreciation by asset and fiscal year (FY2026 to FY2031): opening value, depreciation and closing value in USD.",
+    "columns": [
+      {
+        "id": "896870b2-c040-55f0-9ce1-daf53d97ebed",
+        "required": true,
+        "key": "asset_tag",
+        "name": "Asset tag",
+        "type": "text"
+      },
+      {
+        "id": "f9feaa77-5bbd-5676-b9f3-dfb191f9abd9",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Equipment",
+          "IT",
+          "Facilities",
+          "Vehicles",
+          "R&D"
+        ]
+      },
+      {
+        "id": "850e9c32-11a2-5ae7-8f40-39f27f427b02",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Production",
+          "Logistics",
+          "Engineering & R&D",
+          "IT",
+          "Facilities & EHS",
+          "Commercial"
+        ]
+      },
+      {
+        "id": "7c661c5c-3c8a-5c5e-b82f-a76cccef65e2",
+        "required": false,
+        "key": "fiscal_year",
+        "name": "Fiscal year",
+        "type": "text"
+      },
+      {
+        "id": "b8fdceb7-6c91-5236-a794-1c12570952f7",
+        "required": false,
+        "key": "year_no",
+        "name": "Year of life",
+        "type": "number"
+      },
+      {
+        "id": "d2b1d5f2-b87e-57b1-8a5a-58a97f90e921",
+        "required": false,
+        "key": "opening_nbv",
+        "name": "Opening value (USD)",
+        "type": "number"
+      },
+      {
+        "id": "2fd01b89-f828-5458-b54a-f61a2ba53240",
+        "required": false,
+        "key": "depreciation",
+        "name": "Depreciation (USD)",
+        "type": "number"
+      },
+      {
+        "id": "a763fc03-e3b6-5299-bcfc-2ad4ab063abf",
+        "required": false,
+        "key": "closing_nbv",
+        "name": "Closing value (USD)",
+        "type": "number"
+      }
+    ]
+  }
+}

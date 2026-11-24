@@ -16,6 +16,19 @@
  *     }
  *   }
  *
+ * The Enterprise edition (`"edition": "enterprise"`) names a build number and
+ * every extension compiled in instead of one extension version:
+ *
+ *   { …, "edition": "enterprise", "edition_version": "0.4.0-ent.3", "core_version": "0.4.0",
+ *     "build": 3,
+ *     "extensions": [ { "id": "sharepoint", "name": "SharePoint Server", "package": "@usertasks-ext/sharepoint",
+ *                       "version": "0.1.0", "commit": "<sha>", "ref": "v0.1.0", "sku": "sharepoint-se" }, … ],
+ *     "fingerprint": "sha256:<inputs>", "built_at": …, "index_digest": …, "platforms": … }
+ *
+ * A compatibility manifest of the SharePoint edition served by an Enterprise
+ * build is the single-extension format plus `served_by: "enterprise"` and
+ * `served_by_version` (the same digests as the Enterprise build).
+ *
  * The installers verify the signature with the release key they already
  * trust, pull the image BY `index_digest` (so the registry can only hand over
  * exactly these bytes), and check the image they end up with is one of the
@@ -32,7 +45,7 @@
 
 import { createPublicKey, verify } from 'node:crypto'
 import { z } from 'zod'
-import { editionById, isReleaseVersion } from './catalog'
+import { editionById, isReleaseVersion, ENTERPRISE_EDITION_ID } from './catalog'
 
 export const EDITION_MANIFEST_KIND = 'usertasks.edition'
 export const EDITION_MANIFEST_FORMAT = 1
@@ -48,8 +61,24 @@ export const EditionManifestSchema = z.looseObject({
   edition_version: z.string().min(5).max(130),
   core_version: version,
   core_commit: commit,
-  extension_version: version,
+  /** Single-extension editions (sharepoint); not in an Enterprise manifest. */
+  extension_version: version.optional(),
   extension_commit: commit,
+  /** Enterprise: the build number of this core release. */
+  build: z.number().int().min(0).max(999_999).optional(),
+  /** Enterprise: every extension compiled in. */
+  extensions: z.array(z.looseObject({
+    id: z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/),
+    name: z.string().max(200).optional(),
+    package: z.string().max(214).optional(),
+    version,
+    commit,
+    ref: z.string().max(200).optional(),
+    sku: z.string().max(100).optional(),
+  })).max(50).optional(),
+  fingerprint: digest.optional(),
+  served_by: z.string().regex(/^[a-z][a-z0-9-]{0,40}$/).optional(),
+  served_by_version: z.string().max(130).optional(),
   built_at: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'a date'),
   index_digest: digest,
   platforms: z.record(z.string().regex(/^linux\/(amd64|arm64)$/), z.looseObject({ manifest: digest, config: digest })).refine((p) => Object.keys(p).length > 0, 'at least one platform'),
@@ -78,6 +107,15 @@ export function parseEditionManifest(bytes: Uint8Array | string): EditionManifes
     throw new EditionManifestError(`edition.json: ${issue?.path.join('.') || 'document'}: ${issue?.message ?? 'invalid'}`)
   }
   const m = parsed.data
+  if (m.edition === ENTERPRISE_EDITION_ID) {
+    if (m.build === undefined || !m.extensions?.length) throw new EditionManifestError('edition.json: an Enterprise manifest needs build and extensions')
+    if (m.edition_version !== `${m.core_version}-ent.${m.build}`) {
+      throw new EditionManifestError(`edition.json: edition_version ${m.edition_version} is not build ${m.build} of core ${m.core_version}`)
+    }
+    if (new Set(m.extensions.map((e) => e.id)).size !== m.extensions.length) throw new EditionManifestError('edition.json: an extension is listed twice')
+    return m
+  }
+  if (!m.extension_version) throw new EditionManifestError('edition.json: extension_version is required')
   const marker = editionById(m.edition)?.versionMarker ?? m.edition
   if (m.edition_version !== `${m.core_version}-${marker}${m.extension_version}`) {
     throw new EditionManifestError(`edition.json: edition_version ${m.edition_version} does not pair core ${m.core_version} with extension ${m.extension_version}`)
@@ -104,4 +142,11 @@ export function editionDigests(m: EditionManifest): string[] {
     out.add(p.config)
   }
   return [...out]
+}
+
+/** The extensions an edition build contains: the Enterprise list, or the one extension of a single-extension edition. */
+export function editionManifestExtensions(m: EditionManifest): Array<{ id: string; version: string }> {
+  if (m.extensions?.length) return m.extensions.map((e) => ({ id: e.id, version: e.version }))
+  const def = editionById(m.edition)
+  return def && m.extension_version ? def.extensions.map((e) => ({ id: e.id, version: m.extension_version! })) : []
 }

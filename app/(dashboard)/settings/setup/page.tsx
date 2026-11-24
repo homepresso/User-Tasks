@@ -6,10 +6,10 @@ import { getConfig } from '@/lib/config'
 import { configuredAppUrl, appUrlOrLocalhost } from '@/lib/config/bootstrap'
 import { catalogueEntry } from '@/lib/admin/catalogue'
 import { getInstanceSetting } from '@/lib/config/instance-settings'
-import { fieldViews } from '@/lib/admin/infrastructure-switching'
+import { fieldViews } from '@/lib/admin/infrastructure-settings'
 import { backgroundRuntime } from '@/lib/admin/switch-runtime'
 import { pageMetadata } from '@/lib/page-title'
-import { AREA_PLAIN, signInSummary, supabaseMoves, type WizardPageData } from '@/lib/setup/wizard-data'
+import { AREA_PLAIN, signInSummary, type WizardPageData } from '@/lib/setup/wizard-data'
 import { WIZARD_STATE_SETTING, checkAddress, isStepId, nextStep, parseProgress } from '@/lib/setup/wizard-model'
 import { SetupWizard } from '@/components/setup-wizard/setup-wizard'
 
@@ -59,7 +59,7 @@ export default async function SetupWizardPage({ searchParams }: { searchParams: 
     }))
     services = {
       areas, checkedAt: view.checkedAt, gate: view.switching.gate, access: view.switching.access, backgroundAvailable: runtime.available,
-      moves: supabaseMoves(areas, view.switching.access, runtime.available),
+      addon: view.addon,
     }
   }
 

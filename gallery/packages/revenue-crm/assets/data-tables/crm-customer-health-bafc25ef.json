@@ -1,0 +1,74 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "bafc25ef-96cd-5ab6-bd6f-1f885fdb8182",
+  "asset": {
+    "id": "bafc25ef-96cd-5ab6-bd6f-1f885fdb8182",
+    "name": "CRM customer health",
+    "description": "Health records customer success keeps for won accounts: stage, score, CSM and next review.",
+    "columns": [
+      {
+        "id": "6cdc4c96-b029-5fff-88cf-ebe40b71e092",
+        "required": true,
+        "key": "account_id",
+        "name": "Account ID",
+        "type": "text"
+      },
+      {
+        "id": "8aba963c-b4f9-5f82-9cbf-9f0d2181d402",
+        "required": false,
+        "key": "account",
+        "name": "Account",
+        "type": "text"
+      },
+      {
+        "id": "8a5d2a97-3b9d-59e2-8072-61093f564839",
+        "required": false,
+        "key": "deal_id",
+        "name": "Deal ID",
+        "type": "text"
+      },
+      {
+        "id": "21d616ec-078d-5bc8-8e4e-2a99000dc956",
+        "required": false,
+        "key": "csm",
+        "name": "Customer success manager",
+        "type": "text"
+      },
+      {
+        "id": "05cef957-c6ec-501a-95cf-c991135be432",
+        "required": false,
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "Onboarding",
+          "Adopting",
+          "Healthy",
+          "At risk"
+        ]
+      },
+      {
+        "id": "539a3fa5-cab4-5634-8c98-e9353aa9a3b6",
+        "required": false,
+        "key": "health_score",
+        "name": "Health score",
+        "type": "number"
+      },
+      {
+        "id": "4684c8fe-fe36-5eab-9036-c4f0ac9b79bf",
+        "required": false,
+        "key": "kickoff",
+        "name": "Kickoff",
+        "type": "date"
+      },
+      {
+        "id": "6f91f07b-ec4e-5a0d-ab97-54f2d70b476c",
+        "required": false,
+        "key": "next_review",
+        "name": "Next review",
+        "type": "date"
+      }
+    ]
+  }
+}

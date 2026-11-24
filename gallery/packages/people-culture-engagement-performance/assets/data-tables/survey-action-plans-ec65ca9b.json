@@ -1,0 +1,126 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+  "asset": {
+    "id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+    "name": "Survey action plans",
+    "description": "What each team agreed to change after a survey: the driver, the focus, the actions, the owner and progress. Owners get a 30-day check-in task.",
+    "columns": [
+      {
+        "id": "009228cd-c589-5922-9580-4d9653184964",
+        "required": true,
+        "key": "plan_ref",
+        "name": "Plan",
+        "type": "text"
+      },
+      {
+        "id": "f1d6a884-ac5d-54ac-a3c7-7a5fff758900",
+        "required": false,
+        "key": "cycle_code",
+        "name": "Cycle code",
+        "type": "text"
+      },
+      {
+        "id": "5e99020c-044a-56aa-8e0c-b4fb639452f2",
+        "required": false,
+        "key": "department",
+        "name": "Department",
+        "type": "select",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ]
+      },
+      {
+        "id": "06a49004-90ed-56bc-8266-771a8dd552bc",
+        "required": false,
+        "key": "driver",
+        "name": "Driver",
+        "type": "select",
+        "options": [
+          "Leadership",
+          "Growth",
+          "Wellbeing",
+          "Belonging",
+          "Recognition"
+        ]
+      },
+      {
+        "id": "b79560e9-1757-5f5d-bb80-729f3f18dd68",
+        "required": false,
+        "key": "score_at_start",
+        "name": "Score at start",
+        "type": "number"
+      },
+      {
+        "id": "a7843a27-8bda-5e7a-a29d-9fd00f1b1712",
+        "required": false,
+        "key": "focus",
+        "name": "Focus",
+        "type": "text"
+      },
+      {
+        "id": "79f98272-d424-52fa-a726-c3baaa661def",
+        "required": false,
+        "key": "actions",
+        "name": "Actions",
+        "type": "text"
+      },
+      {
+        "id": "49f0644f-00ea-544f-b48d-e3e08ec9950f",
+        "required": false,
+        "key": "owner_name",
+        "name": "Owner",
+        "type": "text"
+      },
+      {
+        "id": "f8de858e-6ba1-5830-9454-c9771baa8de3",
+        "required": false,
+        "key": "owner_email",
+        "name": "Owner email",
+        "type": "email"
+      },
+      {
+        "id": "24a30dd4-8482-5c7e-a488-35847d8c536a",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Planned",
+          "In progress",
+          "Needs help",
+          "Done"
+        ]
+      },
+      {
+        "id": "a40f9ef1-19c5-565d-92bf-ea94ce1788b6",
+        "required": false,
+        "key": "progress",
+        "name": "Progress %",
+        "type": "number"
+      },
+      {
+        "id": "3481fbeb-e66a-5665-bdb8-1d82308cf370",
+        "required": false,
+        "key": "due_date",
+        "name": "Due date",
+        "type": "date"
+      },
+      {
+        "id": "a273e7c8-7925-54f9-bdb4-53582fb88779",
+        "required": false,
+        "key": "last_update",
+        "name": "Last update",
+        "type": "date"
+      }
+    ]
+  }
+}

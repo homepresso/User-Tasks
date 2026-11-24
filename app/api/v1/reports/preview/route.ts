@@ -57,6 +57,10 @@ export async function POST(request: NextRequest) {
     const scopedTableIds = apiAuth.success ? apiAuth.scopes?.table_ids : undefined;
     // Summary chart time buckets: ?timezone= (the viewer's browser zone),
     // else the user's profile zone, else UTC.
+    // The person reading (UserTasks instance sources: instance admins only; a tenant-wide key has none).
+    const actorId = apiAuth.success
+      ? (apiAuth.keyType === "user" ? apiAuth.actingUserId ?? null : null)
+      : (await getCachedUser())?.id ?? null;
     const timezone =
       validTimeZone(request.nextUrl.searchParams.get("timezone")) ??
       validTimeZone(profileTimezone) ??
@@ -64,9 +68,9 @@ export async function POST(request: NextRequest) {
 
     try {
       const [preview, charts] = await Promise.all([
-        executeReportPreview(supabase, tenantId, body as any, scopedTableIds, permissions),
+        executeReportPreview(supabase, tenantId, body as any, scopedTableIds, permissions, { actorId }),
         body.charts?.length
-          ? executeReportCharts(supabase, tenantId, body as any, { scopedTableIds, permissions, timezone })
+          ? executeReportCharts(supabase, tenantId, body as any, { scopedTableIds, permissions, timezone, actorId })
           : Promise.resolve(null),
       ]);
       return NextResponse.json({

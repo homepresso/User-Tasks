@@ -1,4 +1,6 @@
 import type { McpToolServer } from '../server'
+import { normalizeTagList, tagFilterValues } from '@/lib/tags/normalize'
+import { selectWithTags } from '@/lib/services/tags-column'
 import { z } from 'zod'
 import type { McpContext } from '../server'
 import { mcpOk, mcpErr } from '../server'
@@ -27,6 +29,10 @@ import { chartFields, reportChartIssues } from '@/lib/report-charts'
 import { executeReportCharts } from '@/lib/report-charts-server'
 import { listTenantReportSources, resolveTenantReportSource } from '@/lib/report-source-registry'
 import { executeReference } from '@/lib/reference-executor'
+import { AI_USAGE_PERSON_COLUMNS, AI_USAGE_PERSON_PERMISSION, AI_USAGE_SOURCE_KEY, aiUsageBounds, buildAiUsageRows } from '@/lib/reports/ai-usage-source'
+import { AI_USAGE_REPORTS } from '@/lib/reports/ai-usage-reports'
+import { isInstanceReportSourceKey } from '@/lib/instance-admin/report-sources'
+import { instanceReportRows } from '@/lib/services/instance-admin/report-rows'
 import { isRunVariableColumnKey, readRunVariable, RUN_VARIABLE_COLUMN_PREFIX } from '@/lib/workflow-run-variables'
 import { isTaskFieldColumnKey, TASK_FIELD_COLUMN_PREFIX } from '@/lib/report-workflow-variables'
 
@@ -50,6 +56,7 @@ function summarizeReport(report: any) {
     updated_at: report.updated_at,
     created_at: report.created_at,
     config: report.config,
+    tags: Array.isArray(report.tags) ? report.tags : [],
   }
 }
 
@@ -198,6 +205,11 @@ function buildSelectClauseBase(source: ReportSource, requiredKeys: string[]) {
 
 async function resolveSource(supabase: any, dataSource: string, tenantId: string, sourceInputs?: Record<string, any> | null): Promise<ReportSource | undefined> {
   return resolveTenantReportSource(supabase, tenantId, dataSource, sourceInputs)
+}
+
+/** The person an MCP call reads as, for the UserTasks instance sources: a user credential's person (never a tenant key or the in-app Agent). */
+function mcpPersonId(ctx: McpContext): string | null {
+  return ctx.keyType === 'user' && ctx.via !== 'agent' ? ctx.actingUserId ?? null : null
 }
 
 function isBaseFilterField(field: string) {
@@ -506,6 +518,8 @@ function normalizeJoins(rawJoins: unknown): ReportJoinConfig[] {
  */
 export const SOURCE_PERMISSIONS: Record<string, string> = {
   agent_runs: 'agents.view',
+  // Agents & AI usage (lib/reports/ai-usage-source.ts): the Costs page's permission; person columns need assistants.manage too.
+  ai_usage: 'agents.view',
   // Governance audit 2026-11: every source is the domain's data, so it needs
   // the domain's read permission — reports.view alone read every task, run,
   // API key, invitation and audit row in the workspace through the
@@ -571,6 +585,20 @@ export function assertReportSourceAccess(config: Partial<ReportConfig>, permissi
   if (configReadsRunVariables(config) && !granted.has(WORKFLOW_VARIABLES_PERMISSION)) {
     throw new Error(`Workflow variable columns need the '${WORKFLOW_VARIABLES_PERMISSION}' permission`)
   }
+  if (configReadsAiUsagePeople(config) && !granted.has(AI_USAGE_PERSON_PERMISSION)) {
+    throw new Error(`Person and team columns of Agents & AI usage need the '${AI_USAGE_PERSON_PERMISSION}' permission`)
+  }
+}
+
+/** Does a config read the person columns of the Agents & AI usage source (columns, filters, grouping, sort, charts)? */
+export function configReadsAiUsagePeople(config: Partial<ReportConfig>): boolean {
+  if (String(config.data_source ?? '') !== AI_USAGE_SOURCE_KEY) return false
+  const person = new Set<string>(AI_USAGE_PERSON_COLUMNS)
+  const fields = [
+    ...referencedFields(config),
+    ...((config.charts ?? []) as any[]).flatMap((chart) => { try { return chartFields(chart) } catch { return [] } }),
+  ]
+  return fields.some((field) => person.has(String(field).replace(/^(COUNT|SUM|AVG|MIN|MAX)_/, '')))
 }
 
 export async function executeReportPreview(
@@ -580,7 +608,7 @@ export async function executeReportPreview(
   scopedTableIds?: string[] | null,
   permissions?: Iterable<string> | null,
   /** maxRows: read up to this many rows instead of the config's row_limit (summary charts, lib/report-charts-server). */
-  options: { maxRows?: number } = {},
+  options: { maxRows?: number; actorId?: string | null } = {},
 ) {
   config = normalizeReportConfig(config)
   const rowCap = (fallback: number) => (options.maxRows ? Math.max(1, Math.floor(options.maxRows)) : fallback)
@@ -590,6 +618,80 @@ export async function executeReportPreview(
 
   const source = await resolveSource(supabase, dataSource, tenantId, config.source_inputs)
   if (!source) throw new Error(`Unknown data source: ${dataSource}`)
+
+  if (source.virtual && isInstanceReportSourceKey(source.key)) {
+    // UserTasks instance (instance admins only — options.actorId is the signed-in person / a user key's person).
+    const allowedKeys = new Set(source.columns.map((column) => column.key))
+    const limit = rowCap(Math.min(Math.max(1, Number(config.row_limit) || 1000), MAX_RESULT_ROWS))
+    let rows: any[] = await instanceReportRows(options.actorId ?? null, source.key, options.maxRows ? Math.max(options.maxRows, 1) : 2000)
+    const derivedKeys = getDerivedReportColumnKeys(config)
+    const filters = Array.isArray(config.filters) ? (config.filters as ReportFilter[]).filter((filter) => filter?.field) : []
+    const rowFilters = filters.filter((filter) => allowedKeys.has(filter.field))
+    const groupFilters = filters.filter((filter) => derivedKeys.has(filter.field))
+    if (rowFilters.length > 0) rows = rows.filter((row) => rowFilters.every((filter) => matchesFilterValue(getValue(row, filter.field), filter)))
+    if (config.date_range?.field && allowedKeys.has(config.date_range.field)) {
+      const from = config.date_range.from ? new Date(config.date_range.from).getTime() : null
+      const to = config.date_range.to ? new Date(config.date_range.to).getTime() : null
+      rows = rows.filter((row) => {
+        const timestamp = new Date(getValue(row, config.date_range!.field) ?? '').getTime()
+        if (Number.isNaN(timestamp)) return false
+        return (from === null || timestamp >= from) && (to === null || timestamp <= to)
+      })
+    }
+    rows = groupReportRows(rows, config, allowedKeys, Number.POSITIVE_INFINITY)
+    if (groupFilters.length > 0) rows = rows.filter((row) => groupFilters.every((filter) => matchesFilterValue(getValue(row, filter.field), filter)))
+    const sortField = config.sort?.field && (allowedKeys.has(config.sort.field) || derivedKeys.has(config.sort.field)) ? config.sort.field : source.defaultSort.field
+    const sortDir = config.sort?.field ? config.sort.direction : source.defaultSort.direction
+    rows = [...rows].sort((left, right) => {
+      const comparison = compareValues(getValue(left, sortField), getValue(right, sortField))
+      return sortDir === 'asc' ? comparison : -comparison
+    })
+    return { source, data: rows.slice(0, limit), total: rows.length, available_columns: source.columns, joins: [] as ReportJoinConfig[] }
+  }
+
+  if (source.virtual && source.key === AI_USAGE_SOURCE_KEY) {
+    // Known permissions (agents.view checked above): read every row of the workspace, like Agents → Costs & budgets.
+    // None (session caller without them): the caller's client, and RLS decides.
+    const granted = permissions ? new Set(permissions) : null
+    let db = supabase
+    if (granted) {
+      try {
+        const { createServiceClient } = await import('@/lib/cron-auth')
+        db = createServiceClient()
+      } catch { db = supabase }
+    }
+    const allowedKeys = new Set(source.columns.map((column) => column.key))
+    const limit = rowCap(Math.min(Math.max(1, Number(config.row_limit) || 1000), MAX_RESULT_ROWS))
+    let rows: any[] = await buildAiUsageRows(db, tenantId, {
+      bounds: aiUsageBounds(config as any),
+      canSeePeople: granted ? granted.has(AI_USAGE_PERSON_PERMISSION) : false,
+      cap: options.maxRows ? Math.max(options.maxRows, 1) : undefined,
+    })
+    const derivedKeys = getDerivedReportColumnKeys(config)
+    const filters = Array.isArray(config.filters) ? (config.filters as ReportFilter[]).filter((filter) => filter?.field) : []
+    const rowFilters = filters.filter((filter) => allowedKeys.has(filter.field))
+    const groupFilters = filters.filter((filter) => derivedKeys.has(filter.field))
+    if (rowFilters.length > 0) rows = rows.filter((row) => rowFilters.every((filter) => matchesFilterValue(getValue(row, filter.field), filter)))
+    if (config.date_range?.field && allowedKeys.has(config.date_range.field)) {
+      const from = config.date_range.from ? new Date(config.date_range.from).getTime() : null
+      const to = config.date_range.to ? new Date(config.date_range.to).getTime() : null
+      rows = rows.filter((row) => {
+        const timestamp = new Date(getValue(row, config.date_range!.field) ?? '').getTime()
+        if (Number.isNaN(timestamp)) return false
+        return (from === null || timestamp >= from) && (to === null || timestamp <= to)
+      })
+    }
+    rows = groupReportRows(rows, config, allowedKeys, Number.POSITIVE_INFINITY)
+    if (groupFilters.length > 0) rows = rows.filter((row) => groupFilters.every((filter) => matchesFilterValue(getValue(row, filter.field), filter)))
+    const sortField = config.sort?.field && (allowedKeys.has(config.sort.field) || derivedKeys.has(config.sort.field)) ? config.sort.field : null
+    if (sortField) {
+      rows = [...rows].sort((left, right) => {
+        const comparison = compareValues(getValue(left, sortField), getValue(right, sortField))
+        return config.sort?.direction === 'asc' ? comparison : -comparison
+      })
+    }
+    return { source, data: rows.slice(0, limit), total: rows.length, available_columns: source.columns, joins: [] as ReportJoinConfig[] }
+  }
 
   if (source.virtual && source.key === 'retention_policy_assignments') {
     const allowedKeys = new Set(source.columns.map((column) => column.key))
@@ -870,46 +972,7 @@ export async function executeReportPreview(
     })
   }
 
-  if (Array.isArray(config.group_by) && config.group_by.length && Array.isArray(config.aggregations) && config.aggregations.length) {
-    const validGroupBy = config.group_by.filter((groupField) => typeof groupField === 'string' && allowedKeys.has(groupField))
-    const validAggs = config.aggregations.filter((aggregation) => {
-      if (!aggregation || typeof aggregation.fn !== 'string') return false
-      if (aggregation.fn === 'COUNT') return true
-      return Boolean(aggregation.field && typeof aggregation.field === 'string' && aggregation.field.trim().length > 0)
-    })
-
-    if (validGroupBy.length > 0) {
-      const groups = new Map<string, any[]>()
-      for (const row of result) {
-        const key = validGroupBy.map((groupField) => getValue(row, groupField)).join('|||')
-        if (!groups.has(key)) groups.set(key, [])
-        groups.get(key)!.push(row)
-      }
-      result = [...groups.entries()].slice(0, limit).map(([key, rows]) => {
-        const keyParts = key.split('|||')
-        const grouped: Record<string, any> = {}
-        validGroupBy.forEach((groupField, index) => { grouped[groupField] = keyParts[index] })
-        for (const aggregation of validAggs) {
-          const aggKey = aggregation.field ? `${aggregation.fn}_${aggregation.field}` : `${aggregation.fn}`
-          if (aggregation.fn === 'COUNT') {
-            grouped[aggKey] = rows.length
-            continue
-          }
-          const values = rows
-            .map((row) => Number(getValue(row, aggregation.field)))
-            .filter((value) => !Number.isNaN(value))
-          switch (aggregation.fn) {
-            case 'SUM': grouped[aggKey] = values.reduce((sum, value) => sum + value, 0); break
-            case 'AVG': grouped[aggKey] = values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 100) / 100 : 0; break
-            case 'MIN': grouped[aggKey] = values.length ? Math.min(...values) : 0; break
-            case 'MAX': grouped[aggKey] = values.length ? Math.max(...values) : 0; break
-          }
-        }
-        grouped._count = rows.length
-        return grouped
-      })
-    }
-  }
+  result = groupReportRows(result, config, allowedKeys, limit)
 
   if (groupFilters.length > 0) {
     result = result.filter((row: any) => groupFilters.every((filter) => matchesFilterValue(getValue(row, filter.field), filter)))
@@ -959,6 +1022,54 @@ export async function executeReportPreview(
     available_columns: inferRuntimeColumns(result, allColumns),
     joins: normalizedJoins,
   }
+}
+
+/** group_by + aggregations over rows (COUNT / SUM / AVG / MIN / MAX per group, `_count`); unchanged without both. */
+function groupReportRows(result: any[], config: Partial<ReportConfig>, allowedKeys: Set<string>, limit: number): any[] {
+  if (Array.isArray(config.group_by) && config.group_by.length && Array.isArray(config.aggregations) && config.aggregations.length) {
+    const validGroupBy = config.group_by.filter((groupField) => typeof groupField === 'string' && allowedKeys.has(groupField))
+    const validAggs = config.aggregations.filter((aggregation) => {
+      if (!aggregation || typeof aggregation.fn !== 'string') return false
+      if (aggregation.fn === 'COUNT') return true
+      return Boolean(aggregation.field && typeof aggregation.field === 'string' && aggregation.field.trim().length > 0)
+    })
+
+    if (validGroupBy.length > 0) {
+      const groups = new Map<string, any[]>()
+      for (const row of result) {
+        const key = validGroupBy.map((groupField) => getValue(row, groupField)).join('|||')
+        if (!groups.has(key)) groups.set(key, [])
+        groups.get(key)!.push(row)
+      }
+      result = [...groups.entries()].slice(0, limit).map(([key, rows]) => {
+        const keyParts = key.split('|||')
+        const grouped: Record<string, any> = {}
+        validGroupBy.forEach((groupField, index) => { grouped[groupField] = keyParts[index] })
+        for (const aggregation of validAggs) {
+          const aggKey = aggregation.field ? `${aggregation.fn}_${aggregation.field}` : `${aggregation.fn}`
+          if (aggregation.fn === 'COUNT') {
+            grouped[aggKey] = rows.length
+            continue
+          }
+          const values = rows
+            .map((row) => getValue(row, aggregation.field))
+            // Blank cells (null / empty) are not values: they don't pull an average or a minimum to 0.
+            .filter((value) => value !== null && value !== undefined && value !== '')
+            .map((value) => Number(value))
+            .filter((value) => !Number.isNaN(value))
+          switch (aggregation.fn) {
+            case 'SUM': grouped[aggKey] = values.reduce((sum, value) => sum + value, 0); break
+            case 'AVG': grouped[aggKey] = values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 100) / 100 : 0; break
+            case 'MIN': grouped[aggKey] = values.length ? Math.min(...values) : 0; break
+            case 'MAX': grouped[aggKey] = values.length ? Math.max(...values) : 0; break
+          }
+        }
+        grouped._count = rows.length
+        return grouped
+      })
+    }
+  }
+  return result
 }
 
 function summarizeSource(source: ReportSource) {
@@ -1058,6 +1169,8 @@ export function buildSourceSpecificRecipes(source: ReportSource) {
           },
         },
       ]
+    case AI_USAGE_SOURCE_KEY:
+      return AI_USAGE_REPORTS.map((report) => ({ name: report.name, goal: report.description, config: report.config }))
     case 'retention_policy_assignments':
       return [
         {
@@ -1600,9 +1713,9 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
     }
 
     const [preview, charts] = await Promise.all([
-      executeReportPreview(supabase, tenantId, config, ctx.scopes?.table_ids, ctx.permissions ?? null),
+      executeReportPreview(supabase, tenantId, config, ctx.scopes?.table_ids, ctx.permissions ?? null, { actorId: mcpPersonId(ctx) }),
       config.charts?.length
-        ? executeReportCharts(supabase, tenantId, config, { scopedTableIds: ctx.scopes?.table_ids, permissions: ctx.permissions ?? null, timezone: args.timezone })
+        ? executeReportCharts(supabase, tenantId, config, { scopedTableIds: ctx.scopes?.table_ids, permissions: ctx.permissions ?? null, timezone: args.timezone, actorId: mcpPersonId(ctx) })
         : Promise.resolve(null),
     ])
     return mcpOk({
@@ -1640,11 +1753,17 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
 
   server.tool('reports_list', 'List saved custom reports that MCP can inspect or clone.', {
     limit: z.number().optional(),
+    tag: z.string().optional().describe('Only reports carrying this tag'),
   }, async (args) => {
-    const { data, error } = await scopeReportRead((supabase as any).from('reports')
-      .select('id, name, description, category, is_shared, config, updated_at')
-      .eq('tenant_id', tenantId), ctx.actingUserId)
-      .order('updated_at', { ascending: false }).limit(Math.min(args.limit ?? 50, 200))
+    const tagValues = tagFilterValues(args.tag)
+    const { data, error } = await selectWithTags('id, name, description, category, is_shared, config, updated_at', (columns) => {
+      let query = scopeReportRead((supabase as any).from('reports')
+        .select(columns)
+        .eq('tenant_id', tenantId), ctx.actingUserId)
+        .order('updated_at', { ascending: false }).limit(Math.min(args.limit ?? 50, 200))
+      if (tagValues.length) query = query.overlaps('tags', tagValues)
+      return query
+    })
     if (error) return mcpErr(error.message)
     return mcpOk({ reports: data ?? [] })
   })
@@ -1667,7 +1786,10 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
     category: z.string().optional().describe('Report category'),
     config: z.string().describe('JSON string matching the full ReportConfig shape: data_source, columns, filters, joins, group_by, aggregations, calculated_columns, visualization, sort, date_range, row_limit, drill_target, and chart_style. Canonical grouped example: {"data_source":"workflow_runs","columns":["status","COUNT_id"],"group_by":["status"],"aggregations":[{"field":"id","fn":"COUNT"}],"visualization":"bar","sort":{"field":"COUNT_id","direction":"desc"}}'),
     is_shared: z.boolean().optional().describe('Whether the report is shared'),
+    tags: z.array(z.string()).optional().describe('Optional tags'),
   }, async (args) => {
+    let tags: string[]
+    try { tags = normalizeTagList(args.tags) } catch (e) { return mcpErr(e instanceof Error ? e.message : 'Invalid tags') }
     const parsedConfig = parseJsonString<ReportConfig>(args.config, 'config')
     if (parsedConfig && 'error' in parsedConfig) return mcpErr(parsedConfig.error)
     const chartIssues = reportChartIssues((parsedConfig as any)?.charts)
@@ -1685,6 +1807,7 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
       category: args.category ?? null,
       config,
       is_shared: args.is_shared ?? false,
+      ...(tags.length ? { tags } : {}),
       created_by: ctx.actingUserId ?? null,
     }).select('*').single()
     if (error) return mcpErr(error.message)
@@ -1697,8 +1820,12 @@ export function registerReportTools(server: McpToolServer, ctx: McpContext) {
     description: z.string().optional(),
     config: z.string().optional().describe('JSON string matching the full ReportConfig shape'),
     is_shared: z.boolean().optional(),
+    tags: z.array(z.string()).optional().describe('Replacement tags ([] clears)'),
   }, async (args) => {
     const updates: any = {}
+    if (args.tags !== undefined) {
+      try { updates.tags = normalizeTagList(args.tags) } catch (e) { return mcpErr(e instanceof Error ? e.message : 'Invalid tags') }
+    }
     if (args.name !== undefined) updates.name = args.name
     if (args.description !== undefined) updates.description = args.description
     if (args.is_shared !== undefined) updates.is_shared = args.is_shared

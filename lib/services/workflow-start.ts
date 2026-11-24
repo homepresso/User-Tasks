@@ -26,7 +26,7 @@
 
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
-import { executeWorkflow } from '@/lib/workflow-engine'
+import { QueuedRunTimeoutError, startRun, type RunOutcome } from '@/lib/processing/dispatch'
 import { initiatorFromContext, stripInitiatorVariables, withQueuedInitiator, type StartedVia } from '@/lib/workflow-initiator'
 import { kickQueueProcessor } from '@/lib/process-queue'
 import { startFormKind } from '@/lib/forms/workflow-start-form'
@@ -212,10 +212,23 @@ export async function startWorkflow(ctx: ServiceContext, input: StartWorkflowInp
     return { mode: 'async', job_id: String(jobId), workflow_id: input.workflow_id, published_version_id: publishedVersionId, ...warnings }
   }
 
-  let result: Awaited<ReturnType<typeof executeWorkflow>>
+  // Synchronous: in this process, or (processing on separate workers) on a
+  // worker while this request waits for the result, bounded.
+  let result: RunOutcome
   try {
-    result = await executeWorkflow(input.workflow_id, input.task_id ?? undefined, false, checked.values, undefined, publishedVersionId ?? undefined, undefined, { initiator })
+    result = await startRun({
+      workflowId: input.workflow_id,
+      tenantId: ctx.tenantId,
+      taskId: input.task_id ?? null,
+      variables: checked.values,
+      versionId: publishedVersionId ?? null,
+      initiator,
+      priority: Math.max(priority, 90),
+    })
   } catch (e) {
+    if (e instanceof QueuedRunTimeoutError) {
+      throw new ServiceError('internal', e.message, { status: 504, details: { job_id: e.jobId, timed_out: true } })
+    }
     throw new ServiceError('internal', `Workflow execution failed: ${e instanceof Error ? e.message : String(e)}`)
   }
   return {

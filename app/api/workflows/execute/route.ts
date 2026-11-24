@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { executeWorkflow } from "@/lib/workflow-engine"
+import { QueuedRunTimeoutError, startRun } from "@/lib/processing/dispatch"
 import { authorizeWorkflowExecute, authzErrorResponse } from "@/lib/services/workflow-designer-runs"
 
 /**
@@ -22,11 +22,18 @@ export async function POST(request: NextRequest) {
 
   try {
     // The signed-in user starts the run (workflow_started_by).
-    const result = await executeWorkflow(authorized.workflow.id, authorized.taskId, isTest, variables ?? undefined, undefined, undefined, undefined, {
+    // Here, or on a processing worker while this request waits (lib/processing/dispatch).
+    const result = await startRun({
+      workflowId: authorized.workflow.id,
+      tenantId: authorized.workflow.tenant_id,
+      taskId: authorized.taskId ?? null,
+      test: isTest,
+      variables: variables ?? undefined,
       initiator: { userId: authorized.ctx.actorId, via: isTest ? "test" : "ui" },
     })
     return NextResponse.json(result)
   } catch (error: any) {
+    if (error instanceof QueuedRunTimeoutError) return NextResponse.json({ error: error.message, job_id: error.jobId }, { status: 504 })
     console.error('[workflow-execute]', error.message)
     return NextResponse.json(
       { error: 'Workflow execution failed' },

@@ -11,6 +11,7 @@ import {
   CircleCheckBig,
   Boxes,
   Brush,
+  Tags,
   Building2,
   Globe,
   Inbox,
@@ -32,12 +33,14 @@ import {
   UserPlus,
   UsersRound,
   Wand2,
+  Gauge,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Select } from "@/components/ui/select"
 import { usePermissions } from "@/lib/permissions-context"
 import type { Permission } from "@/lib/permissions"
 import { canViewInfrastructureAction } from "@/app/actions/infrastructure"
+import { queryAccessAction } from "@/app/actions/query-settings"
 import { settingsTourId } from "@/lib/onboarding/tours"
 import { hasExtensions } from "@/lib/extensions/registry"
 import { resolveSettingsPages } from "@/lib/extensions/ui"
@@ -64,6 +67,8 @@ export interface SettingsNavItem {
   everyone?: boolean
   /** Instance admins only (INSTANCE_ADMIN_EMAILS), whatever their workspace role. */
   instanceAdmin?: boolean
+  /** Settings → Query: `permission` when self-hosted, instance admins only in the cloud edition. */
+  queryAccess?: boolean
 }
 
 export interface SettingsNavGroup {
@@ -84,7 +89,9 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     items: [
       { label: "General", href: "/settings?tab=general", icon: Palette, permission: "settings.view" },
       { label: "Theme", href: "/settings/theme", icon: Brush, permission: "settings.view" },
+      { label: "Tags", href: "/settings/tags", icon: Tags, permission: "settings.view" },
       { label: "Forms", href: "/settings?tab=forms", icon: Accessibility, permission: "settings.view" },
+      { label: "Sign-in page", href: "/settings?tab=sign-in", icon: KeyRound, permission: "settings.view" },
       { label: "Task completion", href: "/settings?tab=task-completion", icon: CircleCheckBig, permission: "settings.view" },
       { label: "Organizations", href: "/settings?tab=organizations", icon: Building2, everyone: true },
       { label: "Members & invites", href: "/settings/invitations", icon: UserPlus, permission: "team.invite" },
@@ -117,6 +124,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
     items: [
       { label: "Agent", href: "/settings/assistants", icon: Sparkles, permission: "assistants.manage" },
       { label: "Document OCR", href: "/settings/document-ocr", icon: ScanText, permission: "settings.view" },
+      { label: "Query", href: "/settings/query", icon: Gauge, queryAccess: true },
       { label: "Setup wizard", href: "/settings/setup", icon: Wand2, instanceAdmin: true },
       { label: "On-premises gateways", href: "/settings/gateways", icon: Network, permission: "integrations.view" },
       { label: "Infrastructure", href: "/settings/infrastructure", icon: Server, instanceAdmin: true },
@@ -130,7 +138,7 @@ export const SETTINGS_NAV: SettingsNavGroup[] = [
 ]
 
 /** The in-page tabs of /settings and their aliases (old links use ?tab=appearance). */
-export const SETTINGS_TABS = ["profile", "preferences", "general", "forms", "task-completion", "organizations"] as const
+export const SETTINGS_TABS = ["profile", "preferences", "general", "forms", "sign-in", "task-completion", "organizations"] as const
 export type SettingsTab = (typeof SETTINGS_TABS)[number]
 export function settingsTabFrom(raw: string | null): SettingsTab {
   if (raw === "appearance") return "general"
@@ -138,7 +146,7 @@ export function settingsTabFrom(raw: string | null): SettingsTab {
 }
 
 /** Pages whose content is a form get the 720px reading width; the rest fill the column. */
-const NARROW = new Set(["/settings", "/settings/document-ocr", "/settings/assistants", "/settings/invitations", "/settings/webhooks", "/settings/sso"])
+const NARROW = new Set(["/settings", "/settings/document-ocr", "/settings/query", "/settings/assistants", "/settings/invitations", "/settings/webhooks", "/settings/sso"])
 /** Editors that take the whole canvas, without the sub-nav. */
 const FULL_BLEED = new Set(["/settings/theme"])
 
@@ -172,10 +180,12 @@ function useExtensionSettingsNav(): SettingsNavGroup[] {
 function useVisibleGroups(): SettingsNavGroup[] {
   const { can } = usePermissions()
   const [instanceAdmin, setInstanceAdmin] = useState(false)
+  const [queryVisible, setQueryVisible] = useState(false)
   const extensionGroups = useExtensionSettingsNav()
   useEffect(() => {
     let live = true
     canViewInfrastructureAction().then((ok) => { if (live) setInstanceAdmin(ok) }).catch(() => undefined)
+    queryAccessAction().then((a) => { if (live) setQueryVisible(a.canView) }).catch(() => undefined)
     return () => { live = false }
   }, [])
   const core = SETTINGS_NAV.map((group) => ({
@@ -187,6 +197,7 @@ function useVisibleGroups(): SettingsNavGroup[] {
     ...group,
     items: group.items.filter((item) => {
       if (item.instanceAdmin) return instanceAdmin
+      if (item.queryAccess) return queryVisible
       if (item.everyone) return true
       return Boolean(item.permission && can(item.permission))
     }),

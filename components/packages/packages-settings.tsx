@@ -14,6 +14,10 @@
  * place, long ones report through the completion popup and the Jobs panel.
  */
 
+import { TagList } from '@/components/ui/tag-chip'
+import { TagFilterMenu, useTagFilter } from '@/components/ui/list-tags'
+import { ObjectTagsDialog } from '@/components/ui/object-tags-dialog'
+import { Tag as TagIcon } from 'lucide-react'
 import { Fragment, useEffect, useState } from 'react'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import Link from 'next/link'
@@ -32,20 +36,21 @@ import { InlineNotice } from '@/components/ui/inline-notice'
 import { PageSkeleton } from '@/components/ui/page-skeleton'
 import { PageHeader } from '@/components/ui/page-header'
 import { Tabs } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
+import { Input, SearchInput } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Field } from '@/components/ui/field'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Tooltip } from '@/components/ui/tooltip'
-import { Table, THead, TBody, TR, TH, TD, TableDetailCell } from '@/components/ui/table'
+import { TR, TH, TD, TableDetailCell } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import {
   deletePackageAction,
   downloadPackageVersionAction,
   getInstallAction,
+  completeInstallAction,
   getPackageAction,
-  listInstallsAction,
+  listInstallLibraryAction,
   listInstallTargetsAction,
   listPackagesAction,
 } from '@/app/actions/packages'
@@ -56,6 +61,7 @@ import { PackageEditor } from './package-editor'
 import { PackageHistory, type HistoryFilters } from './package-history'
 import { cleanValues, missingCount, Modal, RequirementsForm, type RequirementValues, type RequirementView } from './requirements-form'
 import { UninstallDialog } from './uninstall-dialog'
+import { InstalledLibrary } from './installed-library'
 import { InstallItemsList, PackageItemsSection, usePackageItems } from './package-items'
 import { Checkbox } from '@/components/ui/checkbox'
 import { SegmentedControl } from '@/components/ui/segmented-control'
@@ -63,13 +69,23 @@ import { bumpSemver } from '@/lib/packages/semver'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- install / version rows from the services are loose JSON */
 
-type Install = Extract<Awaited<ReturnType<typeof listInstallsAction>>, { ok: true }>['data'][number]
+type Install = Extract<Awaited<ReturnType<typeof listInstallLibraryAction>>, { ok: true }>['data']['installs'][number]
 type Pkg = Extract<Awaited<ReturnType<typeof listPackagesAction>>, { ok: true }>['data'][number]
 type Notice = { tone: 'success' | 'warning' | 'error'; message: string }
 type Tab = 'library' | 'history' | 'authored'
 interface WizardState { open: boolean; upgrade?: { name: string; package_uid: string }; file?: WizardFile | null; target?: { tenantId: string; name: string } | null; source?: 'file' | 'library' }
 
 const LIBRARY_COLUMNS = 6
+const LIBRARY_HEADER = (
+  <>
+    <TH col="title">Package</TH>
+    <TH col="text">Source</TH>
+    <TH col="status">Signature</TH>
+    <TH col="date">Installed</TH>
+    <TH col="status">Status</TH>
+    <TH col="actions"><span className="sr-only">Actions</span></TH>
+  </>
+)
 
 /** A 32px dashed line in the toolbar: drop a .utpkg on it, or click to choose one. Opens the import wizard. */
 function DropZone({ onFile, disabled }: { onFile: (file: File) => void; disabled?: boolean }) {
@@ -121,8 +137,16 @@ export function PackagesSettings() {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [])
 
-  const installs = useQuery({ queryKey: ['package-installs'], queryFn: async () => { const r = await listInstallsAction(); if (!r.ok) throw new Error(r.error); return r.data }, enabled: canView })
+  const installs = useQuery({ queryKey: ['package-installs'], queryFn: async () => { const r = await listInstallLibraryAction(); if (!r.ok) throw new Error(r.error); return r.data }, enabled: canView })
   const authored = useQuery({ queryKey: ['packages'], queryFn: async () => { const r = await listPackagesAction(); if (!r.ok) throw new Error(r.error); return r.data }, enabled: canView })
+  const authoredTags = useTagFilter(authored.data, (p: Pkg) => p.tags)
+  const [authoredSearch, setAuthoredSearch] = useState('')
+  const [tagsTarget, setTagsTarget] = useState<null | { id: string; name: string; tags: string[] }>(null)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q')
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of the URL after hydration */
+    if (q) setAuthoredSearch(q)
+  }, [])
   const targets = useQuery({ queryKey: ['package-install-targets'], queryFn: async () => { const r = await listInstallTargetsAction(); return r.ok ? r.data : [] }, enabled: canView && canManage })
 
   if (!canView) return <p className="text-sm text-fg-muted">Not authorized.</p>
@@ -136,8 +160,10 @@ export function PackagesSettings() {
     setWizard({ open: true, file: { name: file.name, base64: await fileToBase64(file) }, source: 'file' })
   }
   const showHistory = (packageUid?: string) => { setHistoryFilters(packageUid ? { package: packageUid } : {}); setTab('history') }
-  const list = installs.data ?? []
+  const list = installs.data?.installs ?? []
   const authoredList = authored.data ?? []
+  const authoredQ = authoredSearch.trim().toLowerCase()
+  const authoredShown = authoredList.filter((p) => authoredTags.matches(p) && (!authoredQ || p.name.toLowerCase().includes(authoredQ) || (p.description ?? '').toLowerCase().includes(authoredQ) || (p.tags ?? []).some((t) => t.toLowerCase().includes(authoredQ))))
   const newPackage = () => { setTab('authored'); setEditor({ open: true, pkg: null }) }
 
   return (
@@ -173,25 +199,12 @@ export function PackagesSettings() {
                   action={canInstall ? { label: 'Browse gallery', onClick: () => { setGalleryTab('packages'); setGalleryOpen(true) } } : undefined} />
               </Card>
             ) : (
-              <Table label="Installed packages">
-                <THead>
-                  <tr>
-                    <TH col="title">Package</TH>
-                    <TH col="text">Source</TH>
-                    <TH col="status">Signature</TH>
-                    <TH col="date">Installed</TH>
-                    <TH col="status">Status</TH>
-                    <TH col="actions"><span className="sr-only">Actions</span></TH>
-                  </tr>
-                </THead>
-                <TBody>
-                  {list.map((install) => (
-                    <InstallRow key={install.id} install={install} canInstall={canInstall} onChanged={refresh} onNotice={setNotice}
-                      onHistory={() => showHistory(install.package_uid)}
-                      onUpgrade={() => setWizard({ open: true, upgrade: { name: install.name, package_uid: install.package_uid }, source: 'file' })} />
-                  ))}
-                </TBody>
-              </Table>
+              <InstalledLibrary installs={list} capped={Boolean(installs.data?.capped)} canInstall={canInstall} columns={LIBRARY_HEADER} onChanged={refresh} onNotice={setNotice}
+                renderRow={(install, selection) => (
+                  <InstallRow install={install} canInstall={canInstall} onChanged={refresh} onNotice={setNotice} selection={selection}
+                    onHistory={() => showHistory(install.package_uid)}
+                    onUpgrade={() => setWizard({ open: true, upgrade: { name: install.name, package_uid: install.package_uid }, source: 'file' })} />
+                )} />
             )}
           </>
         )}
@@ -210,9 +223,18 @@ export function PackagesSettings() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {authoredList.map((pkg) => (
+              <div className="flex flex-wrap items-center gap-2">
+                <SearchInput value={authoredSearch} onValueChange={setAuthoredSearch} placeholder="Search packages…" aria-label="Search authored packages" wrapperClassName="w-full max-w-xs" />
+                <TagFilterMenu tags={authoredTags.allTags} selected={authoredTags.selected} onChange={authoredTags.setSelected} />
+                {(authoredQ || authoredTags.active) && <span className="num text-xs text-fg-muted">{authoredShown.length} of {authoredList.length}</span>}
+              </div>
+              {authoredShown.length === 0 && (
+                <EmptyState size="sm" variant="no-results" title="No packages match" action={{ label: 'Clear filters', onClick: () => { setAuthoredSearch(''); authoredTags.clear() } }} />
+              )}
+              {authoredShown.map((pkg) => (
                 <AuthoredCard key={pkg.id} pkg={pkg} canManage={canManage} canInstall={canInstall} targets={targets.data ?? []} onEdit={() => setEditor({ open: true, pkg })} onChanged={refresh} onNotice={setNotice}
-                  onInstallElsewhere={(file, target) => setWizard({ open: true, file, target, source: 'library' })} />
+                  onInstallElsewhere={(file, target) => setWizard({ open: true, file, target, source: 'library' })}
+                  onTags={() => setTagsTarget({ id: pkg.id, name: pkg.name, tags: pkg.tags ?? [] })} onTagClick={authoredTags.toggle} />
               ))}
             </div>
           )
@@ -221,6 +243,10 @@ export function PackagesSettings() {
 
       <InstallWizard open={wizard.open} expectUpgradeOf={wizard.upgrade} initialFile={wizard.file ?? null} target={wizard.target ?? null} source={wizard.source}
         onOpenChange={(open) => setWizard((prev) => (open ? { ...prev, open } : { open: false }))} onInstalled={refresh} />
+      {tagsTarget && (
+        <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="packages" id={tagsTarget.id} name={tagsTarget.name}
+          tags={tagsTarget.tags} invalidate={[['packages']]} />
+      )}
       {editor.open && <PackageEditor open={editor.open} pkg={editor.pkg} onOpenChange={(open) => setEditor((prev) => ({ ...prev, open }))} onSaved={(name) => { setNotice({ tone: 'success', message: `Saved “${name}”.` }); refresh() }} />}
     </div>
   )
@@ -236,7 +262,7 @@ function sourceLabel(install: Install): string {
   return install.source_label ? `${install.source} · ${install.source_label}` : String(install.source)
 }
 
-function InstallRow({ install, canInstall, onChanged, onNotice, onUpgrade, onHistory }: { install: Install; canInstall: boolean; onChanged: () => void; onNotice: (n: Notice) => void; onUpgrade: () => void; onHistory: () => void }) {
+function InstallRow({ install, canInstall, onChanged, onNotice, onUpgrade, onHistory, selection }: { install: Install; canInstall: boolean; onChanged: () => void; onNotice: (n: Notice) => void; onUpgrade: () => void; onHistory: () => void; selection?: { checked: boolean; onChange: (checked: boolean) => void } | null }) {
   const [expanded, setExpanded] = useState(install.status === 'incomplete')
   const [completeOpen, setCompleteOpen] = useState(false)
   const [uninstallOpen, setUninstallOpen] = useState(false)
@@ -246,12 +272,24 @@ function InstallRow({ install, canInstall, onChanged, onNotice, onUpgrade, onHis
   return (
     <Fragment>
       <TR data-testid="install-card" className={cn(expanded && 'border-b-0')}>
+        {selection && (
+          <TD className="w-8">
+            <Checkbox aria-label={`Select ${install.name}`} checked={selection.checked} onChange={(e) => selection.onChange(e.target.checked)} data-testid="install-select" />
+          </TD>
+        )}
         <TD className="max-w-0">
           <div className="flex min-w-0 items-center gap-2">
             <IconButton size="sm" label={expanded ? `Hide details of ${install.name}` : `Show details of ${install.name}`} icon={expanded ? <ChevronDown /> : <ChevronRight />} aria-expanded={expanded} onClick={() => setExpanded((v) => !v)} className="-ml-1.5" />
             <span className="truncate font-medium text-fg" title={install.name}>{install.name}</span>
             <Tag mono>v{install.version}</Tag>
           </div>
+          {(install.category_label || install.update_available || install.disabled) && (
+            <div className="flex flex-wrap items-center gap-1.5 pl-7 pt-0.5 text-xs text-fg-muted">
+              {install.category_label && <span>{install.category_label}</span>}
+              {install.update_available && install.latest_version && <Badge tone="info" data-testid="install-update">Update: v{install.latest_version}</Badge>}
+              {install.disabled && <Badge tone="neutral" data-testid="install-disabled">Disabled</Badge>}
+            </div>
+          )}
           {install.previous_version && <p className="pl-7 text-xs text-fg-muted">Upgraded from {install.previous_version}</p>}
         </TD>
         <TD className="max-w-0"><span className="block truncate font-mono text-xs text-fg-muted" title={sourceLabel(install)}>{sourceLabel(install)}</span></TD>
@@ -286,7 +324,7 @@ function InstallRow({ install, canInstall, onChanged, onNotice, onUpgrade, onHis
       </TR>
       {expanded && (
         <tr className="border-b border-border-subtle">
-          <TableDetailCell colSpan={LIBRARY_COLUMNS} className="px-[var(--theme-density-cell-x)] pb-4 pt-1">
+          <TableDetailCell colSpan={LIBRARY_COLUMNS + (selection ? 1 : 0)} className="px-[var(--theme-density-cell-x)] pb-4 pt-1">
             <div className="grid gap-6 rounded-md bg-subtle p-4 md:grid-cols-2">
               <div>
                 <p className="mb-2 text-xs font-medium text-fg-muted">Setup checklist</p>
@@ -315,7 +353,19 @@ function CompleteSetupDialog({ open, onOpenChange, install, onDone }: { open: bo
   const [values, setValues] = useState<RequirementValues>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const requirements = install.requirements as RequirementView[]
+  // A dry run on open: assignee steps come back with what they can take
+  // (person / team) and the earlier choices, for the picker.
+  const hasAssignees = (install.requirements as RequirementView[]).some((r) => r.kind === 'user')
+  const preview = useQuery({
+    queryKey: ['package-complete-preview', install.id],
+    enabled: open && hasAssignees,
+    staleTime: 0,
+    queryFn: async () => {
+      const result = await completeInstallAction(install.id, {}, true)
+      return result.ok ? result.data.requirements as RequirementView[] : null
+    },
+  })
+  const requirements = (preview.data ?? install.requirements) as RequirementView[]
   // Synchronous guard: two clicks in one frame both see busy === false.
   const submitGuard = useSubmitGuard()
   const submit = async () => {
@@ -349,8 +399,9 @@ function CompleteSetupDialog({ open, onOpenChange, install, onDone }: { open: bo
   )
 }
 
-function AuthoredCard({ pkg, canManage, canInstall, targets, onEdit, onChanged, onNotice, onInstallElsewhere }: {
+function AuthoredCard({ pkg, canManage, canInstall, targets, onEdit, onChanged, onNotice, onInstallElsewhere, onTags, onTagClick }: {
   pkg: Pkg; canManage: boolean; canInstall: boolean; targets: Array<{ id: string; name: string }>; onEdit: () => void; onChanged: () => void; onNotice: (n: Notice) => void
+  onTags: () => void; onTagClick: (tag: string) => void
   onInstallElsewhere: (file: WizardFile, target: { tenantId: string; name: string }) => void
 }) {
   const [elsewhereOpen, setElsewhereOpen] = useState(false)
@@ -433,6 +484,7 @@ function AuthoredCard({ pkg, canManage, canInstall, targets, onEdit, onChanged, 
           <p className="flex items-center gap-2 text-sm font-semibold text-fg">{pkg.name} {pkg.latest_version && <Tag mono>v{pkg.latest_version}</Tag>}</p>
           {pkg.description && <p className="mt-1 text-sm text-fg-muted">{pkg.description}</p>}
           <p className="mt-1 text-xs text-fg-muted"><span className="font-mono">{pkg.slug}</span> · {contents}</p>
+          {(pkg.tags?.length ?? 0) > 0 && <span className="mt-1.5 block" data-tags-cell=""><TagList tags={pkg.tags} max={4} size="xs" onTagClick={onTagClick} /></span>}
         </div>
         {canManage && (
           <div className="flex items-center gap-2">
@@ -441,6 +493,8 @@ function AuthoredCard({ pkg, canManage, canInstall, targets, onEdit, onChanged, 
             <DropdownMenu>
               <DropdownMenuTrigger asChild><IconButton size="sm" label={`More actions for ${pkg.name}`} icon={<MoreHorizontal />} /></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem icon={<TagIcon />} onSelect={onTags}>Tags…</DropdownMenuItem>
+                <DropdownMenuSeparator />
                 {targets.length > 0 && pkg.latest_version && (
                   <DropdownMenuItem icon={<Send />} onSelect={() => { setTargetId(targets[0].id); setElsewhereOpen(true) }} data-testid="install-elsewhere">Install in another workspace</DropdownMenuItem>
                 )}

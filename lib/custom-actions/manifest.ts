@@ -390,23 +390,34 @@ export function coerceActionValue(field: ActionField, value: unknown): { value: 
   }
 }
 
+/**
+ * One input as the runtime takes it: blank → the field's default, coerced to
+ * its type, then the required check. Returns { value } or { error } (the
+ * error without the field's label). The Test tab's input form uses it too,
+ * so its inline validation is exactly what a run enforces.
+ */
+export function checkActionInput(field: ActionField, raw: unknown): { value: unknown } | { error: string } {
+  let value = raw
+  if (value === undefined || value === null || value === '') value = field.default ?? value
+  const result = coerceActionValue(field, value)
+  if ('error' in result) return result
+  if (field.required && (result.value === null || result.value === undefined || result.value === '' || (Array.isArray(result.value) && result.value.length === 0 && field.type !== 'array'))) {
+    return { error: 'is required' }
+  }
+  return { value: result.value ?? null }
+}
+
 /** Resolve + coerce + check required for an operation's inputs. */
 export function prepareActionInputs(operation: ActionOperation, raw: Record<string, unknown>): { inputs: Record<string, unknown>; errors: string[] } {
   const inputs: Record<string, unknown> = {}
   const errors: string[] = []
   for (const field of operation.inputs) {
-    let value = raw[field.name]
-    if (value === undefined || value === null || value === '') value = field.default ?? value
-    const result = coerceActionValue(field, value)
+    const result = checkActionInput(field, raw[field.name])
     if ('error' in result) {
       errors.push(`${field.label ?? field.name} ${result.error}`)
       continue
     }
-    if (field.required && (result.value === null || result.value === undefined || result.value === '' || (Array.isArray(result.value) && result.value.length === 0 && field.type !== 'array'))) {
-      errors.push(`${field.label ?? field.name} is required`)
-      continue
-    }
-    inputs[field.name] = result.value ?? null
+    inputs[field.name] = result.value
   }
   return { inputs, errors }
 }

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "ee3fa41a-d519-5f15-99e2-876d1f80db0e",
+  "asset": {
+    "id": "ee3fa41a-d519-5f15-99e2-876d1f80db0e",
+    "name": "You received kudos",
+    "description": "Sent to the person who was recognised.",
+    "subject": "{{submitted_by_name}} recognised you for {{form.value}}",
+    "is_default": false,
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#2a211c\">\n  <h2 style=\"margin:0 0 12px;color:#9a3412\">You have been recognised</h2>\n  <p>Hi {{form.to_name}},</p>\n  <p><strong>{{submitted_by_name}}</strong> recognised you for <strong>{{form.value}}</strong>:</p>\n  <p>“{{form.message}}”</p>\n  <p>See it on the recognition wall in the People &amp; Culture app.</p>\n  <p style=\"color:#7c6f64;font-size:13px\">People &amp; Culture · Fernhill Labs</p>\n</div>",
+    "text_body": "You have been recognised\n\nHi {{form.to_name}},\n\n{{submitted_by_name}} recognised you for {{form.value}}:\n\n“{{form.message}}”\n\nSee it on the recognition wall in the People &amp; Culture app."
+  }
+}

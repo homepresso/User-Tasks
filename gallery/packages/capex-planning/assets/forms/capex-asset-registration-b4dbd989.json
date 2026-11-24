@@ -1,0 +1,255 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "b4dbd989-8622-5350-80d4-b1c41131d035",
+  "asset": {
+    "id": "b4dbd989-8622-5350-80d4-b1c41131d035",
+    "name": "CapEx asset registration",
+    "description": "Add a fixed asset to the register with its straight-line depreciation schedule (cost less salvage value over the useful life).",
+    "tags": [
+      "capex",
+      "assets",
+      "depreciation"
+    ],
+    "fields": [
+      {
+        "key": "project_ref",
+        "label": "Project",
+        "type": "lookup",
+        "required": true,
+        "help_text": "The project the asset came from.",
+        "lookup": {
+          "source": "table",
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "search_columns": [
+            "project_ref",
+            "title"
+          ],
+          "display_columns": [
+            "project_ref",
+            "title"
+          ],
+          "value_column": "project_ref",
+          "fill": [
+            {
+              "from": "category",
+              "to": "category"
+            },
+            {
+              "from": "business_unit",
+              "to": "business_unit"
+            },
+            {
+              "from": "useful_life",
+              "to": "useful_life"
+            },
+            {
+              "from": "title",
+              "to": "description"
+            }
+          ],
+          "sort": {
+            "column": "project_ref",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "asset_tag",
+        "label": "Asset tag",
+        "type": "text",
+        "required": true,
+        "placeholder": "BW-EQ-0101",
+        "pattern": "^BW-[A-Z]{2}-\\d{4}$",
+        "pattern_message": "Like BW-EQ-0101"
+      },
+      {
+        "key": "description",
+        "label": "Description",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "business_unit",
+        "label": "Business unit",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "location",
+        "label": "Location",
+        "type": "choice",
+        "options": [
+          "Riverside plant",
+          "Central warehouse",
+          "HQ offices",
+          "Test centre"
+        ],
+        "required": true
+      },
+      {
+        "key": "in_service_date",
+        "label": "In service from",
+        "type": "date",
+        "required": true,
+        "default": "{{today}}"
+      },
+      {
+        "key": "cost",
+        "label": "Cost (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "required": true
+      },
+      {
+        "key": "useful_life",
+        "label": "Useful life (years)",
+        "type": "number",
+        "required": true,
+        "min": 1,
+        "max": 40
+      },
+      {
+        "key": "salvage_value",
+        "label": "Salvage value (USD)",
+        "type": "currency",
+        "currency": "USD",
+        "min": 0,
+        "default": "0"
+      },
+      {
+        "key": "annual_depreciation",
+        "label": "Annual depreciation (straight-line)",
+        "type": "label",
+        "label_config": {
+          "expression": "IF(useful_life > 0, ROUND((cost - COALESCE(salvage_value, 0)) / useful_life, 2), \"\")",
+          "include": true,
+          "format": {
+            "kind": "currency",
+            "currency": "USD",
+            "decimals": 0
+          }
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "project_ref",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "asset_tag",
+              "span": 1
+            },
+            {
+              "field_key": "description",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "category",
+              "span": 1
+            },
+            {
+              "field_key": "business_unit",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "location",
+              "span": 1
+            },
+            {
+              "field_key": "in_service_date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "cost",
+              "span": 1
+            },
+            {
+              "field_key": "salvage_value",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "useful_life",
+              "span": 1
+            },
+            {
+              "field_key": "annual_depreciation",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Register asset",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Asset registered",
+            "text": "{{asset_tag}} is in the register with its depreciation schedule.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Register another asset"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Register an asset",
+      "subtitle": "Straight-line depreciation in USD.",
+      "align": "left"
+    }
+  }
+}

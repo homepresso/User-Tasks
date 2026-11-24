@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "3f44be15-a7ff-5fb1-9150-c47e59d7616f",
+  "asset": {
+    "id": "3f44be15-a7ff-5fb1-9150-c47e59d7616f",
+    "name": "CRM: quote approved",
+    "description": "Sent to the rep when their quote is approved.",
+    "subject": "Approved: {{quote_id}} for {{form.account}} at {{discount}}% off",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your quote is approved</h2>\n  <p>Quote <strong>{{quote_id}}</strong> for <strong>{{form.account}}</strong> ({{form.deal_name}}) is approved: net <strong>${{net_total}}</strong>, {{discount}}% off list.</p>\n  <p>Approval path: {{approval_path}}. Valid until {{form.valid_until}}.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by Revenue CRM</p>\n</div>",
+    "text_body": "Your quote is approved\n  Quote {{quote_id}} for {{form.account}} ({{form.deal_name}}) is approved: net ${{net_total}}, {{discount}}% off list.\n  Approval path: {{approval_path}}. Valid until {{form.valid_until}}.\nSent by Revenue CRM",
+    "is_default": false
+  }
+}

@@ -1,0 +1,343 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+  "asset": {
+    "id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+    "name": "CapEx projects",
+    "description": "Every capital request and project: business case figures (NPV, IRR, payback, ROI), approval stage, budget check, purchase order and spend against the approved amount (USD).",
+    "columns": [
+      {
+        "id": "8a48022d-815d-51f8-9b2b-96c5bd31ee85",
+        "required": true,
+        "key": "project_ref",
+        "name": "Project",
+        "type": "text"
+      },
+      {
+        "id": "ce610bbc-2edb-591b-b9d9-7cfddbd1e69e",
+        "required": true,
+        "key": "title",
+        "name": "Title",
+        "type": "text"
+      },
+      {
+        "id": "27ad1757-baa4-5c3c-beb9-fc301f5ca4c0",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Production",
+          "Logistics",
+          "Engineering & R&D",
+          "IT",
+          "Facilities & EHS",
+          "Commercial"
+        ]
+      },
+      {
+        "id": "ea6957c2-56d9-5134-b69a-857f153906f9",
+        "required": false,
+        "key": "bu_code",
+        "name": "BU code",
+        "type": "text"
+      },
+      {
+        "id": "d063c840-5c71-5a21-8e4c-df70f9832611",
+        "required": false,
+        "key": "cost_centre",
+        "name": "Cost centre",
+        "type": "text"
+      },
+      {
+        "id": "504a9e9e-c81c-53f3-b918-042c5315ddbd",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Equipment",
+          "IT",
+          "Facilities",
+          "Vehicles",
+          "R&D"
+        ]
+      },
+      {
+        "id": "625f4d13-3527-5bdb-a093-e8e846d81667",
+        "required": false,
+        "key": "fiscal_year",
+        "name": "Fiscal year",
+        "type": "select",
+        "options": [
+          "2026",
+          "2027",
+          "2028"
+        ]
+      },
+      {
+        "id": "6b74c8a7-3cf9-59b0-8696-d7b7c791154c",
+        "required": false,
+        "key": "spend_quarter",
+        "name": "Spend quarter",
+        "type": "select",
+        "options": [
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4"
+        ]
+      },
+      {
+        "id": "e7b98f81-3ecf-5427-8942-3f44e70f360a",
+        "required": false,
+        "key": "budget_key",
+        "name": "Budget line",
+        "type": "text"
+      },
+      {
+        "id": "a44541d8-db47-5475-bae2-e6fdcfbb457c",
+        "required": false,
+        "key": "requester",
+        "name": "Requester",
+        "type": "text"
+      },
+      {
+        "id": "a35aca0c-ecbd-592e-9c8b-96d4d98788c9",
+        "required": false,
+        "key": "department_head",
+        "name": "Department head",
+        "type": "text"
+      },
+      {
+        "id": "b64959b0-01f0-5a59-865d-f53459286741",
+        "required": false,
+        "key": "owner_id",
+        "name": "Owner (user id)",
+        "type": "text"
+      },
+      {
+        "id": "0d53bc5e-c28d-5401-a41f-6d22ea90077c",
+        "required": false,
+        "key": "amount",
+        "name": "Requested (USD)",
+        "type": "number"
+      },
+      {
+        "id": "3adbae80-09c2-51f7-b71e-d9f8dbde2ece",
+        "required": false,
+        "key": "approved_amount",
+        "name": "Approved (USD)",
+        "type": "number"
+      },
+      {
+        "id": "905ea5a5-3d77-514c-89d7-50db12b89633",
+        "required": false,
+        "key": "spent",
+        "name": "Spent (USD)",
+        "type": "number"
+      },
+      {
+        "id": "35d030e5-8678-5cfb-b8af-7fe006436e08",
+        "required": false,
+        "key": "utilisation_pct",
+        "name": "Spent % of approved",
+        "type": "number"
+      },
+      {
+        "id": "e834c1d7-ebe2-5c0f-8a94-0438003c5e42",
+        "required": false,
+        "key": "npv",
+        "name": "NPV at 8% (USD)",
+        "type": "number"
+      },
+      {
+        "id": "c274e440-2b93-5843-b2e2-9dc09adab296",
+        "required": false,
+        "key": "irr_pct",
+        "name": "IRR %",
+        "type": "number"
+      },
+      {
+        "id": "a0cc77f6-f7a9-5855-8057-d17e5b964cf1",
+        "required": false,
+        "key": "payback_years",
+        "name": "Payback (years)",
+        "type": "number"
+      },
+      {
+        "id": "11314dea-a8ac-521c-b40d-6e522bec28ef",
+        "required": false,
+        "key": "roi_pct",
+        "name": "ROI %",
+        "type": "number"
+      },
+      {
+        "id": "f7d75d48-2632-53bb-8c6e-767ecb46e54b",
+        "required": false,
+        "key": "payback_band",
+        "name": "Payback band",
+        "type": "select",
+        "options": [
+          "Under 2 years",
+          "2 to 3 years",
+          "3 to 4 years",
+          "4 years or more",
+          "Not within the projection"
+        ]
+      },
+      {
+        "id": "b0fed6ec-b8ec-590e-a6cd-0789a99d150c",
+        "required": false,
+        "key": "useful_life",
+        "name": "Useful life (years)",
+        "type": "number"
+      },
+      {
+        "id": "325651d2-14c2-5874-af27-82f480e40881",
+        "required": false,
+        "key": "strategic_alignment",
+        "name": "Strategic alignment",
+        "type": "select",
+        "options": [
+          "Growth",
+          "Efficiency",
+          "Safety and compliance",
+          "Sustainability",
+          "Customer experience",
+          "Replace end-of-life asset"
+        ]
+      },
+      {
+        "id": "56a3e74c-57ae-5229-9bc0-847d485fecad",
+        "required": false,
+        "key": "risk_rating",
+        "name": "Risk",
+        "type": "select",
+        "options": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      {
+        "id": "066d9c08-b1d7-5580-9a0d-222e9714c8ff",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "In approval",
+          "Changes requested",
+          "Approved",
+          "In progress",
+          "Closed",
+          "Rejected",
+          "Withdrawn"
+        ]
+      },
+      {
+        "id": "a59a0e9f-9319-5cf2-9211-d79e8707b5f8",
+        "required": false,
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "Department head",
+          "Specialist review",
+          "Finance controller",
+          "CFO",
+          "CEO",
+          "Capital committee",
+          "Changes requested",
+          "Approved",
+          "PO raised",
+          "In delivery",
+          "Closed",
+          "Rejected",
+          "Withdrawn"
+        ]
+      },
+      {
+        "id": "f8debadf-588c-529a-a5eb-1851732bbe38",
+        "required": false,
+        "key": "approval_tier",
+        "name": "Approval tier",
+        "type": "select",
+        "options": [
+          "Tier 1",
+          "Tier 2",
+          "Tier 3"
+        ]
+      },
+      {
+        "id": "8cd83136-ac7c-597d-8f9f-1d5601923c17",
+        "required": false,
+        "key": "budget_check",
+        "name": "Budget check",
+        "type": "select",
+        "options": [
+          "Within budget",
+          "Over budget"
+        ]
+      },
+      {
+        "id": "300a2009-a6f6-5e28-8e5a-bb3629333ca1",
+        "required": false,
+        "key": "vendor",
+        "name": "Vendor",
+        "type": "text"
+      },
+      {
+        "id": "3f0d2e55-769a-55a4-8ab9-10194344bcee",
+        "required": false,
+        "key": "po_number",
+        "name": "PO number",
+        "type": "text"
+      },
+      {
+        "id": "482c7046-831a-5bd0-a5ee-4270936b7ad8",
+        "required": false,
+        "key": "submitted_on",
+        "name": "Submitted",
+        "type": "date"
+      },
+      {
+        "id": "9e2b9f8b-3d6a-5fa9-9054-0f610118fcfa",
+        "required": false,
+        "key": "approved_on",
+        "name": "Approved",
+        "type": "date"
+      },
+      {
+        "id": "f1b7343d-ab1b-58f9-b220-3bcad6ba66de",
+        "required": false,
+        "key": "cycle_days",
+        "name": "Approval days",
+        "type": "number"
+      },
+      {
+        "id": "908225c0-bf8f-5341-a0a2-fc938a2cdeb7",
+        "required": false,
+        "key": "pir_rating",
+        "name": "Review outcome",
+        "type": "text"
+      },
+      {
+        "id": "211c897e-a4d6-597d-a82c-6ec3ff8dda6d",
+        "required": false,
+        "key": "spend_alert",
+        "name": "Spend alert",
+        "type": "text"
+      },
+      {
+        "id": "b03b2bdc-a49d-587d-9687-7fbe4f9d399a",
+        "required": false,
+        "key": "approval_summary",
+        "name": "Approval summary",
+        "type": "file"
+      }
+    ]
+  }
+}

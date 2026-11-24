@@ -1,0 +1,551 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "6ad93cac-9f95-58b3-9661-59a7cb27967b",
+  "asset": {
+    "id": "6ad93cac-9f95-58b3-9661-59a7cb27967b",
+    "name": "CRM lead intake",
+    "description": "A website lead is scored, routed to a territory and owner by the CRM lead routing table, logged in CRM leads, thanked by email and qualified by sales development within its response time. A repeat lead (same email) is merged into the existing one instead of starting again; a lead from a company that is already a lead is flagged as a possible duplicate for sales development.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Website lead submitted",
+        "config": {
+          "form_id": "07dfcf28-11cd-5310-b79f-4ddc0938b90a",
+          "form_name": "Website lead"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Lead ID",
+        "config": {
+          "name": "lead_id",
+          "expression": "LD-{{=UPPER(LEFT(GUID(), 6))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "same_email",
+        "type": "update_data_table",
+        "label": "Same email already a lead?",
+        "config": {
+          "table_id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+          "table_name": "CRM leads",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "email",
+              "operator": "ends_with",
+              "value": "{{form.email}}"
+            }
+          ],
+          "limit": 1,
+          "output_rows_var": "same_email_leads",
+          "output_count_var": "same_email_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "repeat",
+        "type": "condition",
+        "label": "Repeat lead?",
+        "config": {
+          "branches": [
+            {
+              "label": "Merge",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{same_email_count}}",
+                  "operator": "gt",
+                  "value": "0"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "merge",
+        "type": "update_data_table",
+        "label": "Merge into the existing lead",
+        "config": {
+          "table_id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+          "table_name": "CRM leads",
+          "operation": "update",
+          "match_column": "lead_id",
+          "match_value": "{{=FIRST(same_email_leads).lead_id}}",
+          "column_values": {
+            "touches": "{{=TO_NUMBER(COALESCE(FIRST(same_email_leads).touches, 1)) + 1}}",
+            "last_touch": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "notes": "{{=CONCAT(COALESCE(FIRST(same_email_leads).notes, \"\"), \" | \", FORMAT_DATE(TODAY(), \"YYYY-MM-DD\"), \" (\", form.source, \"): \", COALESCE(form.message, \"\"))}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 620
+        }
+      },
+      {
+        "id": "end_merged",
+        "type": "end_workflow",
+        "label": "Merged into the existing lead",
+        "config": {},
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      },
+      {
+        "id": "domain",
+        "type": "set_variable",
+        "label": "Company email domain",
+        "config": {
+          "name": "company_domain",
+          "expression": "{{=IF(OR(ENDS_WITH(LOWER(form.email), \"@gmail.example\"), ENDS_WITH(LOWER(form.email), \"@mail.example\"), ENDS_WITH(LOWER(form.email), \"@gmail.com\"), ENDS_WITH(LOWER(form.email), \"@outlook.com\"), ENDS_WITH(LOWER(form.email), \"@yahoo.com\")), \"\", LOWER(INDEX(SPLIT(form.email, \"@\"), 2)))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "same_company",
+        "type": "update_data_table",
+        "label": "Same company already a lead?",
+        "config": {
+          "table_id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+          "table_name": "CRM leads",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "email",
+              "operator": "ends_with",
+              "value": "@{{company_domain}}"
+            }
+          ],
+          "limit": 3,
+          "output_rows_var": "same_company_leads",
+          "output_count_var": "same_company_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "score",
+        "type": "set_variable",
+        "label": "Score the lead",
+        "config": {
+          "name": "score",
+          "expression": "{{=MIN(100, SUM(IF(form.source == \"Referral\", 30, IF(form.source == \"Partner\", 25, IF(form.source == \"Trade show\" || form.source == \"Webinar\", 20, IF(form.source == \"Website\", 15, 10)))), IF(form.employees >= 1000, 30, IF(form.employees >= 200, 20, 10)), IF(CONTAINS(LOWER(form.title), \"vp\") || CONTAINS(LOWER(form.title), \"chief\") || CONTAINS(LOWER(form.title), \"head\") || CONTAINS(LOWER(form.title), \"director\"), 25, 10)))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "grade",
+        "type": "set_variable",
+        "label": "Grade",
+        "config": {
+          "name": "grade",
+          "expression": "{{=IF(score >= 75, \"A\", IF(score >= 60, \"B\", IF(score >= 45, \"C\", \"D\")))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "route",
+        "type": "decision_table",
+        "label": "Route the lead",
+        "config": {
+          "decision_table_id": "f06c79fd-e413-5e8b-8bf5-a6822162e14a",
+          "decision_table_name": "CRM lead routing",
+          "input_mappings": {
+            "region": "{{form.region}}",
+            "employees": "{{form.employees}}",
+            "score": "{{score}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Lead {{lead_id}} · {{form.company}} · {{grade}} ({{score}})"
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the lead",
+        "config": {
+          "table_id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+          "table_name": "CRM leads",
+          "operation": "insert",
+          "column_values": {
+            "lead_id": "{{lead_id}}",
+            "name": "{{form.name}}",
+            "company": "{{form.company}}",
+            "title": "{{form.title}}",
+            "email": "{{form.email}}",
+            "source": "{{form.source}}",
+            "score": "{{score}}",
+            "grade": "{{grade}}",
+            "status": "New",
+            "region": "{{form.region}}",
+            "territory": "{{territory}}",
+            "owner": "{{owner}}",
+            "industry": "{{form.industry}}",
+            "employees": "{{form.employees}}",
+            "created_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "interest": "{{form.interest}}",
+            "notes": "{{form.message}}",
+            "touches": "1",
+            "last_touch": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "possible_duplicate": "{{=IF(AND(company_domain != \"\", same_company_count > 0), FIRST(same_company_leads).lead_id, \"\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "thanks",
+        "type": "send_email",
+        "label": "Thank the lead",
+        "config": {
+          "to": "{{form.email}}",
+          "email_template_id": "a81bfe2c-896e-5d6f-87bf-24d1a1a00e23"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "qualify",
+        "type": "user_task",
+        "label": "Qualify the lead",
+        "config": {
+          "task_title": "Qualify {{form.company}}: {{form.name}} ({{grade}}, {{score}})",
+          "task_description": "<p><strong>{{form.name}}</strong>, {{form.title}} at <strong>{{form.company}}</strong> ({{form.employees}} employees, {{form.industry}}, {{form.region}}).</p><p>Interested in {{form.interest}} · source {{form.source}} · score <strong>{{score}}</strong> (grade {{grade}}).</p><p>Routed to <strong>{{territory}}</strong> ({{owner}}); respond within {{sla_hours}} hours.</p><p>{{form.message}}</p>{{=IF(AND(company_domain != \"\", same_company_count > 0), CONCAT(\"<p><strong>Possible duplicate:</strong> \", FIRST(same_company_leads).name, \" (\", FIRST(same_company_leads).lead_id, \") from the same company is already a lead.</p>\"), \"\")}}",
+          "task_priority": "high",
+          "outcomes": [
+            "Qualified",
+            "Nurture",
+            "Disqualify"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "8454d18e-a12a-506c-b540-c310cecd1f44",
+          "fields": [
+            {
+              "key": "qualify_notes",
+              "label": "Notes",
+              "type": "textarea"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "qualify_notes",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "qualified",
+              "label": "Qualified",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Qualified"
+            },
+            {
+              "id": "nurture",
+              "label": "Nurture",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Nurture"
+            },
+            {
+              "id": "disqualify",
+              "label": "Disqualify",
+              "kind": "outcome",
+              "style": "danger",
+              "outcome": "Disqualify"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "New lead",
+            "align": "left",
+            "subtitle": "{{lead_id}} · {{territory}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 24,
+          "due_offset_unit": "hours",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ],
+          "escalation_enabled": true,
+          "escalation_type": "manager",
+          "escalate_after_minutes": 1440
+        },
+        "position": {
+          "x": 400,
+          "y": 1740
+        }
+      },
+      {
+        "id": "qualified",
+        "type": "update_data_table",
+        "label": "Mark qualified",
+        "config": {
+          "table_id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+          "table_name": "CRM leads",
+          "operation": "update",
+          "match_column": "lead_id",
+          "match_value": "{{lead_id}}",
+          "column_values": {
+            "status": "Qualified",
+            "notes": "{{task_data.qualify_notes}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1880
+        }
+      },
+      {
+        "id": "end_q",
+        "type": "end_workflow",
+        "label": "Qualified",
+        "config": {
+          "reason": "{{lead_id}} qualified: convert it from the Leads page"
+        },
+        "position": {
+          "x": 400,
+          "y": 2020
+        }
+      },
+      {
+        "id": "nurture",
+        "type": "update_data_table",
+        "label": "Mark nurture",
+        "config": {
+          "table_id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+          "table_name": "CRM leads",
+          "operation": "update",
+          "match_column": "lead_id",
+          "match_value": "{{lead_id}}",
+          "column_values": {
+            "status": "Nurture",
+            "notes": "{{task_data.qualify_notes}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1880
+        }
+      },
+      {
+        "id": "end_n",
+        "type": "end_workflow",
+        "label": "Nurture",
+        "config": {
+          "reason": "{{lead_id}} moved to nurture"
+        },
+        "position": {
+          "x": 720,
+          "y": 2020
+        }
+      },
+      {
+        "id": "dq",
+        "type": "update_data_table",
+        "label": "Mark disqualified",
+        "config": {
+          "table_id": "c2bcdd99-2d93-58ac-a63a-78393044c56e",
+          "table_name": "CRM leads",
+          "operation": "update",
+          "match_column": "lead_id",
+          "match_value": "{{lead_id}}",
+          "column_values": {
+            "status": "Disqualified",
+            "notes": "{{task_data.qualify_notes}}"
+          }
+        },
+        "position": {
+          "x": 1040,
+          "y": 1880
+        }
+      },
+      {
+        "id": "end_d",
+        "type": "end_workflow",
+        "label": "Disqualified",
+        "config": {
+          "reason": "{{lead_id}} disqualified"
+        },
+        "position": {
+          "x": 1040,
+          "y": 2020
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-ref-same_email",
+        "source": "ref",
+        "target": "same_email"
+      },
+      {
+        "id": "e-same_email-repeat",
+        "source": "same_email",
+        "target": "repeat"
+      },
+      {
+        "id": "e-repeat-merge-merge",
+        "source": "repeat",
+        "target": "merge",
+        "label": "Merge"
+      },
+      {
+        "id": "e-merge-end_merged",
+        "source": "merge",
+        "target": "end_merged"
+      },
+      {
+        "id": "e-repeat-domain-else",
+        "source": "repeat",
+        "target": "domain",
+        "label": "Else"
+      },
+      {
+        "id": "e-domain-same_company",
+        "source": "domain",
+        "target": "same_company"
+      },
+      {
+        "id": "e-same_company-score",
+        "source": "same_company",
+        "target": "score"
+      },
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-score-grade",
+        "source": "score",
+        "target": "grade"
+      },
+      {
+        "id": "e-grade-route",
+        "source": "grade",
+        "target": "route"
+      },
+      {
+        "id": "e-route-title",
+        "source": "route",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-thanks",
+        "source": "log",
+        "target": "thanks"
+      },
+      {
+        "id": "e-thanks-qualify",
+        "source": "thanks",
+        "target": "qualify"
+      },
+      {
+        "id": "e-qualify-qualified-qualified",
+        "source": "qualify",
+        "target": "qualified",
+        "label": "Qualified"
+      },
+      {
+        "id": "e-qualified-end_q",
+        "source": "qualified",
+        "target": "end_q"
+      },
+      {
+        "id": "e-qualify-nurture-nurture",
+        "source": "qualify",
+        "target": "nurture",
+        "label": "Nurture"
+      },
+      {
+        "id": "e-nurture-end_n",
+        "source": "nurture",
+        "target": "end_n"
+      },
+      {
+        "id": "e-qualify-dq-disqualify",
+        "source": "qualify",
+        "target": "dq",
+        "label": "Disqualify"
+      },
+      {
+        "id": "e-dq-end_d",
+        "source": "dq",
+        "target": "end_d"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

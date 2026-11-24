@@ -4,7 +4,8 @@
  * the workflow reads (incl. the report-analytics RPCs) and the payload
  * trimming / effort aggregation done server-side.
  */
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setRollupCacheStoreForTests } from '@/lib/report-rollups/cache'
 import { runUiRead } from '@/lib/services/ui-reads'
 import { collapseEffortRecords } from '@/lib/services/ui-reads/reports'
 import type { ServiceContext } from '@/lib/services/context'
@@ -262,6 +263,9 @@ describe('workflow reports', () => {
     ],
     agents: [{ id: 'ag1', name: 'Helper' }],
   })
+  // The run aggregates cache briefly per workspace + query (lib/report-rollups/cache): off here, each test has its own data.
+  beforeEach(() => setRollupCacheStoreForTests(async () => ({ get: async () => null, set: async () => undefined, incr: async () => 0 })))
+  afterEach(() => setRollupCacheStoreForTests(null))
   const rpc = (fn: string, args: any) => {
     if (fn === 'workflow_run_summaries') {
       return { data: [{ id: 'run1', workflow_id: 'wf2', task_id: 't1' }, { id: 'run2', workflow_id: 'wf1', task_id: null }].filter((r) => args.p_workflow_ids.includes(r.workflow_id)), error: null }

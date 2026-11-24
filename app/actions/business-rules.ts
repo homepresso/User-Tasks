@@ -1,5 +1,7 @@
 'use server'
 
+import { normalizeTagList } from '@/lib/tags/normalize'
+import { tagsSafeWrite } from '@/lib/services/tags-column'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { requirePermission } from '@/lib/permissions-server'
@@ -148,14 +150,14 @@ export async function createDecisionTableFromImport(payload: {
 
 export async function updateDecisionTable(
   tableId: string,
-  payload: { name: string; description?: string; inputs: any[]; outputs: any[]; rules: any[] },
+  payload: { name: string; description?: string; inputs: any[]; outputs: any[]; rules: any[]; tags?: string[] },
 ) {
   await requirePermission('workflows.edit')
   const { supabase, user, tenantId } = await getAuthContext()
 
   const { data: existing } = await (supabase as any)
     .from('decision_tables')
-    .select('id, name, description, inputs, outputs, rules')
+    .select('*')
     .eq('id', tableId)
     .eq('tenant_id', tenantId)
     .single()
@@ -164,20 +166,21 @@ export async function updateDecisionTable(
   const name = payload.name.trim()
   if (!name) throw new Error('Name is required')
 
-  const updates = {
+  const updates: Record<string, unknown> = {
     name,
     description: payload.description?.trim() || null,
     inputs: payload.inputs ?? [],
     outputs: payload.outputs ?? [],
     rules: payload.rules ?? [],
+    ...(payload.tags !== undefined ? { tags: normalizeTagList(payload.tags) } : {}),
     updated_at: new Date().toISOString(),
   }
 
-  const { error } = await (supabase as any)
+  const { error } = await tagsSafeWrite('business rules', updates, 'id', (values) => (supabase as any)
     .from('decision_tables')
-    .update(updates)
+    .update(values)
     .eq('id', tableId)
-    .eq('tenant_id', tenantId)
+    .eq('tenant_id', tenantId))
   if (error) throw new Error(error.message)
 
   await writeAudit({
@@ -188,7 +191,7 @@ export async function updateDecisionTable(
     objectId: tableId,
     action: 'update',
     summary: `Updated business rule "${name}"`,
-    diff: shallowDiff(existing, updates as any, ['name', 'description', 'inputs', 'outputs', 'rules'] as any),
+    diff: shallowDiff(existing, updates as any, ['name', 'description', 'inputs', 'outputs', 'rules', ...(payload.tags !== undefined ? ['tags'] : [])] as any),
     metadata: { feature: 'decision_table' },
   })
 

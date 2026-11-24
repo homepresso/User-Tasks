@@ -1,0 +1,62 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "1382c5aa-50a0-53c9-948f-0e1fbe441a4f",
+  "asset": {
+    "id": "1382c5aa-50a0-53c9-948f-0e1fbe441a4f",
+    "name": "CapEx cost centres",
+    "description": "Cost centres by business unit, with the department head who approves first.",
+    "columns": [
+      {
+        "id": "517ad237-d1d9-5112-a031-9d727acdb84c",
+        "required": true,
+        "key": "cost_centre",
+        "name": "Cost centre",
+        "type": "text"
+      },
+      {
+        "id": "9be1388f-8866-50f8-a61e-eb5f16cbeba7",
+        "required": false,
+        "key": "code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "3e7a89bf-d6b7-56e3-9106-67495bb6e357",
+        "required": false,
+        "key": "name",
+        "name": "Name",
+        "type": "text"
+      },
+      {
+        "id": "7728e1d5-f171-5e00-95a7-b92dd79ae31d",
+        "required": false,
+        "key": "bu_code",
+        "name": "BU code",
+        "type": "text"
+      },
+      {
+        "id": "0dad39d6-0719-5e18-a82b-3015053431e9",
+        "required": false,
+        "key": "business_unit",
+        "name": "Business unit",
+        "type": "select",
+        "options": [
+          "Production",
+          "Logistics",
+          "Engineering & R&D",
+          "IT",
+          "Facilities & EHS",
+          "Commercial"
+        ]
+      },
+      {
+        "id": "c16d369f-c497-5ba6-bafc-9c6432a2ef8b",
+        "required": false,
+        "key": "department_head",
+        "name": "Department head",
+        "type": "text"
+      }
+    ]
+  }
+}

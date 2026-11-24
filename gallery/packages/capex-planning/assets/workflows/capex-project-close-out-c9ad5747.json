@@ -1,0 +1,366 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "c9ad5747-208b-561e-8cd5-0e94d0dc4f91",
+  "asset": {
+    "id": "c9ad5747-208b-561e-8cd5-0e94d0dc4f91",
+    "name": "CapEx project close-out",
+    "description": "A post-implementation review closes the project (final cost, objectives, benefits, lessons), then the asset accountant registers the asset and its depreciation schedule.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Review submitted",
+        "config": {
+          "form_id": "53b4c452-239e-5cd7-a615-570921bc6bd0",
+          "form_name": "CapEx post-implementation review"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "project",
+        "type": "update_data_table",
+        "label": "Read the project",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "get",
+          "match_column": "project_ref",
+          "match_value": "{{form.project_ref}}",
+          "output_row_var": "proj"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Close-out {{form.project_ref}} · {{proj.title}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "close",
+        "type": "update_data_table",
+        "label": "Close the project",
+        "config": {
+          "table_id": "b82ec15f-ded8-520e-abb9-af5b9ff7df88",
+          "table_name": "CapEx projects",
+          "operation": "update",
+          "match_column": "project_ref",
+          "match_value": "{{form.project_ref}}",
+          "column_values": {
+            "status": "Closed",
+            "stage": "Closed",
+            "pir_rating": "{{form.objectives_met}}",
+            "spent": "{{form.final_cost}}",
+            "utilisation_pct": "{{=IF(COALESCE(proj.approved_amount, 0) > 0, ROUND(form.final_cost / proj.approved_amount * 100, 1), 0)}}",
+            "spend_alert": ""
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "register",
+        "type": "condition",
+        "label": "Register the asset now?",
+        "config": {
+          "branches": [
+            {
+              "label": "Register",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.register_asset}}",
+                  "operator": "is_true"
+                }
+              ]
+            }
+          ],
+          "has_else": true,
+          "match_mode": "first"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "asset_task",
+        "type": "user_task",
+        "label": "Register the asset",
+        "config": {
+          "task_title": "Register asset: {{form.project_ref}} {{proj.title}} · ${{form.final_cost}}",
+          "task_description": "<p><strong>{{proj.title}}</strong> ({{proj.category}}, {{proj.business_unit}}) is closed at a final cost of <strong>${{form.final_cost}}</strong>. Tag the asset and confirm its useful life; the register and the depreciation schedule are written for you.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Register"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "76a070d7-6e80-5f09-ab56-9e8a25c10519",
+          "fields": [
+            {
+              "key": "asset_tag",
+              "label": "Asset tag",
+              "type": "text",
+              "required": true,
+              "placeholder": "BW-EQ-0101"
+            },
+            {
+              "key": "description",
+              "label": "Description",
+              "type": "text",
+              "required": true,
+              "default": "{{proj.title}}"
+            },
+            {
+              "key": "location",
+              "label": "Location",
+              "type": "choice",
+              "options": [
+                "Riverside plant",
+                "Central warehouse",
+                "HQ offices",
+                "Test centre"
+              ],
+              "required": true
+            },
+            {
+              "key": "in_service_date",
+              "label": "In service from",
+              "type": "date",
+              "required": true,
+              "default": "{{form.completion_date}}"
+            },
+            {
+              "key": "cost",
+              "label": "Cost (USD)",
+              "type": "currency",
+              "currency": "USD",
+              "min": 0,
+              "required": true,
+              "default": "{{form.final_cost}}"
+            },
+            {
+              "key": "useful_life",
+              "label": "Useful life (years)",
+              "type": "number",
+              "required": true,
+              "default": "{{proj.useful_life}}"
+            },
+            {
+              "key": "salvage_value",
+              "label": "Salvage value (USD)",
+              "type": "currency",
+              "currency": "USD",
+              "min": 0,
+              "default": "0"
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "asset_tag",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "description",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "location",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "in_service_date",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "cost",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "useful_life",
+                    "span": 1
+                  }
+                ]
+              },
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "salvage_value",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "register",
+              "label": "Register",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Register"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Fixed asset register",
+            "align": "left",
+            "subtitle": "{{form.project_ref}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 5,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "register_it",
+        "type": "call_sub_workflow",
+        "label": "Register the asset",
+        "config": {
+          "sub_workflow_id": "3e5096a6-4681-5f60-913a-5206c496b484",
+          "sub_workflow_name": "CapEx register asset",
+          "input_mappings": {
+            "asset_tag": "{{task_data.asset_tag}}",
+            "description": "{{task_data.description}}",
+            "project_ref": "{{form.project_ref}}",
+            "category": "{{proj.category}}",
+            "business_unit": "{{proj.business_unit}}",
+            "location": "{{task_data.location}}",
+            "in_service_date": "{{task_data.in_service_date}}",
+            "cost": "{{task_data.cost}}",
+            "useful_life": "{{task_data.useful_life}}",
+            "salvage_value": "{{=COALESCE(task_data.salvage_value, 0)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "done",
+        "type": "end_workflow",
+        "label": "Closed and registered",
+        "config": {
+          "reason": "{{form.project_ref}} closed; asset {{task_data.asset_tag}} registered"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "done_only",
+        "type": "end_workflow",
+        "label": "Closed",
+        "config": {
+          "reason": "{{form.project_ref}} closed"
+        },
+        "position": {
+          "x": 720,
+          "y": 620
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-project",
+        "source": "trigger",
+        "target": "project"
+      },
+      {
+        "id": "e-project-title",
+        "source": "project",
+        "target": "title"
+      },
+      {
+        "id": "e-title-close",
+        "source": "title",
+        "target": "close"
+      },
+      {
+        "id": "e-close-register",
+        "source": "close",
+        "target": "register"
+      },
+      {
+        "id": "e-register-asset_task-register",
+        "source": "register",
+        "target": "asset_task",
+        "label": "Register"
+      },
+      {
+        "id": "e-register-done_only-else",
+        "source": "register",
+        "target": "done_only",
+        "label": "Else"
+      },
+      {
+        "id": "e-asset_task-register_it-register",
+        "source": "asset_task",
+        "target": "register_it",
+        "label": "Register"
+      },
+      {
+        "id": "e-register_it-done",
+        "source": "register_it",
+        "target": "done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

@@ -59,6 +59,7 @@ export const STEP_GENERIC_VARIABLES: Record<string, readonly string[]> = {
   add_user_to_role: ['success', 'action', 'user_id', 'role_id', 'role_name', 'audited'],
   remove_user_from_role: ['success', 'action', 'user_id', 'role_id', 'role_name', 'audited'],
   check_permission: ['has_permission', 'permissions'],
+  instance_admin: ['instance_rows', 'instance_record', 'instance_total', 'instance_result', 'instance_message', 'instance_outcome'],
   http_request: ['response', 'status', 'file', 'file_url', 'http_file', 'http_file_url'],
   read_csv: ['file', 'file_url'],
   read_excel: ['file', 'file_url'],

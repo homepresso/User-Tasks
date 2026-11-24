@@ -1,3 +1,4 @@
+import { basetenMode, normalizeBasetenDeploymentUrl } from './definitions/baseten'
 import { buildConnectorTestResult, type ConnectorTestResult } from "./test-diagnostics"
 import { isMaskedSecret } from "@/lib/secret-format"
 
@@ -74,6 +75,17 @@ export function runConnectorPreflight(
         `${refreshLabels[connectorKey]} refresh-token auth is only partially configured: missing ${missing.join(', ')}.`,
         'error',
       )
+    }
+  }
+
+  if (connectorKey === 'baseten' && basetenMode(config) === 'dedicated') {
+    try {
+      normalizeBasetenDeploymentUrl(String(config.deployment_url ?? ''))
+    } catch (error: any) {
+      return buildConnectorTestResult(connectorKey, error?.message ?? 'The deployment URL is invalid.', 'error')
+    }
+    if (!hasValue(config.custom_model)) {
+      return buildConnectorTestResult(connectorKey, 'Enter the model name your dedicated deployment serves (Model name).', 'error')
     }
   }
 

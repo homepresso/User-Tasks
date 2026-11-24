@@ -10,7 +10,7 @@ export type NavArtKind = 'workflows' | 'forms' | 'tasks' | 'agent' | 'data' | 'i
 
 export type NavIconName =
   | 'book' | 'graduation' | 'package' | 'sparkles' | 'server' | 'github' | 'terminal' | 'mail' | 'scale' | 'shield'
-  | 'users' | 'wallet' | 'laptop' | 'building' | 'handshake' | 'briefcase' | 'inbox' | 'bot' | 'plug' | 'list' | 'files' | 'waves' | 'code'
+  | 'users' | 'wallet' | 'laptop' | 'building' | 'handshake' | 'briefcase' | 'inbox' | 'bot' | 'plug' | 'list' | 'files' | 'waves' | 'code' | 'puzzle'
 
 export type ProductTile = { href: string; title: string; outcome: string; description: string; art: NavArtKind }
 export type MenuItem = { href: string; title: string; description: string; icon: NavIconName; badge?: string; external?: boolean }
@@ -29,6 +29,7 @@ export const PRODUCT_MORE: MenuItem[] = [
   { href: '/documents', title: 'Documents', description: 'Read, redline, convert and redact files', icon: 'files' },
   { href: '/media', title: 'Images, audio & video', description: 'Transcribe, analyse and redact media', icon: 'waves' },
   { href: '/deploy-anywhere', title: 'Deploy anywhere', description: 'Cloud, Docker, Kubernetes, air-gapped', icon: 'server' },
+  { href: '/extensions', title: 'Extensions', description: 'Paid add-ons: SharePoint, Infrastructure, Processing', icon: 'puzzle' },
 ]
 
 /** The featured card in the Product menu (opens the homepage demo in Build mode). */

@@ -1,0 +1,266 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "d54f6fe1-8fbd-5c19-b23c-ab29b40f9bce",
+  "asset": {
+    "id": "d54f6fe1-8fbd-5c19-b23c-ab29b40f9bce",
+    "name": "Set a goal",
+    "description": "An objective for the quarter with its key results, aligned to a department or company goal.",
+    "tags": [
+      "goals",
+      "okr",
+      "performance"
+    ],
+    "fields": [
+      {
+        "key": "objective",
+        "label": "Objective",
+        "type": "text",
+        "required": true,
+        "placeholder": "What do you want to achieve? e.g. Make onboarding effortless"
+      },
+      {
+        "key": "level",
+        "label": "Level",
+        "type": "choice",
+        "options": [
+          "Individual",
+          "Department",
+          "Company"
+        ],
+        "required": true,
+        "default": "Individual",
+        "display": "radio"
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "choice",
+        "options": [
+          "Engineering",
+          "Product",
+          "Design",
+          "Sales",
+          "Customer Success",
+          "Marketing",
+          "Finance",
+          "People & Operations"
+        ],
+        "required": true
+      },
+      {
+        "key": "aligned_to",
+        "label": "Aligned to",
+        "type": "lookup",
+        "help_text": "The department or company goal this one supports.",
+        "lookup": {
+          "source": "table",
+          "table_id": "e339db3c-8a2e-5997-9060-6633bb357429",
+          "search_columns": [
+            "objective",
+            "goal_ref"
+          ],
+          "display_columns": [
+            "objective",
+            "level",
+            "owner_name"
+          ],
+          "value_column": "goal_ref",
+          "fill": [],
+          "filters": [
+            {
+              "column": "level",
+              "operator": "neq",
+              "value": "Individual"
+            }
+          ],
+          "sort": {
+            "column": "goal_ref",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "quarter",
+        "label": "Quarter",
+        "type": "choice",
+        "options": [
+          "Q4 2026",
+          "Q1 2027",
+          "Q2 2027"
+        ],
+        "required": true,
+        "default": "Q4 2026"
+      },
+      {
+        "key": "due_date",
+        "label": "Due date",
+        "type": "date",
+        "required": true,
+        "default": "2026-12-31"
+      },
+      {
+        "key": "key_results",
+        "label": "Key results",
+        "type": "repeating_section",
+        "required": true,
+        "repeating_section": {
+          "fields": [
+            {
+              "key": "kr",
+              "label": "Key result",
+              "type": "text",
+              "required": true,
+              "placeholder": "e.g. Cut setup time to 10 days"
+            },
+            {
+              "key": "kr_start",
+              "label": "Start",
+              "type": "number",
+              "required": true,
+              "default": 0
+            },
+            {
+              "key": "kr_target",
+              "label": "Target",
+              "type": "number",
+              "required": true
+            },
+            {
+              "key": "kr_unit",
+              "label": "Unit",
+              "type": "text",
+              "placeholder": "days, %, USD K…"
+            }
+          ],
+          "layout": {
+            "rows": [
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "kr",
+                    "span": 4
+                  }
+                ]
+              },
+              {
+                "columns": 4,
+                "cells": [
+                  {
+                    "field_key": "kr_start",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "kr_target",
+                    "span": 1
+                  },
+                  {
+                    "field_key": "kr_unit",
+                    "span": 2
+                  }
+                ]
+              }
+            ]
+          },
+          "add_label": "Add key result",
+          "item_title": "Key result {{index}}",
+          "min_items": 1,
+          "max_items": 5,
+          "start_items": 2
+        }
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "objective",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "level",
+              "span": 1
+            },
+            {
+              "field_key": "department",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "aligned_to",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "quarter",
+              "span": 1
+            },
+            {
+              "field_key": "due_date",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "key_results",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Save goal",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Goal saved",
+            "text": "Your goal and its key results are on the Goals page.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Set another goal"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Set a goal",
+      "subtitle": "One objective, two to five measurable key results.",
+      "align": "left"
+    }
+  }
+}

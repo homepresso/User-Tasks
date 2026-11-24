@@ -1,0 +1,91 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "6b5714f1-29a4-5114-8338-31b3dd77d919",
+  "asset": {
+    "id": "6b5714f1-29a4-5114-8338-31b3dd77d919",
+    "name": "Expense categories rows",
+    "rows": [
+      {
+        "id": "ec333952-78be-5255-9b71-d930cf2d003d",
+        "data": {
+          "category": "Travel",
+          "limit_usd": 1500,
+          "gl_code": "6100",
+          "receipt_required": true,
+          "guidance": "Economy fares booked through the travel desk."
+        }
+      },
+      {
+        "id": "888db552-af97-56e5-bcf5-62f89f9cd348",
+        "data": {
+          "category": "Accommodation",
+          "limit_usd": 250,
+          "gl_code": "6110",
+          "receipt_required": true,
+          "guidance": "Per night, including taxes."
+        }
+      },
+      {
+        "id": "9546aa5d-1f54-5944-847e-9774547deefb",
+        "data": {
+          "category": "Meals",
+          "limit_usd": 75,
+          "gl_code": "6120",
+          "receipt_required": true,
+          "guidance": "Per person per day while travelling."
+        }
+      },
+      {
+        "id": "4c14df69-c0ed-5d3c-b4c0-920132526bfc",
+        "data": {
+          "category": "Software",
+          "limit_usd": 500,
+          "gl_code": "6300",
+          "receipt_required": true,
+          "guidance": "Check with IT before buying a subscription."
+        }
+      },
+      {
+        "id": "70788d3f-5d90-50f4-854a-d5d375599742",
+        "data": {
+          "category": "Equipment",
+          "limit_usd": 800,
+          "gl_code": "6310",
+          "receipt_required": true,
+          "guidance": "Items over $800 go through purchasing."
+        }
+      },
+      {
+        "id": "91d2adf4-3833-59a2-9223-3c9e00b83af2",
+        "data": {
+          "category": "Training",
+          "limit_usd": 2000,
+          "gl_code": "6400",
+          "receipt_required": true,
+          "guidance": "Courses and certifications agreed with your manager."
+        }
+      },
+      {
+        "id": "edf25aba-e23d-52e1-b4de-d8308c5e3a91",
+        "data": {
+          "category": "Client entertainment",
+          "limit_usd": 400,
+          "gl_code": "6500",
+          "receipt_required": true,
+          "guidance": "Name the client and the purpose."
+        }
+      },
+      {
+        "id": "f237847f-31ef-5fd2-9b57-ccfaf8ddecd3",
+        "data": {
+          "category": "Other",
+          "limit_usd": 200,
+          "gl_code": "6900",
+          "receipt_required": false,
+          "guidance": "Describe the expense in detail."
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "format_version": 3,
+  "asset_type": "decision_tables",
+  "id": "0ac1896c-b750-5e09-bfb3-ad81e4f1bd6d",
+  "asset": {
+    "id": "0ac1896c-b750-5e09-bfb3-ad81e4f1bd6d",
+    "name": "CapEx category reviews",
+    "description": "Specialist reviews that run in parallel after the department head, by category and cost: IT requests go to the CIO; facilities, vehicles and equipment over $100,000 to the safety (EHS) review. First matching rule wins.",
+    "inputs": [
+      {
+        "id": "a60d0f09-cd09-58f1-84bf-a9c9725a1482",
+        "key": "category",
+        "label": "Category",
+        "type": "text"
+      },
+      {
+        "id": "528e34bd-73f3-57c3-999c-3f1ee522b4fc",
+        "key": "amount",
+        "label": "Total capital cost (USD)",
+        "type": "number"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "c4efe579-7c57-5e2d-b886-f7e7c232d866",
+        "key": "needs_cio",
+        "label": "CIO review",
+        "type": "boolean"
+      },
+      {
+        "id": "8f4ed4ef-19d3-5a40-a1da-cdd7f6a64937",
+        "key": "needs_safety",
+        "label": "Safety review",
+        "type": "boolean"
+      },
+      {
+        "id": "7ad49b78-d39a-5ee2-adf9-16946da3b8ac",
+        "key": "review_focus",
+        "label": "What the reviewers check",
+        "type": "text"
+      }
+    ],
+    "rules": [
+      {
+        "id": "8759ef73-297d-5d1c-aef1-cb5698dd2d30",
+        "label": "IT",
+        "enabled": true,
+        "outputs": {
+          "needs_cio": true,
+          "needs_safety": false,
+          "review_focus": "Architecture, security and support costs"
+        },
+        "conditions": [
+          {
+            "id": "b8c591e0-79f9-563c-89e8-a3f6dbfd2e9e",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "IT"
+          }
+        ]
+      },
+      {
+        "id": "4dcf0feb-076a-567e-80d0-6eda80b201a8",
+        "label": "Facilities",
+        "enabled": true,
+        "outputs": {
+          "needs_cio": false,
+          "needs_safety": true,
+          "review_focus": "Permits, contractor safety and building codes"
+        },
+        "conditions": [
+          {
+            "id": "867370bc-c763-5427-9994-e9f862aed758",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "Facilities"
+          }
+        ]
+      },
+      {
+        "id": "2f78caa8-7d2a-5dd0-b517-15857bf66801",
+        "label": "Vehicles",
+        "enabled": true,
+        "outputs": {
+          "needs_cio": false,
+          "needs_safety": true,
+          "review_focus": "Driver safety, telematics and charging"
+        },
+        "conditions": [
+          {
+            "id": "b591bec0-0a71-557f-8405-41686916a0c4",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "Vehicles"
+          }
+        ]
+      },
+      {
+        "id": "4ee1309e-eab2-5484-9c6c-7e5dc7992330",
+        "label": "Large equipment",
+        "enabled": true,
+        "outputs": {
+          "needs_cio": false,
+          "needs_safety": true,
+          "review_focus": "Machine guarding, risk assessment and training"
+        },
+        "conditions": [
+          {
+            "id": "12b6edde-869c-57f2-9e1a-a07799a19c59",
+            "inputKey": "category",
+            "operator": "equals",
+            "value": "Equipment"
+          },
+          {
+            "id": "df7c93a2-c241-5c58-944c-7502fe0b5bb0",
+            "inputKey": "amount",
+            "operator": "greater_than",
+            "value": "100000"
+          }
+        ]
+      },
+      {
+        "id": "22ba3511-465d-5704-add3-3ac0726fac28",
+        "label": "Everything else",
+        "enabled": true,
+        "outputs": {
+          "needs_cio": false,
+          "needs_safety": false,
+          "review_focus": "No specialist review"
+        },
+        "conditions": []
+      }
+    ]
+  }
+}

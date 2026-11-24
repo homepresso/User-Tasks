@@ -1,0 +1,232 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "c641b09d-dac2-5e5d-90cb-4ac2ae102d83",
+  "asset": {
+    "id": "c641b09d-dac2-5e5d-90cb-4ac2ae102d83",
+    "name": "Log a one-to-one",
+    "description": "Notes from a one-to-one, goal check-in or career conversation, with the agreed actions and the next date.",
+    "tags": [
+      "1:1",
+      "manager",
+      "growth"
+    ],
+    "fields": [
+      {
+        "key": "employee",
+        "label": "With",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "search_columns": [
+            "name",
+            "department",
+            "job_title"
+          ],
+          "display_columns": [
+            "name",
+            "job_title",
+            "department"
+          ],
+          "value_column": "email",
+          "fill": [
+            {
+              "from": "name",
+              "to": "employee_name"
+            },
+            {
+              "from": "department",
+              "to": "department"
+            }
+          ],
+          "filters": [],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        }
+      },
+      {
+        "key": "employee_name",
+        "label": "Name",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "type",
+        "label": "Type",
+        "type": "choice",
+        "options": [
+          "One-to-one",
+          "Goal check-in",
+          "Career conversation"
+        ],
+        "required": true,
+        "default": "One-to-one",
+        "display": "radio"
+      },
+      {
+        "key": "met_on",
+        "label": "Date",
+        "type": "date",
+        "required": true,
+        "default": "{{today}}"
+      },
+      {
+        "key": "agenda",
+        "label": "Agenda",
+        "type": "textarea",
+        "placeholder": "Topics you covered"
+      },
+      {
+        "key": "notes",
+        "label": "Notes",
+        "type": "textarea"
+      },
+      {
+        "key": "actions",
+        "label": "Agreed actions",
+        "type": "textarea",
+        "placeholder": "One per line"
+      },
+      {
+        "key": "mood",
+        "label": "How are they doing?",
+        "type": "choice",
+        "options": [
+          "Great",
+          "Good",
+          "Okay",
+          "Low"
+        ],
+        "display": "radio"
+      },
+      {
+        "key": "next_on",
+        "label": "Next one-to-one",
+        "type": "date"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "employee",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "employee_name",
+              "span": 1
+            },
+            {
+              "field_key": "department",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "type",
+              "span": 1
+            },
+            {
+              "field_key": "met_on",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "agenda",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "notes",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "actions",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "mood",
+              "span": 1
+            },
+            {
+              "field_key": "next_on",
+              "span": 1
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Save notes",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Saved",
+            "text": "The notes are logged and a follow-up is on your calendar.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Log a one-to-one",
+      "subtitle": "Keep the conversation going.",
+      "align": "left"
+    }
+  }
+}

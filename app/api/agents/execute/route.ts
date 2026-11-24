@@ -7,6 +7,7 @@ import { AgentRunError } from '@/lib/agents/prepare'
 import { loadAndRunAgent } from '@/lib/agents/run'
 import { newTraceId } from '@/lib/trace'
 import { coalescedAgentEvents } from '@/lib/agents/stream'
+import { forViewer } from '@/lib/agents/errors'
 
 // Vercel's default function timeout (10-15s) is far shorter than an agent run
 // can take. 60 is the Hobby-plan ceiling; raise to 300 once on a Pro+ plan.
@@ -16,7 +17,8 @@ export const maxDuration = 60
  * The agent test console (designer playground): runs the saved agent as the
  * signed-in user and streams the loop's events as SSE — including the model's
  * reply token by token (`delta` events, `delta_reset` when a call is retried
- * after an error mid-stream). Closing the request cancels the run. `history`
+ * after an error mid-stream). Retries themselves are not streamed: the
+ * console keeps saying it is working, and `done` reports how many there were. Closing the request cancels the run. `history`
  * carries the console conversation's earlier turns (multi-turn testing).
  */
 export async function POST(request: NextRequest) {
@@ -70,19 +72,25 @@ export async function POST(request: NextRequest) {
           db, tenantId, agentId, message, history, actingUserId: user.id,
           callerType: 'manual', traceId: newTraceId(), signal: abort.signal,
           stream: body?.stream !== false,
-          onEvent: (event) => relay.onEvent(event),
+          // The run's error is sent once, below (with its friendly view and run id). Automatic retries are
+          // quiet (the console keeps saying it is working); the finished run reports how many there were.
+          onEvent: (event) => { if (event.type !== 'error' && event.type !== 'retry') relay.onEvent(event) },
         })
         relay.close()
         const { result, runId } = outcome
         const cost = runId ? (await db.from('agent_runs').select('cost_amount, cost_currency, cost_status').eq('id', runId).maybeSingle()).data : null
         if (result.status === 'failed') {
-          send({ type: 'error', error: result.error ?? 'Agent execution failed', run_id: runId })
+          // A provider failure: the friendly message + sanitised details (the provider's own message for people who can edit agents).
+          send({
+            type: 'error', error: result.failure?.message ?? result.error ?? 'Agent execution failed', run_id: runId,
+            ...(result.failure ? { failure: forViewer(result.failure, perms.has('agents.edit') || perms.has('integrations.manage'), null) } : {}),
+          })
         } else if (result.status === 'awaiting_approval') {
           send({ type: 'awaiting_approval', run_id: runId, task_id: outcome.approval?.taskId ?? null, pending: result.pending })
         } else {
           send({
             type: 'done', run_id: runId,
-            result: { response: result.response, outputs: result.outputs ?? null, usage: result.usage, iterations: result.iterations, duration_ms: result.duration_ms, parse_warning: result.parse_warning ?? null, files: result.files ?? [], cost: cost ?? null, streamed: result.steps.some((st) => st.type === 'llm' && st.streamed) },
+            result: { response: result.response, outputs: result.outputs ?? null, usage: result.usage, iterations: result.iterations, duration_ms: result.duration_ms, parse_warning: result.parse_warning ?? null, files: result.files ?? [], cost: cost ?? null, streamed: result.steps.some((st) => st.type === 'llm' && st.streamed), retries: result.steps.reduce((n, st) => n + (st.type === 'llm' ? Math.max(0, (st.attempts ?? 1) - 1) : 0), 0) },
           })
         }
       } catch (err: any) {

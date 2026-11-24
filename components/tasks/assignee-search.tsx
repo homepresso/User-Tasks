@@ -8,7 +8,7 @@ import { cn, getInitials } from '@/lib/utils'
 import { plural } from '@/lib/format/plural'
 import { TeamOriginBadge } from '@/components/teams/team-origin-badge'
 import { TEAM_ORIGIN_LABELS, TEAM_ORIGIN_SHORT_LABELS, type TeamOrigin } from '@/lib/teams/origin'
-import type { AssigneeKind, AssigneePerson, AssigneeTeam } from '@/lib/services/assignee-search'
+import type { AssigneeKind, AssigneePerson, AssigneeSearchResult, AssigneeTeam } from '@/lib/services/assignee-search'
 
 /**
  * The assignee type-ahead (Create task, Assign to… / Reassign, the workflow
@@ -18,6 +18,10 @@ import type { AssigneeKind, AssigneePerson, AssigneeTeam } from '@/lib/services/
  * ID, SharePoint …) and its member count; the highlighted team shows its
  * first members. A chip row filters teams by origin — only the origins the
  * workspace has. Keyboard: ↑ ↓ move, Home / End, Enter picks, Esc clears.
+ *
+ * `search` replaces the workspace search (e.g. a package installed into
+ * another workspace searches that one); the origin chips and the team member
+ * preview read the current workspace, so they are off with it.
  */
 
 export type AssigneePick =
@@ -85,6 +89,10 @@ export function AssigneeSearch({
   className,
   autoFocus,
   listClassName,
+  search,
+  scope,
+  onDismiss,
+  onEnterText,
 }: {
   kinds?: AssigneeKind[]
   onPick: (pick: AssigneePick) => void
@@ -96,6 +104,14 @@ export function AssigneeSearch({
   className?: string
   autoFocus?: boolean
   listClassName?: string
+  /** Search somewhere else than the current workspace (no origin chips or member preview then). */
+  search?: (input: { q: string; kinds: AssigneeKind[]; limit: number }) => Promise<AssigneeSearchResult>
+  /** Cache key of that search (e.g. the workspace id). */
+  scope?: string
+  /** Esc with nothing typed. */
+  onDismiss?: () => void
+  /** Enter with nothing to pick (e.g. an email that matches nobody): the text typed. */
+  onEnterText?: (text: string) => void
 }) {
   const baseId = useId()
   const listId = `${baseId}-list`
@@ -106,13 +122,15 @@ export function AssigneeSearch({
   const debouncedQ = useDebounced(q.trim(), 150)
   const wantTeams = kinds.includes('team')
   const wantPeople = kinds.includes('person')
-  const { data: origins = [] } = useTeamOrigins(wantTeams)
+  const teamExtras = !search
+  const { data: origins = [] } = useTeamOrigins(wantTeams && teamExtras)
 
   const { data, isFetching, error } = useQuery({
-    queryKey: ['assignee-search', debouncedQ, kinds.join(','), origin, limit],
+    queryKey: ['assignee-search', debouncedQ, kinds.join(','), origin, limit, ...(search ? ['scoped', scope ?? null] : [])],
     placeholderData: keepPreviousData,
     staleTime: 30_000,
     queryFn: async () => {
+      if (search) return search({ q: debouncedQ, kinds, limit })
       const result = await serverRead('tasks.assigneeSearch', { q: debouncedQ, kinds, origin, limit })
       if (result.error) throw new Error(result.error.message)
       return result.data
@@ -147,18 +165,26 @@ export function AssigneeSearch({
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const next = moveActive(e.key, activeIndex, options.length)
     if (next !== null) { e.preventDefault(); setActive(next) }
-    else if (e.key === 'Enter') { e.preventDefault(); pick(activeOption) }
+    else if (e.key === 'Enter') {
+      e.preventDefault()
+      // Still searching what was just typed, or a whole email (matched exactly
+      // by the caller, not by the closest name): the text, not a stale result.
+      const typed = q.trim()
+      if (onEnterText && typed && (!activeOption || typed !== debouncedQ || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(typed))) onEnterText(typed)
+      else pick(activeOption)
+    }
     else if (e.key === 'Escape' && q) { e.preventDefault(); setQ(''); setActive(0) }
+    else if (e.key === 'Escape' && onDismiss) { e.preventDefault(); e.stopPropagation(); onDismiss() }
   }
 
-  const showChips = wantTeams && origins.length > 1
+  const showChips = teamExtras && wantTeams && origins.length > 1
   const groupHeading = 'px-2 pb-1 pt-2 text-2xs font-semibold uppercase tracking-wide text-fg-muted'
 
   const renderOption = (option: Option, index: number) => {
     const item = option.item
     const isActive = index === activeIndex
     const isSelected = selected.has(option.key)
-    const describedBy = item.kind === 'team' && isActive ? `${optionId(option.key)}-members` : undefined
+    const describedBy = item.kind === 'team' && isActive && teamExtras ? `${optionId(option.key)}-members` : undefined
     return (
       <li
         key={option.key}
@@ -197,7 +223,7 @@ export function AssigneeSearch({
           {item.kind === 'team' && <TeamOriginBadge origin={item.origin} />}
           {isSelected && <span className="shrink-0 text-2xs font-medium text-primary-text">Selected</span>}
         </span>
-        {item.kind === 'team' && isActive && (
+        {item.kind === 'team' && isActive && teamExtras && (
           <span id={`${optionId(option.key)}-members`} data-team-preview={item.id} className="block pl-8 text-2xs">
             <TeamPreview teamId={item.id} count={item.member_count} />
           </span>

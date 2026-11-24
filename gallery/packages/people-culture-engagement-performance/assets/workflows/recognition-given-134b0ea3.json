@@ -1,0 +1,158 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "134b0ea3-c488-5006-b099-bd1ba3764be8",
+  "asset": {
+    "id": "134b0ea3-c488-5006-b099-bd1ba3764be8",
+    "name": "Recognition given",
+    "description": "From the Give recognition form: adds the kudos to the recognition wall and emails the person recognised.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Kudos given",
+        "config": {
+          "form_id": "d0c55636-0d87-5ba1-9c39-190e95c2d242",
+          "form_name": "Give recognition"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Kudos reference",
+        "config": {
+          "name": "kudos_ref",
+          "expression": "K-{{=FORMAT_DATE(NOW(), \"YYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{submitted_by_name}} → {{form.to_name}} · {{form.value}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "giver",
+        "type": "update_data_table",
+        "label": "Giver in the directory",
+        "config": {
+          "table_id": "dd843f75-566b-550e-a932-995223d44564",
+          "table_name": "People directory",
+          "operation": "get",
+          "match_column": "email",
+          "match_value": "{{submitted_by_email}}",
+          "output_row_var": "giver"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "wall",
+        "type": "update_data_table",
+        "label": "Add to the wall",
+        "config": {
+          "table_id": "fadaffe7-0898-5754-9b1f-7d19f6960d9d",
+          "table_name": "Recognition",
+          "operation": "insert",
+          "column_values": {
+            "kudos_ref": "{{kudos_ref}}",
+            "headline": "{{submitted_by_name}} → {{form.to_name}}",
+            "from_name": "{{submitted_by_name}}",
+            "from_email": "{{submitted_by_email}}",
+            "from_department": "{{giver.department}}",
+            "to_name": "{{form.to_name}}",
+            "to_email": "{{form.recipient}}",
+            "to_department": "{{form.to_department}}",
+            "value": "{{form.value}}",
+            "message": "{{form.message}}",
+            "points": "{{form.points}}",
+            "given_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "notify",
+        "type": "send_email",
+        "label": "Email the person recognised",
+        "config": {
+          "to": "{{form.recipient}}",
+          "email_template_id": "ee3fa41a-d519-5f15-99e2-876d1f80db0e"
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "On the wall",
+        "config": {
+          "reason": "{{kudos_ref}}: {{form.to_name}} for {{form.value}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-giver",
+        "source": "title",
+        "target": "giver"
+      },
+      {
+        "id": "e-giver-wall",
+        "source": "giver",
+        "target": "wall"
+      },
+      {
+        "id": "e-wall-notify",
+        "source": "wall",
+        "target": "notify"
+      },
+      {
+        "id": "e-notify-end",
+        "source": "notify",
+        "target": "end"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

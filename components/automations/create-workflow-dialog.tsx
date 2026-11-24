@@ -28,6 +28,7 @@ const TRIGGER_TYPE_OPTIONS = [
   { value: 'schedule', label: 'On a schedule' },
   { value: 'webhook_received', label: 'When a webhook is received' },
   { value: 'esign_event', label: 'When an e-signature envelope changes' },
+  { value: 'agent_error', label: 'When an agent fails' },
 ]
 
 export function CreateWorkflowDialog() {

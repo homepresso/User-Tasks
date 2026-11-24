@@ -1,0 +1,202 @@
+{
+  "id": "dfbafc28-f571-529a-88dc-14c21ee3c4e9",
+  "slug": "capex-planning",
+  "title": "CapEx planning & approvals",
+  "category": "finance",
+  "summary": "Capital expenditure end to end: budgets by business unit, requests with live NPV, IRR and payback, rule-based approvals, spend against plan and the asset register.",
+  "description": "CapEx planning & approvals runs the whole capital process for a manufacturing company, from the annual budget to the fixed asset register. It installs the CapEx planner app, six forms, eight workflows, two decision tables and twelve data tables with two years of realistic sample data for Brightwater Manufacturing (a fictional company).\n\nRequesters fill in a five-step wizard: the summary, a rich-text business case, a cost breakdown (repeating section with a total), a five-year cash-flow projection in an editable table, and the quotes. NPV at the hurdle rate, IRR, payback and ROI are worked out as they type, with an NPV sensitivity table at 0% to 100% showing how the IRR is found.\n\nThe approval workflow reads two decision tables: the thresholds (under $25,000 the department head; up to $250,000 plus the finance controller and the CFO; above that plus the CEO and the capital committee) and the category reviews (CIO for IT, safety for facilities, vehicles and large equipment), which run in parallel. The budget line is checked first and over-budget requests always go to the finance controller. Every step has an SLA, reminders and escalation to the approver’s manager, and every decision lands in the approvals log. Approval commits the budget line and the business unit, phases the planned spend, files an approval summary PDF on the project and asks procurement for the purchase order.\n\nAfter approval, actual spend entries roll up to the project, its budget line and its business unit; more than 110% asks the owner for a change request, and change requests more than 10% over go back through approval. A monthly scheduled check flags projects and business units at 80% and 100%. A post-implementation review closes the project and the asset accountant registers the asset with its straight-line depreciation schedule.\n\nThe app has a grouped sidebar: Overview (KPIs, goals, a committed-budget gauge per business unit, the pipeline funnel, spend by unit and category, top projects and my approvals), Requests (grid grouped by status, a remaining-budget check before New request, a project panel on row click), Approvals (the approver workbench), Budget (plan against actual by month, pivots and a heat map, the editable budget lines), Projects (a board by lifecycle stage and the project detail panel with its spend timeline, cash flows, decisions and change requests), Assets, Insights (ROI against cost, payback, approval time and bottlenecks) and hidden Admin pages for finance.",
+  "trigger": "app",
+  "entry_app": "033d9bff-4f32-582c-8392-6e6a383f8b84",
+  "entry_workflow": "29824ef5-163f-54c1-9c07-124d5a130a3c",
+  "entry_form": "78995f6f-dfb2-55d7-9298-eade394cd04e",
+  "start": "Open the CapEx planner from the Apps menu and press New request; the five-step CapEx request form opens in a side panel and starts the approval workflow.",
+  "difficulty": "advanced",
+  "setup_minutes": 20,
+  "tags": [
+    "showcase",
+    "capex",
+    "budgeting",
+    "approvals",
+    "finance",
+    "decision-tables",
+    "npv",
+    "assets"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "optional_needs": [
+    "email"
+  ],
+  "setup": [
+    "Open Apps → CapEx planner → Settings → Audience: add requesters and leadership as viewers or contributors (contributors can submit requests and record spend), and finance, approvers and procurement as contributors.",
+    "Assignees: pick who receives each fixed step: CIO review, safety review, finance controller, CFO, CEO, capital committee (a secretary who records the decision), procurement, the asset accountant, the monthly finance review and the change-request re-approvals. Department heads are chosen on each request.",
+    "Edit the decision tables CapEx approval thresholds and CapEx category reviews to match your delegation of authority.",
+    "Replace the sample budget, projects and assets with your own (or keep them while you try the app): the CapEx budgets, CapEx business units and CapEx cost centres tables hold your plan."
+  ],
+  "steps": [
+    {
+      "title": "Plan the budget",
+      "body": "Finance sets budget lines by business unit, category and quarter for each fiscal year; the business unit totals follow."
+    },
+    {
+      "title": "Request with a business case",
+      "body": "A five-step wizard captures the case, the cost lines and the cash flows, and works out NPV, IRR, payback and ROI live."
+    },
+    {
+      "title": "Routed by rules",
+      "body": "Decision tables pick the approvers by amount and category; specialist reviews run in parallel and over-budget requests go to the finance controller."
+    },
+    {
+      "title": "Approve with SLAs",
+      "body": "Department head, CIO / safety, finance controller, CFO, CEO and capital committee decide in turn, with reminders, escalation and an approvals log."
+    },
+    {
+      "title": "Commit and order",
+      "body": "Approval commits the budget, phases the planned spend, files an approval summary PDF and asks procurement for the PO."
+    },
+    {
+      "title": "Track spend",
+      "body": "Actual spend rolls up to the project, budget line and business unit; overruns ask for a change request and a monthly check flags 80% and 100%."
+    },
+    {
+      "title": "Close and capitalise",
+      "body": "A post-implementation review closes the project and the asset is registered with its depreciation schedule."
+    }
+  ],
+  "sample_input": {
+    "title": "Plant floor tablets for Line 2",
+    "cost_centre": "CC-4120 Workplace technology",
+    "business_unit": "IT",
+    "bu_code": "ITS",
+    "category": "IT",
+    "gl_account": "1620 Computer equipment and software",
+    "fiscal_year": "2027",
+    "spend_quarter": "Q2",
+    "department_head": "$owner",
+    "business_case": "<p>Replace paper work orders on Line 2 with rugged tablets running the MES client. Removes 40 minutes of re-keying per shift and cuts scrap from wrong revisions.</p>",
+    "strategic_alignment": "Efficiency",
+    "risk_rating": "Low",
+    "risk_notes": "Wi-Fi coverage on Line 2 is confirmed by the survey.",
+    "cost_lines": [
+      {
+        "line_item": "Rugged tablets (40)",
+        "cost_type": "Equipment",
+        "quote_vendor": "Bluepeak Systems",
+        "amount": 96000
+      },
+      {
+        "line_item": "MES licences and set-up",
+        "cost_type": "Software and licences",
+        "quote_vendor": "Bluepeak Systems",
+        "amount": 54000
+      },
+      {
+        "line_item": "Contingency",
+        "cost_type": "Contingency",
+        "quote_vendor": "",
+        "amount": 15000
+      }
+    ],
+    "useful_life": 4,
+    "discount_rate": 8,
+    "cash_flows": [
+      {
+        "year": 1,
+        "benefits": 48000,
+        "operating_costs": 6000
+      },
+      {
+        "year": 2,
+        "benefits": 72000,
+        "operating_costs": 9000
+      },
+      {
+        "year": 3,
+        "benefits": 74000,
+        "operating_costs": 9000
+      },
+      {
+        "year": 4,
+        "benefits": 76000,
+        "operating_costs": 9000
+      }
+    ],
+    "confirm": true
+  },
+  "expect": "completed",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Approve",
+        "values": {
+          "comment": "Good case, approved."
+        }
+      },
+      {
+        "outcome": "Approve",
+        "values": {
+          "comment": "Fits the MES roadmap."
+        }
+      },
+      {
+        "outcome": "Approve",
+        "values": {
+          "comment": "Funded from the ITS Q2 line.",
+          "budget_confirmed": true
+        }
+      },
+      {
+        "outcome": "Approve",
+        "values": {
+          "comment": "Approved."
+        }
+      },
+      {
+        "outcome": "PO raised",
+        "values": {
+          "po_number": "PO-4711",
+          "vendor": "Bluepeak Systems",
+          "po_amount": 165000,
+          "expected_delivery": "2027-05-15"
+        }
+      }
+    ]
+  },
+  "icon": "landmark",
+  "screenshots": [
+    {
+      "file": "screenshots/overview.webp",
+      "caption": "Overview: budget, committed, spent and available, goals, a committed-budget gauge per business unit, the pipeline funnel and spend by unit and category."
+    },
+    {
+      "file": "screenshots/new-request.webp",
+      "caption": "The CapEx request wizard: cash flows in an editable table with NPV, IRR, payback and ROI worked out as you type."
+    },
+    {
+      "file": "screenshots/budget.webp",
+      "caption": "Budget: spend against plan by month, budget and spend by business unit and quarter, and a committed-budget heat map."
+    },
+    {
+      "file": "screenshots/projects.webp",
+      "caption": "Projects: a board by lifecycle stage with the project panel (spend timeline, cash flows and decisions)."
+    },
+    {
+      "file": "screenshots/insights.webp",
+      "caption": "Insights: ROI against cost, payback, approval time by tier and approval bottlenecks."
+    },
+    {
+      "file": "screenshots/approvals-dark.webp",
+      "caption": "The approver workbench in dark mode: the queue, the SLA, where approvals wait and the decision history.",
+      "theme": "dark"
+    }
+  ]
+}

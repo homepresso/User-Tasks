@@ -1,0 +1,186 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "e15022ac-a3c4-5353-9094-da979e823409",
+  "asset": {
+    "id": "e15022ac-a3c4-5353-9094-da979e823409",
+    "name": "Pulse check",
+    "description": "A two-minute pulse between engagement surveys: four agreement questions, eNPS and one comment. Answers are sealed until the pulse closes.",
+    "tags": [
+      "survey",
+      "pulse",
+      "people"
+    ],
+    "fields": [
+      {
+        "key": "cycle_code",
+        "label": "Pulse",
+        "type": "text",
+        "read_only": true,
+        "default": "{{param.cycle}}"
+      },
+      {
+        "key": "pulse",
+        "label": "How much do you agree?",
+        "type": "matrix",
+        "required": true,
+        "options": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "option_labels": {
+          "1": "Strongly disagree",
+          "2": "Disagree",
+          "3": "Neutral",
+          "4": "Agree",
+          "5": "Strongly agree"
+        },
+        "help_text": "Results are only shown for groups of five or more.",
+        "survey": {
+          "rows": [
+            {
+              "key": "eng1",
+              "label": "I am proud to work for Fernhill Labs"
+            },
+            {
+              "key": "wel1",
+              "label": "My workload is manageable most weeks"
+            },
+            {
+              "key": "gro3",
+              "label": "My manager has a useful conversation with me about my growth at least every quarter"
+            },
+            {
+              "key": "rec1",
+              "label": "When I do great work, it is recognised"
+            }
+          ]
+        }
+      },
+      {
+        "key": "enps",
+        "label": "How likely are you to recommend Fernhill Labs as a place to work?",
+        "type": "nps",
+        "required": true,
+        "survey": {
+          "low_label": "Not at all likely",
+          "high_label": "Extremely likely",
+          "bands": true
+        }
+      },
+      {
+        "key": "comment",
+        "label": "Anything on your mind?",
+        "type": "textarea",
+        "placeholder": "Optional. Please do not include names.",
+        "max_length": 1000
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "cycle_code",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "pulse",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "enps",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "comment",
+              "span": 2
+            }
+          ]
+        }
+      ],
+      "params": [
+        {
+          "name": "cycle",
+          "label": "Survey cycle",
+          "type": "text",
+          "source": "url",
+          "default": "PULSE-2026-11",
+          "include": true,
+          "description": "The cycle code the answer counts towards."
+        }
+      ]
+    },
+    "theme": {
+      "source": "custom",
+      "overrides": {
+        "colors": {
+          "light": {
+            "accent": "#C2410C",
+            "background": "#FFFFFF",
+            "text": "#2A211C",
+            "page": "#FFF4EC",
+            "page_to": "#FFFBF7"
+          }
+        },
+        "radius": 14,
+        "density": "comfortable",
+        "button_placement": "right",
+        "font": {
+          "source": "google",
+          "family": "Inter"
+        }
+      }
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Thanks!",
+            "text": "Your pulse is sealed until it closes.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Submit another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "Pulse check",
+      "subtitle": "Four questions, two minutes.",
+      "align": "left"
+    }
+  }
+}

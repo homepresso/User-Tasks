@@ -1,11 +1,13 @@
 # Licences for paid extensions
 
 UserTasks itself is open source (Apache-2.0) and needs no licence. Paid
-extensions (for example SharePoint) ship in their own image, an
-[edition](self-hosting.md#editions) that usertasks.com lets you download with
-a valid licence, and stay switched off until a **licence** enables them.
-Without one, an edition behaves like the public image and lists the
-extensions as "available, not licensed".
+extensions (SharePoint Server, the Infrastructure add-on) ship together in one
+image, [UserTasks Enterprise](self-hosting.md#editions), which usertasks.com
+lets you download with any valid licence for one of them. Each extension stays
+switched off until its own **licence** enables it: on the Enterprise image,
+installing another licence unlocks another extension, with no reinstall.
+Without a licence, the Enterprise image behaves like the public image and lists
+its extensions as "in this build, not licensed".
 
 This page covers self-hosted and air-gapped installs (licence files) and the
 hosted cloud (workspace entitlements).

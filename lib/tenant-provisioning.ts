@@ -44,7 +44,7 @@ const ADMIN: Permission[] = [...ALL]
 // definitions to every Viewer).
 const VIEWER: Permission[] = [
   'tasks.view_own', 'tasks.complete',
-  'forms.submit', 'data.view', 'reports.view',
+  'forms.submit', 'data.view', 'reports.view', 'apps.view',
   'team.view_members', 'org.view', 'projects.view',
 ]
 // Member: does work — creates and assigns tasks, edits data rows, builds own

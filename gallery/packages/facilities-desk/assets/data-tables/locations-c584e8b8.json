@@ -1,0 +1,40 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "c584e8b8-a26a-513b-926b-1e830de2fec9",
+  "asset": {
+    "id": "c584e8b8-a26a-513b-926b-1e830de2fec9",
+    "name": "Locations",
+    "description": "Sites, buildings and floors people can pick on the request form.",
+    "columns": [
+      {
+        "id": "3c3bc760-2c75-5c13-802b-ab2f8780d728",
+        "required": true,
+        "key": "code",
+        "name": "Code",
+        "type": "text"
+      },
+      {
+        "id": "ea188b5f-3d7b-5a8e-8dc8-8bbcd1100da7",
+        "required": false,
+        "key": "site",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "4919c562-904c-5bb7-9d5d-2929a212e02a",
+        "required": false,
+        "key": "building",
+        "name": "Building",
+        "type": "text"
+      },
+      {
+        "id": "d9b03696-7e37-54d4-8d3d-b4cd93ac6c46",
+        "required": false,
+        "key": "floor",
+        "name": "Floor",
+        "type": "text"
+      }
+    ]
+  }
+}

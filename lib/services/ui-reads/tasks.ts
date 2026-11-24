@@ -1,10 +1,12 @@
 import { z } from 'zod'
-import { getDb, hasPerm, type ServiceContext } from '../context'
+import { QUEUE_PRIORITIES, type QueuePriority } from '@/lib/tasks/queue-rules'
+import { getDb, hasPerm, ServiceError, type ServiceContext } from '../context'
 import * as tasksService from '../tasks'
 import { enrichTrackerTasks, searchTrackerTasks, TRACKER_TASK_SELECT } from '../task-tracker'
 import { withUnread } from '../task-reads'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
-import { CLAIM_CANDIDATE_ROLE, displayStatus, matchesStatusFilter, queueActionFor, queuedFirst, storedStatusesFor } from '@/lib/tasks/unified-list'
+import { CLAIM_CANDIDATE_ROLE, displayStatus, matchesStatusFilter, QUEUED_STATUS, queueActionFor, queuedFirst, storedStatusesFor } from '@/lib/tasks/unified-list'
+import { invalidTaskStatusMessage } from '@/lib/tasks/status-filter'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
 
@@ -16,13 +18,15 @@ import { CLAIM_CANDIDATE_ROLE, displayStatus, matchesStatusFilter, queueActionFo
 const TASK_VIEW = ['tasks.view_own', 'tasks.view_all'] as const
 
 /** Row columns of the server-side search views (components/tasks/task-search-list.tsx). */
-const TASK_SEARCH_COLUMNS = `id, title, status, priority, due_date, completed_at, outcome, created_at, updated_at, assignee_id, workflow_id, workflow_run_id,
+const TASK_SEARCH_COLUMNS = `id, title, status, priority, due_date, completed_at, outcome, created_at, updated_at, assignee_id, workflow_id, workflow_run_id, tags,
   progress_pct, child_count, completed_child_count, workflow:workflows(id, name), assignee:users!tasks_assignee_id_fkey(id, display_name, email)`
 // Subtasks expand inline in the task list and in the queue.
 const TASK_OR_QUEUE_VIEW = ['tasks.view_own', 'tasks.view_all', 'tasks.manage_queue'] as const
 
 const search = z.string().max(200)
 const statusList = z.array(z.string().max(50)).max(20)
+/** task_priority values (another value is a 400, not a database error). */
+const priorityList = z.array(z.enum(QUEUE_PRIORITIES as unknown as [QueuePriority, ...QueuePriority[]])).max(20)
 const column = z.string().regex(/^[a-z_]+$/).max(64)
 const isoTime = z.iso.datetime()
 
@@ -142,7 +146,7 @@ export const reads = {
   'tasks.list': defineRead({
     args: z.object({
       status: statusList.optional(),
-      priority: statusList.optional(),
+      priority: priorityList.optional(),
       tenantId: id.nullish(),
       dueBefore: isoTime.optional(),
       dueBy: isoTime.optional(),
@@ -161,6 +165,9 @@ export const reads = {
     }),
     perm: TASK_VIEW,
     run: async (ctx, filters) => {
+      // task_status values only (+ `queued` for the unified My tasks list): another is a 400, not a database error.
+      const badStatus = invalidTaskStatusMessage(filters.status, filters.mine ? [QUEUED_STATUS] : [])
+      if (badStatus) throw ServiceError.validation(badStatus)
       if (filters.mine) return listMine(ctx, filters)
       // RLS already limits tasks to the current workspace when one is set;
       // the explicit filter lets the planner use idx_tasks_tenant_created.

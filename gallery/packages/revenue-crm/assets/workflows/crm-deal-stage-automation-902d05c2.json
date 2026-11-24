@@ -1,0 +1,405 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "902d05c2-f8ef-5e48-a177-725f9f68099b",
+  "asset": {
+    "id": "902d05c2-f8ef-5e48-a177-725f9f68099b",
+    "name": "CRM deal stage automation",
+    "description": "When a deal is created or its stage changes (dragged on the board, edited or closed), the CRM stage rules set its probability, weighted amount and forecast category, the change is recorded in the CRM deal stage history, and whoever moved it gets the stage task. Every change also refreshes the account’s open pipeline, open deals and won value (the Accounts page and account 360 read them). A manager’s forecast override (Manager override) sets the final forecast the Forecast page reads; stage history records who moved the deal.",
+    "trigger_type": "data_table_event",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "data_table_event",
+        "label": "Deal created or changed",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "event_types": [
+            "created",
+            "updated"
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "account_deals",
+        "type": "update_data_table",
+        "label": "The account’s deals",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "list",
+          "filters": [
+            {
+              "column": "account_id",
+              "operator": "eq",
+              "value": "{{row.account_id}}"
+            }
+          ],
+          "limit": 500,
+          "output_rows_var": "account_deals",
+          "output_count_var": "account_deal_count"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "rollup",
+        "type": "update_data_table",
+        "label": "Account pipeline and won value",
+        "config": {
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "table_name": "CRM accounts",
+          "operation": "update",
+          "match_column": "account_id",
+          "match_value": "{{row.account_id}}",
+          "column_values": {
+            "open_pipeline": "{{=SUM(account_deals, \"amount\") - SUMIF(account_deals, \"stage\", \"Closed won\", \"amount\") - SUMIF(account_deals, \"stage\", \"Closed lost\", \"amount\")}}",
+            "open_deals": "{{=account_deal_count - COUNTIF(account_deals, \"stage\", \"Closed won\") - COUNTIF(account_deals, \"stage\", \"Closed lost\")}}",
+            "won_value": "{{=SUMIF(account_deals, \"stage\", \"Closed won\", \"amount\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "override",
+        "type": "condition",
+        "label": "Final forecast out of date?",
+        "config": {
+          "branches": [
+            {
+              "label": "Update it",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{row.forecast_final}}",
+                  "operator": "not_equals",
+                  "value": "{{=COALESCE(row.forecast_override, row.forecast)}}"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "final",
+        "type": "update_data_table",
+        "label": "Set the final forecast",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "update",
+          "match_column": "deal_id",
+          "match_value": "{{row.deal_id}}",
+          "column_values": {
+            "forecast_final": "{{=COALESCE(row.forecast_override, row.forecast)}}"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 620
+        }
+      },
+      {
+        "id": "changed",
+        "type": "condition",
+        "label": "Stage changed?",
+        "config": {
+          "branches": [
+            {
+              "label": "Stage changed",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{row.stage}}",
+                  "operator": "not_equals",
+                  "value": "{{row.stage_seen}}"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "rules",
+        "type": "decision_table",
+        "label": "Stage rules",
+        "config": {
+          "decision_table_id": "a9d39850-d7b7-5eb8-8bf1-e5d831f7a8c7",
+          "decision_table_name": "CRM stage rules",
+          "input_mappings": {
+            "stage": "{{row.stage}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "apply",
+        "type": "update_data_table",
+        "label": "Set probability and forecast",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "update",
+          "match_column": "deal_id",
+          "match_value": "{{row.deal_id}}",
+          "column_values": {
+            "stage_seen": "{{row.stage}}",
+            "probability": "{{probability}}",
+            "weighted": "{{=ROUND(TO_NUMBER(row.amount) * probability / 100, 0)}}",
+            "forecast": "{{forecast}}",
+            "forecast_final": "{{=COALESCE(row.forecast_override, forecast)}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "history",
+        "type": "update_data_table",
+        "label": "Record the stage change",
+        "config": {
+          "table_id": "a3168e6d-03c0-523a-9cdc-9ee7a81f887b",
+          "table_name": "CRM deal stage history",
+          "operation": "insert",
+          "column_values": {
+            "deal_id": "{{row.deal_id}}",
+            "deal": "{{row.name}}",
+            "account_id": "{{row.account_id}}",
+            "from_stage": "{{=COALESCE(row.stage_seen, \"New deal\")}}",
+            "to_stage": "{{row.stage}}",
+            "changed_on": "{{=FORMAT_DATE(TODAY(), \"YYYY-MM-DD\")}}",
+            "amount": "{{row.amount}}",
+            "probability": "{{probability}}",
+            "changed_by": "{{=COALESCE(USER_NAME(workflow_started_by), \"Automation\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 1180
+        }
+      },
+      {
+        "id": "task",
+        "type": "condition",
+        "label": "Stage task?",
+        "config": {
+          "branches": [
+            {
+              "label": "Create task",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{needs_task}}",
+                  "operator": "equals",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 1320
+        }
+      },
+      {
+        "id": "do",
+        "type": "user_task",
+        "label": "Stage task",
+        "config": {
+          "task_title": "{{task}}: {{row.name}} ({{row.account}})",
+          "task_description": "<p><strong>{{row.name}}</strong> with {{row.account}} moved to <strong>{{row.stage}}</strong> (${{row.amount}}, closes {{row.close_date}}).</p><p>{{hint}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Done"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{workflow_started_by}}",
+          "form_buttons": [
+            {
+              "id": "done",
+              "label": "Done",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Done"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Deal stage",
+            "align": "left",
+            "subtitle": "{{row.deal_id}} · {{row.stage}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 1440
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 1460
+        }
+      },
+      {
+        "id": "end_task",
+        "type": "end_workflow",
+        "label": "Task done",
+        "config": {
+          "reason": "{{row.deal_id}}: {{task}} done"
+        },
+        "position": {
+          "x": 400,
+          "y": 1600
+        }
+      },
+      {
+        "id": "end_closed",
+        "type": "end_workflow",
+        "label": "Closed stage",
+        "config": {
+          "reason": "{{row.deal_id}} is {{row.stage}}"
+        },
+        "position": {
+          "x": 720,
+          "y": 1460
+        }
+      },
+      {
+        "id": "end_same",
+        "type": "end_workflow",
+        "label": "No stage change",
+        "config": {
+          "reason": "Stage unchanged"
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "end_final",
+        "type": "end_workflow",
+        "label": "Final forecast set",
+        "config": {},
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-account_deals",
+        "source": "trigger",
+        "target": "account_deals"
+      },
+      {
+        "id": "e-account_deals-rollup",
+        "source": "account_deals",
+        "target": "rollup"
+      },
+      {
+        "id": "e-rollup-override",
+        "source": "rollup",
+        "target": "override"
+      },
+      {
+        "id": "e-override-final-update_it",
+        "source": "override",
+        "target": "final",
+        "label": "Update it"
+      },
+      {
+        "id": "e-override-changed-else",
+        "source": "override",
+        "target": "changed",
+        "label": "Else"
+      },
+      {
+        "id": "e-final-end_final",
+        "source": "final",
+        "target": "end_final"
+      },
+      {
+        "id": "e-changed-rules-stage_changed",
+        "source": "changed",
+        "target": "rules",
+        "label": "Stage changed"
+      },
+      {
+        "id": "e-changed-end_same-else",
+        "source": "changed",
+        "target": "end_same",
+        "label": "Else"
+      },
+      {
+        "id": "e-rules-apply",
+        "source": "rules",
+        "target": "apply"
+      },
+      {
+        "id": "e-apply-history",
+        "source": "apply",
+        "target": "history"
+      },
+      {
+        "id": "e-history-task",
+        "source": "history",
+        "target": "task"
+      },
+      {
+        "id": "e-task-do-create_task",
+        "source": "task",
+        "target": "do",
+        "label": "Create task"
+      },
+      {
+        "id": "e-task-end_closed-else",
+        "source": "task",
+        "target": "end_closed",
+        "label": "Else"
+      },
+      {
+        "id": "e-do-end_task-done",
+        "source": "do",
+        "target": "end_task",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

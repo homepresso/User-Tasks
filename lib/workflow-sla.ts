@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServiceDb } from '@/lib/providers/db'
-import { executeWorkflow } from '@/lib/workflow-engine'
+import { startRun } from '@/lib/processing/dispatch'
 
 const ACTIVE_RUN_STATUSES = ['running', 'paused', 'waiting_for_event'] as const
 
@@ -140,7 +140,7 @@ export async function processWorkflowSlaTriggers(options?: { supabase?: Supabase
         const config = normalizeTriggerNodeConfig(triggerWorkflow, versionMap.get(triggerWorkflow.published_version_id))
         if (!matchesConfiguredWorkflow(config, run)) continue
         if (!matchesConfiguredEvent(config, eventType)) continue
-        executeWorkflow(triggerWorkflow.id, undefined, false, buildVariables(updatedRun, sourceWorkflow, eventType), undefined, undefined, undefined, { initiator: { userId: null, via: 'event' } }).catch(() => {})
+        startRun({ workflowId: triggerWorkflow.id, tenantId: run.tenant_id, variables: buildVariables(updatedRun, sourceWorkflow, eventType), initiator: { userId: null, via: 'event' }, wait: false }).catch(() => {})
         triggered += 1
       }
 

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { memoryHit } from '@/lib/providers/cache/memory'
+import { memoryHit, memoryReset } from '@/lib/providers/cache/memory'
 import type { RateLimitResult } from '@/lib/providers/cache/types'
 
 /**
@@ -56,6 +56,21 @@ export async function rateLimit(key: string, opts: { max: number; windowMs: numb
   } catch (error) {
     warn((error as Error).message)
     return memoryHit(key, opts)
+  }
+}
+
+/**
+ * Forget the window of `key` in this process and in the shared store (an
+ * instance admin clearing a sign-in throttle). In-process windows of OTHER
+ * server instances (memory store) can't be reached: they expire on their own.
+ */
+export async function resetRateLimit(key: string): Promise<void> {
+  memoryReset(key)
+  try {
+    const store = await (await import('@/lib/providers/cache')).getCacheStore()
+    if (store.shared) await store.delete(sharedKey(key))
+  } catch (error) {
+    warn(`could not reset ${key.slice(0, 40)}: ${(error as Error).message}`)
   }
 }
 

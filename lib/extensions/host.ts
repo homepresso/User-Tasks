@@ -64,9 +64,27 @@ export interface HostOptions {
   permissions?: ReadonlySet<string> | readonly string[] | null
 }
 
+/** Instance setting key of an extension's instance setting (`ext.<id>.<key>`). */
+export function instanceSettingKey(extensionId: string, key: string): string {
+  if (!/^[a-z][a-z0-9_.-]{0,80}$/.test(key)) throw new ExtensionError('invalid_key', `Invalid instance setting key "${key}"`, 400)
+  return `ext.${extensionId}.${key}`
+}
+
 export function createExtensionContext(options: HostOptions): ExtensionContext {
   const { extensionId, tenantId } = options
   const actorId = options.actorId ?? null
+  // Instance contexts (no workspace, no person: instance jobs, provider hooks,
+  // the processor) are trusted; a person must be an instance administrator.
+  let adminCheck: Promise<boolean> | null = null
+  const isInstanceAdmin = () => {
+    if (!tenantId && !actorId) return Promise.resolve(true)
+    adminCheck ??= (async () => {
+      if (!actorId) return false
+      const { isInstanceAdminSession } = await import('./ui-server')
+      return isInstanceAdminSession()
+    })()
+    return adminCheck
+  }
   const db = (options.db ?? getServiceDb()) as any
   const log = logger(extensionId, tenantId)
   const held = options.permissions == null ? null : options.permissions instanceof Set ? options.permissions as ReadonlySet<string> : new Set(options.permissions as readonly string[])
@@ -119,6 +137,24 @@ export function createExtensionContext(options: HostOptions): ExtensionContext {
       return `${url.pathname}${url.search}${url.hash}`
     },
     db,
+    instance: {
+      isAdmin: isInstanceAdmin,
+      async db() {
+        if (!(await isInstanceAdmin())) throw new ExtensionError('forbidden', 'Only instance administrators can do this', 403)
+        return getServiceDb()
+      },
+      settings: {
+        async get(key) {
+          const { getInstanceSetting } = await import('@/lib/config/instance-settings')
+          return getInstanceSetting(instanceSettingKey(extensionId, key))
+        },
+        async set(key, value) {
+          if (!(await isInstanceAdmin())) throw new ExtensionError('forbidden', 'Only instance administrators can change this', 403)
+          const { setInstanceSetting } = await import('@/lib/config/instance-settings')
+          await setInstanceSetting(instanceSettingKey(extensionId, key), value, { updatedBy: actorId })
+        },
+      },
+    },
     config: {
       async get() {
         if (!tenantId) return {}

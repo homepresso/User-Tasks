@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "f5408c7d-52ed-58fa-b2c5-aed42d9601a8",
+  "asset": {
+    "id": "f5408c7d-52ed-58fa-b2c5-aed42d9601a8",
+    "name": "Survey invitation",
+    "description": "Sent to everyone in a survey's audience when it opens.",
+    "subject": "Your voice matters: {{survey_name}} is open until {{closes_on}}",
+    "is_default": false,
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#2a211c\">\n  <h2 style=\"margin:0 0 12px;color:#9a3412\">Tell us how it is going</h2>\n  <p>Hi {{item.name}},</p>\n  <p>The <strong>{{survey_name}}</strong> is open until <strong>{{closes_on}}</strong>. It takes about five minutes.</p>\n  <p>Results are only ever shown for groups of {{min_group}} people or more, and your answers are sealed until the survey closes.</p>\n  <p><a href=\"{{survey_link}}\">Answer the survey</a></p>\n  <p style=\"color:#7c6f64;font-size:13px\">People &amp; Culture · Fernhill Labs</p>\n</div>",
+    "text_body": "Tell us how it is going\n\nHi {{item.name}},\n\nThe {{survey_name}} is open until {{closes_on}}. It takes about five minutes.\n\nResults are only ever shown for groups of {{min_group}} people or more, and your answers are sealed until the survey closes.\n\nAnswer the survey"
+  }
+}

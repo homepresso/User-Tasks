@@ -107,7 +107,7 @@ export async function startTrial(input: TrialStartInput, who: { actorId: string 
 }
 
 export async function defaultTrialClientDeps(): Promise<TrialClientDeps> {
-  const [{ licensingDeps }, { installLicence }, { getExtensionManifest }, { editionForExtension }, { TRIAL_SKUS }] = await Promise.all([
+  const [{ licensingDeps }, { installLicence }, { getExtensionManifest }, { skuForExtension }, { TRIAL_SKUS }] = await Promise.all([
     import('./service'), import('./admin'), import('@/lib/extensions/registry'), import('@/lib/editions/catalog'), import('./trial-policy'),
   ])
   return {
@@ -115,10 +115,10 @@ export async function defaultTrialClientDeps(): Promise<TrialClientDeps> {
     skuOf: (id) => {
       const m = getExtensionManifest(id)
       if (m?.licence.sku) return { sku: m.licence.sku, trial: Boolean(m.licence.trial) }
-      // Not in this build: an edition's extension can still be trialled here
-      // (the licence is installed now; `usertasks upgrade --edition …` then uses it).
-      const edition = editionForExtension(id)
-      return edition && TRIAL_SKUS[edition.sku] ? { sku: edition.sku, trial: true } : null
+      // Not in this build: an Enterprise extension can still be trialled here
+      // (the licence is installed now; `usertasks upgrade --edition enterprise` then uses it).
+      const sku = skuForExtension(id)
+      return sku && TRIAL_SKUS[sku] ? { sku, trial: true } : null
     },
     fetch: (...args) => fetch(...args),
     install: (text, who) => installLicence(text, who),

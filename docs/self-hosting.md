@@ -7,10 +7,17 @@ supabase.com or a self-hosted Supabase stack.
 
 This is the starting point for every install: on Supabase, with no provider
 settings. Supabase is an excellent platform and our recommended way to run
-UserTasks. If you'd like to use other services, each infrastructure area
-(database, auth, storage, realtime, scheduler, email, secrets, KMS, cache)
-can move to AWS, Azure, Google Cloud or your own servers with
-`usertasks-admin switch` whenever you're ready, one area at a time.
+UserTasks. The other free standard stack is the bundled one: PostgreSQL,
+sign-in, files, live updates and the worker, all installed with UserTasks
+(the one-line installer's default).
+
+If you'd like to use other services, each infrastructure area (database,
+auth, storage, realtime, scheduler, email APIs, secrets, KMS, cache) can move
+to AWS, Azure, Google Cloud or your own servers, one area at a time. Use the
+[Infrastructure add-on](infrastructure-add-on.md), a paid extension,
+whenever you're ready: `usertasks-admin switch` or Settings → Infrastructure.
+The free edition runs any configuration, including installs that moved
+services with v0.2.0 / v0.3.0.
 [Choose your topology](topologies/README.md) helps you decide where each one
 should run, and [Choosing each service](services/README.md) lists the options.
 
@@ -230,7 +237,8 @@ The jobs the tick runs are defined in `lib/jobs/registry.ts` (times are UTC):
 | | github-sync-push | no enabled GitHub sync connection and no pending sync run |
 | | github-sync-deploy | no pending or running GitHub deployment |
 | | ship-events | no enabled log destination |
-| | provider-switches | no provider switch queued from Settings → Infrastructure (or interrupted), or no long-running process / `DATABASE_URL` |
+| | provider-switches | no provider switch queued from Settings → Infrastructure (or interrupted), no long-running process / `DATABASE_URL`, or no licensed [Infrastructure add-on](infrastructure-add-on.md) |
+| | report-rollups | no queued rollup rebuild, every workspace backfilled and none due its hourly reconcile ([Query settings](query-settings.md#how-the-flat-tables-stay-correct)) |
 | Every 5 min | process-sla | no active run with an SLA |
 | | process-reminders | no unsent task reminder |
 | | process-escalations | no pending task escalation |
@@ -428,6 +436,14 @@ npm start
 
 `npm start` serves on port 3000.
 
+The server loads each page's code on that page's first request rather than
+all of it at start, which keeps an idle server at roughly a third of the
+memory (about 140 MiB instead of 415 MiB for the standalone server; see
+[Deployment profiles: server memory](deployment-profiles.md#server-memory)).
+Set `NEXT_PRELOAD_ENTRIES=true` to preload everything at start instead — read
+when `npm start` starts, and at build time for the Docker image
+(`--build-arg NEXT_PRELOAD_ENTRIES=true`).
+
 ### Docker
 
 The `Dockerfile` builds Next.js standalone output (`NEXT_OUTPUT_STANDALONE=true`
@@ -607,61 +623,93 @@ machine, then `usertasks-admin fonts import`); see
 
 ### Licences for paid extensions
 
-Paid extensions (for example SharePoint) ship in their own image, an
-[edition](#editions), and need a licence. Instance admins install it in
-Settings → Licence, with `usertasks-admin licence install <file>`, or through
-`USERTASKS_LICENCE` / `USERTASKS_LICENCE_FILE`. Licensed extensions stop 24
-hours after the licence expires. See [Licences for paid extensions](licensing.md).
+Paid extensions (SharePoint Server, the Infrastructure add-on, and the
+Processing add-on once it is released) all ship in one image,
+[UserTasks Enterprise](#editions), and each needs its own licence. Instance
+admins install a licence in Settings → Licence, with
+`usertasks-admin licence install <file>`, or through `USERTASKS_LICENCE` /
+`USERTASKS_LICENCE_FILE`. Licensed extensions stop 24 hours after the licence
+expires. See [Licences for paid extensions](licensing.md).
 
 ### Editions
 
-The public image (`ghcr.io/homepresso/usertasks`) has no paid extension. A
-paid extension comes compiled into its own image, an **edition**: today the
-**SharePoint edition** (UserTasks for SharePoint Server). Its image is not
-public; usertasks.com lets you download it with a valid trial or purchased
-licence:
+**Enterprise edition: one image, licences unlock extensions.**
+
+The public image (`ghcr.io/homepresso/usertasks`) has no paid extension.
+**UserTasks Enterprise** is the same UserTasks with every paid extension
+compiled in: today SharePoint Server and the Infrastructure add-on. Each
+extension stays locked until its own licence is installed, and the check is
+made by your server, offline, every time it is used. So once an install runs
+the Enterprise image, adding an extension later is just installing its
+licence (Settings → Licence): **no reinstall, no new image**. Settings →
+Extensions shows which edition the server runs, which paid extensions the
+image contains and which of them are licensed.
+
+The Enterprise image is not public; usertasks.com lets you download it with
+**any** valid trial or purchased licence for an extension it contains:
 
 1. The installer sends the `.licence` file to
-   `POST https://usertasks.com/api/public/extensions/sharepoint/pull-token`.
+   `POST https://usertasks.com/api/public/extensions/enterprise/pull-token`.
    usertasks.com checks its signature (the same verifier as UserTasks), that
-   it grants SharePoint, and its dates (it is refused 24 hours after expiry),
-   and returns a read-only download pass for that one image, valid for 30
-   minutes, with the edition manifest signed by the UserTasks release key.
+   it grants an extension of the build (SharePoint, Infrastructure, …), and
+   its dates (it is refused 24 hours after expiry), and returns a read-only
+   download pass for that one image, valid for 30 minutes, with the edition
+   manifest signed by the UserTasks release key. The manifest lists every
+   extension in the build and its version.
 2. The installer checks that signature with the release key it already
-   trusts, pulls the image from `usertasks.com/editions/sharepoint` **by the
+   trusts, pulls the image from `usertasks.com/editions/enterprise` **by the
    signed digest**, checks the image it got against the manifest, tags it
-   `usertasks.com/editions/sharepoint:<version>` and logs out again. The pass
+   `usertasks.com/editions/enterprise:<version>` and logs out again. The pass
    is never written to the install folder.
 
-Versions pair a UserTasks release with an extension release:
-`<UserTasks version>-sp<extension version>`, for example `0.3.0-sp1.2.0`.
-Every UserTasks release gets a SharePoint edition build, usually within a few
-hours of its release.
+Versions are `<UserTasks version>-ent.<build>`, for example `0.4.0-ent.2`:
+every UserTasks release gets Enterprise builds (usually within a few hours of
+its release), and a new extension release adds a build for the current
+release. The extension versions in each build are in its `edition.json`.
 
 | | Linux / macOS | Windows (PowerShell) |
 |---|---|---|
-| New install | `curl -fsSL https://usertasks.com/install.sh \| sh -s -- --edition sharepoint --licence usertasks.licence` | `& ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -Edition sharepoint -Licence .\usertasks.licence` |
-| Switch an existing install (data kept, backup first) | `usertasks upgrade --edition sharepoint` | `usertasks upgrade -Edition sharepoint` |
+| New install | `curl -fsSL https://usertasks.com/install.sh \| sh -s -- --licence usertasks.licence` | `& ([scriptblock]::Create((irm https://usertasks.com/install.ps1))) -Licence .\usertasks.licence` |
+| Switch an existing install (data kept, backup first) | `usertasks upgrade --edition enterprise` | `usertasks upgrade -Edition enterprise` |
 | Upgrade | `usertasks upgrade` | `usertasks upgrade` |
+| Add another extension | install its licence in Settings → Licence (no command) | the same |
 | Back to the public image (data kept) | `usertasks upgrade --edition core` | `usertasks upgrade -Edition core` |
-| Offline bundle (connected machine) | `curl -fsSL https://usertasks.com/install.sh \| sh -s -- --bundle-download --edition sharepoint --licence usertasks.licence` | `install.ps1 -BundleDownload -Edition sharepoint -Licence <file>` |
+| Offline bundle (connected machine) | `curl -fsSL https://usertasks.com/install.sh \| sh -s -- --bundle-download --licence usertasks.licence` | `install.ps1 -BundleDownload -Licence <file>` |
 | Install / upgrade from the bundle (offline host) | `sh install.sh --bundle <file>` · `usertasks upgrade --bundle <file>` | `install.ps1 -Bundle <file>` · `usertasks upgrade -Bundle <file>` |
+| A prebuilt bundle in parts (over 2 GB) | `--bundle <folder with the parts>`, or `--bundle-download --from <.parts.json address>` to download them ([details](setup-air-gapped.md#bundles-in-parts)) | `-Bundle <folder>`, `-BundleDownload -From <address>` |
 
+- **A licence picks the Enterprise image.** `--licence <file>` without
+  `--edition` installs UserTasks Enterprise (`--edition enterprise` says so
+  explicitly). If there is no Enterprise build for that release yet, or
+  usertasks.com cannot be reached, the installer says so and installs the
+  public image instead; the licence is still installed, and
+  `usertasks upgrade --edition enterprise` switches later. A refused licence
+  (expired, withdrawn) stops the install. `--edition core` keeps the public
+  image even with a licence.
 - **Which licence**: `--licence <file>` when given (it is kept in the install
-  folder as `licences/sharepoint.licence` and installed in UserTasks);
+  folder as `licences/<edition>.licence` and installed in UserTasks);
   otherwise the licence installed in UserTasks (Settings → Licence, so a trial
   started in Settings → Extensions or a renewal counts), read with
-  `usertasks-admin licence export --ext sharepoint`.
+  `usertasks-admin licence export --ext <extension>`.
 - **A lapsed licence**: `usertasks upgrade` asks usertasks.com before it
   changes anything; a refusal (expired, withdrawn) stops it with the reason and
   UserTasks keeps running as it is. The running install never needs
   usertasks.com.
+- **The SharePoint edition** (`--edition sharepoint`, versions
+  `<UserTasks version>-sp<extension version>`) was the first, SharePoint-only
+  edition. It keeps working with no change: installs made as the SharePoint
+  edition upgrade as before, and usertasks.com now serves them the Enterprise
+  image under a signed SharePoint manifest for the same image, so after the
+  next `usertasks upgrade` they run UserTasks Enterprise (Settings → Extensions
+  shows the Infrastructure add-on as *in this build, not licensed*). To use the
+  new name too: `usertasks upgrade --edition enterprise` (the SharePoint
+  licence the install kept is used; data kept).
 - **Installed another way** (your own Compose file, Kubernetes): get a pass
   and pull the image yourself, then push it to your own registry (a pass lasts
   30 minutes, so cluster nodes should pull from your registry, not ours):
 
   ```bash
-  curl -fsS https://usertasks.com/api/public/extensions/sharepoint/pull-token \
+  curl -fsS https://usertasks.com/api/public/extensions/enterprise/pull-token \
     -H 'Content-Type: application/json' \
     -d "{\"licence\":\"$(base64 < usertasks.licence | tr -d '\n')\",\"version\":\"latest\"}" > pass.json
   jq -r .edition_manifest pass.json | base64 -d > edition.json
@@ -673,10 +721,10 @@ hours of its release.
   ```
 
   `release-key.pub.pem` is attached to every UserTasks release. `version` is
-  `latest`, a UserTasks version (`0.3.0`) or an edition version
-  (`0.3.0-sp1.2.0`). Run `usertasks-admin ext migrate` after
+  `latest`, a UserTasks version (`0.4.0`) or an edition version
+  (`0.4.0-ent.2`). Run `usertasks-admin ext migrate` after
   `usertasks-admin db migrate` when you upgrade.
-- **Air-gapped**: see [Air-gapped installs](setup-air-gapped.md#sharepoint-edition).
+- **Air-gapped**: see [Air-gapped installs](setup-air-gapped.md#enterprise-edition).
 
 ### Connecting to on-premises systems
 

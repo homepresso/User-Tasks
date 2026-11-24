@@ -1,0 +1,677 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "90281922-a4f8-50c7-be76-3644ec3c0685",
+  "asset": {
+    "id": "90281922-a4f8-50c7-be76-3644ec3c0685",
+    "name": "Development plans rows",
+    "rows": [
+      {
+        "id": "ee11a2e4-d224-5c57-931b-f42589a2a8c5",
+        "data": {
+          "plan_ref": "DP-001",
+          "employee_name": "Jonas Berg",
+          "employee_email": "jonas.berg@fernhill.example",
+          "department": "Marketing",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "career_goal": "Move into a team lead role within 12 months",
+          "focus_skill": "Communication",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2026-12-17",
+          "actions": 2
+        }
+      },
+      {
+        "id": "679b868b-64c8-5dde-9fd4-78e101ff94fb",
+        "data": {
+          "plan_ref": "DP-002",
+          "employee_name": "Sam Torres",
+          "employee_email": "sam.torres@fernhill.example",
+          "department": "Sales",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "career_goal": "Become a senior individual contributor",
+          "focus_skill": "Technical depth",
+          "status": "Complete",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "next_review": "2027-02-19",
+          "actions": 3
+        }
+      },
+      {
+        "id": "a220b368-bc83-55da-b0ac-805ffe740239",
+        "data": {
+          "plan_ref": "DP-003",
+          "employee_name": "Maya Patel",
+          "employee_email": "maya.patel@fernhill.example",
+          "department": "People & Operations",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "career_goal": "Build expertise in data and analytics",
+          "focus_skill": "Coaching",
+          "status": "Agreed",
+          "progress": 0,
+          "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+          "next_review": "2027-02-10",
+          "actions": 3
+        }
+      },
+      {
+        "id": "eae59b41-45e5-5994-b6a0-16d3047e0141",
+        "data": {
+          "plan_ref": "DP-004",
+          "employee_name": "Daniel Okafor",
+          "employee_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "career_goal": "Grow into customer-facing work",
+          "focus_skill": "Inclusion",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2027-02-04",
+          "actions": 2
+        }
+      },
+      {
+        "id": "56478cda-45ad-5e09-87d7-d9c1a9c8fd7e",
+        "data": {
+          "plan_ref": "DP-005",
+          "employee_name": "Hannah Owens",
+          "employee_email": "hannah.owens@fernhill.example",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "career_goal": "Prepare for a product management role",
+          "focus_skill": "Problem solving",
+          "status": "In progress",
+          "progress": 67,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 67%",
+          "next_review": "2027-02-09",
+          "actions": 3
+        }
+      },
+      {
+        "id": "3d93a013-93ad-5b40-989f-02442e0e3f11",
+        "data": {
+          "plan_ref": "DP-006",
+          "employee_name": "Diego Weber",
+          "employee_email": "diego.weber@fernhill.example",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "career_goal": "Deepen technical leadership",
+          "focus_skill": "Ownership",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2027-01-12",
+          "actions": 3
+        }
+      },
+      {
+        "id": "02192490-25a7-5430-944b-c7db596918e5",
+        "data": {
+          "plan_ref": "DP-007",
+          "employee_name": "Chloe Sato",
+          "employee_email": "chloe.sato@fernhill.example",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "career_goal": "Move into a team lead role within 12 months",
+          "focus_skill": "Planning and prioritising",
+          "status": "In progress",
+          "progress": 75,
+          "progress_bar": "▰▰▰▰▰▰▰▰▱▱ 75%",
+          "next_review": "2027-01-30",
+          "actions": 4
+        }
+      },
+      {
+        "id": "cc024dc2-4f4a-5df3-8f80-132f8a4678bc",
+        "data": {
+          "plan_ref": "DP-008",
+          "employee_name": "Lucas Schmidt",
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "career_goal": "Become a senior individual contributor",
+          "focus_skill": "Customer focus",
+          "status": "Complete",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "next_review": "2027-02-04",
+          "actions": 2
+        }
+      },
+      {
+        "id": "d493cdde-55da-59f3-a471-f9e8e6db438a",
+        "data": {
+          "plan_ref": "DP-009",
+          "employee_name": "Talia Jordan",
+          "employee_email": "talia.jordan@fernhill.example",
+          "department": "Engineering",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "career_goal": "Build expertise in data and analytics",
+          "focus_skill": "Collaboration",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2027-02-04",
+          "actions": 2
+        }
+      },
+      {
+        "id": "cb86d235-75b5-58a4-8e58-78031760659d",
+        "data": {
+          "plan_ref": "DP-010",
+          "employee_name": "Andre Laurent",
+          "employee_email": "andre.laurent@fernhill.example",
+          "department": "Engineering",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "career_goal": "Grow into customer-facing work",
+          "focus_skill": "Data literacy",
+          "status": "In progress",
+          "progress": 25,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 25%",
+          "next_review": "2027-01-14",
+          "actions": 4
+        }
+      },
+      {
+        "id": "18c3b6b8-cfae-5cbd-a6c5-3226ceff3e09",
+        "data": {
+          "plan_ref": "DP-011",
+          "employee_name": "Alex Schmidt",
+          "employee_email": "alex.schmidt@fernhill.example",
+          "department": "Engineering",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "career_goal": "Prepare for a product management role",
+          "focus_skill": "Communication",
+          "status": "Complete",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "next_review": "2027-02-03",
+          "actions": 3
+        }
+      },
+      {
+        "id": "a7904c70-e746-5e0c-b139-53e215c7bfa4",
+        "data": {
+          "plan_ref": "DP-012",
+          "employee_name": "Priya Raman",
+          "employee_email": "priya.raman@fernhill.example",
+          "department": "Product",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "career_goal": "Deepen technical leadership",
+          "focus_skill": "Technical depth",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2026-12-21",
+          "actions": 2
+        }
+      },
+      {
+        "id": "da1746a1-1923-571f-9b12-33f1baa01a15",
+        "data": {
+          "plan_ref": "DP-013",
+          "employee_name": "Liam Mensah",
+          "employee_email": "liam.mensah@fernhill.example",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "career_goal": "Move into a team lead role within 12 months",
+          "focus_skill": "Coaching",
+          "status": "Agreed",
+          "progress": 0,
+          "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+          "next_review": "2026-12-26",
+          "actions": 3
+        }
+      },
+      {
+        "id": "2a1c777b-05eb-5f86-9303-584042d57370",
+        "data": {
+          "plan_ref": "DP-014",
+          "employee_name": "Ava Novak",
+          "employee_email": "ava.novak@fernhill.example",
+          "department": "Product",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "career_goal": "Become a senior individual contributor",
+          "focus_skill": "Inclusion",
+          "status": "Agreed",
+          "progress": 0,
+          "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+          "next_review": "2026-12-11",
+          "actions": 2
+        }
+      },
+      {
+        "id": "45f8dfa7-434b-5117-b5f1-c699f0464a90",
+        "data": {
+          "plan_ref": "DP-015",
+          "employee_name": "Aiko Tanaka",
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "department": "Design",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "career_goal": "Build expertise in data and analytics",
+          "focus_skill": "Problem solving",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2026-12-14",
+          "actions": 3
+        }
+      },
+      {
+        "id": "c6c19f1c-ffcd-5087-adfb-92d9b850c01d",
+        "data": {
+          "plan_ref": "DP-016",
+          "employee_name": "Arjun Kapoor",
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "career_goal": "Grow into customer-facing work",
+          "focus_skill": "Ownership",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2026-12-22",
+          "actions": 3
+        }
+      },
+      {
+        "id": "2ef4841a-1248-5191-893d-a6abbc678f0f",
+        "data": {
+          "plan_ref": "DP-017",
+          "employee_name": "Iris Jordan",
+          "employee_email": "iris.jordan@fernhill.example",
+          "department": "Design",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "career_goal": "Prepare for a product management role",
+          "focus_skill": "Planning and prioritising",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2027-01-28",
+          "actions": 2
+        }
+      },
+      {
+        "id": "6e1e1fc9-83d6-5b35-9227-384cdb23b3d1",
+        "data": {
+          "plan_ref": "DP-018",
+          "employee_name": "Lucas Raman",
+          "employee_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "manager_name": "Sam Torres",
+          "manager_email": "sam.torres@fernhill.example",
+          "career_goal": "Deepen technical leadership",
+          "focus_skill": "Customer focus",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2026-12-21",
+          "actions": 2
+        }
+      },
+      {
+        "id": "49ac19ee-be17-5af6-b802-19d5bd303e14",
+        "data": {
+          "plan_ref": "DP-019",
+          "employee_name": "Ava Ward",
+          "employee_email": "ava.ward@fernhill.example",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "career_goal": "Move into a team lead role within 12 months",
+          "focus_skill": "Collaboration",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2027-01-31",
+          "actions": 3
+        }
+      },
+      {
+        "id": "b93b8088-6415-5ac4-9f89-6e4dc06796b6",
+        "data": {
+          "plan_ref": "DP-020",
+          "employee_name": "Ava Okafor",
+          "employee_email": "ava.okafor@fernhill.example",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "career_goal": "Become a senior individual contributor",
+          "focus_skill": "Data literacy",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2027-01-21",
+          "actions": 3
+        }
+      },
+      {
+        "id": "4a8c5aff-7e05-5d5b-8b80-518c87dac6a9",
+        "data": {
+          "plan_ref": "DP-021",
+          "employee_name": "Nora Laurent",
+          "employee_email": "nora.laurent@fernhill.example",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "career_goal": "Build expertise in data and analytics",
+          "focus_skill": "Communication",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2027-02-15",
+          "actions": 3
+        }
+      },
+      {
+        "id": "54023c0f-2fd1-5d51-976e-b475750286f2",
+        "data": {
+          "plan_ref": "DP-022",
+          "employee_name": "Malik Quinn",
+          "employee_email": "malik.quinn@fernhill.example",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "career_goal": "Grow into customer-facing work",
+          "focus_skill": "Technical depth",
+          "status": "In progress",
+          "progress": 67,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 67%",
+          "next_review": "2027-02-16",
+          "actions": 3
+        }
+      },
+      {
+        "id": "9de8bb60-7f3e-5b86-994a-9012c61955c3",
+        "data": {
+          "plan_ref": "DP-023",
+          "employee_name": "Oscar Levi",
+          "employee_email": "oscar.levi@fernhill.example",
+          "department": "Sales",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "career_goal": "Prepare for a product management role",
+          "focus_skill": "Coaching",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2026-12-06",
+          "actions": 3
+        }
+      },
+      {
+        "id": "49c000cf-df88-5852-bcef-768df4400ba0",
+        "data": {
+          "plan_ref": "DP-024",
+          "employee_name": "Grace Kim",
+          "employee_email": "grace.kim@fernhill.example",
+          "department": "Customer Success",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "career_goal": "Deepen technical leadership",
+          "focus_skill": "Inclusion",
+          "status": "Agreed",
+          "progress": 0,
+          "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+          "next_review": "2027-02-03",
+          "actions": 2
+        }
+      },
+      {
+        "id": "fb2bd322-e9e0-57d4-aac0-180bd362792f",
+        "data": {
+          "plan_ref": "DP-025",
+          "employee_name": "Victor Okafor",
+          "employee_email": "victor.okafor@fernhill.example",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "career_goal": "Move into a team lead role within 12 months",
+          "focus_skill": "Problem solving",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2026-12-26",
+          "actions": 3
+        }
+      },
+      {
+        "id": "725d1fcb-18d8-59b7-a1e5-510b17a9be18",
+        "data": {
+          "plan_ref": "DP-026",
+          "employee_name": "Lena Quinn",
+          "employee_email": "lena.quinn@fernhill.example",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "career_goal": "Become a senior individual contributor",
+          "focus_skill": "Ownership",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2027-01-31",
+          "actions": 3
+        }
+      },
+      {
+        "id": "c0797640-fb86-50ec-80b2-e2e63e1e9745",
+        "data": {
+          "plan_ref": "DP-027",
+          "employee_name": "Jonas Raman",
+          "employee_email": "jonas.raman@fernhill.example",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "career_goal": "Build expertise in data and analytics",
+          "focus_skill": "Planning and prioritising",
+          "status": "Complete",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "next_review": "2026-12-25",
+          "actions": 2
+        }
+      },
+      {
+        "id": "ae78a7e1-0233-5906-92b7-d994a37b45ee",
+        "data": {
+          "plan_ref": "DP-028",
+          "employee_name": "Clara Tanaka",
+          "employee_email": "clara.tanaka@fernhill.example",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "career_goal": "Grow into customer-facing work",
+          "focus_skill": "Customer focus",
+          "status": "Agreed",
+          "progress": 0,
+          "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+          "next_review": "2027-01-21",
+          "actions": 3
+        }
+      },
+      {
+        "id": "e8f03478-be2b-5502-9ec3-698b4f1b8cbf",
+        "data": {
+          "plan_ref": "DP-029",
+          "employee_name": "Elena Larsen",
+          "employee_email": "elena.larsen@fernhill.example",
+          "department": "Customer Success",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "career_goal": "Prepare for a product management role",
+          "focus_skill": "Collaboration",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2026-12-13",
+          "actions": 3
+        }
+      },
+      {
+        "id": "7038288f-5d82-5de8-b17a-8a20f7340caa",
+        "data": {
+          "plan_ref": "DP-030",
+          "employee_name": "Marcus Quinn",
+          "employee_email": "marcus.quinn@fernhill.example",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "career_goal": "Deepen technical leadership",
+          "focus_skill": "Data literacy",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2027-01-10",
+          "actions": 4
+        }
+      },
+      {
+        "id": "a54c14a0-1362-5c08-b98f-a96c9c9e3ff5",
+        "data": {
+          "plan_ref": "DP-031",
+          "employee_name": "Iris Kim",
+          "employee_email": "iris.kim@fernhill.example",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "career_goal": "Move into a team lead role within 12 months",
+          "focus_skill": "Communication",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2026-12-11",
+          "actions": 2
+        }
+      },
+      {
+        "id": "42b2a730-3a3a-5678-b37c-b3cce5862569",
+        "data": {
+          "plan_ref": "DP-032",
+          "employee_name": "Mei Owens",
+          "employee_email": "mei.owens@fernhill.example",
+          "department": "Marketing",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "career_goal": "Become a senior individual contributor",
+          "focus_skill": "Technical depth",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2026-12-14",
+          "actions": 2
+        }
+      },
+      {
+        "id": "a215a331-57c8-5163-96da-9f30647b8dca",
+        "data": {
+          "plan_ref": "DP-033",
+          "employee_name": "Felix Wagner",
+          "employee_email": "felix.wagner@fernhill.example",
+          "department": "Finance",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "career_goal": "Build expertise in data and analytics",
+          "focus_skill": "Coaching",
+          "status": "Agreed",
+          "progress": 0,
+          "progress_bar": "▱▱▱▱▱▱▱▱▱▱ 0%",
+          "next_review": "2026-12-11",
+          "actions": 3
+        }
+      },
+      {
+        "id": "d6a496d2-ff25-5334-9df9-7a4d5a390acb",
+        "data": {
+          "plan_ref": "DP-034",
+          "employee_name": "Owen Weber",
+          "employee_email": "owen.weber@fernhill.example",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "career_goal": "Grow into customer-facing work",
+          "focus_skill": "Inclusion",
+          "status": "In progress",
+          "progress": 33,
+          "progress_bar": "▰▰▰▱▱▱▱▱▱▱ 33%",
+          "next_review": "2027-01-22",
+          "actions": 3
+        }
+      },
+      {
+        "id": "33a9fdfd-47f3-57d3-bb2f-6c1874bebad5",
+        "data": {
+          "plan_ref": "DP-035",
+          "employee_name": "Theo Mehta",
+          "employee_email": "theo.mehta@fernhill.example",
+          "department": "Finance",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "career_goal": "Prepare for a product management role",
+          "focus_skill": "Problem solving",
+          "status": "In progress",
+          "progress": 67,
+          "progress_bar": "▰▰▰▰▰▰▰▱▱▱ 67%",
+          "next_review": "2027-02-01",
+          "actions": 3
+        }
+      },
+      {
+        "id": "94a7ce42-ba81-5f85-91b9-72515b9d9e3e",
+        "data": {
+          "plan_ref": "DP-036",
+          "employee_name": "Alex Morgan",
+          "employee_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "manager_name": "Rosa Ortiz",
+          "manager_email": "rosa.ortiz@fernhill.example",
+          "career_goal": "Deepen technical leadership",
+          "focus_skill": "Ownership",
+          "status": "Complete",
+          "progress": 100,
+          "progress_bar": "▰▰▰▰▰▰▰▰▰▰ 100%",
+          "next_review": "2026-12-31",
+          "actions": 2
+        }
+      },
+      {
+        "id": "3c6c336c-3239-5bf4-89bb-7a6cf2c2dbc8",
+        "data": {
+          "plan_ref": "DP-037",
+          "employee_name": "Oscar Patel",
+          "employee_email": "oscar.patel@fernhill.example",
+          "department": "People & Operations",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "career_goal": "Move into a team lead role within 12 months",
+          "focus_skill": "Planning and prioritising",
+          "status": "In progress",
+          "progress": 50,
+          "progress_bar": "▰▰▰▰▰▱▱▱▱▱ 50%",
+          "next_review": "2027-01-29",
+          "actions": 2
+        }
+      }
+    ]
+  }
+}

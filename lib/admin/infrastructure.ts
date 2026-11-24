@@ -9,17 +9,20 @@ import { AREA_LABELS, areaName, catalogueBadges, catalogueEntry } from './catalo
 import { runDoctor, type CheckStatus, type DoctorCheck, type DoctorReport } from './doctor'
 import { canViewInfrastructure, INSTANCE_ADMINS_SETTING, type InfrastructureViewer } from './instance-admins'
 import { rpcHousekeeping, type HousekeepingStatus } from './housekeeping'
-import { recordView, type SwitchRecordView } from './infrastructure-switching'
+import { rollupStatus, type RollupStatus } from '@/lib/services/report-rollups'
+import { recordView, type SwitchRecordView } from './infrastructure-settings'
 import { areaActionStates, backgroundRuntime, type AreaActionStates, type BackgroundRuntime, type SwitchAccess, type SwitchingGate } from './switch-runtime'
 import { hasSwitchLog, listRecords, switchRunning } from './switch/log'
 import { uiSwitchingGateFor } from './switch/gate'
 import { serviceSqlClient } from './ops/service-sql'
 import { providerFields } from '@/lib/config/provider-forms'
+import { infrastructureAddonView, type InfrastructureAddonView } from '@/lib/infrastructure/provider'
 
 /**
  * Server side of Settings → Infrastructure: the provider per area with
- * health, the switch log, housekeeping. Changing providers goes through
- * ./infrastructure-switching (the same engine as `usertasks-admin switch`).
+ * health, the switch log (read-only), housekeeping, and whether the
+ * Infrastructure add-on can change providers here (lib/infrastructure). Changing providers goes through
+ * the Infrastructure add-on (@usertasks-ext/infrastructure).
  * Instance admins only — see ./instance-admins.
  */
 
@@ -61,7 +64,12 @@ export interface InfrastructureView {
   /** System-table purge settings, table sizes and recent passes (null: see housekeepingError). */
   housekeeping: HousekeepingStatus | null
   housekeepingError: string | null
+  /** Report rollups across workspaces (null: not installed / see reportRollupsError). */
+  reportRollups: RollupStatus | null
+  reportRollupsError: string | null
   appVersion: string
+  /** The Infrastructure add-on: changing providers (missing / unlicensed: the page shows status and the upsell). */
+  addon: InfrastructureAddonView
 }
 
 /** Verified-email lookup per auth provider. */
@@ -208,8 +216,17 @@ async function housekeepingStatus(): Promise<{ status: HousekeepingStatus | null
   }
 }
 
+async function reportRollupsStatus(): Promise<{ status: RollupStatus | null; error: string | null }> {
+  if (!hasServiceDb()) return { status: null, error: noServiceDbReason() }
+  try {
+    return { status: await rollupStatus(getServiceDb()), error: null }
+  } catch (error) {
+    return { status: null, error: (error as Error).message }
+  }
+}
+
 export async function loadInfrastructureView(options: { refresh?: boolean } = {}): Promise<InfrastructureView> {
-  const [config, report, switches, housekeeping] = await Promise.all([getConfig(), health(Boolean(options.refresh)), recentSwitches(), housekeepingStatus()])
+  const [config, report, switches, housekeeping, rollups, addon] = await Promise.all([getConfig(), health(Boolean(options.refresh)), recentSwitches(), housekeepingStatus(), reportRollupsStatus(), infrastructureAddonView()])
   const { version } = (await import('@/package.json')).default as { version: string }
   return {
     areas: PROVIDER_AREAS.map((area) => {
@@ -241,6 +258,9 @@ export async function loadInfrastructureView(options: { refresh?: boolean } = {}
     },
     housekeeping: housekeeping.status,
     housekeepingError: housekeeping.error,
+    reportRollups: rollups.status,
+    reportRollupsError: rollups.error,
     appVersion: version,
+    addon,
   }
 }

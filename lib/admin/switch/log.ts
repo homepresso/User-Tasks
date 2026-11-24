@@ -374,3 +374,11 @@ export async function queuedCount(db: SqlClient): Promise<number> {
 export function stepRecord(id: string, title: string): StepRecord {
   return { id, title, status: 'pending' }
 }
+
+/** Another switch is queued or running (thrown by the add-on's queue; core's guards report its message). */
+export class SwitchBusyError extends Error {
+  constructor(message = 'Another provider switch is queued or running: wait for it to finish (or cancel it).') {
+    super(message)
+    this.name = 'SwitchBusyError'
+  }
+}

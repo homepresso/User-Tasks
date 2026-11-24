@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "a81bfe2c-896e-5d6f-87bf-24d1a1a00e23",
+  "asset": {
+    "id": "a81bfe2c-896e-5d6f-87bf-24d1a1a00e23",
+    "name": "CRM: thanks for your enquiry",
+    "description": "Sent to a new website lead straight away.",
+    "subject": "Thanks for contacting Brightwater Labs, {{form.name}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Thanks, {{form.name}}</h2>\n  <p>We received your enquiry about {{form.interest}} for {{form.company}}. {{owner}} from our {{territory}} team will be in touch within {{sla_hours}} hours.</p>\n  <p>In the meantime, reply to this email with anything you'd like us to prepare.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by Revenue CRM</p>\n</div>",
+    "text_body": "Thanks, {{form.name}}\n  We received your enquiry about {{form.interest}} for {{form.company}}. {{owner}} from our {{territory}} team will be in touch within {{sla_hours}} hours.\n  In the meantime, reply to this email with anything you'd like us to prepare.\nSent by Revenue CRM",
+    "is_default": false
+  }
+}

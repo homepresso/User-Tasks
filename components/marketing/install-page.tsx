@@ -33,7 +33,7 @@ const STEPS = [
   { title: "Checks the machine", body: "Linux or macOS (amd64 or arm64; Windows uses install.ps1), memory, disk space, and Docker with Compose 2.20 or later. No Docker? It says how to get it, and on common Linux distributions offers to install Docker Engine for you." },
   { title: "Downloads a signed release", body: "A small, versioned bundle: the Compose file, a settings template and the usertasks command. It checks the release signature and the checksum before running anything from it." },
   { title: "Pulls the published image", body: "ghcr.io/homepresso/usertasks, pinned to the exact image the release names. If it can't be downloaded, it can build the image locally instead (that needs about 10 GB of memory for Docker)." },
-  { title: "Asks which services to use", body: "Everything in containers (the default), your own PostgreSQL, a Supabase project, or your own choice for each service. Then it writes .env with fresh secrets." },
+  { title: "Asks which services to use", body: "Everything in containers (the default) or a Supabase project, free; your own PostgreSQL or your own choice for each service with an Infrastructure add-on licence. Then it writes .env with fresh secrets." },
   { title: "Starts UserTasks", body: "Applies the database migrations, starts the containers and waits until UserTasks answers." },
   { title: "Prints your setup code", body: "Open the address it prints, enter the setup code on the Create your admin account screen, and you're the owner. It opens your browser when it can." },
 ]
@@ -122,6 +122,7 @@ export function InstallPage() {
                 <div className="mt-4 min-w-0"><Snippet code={INSTALL_PS1} language="powershell" /></div>
                 <p className="mt-4 text-sm leading-6 text-(color:--mkt-text)">Docker Desktop must use the WSL 2 backend and Linux containers. With options:</p>
                 <div className="mt-3 min-w-0"><Snippet code={INSTALL_PS1_OPTIONS} language="powershell" /></div>
+                <p className="mt-4 text-sm leading-6 text-(color:--mkt-text)" data-windows-msi>Need a native Windows installer (MSI, no Docker) for Windows Server? <a href="/contact" className="font-semibold underline underline-offset-2">Contact support</a> and we&apos;ll provide one.</p>
               </article>
             </div>
             <ol className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -159,7 +160,7 @@ export function InstallPage() {
             <DocLinks links={[
               { href: "/docs/self-hosting/upgrade", label: "Upgrade to a new release" },
               { href: "/docs/self-hosting/updates-and-backups", label: "Backups" },
-              { href: "/docs/self-hosting/switching-providers", label: "Switch services later" },
+              { href: "/docs/self-hosting/infrastructure-add-on", label: "Switch services later (Infrastructure add-on)" },
               { href: "/docs/self-hosting/choose", label: "Other ways to run it" },
             ]} />
           </div>

@@ -27,7 +27,7 @@ export function EditAllBar({ changedRows, errors, conflicts, canUndo, saving, on
   const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
   const mod = mac ? '⌘' : 'Ctrl+'
   return (
-    <div role="toolbar" aria-label="Edit all rows" data-edit-all-bar
+    <div role="toolbar" aria-label="Edit all rows" data-edit-all-bar data-agent-bar=""
       className={cn('sticky top-0 z-[5] flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-primary bg-primary-wash px-3 py-1.5 text-xs text-fg shadow-sm', className)}>
       <span className="font-semibold text-primary-text">Editing all rows</span>
       <span className="num" data-edit-all-count aria-live="polite">

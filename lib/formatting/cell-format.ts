@@ -27,6 +27,7 @@
  */
 
 import { isPlainObject } from '@/lib/utils/guards'
+import { currencyDisplay } from '@/lib/format/number'
 
 export type CellFormatKind =
   | 'text' | 'number' | 'integer' | 'percent' | 'currency' | 'date' | 'datetime' | 'time' | 'relative'
@@ -425,7 +426,8 @@ function formatNumber(n: number, format: CellFormat, opts: FormatOptions): strin
     case 'currency':
       options.style = 'currency'
       options.currency = format.currency ?? 'USD'
-      options.currencyDisplay = format.currency_display === 'code' ? 'code' : 'symbol'
+      // The workspace currency reads "$" (not en-GB's "US$"); others keep their distinguishing symbol.
+      options.currencyDisplay = format.currency_display === 'code' ? 'code' : currencyDisplay(options.currency)
       if (format.decimals !== undefined) { options.minimumFractionDigits = format.decimals; options.maximumFractionDigits = format.decimals }
       break
     default:

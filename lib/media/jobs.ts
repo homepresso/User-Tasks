@@ -77,9 +77,18 @@ export async function enqueueMediaJob(input: EnqueueMediaJobInput): Promise<stri
   return eventId
 }
 
-/** Run due jobs right after the current response (or unawaited outside a request). */
+/**
+ * Run due jobs right after the current response (or unawaited outside a
+ * request). In queue mode (lib/processing/handoff) outside a processor: wake
+ * the processing workers instead — the web app runs no media work.
+ */
 export function startMediaJobs(): void {
-  const run = () => processMediaJobBatch({ batchSize: 2 }).catch((error) => console.error('[media-jobs] run failed:', (error as Error)?.message))
+  const local = () => processMediaJobBatch({ batchSize: 2 }).catch((error) => console.error('[media-jobs] run failed:', (error as Error)?.message))
+  const run = async () => {
+    const { isProcessorProcess, notifyProcessing, processingHandoff } = await import('@/lib/processing/handoff')
+    if (!isProcessorProcess() && (await processingHandoff().catch(() => 'web')) === 'queue') return notifyProcessing('media')
+    await local()
+  }
   import('next/server')
     .then(({ after }) => {
       try { after(run) } catch { void run() }

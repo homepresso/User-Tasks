@@ -1,0 +1,80 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "f15757f7-cee4-5d98-ae50-d3fbfe83783b",
+  "asset": {
+    "id": "f15757f7-cee4-5d98-ae50-d3fbfe83783b",
+    "name": "Comment themes",
+    "description": "What people wrote, grouped into themes when results are published (keyword rules; no individual comment is shown). Each theme has a sentiment, the number of mentions, a summary and a paraphrased example.",
+    "columns": [
+      {
+        "id": "5942f8dc-172d-5687-bc1c-723a9ddc3595",
+        "required": false,
+        "key": "cycle_code",
+        "name": "Cycle code",
+        "type": "text"
+      },
+      {
+        "id": "bb89b83f-fe32-59b2-98e2-c5ebbe429a21",
+        "required": false,
+        "key": "cycle_label",
+        "name": "Cycle",
+        "type": "text"
+      },
+      {
+        "id": "71bc646e-268b-5c0d-b0c3-27578e011310",
+        "required": false,
+        "key": "theme",
+        "name": "Theme",
+        "type": "text"
+      },
+      {
+        "id": "7cba184c-2ca4-5cc0-b85e-541f0d535767",
+        "required": false,
+        "key": "driver",
+        "name": "Driver",
+        "type": "text"
+      },
+      {
+        "id": "28abf4ab-158e-5a52-9ee9-7273ce606185",
+        "required": false,
+        "key": "sentiment",
+        "name": "Sentiment",
+        "type": "select",
+        "options": [
+          "Positive",
+          "Mixed",
+          "Negative"
+        ]
+      },
+      {
+        "id": "a8adecfa-c338-55c9-9af0-9d37efdc875e",
+        "required": false,
+        "key": "mentions",
+        "name": "Mentions",
+        "type": "number"
+      },
+      {
+        "id": "02531041-d245-55e5-98f2-1d8b34c1101b",
+        "required": false,
+        "key": "summary",
+        "name": "Summary",
+        "type": "text"
+      },
+      {
+        "id": "7f4a9b16-3e49-550b-b75c-eb54e3749947",
+        "required": false,
+        "key": "example",
+        "name": "Example (paraphrased)",
+        "type": "text"
+      },
+      {
+        "id": "5d34e7ba-8e77-5bb0-a07a-7a0f247a0caa",
+        "required": false,
+        "key": "source",
+        "name": "Source",
+        "type": "text"
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "1c4faa9c-092e-5d31-9a8c-3be32811e03d",
+  "asset": {
+    "id": "1c4faa9c-092e-5d31-9a8c-3be32811e03d",
+    "name": "Survey results published",
+    "description": "Sent to the People team when a survey's results are published.",
+    "subject": "Results are ready: {{survey_name}}",
+    "is_default": false,
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#2a211c\">\n  <h2 style=\"margin:0 0 12px;color:#9a3412\">Results are published</h2>\n  <p>The results of <strong>{{survey_name}}</strong> are on the Engagement page: {{responded}} of {{invited}} people answered.</p>\n  <p>Segments with fewer than {{min_group}} responses are hidden. The sealed ballots have been deleted.</p>\n  <p style=\"color:#7c6f64;font-size:13px\">People &amp; Culture · Fernhill Labs</p>\n</div>",
+    "text_body": "Results are published\n\nThe results of {{survey_name}} are on the Engagement page: {{responded}} of {{invited}} people answered.\n\nSegments with fewer than {{min_group}} responses are hidden. The sealed ballots have been deleted."
+  }
+}

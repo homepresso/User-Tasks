@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { setUiSwitching } from '@/app/actions/infrastructure'
 import type { ActionState, AreaActionStates } from '@/lib/admin/switch-runtime'
-import { CopyBlock } from './provider-switch-wizard'
+import { CopyBlock } from './copy-block'
 
 /**
  * Settings → Infrastructure: why a Change… / Settings button is disabled and

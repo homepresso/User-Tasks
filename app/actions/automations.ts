@@ -45,6 +45,7 @@ export async function createWorkflow(formData: FormData) {
     schedule: 'Schedule',
     webhook_received: 'Webhook',
     esign_event: 'E-signature Event',
+    agent_error: 'Agent Error',
   }
   const initialNode = {
     id: crypto.randomUUID(),

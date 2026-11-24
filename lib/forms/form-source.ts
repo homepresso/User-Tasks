@@ -3,6 +3,7 @@
  * `layout.source` so it travels with the form's versions and exports:
  *
  *   { kind: 'infopath', file_name, view, hash, mode, imported_at }
+ *   { kind: 'pdf', file_name, hash, part, imported_at }   (the PDF form importer)
  *
  * The InfoPath importer (lib/services/infopath-import.ts) matches a
  * re-imported .xsn to the forms it made earlier by `hash` / `file_name` +
@@ -11,24 +12,27 @@
 import { isPlainObject } from '@/lib/utils/guards'
 
 export interface FormSourceInfo {
-  kind: 'infopath'
+  kind: 'infopath' | 'pdf'
   file_name: string
   /** The InfoPath view this form was made from (absent: views combined as steps). */
   view?: string
   /** sha256 of the imported file. */
   hash: string
   mode?: 'per_view' | 'combined'
+  /** pdf: the part of a PDF split into several forms (1-based). */
+  part?: number
   imported_at?: string
 }
 
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max) : '')
 
 export function normalizeFormSource(raw: unknown): FormSourceInfo | undefined {
-  if (!isPlainObject(raw) || raw.kind !== 'infopath') return undefined
+  if (!isPlainObject(raw) || (raw.kind !== 'infopath' && raw.kind !== 'pdf')) return undefined
   const hash = typeof raw.hash === 'string' && /^[0-9a-f]{64}$/.test(raw.hash) ? raw.hash : ''
   const file = text(raw.file_name, 200)
   if (!hash || !file) return undefined
-  const out: FormSourceInfo = { kind: 'infopath', file_name: file, hash }
+  const out: FormSourceInfo = { kind: raw.kind, file_name: file, hash }
+  if (raw.kind === 'pdf' && Number.isInteger(raw.part) && (raw.part as number) > 0 && (raw.part as number) < 100) out.part = raw.part as number
   const view = text(raw.view, 200)
   if (view) out.view = view
   if (raw.mode === 'per_view' || raw.mode === 'combined') out.mode = raw.mode

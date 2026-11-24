@@ -1,0 +1,209 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "1382c5aa-50a0-53c9-948f-0e1fbe441a4f",
+  "asset": {
+    "id": "1382c5aa-50a0-53c9-948f-0e1fbe441a4f",
+    "name": "CapEx cost centres rows",
+    "rows": [
+      {
+        "id": "d726f8cc-20c7-52f4-b8c4-33bf5fcead82",
+        "data": {
+          "cost_centre": "CC-1100 Moulding lines",
+          "code": "CC-1100",
+          "name": "Moulding lines",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "department_head": "Marcus Hale"
+        }
+      },
+      {
+        "id": "d0e1aefe-79c1-5bcf-a305-f6a629eefecd",
+        "data": {
+          "cost_centre": "CC-1110 Assembly",
+          "code": "CC-1110",
+          "name": "Assembly",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "department_head": "Marcus Hale"
+        }
+      },
+      {
+        "id": "c1a2f42e-c87e-5c43-bfcb-04c02390feae",
+        "data": {
+          "cost_centre": "CC-1120 Quality lab",
+          "code": "CC-1120",
+          "name": "Quality lab",
+          "bu_code": "PRD",
+          "business_unit": "Production",
+          "department_head": "Marcus Hale"
+        }
+      },
+      {
+        "id": "af125f2d-82f2-50f6-9a41-fe401a4d2933",
+        "data": {
+          "cost_centre": "CC-2100 Central warehouse",
+          "code": "CC-2100",
+          "name": "Central warehouse",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "department_head": "Priya Raman"
+        }
+      },
+      {
+        "id": "98fba003-4969-578b-9ebc-3e067dfe47b0",
+        "data": {
+          "cost_centre": "CC-2110 Fleet",
+          "code": "CC-2110",
+          "name": "Fleet",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "department_head": "Priya Raman"
+        }
+      },
+      {
+        "id": "80cce6c7-d502-542a-88eb-55aca9bb1da6",
+        "data": {
+          "cost_centre": "CC-2120 Inbound and yard",
+          "code": "CC-2120",
+          "name": "Inbound and yard",
+          "bu_code": "LOG",
+          "business_unit": "Logistics",
+          "department_head": "Priya Raman"
+        }
+      },
+      {
+        "id": "9306c419-85a6-527b-a19b-b8b36f3308c7",
+        "data": {
+          "cost_centre": "CC-3100 Product engineering",
+          "code": "CC-3100",
+          "name": "Product engineering",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "department_head": "Daniel Okafor"
+        }
+      },
+      {
+        "id": "51edd96c-bd39-5fe5-a842-fcf5fae8b671",
+        "data": {
+          "cost_centre": "CC-3110 Materials R&D",
+          "code": "CC-3110",
+          "name": "Materials R&D",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "department_head": "Daniel Okafor"
+        }
+      },
+      {
+        "id": "c6d5f2c4-fde2-59d3-83b0-ba5762cf5b4b",
+        "data": {
+          "cost_centre": "CC-3120 Test centre",
+          "code": "CC-3120",
+          "name": "Test centre",
+          "bu_code": "ENG",
+          "business_unit": "Engineering & R&D",
+          "department_head": "Daniel Okafor"
+        }
+      },
+      {
+        "id": "b2bbb0df-d42a-59eb-9ec9-f8c89df7e3c8",
+        "data": {
+          "cost_centre": "CC-4100 Infrastructure",
+          "code": "CC-4100",
+          "name": "Infrastructure",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "department_head": "Grace Kim"
+        }
+      },
+      {
+        "id": "6aee8d81-3b28-50d8-b19b-c129a0768e11",
+        "data": {
+          "cost_centre": "CC-4110 Business applications",
+          "code": "CC-4110",
+          "name": "Business applications",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "department_head": "Grace Kim"
+        }
+      },
+      {
+        "id": "74749a02-e3f1-5d12-86df-4be8fa8fa33c",
+        "data": {
+          "cost_centre": "CC-4120 Workplace technology",
+          "code": "CC-4120",
+          "name": "Workplace technology",
+          "bu_code": "ITS",
+          "business_unit": "IT",
+          "department_head": "Grace Kim"
+        }
+      },
+      {
+        "id": "bcfa8d20-92b7-5a8b-8563-0c36187b8e88",
+        "data": {
+          "cost_centre": "CC-5100 Site services",
+          "code": "CC-5100",
+          "name": "Site services",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "department_head": "Sam Torres"
+        }
+      },
+      {
+        "id": "fc042ee5-ef68-5cb2-880f-acceb15bf806",
+        "data": {
+          "cost_centre": "CC-5110 Health and safety",
+          "code": "CC-5110",
+          "name": "Health and safety",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "department_head": "Sam Torres"
+        }
+      },
+      {
+        "id": "080c6d84-94a2-5978-907f-258a882f08a9",
+        "data": {
+          "cost_centre": "CC-5120 Energy",
+          "code": "CC-5120",
+          "name": "Energy",
+          "bu_code": "FAC",
+          "business_unit": "Facilities & EHS",
+          "department_head": "Sam Torres"
+        }
+      },
+      {
+        "id": "b69b8421-c7cb-549a-ac6e-92a8bbc1e5f6",
+        "data": {
+          "cost_centre": "CC-6100 Sales operations",
+          "code": "CC-6100",
+          "name": "Sales operations",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "department_head": "Maya Patel"
+        }
+      },
+      {
+        "id": "3c717d87-bda0-599b-9134-5534f3b60550",
+        "data": {
+          "cost_centre": "CC-6110 Customer service",
+          "code": "CC-6110",
+          "name": "Customer service",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "department_head": "Maya Patel"
+        }
+      },
+      {
+        "id": "707809b8-d642-5369-bce9-86fbef13b3ac",
+        "data": {
+          "cost_centre": "CC-6120 Marketing",
+          "code": "CC-6120",
+          "name": "Marketing",
+          "bu_code": "COM",
+          "business_unit": "Commercial",
+          "department_head": "Maya Patel"
+        }
+      }
+    ]
+  }
+}

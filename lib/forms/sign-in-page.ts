@@ -1,9 +1,19 @@
 /**
- * The form sign-in page: what a visitor sees when a form link
- * (/f/<id>, /form/<system name>) needs them to sign in. One design per
- * workspace, stored in tenants.settings.forms.sign_in (no table of its own;
- * Settings → Forms → Form sign-in page, REST /workspace/form-sign-in-page,
- * MCP form_sign_in_page_get / _update, `usertasks form-sign-in-page`).
+ * The workspace sign-in page for forms and apps: what a visitor sees when a
+ * form link (/f/<id>, /form/<system name>) or an app (/apps/<slug>,
+ * /app/<slug>, /embed/apps/<slug>) needs them to sign in. One design per
+ * workspace, stored in tenants.settings.sign_in (no table of its own; older
+ * workspaces still have it at tenants.settings.forms.sign_in, read as a
+ * fallback until the next save). Settings → Sign-in page (also under
+ * Settings → Forms), REST /workspace/sign-in-page (alias
+ * /workspace/form-sign-in-page), MCP sign_in_page_get / _update (aliases
+ * form_sign_in_page_*), `usertasks sign-in-page`.
+ *
+ * Routes: /sign-in (apps) and /form-login (form links, kept for existing
+ * links and embeds) render the same page. use_for_forms / use_for_apps turn
+ * it off for either, and an app may override the workspace choice
+ * (apps.settings.sign_in_page): when off, the visitor gets the standard
+ * UserTasks /login instead.
  *
  * Pure and isomorphic: the settings card, the page, the service and the API
  * schema all use it. Every field is safe to show to a visitor who isn't
@@ -64,7 +74,16 @@ export interface FormSignInSettings {
    * and the accent colour. The design, logo and wording still apply.
    */
   use_workspace_theme: boolean
+  /** Form links (/f/…, /form/…) use this page (default on); off: the standard UserTasks sign-in. */
+  use_for_forms: boolean
+  /** Apps (/apps/…, /app/…, /embed/apps/…) use this page (default on); off: the standard sign-in. An app may override it. */
+  use_for_apps: boolean
+  /** On an app's sign-in page, use the app's own colour as the accent (when it has one; ignored with use_workspace_theme). Default off. */
+  use_app_color: boolean
 }
+
+/** The same settings under their shared name (forms and apps). */
+export type SignInPageSettings = FormSignInSettings
 
 export const DEFAULT_SIGN_IN_SETTINGS: FormSignInSettings = Object.freeze({
   design: 1,
@@ -77,6 +96,9 @@ export const DEFAULT_SIGN_IN_SETTINGS: FormSignInSettings = Object.freeze({
   support_link_url: null,
   accent_color: null,
   use_workspace_theme: false,
+  use_for_forms: true,
+  use_for_apps: true,
+  use_app_color: false,
 }) as FormSignInSettings
 
 /** The UserTasks accent (the brand ink, the default theme's primary) when the setting gives none. */
@@ -141,13 +163,30 @@ export function parseFormSignInSettings(raw: unknown): FormSignInSettings {
     support_link_url: isSupportLinkUrl(src.support_link_url) ? src.support_link_url : null,
     accent_color: typeof src.accent_color === 'string' && HEX_RE.test(src.accent_color) ? src.accent_color.toLowerCase() : null,
     use_workspace_theme: src.use_workspace_theme === true,
+    use_for_forms: src.use_for_forms !== false,
+    use_for_apps: src.use_for_apps !== false,
+    use_app_color: src.use_app_color === true,
   }
 }
 
-/** tenants.settings → the form sign-in page settings (settings.forms.sign_in). */
+/** Where the settings live in tenants.settings (the shared key). */
+export const SIGN_IN_SETTINGS_KEY = 'sign_in'
+
+/**
+ * The stored object: tenants.settings.sign_in, else the older
+ * tenants.settings.forms.sign_in (workspaces that saved the form sign-in
+ * page before it was shared with apps), else null.
+ */
+export function storedSignInSettings(settings: unknown): unknown {
+  if (!isObject(settings)) return null
+  if (isObject(settings[SIGN_IN_SETTINGS_KEY])) return settings[SIGN_IN_SETTINGS_KEY]
+  const forms = isObject(settings.forms) ? settings.forms : null
+  return forms && isObject(forms.sign_in) ? forms.sign_in : null
+}
+
+/** tenants.settings → the sign-in page settings (settings.sign_in, falling back to settings.forms.sign_in). */
 export function signInSettingsFromTenantSettings(settings: unknown): FormSignInSettings {
-  const forms = isObject(settings) && isObject(settings.forms) ? settings.forms : {}
-  return parseFormSignInSettings((forms as Record<string, unknown>).sign_in)
+  return parseFormSignInSettings(storedSignInSettings(settings))
 }
 
 const KEYS = Object.keys(DEFAULT_SIGN_IN_SETTINGS) as Array<keyof FormSignInSettings>
@@ -183,7 +222,9 @@ export function formSignInInputProblem(input: unknown): string | null {
   if (v.accent_color !== undefined && v.accent_color !== null && v.accent_color !== '' && !(typeof v.accent_color === 'string' && HEX_RE.test(v.accent_color))) {
     return 'Accent colour must be a hex colour like #4f46e5.'
   }
-  if (v.use_workspace_theme !== undefined && typeof v.use_workspace_theme !== 'boolean') return 'use_workspace_theme must be true or false.'
+  for (const key of ['use_workspace_theme', 'use_for_forms', 'use_for_apps', 'use_app_color'] as const) {
+    if (v[key] !== undefined && typeof v[key] !== 'boolean') return `${key} must be true or false.`
+  }
   if (v.logo_url !== undefined && v.logo_url !== null && v.logo_url !== '' && (typeof v.logo_url !== 'string' || v.logo_url.length > 500)) {
     return 'logo_url must be an uploaded logo.'
   }
@@ -288,6 +329,107 @@ export function formLoginUrl(returnPath: string, options: { embed?: boolean } = 
   if (options.embed) params.set('embed', '1')
   const qs = params.toString()
   return qs ? `${FORM_LOGIN_PATH}?${qs}` : FORM_LOGIN_PATH
+}
+
+/* ── Apps ────────────────────────────────────────────────────────────── */
+
+/** The shared sign-in page (apps; /form-login is the same page for form links). */
+export const SIGN_IN_PATH = '/sign-in'
+
+/** Friendly app links: /app/<slug>[/<page>] (app/app/[slug]/[[...page]]). */
+export const FRIENDLY_APP_PREFIX = '/app/'
+
+/** An app or page slug (lib/apps/schema.ts SLUG_RE). */
+const SLUG = '[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?'
+const APP_RETURN_RE = new RegExp(`^/(apps|app|embed/apps)/(${SLUG})(?:/(${SLUG}))?(?:\\?([^#]*))?$`)
+
+export interface AppReturnPath {
+  /** apps: the app in the shell; app: the friendly link; embed: /embed/apps. */
+  route: 'apps' | 'app' | 'embed'
+  slug: string
+  page: string | null
+}
+
+/** The app a return path opens (/apps/<slug>[/<page>], /app/…, /embed/apps/…), else null. */
+export function appOfReturnPath(path: string | null | undefined): AppReturnPath | null {
+  const m = APP_RETURN_RE.exec(path ?? '')
+  if (!m) return null
+  return { route: m[1] === 'apps' ? 'apps' : m[1] === 'app' ? 'app' : 'embed', slug: m[2], page: m[3] ?? null }
+}
+
+/** Is this an app path the sign-in page may return to? */
+export function isAppReturnPath(path: string | null | undefined): boolean {
+  return appOfReturnPath(path) !== null
+}
+
+/**
+ * Where the sign-in page (/sign-in or /form-login) may send someone back to:
+ * a form link (sanitizeFormReturnPath) or an app path on this same host —
+ * /apps/<slug>[/<page>], /app/<slug>[/<page>] or /embed/apps/<slug>[/<page>],
+ * with its query. Relative paths only, so the address (and with it the
+ * workspace) never changes: never an open redirect.
+ */
+export function sanitizeSignInReturnPath(raw: unknown): string | null {
+  const form = sanitizeFormReturnPath(raw)
+  if (form) return form
+  if (typeof raw !== 'string') return null
+  const p = raw.trim()
+  if (!p || p.length > 2000) return null
+  if (/[\u0000-\u001F\u007F\\]/.test(p) || p.includes('://') || p.startsWith('//')) return null
+  return isAppReturnPath(p) ? p : null
+}
+
+/** What a return path is: a form link, an app, or neither. */
+export function returnPathKind(path: string | null | undefined): 'form' | 'app' | null {
+  if (!path) return null
+  if (sanitizeFormReturnPath(path)) return 'form'
+  return isAppReturnPath(path) ? 'app' : null
+}
+
+const ORG_RE = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/
+
+/** A workspace slug hint (?org=), lower-cased, or null when it can't be one. */
+export function cleanOrgSlug(raw: unknown): string | null {
+  const v = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+  return ORG_RE.test(v) ? v : null
+}
+
+/** /sign-in?redirect=<app or form path>[&org=<workspace>][&embed=1]. */
+export function signInPageUrl(returnPath: string, options: { embed?: boolean; org?: string | null } = {}): string {
+  const safe = sanitizeSignInReturnPath(returnPath)
+  const params = new URLSearchParams()
+  if (safe) params.set('redirect', safe)
+  const org = cleanOrgSlug(options.org)
+  if (org) params.set('org', org)
+  if (options.embed) params.set('embed', '1')
+  const qs = params.toString()
+  return qs ? `${SIGN_IN_PATH}?${qs}` : SIGN_IN_PATH
+}
+
+/** An app's own sign-in choice (apps.settings.sign_in_page): the workspace page, the standard sign-in, or null (follow use_for_apps). */
+export type AppSignInChoice = 'workspace' | 'standard' | null
+
+export function parseAppSignInChoice(raw: unknown): AppSignInChoice {
+  return raw === 'workspace' || raw === 'standard' ? raw : null
+}
+
+/**
+ * Does this visit use the workspace sign-in page? Form links follow
+ * use_for_forms; apps follow their own choice, else use_for_apps. Anything
+ * else (no return path) always does.
+ */
+export function usesWorkspaceSignIn(settings: Pick<FormSignInSettings, 'use_for_forms' | 'use_for_apps'>, kind: 'form' | 'app' | null, appChoice: AppSignInChoice = null): boolean {
+  if (kind === 'form') return settings.use_for_forms
+  if (kind === 'app') return appChoice === 'workspace' ? true : appChoice === 'standard' ? false : settings.use_for_apps
+  return true
+}
+
+/** The default welcome message, worded for an app (a saved default still reads "This form…"). */
+export const APP_DEFAULT_SUBHEADING = 'This app is for members of the workspace. Sign in to open it.'
+
+/** The settings as an app's sign-in page shows them: the untouched default welcome message says "app". */
+export function settingsForApp(settings: FormSignInSettings): FormSignInSettings {
+  return settings.subheading === DEFAULT_SIGN_IN_SETTINGS.subheading ? { ...settings, subheading: APP_DEFAULT_SUBHEADING } : settings
 }
 
 /** The form id of a /f/<uuid> return path (to find its workspace), else null. */

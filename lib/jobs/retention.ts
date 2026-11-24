@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/cron-auth'
-import { executeWorkflow } from "@/lib/workflow-engine"
+import { startRun } from "@/lib/processing/dispatch"
 import {
   createRetentionExecutionEvent,
   ensureRetentionReviewEvent,
@@ -17,6 +17,11 @@ import { purgeTaskAttachmentsForForm } from "@/lib/services/task-attachments"
 
 /** Retention reviews / executions start with no user (workflow_started_by = the owner). */
 const RETENTION_START = { initiator: { userId: null, via: "event" as const } }
+
+/** A retention-triggered run: here, or queued for the processing workers (not waited for). */
+function startRetentionRun(workflowId: string, tenantId: string, variables: Record<string, unknown>) {
+  return startRun({ workflowId, tenantId, variables, ...RETENTION_START, wait: false })
+}
 
 /**
  * Daily retention pass: opens review events (admin tasks + notifications +
@@ -100,7 +105,7 @@ export async function processRetentionPolicies(options: { supabase?: SupabaseCli
         .eq('is_active', true)
 
       for (const workflow of workflows ?? []) {
-        await executeWorkflow(workflow.id, undefined, false, {
+        await startRetentionRun(workflow.id, review.tenant_id, {
           retention_review_event_id: event.id,
           retention_policy_id: review.retention_policy_id,
           retention_policy_name: review.retention_policy_name,
@@ -109,7 +114,7 @@ export async function processRetentionPolicies(options: { supabase?: SupabaseCli
           retention_target_type: review.target_type,
           retention_target_id: review.target_id,
           retention_asset_name: review.asset_name,
-        }, undefined, undefined, undefined, RETENTION_START)
+        })
         triggeredWorkflows += 1
       }
 
@@ -135,7 +140,7 @@ export async function processRetentionPolicies(options: { supabase?: SupabaseCli
           .eq('is_active', true)
 
         for (const workflow of workflows ?? []) {
-          await executeWorkflow(workflow.id, undefined, false, {
+          await startRetentionRun(workflow.id, execution.tenant_id, {
             retention_execution_event_id: existingExecutionEvent.id,
             retention_policy_id: execution.retention_policy_id,
             retention_policy_name: execution.retention_policy_name,
@@ -145,7 +150,7 @@ export async function processRetentionPolicies(options: { supabase?: SupabaseCli
             retention_target_type: execution.target_type,
             retention_target_id: execution.target_id,
             retention_asset_name: execution.asset_name,
-          }, undefined, undefined, undefined, RETENTION_START)
+          })
           triggeredWorkflows += 1
         }
 
@@ -178,7 +183,7 @@ export async function processRetentionPolicies(options: { supabase?: SupabaseCli
       .eq('is_active', true)
 
     for (const workflow of workflows ?? []) {
-      await executeWorkflow(workflow.id, undefined, false, {
+      await startRetentionRun(workflow.id, execution.tenant_id, {
         retention_execution_event_id: event.id,
         retention_policy_id: execution.retention_policy_id,
         retention_policy_name: execution.retention_policy_name,
@@ -188,7 +193,7 @@ export async function processRetentionPolicies(options: { supabase?: SupabaseCli
         retention_target_type: execution.target_type,
         retention_target_id: execution.target_id,
         retention_asset_name: execution.asset_name,
-      }, undefined, undefined, undefined, RETENTION_START)
+      })
       triggeredWorkflows += 1
     }
 
@@ -246,7 +251,7 @@ export async function processFormSubmissionPurges(supabase: SupabaseClient, due:
       .from('workflows').select('id, is_active')
       .eq('tenant_id', purge.tenant_id).eq('trigger_type', 'retention_policy_executed').eq('is_active', true)
     for (const workflow of workflows ?? []) {
-      await executeWorkflow(workflow.id, undefined, false, {
+      await startRetentionRun(workflow.id, purge.tenant_id, {
         retention_execution_event_id: event.id,
         retention_policy_id: purge.retention_policy_id,
         retention_policy_name: purge.retention_policy_name,
@@ -257,7 +262,7 @@ export async function processFormSubmissionPurges(supabase: SupabaseClient, due:
         retention_target_id: purge.form_id,
         retention_asset_name: purge.form_name,
         retention_purged_count: result.submissions,
-      }, undefined, undefined, undefined, RETENTION_START)
+      })
       totals.triggeredWorkflows += 1
     }
     await (supabase as any).from('retention_execution_events')

@@ -20,10 +20,10 @@ import {
   Calculator, CaseSensitive, Type, Calendar, CalendarPlus, Regex,
   Hash, ListTree, Filter, ArrowUpDown, Fingerprint, Merge, CircleStop, Inbox,
   MessageSquareDashed, Radio, CornerDownRight, GitFork, Users, Braces, Brackets, Search, Tag,
-  FileSpreadsheet, Sheet, XCircle, AlertTriangle, Presentation, Scale, Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore, Briefcase, FilePen, Milestone, Gauge,
+  FileSpreadsheet, Sheet, XCircle, AlertTriangle, Presentation, Scale, Puzzle, Bot, ServerCog, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore, Briefcase, FilePen, Milestone, Gauge,
   Loader2, CircleSlash, Check, FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
   Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard,
-  Signature, FileSignature, Hourglass, FileCheck,
+  Signature, FileSignature, Hourglass, FileCheck, BotOff,
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
 
@@ -46,12 +46,12 @@ export const NODE_ICON_MAP: Record<string, any> = {
   FileUp: FileText, FileDown: FileText, Download: FileText,
   MessageSquareDashed, Radio, CornerDownRight, GitFork, Users, Braces, Brackets, Search, Tag,
   FileSpreadsheet, Sheet, XCircle, AlertTriangle, Presentation, Scale,
-  Puzzle, Bot, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
+  Puzzle, Bot, ServerCog, UserPlus, UserMinus, MessageSquare, Archive, ArchiveRestore,
   Gauge,
   Briefcase, FilePen, Milestone, Link: Link2,
   FileSearch, GitCompare, FileOutput, FileStack, ScanText, EyeOff, FileScan,
   Captions, ScanEye, Film, ScanFace, VideoOff, ImagePlus, AudioLines, Clapperboard,
-  Signature, FileSignature, Hourglass, FileCheck,
+  Signature, FileSignature, Hourglass, FileCheck, BotOff,
 }
 
 /** Everything a card shows, derived from the node alone — identical for the designer and every viewer. */

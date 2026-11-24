@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/lib/cron-auth'
 import { AgentRunError, loadAgentForRun } from '@/lib/agents/prepare'
-import { resumeLinkedWorkflow, runAgent, type RunAgentOutcome } from '@/lib/agents/run'
+import { reportAgentNotConfigured, resumeLinkedWorkflow, runAgent, type RunAgentOutcome } from '@/lib/agents/run'
+import { readWorkflowDataSummary, type WorkflowDataSummary } from '@/lib/agents/workflow-data'
 import type { AgentPausedContext, AgentWorkflowLink } from '@/lib/agents/approval'
 
 // Jobs stuck in 'processing' longer than this are presumed dead (worker killed
@@ -138,7 +139,11 @@ async function processJob(supabase: SupabaseClient, job: any): Promise<Record<st
     })
   } else {
     link = (opts.workflow as AgentWorkflowLink | undefined) ?? null
-    const loaded = await loadAgentForRun(supabase, job.tenant_id, job.agent_id, { version: opts.agent_version ?? null })
+    const loaded = await loadAgentForRun(supabase, job.tenant_id, job.agent_id, { version: opts.agent_version ?? null }).catch(async (error) => {
+      // No provider connection / key: a final failure for the Agent error trigger too.
+      await reportAgentNotConfigured(supabase, { tenantId: job.tenant_id, agentId: job.agent_id, workflow: link, userId: opts.initiated_by ?? job.created_by ?? null }, error)
+      throw error
+    })
     let attachments
     if (opts.files) {
       const { loadRunAgentFiles } = await import('@/lib/agents/files')
@@ -153,6 +158,7 @@ async function processJob(supabase: SupabaseClient, job: any): Promise<Record<st
       overrides: { maxIterations: opts.max_iterations, maxDurationMs: opts.timeout_ms },
       attachments, queueJobId: job.id,
       initiatedBy: opts.initiated_by ?? job.created_by ?? null,
+      workflowData: queuedWorkflowData(opts.workflow_data),
     })
   }
 
@@ -180,6 +186,14 @@ async function processJob(supabase: SupabaseClient, job: any): Promise<Record<st
     p_run_id: runId,
   })
   return { job_id: job.id, status: 'completed', run_id: runId, duration_ms: result.duration_ms }
+}
+
+/** A queued Run Agent step's "Use this workflow's data" block (options.workflow_data, written by the engine). */
+function queuedWorkflowData(value: unknown): { text: string; summary: WorkflowDataSummary } | null {
+  if (!value || typeof value !== 'object') return null
+  const { text, summary } = value as Record<string, unknown>
+  const parsed = readWorkflowDataSummary(summary)
+  return typeof text === 'string' && text.trim() && parsed ? { text, summary: parsed } : null
 }
 
 async function agentName(supabase: SupabaseClient, job: any): Promise<string | null> {

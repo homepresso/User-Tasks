@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, CalendarClock, Check, FileCheck2, Fingerprint, FormInput, KeyRound, Lock, Radio, Terminal, Webhook } from "lucide-react"
+import { ArrowRight, CalendarClock, Check, FileCheck2, Fingerprint, FormInput, KeyRound, LayoutGrid, Lock, Radio, Terminal, Webhook } from "lucide-react"
 import { Snippet } from "@/components/marketing/marketing-ui"
 import { UseCaseShell } from "@/components/marketing/use-case-page"
 import { publicBaseUrl } from "@/lib/deployment"
@@ -97,6 +97,9 @@ curl -X POST "$USERTASKS_URL/api/webhooks/inbound?hook=<slug>" \\
   return { start, cli, webhook }
 }
 
+/** Pages of an app-first package's app that show in its menu. */
+const appPageCount = (pkg: GalleryPackage) => pkg.app?.pages.filter((p) => !p.hidden).length ?? 0
+
 export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
   const baseUrl = publicBaseUrl()
   const url = `${baseUrl}/gallery/${pkg.slug}`
@@ -110,7 +113,7 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
   const counts = Object.entries(pkg.assets.reduce<Record<string, number>>((acc, a) => ({ ...acc, [a.section]: (acc[a.section] ?? 0) + 1 }), {}))
   const signed = pkg.file.signed
   const related = relatedPackages(pkg)
-  const StartIcon = pkg.trigger === "form" ? FormInput : pkg.trigger === "schedule" ? CalendarClock : pkg.trigger === "event" ? Radio : Webhook
+  const StartIcon = pkg.trigger === "form" ? FormInput : pkg.trigger === "schedule" ? CalendarClock : pkg.trigger === "event" ? Radio : pkg.trigger === "app" ? LayoutGrid : Webhook
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -152,6 +155,7 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
   const hasForms = startInputs.length > 0 || forms.length > 0
   const sections = [
     { id: "overview", label: "Overview" },
+    ...(pkg.app || pkg.screenshots?.length ? [{ id: "app", label: pkg.app ? "The app" : "Screenshots" }] : []),
     { id: "included", label: "What's included" },
     { id: "preview", label: "Preview" },
     ...(hasForms ? [{ id: "forms", label: "Forms" }] : []),
@@ -228,6 +232,34 @@ export function GalleryPackagePage({ pkg }: { pkg: GalleryPackage }) {
               ))}
             </ol>
           </DetailSection>
+
+          {(pkg.app || (pkg.screenshots?.length ?? 0) > 0) && (
+            <DetailSection id="app" eyebrow={pkg.app ? "The app" : "Screenshots"} title={pkg.app ? `${pkg.app.name}: ${appPageCount(pkg)} page${appPageCount(pkg) === 1 ? "" : "s"}, ready to share` : "What it looks like"} intro={pkg.app ? "Real screenshots of the installed app with sample data. It opens from the Apps menu once you choose who can use it." : undefined} testId="section-app">
+              {(pkg.screenshots?.length ?? 0) > 0 && (
+                <div className="grid gap-5 md:grid-cols-2" data-testid="package-screenshots">
+                  {pkg.screenshots!.map((shot) => (
+                    <figure key={shot.src} className="overflow-hidden rounded-2xl border border-(color:--mkt-ink)/[0.1] bg-(color:--mkt-white)">
+                      <a href={shot.src} target="_blank" rel="noopener noreferrer" className="block">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- static files published by the gallery build (public/gallery/screenshots) */}
+                        <img src={shot.src} alt={shot.caption} loading="lazy" className="block w-full" />
+                      </a>
+                      <figcaption className="border-t border-(color:--mkt-ink)/[0.08] px-4 py-3 text-sm leading-6 text-(color:--mkt-text)">{shot.caption}{shot.theme === "dark" && <span className="ml-2 rounded-md bg-(color:--mkt-ink)/[0.06] px-1.5 py-0.5 text-xs text-(color:--mkt-muted)">Dark mode</span>}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              )}
+              {pkg.app && (
+                <ul className="mt-6 grid gap-3 sm:grid-cols-2" aria-label={`Pages of ${pkg.app.name}`} data-testid="package-app-pages">
+                  {pkg.app.pages.filter((page) => !page.hidden).map((page) => (
+                    <li key={page.slug} className="rounded-xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-4">
+                      <p className="font-semibold">{page.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-(color:--mkt-muted)">{page.widgets.length} widget{page.widgets.length === 1 ? "" : "s"}: {[...new Set(page.widgets.map((w) => w.replace(/_/g, " ")))].join(", ")}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </DetailSection>
+          )}
 
           <DetailSection id="included" eyebrow="What's included" title={`${pkg.asset_count} assets, ready to adapt`} intro="Everything installs as ordinary workflows, tables, rules and integrations in your workspace: edit them in the designers afterwards.">
             <ul className="mb-6 flex flex-wrap gap-2" data-testid="included-counts">

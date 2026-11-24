@@ -35,6 +35,8 @@ export const SYNC_SECTION_CATALOG: SyncSectionInfo[] = [
   { section: 'log_destinations', label: 'Log export destinations (no credentials)', table: 'log_destinations', serviceRole: true },
   { section: 'form_themes', label: 'Form themes', table: 'form_themes' },
   { section: 'forms', label: 'Forms', table: 'forms' },
+  // No member write grants; members read the apps they can open, so list them with the service role.
+  { section: 'apps', label: 'Apps (pages, menu; no audience)', table: 'apps', serviceRole: true },
 ]
 
 export const SECTION_LABELS: Record<string, string> = Object.fromEntries(

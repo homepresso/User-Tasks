@@ -25,7 +25,7 @@ async function run(fn: () => Promise<unknown>) {
   }
 }
 
-const TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control'] as const
+const TYPES = ['workflow', 'workflow_activity', 'data_table', 'integration', 'connector', 'decision_table', 'email_template', 'agent', 'report', 'role', 'mcp_server', 'retention_policy', 'log_destination', 'form', 'form_theme', 'form_control', 'app'] as const
 const item = z.object({ type: z.enum(TYPES), id: z.string() })
 const page = { limit: z.number().optional().describe('Page size (1-100, default 50; 0 = no limit)'), offset: z.number().optional() }
 const values = z.record(z.string(), z.record(z.string(), z.any())).describe('{ <requirement id>: { <field key>: value } } (see packages_install_plan requirements)')
@@ -47,8 +47,8 @@ const installArgs = {
 export function registerPackageTools(server: McpToolServer, ctx: McpContext) {
   const svc = () => fromMcpContext(ctx)
 
-  server.tool('packages_list', 'List packages authored in this workspace (bundles of a process: workflows and everything they use, built into signed .utpkg files).', page,
-    async (args) => run(() => packages.listPackages(svc(), resolvePage(args))))
+  server.tool('packages_list', 'List packages authored in this workspace (bundles of a process: workflows and everything they use, built into signed .utpkg files).', { ...page, tag: z.string().optional().describe('Only packages carrying this tag') },
+    async (args) => run(() => packages.listPackages(svc(), resolvePage(args), { tag: args.tag })))
   server.tool('packages_get', 'Get a package (by id or slug) and its recent versions.', { package_id: z.string() },
     async (args) => run(() => packages.getPackage(svc(), args.package_id)))
   server.tool('packages_preview', 'Preview what a package of these root artifacts would contain: dependencies (and why each is included), data tables, and the requirements an install will ask for (credentials, environment URLs, assignees).', {
@@ -60,10 +60,12 @@ export function registerPackageTools(server: McpToolServer, ctx: McpContext) {
     name: z.string(), slug: z.string().optional(), description: z.string().optional(), readme: z.string().optional().describe('Markdown'),
     roots: z.array(item), items: z.array(item).optional(), excluded: z.array(item).optional(),
     data_modes: z.record(z.string(), z.enum(['schema', 'rows'])).optional(),
+    tags: z.array(z.string()).optional().describe('Optional tags'),
   }, async (args) => run(() => packages.createPackage(svc(), args)))
   server.tool('packages_update', 'Update a package: metadata, add / remove artifacts, data modes.', {
     package_id: z.string(), name: z.string().optional(), description: z.string().optional(), readme: z.string().optional(),
     add: z.array(item).optional(), remove: z.array(item).optional(), data_modes: z.record(z.string(), z.enum(['schema', 'rows'])).optional(),
+    tags: z.array(z.string()).optional().describe('Replacement tags ([] clears)'),
   }, async (args) => run(async () => {
     const { package_id: id, ...input } = args
     return packages.updatePackage(svc(), id, input)

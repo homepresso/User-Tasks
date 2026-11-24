@@ -4,7 +4,7 @@ import { PUBLIC_PAGES } from '@/lib/seo/public-pages'
  * Signed-in app, API, auth and form-runtime routes: never crawled by anyone.
  * Public marketing pages, the docs, the gallery and /llms.txt are open.
  */
-export const PRIVATE_PATHS = ['/api/', '/settings', '/reports', '/tasks', '/automations', '/agents', '/packages', '/data', '/integrations', '/extensibility', '/team', '/activity', '/oauth', '/invite', '/login', '/signup', '/forgot-password', '/reset-password', '/check-email', '/onboarding', '/home', '/p/', '/f/', '/form/', '/form-login', '/files/', '/attachments/', '/scim/', '/auth/', '/ws/']
+export const PRIVATE_PATHS = ['/api/', '/settings', '/reports', '/tasks', '/automations', '/agents', '/packages', '/data', '/integrations', '/extensibility', '/team', '/activity', '/oauth', '/invite', '/login', '/signup', '/forgot-password', '/reset-password', '/check-email', '/onboarding', '/home', '/p/', '/f/', '/form/', '/form-login', '/sign-in', '/app/', '/apps/', '/files/', '/attachments/', '/scim/', '/auth/', '/ws/']
 
 /**
  * AI search and assistant crawlers we want to read the public site, so that

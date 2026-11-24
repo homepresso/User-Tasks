@@ -1,0 +1,14 @@
+{
+  "format_version": 3,
+  "asset_type": "email_templates",
+  "id": "79d5f310-8b7b-5991-bae4-32164ee458e2",
+  "asset": {
+    "id": "79d5f310-8b7b-5991-bae4-32164ee458e2",
+    "name": "CapEx change request decided",
+    "description": "Sent to whoever raised a change request when it is decided.",
+    "subject": "{{cr_status}}: {{cr_ref}} for {{proj.title}}",
+    "html_body": "<div style=\"font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1B1916\">\n  <h2 style=\"margin:0 0 12px\">Your change request is decided</h2>\n  <p>Hi {{submitted_by_name}},</p>\n  <p>Change request <strong>{{cr_ref}}</strong> for {{form.project_ref}} {{proj.title}} (+${{form.additional_amount}}, {{cr_overrun}}% over) is <strong>{{cr_status}}</strong>.</p>\n  <p style=\"color:#6E6759;font-size:13px\">Sent by the CapEx planner</p>\n</div>",
+    "text_body": "Your change request is decided\nHi {{submitted_by_name}},\n  Change request {{cr_ref}} for {{form.project_ref}} {{proj.title}} (+${{form.additional_amount}}, {{cr_overrun}}% over) is {{cr_status}}.\nSent by the CapEx planner",
+    "is_default": false
+  }
+}

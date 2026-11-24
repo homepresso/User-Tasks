@@ -1,0 +1,299 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+  "asset": {
+    "id": "ec65ca9b-6755-503b-b065-d19d8718c243",
+    "name": "Survey action plans rows",
+    "rows": [
+      {
+        "id": "687c73a0-61de-51df-842e-63bf3d770d36",
+        "data": {
+          "plan_ref": "AP-001",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Engineering",
+          "driver": "Wellbeing",
+          "score_at_start": 60,
+          "focus": "Make workload predictable",
+          "actions": "Fixed on-call rota; no-meeting Fridays; quarterly workload review in team retros",
+          "owner_name": "Daniel Okafor",
+          "owner_email": "daniel.okafor@fernhill.example",
+          "status": "In progress",
+          "progress": 59,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-20"
+        }
+      },
+      {
+        "id": "fd3d01ed-6c58-562d-b1bb-972ff6dc4c2f",
+        "data": {
+          "plan_ref": "AP-002",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Engineering",
+          "driver": "Recognition",
+          "score_at_start": 67,
+          "focus": "Recognise great work weekly",
+          "actions": "Leaders post two kudos a week; shout-outs in team meetings; peer nomination for quarterly awards",
+          "owner_name": "Daniel Okafor",
+          "owner_email": "daniel.okafor@fernhill.example",
+          "status": "Done",
+          "progress": 100,
+          "due_date": "2026-12-12",
+          "last_update": "2026-11-19"
+        }
+      },
+      {
+        "id": "8b1b96a6-4010-5be4-87a0-00aa5bcb9044",
+        "data": {
+          "plan_ref": "AP-003",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Product",
+          "driver": "Wellbeing",
+          "score_at_start": 66,
+          "focus": "Make workload predictable",
+          "actions": "Fixed on-call rota; no-meeting Fridays; quarterly workload review in team retros",
+          "owner_name": "Priya Raman",
+          "owner_email": "priya.raman@fernhill.example",
+          "status": "In progress",
+          "progress": 73,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-18"
+        }
+      },
+      {
+        "id": "dc5216f4-3658-5183-b426-76d73d67a962",
+        "data": {
+          "plan_ref": "AP-004",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Product",
+          "driver": "Growth",
+          "score_at_start": 67,
+          "focus": "Clear career paths",
+          "actions": "Publish level guides for every role; quarterly growth conversations; mentoring circle sign-ups",
+          "owner_name": "Priya Raman",
+          "owner_email": "priya.raman@fernhill.example",
+          "status": "In progress",
+          "progress": 50,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-17"
+        }
+      },
+      {
+        "id": "4aa86782-03d3-521f-9de7-cdcce511ade8",
+        "data": {
+          "plan_ref": "AP-005",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Design",
+          "driver": "Growth",
+          "score_at_start": 62,
+          "focus": "Clear career paths",
+          "actions": "Publish level guides for every role; quarterly growth conversations; mentoring circle sign-ups",
+          "owner_name": "Aiko Tanaka",
+          "owner_email": "aiko.tanaka@fernhill.example",
+          "status": "In progress",
+          "progress": 57,
+          "due_date": "2026-12-12",
+          "last_update": "2026-11-16"
+        }
+      },
+      {
+        "id": "e23a6fa0-4837-5c14-bf8a-6e89bf1f6e61",
+        "data": {
+          "plan_ref": "AP-006",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Design",
+          "driver": "Leadership",
+          "score_at_start": 72,
+          "focus": "Explain decisions earlier",
+          "actions": "Monthly leadership AMA; decision log shared in the team channel; manager briefing before all-hands",
+          "owner_name": "Aiko Tanaka",
+          "owner_email": "aiko.tanaka@fernhill.example",
+          "status": "Planned",
+          "progress": 10,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-15"
+        }
+      },
+      {
+        "id": "f18e6191-2c4c-5ecf-b771-09c0cdf604c9",
+        "data": {
+          "plan_ref": "AP-007",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Sales",
+          "driver": "Growth",
+          "score_at_start": 60,
+          "focus": "Clear career paths",
+          "actions": "Publish level guides for every role; quarterly growth conversations; mentoring circle sign-ups",
+          "owner_name": "Sam Torres",
+          "owner_email": "sam.torres@fernhill.example",
+          "status": "In progress",
+          "progress": 71,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-14"
+        }
+      },
+      {
+        "id": "9b85dd44-dda3-593a-8b36-0094573396bb",
+        "data": {
+          "plan_ref": "AP-008",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Sales",
+          "driver": "Wellbeing",
+          "score_at_start": 60,
+          "focus": "Make workload predictable",
+          "actions": "Fixed on-call rota; no-meeting Fridays; quarterly workload review in team retros",
+          "owner_name": "Sam Torres",
+          "owner_email": "sam.torres@fernhill.example",
+          "status": "In progress",
+          "progress": 48,
+          "due_date": "2026-12-12",
+          "last_update": "2026-11-22"
+        }
+      },
+      {
+        "id": "a4d447c2-96bc-5119-9695-096c10f6a4ba",
+        "data": {
+          "plan_ref": "AP-009",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Customer Success",
+          "driver": "Wellbeing",
+          "score_at_start": 49,
+          "focus": "Make workload predictable",
+          "actions": "Fixed on-call rota; no-meeting Fridays; quarterly workload review in team retros",
+          "owner_name": "Grace Kim",
+          "owner_email": "grace.kim@fernhill.example",
+          "status": "In progress",
+          "progress": 55,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-21"
+        }
+      },
+      {
+        "id": "5c00844b-04cd-50c8-b0d3-acd5dd52914b",
+        "data": {
+          "plan_ref": "AP-010",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Customer Success",
+          "driver": "Recognition",
+          "score_at_start": 60,
+          "focus": "Recognise great work weekly",
+          "actions": "Leaders post two kudos a week; shout-outs in team meetings; peer nomination for quarterly awards",
+          "owner_name": "Grace Kim",
+          "owner_email": "grace.kim@fernhill.example",
+          "status": "Done",
+          "progress": 100,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-20"
+        }
+      },
+      {
+        "id": "b4d8d935-4467-5e88-95e9-6471fdb03594",
+        "data": {
+          "plan_ref": "AP-011",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Marketing",
+          "driver": "Leadership",
+          "score_at_start": 69,
+          "focus": "Explain decisions earlier",
+          "actions": "Monthly leadership AMA; decision log shared in the team channel; manager briefing before all-hands",
+          "owner_name": "Jonas Berg",
+          "owner_email": "jonas.berg@fernhill.example",
+          "status": "Planned",
+          "progress": 10,
+          "due_date": "2026-12-12",
+          "last_update": "2026-11-19"
+        }
+      },
+      {
+        "id": "bb842a3d-27d9-5ea6-be37-81035c49a252",
+        "data": {
+          "plan_ref": "AP-012",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Marketing",
+          "driver": "Wellbeing",
+          "score_at_start": 69,
+          "focus": "Make workload predictable",
+          "actions": "Fixed on-call rota; no-meeting Fridays; quarterly workload review in team retros",
+          "owner_name": "Jonas Berg",
+          "owner_email": "jonas.berg@fernhill.example",
+          "status": "In progress",
+          "progress": 46,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-18"
+        }
+      },
+      {
+        "id": "dde4e9f7-2ce7-59f5-b855-ecda91e2c7d4",
+        "data": {
+          "plan_ref": "AP-013",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Finance",
+          "driver": "Growth",
+          "score_at_start": 58,
+          "focus": "Clear career paths",
+          "actions": "Publish level guides for every role; quarterly growth conversations; mentoring circle sign-ups",
+          "owner_name": "Felix Wagner",
+          "owner_email": "felix.wagner@fernhill.example",
+          "status": "In progress",
+          "progress": 53,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-17"
+        }
+      },
+      {
+        "id": "96889874-07b1-5d24-9119-2dccbd88a2ad",
+        "data": {
+          "plan_ref": "AP-014",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "Finance",
+          "driver": "Recognition",
+          "score_at_start": 63,
+          "focus": "Recognise great work weekly",
+          "actions": "Leaders post two kudos a week; shout-outs in team meetings; peer nomination for quarterly awards",
+          "owner_name": "Felix Wagner",
+          "owner_email": "felix.wagner@fernhill.example",
+          "status": "Done",
+          "progress": 100,
+          "due_date": "2026-12-12",
+          "last_update": "2026-11-16"
+        }
+      },
+      {
+        "id": "1a5dd431-7e24-5d87-b188-f02585472191",
+        "data": {
+          "plan_ref": "AP-015",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "People & Operations",
+          "driver": "Growth",
+          "score_at_start": 65,
+          "focus": "Clear career paths",
+          "actions": "Publish level guides for every role; quarterly growth conversations; mentoring circle sign-ups",
+          "owner_name": "Alex Morgan",
+          "owner_email": "alex.morgan@fernhill.example",
+          "status": "In progress",
+          "progress": 67,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-15"
+        }
+      },
+      {
+        "id": "868096f8-9b2f-5a7d-8c13-e0bb05a50395",
+        "data": {
+          "plan_ref": "AP-016",
+          "cycle_code": "ENG-2026-Q3",
+          "department": "People & Operations",
+          "driver": "Wellbeing",
+          "score_at_start": 71,
+          "focus": "Make workload predictable",
+          "actions": "Fixed on-call rota; no-meeting Fridays; quarterly workload review in team retros",
+          "owner_name": "Alex Morgan",
+          "owner_email": "alex.morgan@fernhill.example",
+          "status": "In progress",
+          "progress": 74,
+          "due_date": "2027-01-31",
+          "last_update": "2026-11-14"
+        }
+      }
+    ]
+  }
+}

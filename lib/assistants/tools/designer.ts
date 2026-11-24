@@ -36,6 +36,7 @@ import { compactRead, COMPACT_READ_TOOLS, DETAIL_PARAM, NODE_IDS_PARAM } from '.
 import { ITEM_REFERENCE, NODE_REFERENCE_TOOL, nodeReferenceTool, referenceKindOf } from './node-reference'
 import { themeChanges, themeChangesPreview, themeCheckError, themeReferenceTool } from './theme-reference'
 import { hasAnimatedSuccessPage, withDefaultSuccessPage } from '@/lib/forms/success-defaults'
+import { APP_WRITE_TOOLS, appWriteResult, describeAppWrite } from './apps'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- MCP payloads are JSON */
 
@@ -191,6 +192,7 @@ const KIND: Record<string, { kind: string; noun: string }> = {
 }
 
 function kindOf(tool: string) {
+  if (tool.startsWith('apps_')) return { kind: 'app', noun: 'app' }
   if (tool.startsWith('data_rows')) return { kind: 'data_rows', noun: 'row' }
   if (tool.startsWith('reports')) return { kind: 'report', noun: 'report' }
   if (tool.startsWith('agents')) return { kind: 'agent', noun: 'agent' }
@@ -217,6 +219,7 @@ export function hrefFor(kind: string, id: string | null): string | null {
     case 'agent': return `/agents/${id}`
     case 'email_template': return '/automations/email-templates'
     case 'integration': return `/integrations/${id}`
+    case 'app': return `/apps/${id}`
     default: return null
   }
 }
@@ -575,6 +578,7 @@ export const TOOL_GROUPS: Record<string, { label: string; match: RegExp; areas: 
   agents: { label: 'AI agents', match: /^agents_/, areas: ['agent'] },
   integrations: { label: 'integrations and connectors (and testing a connection)', match: /^(integrations_|connectors_)/, areas: ['integration'] },
   reports: { label: 'report previews and report sources', match: /^reports_(preview|sources_list|source_get)$/, areas: ['report'] },
+  apps: { label: 'apps: build or change a whole app in one confirmed step (pages, widgets, buttons, filters, menu, rules, audience), find objects to show, access checks and grants, packaging', match: /^apps_/, areas: ['app'] },
 }
 
 export const LOAD_TOOLS = 'load_tools'
@@ -699,11 +703,19 @@ export function designerTools({ server, permissions, area = null, allTools = fal
       description: refKind ? shorten(String(def.description ?? name), TOOL_DESCRIPTION_MAX, refKind) : String(def.description ?? name),
       parameters: trimSchema(refKind && /_update(_schema)?$/.test(name) && byName.has(ITEM_REFERENCE[refKind]) ? collapseUpdateItems(schemaFor(name, def.inputSchema), ITEM_REFERENCE[refKind]) : schemaFor(name, def.inputSchema), refKind),
       mode: write ? 'write' : 'read',
-      ...(name.endsWith('_list') ? { maxResultChars: 12_000 } : COMPACT_READ_TOOLS.has(name) ? { maxResultChars: 30_000 } : {}),
+      ...(name === 'apps_spec_reference' || name === 'apps_rule_types' ? { maxResultChars: 40_000 } : name.endsWith('_list') ? { maxResultChars: 12_000 } : COMPACT_READ_TOOLS.has(name) ? { maxResultChars: 30_000 } : {}),
       label: (args) => (write
-        ? name === 'data_rows_create' ? `Adding ${Array.isArray(args.rows) ? args.rows.length : ''} rows`.replace('  ', ' ')
+        ? name === 'apps_apply_spec' ? (args.app_id ? 'Updating the app' : `Building the app${args.app?.name ? ` “${String(args.app.name).slice(0, 60)}”` : ''}`)
+          : name === 'apps_access_grant' ? 'Granting access' : name === 'apps_package' ? 'Packaging the app'
+          : name === 'apps_publish' ? 'Publishing the app' : name === 'apps_draft_discard' ? 'Discarding the draft' : name === 'apps_version_restore' ? `Restoring version ${String(args.version ?? '')}`
+          : name === 'data_rows_create' ? `Adding ${Array.isArray(args.rows) ? args.rows.length : ''} rows`.replace('  ', ' ')
           : name === 'data_rows_update' ? 'Updating rows' : name === 'data_rows_bulk_delete' ? 'Deleting rows' : name === 'data_rows_import' ? 'Importing rows'
           : `${name.endsWith('_create') ? 'Creating' : 'Updating'} the ${noun}${args.name ? ` “${String(args.name).slice(0, 60)}”` : ''}`
+        : name === 'apps_spec_reference' ? 'Reading the app builder guide'
+        : name === 'apps_search' ? `Finding ${String(args.kind ?? 'object').replace('table', 'data table')}s`
+        : name === 'apps_plan' ? 'Checking the app plan'
+        : name === 'apps_access_check' ? 'Checking who can use the app'
+        : name === 'apps_compare' ? 'Comparing app versions' : name === 'apps_versions' ? 'Reading the version history'
         : name === 'workflows_catalog' ? 'Reading the step catalog'
         : name === 'data_rows_query' ? 'Reading rows'
         : name.endsWith('_list') ? `Looking up ${noun}s`
@@ -712,6 +724,7 @@ export function designerTools({ server, permissions, area = null, allTools = fal
         : `Reading the ${noun}`),
       confirm: write ? async (args) => {
         const safe = draftOnlyArgs(name, args)
+        if (APP_WRITE_TOOLS.has(name)) return describeAppWrite(name, safe, read)
         if (name === 'form_controls_create') {
           const manifest = json(safe.manifest)
           if (!safe.module || !manifest?.tag) throw new Error('Send the control as `module` (ES module source) and `manifest` (with a tag)')
@@ -760,6 +773,7 @@ export function designerTools({ server, permissions, area = null, allTools = fal
         }
         if (payload?.error) return { result: payload, ok: false }
         if (name === 'integrations_test') return { result: payload }
+        if (APP_WRITE_TOOLS.has(name)) return { result: appWriteResult(name, payload, env) }
         if (write && name.startsWith('data_rows_')) {
           const count = name === 'data_rows_import' ? Number(payload?.counts?.inserted ?? 0) + Number(payload?.counts?.updated ?? 0) : Number(payload?.created ?? payload?.updated ?? payload?.deleted ?? 0)
           const tableId = payload?.table_id ?? (/^[0-9a-f-]{36}$/i.test(String(safe.table_id)) ? safe.table_id : null)

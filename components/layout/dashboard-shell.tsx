@@ -8,6 +8,7 @@ import { MobileNavSheet, MobileTabBar } from './mobile-nav'
 import { GlobalSearch } from './global-search'
 import { ShellDocumentTitle } from './document-title'
 import { PermissionsProvider } from '@/lib/permissions-context'
+import { TagStylesProvider } from '@/hooks/use-tag-styles'
 import { BreadcrumbsProvider } from '@/lib/breadcrumbs-context'
 import { useDashboardAuth } from '@/lib/dashboard-auth-context'
 import { canAccessPath } from '@/lib/route-permissions'
@@ -22,6 +23,7 @@ import { AssistantHost } from '@/components/assistants/assistant-host'
 import { OnboardingProvider } from '@/components/onboarding/getting-started/onboarding-provider'
 import { ExtensionActionHost } from '@/components/extensions/action-host'
 import { useEmbedEscape } from '@/lib/embed/escape'
+import { shellContentKey } from '@/lib/apps/shell-collapse'
 
 /**
  * The dashboard frame (docs/design/ui-polish-spec.md §4.4): sidebar, top bar
@@ -65,6 +67,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <LastSeenHeartbeat userId={userId} />
         <ShellDocumentTitle />
         <JobsProvider>
+          <TagStylesProvider tenantId={profile.current_tenant_id}>
           <OnboardingProvider userId={userId}>
           <div className="flex h-dvh overflow-hidden">
             <Sidebar user={profile} currentTenantId={profile.current_tenant_id} userRole={userRole} />
@@ -78,8 +81,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <Topbar user={profile} currentTenantId={profile.current_tenant_id} onMenuClick={() => setMobileNavOpen(true)} />
               {/* Licence expiry / invalid licence: instance admins only (empty for everyone else). */}
               <LicenceBanner />
+              {/* Keyed per page (a fresh mount and fade on navigation), except an app's pages share one key
+                  (lib/apps/shell-collapse.ts shellContentKey) so its header and navigation stay mounted
+                  while only the page content changes (app/(dashboard)/apps/[slug]/layout.tsx). */}
               <main
-                key={pathname}
+                key={shellContentKey(pathname)}
                 id="main"
                 className="page-transition relative flex-1 overflow-y-auto bg-bg p-4 max-md:pb-[calc(var(--ds-tabbar-h)+1.5rem+env(safe-area-inset-bottom))] md:p-6"
               >
@@ -95,6 +101,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Runs actions contributed by extensions (row menus, bulk bars). */}
           <ExtensionActionHost />
           </OnboardingProvider>
+          </TagStylesProvider>
         </JobsProvider>
       </BreadcrumbsProvider>
     </PermissionsProvider>

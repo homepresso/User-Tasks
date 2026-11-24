@@ -1,0 +1,116 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "679fd143-63a5-5e80-abfe-930246fd6967",
+  "asset": {
+    "id": "679fd143-63a5-5e80-abfe-930246fd6967",
+    "name": "Feedback request",
+    "description": "From the Request feedback form: starts a Peer feedback task for each person asked.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Feedback requested",
+        "config": {
+          "form_id": "9b7da813-440c-54a2-a341-e96a326b9eea",
+          "form_name": "Request feedback"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "Feedback on {{form.about_name}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "each",
+        "type": "loop",
+        "label": "Each person asked",
+        "config": {
+          "items": "{{form.reviewers}}",
+          "item_var": "reviewer",
+          "index_var": "reviewer_index"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "ask",
+        "type": "call_sub_workflow",
+        "label": "Ask for feedback",
+        "executionMode": "async",
+        "config": {
+          "sub_workflow_id": "c332f88e-e0dd-5ad7-9354-bb56d78c0ea4",
+          "sub_workflow_name": "Peer feedback",
+          "input_mappings": {
+            "about_name": "{{form.about_name}}",
+            "about_email": "{{form.about}}",
+            "about_department": "{{form.about_department}}",
+            "reviewer_id": "{{reviewer.id}}",
+            "requested_by": "{{submitted_by_name}}",
+            "context": "{{form.context}}",
+            "due_date": "{{form.due_date}}",
+            "review_ref": ""
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 480
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Requests sent",
+        "config": {
+          "reason": "{{=COUNT(form.reviewers)}} requests for {{form.about_name}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-title",
+        "source": "trigger",
+        "target": "title"
+      },
+      {
+        "id": "e-title-each",
+        "source": "title",
+        "target": "each"
+      },
+      {
+        "id": "e-each-ask-each_item",
+        "source": "each",
+        "target": "ask",
+        "label": "Each item"
+      },
+      {
+        "id": "e-each-end-done",
+        "source": "each",
+        "target": "end",
+        "label": "Done"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

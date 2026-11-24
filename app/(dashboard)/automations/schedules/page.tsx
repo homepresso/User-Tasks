@@ -16,6 +16,8 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { Tooltip } from '@/components/ui/tooltip'
 import { formatAbsolute, formatRelative } from '@/lib/format/date'
+import { TagFilterMenu, TagsActionButton, TagsCell, useTagFilter } from '@/components/ui/list-tags'
+import { ObjectTagsDialog } from '@/components/ui/object-tags-dialog'
 
 /**
  * Every workflow on a schedule, in one place: what it runs on, when it fires
@@ -31,6 +33,7 @@ type ScheduledWorkflow = {
   schedule_last_fired_at: string | null
   updated_at: string | null
   config: ScheduleConfig | null
+  tags?: string[]
 }
 
 export default function ScheduledWorkflowsPage() {
@@ -49,6 +52,8 @@ export default function ScheduledWorkflowsPage() {
   })
 
   const now = useMemo(() => new Date(), [])
+  const tagFilter = useTagFilter(workflows, (w: ScheduledWorkflow) => w.tags)
+  const [tagsTarget, setTagsTarget] = useState<ScheduledWorkflow | null>(null)
 
   async function toggleActive(workflow: ScheduledWorkflow) {
     setTogglingId(workflow.id)
@@ -71,7 +76,8 @@ export default function ScheduledWorkflowsPage() {
   }
   if (isLoading && !workflows) return <PageSkeleton variant="list" />
 
-  const rows = workflows ?? []
+  const all = workflows ?? []
+  const rows = all.filter(tagFilter.matches)
 
   return (
     <div>
@@ -83,7 +89,13 @@ export default function ScheduledWorkflowsPage() {
       <div className="space-y-4">
         {notice && <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />}
 
-        {rows.length === 0 ? (
+        {all.length > 0 && tagFilter.allTags.length > 0 && (
+          <div className="flex items-center gap-2">
+            <TagFilterMenu tags={tagFilter.allTags} selected={tagFilter.selected} onChange={tagFilter.setSelected} />
+            {tagFilter.active && <span className="num text-xs text-fg-muted">{rows.length} of {all.length}</span>}
+          </div>
+        )}
+        {all.length === 0 ? (
           <div className="rounded-lg border border-border bg-panel">
             <EmptyState
               icon={Clock}
@@ -99,6 +111,7 @@ export default function ScheduledWorkflowsPage() {
                 <TH col="text" className="min-w-48">Schedule</TH>
                 <TH col="date">Next run</TH>
                 <TH col="date">Last fired</TH>
+                <TH col="text" className="w-56" data-tags-column>Tags</TH>
                 <TH col="status">Status</TH>
                 <TH col="actions"><span className="sr-only">Actions</span></TH>
               </tr>
@@ -136,6 +149,7 @@ export default function ScheduledWorkflowsPage() {
                         </Tooltip>
                       ) : 'Never'}
                     </TD>
+                    <TD className="max-w-56"><TagsCell tags={workflow.tags} selected={tagFilter.selected} onToggle={tagFilter.toggle} /></TD>
                     <TD className="w-px whitespace-nowrap">
                       <StatusPill status={workflow.is_active ? 'active' : 'paused'} />
                     </TD>
@@ -153,6 +167,7 @@ export default function ScheduledWorkflowsPage() {
                           {workflow.is_active ? 'Pause' : 'Resume'}
                         </Button>
                       )}
+                      <TagsActionButton onClick={() => setTagsTarget(workflow)} />
                       <Tooltip content="Edit schedule in the builder">
                         <Button asChild size="icon-sm" variant="ghost">
                           <Link href={`/automations/${workflow.id}`} aria-label="Edit schedule in the builder">
@@ -169,6 +184,10 @@ export default function ScheduledWorkflowsPage() {
           </Table>
         )}
 
+        {tagsTarget && (
+          <ObjectTagsDialog open onOpenChange={(open) => { if (!open) setTagsTarget(null) }} type="workflows" id={tagsTarget.id} name={tagsTarget.name}
+            tags={tagsTarget.tags ?? []} invalidate={[['scheduled-workflows'], ['workflows']]} />
+        )}
         <p className="text-xs text-fg-muted">
           Schedules are checked by the platform&apos;s scheduler sweep — a workflow fires at most once per scheduled occurrence,
           and the effective precision matches how often the sweep runs.

@@ -145,3 +145,46 @@ export async function setWorkspaceEmbedding(ctx: ServiceContext, input: { origin
   })
   return getWorkspaceEmbedding(ctx)
 }
+
+/* ── App pages: sites they may embed (Embed widget) ─────────────────── */
+
+/** Sites (origins) app pages' Embed widgets may frame. Anyone who can open an app reads it through the page; settings.view reads the list. */
+export async function getAppEmbedOrigins(ctx: ServiceContext): Promise<{ origins: string[] }> {
+  requirePerm(ctx, 'settings.view')
+  return { origins: await loadAppEmbedOrigins(ctx) }
+}
+
+/** The list without a permission check (the app page service filters Embed widgets with it). */
+export async function loadAppEmbedOrigins(ctx: ServiceContext): Promise<string[]> {
+  const { tenant } = await loadTenant(ctx, 'id, settings')
+  const list = asObject(asObject(tenant.settings).apps).embed_origins
+  return Array.isArray(list) ? list.filter((o): o is string => typeof o === 'string') : []
+}
+
+/** Replace the list (settings.edit; audited). Origins: https://host[:port], optionally https://*.domain. */
+export async function setAppEmbedOrigins(ctx: ServiceContext, input: { origins?: unknown }) {
+  requirePerm(ctx, 'settings.edit')
+  const { parseFrameAncestor } = await import('@/lib/embedding')
+  const { MAX_APP_EMBED_ORIGINS } = await import('@/lib/apps/embed-origins')
+  if (!Array.isArray(input.origins) || !input.origins.every((o) => typeof o === 'string')) throw ServiceError.validation('origins must be a list such as https://maps.example.com')
+  const origins: string[] = []
+  for (const raw of input.origins as string[]) {
+    const parsed = parseFrameAncestor(raw)
+    if ('error' in parsed) throw ServiceError.validation(parsed.error)
+    if (!parsed.origin.startsWith('https://')) throw ServiceError.validation(`"${raw}": app pages embed https:// sites only`)
+    if (!origins.includes(parsed.origin)) origins.push(parsed.origin)
+  }
+  if (origins.length > MAX_APP_EMBED_ORIGINS) throw ServiceError.validation(`At most ${MAX_APP_EMBED_ORIGINS} sites`)
+  const { db, tenant } = await loadTenant(ctx, 'id, settings')
+  const settings = asObject(tenant.settings)
+  const apps = asObject(settings.apps)
+  const before = Array.isArray(apps.embed_origins) ? apps.embed_origins : []
+  const { error } = await (db as any).from('tenants').update({ settings: { ...settings, apps: { ...apps, embed_origins: origins } } }).eq('id', ctx.tenantId)
+  if (error) throw dbError(error)
+  await audit(ctx, {
+    objectType: 'workspace', objectId: ctx.tenantId, action: 'update',
+    summary: origins.length ? `App pages may embed ${origins.join(', ')}` : 'App pages may embed no other sites',
+    diff: { app_embed_origins: { before, after: origins } },
+  })
+  return { origins }
+}

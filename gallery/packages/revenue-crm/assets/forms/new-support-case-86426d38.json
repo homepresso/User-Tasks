@@ -1,0 +1,213 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "86426d38-a064-55dc-b288-3cd352930f68",
+  "asset": {
+    "id": "86426d38-a064-55dc-b288-3cd352930f68",
+    "name": "New support case",
+    "description": "Open a support case for a customer: priority sets the response SLA (Urgent 4 hours, High 8, Normal 24, Low 72).",
+    "tags": [
+      "crm",
+      "support"
+    ],
+    "theme": {
+      "source": "workspace"
+    },
+    "fields": [
+      {
+        "key": "account",
+        "label": "Account",
+        "type": "lookup",
+        "required": true,
+        "lookup": {
+          "source": "table",
+          "table_id": "82f201ea-b503-5adb-90ca-2bb00ca14522",
+          "search_columns": [
+            "name",
+            "account_id",
+            "city"
+          ],
+          "display_columns": [
+            "name",
+            "tier",
+            "region"
+          ],
+          "value_column": "name",
+          "fill": [
+            {
+              "from": "account_id",
+              "to": "account_id"
+            }
+          ],
+          "sort": {
+            "column": "name",
+            "direction": "asc"
+          }
+        },
+        "dynamic": {
+          "default": {
+            "kind": "expr",
+            "expr": "{{param.account}}"
+          }
+        }
+      },
+      {
+        "key": "account_id",
+        "label": "Account ID",
+        "type": "text",
+        "read_only": true
+      },
+      {
+        "key": "contact",
+        "label": "Contact",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "contact_email",
+        "label": "Contact email",
+        "type": "email",
+        "required": true
+      },
+      {
+        "key": "subject",
+        "label": "Subject",
+        "type": "text",
+        "required": true,
+        "placeholder": "e.g. Dashboards not loading"
+      },
+      {
+        "key": "category",
+        "label": "Category",
+        "type": "choice",
+        "options": [
+          "How-to",
+          "Bug",
+          "Integration",
+          "Billing",
+          "Access",
+          "Outage"
+        ],
+        "required": true,
+        "default": "How-to"
+      },
+      {
+        "key": "priority",
+        "label": "Priority",
+        "type": "choice",
+        "options": [
+          "Urgent",
+          "High",
+          "Normal",
+          "Low"
+        ],
+        "required": true,
+        "default": "Normal",
+        "help_text": "Response SLA: Urgent 4 hours, High 8, Normal 24, Low 72."
+      },
+      {
+        "key": "description",
+        "label": "What is happening?",
+        "type": "textarea",
+        "required": true
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "account",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "account_id",
+              "span": 1
+            },
+            {
+              "field_key": "category",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "contact",
+              "span": 1
+            },
+            {
+              "field_key": "contact_email",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "subject",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "priority",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "description",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Open the case",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Case opened",
+            "text": "Support has the case for {{account}}.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Open another"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "New support case",
+      "subtitle": "Priority sets the response SLA.",
+      "align": "left"
+    }
+  }
+}

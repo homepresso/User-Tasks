@@ -1,0 +1,229 @@
+{
+  "format_version": 3,
+  "asset_type": "forms",
+  "id": "7e72464e-c3f4-55fb-a232-76cde5cc168c",
+  "asset": {
+    "id": "7e72464e-c3f4-55fb-a232-76cde5cc168c",
+    "name": "New starter request",
+    "description": "Tell IT, Facilities and the People team about someone joining, so everything is ready on their first day.",
+    "tags": [
+      "onboarding",
+      "hr"
+    ],
+    "fields": [
+      {
+        "key": "h_who",
+        "label": "Who is joining",
+        "type": "heading"
+      },
+      {
+        "key": "starter_name",
+        "label": "Full name",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "role",
+        "label": "Job title",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "department",
+        "label": "Department",
+        "type": "choice",
+        "options": [
+          "Sales",
+          "Marketing",
+          "Engineering",
+          "Finance",
+          "Operations",
+          "People"
+        ],
+        "required": true
+      },
+      {
+        "key": "manager",
+        "label": "Manager",
+        "type": "user",
+        "required": true,
+        "help_text": "The manager plans the first week."
+      },
+      {
+        "key": "h_when",
+        "label": "When and where",
+        "type": "heading"
+      },
+      {
+        "key": "start_date",
+        "label": "Start date",
+        "type": "date",
+        "required": true
+      },
+      {
+        "key": "location",
+        "label": "Location",
+        "type": "choice",
+        "options": [
+          "Denver HQ",
+          "Austin office",
+          "Remote (US)"
+        ],
+        "required": true,
+        "display": "radio"
+      },
+      {
+        "key": "employment",
+        "label": "Employment type",
+        "type": "choice",
+        "options": [
+          "Full time",
+          "Part time",
+          "Contractor"
+        ],
+        "required": true
+      },
+      {
+        "key": "equipment",
+        "label": "Equipment",
+        "type": "multi_choice",
+        "options": [
+          "Laptop",
+          "External monitor",
+          "Mobile phone",
+          "Headset",
+          "Standing desk"
+        ],
+        "display": "checkboxes"
+      },
+      {
+        "key": "notes",
+        "label": "Anything else",
+        "type": "textarea",
+        "placeholder": "Accessibility needs, systems they need, who their buddy is…"
+      }
+    ],
+    "layout": {
+      "rows": [
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_who",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "starter_name",
+              "span": 1
+            },
+            {
+              "field_key": "role",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "department",
+              "span": 1
+            },
+            {
+              "field_key": "manager",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "h_when",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "start_date",
+              "span": 1
+            },
+            {
+              "field_key": "employment",
+              "span": 1
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "location",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "equipment",
+              "span": 2
+            }
+          ]
+        },
+        {
+          "columns": 2,
+          "cells": [
+            {
+              "field_key": "notes",
+              "span": 2
+            }
+          ]
+        }
+      ]
+    },
+    "theme": {
+      "source": "workspace"
+    },
+    "buttons": [
+      {
+        "id": "submit",
+        "label": "Send request",
+        "kind": "submit",
+        "style": "primary",
+        "actions": [
+          {
+            "type": "success_screen",
+            "title": "Request sent",
+            "text": "Thanks. IT, Facilities and the People team will get {{starter_name}} ready for {{start_date}}. Track it on the Checklist page.",
+            "screen_button": "submit_another",
+            "screen_button_label": "Add another starter"
+          }
+        ]
+      },
+      {
+        "id": "cancel",
+        "label": "Cancel",
+        "kind": "cancel",
+        "style": "secondary",
+        "hidden": true
+      }
+    ],
+    "header": {
+      "enabled": true,
+      "image": "workspace_logo",
+      "title": "New starter request",
+      "subtitle": "At least two weeks before the start date, please.",
+      "align": "left"
+    }
+  }
+}

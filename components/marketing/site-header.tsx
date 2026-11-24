@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as 
 import Link from "next/link"
 import {
   ArrowRight, ArrowUpRight, BookOpen, Bot, Briefcase, Building2, ChevronDown, Code2, Files, GitFork, GraduationCap, Handshake, Inbox, Laptop, List, Mail, Menu,
-  Package, Play, Plug, Scale, Server, ShieldCheck, Sparkles, Terminal, Users, Wallet, Waves, X,
+  Package, Play, Plug, Puzzle, Scale, Server, ShieldCheck, Sparkles, Terminal, Users, Wallet, Waves, X,
 } from "lucide-react"
 import { Wordmark } from "@/components/brand/logo"
 import { NavArt } from "@/components/marketing/nav-art"
@@ -16,7 +16,7 @@ import {
 const ICONS: Record<NavIconName, typeof Inbox> = {
   book: BookOpen, graduation: GraduationCap, package: Package, sparkles: Sparkles, server: Server, github: GitFork, terminal: Terminal, mail: Mail,
   scale: Scale, shield: ShieldCheck, users: Users, wallet: Wallet, laptop: Laptop, building: Building2, handshake: Handshake, briefcase: Briefcase,
-  inbox: Inbox, bot: Bot, plug: Plug, list: List, files: Files, waves: Waves, code: Code2,
+  inbox: Inbox, bot: Bot, plug: Plug, list: List, files: Files, waves: Waves, code: Code2, puzzle: Puzzle,
 }
 
 type MenuId = "product" | "solutions" | "resources"
@@ -176,7 +176,7 @@ export function SiteHeader({ repoUrl, tone = "paper", announce = true }: { repoU
                     </li>
                   ))}
                 </ul>
-                <ul className="mt-4 grid grid-cols-3 gap-2 border-t border-(color:--mkt-ink)/[0.07] pt-4">
+                <ul className="mt-4 grid grid-cols-2 gap-2 border-t border-(color:--mkt-ink)/[0.07] pt-4">
                   {PRODUCT_MORE.map((item) => <li key={item.href}><MenuLink item={item} onPick={() => setOpen(null)} compact /></li>)}
                 </ul>
               </div>

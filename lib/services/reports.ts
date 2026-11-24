@@ -6,9 +6,11 @@
  */
 
 import { normalizeReportConfig } from '@/lib/report-config'
-import { scopeReportRead } from '@/lib/reports-access'
+import { scopeReportRead, scopeReportWrite } from '@/lib/reports-access'
+import { manifestTags } from '@/lib/tags/normalize'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
-import { audit, dbError } from './_shared'
+import { audit, dbError, syncChange } from './_shared'
+import { isMissingTagsColumn, tagsNotApplied, validTags } from './tags-column'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped reports table (jsonb config) */
 
@@ -17,7 +19,7 @@ export const REPORT_EXPORT_VERSION = 1
 export interface ReportExport {
   version: number
   asset_type: 'report'
-  report: { name: string; description: string | null; category: string | null; is_shared: boolean; config: unknown }
+  report: { name: string; description: string | null; category: string | null; is_shared: boolean; config: unknown; tags?: string[] }
 }
 
 export async function exportReport(ctx: ServiceContext, reportId: string): Promise<ReportExport> {
@@ -35,6 +37,7 @@ export async function exportReport(ctx: ServiceContext, reportId: string): Promi
       category: data.category ?? null,
       is_shared: data.is_shared ?? false,
       config: data.config,
+      ...(Array.isArray(data.tags) && data.tags.length ? { tags: data.tags.map(String) } : {}),
     },
   }
 }
@@ -56,8 +59,31 @@ export async function importReport(ctx: ServiceContext, input: { payload: unknow
     category: typeof payload.category === 'string' ? payload.category.trim() || null : null,
     is_shared: payload.is_shared === true,
     config: normalizeReportConfig(payload.config),
+    ...(manifestTags(payload.tags).length ? { tags: manifestTags(payload.tags) } : {}),
   }).select('*').single()
   if (error || !data) throw dbError(error, 'Failed to import report')
   await audit(ctx, { objectType: 'report', objectId: data.id, action: 'create', summary: `Imported report "${data.name}"`, metadata: { kind: 'import' } })
   return data
+}
+
+/**
+ * Replace a report's tags (the "Tags…" quick action, bulk tags, the
+ * Settings → Tags tools). reports.edit_own and — as for every report edit —
+ * only the report's creator (RLS for the app; scopeReportWrite for API keys
+ * and MCP). Tags are list metadata: the config is untouched. Audited and
+ * queued for GitHub sync.
+ */
+export async function setReportTags(ctx: ServiceContext, reportId: string, tags: unknown) {
+  requirePerm(ctx, 'reports.edit_own')
+  const next = validTags(tags)
+  const { data, error } = await scopeReportWrite((ctx.supabase as any).from('reports')
+    .update({ tags: next, updated_at: new Date().toISOString() })
+    .eq('id', reportId).eq('tenant_id', ctx.tenantId), ctx.actorId)
+    .select('id, name, tags')
+  if (error) throw isMissingTagsColumn(error) ? tagsNotApplied('reports') : dbError(error, 'Failed to update the report')
+  const row = (data ?? [])[0]
+  if (!row) throw ServiceError.forbidden("Only the report's creator can change its tags")
+  await audit(ctx, { objectType: 'report', objectId: reportId, action: 'update', summary: `Tags of report "${row.name}" set to ${next.join(', ') || '(none)'}`, diff: { tags: { before: null, after: next } } })
+  await syncChange(ctx, 'report', row)
+  return row as { id: string; name: string; tags: string[] }
 }

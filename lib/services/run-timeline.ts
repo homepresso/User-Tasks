@@ -30,6 +30,7 @@ import { classifyOutcome } from '@/lib/home/activity'
 import { resolveTemplateText } from '@/lib/assistants/process'
 import { isSensitiveFieldName } from '@/lib/response-schema'
 import { isSensitiveKey } from '@/lib/secret-keys'
+import { formatWorkflowDataSize } from '@/lib/agents/workflow-data'
 import { normalizeTaskFields } from '@/lib/task-field-schema'
 import { coerceListRows, describeListValue } from '@/lib/forms/list-field'
 import { canViewTask, findTaskViewerGrant } from '@/lib/task-authz'
@@ -480,7 +481,8 @@ export function traceSystemItems(trace: readonly any[], c: TraceCtx): { items: S
         children: children?.length ? children : undefined,
       }, true)
     } else if (type === 'run_agent') {
-      push({ kind: 'system', icon: 'bot', tone: 'brand', title: `AI agent: ${name}` }, true)
+      const bytes = Number((result as Record<string, any>).workflow_data?.bytes)
+      push({ kind: 'system', icon: 'bot', tone: 'brand', title: `AI agent: ${name}`, body: Number.isFinite(bytes) && bytes > 0 ? `With this workflow's data as context (${formatWorkflowDataSize(bytes)})` : null }, true)
     } else if (CALL_NODES.has(type)) {
       push({ kind: 'system', icon: 'plug', tone: 'neutral', title: `Called ${name}` }, true)
     } else if (LABEL_NOTABLE.has(type)) {

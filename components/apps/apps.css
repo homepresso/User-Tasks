@@ -1,0 +1,166 @@
+/* App pages (components/apps): panel / drawer motion. Respects prefers-reduced-motion (motion-safe utilities and the media query below). */
+@keyframes app-slide-in-left { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes app-slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes app-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-app-panel], [data-app-panels] * { transition: none !important; animation: none !important; }
+}
+/* Docked nav bars: flush to the page content edges. */
+.app-page-shell { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+
+/* App chart palette: vivid categorical colours harmonised with light / dark themes.
+   They defer to the shared tag colour tokens when those exist (tag-colours work),
+   so app charts, tags and status chips line up. */
+:root {
+  --app-chart-1: var(--tag-blue, #2563eb);
+  --app-chart-2: var(--tag-violet, #7c3aed);
+  --app-chart-3: var(--tag-teal, #0d9488);
+  --app-chart-4: var(--tag-amber, #d97706);
+  --app-chart-5: var(--tag-rose, #e11d48);
+  --app-chart-6: var(--tag-green, #16a34a);
+  --app-chart-7: var(--tag-sky, #0284c7);
+  --app-chart-8: var(--tag-orange, #ea580c);
+  --app-status-done: var(--tag-green, #16a34a);
+  --app-status-active: var(--tag-blue, #2563eb);
+  --app-status-idle: var(--tag-slate, #64748b);
+  --app-status-waiting: var(--tag-amber, #d97706);
+  --app-status-bad: var(--tag-rose, #e11d48);
+}
+[data-theme-mode="dark"] {
+  --app-chart-1: var(--tag-blue, #60a5fa);
+  --app-chart-2: var(--tag-violet, #a78bfa);
+  --app-chart-3: var(--tag-teal, #2dd4bf);
+  --app-chart-4: var(--tag-amber, #fbbf24);
+  --app-chart-5: var(--tag-rose, #fb7185);
+  --app-chart-6: var(--tag-green, #4ade80);
+  --app-chart-7: var(--tag-sky, #38bdf8);
+  --app-chart-8: var(--tag-orange, #fb923c);
+  --app-status-done: var(--tag-green, #4ade80);
+  --app-status-active: var(--tag-blue, #60a5fa);
+  --app-status-idle: var(--tag-slate, #94a3b8);
+  --app-status-waiting: var(--tag-amber, #fbbf24);
+  --app-status-bad: var(--tag-rose, #fb7185);
+}
+/* App widget grid: widgets pack into the first gap that fits. */
+.app-grid .home-grid-inner { grid-auto-flow: row dense; }
+/* Cards: one style (radius, border, the theme's card shadow). */
+.app-grid .home-widget > [data-widget-body].border { box-shadow: var(--theme-card-shadow, none); }
+
+/* Coloured app header: menu links, header buttons and the bar under the tabs follow the header's text colour. */
+.app-header-colored [data-app-menu], .app-header-colored [data-app-menu] * { border-color: color-mix(in oklab, currentColor 25%, transparent); }
+.app-header-colored [data-nav-item], .app-header-colored [data-nav-group], .app-header-colored [data-nav-more], .app-header-colored [data-app-fullscreen], .app-header-colored [data-nav-hamburger] { color: inherit; opacity: 0.85; }
+.app-header-colored [data-nav-item]:hover, .app-header-colored [data-nav-item][aria-current="page"] { opacity: 1; background: color-mix(in oklab, currentColor 14%, transparent); }
+
+/* Widget style overrides (lib/apps/style.ts styleCss): each colour arrives as a light / dark pair of
+   custom properties on the widget container; the mode picks one. Only validated values ever reach here. */
+[data-widget-styled] {
+  --w-bg: var(--wl-bg);
+  --w-border: var(--wl-border);
+  --w-title: var(--wl-title);
+  --w-text: var(--wl-text);
+  --w-muted: var(--wl-muted);
+  --w-accent: var(--wl-accent);
+  --w-header: var(--wl-header);
+  --w-kpi: var(--wl-kpi);
+  --w-btn-bg: var(--wl-btn-bg);
+  --w-btn-text: var(--wl-btn-text);
+  --w-btn-border: var(--wl-btn-border);
+  --w-th: var(--wl-th);
+  --w-stripe: var(--wl-stripe);
+  --w-hover: var(--wl-hover);
+  --w-tab-on: var(--wl-tab-on);
+  --w-tab-off: var(--wl-tab-off);
+  --w-nav-bg: var(--wl-nav-bg);
+  --w-nav-item: var(--wl-nav-item);
+  --w-nav-active: var(--wl-nav-active);
+}
+[data-theme-mode="dark"] [data-widget-styled] {
+  --w-bg: var(--wd-bg, var(--wl-bg));
+  --w-border: var(--wd-border, var(--wl-border));
+  --w-title: var(--wd-title, var(--wl-title));
+  --w-text: var(--wd-text, var(--wl-text));
+  --w-muted: var(--wd-muted, var(--wl-muted));
+  --w-accent: var(--wd-accent, var(--wl-accent));
+  --w-header: var(--wd-header, var(--wl-header));
+  --w-kpi: var(--wd-kpi, var(--wl-kpi));
+  --w-btn-bg: var(--wd-btn-bg, var(--wl-btn-bg));
+  --w-btn-text: var(--wd-btn-text, var(--wl-btn-text));
+  --w-btn-border: var(--wd-btn-border, var(--wl-btn-border));
+  --w-th: var(--wd-th, var(--wl-th));
+  --w-stripe: var(--wd-stripe, var(--wl-stripe));
+  --w-hover: var(--wd-hover, var(--wl-hover));
+  --w-tab-on: var(--wd-tab-on, var(--wl-tab-on));
+  --w-tab-off: var(--wd-tab-off, var(--wl-tab-off));
+  --w-nav-bg: var(--wd-nav-bg, var(--wl-nav-bg));
+  --w-nav-item: var(--wd-nav-item, var(--wl-nav-item));
+  --w-nav-active: var(--wd-nav-active, var(--wl-nav-active));
+}
+[data-widget-styled] [data-widget-header] h2 { font-size: var(--w-title-size, inherit); font-weight: var(--w-title-weight, 600); }
+[data-widget-styled~="title"] [data-widget-header] h2 { color: var(--w-title); }
+[data-widget-styled~="header"] [data-widget-header] { background: var(--w-header); margin: -0.25rem -0.5rem 0; padding: 0 0.5rem; border-radius: 6px; }
+[data-widget-styled~="kpi"] [data-kpi-tile] .num { color: var(--w-kpi); }
+[data-widget-styled] [data-kpi-tile] .num { font-weight: var(--w-value-weight, 600); zoom: var(--w-value-scale, 1); }
+[data-widget-styled~="align"] [data-widget-content] { text-align: var(--w-align); }
+[data-widget-styled~="th"] thead th { background: var(--w-th); }
+[data-widget-styled~="stripe"] tbody tr:nth-child(even) { background: var(--w-stripe); }
+[data-widget-styled~="hover"] tbody tr:hover { background: var(--w-hover); }
+[data-widget-styled~="tab-on"] [role="tab"][aria-selected="true"] { color: var(--w-tab-on); border-color: var(--w-tab-on); }
+[data-widget-styled~="tab-off"] [role="tab"][aria-selected="false"] { color: var(--w-tab-off); }
+[data-widget-styled~="nav-bg"] [data-nav-bar] { background: var(--w-nav-bg); }
+[data-widget-styled~="nav-item"] [data-nav-item] { color: var(--w-nav-item); }
+[data-widget-styled~="nav-active"] [data-nav-item][aria-current="page"] { color: var(--w-nav-active); background: color-mix(in oklab, var(--w-nav-active) 14%, transparent); }
+[data-action-button] { --b-bg: var(--b-bg-l); --b-text: var(--b-text-l); --b-border: var(--b-border-l); }
+[data-theme-mode="dark"] [data-action-button] { --b-bg: var(--b-bg-d, var(--b-bg-l)); --b-text: var(--b-text-d, var(--b-text-l)); --b-border: var(--b-border-d, var(--b-border-l)); }
+
+/* ── Polish (docs/design/apps-polish-review.md) ─────────────────────────── */
+
+/* Cards: the theme's card surface, a hairline border, the theme's card shadow; a gentle hover lift on cards that act as one target. */
+.app-grid .home-widget > [data-widget-body].border { border-color: var(--ds-border-subtle, var(--color-border)); }
+/* Auto-height cards past their cap scroll inside, with a top / bottom fade that shows there is more (pure CSS scroll shadows). */
+.app-grid .home-widget[data-group="list"] > [data-widget-body].border:has(> [data-auto-height]),
+.app-grid .home-widget[data-group="list"] > [data-widget-body].border:has([data-widget-styled] [data-auto-height]) {
+  background:
+    linear-gradient(var(--color-panel) 30%, transparent) center top / 100% 28px no-repeat local,
+    linear-gradient(transparent, var(--color-panel) 70%) center bottom / 100% 28px no-repeat local,
+    radial-gradient(farthest-side at 50% 0, color-mix(in oklab, var(--color-fg) 14%, transparent), transparent) center top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, color-mix(in oklab, var(--color-fg) 14%, transparent), transparent) center bottom / 100% 10px no-repeat scroll,
+    var(--color-panel);
+}
+/* Content that follows its natural height inside an auto card (lists, empty states) must not stretch. */
+[data-auto-height] [data-widget-empty] { height: auto; }
+
+/* The app header stays in view while the page scrolls (inside the UserTasks shell). */
+[data-app-header-sticky] { position: sticky; z-index: 30; background: var(--color-bg); }
+
+/* Room for the floating Agent launcher below an app page's last row, so it never sits on a card corner. */
+html[data-agent-launcher] [data-app-page-root] { padding-bottom: calc(var(--agent-launcher-reserve, 0px) + 0.25rem); }
+html[data-agent-launcher] main[data-agent-scroll-room]:has([data-app-page-root]) { padding-bottom: 1.5rem !important; }
+
+/* Entrance: cards fade up once when a page opens (never with reduced motion). */
+@keyframes app-card-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .app-grid .home-widget { animation: app-card-in 220ms var(--ds-ease-out, ease-out) both; }
+}
+
+/* Coloured header: every header action (Copy link, Full screen, Open in UserTasks, Edit) takes the header's text colour
+   (black or white by the app colour's luminance, lib: readableOn) — AA on the app colour, light or dark. */
+.app-header-colored [data-app-header-actions] :is(a, button) { color: inherit; opacity: 1; }
+.app-header-colored [data-app-header-actions] :is(a, button):hover { background: color-mix(in oklab, currentColor 14%, transparent); }
+.app-header-colored [data-app-header-actions] [data-edit-page] { background: color-mix(in oklab, currentColor 12%, transparent); border-color: color-mix(in oklab, currentColor 35%, transparent); }
+.app-header-colored :is(a, button):focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* ── Moving between an app's pages (app-page-view.tsx contentArea) ──
+   The header and navigation stay; the content area fades the new page in
+   and, while the next page loads, dims the current one under a thin line.
+   The dim waits a moment so a quick switch never flickers. */
+@keyframes app-page-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes app-page-progress { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+.app-page-content { animation: app-page-enter 140ms ease-out; }
+.app-page-content[data-switching] > :not(.app-page-progress) { opacity: 0.55; pointer-events: none; transition: opacity 120ms ease-out 90ms; }
+.app-page-progress { position: absolute; inset: 0 0 auto; z-index: 5; height: 2px; overflow: hidden; border-radius: 1px; }
+.app-page-progress::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--app-accent, var(--theme-primary)); animation: app-page-progress 900ms ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .app-page-content { animation: none; }
+  .app-page-content[data-switching] > :not(.app-page-progress) { transition: none; }
+  .app-page-progress::after { animation: none; width: 100%; opacity: 0.6; }
+}

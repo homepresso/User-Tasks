@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Tooltip } from '@/components/ui/tooltip'
 import { Bot, MessageSquare, Wrench, GitBranch, Clock, Check, X, User, ListTree, ShieldCheck, Cpu, RotateCw, ChevronDown, ChevronRight } from 'lucide-react'
 import { formatCost } from '@/lib/agents/pricing'
+import { describeWorkflowData, readWorkflowDataSummary } from '@/lib/agents/workflow-data'
 import { cn } from '@/lib/utils'
 import { formatCount } from '@/lib/format/number'
 import { plural } from '@/lib/format/plural'
@@ -127,8 +128,16 @@ export default function AgentRunDetailPage({ params }: { params: Promise<{ id: s
 }
 
 function ConversationTab({ run }: { run: any }) {
+  const workflowData = readWorkflowDataSummary(run.context?.workflow_data)
   return (
     <div className="space-y-3">
+      {workflowData && (
+        <InlineNotice
+          tone="info"
+          title={describeWorkflowData(workflowData)}
+          message="The Run Agent step put its workflow run's data before this message (secrets and internal values left out). The data itself is not stored with the agent run."
+        />
+      )}
       {/* User message */}
       <Card padding="md">
         <div className="mb-2 flex items-center gap-2">

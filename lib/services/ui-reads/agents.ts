@@ -1,8 +1,10 @@
 import { z } from 'zod'
 import { getDb } from '../context'
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
+import { COST_SOURCES, PERIOD_PRESETS } from '@/lib/agents/cost-breakdown'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
+
 
 /** AI agents: list, designer (agent + its pickers), runs list/stats/detail. */
 
@@ -63,7 +65,12 @@ export const reads = {
             config: { base_url: i.config?.base_url ?? null },
             is_ai: isAiProviderIntegration(i),
             provider: agentProviderKind(i.type, i.config?.base_url),
-            models: Array.isArray(modelField?.options) ? modelField.options.map((o: any) => String(o.value)) : [],
+            // The connection's own model first (a Baseten dedicated deployment's name), then the preset's suggestions.
+            models: Array.from(new Set([
+              ...(typeof i.config?.default_model === 'string' && i.config.default_model ? [String(i.config.default_model)] : []),
+              // (A dedicated Baseten deployment serves only its own model: no Model API suggestions.)
+              ...(Array.isArray(modelField?.options) && !(i.type === 'baseten' && !String(i.config?.base_url ?? '').startsWith('https://inference.baseten.co')) ? modelField.options.map((o: any) => String(o.value)) : []),
+            ])),
           }
         }),
         mcpServers: (mcpServers.data ?? []) as any[],
@@ -185,6 +192,30 @@ export const reads = {
     run: async (ctx) => {
       const { workspaceCostView } = await import('@/lib/agents/usage')
       return workspaceCostView(ctx)
+    },
+  }),
+
+  /** AI cost breakdown for a period (Agents → Costs & budgets): by model, profile, agent, source, person (assistants.manage), day. */
+  'agents.costBreakdown': defineRead({
+    args: z.object({
+      period: z.enum(PERIOD_PRESETS).optional(),
+      from: z.string().max(10).optional(),
+      to: z.string().max(10).optional(),
+      group_by: z.string().max(100).optional(),
+      provider: z.string().max(60).optional(),
+      model: z.string().max(200).optional(),
+      profile: z.string().max(64).optional(),
+      agent: z.string().max(64).optional(),
+      source: z.enum(COST_SOURCES).optional(),
+      user: z.string().max(64).optional(),
+    }),
+    perm: 'agents.view',
+    run: async (ctx, args) => {
+      const { workspaceCostBreakdown } = await import('@/lib/services/agents')
+      const { hasPerm } = await import('../context')
+      const canSeePeople = hasPerm(ctx, 'assistants.manage')
+      const breakdown = await workspaceCostBreakdown(ctx, args)
+      return { ...breakdown, can_see_people: canSeePeople }
     },
   }),
 

@@ -11,15 +11,13 @@
 
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { BadgeCheck, Database, FileText, Globe, KeyRound, Play, ShieldCheck, X } from 'lucide-react'
+import { BadgeCheck, Database, FileText, Globe, KeyRound, ShieldCheck, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { IconButton } from '@/components/ui/icon-button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
-import { Field } from '@/components/ui/field'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Tabs } from '@/components/ui/tabs'
@@ -27,13 +25,12 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { InlineNotice } from '@/components/ui/inline-notice'
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/table'
 import { Dialog, DialogBody, DialogContent } from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
 import { formatDate } from '@/lib/format/date'
 import { formatCount } from '@/lib/format/number'
-import { plural } from '@/lib/format/plural'
 import { actionFieldTypeLabel } from '@/lib/custom-actions/manifest'
 import type { ActionManifest } from '@/lib/custom-actions/contract'
-import { getWorkflowActionDetail, listGrantableTables, setWorkflowActionSecrets, testWorkflowAction, updateWorkflowActionAccess } from '@/app/actions/extensibility'
+import { ActionTestRunner } from './action-test-runner'
+import { getWorkflowActionDetail, listGrantableTables, setWorkflowActionSecrets, updateWorkflowActionAccess } from '@/app/actions/extensibility'
 
 type Tab = 'overview' | 'access' | 'test' | 'versions' | 'usages'
 
@@ -131,7 +128,7 @@ function ActionManageDialogInner({ activityId, canEdit, onClose }: { activityId:
                   setNotice(res.ok ? { kind: 'ok', text: 'Secrets saved (encrypted)' } : { kind: 'error', text: res.error })
                   if (res.ok) await refetch()
                 }} />}
-                {tab === 'test' && manifest && <TestRunner manifest={manifest} activityId={activityId!} canEdit={canEdit} />}
+                {tab === 'test' && manifest && <ActionTestRunner manifest={manifest} activityId={activityId!} canEdit={canEdit} strict={action.runtime === 'module'} demoInputs={action.demo_inputs} />}
                 {tab === 'versions' && (
                   <Table label="Versions" className="whitespace-nowrap">
                     <THead>
@@ -287,65 +284,6 @@ function Access({ manifest, action, canEdit, busy, onSave, onSecrets }: {
         </section>
       )}
       {caps.files && <p className="text-xs text-fg-muted">Files: the action can read only files given to it as file inputs in a workflow step (nothing to approve).</p>}
-    </div>
-  )
-}
-
-function TestRunner({ manifest, activityId, canEdit }: { manifest: ActionManifest; activityId: string; canEdit: boolean }) {
-  const [operationId, setOperationId] = useState(manifest.operations[0]?.id ?? '')
-  const operation = manifest.operations.find((o) => o.id === operationId) ?? manifest.operations[0]
-  const sample = operation?.sample ?? Object.fromEntries((operation?.inputs ?? []).filter((f) => f.example !== undefined).map((f) => [f.name, f.example]))
-  const [text, setText] = useState(JSON.stringify(sample, null, 2))
-  const [result, setResult] = useState<any>(null)
-  const [running, setRunning] = useState(false)
-  async function run() {
-    let inputs: Record<string, unknown>
-    try { inputs = JSON.parse(text || '{}') } catch { setResult({ ok: false, error: { message: 'Inputs are not valid JSON', code: 'invalid' }, logs: [] }); return }
-    setRunning(true)
-    const res = await testWorkflowAction(activityId, { operation: operationId, inputs })
-    setRunning(false)
-    setResult(res.ok ? res.data : { ok: false, error: { message: res.error, code: 'host' }, logs: [] })
-  }
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-2">
-        <Field label="Function" id="test-op" className="min-w-[200px]">
-          <Select value={operationId} onChange={(e) => {
-            const next = manifest.operations.find((o) => o.id === e.target.value)
-            setOperationId(e.target.value)
-            setText(JSON.stringify(next?.sample ?? Object.fromEntries((next?.inputs ?? []).filter((f) => f.example !== undefined).map((f) => [f.name, f.example])), null, 2))
-            setResult(null)
-          }}>
-            {manifest.operations.map((op) => <option key={op.id} value={op.id}>{op.label}</option>)}
-          </Select>
-        </Field>
-        <Button onClick={run} disabled={!canEdit || running} loading={running} leadingIcon={<Play />}>Run test</Button>
-      </div>
-      <Field label="Inputs (JSON)" id="test-inputs">
-        <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} className="bg-subtle font-mono text-xs" />
-      </Field>
-      {result && (
-        <div className="space-y-2" role="status">
-          <p className={cn('num text-ui font-semibold', result.ok ? 'text-success' : 'text-danger')}>
-            {result.ok ? `Succeeded in ${result.stats?.duration_ms ?? '?'} ms · ${plural(result.stats?.host_calls ?? 0, 'host call')} · ${formatBytes(result.stats?.memory_bytes)} memory` : `Failed (${result.error?.code}): ${result.error?.message}`}
-          </p>
-          {result.ok && (
-            <div className="space-y-1">
-              {(operation?.outputs ?? []).map((f) => (
-                <div key={f.name} className="text-xs"><code className="font-mono">{f.name}</code> <span className="text-fg-muted">({actionFieldTypeLabel(f)})</span></div>
-              ))}
-              <pre className="max-h-64 overflow-auto rounded-md border border-border-subtle bg-subtle p-2 font-mono text-2xs">{JSON.stringify(result.outputs, null, 2)}</pre>
-            </div>
-          )}
-          {(result.warnings ?? []).map((w: string) => <p key={w} className="text-xs text-warning">{w}</p>)}
-          {(result.logs ?? []).length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-fg">Logs</p>
-              <ul className="space-y-0.5 rounded-md border border-border-subtle bg-subtle p-2 font-mono text-2xs">{result.logs.map((l: any, i: number) => <li key={i}><span className={l.level === 'error' ? 'text-danger' : l.level === 'warn' ? 'text-warning' : 'text-fg-muted'}>{l.level}</span> {l.message}</li>)}</ul>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }

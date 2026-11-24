@@ -1,11 +1,13 @@
 import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
+import { checkInfrastructureLicenceText as checkLicence } from '@/lib/infrastructure/licence-gate'
 import {
   fillSecrets, flagsLayer, formatEnvFile, mergeProfileLayers, parseEnvFile, PRESET_IDS, PRESETS, profileToConfig, redactEnv, redactProfile,
   validateProfile, ProfileInputError, PROFILE_AREAS, type PresetId, type Profile, type ProfileArea, presetProfile,
 } from '@/lib/install/profile'
 import type { CliIO } from './cli'
+import { classifyProfile, describeSeparation, envFingerprint, newSeparation, settingsFingerprint, type SeparatedArea } from '@/lib/install/standard-stack'
 
 /**
  * `usertasks-admin install …`: the install profile (lib/install/profile.ts)
@@ -23,7 +25,20 @@ import type { CliIO } from './cli'
  *        @env:NAME is read from the environment variable NAME, so secrets
  *        need not appear on the command line (`ps` shows it).
  *
- * Exit codes: 0 ok · 1 invalid profile / a check failed · 2 usage.
+ * Separated profiles (lib/install/standard-stack.ts: anything beyond the
+ * bundled single stacks — your own or a managed PostgreSQL, an external
+ * bucket, SSO-only sign-in, an email API, …) need an Infrastructure licence:
+ * validate, write and apply refuse them unless --licence <file> (or
+ * USERTASKS_LICENCE_FILE / USERTASKS_LICENCE) holds a licence for the
+ * `infrastructure` extension with the `infrastructure-separation` feature,
+ * verified offline (signature against the pinned keyring, dates — it stops 24
+ * hours after expiry — and its binding to the install's address). Areas that
+ * the running configuration already has (--merge <env file>, or the instance
+ * settings for apply) need nothing: an install separated with an earlier
+ * release re-runs and upgrades without a licence. apply also installs the
+ * licence into the instance (Settings → Licence) so the add-on is licensed.
+ *
+ * Exit codes: 0 ok · 1 invalid profile / a check failed / licence needed · 2 usage.
  */
 
 export const INSTALL_USAGE = `usertasks-admin install presets [--format json]
@@ -34,6 +49,8 @@ usertasks-admin install profile validate|check|write|apply
   check     [--area database,email,…] [--email-to <address>] [--read-only] [--format text|json]
   write     [--format env|json] [--out <file>] [--merge <existing env file>] [--generate-secrets] [--force]
   apply     [--db-url <url>] [--merge <env file from write>] [--overwrite] [--actor <name>]   (instance settings, after db migrate)
+  --licence <file>   Infrastructure licence: needed for a separated profile (your own PostgreSQL, external storage,
+                     SSO-only sign-in, email APIs, …); the bundled single stacks need none. Default: USERTASKS_LICENCE_FILE.
 Values written @env:NAME are read from the environment.`
 
 const OPTIONS = {
@@ -53,6 +70,8 @@ const OPTIONS = {
   overwrite: { type: 'boolean' },
   actor: { type: 'string' },
   'local-root': { type: 'string' },
+  licence: { type: 'string' },
+  license: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
 } as const
 
@@ -149,6 +168,22 @@ export async function runInstallCommand(argv: string[], io: CliIO): Promise<numb
       return 1
     }
     const { profile, warnings } = result
+
+    // The Infrastructure add-on boundary: new separation needs a licence (check runs only the connection tests).
+    if (verb !== 'check') {
+      const existing = verb === 'apply' ? await runningSettingsFingerprints(values, profile, io) : envFingerprints(values)
+      const gate = separationGate(profile, existing, values, io)
+      if (!gate.ok) {
+        if (format === 'json') io.out(JSON.stringify({ ok: false, code: 'licence_required', separated: gate.separated, error: gate.error }, null, 2))
+        else io.err(gate.error)
+        return 1
+      }
+      if (gate.note) io.err(gate.note)
+      if (verb === 'apply' && gate.licenceText) {
+        const installed = await installLicence(gate.licenceText, values, profile, io)
+        if (installed !== 0) return installed
+      }
+    }
 
     switch (verb) {
       case 'validate': {
@@ -267,6 +302,99 @@ async function apply(input: Profile, values: Values, io: CliIO): Promise<number>
   } catch (error) {
     io.err((error as Error).message)
     return 1
+  } finally {
+    await db.end().catch(() => undefined)
+  }
+}
+
+// ── Infrastructure licence (separated profiles) ─────────────────────────────
+
+function licenceTextFrom(values: Values, env: Record<string, string | undefined>): { text: string | null; source: string | null } {
+  const file = values.licence || values.license || env.USERTASKS_LICENCE_FILE || env.USERTASKS_LICENSE_FILE
+  if (file) {
+    const resolved = path.resolve(file)
+    if (!existsSync(resolved)) throw new UsageError(`--licence ${file}: file not found`)
+    return { text: readFileSync(resolved, 'utf8'), source: resolved }
+  }
+  const inline = env.USERTASKS_LICENCE || env.USERTASKS_LICENSE
+  return inline ? { text: inline, source: 'USERTASKS_LICENCE' } : { text: null, source: null }
+}
+
+/** Fingerprints of the env file being merged (an install being re-run). */
+function envFingerprints(values: Values): (area: ProfileArea) => string | null {
+  if (!values.merge || !existsSync(path.resolve(values.merge))) return () => null
+  const env = parseEnvFile(readFileSync(path.resolve(values.merge), 'utf8'))
+  return (area) => envFingerprint(area, env)
+}
+
+/** apply: what the instance runs now (its settings, then the merged env file). */
+async function runningSettingsFingerprints(values: Values, profile: Profile, io: CliIO): Promise<(area: ProfileArea) => string | null> {
+  const fromEnv = envFingerprints(values)
+  const existing = values.merge ? parseEnvFile(readFileSync(path.resolve(values.merge), 'utf8')) : {}
+  const url = values['db-url'] || io.env.MIGRATION_DATABASE_URL || io.env.DATABASE_URL || existing.MIGRATION_DATABASE_URL || existing.DATABASE_URL
+  if (!url) return fromEnv
+  try {
+    const { connect, decodeSettings, readSettingRows } = await import('./instance')
+    const db = await connect(url)
+    try {
+      const settings = decodeSettings(await readSettingRows(db))
+      return (area) => settingsFingerprint(area, settings) ?? fromEnv(area)
+    } finally {
+      await db.end().catch(() => undefined)
+    }
+  } catch {
+    void profile
+    return fromEnv
+  }
+}
+
+export interface SeparationGate {
+  ok: boolean
+  separated: SeparatedArea[]
+  error: string
+  note: string | null
+  licenceText: string | null
+}
+
+/** Refuse new separation without a valid Infrastructure licence (offline check). */
+export function separationGate(profile: Profile, existing: (area: ProfileArea) => string | null, values: Values, io: { env: Record<string, string | undefined> }, now = new Date(), keyring?: Parameters<typeof checkLicence>[1]['keyring']): SeparationGate {
+  const classification = classifyProfile(profile)
+  const added = newSeparation(classification, existing)
+  if (!added.length) {
+    const kept = classification.separated.length ? `note: separated areas already configured here are kept (${describeSeparation(classification.separated)}); changing them later needs the Infrastructure add-on.` : null
+    return { ok: true, separated: [], error: '', note: kept, licenceText: null }
+  }
+  const { text, source } = licenceTextFrom(values, io.env)
+  const what = describeSeparation(added)
+  if (!text) {
+    return {
+      ok: false, separated: added, note: null, licenceText: null,
+      error: `This profile moves services off the standard stack: ${what}. That needs the Infrastructure add-on (a paid extension): pass --licence <your .licence file> (or set USERTASKS_LICENCE_FILE). Without a licence, install the bundled stack (PostgreSQL, files, sign-in and worker installed with UserTasks) or a Supabase project.`,
+    }
+  }
+  const check = checkLicence(text, { appUrl: profile.app.url, now, keyring })
+  if (!check.ok) return { ok: false, separated: added, note: null, licenceText: null, error: `This profile moves services off the standard stack (${what}), and the Infrastructure licence ${source ? `from ${source} ` : ''}was not accepted: ${check.reason ?? 'not licensed'}` }
+  return { ok: true, separated: added, error: '', licenceText: text, note: `Infrastructure licence ${check.licenceId ?? ''}${check.customer ? ` (${check.customer})` : ''} accepted for: ${what}.${check.reason ? ` ${check.reason}` : ''}` }
+}
+
+/** apply --licence: store the licence in the instance (Settings → Licence) as `usertasks-admin licence install` does. */
+async function installLicence(text: string, values: Values, profile: Profile, io: CliIO): Promise<number> {
+  const existing = values.merge ? parseEnvFile(readFileSync(path.resolve(values.merge), 'utf8')) : {}
+  const url = values['db-url'] || io.env.MIGRATION_DATABASE_URL || io.env.DATABASE_URL || existing.MIGRATION_DATABASE_URL || existing.DATABASE_URL
+  if (!url) return 0 // nothing to install into yet: `apply` reports the missing connection itself
+  const [{ connect, defaultActor }, { runLicence, sqlLicenceStore }] = await Promise.all([import('./instance'), import('./licence-cli')])
+  let db: Awaited<ReturnType<typeof connect>>
+  try {
+    db = await connect(url)
+  } catch (error) {
+    io.err(`Can't connect to the database to install the licence: ${(error as Error).message}`)
+    return 1
+  }
+  try {
+    const code = await runLicence('install', ['-'], { actor: values.actor || defaultActor() }, sqlLicenceStore(db), { ...io, out: io.out }, { readFile: async () => text })
+    if (code !== 0) io.err('The Infrastructure licence could not be installed in the instance (see above): install it later with usertasks-admin licence install <file>.')
+    void profile
+    return 0
   } finally {
     await db.end().catch(() => undefined)
   }

@@ -14,11 +14,13 @@ import { Table, THead, TBody, TH, TD, TableEmpty, trClass } from '@/components/u
 import { serverRead } from '@/lib/server-read'
 import { plural } from '@/lib/format/plural'
 import { cn } from '@/lib/utils'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, X, Trash2, Columns3 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { DataColumn, LookupFilter, LookupFilterOperator } from './lookup-config'
 import { COLUMN_TYPE_ICON } from './data-grid'
+import { ChildRelationsEditor } from './child-relations-editor'
+import { TableAuditSwitch } from './change-history'
 
 interface TableDesignerProps {
   tableId: string
@@ -47,6 +49,7 @@ export function TableDesigner({ tableId, columns: initialColumns }: TableDesigne
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const queryClient = useQueryClient()
   const dirty = useMemo(() => JSON.stringify(columns) !== JSON.stringify(saved), [columns, saved])
 
   const { data: tables = [] } = useQuery({
@@ -139,6 +142,8 @@ export function TableDesigner({ tableId, columns: initialColumns }: TableDesigne
     try {
       await updateTableColumns(tableId, columns)
       setSaved(columns)
+      // Child records list the lookup columns pointing here: re-read them.
+      queryClient.invalidateQueries({ queryKey: ['custom-tables-for-lookups'] })
       router.refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save the schema')
@@ -242,6 +247,9 @@ export function TableDesigner({ tableId, columns: initialColumns }: TableDesigne
           })}
         </TBody>
       </Table>
+
+      <ChildRelationsEditor tableId={tableId} />
+      <TableAuditSwitch tableId={tableId} />
     </div>
   )
 }
@@ -263,7 +271,8 @@ function LookupColumnEditor({
   onAddLookupFilter: () => void
   onRemoveLookupFilter: (filterId: string) => void
 }) {
-  const sourceTables = useMemo(() => tables.filter((table) => table.id !== tableId), [tableId, tables])
+  // This table itself is allowed too: a lookup to its own rows (a Parent column) makes a hierarchy for Child records.
+  const sourceTables = tables
   const sourceTable = sourceTables.find((table) => table.id === column.lookup?.sourceTableId)
   const sourceColumns = (sourceTable?.columns ?? []).filter((sourceColumn) => sourceColumn.name !== 'ID' && sourceColumn.name !== 'Date Created')
   const filters = column.lookup?.filters ?? []
@@ -295,7 +304,7 @@ function LookupColumnEditor({
               })
             }}
             placeholder="Choose a table…"
-            options={sourceTables.map((table) => ({ value: table.id, label: table.name }))}
+            options={sourceTables.map((table) => ({ value: table.id, label: table.id === tableId ? `${table.name} (this table)` : table.name }))}
           />
         </Field>
         <Field label="Lookup column">

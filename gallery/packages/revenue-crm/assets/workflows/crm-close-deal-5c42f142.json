@@ -1,0 +1,223 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "5c42f142-2596-53b2-be68-fe195ea04ecd",
+  "asset": {
+    "id": "5c42f142-2596-53b2-be68-fe195ea04ecd",
+    "name": "CRM close deal",
+    "description": "Closes a deal won or lost: updates the deal, records the outcome, reason and sales cycle in CRM closed deals, and for a win emails the rep and hands the customer to customer success.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Deal closed",
+        "config": {
+          "form_id": "1f14c0a4-8877-5092-b80d-c536a4ecc9db",
+          "form_name": "Close a deal"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "cycle",
+        "type": "set_variable",
+        "label": "Sales cycle",
+        "config": {
+          "name": "cycle_days",
+          "expression": "{{=MAX(1, ROUND(DAY_DIFF(COALESCE(form.created_on, form.close_date), form.close_date), 0))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "deal",
+        "type": "update_data_table",
+        "label": "Close the deal",
+        "config": {
+          "table_id": "19470d3d-a413-5e76-b842-f922ef50d2df",
+          "table_name": "CRM deals",
+          "operation": "update",
+          "match_column": "deal_id",
+          "match_value": "{{form.deal_id}}",
+          "column_values": {
+            "stage": "{{=IF(form.result == \"Won\", \"Closed won\", \"Closed lost\")}}",
+            "amount": "{{form.amount}}",
+            "close_date": "{{form.close_date}}",
+            "next_step": "{{=IF(form.result == \"Won\", \"Kickoff with customer success\", \"Win-back in 6 months\")}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "outcome",
+        "type": "update_data_table",
+        "label": "Record the outcome",
+        "config": {
+          "table_id": "355f7295-9d17-5988-82b5-da86f7474945",
+          "table_name": "CRM closed deals",
+          "operation": "insert",
+          "column_values": {
+            "deal_id": "{{form.deal_id}}",
+            "deal": "{{form.deal_name}}",
+            "account": "{{form.account}}",
+            "owner": "{{form.owner}}",
+            "region": "{{form.region}}",
+            "type": "{{form.type}}",
+            "outcome": "{{form.result}}",
+            "won": "{{=IF(form.result == \"Won\", 100, 0)}}",
+            "amount": "{{form.amount}}",
+            "close_date": "{{form.close_date}}",
+            "reason": "{{form.reason}}",
+            "competitor": "{{form.competitor}}",
+            "cycle_days": "{{cycle_days}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "won",
+        "type": "condition",
+        "label": "Won?",
+        "config": {
+          "branches": [
+            {
+              "label": "Won",
+              "logic": "and",
+              "rules": [
+                {
+                  "field": "{{form.result}}",
+                  "operator": "equals",
+                  "value": "Won"
+                }
+              ]
+            }
+          ],
+          "has_else": true
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "mail",
+        "type": "send_email",
+        "label": "Congratulate the rep",
+        "config": {
+          "to": "{{submitted_by_email}}",
+          "email_template_id": "9958d235-9fd7-57a2-9288-4e0ee01df8fb"
+        },
+        "onError": "continue",
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "handoff",
+        "type": "call_sub_workflow",
+        "label": "Hand over to customer success",
+        "executionMode": "async",
+        "config": {
+          "sub_workflow_id": "7cd724ad-ae7d-5bbc-909f-bbef4196b684",
+          "sub_workflow_name": "CRM customer handoff",
+          "input_mappings": {
+            "account_id": "{{form.account_id}}",
+            "account": "{{form.account}}",
+            "deal_id": "{{form.deal_id}}",
+            "deal": "{{form.deal_name}}",
+            "amount": "{{form.amount}}",
+            "owner": "{{form.owner}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "end_won",
+        "type": "end_workflow",
+        "label": "Won",
+        "config": {
+          "reason": "{{form.deal_id}} closed won"
+        },
+        "position": {
+          "x": 400,
+          "y": 1040
+        }
+      },
+      {
+        "id": "end_lost",
+        "type": "end_workflow",
+        "label": "Lost",
+        "config": {
+          "reason": "{{form.deal_id}} closed lost ({{form.reason}})"
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-cycle",
+        "source": "trigger",
+        "target": "cycle"
+      },
+      {
+        "id": "e-cycle-deal",
+        "source": "cycle",
+        "target": "deal"
+      },
+      {
+        "id": "e-deal-outcome",
+        "source": "deal",
+        "target": "outcome"
+      },
+      {
+        "id": "e-outcome-won",
+        "source": "outcome",
+        "target": "won"
+      },
+      {
+        "id": "e-won-mail-won",
+        "source": "won",
+        "target": "mail",
+        "label": "Won"
+      },
+      {
+        "id": "e-won-end_lost-else",
+        "source": "won",
+        "target": "end_lost",
+        "label": "Else"
+      },
+      {
+        "id": "e-mail-handoff",
+        "source": "mail",
+        "target": "handoff"
+      },
+      {
+        "id": "e-handoff-end_won",
+        "source": "handoff",
+        "target": "end_won"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

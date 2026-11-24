@@ -1,0 +1,191 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+  "asset": {
+    "id": "807e6c4a-ebe9-5bfe-a5ca-52733c4005f2",
+    "name": "Expense claims rows",
+    "rows": [
+      {
+        "id": "c941928c-9f79-541e-93fb-ff3e3c491de9",
+        "data": {
+          "claim_ref": "EXP-2610-A1F3",
+          "claimant": "Maya Patel",
+          "department": "Sales",
+          "category": "Travel",
+          "merchant": "Skyline Air",
+          "amount": 642.5,
+          "expense_date": "2026-10-02",
+          "status": "Paid",
+          "policy": "Within policy",
+          "approver_comment": "Client visit, approved."
+        }
+      },
+      {
+        "id": "e24b64cc-fd63-579e-9d88-e8d0f7b5501f",
+        "data": {
+          "claim_ref": "EXP-2610-B7K2",
+          "claimant": "Daniel Okafor",
+          "department": "Engineering",
+          "category": "Software",
+          "merchant": "CodeForge",
+          "amount": 240,
+          "expense_date": "2026-10-05",
+          "status": "Paid",
+          "policy": "Within policy",
+          "approver_comment": ""
+        }
+      },
+      {
+        "id": "e584d39d-8768-5fcf-b3fd-0de832f0cbf7",
+        "data": {
+          "claim_ref": "EXP-2610-C3M9",
+          "claimant": "Sofia Lindqvist",
+          "department": "Marketing",
+          "category": "Client entertainment",
+          "merchant": "Harbor Grill",
+          "amount": 386.4,
+          "expense_date": "2026-10-09",
+          "status": "Paid",
+          "policy": "Within policy",
+          "approver_comment": "Launch dinner."
+        }
+      },
+      {
+        "id": "449a4d4a-25c6-57b5-bdad-6fb5562b31f7",
+        "data": {
+          "claim_ref": "EXP-2610-D8Q1",
+          "claimant": "Liam Chen",
+          "department": "Operations",
+          "category": "Equipment",
+          "merchant": "Deskworks",
+          "amount": 912,
+          "expense_date": "2026-10-12",
+          "status": "Rejected",
+          "policy": "Over limit",
+          "approver_comment": "Please raise a purchase request instead."
+        }
+      },
+      {
+        "id": "761c3266-cd16-5436-b01c-25261cfc03db",
+        "data": {
+          "claim_ref": "EXP-2610-E2R6",
+          "claimant": "Amara Nwosu",
+          "department": "People",
+          "category": "Training",
+          "merchant": "Learnwell Academy",
+          "amount": 1450,
+          "expense_date": "2026-10-15",
+          "status": "Paid",
+          "policy": "Within policy",
+          "approver_comment": ""
+        }
+      },
+      {
+        "id": "7280ac9a-0789-5f4b-97e2-61eaa621ec57",
+        "data": {
+          "claim_ref": "EXP-2610-F5T4",
+          "claimant": "Maya Patel",
+          "department": "Sales",
+          "category": "Accommodation",
+          "merchant": "Parkside Hotel",
+          "amount": 498,
+          "expense_date": "2026-10-19",
+          "status": "Paid",
+          "policy": "Within policy",
+          "approver_comment": "Two nights."
+        }
+      },
+      {
+        "id": "869e1c4f-821a-5c91-bc47-8b96be5d95a6",
+        "data": {
+          "claim_ref": "EXP-2610-G9W7",
+          "claimant": "Noah Fischer",
+          "department": "Finance",
+          "category": "Meals",
+          "merchant": "Corner Bistro",
+          "amount": 58.2,
+          "expense_date": "2026-10-22",
+          "status": "Approved",
+          "policy": "Within policy",
+          "approver_comment": ""
+        }
+      },
+      {
+        "id": "7e7ba749-6ef1-5c99-a8cc-2b4ae843a6aa",
+        "data": {
+          "claim_ref": "EXP-2610-H1Y3",
+          "claimant": "Grace Kim",
+          "department": "Marketing",
+          "category": "Software",
+          "merchant": "Pixelpress",
+          "amount": 129,
+          "expense_date": "2026-10-26",
+          "status": "Approved",
+          "policy": "Within policy",
+          "approver_comment": ""
+        }
+      },
+      {
+        "id": "127e3b9a-dc42-56ba-9c59-53d95d28714d",
+        "data": {
+          "claim_ref": "EXP-2611-J4B8",
+          "claimant": "Daniel Okafor",
+          "department": "Engineering",
+          "category": "Travel",
+          "merchant": "Railway Express",
+          "amount": 312.75,
+          "expense_date": "2026-11-03",
+          "status": "Approved",
+          "policy": "Within policy",
+          "approver_comment": ""
+        }
+      },
+      {
+        "id": "8f75cc74-119d-5e24-b560-75185b2c2dbc",
+        "data": {
+          "claim_ref": "EXP-2611-K6C2",
+          "claimant": "Liam Chen",
+          "department": "Operations",
+          "category": "Meals",
+          "merchant": "Noodle House",
+          "amount": 96,
+          "expense_date": "2026-11-06",
+          "status": "Submitted",
+          "policy": "Over limit",
+          "approver_comment": ""
+        }
+      },
+      {
+        "id": "0e418fd3-6120-5869-b546-227ac7db4c21",
+        "data": {
+          "claim_ref": "EXP-2611-L8D5",
+          "claimant": "Sofia Lindqvist",
+          "department": "Marketing",
+          "category": "Travel",
+          "merchant": "Skyline Air",
+          "amount": 1180,
+          "expense_date": "2026-11-10",
+          "status": "Submitted",
+          "policy": "Within policy",
+          "approver_comment": ""
+        }
+      },
+      {
+        "id": "bc7bafa8-1d06-5f5d-8c04-f77161eae156",
+        "data": {
+          "claim_ref": "EXP-2611-M2F9",
+          "claimant": "Amara Nwosu",
+          "department": "People",
+          "category": "Other",
+          "merchant": "Print Point",
+          "amount": 64.9,
+          "expense_date": "2026-11-14",
+          "status": "Submitted",
+          "policy": "Within policy",
+          "approver_comment": ""
+        }
+      }
+    ]
+  }
+}

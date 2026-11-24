@@ -1,0 +1,5339 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "353aa56f-3d19-56bc-8815-5b70903ac9ba",
+  "asset": {
+    "id": "353aa56f-3d19-56bc-8815-5b70903ac9ba",
+    "name": "Skill assessments rows",
+    "rows": [
+      {
+        "id": "91732de0-2c58-5ca5-8967-57a380345747",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "12f49a60-4005-573e-a63b-d1985e00da42",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-25"
+        }
+      },
+      {
+        "id": "5a5c9e82-5fec-5f97-9269-f43742007a91",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-05"
+        }
+      },
+      {
+        "id": "0d24ee59-8042-50d2-81a6-746e0e062379",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-04"
+        }
+      },
+      {
+        "id": "be327101-c0f8-5cfb-8746-1948c7b1d61e",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-08"
+        }
+      },
+      {
+        "id": "480ff590-db16-51f0-a578-5fc2a3890859",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-25"
+        }
+      },
+      {
+        "id": "af8b0e1b-e9de-5604-bfc7-b5486e31de0d",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "8f9fdec5-be7d-58b6-9150-3c1331fa64e4",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "c1dfab7f-dec9-5e76-89df-7ca211a60dc4",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "25faeae6-bf1a-5704-a98f-3858f44165f7",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-27"
+        }
+      },
+      {
+        "id": "5934f736-0cb8-5d9d-8918-17050e707c15",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "2ba5b044-c14d-55c3-b973-28e575c2f888",
+        "data": {
+          "employee_email": "jonas.berg@fernhill.example",
+          "employee_name": "Jonas Berg",
+          "department": "Marketing",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "0ac75df5-fe6d-5ccf-936a-6fa62418d13f",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-02"
+        }
+      },
+      {
+        "id": "1504e64c-2d61-514d-b8ff-84e82764bb73",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "15524950-2bf7-50f7-a76e-306ef2b2e881",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "e1970630-554b-50b8-8aac-76feaa5611ca",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-08"
+        }
+      },
+      {
+        "id": "88f34430-a561-5afd-9fda-1cc73093af18",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-30"
+        }
+      },
+      {
+        "id": "5fab6191-99f7-51d0-9e18-b5997a8715f9",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-10-08"
+        }
+      },
+      {
+        "id": "7afe4967-cbe1-5a10-b2d3-2060bf2013dd",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-14"
+        }
+      },
+      {
+        "id": "a19cd0fc-9da4-5ba9-84cb-dae6a40ac1b1",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-16"
+        }
+      },
+      {
+        "id": "0c504787-9eb7-5b99-ab99-f26069dcb13e",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "ec4160c9-dd5f-5911-bc39-ac3648c4fbf2",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "cf554fd9-d3ec-5ff5-b107-133cbe4d382a",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-12"
+        }
+      },
+      {
+        "id": "9715b20a-bc81-5f01-b33f-750fb62b50f0",
+        "data": {
+          "employee_email": "sam.torres@fernhill.example",
+          "employee_name": "Sam Torres",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-02"
+        }
+      },
+      {
+        "id": "bdca94fa-c68b-5661-999d-4fb71c1a05a0",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "4010dbba-ea18-5976-b271-8a3f9519ebe1",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-22"
+        }
+      },
+      {
+        "id": "4fad893e-e4df-52d2-ba5b-a056911f2321",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-08"
+        }
+      },
+      {
+        "id": "826f47c3-7cfb-5bc9-9066-135a1a46ef56",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-10"
+        }
+      },
+      {
+        "id": "0aaf3e64-b880-5b19-81dc-fa4663294c16",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "b4b129c1-473e-58c8-afa8-2bc1b0889a4b",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "16dbf0ed-fc9e-5929-b1b0-3f6bee63b741",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-05"
+        }
+      },
+      {
+        "id": "d67cbef4-b5dc-5d46-8dc3-fc52a3b55fd1",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "85862913-8e0b-5bae-8bae-f43c801bf2da",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "2ccf213b-e45a-5c02-aec8-b3af25abf2d8",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-13"
+        }
+      },
+      {
+        "id": "46b3bc8f-161d-55cc-a7bd-f45e57cf8573",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-30"
+        }
+      },
+      {
+        "id": "f95cb5ac-06a0-5386-b79c-f3d725aa2e3a",
+        "data": {
+          "employee_email": "maya.patel@fernhill.example",
+          "employee_name": "Maya Patel",
+          "department": "People & Operations",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "3423773c-2422-5c46-9f51-4aa4a73082ed",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-29"
+        }
+      },
+      {
+        "id": "aad287f8-0665-59c6-adde-c62177547e5e",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "44c26087-37ad-5e10-8ab7-24a087b486d3",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "78f2133a-f81b-5135-8f87-0637aa53fb9b",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "930a1988-a0af-5a45-b59d-2ac070d56c19",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-09"
+        }
+      },
+      {
+        "id": "6eaa8f06-dd89-5b0b-9b8c-4a196ca451fd",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-27"
+        }
+      },
+      {
+        "id": "8bea880e-08a6-52bf-bb01-47985d4e5934",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "faedff9f-4ea7-5cd7-bdea-455374f9dd95",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-17"
+        }
+      },
+      {
+        "id": "575a47af-f196-5751-8ea8-7cef6331e0c5",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-05"
+        }
+      },
+      {
+        "id": "3cdfa89e-f4ab-502c-a030-95284509ca74",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-12"
+        }
+      },
+      {
+        "id": "f049b8b8-be5c-5e41-a3e0-8b3f91fa88d0",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "c9c529a0-8779-52fd-b125-2b5a056b8096",
+        "data": {
+          "employee_email": "daniel.okafor@fernhill.example",
+          "employee_name": "Daniel Okafor",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-14"
+        }
+      },
+      {
+        "id": "db2c15b6-9631-5a36-bca8-d4f1e2ee152e",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "f104c64f-778a-50b3-90b4-bb32dbbf7a51",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-26"
+        }
+      },
+      {
+        "id": "b0f1a2ae-2ba8-5a40-b64e-5db9e725c716",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "a5e60bfc-62de-5f79-8aa6-012a8ef4a34e",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-03"
+        }
+      },
+      {
+        "id": "faecc080-e5ab-52f1-abfc-abd600e62026",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-04"
+        }
+      },
+      {
+        "id": "d29ca073-4312-5387-9cbd-dbb53829cfb8",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-10"
+        }
+      },
+      {
+        "id": "c2eaa5b7-3689-5059-b7e2-9c9da2f7d2fe",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-09"
+        }
+      },
+      {
+        "id": "49f01429-e67f-5fe3-9eb9-35847a3de336",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-09"
+        }
+      },
+      {
+        "id": "fa195e42-6894-5745-825f-a93852badfcb",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "c9453a53-ec22-51f6-b876-df013289dc0f",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "24525a8e-5042-554d-9246-1008255622df",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "c8510e75-66da-5aef-acfa-9562f379aaf2",
+        "data": {
+          "employee_email": "hannah.owens@fernhill.example",
+          "employee_name": "Hannah Owens",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-11-02"
+        }
+      },
+      {
+        "id": "e703a89f-eac8-554e-99e2-6bf077e04666",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-29"
+        }
+      },
+      {
+        "id": "21c8bef5-77eb-504f-9686-d36cdb7a63da",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-05"
+        }
+      },
+      {
+        "id": "a8bce632-a7d6-58d7-bdcf-50e729892415",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-09"
+        }
+      },
+      {
+        "id": "204c7070-182c-5137-af26-084b465529c5",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "0576144a-60da-5873-8b66-fa547db05288",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-30"
+        }
+      },
+      {
+        "id": "b0abd00e-f9ee-5165-aaa2-a472160650eb",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-20"
+        }
+      },
+      {
+        "id": "1d0f6421-7c7b-5a8d-adc4-f1cfa689b9fb",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "d0a3c932-e9e3-5955-8afe-319001450576",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-04"
+        }
+      },
+      {
+        "id": "32163a2c-22c8-57eb-a46b-6518a45b8f01",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-02"
+        }
+      },
+      {
+        "id": "9c451439-85e2-5a76-9049-66db98acd8fb",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-09"
+        }
+      },
+      {
+        "id": "15466743-1c54-5e58-abc0-98867247c794",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-05"
+        }
+      },
+      {
+        "id": "ecca087e-308e-5190-b399-ca89ea653704",
+        "data": {
+          "employee_email": "diego.weber@fernhill.example",
+          "employee_name": "Diego Weber",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-28"
+        }
+      },
+      {
+        "id": "b73c04ff-a065-5410-bd9e-63ecccae940b",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-14"
+        }
+      },
+      {
+        "id": "1d9c98bd-8f67-5eae-ab1a-2387ff99b470",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "ac7681cc-2b32-5b89-8098-8241d743fa7b",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "a4f268d9-ce97-54f7-a94d-543e6a9360fd",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-01"
+        }
+      },
+      {
+        "id": "30dbdb14-2212-5319-8874-87734eb82187",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-24"
+        }
+      },
+      {
+        "id": "545d83aa-3a81-5842-b337-c98bc0226455",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-31"
+        }
+      },
+      {
+        "id": "8196b363-d891-5bf1-af9d-eeda1858d280",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "f1303065-7799-522f-8554-285a372a5141",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-28"
+        }
+      },
+      {
+        "id": "3970176d-b036-5829-9a8b-6c7a4d5dfe92",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-17"
+        }
+      },
+      {
+        "id": "e9e49206-7493-52d4-8dd0-438693483528",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "77974f0c-84f0-5bda-8636-7eb5080fd755",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "0147dcf8-9c12-58b6-8094-4a4af29f9eb8",
+        "data": {
+          "employee_email": "chloe.sato@fernhill.example",
+          "employee_name": "Chloe Sato",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "14cf8e84-3b26-5fb6-83d9-e0d167cebefc",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-30"
+        }
+      },
+      {
+        "id": "8a2348d0-edee-5201-ad39-00d7e792f2fb",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "6a27138a-df23-5a6a-9a63-956ea2799dd8",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-25"
+        }
+      },
+      {
+        "id": "de25eae0-a9e2-5549-b1d1-7ce1b2ca663e",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-04"
+        }
+      },
+      {
+        "id": "7dd7e3eb-f46b-5df8-98d4-394dfeb0ac64",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "d5565d64-ef5f-5fad-a2e9-bbb50db25da1",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "e4f3db21-c246-547b-948f-a78dd00d7bdf",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "f2dd9180-9978-5b41-856d-9cf0414d8664",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-24"
+        }
+      },
+      {
+        "id": "fc02ed32-54f1-5bdd-af0d-94e1ed14b775",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-22"
+        }
+      },
+      {
+        "id": "29afef90-b670-5599-9071-4403f2516c9c",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-15"
+        }
+      },
+      {
+        "id": "a1609b22-a907-5871-a56e-33506ee7948d",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-28"
+        }
+      },
+      {
+        "id": "fee5ce18-60d3-5c42-9b5c-f48038dd939e",
+        "data": {
+          "employee_email": "lucas.schmidt@fernhill.example",
+          "employee_name": "Lucas Schmidt",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-06"
+        }
+      },
+      {
+        "id": "ab372378-9863-5f97-ba9c-904e03e0431b",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-07"
+        }
+      },
+      {
+        "id": "f933a2e2-cb8b-51e4-b3cd-f5ecee6d5c35",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-23"
+        }
+      },
+      {
+        "id": "e5ab322a-3b52-5c94-a68c-1099718f2e23",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "16110cc1-2330-5616-b85d-a48259640da5",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "a85f1aee-a0ff-5dcb-85c6-58ed55442370",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "5f863a65-04a6-5c76-a7fc-b9b9f43146a1",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "b28b008c-df03-5a43-9ff7-6149a7361b61",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-09"
+        }
+      },
+      {
+        "id": "8cd96242-9b2a-52db-b51f-4b131470c51c",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-08"
+        }
+      },
+      {
+        "id": "fed9c28b-e11e-5884-84ba-5370b9b490f5",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-02"
+        }
+      },
+      {
+        "id": "b8fc194d-6673-5239-8476-63f8113cc27e",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-29"
+        }
+      },
+      {
+        "id": "9ac63da3-0fdb-5e92-951c-bddd2fc9e462",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "cd74403d-83af-5d41-a617-271a798007a6",
+        "data": {
+          "employee_email": "talia.jordan@fernhill.example",
+          "employee_name": "Talia Jordan",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "2cb285cd-4cf6-5fab-b70f-72e477832074",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-21"
+        }
+      },
+      {
+        "id": "25635d89-b9ed-5b3a-a9b5-bdc42acbf051",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-30"
+        }
+      },
+      {
+        "id": "b3cab530-835c-5ac2-81a9-708692bfd73b",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-13"
+        }
+      },
+      {
+        "id": "c1787fe7-9192-54d7-9521-305930cfd3ea",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-11-12"
+        }
+      },
+      {
+        "id": "e0fce67a-5666-56a2-b297-a381e4897afd",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-11"
+        }
+      },
+      {
+        "id": "b72427b2-d343-5702-86b7-944b951a29d3",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-03"
+        }
+      },
+      {
+        "id": "ee79a945-af56-54dd-ae8a-7a86721878cd",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-16"
+        }
+      },
+      {
+        "id": "662c387e-a2b8-5722-ac3e-8989715a8502",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-09-08"
+        }
+      },
+      {
+        "id": "4c2ab940-6d78-59a5-9cc4-fd1391563073",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-22"
+        }
+      },
+      {
+        "id": "52d1ee9e-2fe1-54fe-8b8a-0b6c766e8622",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-08"
+        }
+      },
+      {
+        "id": "53df0ded-c0a7-565a-9a48-07bcb33d8607",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-09"
+        }
+      },
+      {
+        "id": "f31919fa-748f-5979-a1f0-34f880d4a9ad",
+        "data": {
+          "employee_email": "andre.laurent@fernhill.example",
+          "employee_name": "Andre Laurent",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "9689aa7d-42af-55a0-a68b-ac27086840cb",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "9b5d6ef9-d382-58d5-a69d-cfa1cdb20cd5",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "de45e107-3ec6-5516-ac08-05e7e3e7c2b9",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "523a7436-d53a-5456-bd2c-0a1162570939",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "eb6a7fb6-ab35-542f-a6d5-6a29b4bca840",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-09"
+        }
+      },
+      {
+        "id": "d319d431-5e98-580e-bce7-42aadd2c939c",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-16"
+        }
+      },
+      {
+        "id": "378b0fc3-2f6a-5356-a513-0d7a4d503f77",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "21c1de2b-a2de-5aa0-887e-84f93339c2e2",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-17"
+        }
+      },
+      {
+        "id": "f5bf94a2-370d-5914-a6e4-7aa23a6da7cc",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-31"
+        }
+      },
+      {
+        "id": "a11ea666-ea17-5ce1-bf22-53e23ab1d681",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "1fec79c6-c8a6-584d-9365-83282b887d7f",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-03"
+        }
+      },
+      {
+        "id": "3a7dcb60-3c20-5823-9a0c-7c831a0051e9",
+        "data": {
+          "employee_email": "alex.schmidt@fernhill.example",
+          "employee_name": "Alex Schmidt",
+          "department": "Engineering",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "bd7042c2-3d0c-59ca-a18b-7b9262e26510",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "20bdbc28-f343-5f56-a780-1b3c70b7c85c",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "95e72827-f0cd-50a9-b8a6-67c9edc260ad",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-30"
+        }
+      },
+      {
+        "id": "5f168f47-5754-52b3-82d3-418a48e5303c",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-18"
+        }
+      },
+      {
+        "id": "adacb1fd-c8c4-564b-b9ab-9a75999900f4",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "912b2075-8a95-5577-8e1a-2f6262f7841f",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-27"
+        }
+      },
+      {
+        "id": "b405d5c2-a954-5900-b533-501bf29d6d93",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-08"
+        }
+      },
+      {
+        "id": "f0facd02-4de9-5bfa-9e9f-9c1bb3db227f",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-15"
+        }
+      },
+      {
+        "id": "cb7206d4-2fa3-54f3-a5b0-39489308104f",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-05"
+        }
+      },
+      {
+        "id": "2d1b2239-3399-5086-9faa-9f8f2c9755dc",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-09-25"
+        }
+      },
+      {
+        "id": "e819f960-68a1-5041-a2ba-be69966e1deb",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-20"
+        }
+      },
+      {
+        "id": "f4495937-8c03-56b3-a258-0fdaefbec5e8",
+        "data": {
+          "employee_email": "priya.raman@fernhill.example",
+          "employee_name": "Priya Raman",
+          "department": "Product",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-06"
+        }
+      },
+      {
+        "id": "59198aed-308d-5d97-88f5-3e894cd01a50",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-13"
+        }
+      },
+      {
+        "id": "07e7cdb4-44a1-5e63-bcfb-b2ddaeeef0bd",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-16"
+        }
+      },
+      {
+        "id": "eadcce73-9973-5b0e-8787-94c0ac9cc671",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-16"
+        }
+      },
+      {
+        "id": "1e18775d-29e4-55fe-a229-3b783fb89487",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-02"
+        }
+      },
+      {
+        "id": "2cbba813-9a6f-5199-9855-93f8bb301eaa",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-17"
+        }
+      },
+      {
+        "id": "f24a0c95-a977-51ff-8d7c-987f16b4f3ee",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-08"
+        }
+      },
+      {
+        "id": "d78f51f1-cbfc-5053-a20c-c3e214a78894",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-03"
+        }
+      },
+      {
+        "id": "4605de0e-ec24-5c36-af3d-0e665dca3efd",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "b3839ad9-9ae4-598b-ae5b-5470d7447440",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-08"
+        }
+      },
+      {
+        "id": "e5f3e5e2-7b99-59bd-8551-a5de0e603869",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "fb41dfc8-643c-502a-88af-651a8b2a024f",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-12"
+        }
+      },
+      {
+        "id": "3902d254-cf2c-505f-8cad-b293116baefe",
+        "data": {
+          "employee_email": "liam.mensah@fernhill.example",
+          "employee_name": "Liam Mensah",
+          "department": "Product",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "c94b3b76-1dd5-5be3-bf3e-4530f292e104",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-10"
+        }
+      },
+      {
+        "id": "3f5deb49-5d10-59fe-839e-1ce7290cbb26",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-03"
+        }
+      },
+      {
+        "id": "c6ee1e06-399c-5ffd-8f42-f2c95966f73b",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "8de86b39-c083-5fbe-8c8f-2bda81970dfe",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-17"
+        }
+      },
+      {
+        "id": "b81dbe67-1ad9-518c-b95a-c99160344859",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-07"
+        }
+      },
+      {
+        "id": "7056136e-4657-5c21-b5b5-e1512a70e385",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-10"
+        }
+      },
+      {
+        "id": "5d20b794-9fe0-511c-a3c1-a8f4278ebc60",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-20"
+        }
+      },
+      {
+        "id": "e55ae53c-6150-5540-b895-97d4bf63e96f",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "8ab205b0-b2d6-5b7a-a4d2-71e6d57d531e",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "537e39da-7c31-5829-9fc5-397ed0daa60b",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-17"
+        }
+      },
+      {
+        "id": "5a831f03-09a6-5b1f-b170-2f3c02a0bc5c",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "21b8cfc9-d1b3-5069-a833-1bab3923e3c9",
+        "data": {
+          "employee_email": "ava.novak@fernhill.example",
+          "employee_name": "Ava Novak",
+          "department": "Product",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-09"
+        }
+      },
+      {
+        "id": "969efeca-437c-552c-8ea7-0b538cc3f899",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "eb6145d9-72db-5e0f-b07e-3ff933df5e18",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-05"
+        }
+      },
+      {
+        "id": "dd96a153-a466-510f-ad73-3e85d3a97b62",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "9d4cfa41-ba39-59c9-9d78-780de135cb5f",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-23"
+        }
+      },
+      {
+        "id": "f1cab6cb-aa42-552f-9379-1d50068e9c26",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-24"
+        }
+      },
+      {
+        "id": "8660be79-2779-5446-a12c-c65ee7b953c7",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-11-01"
+        }
+      },
+      {
+        "id": "9e2db757-2096-5ecc-9688-29bcab327adc",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "dc613847-f5d3-5156-8eb4-842063e80a2e",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-09"
+        }
+      },
+      {
+        "id": "799c98b7-2c03-5f2c-bcb0-4f8c3fb19295",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "c0f81dbb-9330-54a1-9066-4415a94928dc",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-05"
+        }
+      },
+      {
+        "id": "925c1381-a384-5da3-8e2a-6be052d3a5d0",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-23"
+        }
+      },
+      {
+        "id": "b727ff9e-69f8-5cd9-af62-244c35f25c57",
+        "data": {
+          "employee_email": "aiko.tanaka@fernhill.example",
+          "employee_name": "Aiko Tanaka",
+          "department": "Design",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-29"
+        }
+      },
+      {
+        "id": "9d8b6cc0-3907-5921-8672-4d1fd1800cc0",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-29"
+        }
+      },
+      {
+        "id": "4692275d-0451-515c-b8cf-d9d60faeb703",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "7fbab15e-cd7d-52ea-aa90-f9c31b32d046",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "272caff5-ba28-5768-b80e-757117025e0e",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-02"
+        }
+      },
+      {
+        "id": "38b3e78f-23f6-592e-be3d-f3c85bb4deef",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-16"
+        }
+      },
+      {
+        "id": "1010ff22-22be-5899-b502-e1e35e790b55",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-23"
+        }
+      },
+      {
+        "id": "7e45d54c-5145-5854-955b-9bef52309b8c",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-03"
+        }
+      },
+      {
+        "id": "185fde5c-fe29-58e8-83fe-9019c940e32c",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-16"
+        }
+      },
+      {
+        "id": "79a27e93-6350-5281-aadd-aa34d9fcacf5",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-10"
+        }
+      },
+      {
+        "id": "49181192-34ee-567b-9e07-13210ff02cce",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-23"
+        }
+      },
+      {
+        "id": "f18f00d3-cb3a-5b8b-bdb5-4cc8b7d13b7c",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-25"
+        }
+      },
+      {
+        "id": "da781bbe-5584-5ae7-b763-4dad716aadcf",
+        "data": {
+          "employee_email": "arjun.kapoor@fernhill.example",
+          "employee_name": "Arjun Kapoor",
+          "department": "Design",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "7bf15025-9775-5faa-82ba-d0a8b4d70d60",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-29"
+        }
+      },
+      {
+        "id": "ce664932-3c9e-5be0-9217-e53a69187afd",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-23"
+        }
+      },
+      {
+        "id": "803f86dd-949e-52cb-b91b-6b0e3d51bd88",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-10"
+        }
+      },
+      {
+        "id": "254da1d3-c598-567f-8717-96fedde8d261",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-26"
+        }
+      },
+      {
+        "id": "b334b4ec-a143-5a4c-9ec1-5de438e52cfe",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "4bdc92d0-c19c-537b-9ac5-d00eb4d2dbc7",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-09-08"
+        }
+      },
+      {
+        "id": "e6a7b251-1abc-5f65-8c58-8471e423676b",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-25"
+        }
+      },
+      {
+        "id": "289aefe7-bd93-5e40-b789-8c97d1f57d6e",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-11-02"
+        }
+      },
+      {
+        "id": "09f4e394-3eb5-5016-8583-87591845f69b",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "cb083501-70f0-5ae8-8f1f-094031209fb3",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "e8f35874-0383-5174-afda-f6440fbae564",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-10"
+        }
+      },
+      {
+        "id": "40bbb6fa-15e9-5740-8b55-f5e341c333f6",
+        "data": {
+          "employee_email": "iris.jordan@fernhill.example",
+          "employee_name": "Iris Jordan",
+          "department": "Design",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "daadbec6-202d-5ee5-9490-ae5adba05c69",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-23"
+        }
+      },
+      {
+        "id": "bfcda54e-506e-57e1-9bec-c0d69fca2175",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-13"
+        }
+      },
+      {
+        "id": "4e948b65-973d-5d7c-a5ff-344017cb1d85",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-11"
+        }
+      },
+      {
+        "id": "398b42d0-3726-56a7-9668-5e623087a7a7",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-11-08"
+        }
+      },
+      {
+        "id": "1648baeb-7a4e-5422-b3a2-7a7427553aea",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "e5bfdbf9-aeb8-518a-9b83-64876daa50df",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-23"
+        }
+      },
+      {
+        "id": "0ad9353b-1114-5ed6-b62f-f8bee7652c6b",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-03"
+        }
+      },
+      {
+        "id": "2a8805ba-43d0-5971-8a4e-7296602e7340",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-13"
+        }
+      },
+      {
+        "id": "f0dadacb-1b11-56f0-a25f-aff55acfb0c0",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-02"
+        }
+      },
+      {
+        "id": "546a782c-542b-503b-9d53-070a1a4b5fd3",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-27"
+        }
+      },
+      {
+        "id": "7b82c2a0-c4e4-565a-80e0-34231a784c9a",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "55fbfbba-c1e3-57d6-977b-5a9e843a9600",
+        "data": {
+          "employee_email": "lucas.raman@fernhill.example",
+          "employee_name": "Lucas Raman",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "19381f76-e30c-5d8b-a234-bcbf1c2cbc49",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-16"
+        }
+      },
+      {
+        "id": "96065af5-e7a8-5284-86ad-f2d8de472a5a",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "21069ff6-1894-572a-af52-839f66e4f6e2",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-05"
+        }
+      },
+      {
+        "id": "55f924dc-f2be-587c-88c8-2056a1fd20ce",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-01"
+        }
+      },
+      {
+        "id": "b67b897a-60ed-5fcd-bd6d-a59607b98e2c",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-28"
+        }
+      },
+      {
+        "id": "70761803-bb79-5593-b0a7-8a43cb341e83",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-20"
+        }
+      },
+      {
+        "id": "d5885337-1386-59e5-846e-8e2114ce531e",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-06"
+        }
+      },
+      {
+        "id": "ff827c69-05d2-5044-b5a9-985ffb4377e9",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-18"
+        }
+      },
+      {
+        "id": "b05b25d4-cb32-5191-b68a-f02b990b3a9f",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "213160c1-54b0-58ee-9155-7b9054e25a0a",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "2a6682f0-b912-5d72-b399-93150cdbae80",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-11"
+        }
+      },
+      {
+        "id": "f5725617-b80f-5c47-8b87-235c097b4016",
+        "data": {
+          "employee_email": "ava.ward@fernhill.example",
+          "employee_name": "Ava Ward",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "621d30c8-a325-50d5-9cb4-3cba550d0b74",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-06"
+        }
+      },
+      {
+        "id": "87e56f62-e0b9-5262-97b7-935ef299bc5f",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-10"
+        }
+      },
+      {
+        "id": "9437a426-37c4-5bcb-9e79-b4e0ab392d54",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-29"
+        }
+      },
+      {
+        "id": "05fef441-f7ec-578f-b11a-e49a0e775957",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-17"
+        }
+      },
+      {
+        "id": "23328a9d-1e5c-5c3f-933f-700d08317f4a",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-08"
+        }
+      },
+      {
+        "id": "8aea3b46-948b-5c18-a1c0-62fb903a73f0",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-20"
+        }
+      },
+      {
+        "id": "40e44fa3-834c-5be3-ad4b-d469db48f35f",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-14"
+        }
+      },
+      {
+        "id": "f424fe42-1f77-57fe-a0c1-5a7d92696181",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-05"
+        }
+      },
+      {
+        "id": "1aeb19ad-e385-5177-84e8-765467837745",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "072b098f-58ca-5e48-a400-b1bb578cb95b",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "28dbd9e1-25b2-5478-af93-f47b3a8e6e01",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-23"
+        }
+      },
+      {
+        "id": "ad31ba2c-4bd8-5e71-9419-f7cc0fd1966d",
+        "data": {
+          "employee_email": "ava.okafor@fernhill.example",
+          "employee_name": "Ava Okafor",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-06"
+        }
+      },
+      {
+        "id": "68df0f04-82d5-50ac-8c8d-114e591e2230",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "86504e5f-b80a-5345-872b-805ac28bb05b",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "c6577230-aa96-5154-a2f6-d74e896472b9",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "ba920e4e-1aad-5ac9-9f9c-5d1ebe9fea72",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-11-06"
+        }
+      },
+      {
+        "id": "ad6db5a4-e721-55ee-8374-9a8961603cad",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-15"
+        }
+      },
+      {
+        "id": "14d8f95d-518c-50aa-9ab6-aa9fe9fd1565",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "2d22b489-9ba2-59d5-bcc6-81224dc95087",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-17"
+        }
+      },
+      {
+        "id": "177a3714-9461-5af4-9a9c-47ff52d0c5f2",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-11"
+        }
+      },
+      {
+        "id": "7f37b1d0-ecbe-501a-aa19-e8ab05be1788",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-02"
+        }
+      },
+      {
+        "id": "1c6c6691-a25c-56eb-8c46-5c438fe9429b",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-25"
+        }
+      },
+      {
+        "id": "f7559c68-f6a4-531f-942f-d62b35c916e3",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-15"
+        }
+      },
+      {
+        "id": "664cb4c0-8718-5fab-882b-316f3f19265c",
+        "data": {
+          "employee_email": "nora.laurent@fernhill.example",
+          "employee_name": "Nora Laurent",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-17"
+        }
+      },
+      {
+        "id": "4a2fcb67-b050-5589-88a7-d30cedda82f7",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-10"
+        }
+      },
+      {
+        "id": "f6f5ccfd-d102-5768-b797-f211e82e6a69",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-14"
+        }
+      },
+      {
+        "id": "e1bd8ae6-51f1-55e8-9da6-eac7fe1c1b94",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-28"
+        }
+      },
+      {
+        "id": "0da72a22-3a52-527f-8e6a-bc30ddf9c7e9",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "517e63bd-1b75-51e9-b795-716e9edab077",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-16"
+        }
+      },
+      {
+        "id": "51279a8c-da1f-56e2-b8b4-69233aa0624a",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-03"
+        }
+      },
+      {
+        "id": "1e302420-401b-5737-809f-a447150b177e",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-04"
+        }
+      },
+      {
+        "id": "a974de98-9eb5-52ba-8c6d-b818b62afd43",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-30"
+        }
+      },
+      {
+        "id": "52d972f5-a3a1-52ba-bc59-ecb28c302636",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-06"
+        }
+      },
+      {
+        "id": "acfb9a5d-22c5-5266-8fb2-e43eb32c4e11",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "c9d84f51-3416-5572-8824-32e8b076ffd9",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "58a67f6a-0556-59ea-a7b7-df641718d9b7",
+        "data": {
+          "employee_email": "malik.quinn@fernhill.example",
+          "employee_name": "Malik Quinn",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "34f2eb23-3fbc-5e74-b021-3c5ff930161c",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "fe6438f4-e71d-562d-8237-bc7ce646ae7a",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-11"
+        }
+      },
+      {
+        "id": "1db30d17-7b3c-5a73-a3c1-a2e09c56bc79",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "15b9f08d-cd21-5a1f-91e5-46c7113ca4c0",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "e263e318-f58b-5fd5-b0bb-8bde4a43e56f",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-03"
+        }
+      },
+      {
+        "id": "b469b231-2aa9-55e8-99f9-0b0189a2019d",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "37b482da-39f8-5ce3-8c56-1412ab28b0d5",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-12"
+        }
+      },
+      {
+        "id": "bf86ed0b-5bfc-54b5-a582-22ca78b25543",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-16"
+        }
+      },
+      {
+        "id": "50966ea6-fb87-5eb7-948d-be0133bbe1f2",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "e3a243d7-a2ca-56c0-9838-78b1c73700b7",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-25"
+        }
+      },
+      {
+        "id": "b3aff42e-62e5-5a9b-a413-5d9e360eecaa",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-01"
+        }
+      },
+      {
+        "id": "61127a51-cbc6-5982-b8b0-42822b2728e2",
+        "data": {
+          "employee_email": "oscar.levi@fernhill.example",
+          "employee_name": "Oscar Levi",
+          "department": "Sales",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "d445706b-e33b-5aee-a74e-f37064224b55",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-10"
+        }
+      },
+      {
+        "id": "9b4fc6bd-b7ef-5371-95d7-86e5857ac88d",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-18"
+        }
+      },
+      {
+        "id": "8ac34c2c-9e96-5d15-94d4-cd126566e237",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-13"
+        }
+      },
+      {
+        "id": "d56bd7a5-a4f0-5a53-b607-b6ffc47391bb",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-15"
+        }
+      },
+      {
+        "id": "5a668e94-ac08-566d-bb28-405e5378c399",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "51093f40-60dc-5f79-9779-930523fbe4cd",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-29"
+        }
+      },
+      {
+        "id": "69a09f50-e6ac-501a-82f0-a44000154e4e",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "a19f25ca-2058-5a57-b6a2-0b947b70ce0b",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-11-08"
+        }
+      },
+      {
+        "id": "b548fc94-dfe9-5ac9-93d9-6cc4a2fadcf2",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-31"
+        }
+      },
+      {
+        "id": "91b056c6-2d80-553b-abdc-b56659caa9a7",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-12"
+        }
+      },
+      {
+        "id": "87ae4ef7-6638-54d2-96d9-7cc21e63f5dd",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "31d6ab91-f6e0-5b02-8ca4-22e19b045712",
+        "data": {
+          "employee_email": "grace.kim@fernhill.example",
+          "employee_name": "Grace Kim",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-04"
+        }
+      },
+      {
+        "id": "2f002504-d85f-5895-b720-0e9ad2b75c95",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-29"
+        }
+      },
+      {
+        "id": "8ceae3e9-7bb1-5ca2-8ca9-76e62c83e842",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "9e70fb78-22c8-5c1c-bb5b-16d2f3ffb417",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "22455ad7-7455-5017-8b01-a3e386f3f2b5",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "b47de02f-6fb2-5821-a9de-508580b932c0",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "53491d15-dd5e-56ac-a632-10e001faf844",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-06"
+        }
+      },
+      {
+        "id": "2d078262-216b-537f-b9a9-a041b66256d9",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "2e0b0232-93f4-5ffd-b3f8-c3e449b4d8f4",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-11-17"
+        }
+      },
+      {
+        "id": "88c5ec8c-d27f-58a7-b71b-92cf985e14f8",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-10"
+        }
+      },
+      {
+        "id": "1a3ad849-b6ac-5fac-a8bf-e28bbca0eedd",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "2ef5fef5-0e49-56c2-bc7e-185b50fff4e3",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "7ed9d58b-e8e4-5d6b-9402-cc68e06cebcd",
+        "data": {
+          "employee_email": "victor.okafor@fernhill.example",
+          "employee_name": "Victor Okafor",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-10"
+        }
+      },
+      {
+        "id": "761fcb0a-11f2-559c-a521-57bdcfe77237",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-11"
+        }
+      },
+      {
+        "id": "1bc0ff5f-0fc6-5318-8fc4-4c980baf998e",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-22"
+        }
+      },
+      {
+        "id": "a8e53cf1-7fff-5f6e-a32f-53fe194fb3ef",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-07"
+        }
+      },
+      {
+        "id": "2f3f1520-7b12-5abf-b470-86d80b247536",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-03"
+        }
+      },
+      {
+        "id": "997d8b73-6513-58df-8d04-6f6b1f089918",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-06"
+        }
+      },
+      {
+        "id": "8c3c8e96-669f-5c9f-961b-9205475294b9",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "3225758b-8dc3-59a5-b923-d8778d36cf68",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-30"
+        }
+      },
+      {
+        "id": "bf00c4a7-02d3-5d59-a50e-d272b49522e1",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "728edf20-5776-51ae-9aaa-d66c64f35b30",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "2e84df0e-110a-5839-b876-ef5c9319592d",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-03"
+        }
+      },
+      {
+        "id": "232f0e00-7f62-54ac-b55b-4229f7cabc60",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-09"
+        }
+      },
+      {
+        "id": "f50fb6bb-1541-598a-88ea-dcae1e3fad15",
+        "data": {
+          "employee_email": "lena.quinn@fernhill.example",
+          "employee_name": "Lena Quinn",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-20"
+        }
+      },
+      {
+        "id": "d017eefc-b4af-531f-a88f-efe3afad7256",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-09"
+        }
+      },
+      {
+        "id": "46bbf4a4-1e28-54d6-9228-d656d2c2a52c",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "e8b6856e-abad-5f8e-bb6a-b3c0b014a3b6",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "c03e63f4-4bb4-5d99-b659-8a70e59f781a",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-23"
+        }
+      },
+      {
+        "id": "bf3f5f14-1288-5284-aa19-5d61fc00eed8",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-17"
+        }
+      },
+      {
+        "id": "647fdcbd-ffd5-5072-9d98-8d19a9828b58",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-11-17"
+        }
+      },
+      {
+        "id": "dbfe4ace-9960-5354-8059-804cab2eec21",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-17"
+        }
+      },
+      {
+        "id": "0721cbd0-69dd-5ed4-af93-1945d1448b1d",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-20"
+        }
+      },
+      {
+        "id": "4018a84e-fbf2-55df-b486-41cad66ea57f",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "e116334d-1387-56c6-a542-2a0ac729d5fe",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-25"
+        }
+      },
+      {
+        "id": "48adf4e0-f4a1-581e-846a-a331f0f6a429",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "1ea0a2f4-76fd-5255-b540-06f77e5cc5cc",
+        "data": {
+          "employee_email": "jonas.raman@fernhill.example",
+          "employee_name": "Jonas Raman",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-29"
+        }
+      },
+      {
+        "id": "416e6af4-db84-5212-8ec6-9c5d5c2845fd",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-21"
+        }
+      },
+      {
+        "id": "14afea55-7478-5b71-8540-5e21da9f1352",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-26"
+        }
+      },
+      {
+        "id": "2a849f40-79cc-53c3-bd7f-378d76f6adab",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "a4690b53-ba55-5396-a3c9-0ca09df277bf",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-05"
+        }
+      },
+      {
+        "id": "d33622f8-7a8c-5cd4-a1e8-54b25aaa98c7",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-14"
+        }
+      },
+      {
+        "id": "1ef5a540-5fcd-5a32-b097-ae6917dba285",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-06"
+        }
+      },
+      {
+        "id": "06e24fdc-09a2-5b0c-a7b8-34612f5172b8",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "a2b20b09-7515-5bef-b39a-a72b56daeb33",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-11-13"
+        }
+      },
+      {
+        "id": "f318cea3-8e0d-553e-8276-5eb8c82ea172",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-05"
+        }
+      },
+      {
+        "id": "28d1c903-d493-5583-9142-a33d7ed3c1fe",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-06"
+        }
+      },
+      {
+        "id": "69f99655-d981-5a75-8f50-f34da9395d85",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-21"
+        }
+      },
+      {
+        "id": "3e75c9c4-53b9-519f-aa94-9009d7ff9ba0",
+        "data": {
+          "employee_email": "clara.tanaka@fernhill.example",
+          "employee_name": "Clara Tanaka",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-10-05"
+        }
+      },
+      {
+        "id": "8d20aeaa-1f71-59e6-9353-6ed57daf3adc",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-20"
+        }
+      },
+      {
+        "id": "f9602808-9072-5ca5-b8ec-0a91b0f1372d",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-28"
+        }
+      },
+      {
+        "id": "e0d3b98e-dc5f-5dc4-87a1-6ddb9ea9907d",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-23"
+        }
+      },
+      {
+        "id": "f7c99838-b991-5d19-a02f-44ced8561093",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-20"
+        }
+      },
+      {
+        "id": "8718fe0a-a849-5848-a1cf-9a9138ca7c7a",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-16"
+        }
+      },
+      {
+        "id": "338cfd68-fde3-5fca-8c7f-5c274c6d2629",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-05"
+        }
+      },
+      {
+        "id": "0e03a505-4bc8-599e-9906-821f85dc5872",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "d1871437-428b-5f45-a1f5-2f6a195d168e",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-11"
+        }
+      },
+      {
+        "id": "5a269bfd-ff01-58df-bc64-9e72360d12f4",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "38c175c3-5b90-53a6-868a-f011d02da927",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "fd6581a6-a4ff-5b51-a919-89c172af8bbf",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-27"
+        }
+      },
+      {
+        "id": "bfd41421-a990-5320-8c8a-04a910ac337c",
+        "data": {
+          "employee_email": "elena.larsen@fernhill.example",
+          "employee_name": "Elena Larsen",
+          "department": "Customer Success",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-10"
+        }
+      },
+      {
+        "id": "a1857a8a-3936-55ef-b5fc-e20fd371cdbb",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-28"
+        }
+      },
+      {
+        "id": "8803fd44-81b3-5350-b0fa-87244a236bc1",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "6cca6911-11a7-590d-940d-f610505d7d2b",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-25"
+        }
+      },
+      {
+        "id": "f27f3970-e5e1-5941-8f94-b4d684f95080",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-08"
+        }
+      },
+      {
+        "id": "1ffdbb27-1a40-5607-ad43-b41eb69abf82",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "916b8261-73ed-52b7-b414-1d2bc14b0bbe",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-07"
+        }
+      },
+      {
+        "id": "da45d773-da4e-5ed6-bb7c-84177065a09c",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-16"
+        }
+      },
+      {
+        "id": "b8cbcffd-7c77-57bc-806d-b7a7d22724bc",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "19a4a46e-b0f6-5bae-965f-6949228005f9",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-05"
+        }
+      },
+      {
+        "id": "3507b77d-b647-5d48-8abe-a510b7c22fa2",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-01"
+        }
+      },
+      {
+        "id": "67e09a86-ca5e-5cc2-9518-204c14f35476",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-26"
+        }
+      },
+      {
+        "id": "095cb6fa-8a78-53d4-bbb4-98b7becd97a7",
+        "data": {
+          "employee_email": "marcus.quinn@fernhill.example",
+          "employee_name": "Marcus Quinn",
+          "department": "Marketing",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "a04d9990-6618-5b55-a810-37844090395c",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-25"
+        }
+      },
+      {
+        "id": "0283c81a-69ab-5d75-a8a4-eaaf98364e64",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-07"
+        }
+      },
+      {
+        "id": "de8544bd-95cd-5349-8df2-171249caeef5",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-08"
+        }
+      },
+      {
+        "id": "b2437c3a-028b-5c30-a694-484411dc7439",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "b0e6e9f6-44a6-59b8-bf5f-8eb92958ceb2",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-28"
+        }
+      },
+      {
+        "id": "3b2507b4-46a4-5ea4-86e1-215f7e9681c4",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "bf5328e3-e9da-5ec3-a20b-2035f242702f",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-23"
+        }
+      },
+      {
+        "id": "b075cf78-090a-57b4-899c-59510477c6a9",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-07"
+        }
+      },
+      {
+        "id": "6aed6198-e5e7-5b1b-831e-a14f8db65440",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-19"
+        }
+      },
+      {
+        "id": "5f745ac0-af71-59d5-a795-2b3c025aa875",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-13"
+        }
+      },
+      {
+        "id": "8724066f-fa26-5977-ab3a-e1766d4864bf",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-05"
+        }
+      },
+      {
+        "id": "f31a4369-414b-5239-b459-6621566c66ee",
+        "data": {
+          "employee_email": "iris.kim@fernhill.example",
+          "employee_name": "Iris Kim",
+          "department": "Marketing",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-11-01"
+        }
+      },
+      {
+        "id": "c0b93c15-7366-50fd-9a1c-5071ce29fc96",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-16"
+        }
+      },
+      {
+        "id": "5454271e-72d1-5ee8-989d-e02902bb3004",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-21"
+        }
+      },
+      {
+        "id": "7bfd1b2f-1d33-5d9c-92b2-15e2b9d23f3f",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-18"
+        }
+      },
+      {
+        "id": "b26ffa96-6701-5c8f-9c1b-2c54ea13370b",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-27"
+        }
+      },
+      {
+        "id": "01f23094-18b3-5b1f-91b9-88fe43858354",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-29"
+        }
+      },
+      {
+        "id": "4e167efb-8ce4-5c74-91d0-138c2338fdaf",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-15"
+        }
+      },
+      {
+        "id": "49bfe90f-d249-5c31-8d47-3e47c2fabfc2",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-25"
+        }
+      },
+      {
+        "id": "2b63c4cf-0722-5918-9109-b2bcbcdce46f",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "4a95a01c-62d2-55e1-94e7-b5bde903e5c1",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "fbbadc15-f3a9-5c8c-8520-9162c0dc74aa",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "2e50ecab-26fb-5294-b153-e6a466108508",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-22"
+        }
+      },
+      {
+        "id": "2f42d243-515d-5d1c-82d3-eeb9e9e83b68",
+        "data": {
+          "employee_email": "mei.owens@fernhill.example",
+          "employee_name": "Mei Owens",
+          "department": "Marketing",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-28"
+        }
+      },
+      {
+        "id": "b58080ff-3243-5d6f-adc9-fd936c7091f4",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-02"
+        }
+      },
+      {
+        "id": "fe9111de-d5cd-52cb-aacf-fe7bf4feb48f",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-10-13"
+        }
+      },
+      {
+        "id": "9883721e-0230-510e-83cb-90d8c355f393",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-20"
+        }
+      },
+      {
+        "id": "62d47523-a533-5e14-8ebf-92ecd6bac9e7",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-26"
+        }
+      },
+      {
+        "id": "356b24c8-2ced-528d-9a8f-9299f5e1ee6a",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-23"
+        }
+      },
+      {
+        "id": "61e378c9-9200-5cb5-8b43-04a0e133ffce",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-10-09"
+        }
+      },
+      {
+        "id": "aa8ba3cf-4bd9-51ce-b454-fedead40d311",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-17"
+        }
+      },
+      {
+        "id": "6697e3f0-7692-5ef9-8a54-311d97a9f16f",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-17"
+        }
+      },
+      {
+        "id": "d4a58e77-ef04-517f-a896-204cb133e8f6",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-04"
+        }
+      },
+      {
+        "id": "755239a8-f277-5e96-b7cf-f5967b5ada22",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-04"
+        }
+      },
+      {
+        "id": "dad1da31-9399-5ace-b204-e9e59827fb80",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-15"
+        }
+      },
+      {
+        "id": "524a88d6-0253-5103-a66b-19960eb5e149",
+        "data": {
+          "employee_email": "felix.wagner@fernhill.example",
+          "employee_name": "Felix Wagner",
+          "department": "Finance",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-13"
+        }
+      },
+      {
+        "id": "2cb18ad4-cbcf-5384-b075-6e811eefec08",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-03"
+        }
+      },
+      {
+        "id": "9316aa60-1db2-5d12-9409-312516ee589d",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-28"
+        }
+      },
+      {
+        "id": "16aa8a3e-1f81-5b03-a937-68a62daf8b3a",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "68843634-60a1-5f4c-ada3-d5fa4384a283",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "b3de8b35-4202-5bc3-baa2-68221ab6f058",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-04"
+        }
+      },
+      {
+        "id": "006b4770-4631-5e56-8ee2-92e674eb2d2a",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "f4bef0a6-cdde-5804-b145-56ef96c47575",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "0cb62312-62b1-5817-bbae-1198442e6b35",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-25"
+        }
+      },
+      {
+        "id": "ecedcf20-e0f4-589c-8d7d-0915df3142ee",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-14"
+        }
+      },
+      {
+        "id": "4cb351a4-39a4-5a20-a502-c37883d0b537",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 1,
+          "assessed_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "6d079572-602a-504f-855e-701407c4cbc3",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "9a215fd1-6688-51d8-978c-dae19a44f88f",
+        "data": {
+          "employee_email": "owen.weber@fernhill.example",
+          "employee_name": "Owen Weber",
+          "department": "Finance",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-22"
+        }
+      },
+      {
+        "id": "bfb25745-0195-5abe-83d8-a9ed4b495463",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-26"
+        }
+      },
+      {
+        "id": "bac068ba-e6c5-520e-a3b5-872159b8a1ca",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-17"
+        }
+      },
+      {
+        "id": "aa7f372d-a286-59ed-8331-9ac4106c3431",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-21"
+        }
+      },
+      {
+        "id": "01f7c9b9-9ddd-53f5-80fc-43a44e2cdf19",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "94947ade-22ff-5b3d-8bdc-10fa743dea83",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-09"
+        }
+      },
+      {
+        "id": "2ee3c5e1-55c8-5a1f-9b59-a9b8071bda04",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-12"
+        }
+      },
+      {
+        "id": "2c529bcf-96e7-59c5-b8c7-1fa575971e36",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-16"
+        }
+      },
+      {
+        "id": "ddecb295-1864-5221-9bdb-977762a8b0db",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-04"
+        }
+      },
+      {
+        "id": "24a4acb2-f1d4-5389-9b57-ff9276aa185b",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-01"
+        }
+      },
+      {
+        "id": "e294a444-4bb6-579b-998f-3773e69deee4",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-31"
+        }
+      },
+      {
+        "id": "bd5ba366-3874-55cf-bca7-186d160ca93c",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 2,
+          "assessed_on": "2026-09-16"
+        }
+      },
+      {
+        "id": "8a01e79b-17bd-5676-ad50-e5567847da15",
+        "data": {
+          "employee_email": "theo.mehta@fernhill.example",
+          "employee_name": "Theo Mehta",
+          "department": "Finance",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-09-11"
+        }
+      },
+      {
+        "id": "2553eb17-cc66-59e5-ac83-e3e7d2f57f9b",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-10-11"
+        }
+      },
+      {
+        "id": "48a140f4-7cfc-5bfe-b17a-b8ceea29fa42",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-24"
+        }
+      },
+      {
+        "id": "d60be43e-ef12-5348-8383-94435be15662",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-08"
+        }
+      },
+      {
+        "id": "a87bb21d-b949-5565-9739-23ad45f8f83f",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-10-19"
+        }
+      },
+      {
+        "id": "3c65a8d9-e92e-5be3-948b-9115595ea5b8",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-29"
+        }
+      },
+      {
+        "id": "6570a838-457f-54db-9059-5cc962be968e",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-09-15"
+        }
+      },
+      {
+        "id": "f2906b81-3b0c-58f9-a77e-bc1aa169e70b",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-07"
+        }
+      },
+      {
+        "id": "feca0fb0-3dbe-5a62-83de-62fbd85578fc",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-10-28"
+        }
+      },
+      {
+        "id": "b72c108f-5da2-5303-9188-872aac23e515",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-09-28"
+        }
+      },
+      {
+        "id": "df6e0375-92e7-5799-9a11-53a177f621fc",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 4,
+          "assessed_on": "2026-11-11"
+        }
+      },
+      {
+        "id": "bac14afe-e20e-5c0d-8f08-2d3626b604cc",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-11-14"
+        }
+      },
+      {
+        "id": "38df536f-72ba-50cd-a9c9-c68bbdf1f935",
+        "data": {
+          "employee_email": "alex.morgan@fernhill.example",
+          "employee_name": "Alex Morgan",
+          "department": "People & Operations",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-10-27"
+        }
+      },
+      {
+        "id": "59d9a2bc-68a9-5275-bfe9-bb57080d7323",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Communication",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-10-12"
+        }
+      },
+      {
+        "id": "8e1bce8a-a2a8-5bfc-8f52-e2c4ff087573",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Communication",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-18"
+        }
+      },
+      {
+        "id": "e57c99ae-df3b-5d27-8baa-03fa701b9c49",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Customer focus",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-09-13"
+        }
+      },
+      {
+        "id": "e52df224-1b5c-541a-88b4-16032ade43fc",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Customer focus",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-11-11"
+        }
+      },
+      {
+        "id": "cc12ed4c-5b62-523b-919c-3f0dd5b129b7",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Problem solving",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-09-07"
+        }
+      },
+      {
+        "id": "9eec0c86-de36-5f80-bd70-0cc20bb29756",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Problem solving",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-10"
+        }
+      },
+      {
+        "id": "f0bb5d8f-b90b-58d7-bb03-dc9603cc294c",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Technical depth",
+          "measure": "Current level",
+          "level": 3,
+          "assessed_on": "2026-11-09"
+        }
+      },
+      {
+        "id": "49a51938-678e-5f01-a16a-eef84a994633",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Technical depth",
+          "measure": "Target level",
+          "level": 3,
+          "assessed_on": "2026-09-29"
+        }
+      },
+      {
+        "id": "d52ce1e3-0d4a-5244-8e07-41153b3cb9a8",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Collaboration",
+          "measure": "Current level",
+          "level": 4,
+          "assessed_on": "2026-10-29"
+        }
+      },
+      {
+        "id": "78be4c2b-7eaa-5ad0-9366-5a42c519e3c0",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Collaboration",
+          "measure": "Target level",
+          "level": 5,
+          "assessed_on": "2026-09-22"
+        }
+      },
+      {
+        "id": "0f29b4a2-9178-515f-871f-7cf0cc177bed",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Ownership",
+          "measure": "Current level",
+          "level": 1,
+          "assessed_on": "2026-11-12"
+        }
+      },
+      {
+        "id": "1f8d17a2-4bc1-5e78-bc5b-f30af703c08c",
+        "data": {
+          "employee_email": "oscar.patel@fernhill.example",
+          "employee_name": "Oscar Patel",
+          "department": "People & Operations",
+          "skill": "Ownership",
+          "measure": "Target level",
+          "level": 2,
+          "assessed_on": "2026-10-24"
+        }
+      }
+    ]
+  }
+}

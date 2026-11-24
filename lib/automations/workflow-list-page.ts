@@ -32,6 +32,7 @@ export const WORKFLOW_TRIGGER_LABELS: Record<string, string> = {
   schedule: 'Schedule',
   webhook_received: 'Webhook',
   esign_event: 'E-signature Event',
+  agent_error: 'Agent Error',
 }
 
 export type WorkflowListView = 'cards' | 'list'

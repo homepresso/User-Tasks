@@ -8,6 +8,7 @@ import {
   type ReportSource,
 } from '@/lib/report-sources'
 import { scopeReportSourceToWorkflow, workflowIdOfSourceInputs } from '@/lib/report-workflow-variables'
+import { INSTANCE_REPORT_SOURCES, isInstanceReportSourceKey } from '@/lib/instance-admin/report-sources'
 
 const STATIC_SOURCE_KEYS = new Set(REPORT_SOURCES.map((source) => source.key))
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -45,7 +46,8 @@ async function loadReferenceSource(supabase: SupabaseClient, tenantId: string, s
   return data ? referenceToSource(data) : undefined
 }
 
-export async function listTenantReportSources(supabase: SupabaseClient, tenantId: string) {
+/** `options.instance`: also the "UserTasks instance" sources (callers pass it for instance admins only). */
+export async function listTenantReportSources(supabase: SupabaseClient, tenantId: string, options: { instance?: boolean } = {}) {
   const [customTablesResult, referenceResult] = await Promise.all([
     (supabase as any)
       .from('custom_tables')
@@ -65,7 +67,7 @@ export async function listTenantReportSources(supabase: SupabaseClient, tenantId
   const dynamicTableSources = (customTablesResult.data ?? []).map((table: any) => customTableToSource(table))
   const referenceSources = (referenceResult.data ?? []).map((reference: any) => referenceToSource(reference))
 
-  return [...REPORT_SOURCES, ...dynamicTableSources, ...referenceSources]
+  return [...REPORT_SOURCES, ...(options.instance ? INSTANCE_REPORT_SOURCES : []), ...dynamicTableSources, ...referenceSources]
 }
 
 /**
@@ -87,6 +89,9 @@ export async function resolveTenantReportSource(
     if (!scoped) throw new Error('Workflow not found for this report')
     return scoped
   }
+
+  // UserTasks instance sources: every read checks the instance admin (lib/services/instance-admin/report-rows.ts).
+  if (isInstanceReportSourceKey(sourceKey)) return INSTANCE_REPORT_SOURCES.find((s) => s.key === sourceKey)
 
   if (isReferenceReportSourceKey(sourceKey)) {
     return loadReferenceSource(supabase, tenantId, sourceKey)

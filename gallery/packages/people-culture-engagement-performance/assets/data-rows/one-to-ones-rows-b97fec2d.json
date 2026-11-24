@@ -1,0 +1,1451 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "b97fec2d-1c06-5195-80a7-f7346019f621",
+  "asset": {
+    "id": "b97fec2d-1c06-5195-80a7-f7346019f621",
+    "name": "One-to-ones rows",
+    "rows": [
+      {
+        "id": "9b7a0f97-e77f-54c5-a738-fd64198e727a",
+        "data": {
+          "meeting_ref": "1on1-0077",
+          "employee_name": "Nora Raman",
+          "employee_email": "nora.raman@fernhill.example",
+          "manager_name": "Sam Torres",
+          "manager_email": "sam.torres@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-11-22",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-09"
+        }
+      },
+      {
+        "id": "2fea76cd-554c-5a93-91de-2b154e462937",
+        "data": {
+          "meeting_ref": "1on1-0066",
+          "employee_name": "Caleb Berg",
+          "employee_email": "caleb.berg@fernhill.example",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-11-21",
+          "type": "One-to-one",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-11-25"
+        }
+      },
+      {
+        "id": "6b0273d2-9d68-5528-b004-09247c07f54d",
+        "data": {
+          "meeting_ref": "1on1-0030",
+          "employee_name": "Clara Bennett",
+          "employee_email": "clara.bennett@fernhill.example",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-11-21",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-11-28"
+        }
+      },
+      {
+        "id": "8ed2a67d-1e2c-5dc6-98a9-438697868216",
+        "data": {
+          "meeting_ref": "1on1-0007",
+          "employee_name": "Owen Rossi",
+          "employee_email": "owen.rossi@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-11-21",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-12-01"
+        }
+      },
+      {
+        "id": "5da11a6d-878b-56a3-8f0c-34933e996cd8",
+        "data": {
+          "meeting_ref": "1on1-0047",
+          "employee_name": "Alex Ward",
+          "employee_email": "alex.ward@fernhill.example",
+          "manager_name": "Daniel Okafor",
+          "manager_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-11-20",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-11"
+        }
+      },
+      {
+        "id": "b4ebe9cb-cb70-5b3a-91b7-65a7abf73cfa",
+        "data": {
+          "meeting_ref": "1on1-0010",
+          "employee_name": "Arjun Rossi",
+          "employee_email": "arjun.rossi@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-11-19",
+          "type": "Goal check-in",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-11-26"
+        }
+      },
+      {
+        "id": "9058d578-e127-50f1-942c-b94c3d6cb6a7",
+        "data": {
+          "meeting_ref": "1on1-0004",
+          "employee_name": "Andre Owens",
+          "employee_email": "andre.owens@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-11-19",
+          "type": "Goal check-in",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-03"
+        }
+      },
+      {
+        "id": "c575d33c-5be5-544c-919a-c5080f74ef38",
+        "data": {
+          "meeting_ref": "1on1-0080",
+          "employee_name": "Mei Owens",
+          "employee_email": "mei.owens@fernhill.example",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-11-18",
+          "type": "Career conversation",
+          "agenda": "Development plan check-in",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Low",
+          "next_on": "2026-12-04"
+        }
+      },
+      {
+        "id": "17492178-c96e-57f0-a27f-4ac1b4ae605d",
+        "data": {
+          "meeting_ref": "1on1-0044",
+          "employee_name": "Andre Kim",
+          "employee_email": "andre.kim@fernhill.example",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-11-18",
+          "type": "Career conversation",
+          "agenda": "Development plan check-in",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Good",
+          "next_on": "2026-12-06"
+        }
+      },
+      {
+        "id": "81912c4c-6caf-5f32-9768-57908d8a99c7",
+        "data": {
+          "meeting_ref": "1on1-0052",
+          "employee_name": "Rahul Mori",
+          "employee_email": "rahul.mori@fernhill.example",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-11-17",
+          "type": "Goal check-in",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Great",
+          "next_on": "2026-12-04"
+        }
+      },
+      {
+        "id": "17b2263b-9f32-5077-bd35-e3b7c957362c",
+        "data": {
+          "meeting_ref": "1on1-0043",
+          "employee_name": "Malik Quinn",
+          "employee_email": "malik.quinn@fernhill.example",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-11-17",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-13"
+        }
+      },
+      {
+        "id": "4fdb630c-2359-5958-a676-e51b76887d43",
+        "data": {
+          "meeting_ref": "1on1-0056",
+          "employee_name": "Owen Gallagher",
+          "employee_email": "owen.gallagher@fernhill.example",
+          "manager_name": "Daniel Okafor",
+          "manager_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-11-16",
+          "type": "Career conversation",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Good",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "852d945c-60f1-568d-8ad0-3a93d19dbc49",
+        "data": {
+          "meeting_ref": "1on1-0048",
+          "employee_name": "Rahul Fernández",
+          "employee_email": "rahul.fernandez@fernhill.example",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-11-15",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "c1123654-3abe-5d1c-8590-752ff5af5203",
+        "data": {
+          "meeting_ref": "1on1-0064",
+          "employee_name": "Owen Rossi",
+          "employee_email": "owen.rossi@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-11-13",
+          "type": "Goal check-in",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-07"
+        }
+      },
+      {
+        "id": "43d6256f-46ce-5c4b-8627-3f4aed79079e",
+        "data": {
+          "meeting_ref": "1on1-0070",
+          "employee_name": "Oscar Fernández",
+          "employee_email": "oscar.fernandez@fernhill.example",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-11-12",
+          "type": "Goal check-in",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-12"
+        }
+      },
+      {
+        "id": "c5818af7-46b1-5c7f-abf7-4440c28981ad",
+        "data": {
+          "meeting_ref": "1on1-0017",
+          "employee_name": "Zoe Levi",
+          "employee_email": "zoe.levi@fernhill.example",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-11-12",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-03"
+        }
+      },
+      {
+        "id": "0f0d58f7-21aa-52f0-838c-2c8db424eb93",
+        "data": {
+          "meeting_ref": "1on1-0071",
+          "employee_name": "Malik Kim",
+          "employee_email": "malik.kim@fernhill.example",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-11-10",
+          "type": "One-to-one",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-09"
+        }
+      },
+      {
+        "id": "09ffcf11-1eed-5c51-acd9-7d1970dfa929",
+        "data": {
+          "meeting_ref": "1on1-0020",
+          "employee_name": "Maya Haddad",
+          "employee_email": "maya.haddad@fernhill.example",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-11-10",
+          "type": "Career conversation",
+          "agenda": "Career goals and the next level",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Okay",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "3f32ebc0-5ca9-5792-86a4-504117b4e4a7",
+        "data": {
+          "meeting_ref": "1on1-0079",
+          "employee_name": "Owen Ward",
+          "employee_email": "owen.ward@fernhill.example",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-11-09",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-07"
+        }
+      },
+      {
+        "id": "8cbf2aed-d6b9-5668-879d-1c1ce3b3ba82",
+        "data": {
+          "meeting_ref": "1on1-0040",
+          "employee_name": "Arjun Wagner",
+          "employee_email": "arjun.wagner@fernhill.example",
+          "manager_name": "Grace Kim",
+          "manager_email": "grace.kim@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-11-09",
+          "type": "Goal check-in",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-08"
+        }
+      },
+      {
+        "id": "a201f668-681c-5718-9543-d60e81729fb3",
+        "data": {
+          "meeting_ref": "1on1-0038",
+          "employee_name": "Owen Ward",
+          "employee_email": "owen.ward@fernhill.example",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-11-08",
+          "type": "Career conversation",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Good",
+          "next_on": "2026-11-27"
+        }
+      },
+      {
+        "id": "1e19fe6d-78df-5a06-aaee-7b2cc4bb261d",
+        "data": {
+          "meeting_ref": "1on1-0035",
+          "employee_name": "Fatima Kim",
+          "employee_email": "fatima.kim@fernhill.example",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-11-04",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Great",
+          "next_on": "2026-11-26"
+        }
+      },
+      {
+        "id": "be09a451-356b-5f1b-9341-41cf2ccc7949",
+        "data": {
+          "meeting_ref": "1on1-0006",
+          "employee_name": "Nora Larsen",
+          "employee_email": "nora.larsen@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-11-04",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-07"
+        }
+      },
+      {
+        "id": "5c682899-afc4-5b2d-83f1-e62cc4af4377",
+        "data": {
+          "meeting_ref": "1on1-0069",
+          "employee_name": "Clara Tanaka",
+          "employee_email": "clara.tanaka@fernhill.example",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-11-03",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-01"
+        }
+      },
+      {
+        "id": "7e4a5cf1-ec25-5287-b038-03cb567512ad",
+        "data": {
+          "meeting_ref": "1on1-0057",
+          "employee_name": "Chloe Grant",
+          "employee_email": "chloe.grant@fernhill.example",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-11-03",
+          "type": "One-to-one",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Great",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "1cb69aa8-0d6c-5377-a4fb-c2fc8e1d7dbd",
+        "data": {
+          "meeting_ref": "1on1-0072",
+          "employee_name": "Lucía Laurent",
+          "employee_email": "lucia.laurent@fernhill.example",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-11-02",
+          "type": "One-to-one",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-04"
+        }
+      },
+      {
+        "id": "83645ce4-a1bd-5b2f-9f59-93dbd9dd0105",
+        "data": {
+          "meeting_ref": "1on1-0068",
+          "employee_name": "Chloe Weber",
+          "employee_email": "chloe.weber@fernhill.example",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-11-02",
+          "type": "Career conversation",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Good",
+          "next_on": "2026-12-08"
+        }
+      },
+      {
+        "id": "9135bfe0-3798-56ee-b6d2-216c9e1359bc",
+        "data": {
+          "meeting_ref": "1on1-0050",
+          "employee_name": "Arjun Rossi",
+          "employee_email": "arjun.rossi@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-11-02",
+          "type": "Career conversation",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Okay",
+          "next_on": "2026-12-03"
+        }
+      },
+      {
+        "id": "2900d418-d97a-5eb6-b093-27d5cbbd61a2",
+        "data": {
+          "meeting_ref": "1on1-0009",
+          "employee_name": "Victor Berg",
+          "employee_email": "victor.berg@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-11-02",
+          "type": "One-to-one",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "589ee424-77c5-5558-b692-3113099b5a3a",
+        "data": {
+          "meeting_ref": "1on1-0055",
+          "employee_name": "Yuki Sato",
+          "employee_email": "yuki.sato@fernhill.example",
+          "manager_name": "Grace Kim",
+          "manager_email": "grace.kim@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-11-01",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-11-27"
+        }
+      },
+      {
+        "id": "fb34ab1b-379b-524c-a516-123d7ab9f00e",
+        "data": {
+          "meeting_ref": "1on1-0073",
+          "employee_name": "Kenji Sato",
+          "employee_email": "kenji.sato@fernhill.example",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "met_on": "2026-10-31",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-05"
+        }
+      },
+      {
+        "id": "1b0a92bd-b28a-5129-9ca8-edb474af93ed",
+        "data": {
+          "meeting_ref": "1on1-0034",
+          "employee_name": "Elena Tanaka",
+          "employee_email": "elena.tanaka@fernhill.example",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-31",
+          "type": "Goal check-in",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-11-26"
+        }
+      },
+      {
+        "id": "b3073a18-5a5b-52fe-a0c4-2bbf12e96732",
+        "data": {
+          "meeting_ref": "1on1-0018",
+          "employee_name": "Felix Iyer",
+          "employee_email": "felix.iyer@fernhill.example",
+          "manager_name": "Alex Ward",
+          "manager_email": "alex.ward@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-10-31",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-11"
+        }
+      },
+      {
+        "id": "928546c0-f902-50d9-b06f-3e7110b9f040",
+        "data": {
+          "meeting_ref": "1on1-0059",
+          "employee_name": "Oscar Levi",
+          "employee_email": "oscar.levi@fernhill.example",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-30",
+          "type": "One-to-one",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-12"
+        }
+      },
+      {
+        "id": "77f1bb9c-b617-5351-b6dd-781687a51b06",
+        "data": {
+          "meeting_ref": "1on1-0042",
+          "employee_name": "Yuki Ward",
+          "employee_email": "yuki.ward@fernhill.example",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "department": "Finance",
+          "met_on": "2026-10-30",
+          "type": "One-to-one",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Great",
+          "next_on": "2026-11-27"
+        }
+      },
+      {
+        "id": "e1d77eae-6237-5c28-b39c-7089fcf8150c",
+        "data": {
+          "meeting_ref": "1on1-0019",
+          "employee_name": "Alex Quinn",
+          "employee_email": "alex.quinn@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-30",
+          "type": "One-to-one",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-11-28"
+        }
+      },
+      {
+        "id": "b0a45ef7-69a1-55d3-917e-fed2a20111ab",
+        "data": {
+          "meeting_ref": "1on1-0012",
+          "employee_name": "Nadia Hughes",
+          "employee_email": "nadia.hughes@fernhill.example",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "met_on": "2026-10-30",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-08"
+        }
+      },
+      {
+        "id": "3fa861b9-f2f2-585c-b790-5f950cb3eb33",
+        "data": {
+          "meeting_ref": "1on1-0032",
+          "employee_name": "Owen Rahman",
+          "employee_email": "owen.rahman@fernhill.example",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-29",
+          "type": "Career conversation",
+          "agenda": "Career goals and the next level",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Good",
+          "next_on": "2026-11-25"
+        }
+      },
+      {
+        "id": "5360b8b2-eeba-55c2-8072-9e6b48c9eabf",
+        "data": {
+          "meeting_ref": "1on1-0013",
+          "employee_name": "Maya Bennett",
+          "employee_email": "maya.bennett@fernhill.example",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-10-29",
+          "type": "One-to-one",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-11-28"
+        }
+      },
+      {
+        "id": "aff2b43a-02af-590f-a73e-7568ad083368",
+        "data": {
+          "meeting_ref": "1on1-0074",
+          "employee_name": "Arjun Wagner",
+          "employee_email": "arjun.wagner@fernhill.example",
+          "manager_name": "Grace Kim",
+          "manager_email": "grace.kim@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-10-28",
+          "type": "Career conversation",
+          "agenda": "Goal progress and blockers",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Good",
+          "next_on": "2026-12-08"
+        }
+      },
+      {
+        "id": "edb4d195-d482-5755-8061-dc0ad0a90a04",
+        "data": {
+          "meeting_ref": "1on1-0049",
+          "employee_name": "Ava Ward",
+          "employee_email": "ava.ward@fernhill.example",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-28",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-06"
+        }
+      },
+      {
+        "id": "54266d64-4971-5255-9902-57ce13643f12",
+        "data": {
+          "meeting_ref": "1on1-0039",
+          "employee_name": "Sofia Torres",
+          "employee_email": "sofia.torres@fernhill.example",
+          "manager_name": "Jonas Berg",
+          "manager_email": "jonas.berg@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-10-28",
+          "type": "One-to-one",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-12-12"
+        }
+      },
+      {
+        "id": "b85a4a3d-6ebe-59a0-a602-544a949be635",
+        "data": {
+          "meeting_ref": "1on1-0036",
+          "employee_name": "Kenji Dubois",
+          "employee_email": "kenji.dubois@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-28",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-09"
+        }
+      },
+      {
+        "id": "8429d3db-04b9-542d-b4bb-d467d1225048",
+        "data": {
+          "meeting_ref": "1on1-0005",
+          "employee_name": "Hugo Sato",
+          "employee_email": "hugo.sato@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-28",
+          "type": "One-to-one",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "c32f5145-8081-5f4b-8e0a-8580dc85b3ca",
+        "data": {
+          "meeting_ref": "1on1-0076",
+          "employee_name": "Yuki Ward",
+          "employee_email": "yuki.ward@fernhill.example",
+          "manager_name": "Lucía Fernández",
+          "manager_email": "lucia.fernandez@fernhill.example",
+          "department": "Finance",
+          "met_on": "2026-10-27",
+          "type": "Goal check-in",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-04"
+        }
+      },
+      {
+        "id": "d2b3f83a-1f2a-5faf-a9f3-59c7351aadfc",
+        "data": {
+          "meeting_ref": "1on1-0021",
+          "employee_name": "Kenji Park",
+          "employee_email": "kenji.park@fernhill.example",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-10-26",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-11"
+        }
+      },
+      {
+        "id": "a0f83317-61b4-50c3-9a8f-f4317b6e4c37",
+        "data": {
+          "meeting_ref": "1on1-0045",
+          "employee_name": "Kenji Park",
+          "employee_email": "kenji.park@fernhill.example",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-10-24",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-11-25"
+        }
+      },
+      {
+        "id": "1b6562f1-7d74-5aa2-a684-f81f2c28a2b4",
+        "data": {
+          "meeting_ref": "1on1-0029",
+          "employee_name": "Oscar Fernández",
+          "employee_email": "oscar.fernandez@fernhill.example",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-24",
+          "type": "One-to-one",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-12-07"
+        }
+      },
+      {
+        "id": "e10dc9f4-b7cb-5e1a-a139-ac32f7176c37",
+        "data": {
+          "meeting_ref": "1on1-0025",
+          "employee_name": "Talia Tanaka",
+          "employee_email": "talia.tanaka@fernhill.example",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-10-24",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-11-27"
+        }
+      },
+      {
+        "id": "6d1c144a-cd2b-537b-b1df-d1ae31c3c10c",
+        "data": {
+          "meeting_ref": "1on1-0003",
+          "employee_name": "Kenji Dubois",
+          "employee_email": "kenji.dubois@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-24",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-11-30"
+        }
+      },
+      {
+        "id": "5820eb01-9a04-53b6-94a5-333b6d06a2d8",
+        "data": {
+          "meeting_ref": "1on1-0024",
+          "employee_name": "Kenji Sato",
+          "employee_email": "kenji.sato@fernhill.example",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "met_on": "2026-10-22",
+          "type": "One-to-one",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "05956b79-d35f-52dd-8910-5aaf50f8f867",
+        "data": {
+          "meeting_ref": "1on1-0037",
+          "employee_name": "Leah Mehta",
+          "employee_email": "leah.mehta@fernhill.example",
+          "manager_name": "Arjun Wagner",
+          "manager_email": "arjun.wagner@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-10-21",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-11"
+        }
+      },
+      {
+        "id": "60dbb517-0e2c-5d50-bfd1-f073ccc52b19",
+        "data": {
+          "meeting_ref": "1on1-0075",
+          "employee_name": "Ben Murphy",
+          "employee_email": "ben.murphy@fernhill.example",
+          "manager_name": "Jamal Alvarez",
+          "manager_email": "jamal.alvarez@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-10-19",
+          "type": "One-to-one",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-04"
+        }
+      },
+      {
+        "id": "e8e034af-645c-55c9-b553-8fdbd8ff623b",
+        "data": {
+          "meeting_ref": "1on1-0067",
+          "employee_name": "Caleb Iyer",
+          "employee_email": "caleb.iyer@fernhill.example",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "met_on": "2026-10-18",
+          "type": "One-to-one",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "a9451dee-9fbe-5640-bf0e-7af35f97a0cb",
+        "data": {
+          "meeting_ref": "1on1-0033",
+          "employee_name": "Oscar Levi",
+          "employee_email": "oscar.levi@fernhill.example",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-18",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-12-01"
+        }
+      },
+      {
+        "id": "a52fb1f2-c8f2-52fb-842e-63862680a1e9",
+        "data": {
+          "meeting_ref": "1on1-0001",
+          "employee_name": "Maya Patel",
+          "employee_email": "maya.patel@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-18",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-06"
+        }
+      },
+      {
+        "id": "62927d84-9367-5b28-a6f7-d712bd1dc9c7",
+        "data": {
+          "meeting_ref": "1on1-0041",
+          "employee_name": "Victor Grant",
+          "employee_email": "victor.grant@fernhill.example",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "met_on": "2026-10-17",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "707a5402-4282-5c5b-93da-138cf61dd59e",
+        "data": {
+          "meeting_ref": "1on1-0002",
+          "employee_name": "Alex Quinn",
+          "employee_email": "alex.quinn@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-17",
+          "type": "Career conversation",
+          "agenda": "Goal progress and blockers",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Okay",
+          "next_on": "2026-12-04"
+        }
+      },
+      {
+        "id": "9f3e95e1-ee66-5c23-a5bd-bc804fe56295",
+        "data": {
+          "meeting_ref": "1on1-0063",
+          "employee_name": "Chloe Grant",
+          "employee_email": "chloe.grant@fernhill.example",
+          "manager_name": "Lucas Raman",
+          "manager_email": "lucas.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-16",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-11-29"
+        }
+      },
+      {
+        "id": "358e5d54-cf84-5534-9970-6cd496f810ec",
+        "data": {
+          "meeting_ref": "1on1-0016",
+          "employee_name": "Rosa Tanaka",
+          "employee_email": "rosa.tanaka@fernhill.example",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-16",
+          "type": "Goal check-in",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-12-01"
+        }
+      },
+      {
+        "id": "f4792e56-395f-5d58-9271-1caec10b3231",
+        "data": {
+          "meeting_ref": "1on1-0011",
+          "employee_name": "Alex Ward",
+          "employee_email": "alex.ward@fernhill.example",
+          "manager_name": "Daniel Okafor",
+          "manager_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-10-16",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-07"
+        }
+      },
+      {
+        "id": "3d08ec27-6dec-5d0b-b453-4c7b8bc5ec90",
+        "data": {
+          "meeting_ref": "1on1-0058",
+          "employee_name": "Caleb Ward",
+          "employee_email": "caleb.ward@fernhill.example",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "met_on": "2026-10-15",
+          "type": "Goal check-in",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-11-25"
+        }
+      },
+      {
+        "id": "2a7ee611-4404-528e-958f-fbfc4cc61471",
+        "data": {
+          "meeting_ref": "1on1-0031",
+          "employee_name": "Rahul Fernández",
+          "employee_email": "rahul.fernandez@fernhill.example",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-10-15",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-12-10"
+        }
+      },
+      {
+        "id": "de0f7b65-fc8e-52c1-a3cf-1133dd62cc35",
+        "data": {
+          "meeting_ref": "1on1-0078",
+          "employee_name": "Lena Fernández",
+          "employee_email": "lena.fernandez@fernhill.example",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-14",
+          "type": "One-to-one",
+          "agenda": "Career goals and the next level",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-11-28"
+        }
+      },
+      {
+        "id": "86547124-5e0a-5cd2-a29c-e0314c92f3a0",
+        "data": {
+          "meeting_ref": "1on1-0028",
+          "employee_name": "Marcus Patel",
+          "employee_email": "marcus.patel@fernhill.example",
+          "manager_name": "Aiko Tanaka",
+          "manager_email": "aiko.tanaka@fernhill.example",
+          "department": "Design",
+          "met_on": "2026-10-14",
+          "type": "Goal check-in",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-08"
+        }
+      },
+      {
+        "id": "181f334b-554f-5242-a2de-0b03c95f3e52",
+        "data": {
+          "meeting_ref": "1on1-0062",
+          "employee_name": "Victor Grant",
+          "employee_email": "victor.grant@fernhill.example",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "met_on": "2026-10-13",
+          "type": "Career conversation",
+          "agenda": "Development plan check-in",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Okay",
+          "next_on": "2026-12-01"
+        }
+      },
+      {
+        "id": "3fef536a-4e37-562c-b8a2-283e584ebd3b",
+        "data": {
+          "meeting_ref": "1on1-0046",
+          "employee_name": "Kenji Sato",
+          "employee_email": "kenji.sato@fernhill.example",
+          "manager_name": "Rosa Chen",
+          "manager_email": "rosa.chen@fernhill.example",
+          "department": "Product",
+          "met_on": "2026-10-13",
+          "type": "Goal check-in",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-05"
+        }
+      },
+      {
+        "id": "9edaa727-8465-5d0f-87cb-d7b64aa8d89e",
+        "data": {
+          "meeting_ref": "1on1-0065",
+          "employee_name": "Owen Ward",
+          "employee_email": "owen.ward@fernhill.example",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-10-12",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Low",
+          "next_on": "2026-12-07"
+        }
+      },
+      {
+        "id": "9055a4be-761f-5ff0-b200-313735fe4ece",
+        "data": {
+          "meeting_ref": "1on1-0054",
+          "employee_name": "Lucas Raman",
+          "employee_email": "lucas.raman@fernhill.example",
+          "manager_name": "Sam Torres",
+          "manager_email": "sam.torres@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-12",
+          "type": "One-to-one",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-10"
+        }
+      },
+      {
+        "id": "cc07e405-fb3e-5215-b79a-1d2ad08f7830",
+        "data": {
+          "meeting_ref": "1on1-0027",
+          "employee_name": "Jamal Alvarez",
+          "employee_email": "jamal.alvarez@fernhill.example",
+          "manager_name": "Daniel Okafor",
+          "manager_email": "daniel.okafor@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-10-12",
+          "type": "One-to-one",
+          "agenda": "Goal progress and blockers",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-05"
+        }
+      },
+      {
+        "id": "04fe486c-c599-501e-8bbf-24987438a5d8",
+        "data": {
+          "meeting_ref": "1on1-0022",
+          "employee_name": "Sofia Torres",
+          "employee_email": "sofia.torres@fernhill.example",
+          "manager_name": "Jonas Berg",
+          "manager_email": "jonas.berg@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-10-12",
+          "type": "Goal check-in",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Great",
+          "next_on": "2026-12-09"
+        }
+      },
+      {
+        "id": "68742c33-297c-5786-8bea-063485fc907c",
+        "data": {
+          "meeting_ref": "1on1-0015",
+          "employee_name": "Mateo Rossi",
+          "employee_email": "mateo.rossi@fernhill.example",
+          "manager_name": "Marcus Patel",
+          "manager_email": "marcus.patel@fernhill.example",
+          "department": "Design",
+          "met_on": "2026-10-12",
+          "type": "One-to-one",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-11"
+        }
+      },
+      {
+        "id": "b2056a2a-9ed3-5f32-9aa0-93b765724bda",
+        "data": {
+          "meeting_ref": "1on1-0060",
+          "employee_name": "Ruby Farouk",
+          "employee_email": "ruby.farouk@fernhill.example",
+          "manager_name": "Yuki Sato",
+          "manager_email": "yuki.sato@fernhill.example",
+          "department": "Customer Success",
+          "met_on": "2026-10-11",
+          "type": "One-to-one",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-04"
+        }
+      },
+      {
+        "id": "9a08443c-c86c-5612-b992-adea172f7e9f",
+        "data": {
+          "meeting_ref": "1on1-0051",
+          "employee_name": "Rosa Morgan",
+          "employee_email": "rosa.morgan@fernhill.example",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-10-11",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Good",
+          "next_on": "2026-12-02"
+        }
+      },
+      {
+        "id": "1658dba4-bf87-56ef-b7e1-3dd5b5a2947f",
+        "data": {
+          "meeting_ref": "1on1-0008",
+          "employee_name": "Jonas Okafor",
+          "employee_email": "jonas.okafor@fernhill.example",
+          "manager_name": "Alex Morgan",
+          "manager_email": "alex.morgan@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-11",
+          "type": "Career conversation",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Great",
+          "next_on": "2026-12-10"
+        }
+      },
+      {
+        "id": "2fe27152-c59b-546e-a4bb-a268158bea92",
+        "data": {
+          "meeting_ref": "1on1-0053",
+          "employee_name": "Zoe Mori",
+          "employee_email": "zoe.mori@fernhill.example",
+          "manager_name": "Maya Patel",
+          "manager_email": "maya.patel@fernhill.example",
+          "department": "People & Operations",
+          "met_on": "2026-10-10",
+          "type": "One-to-one",
+          "agenda": "Q4 priorities, workload check, feedback on the launch",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-04"
+        }
+      },
+      {
+        "id": "887bcbc6-ece1-51d8-8730-c0ff3fa443bb",
+        "data": {
+          "meeting_ref": "1on1-0026",
+          "employee_name": "Rosa Chen",
+          "employee_email": "rosa.chen@fernhill.example",
+          "manager_name": "Priya Raman",
+          "manager_email": "priya.raman@fernhill.example",
+          "department": "Product",
+          "met_on": "2026-10-10",
+          "type": "Career conversation",
+          "agenda": "Wellbeing and time off plans",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Okay",
+          "next_on": "2026-12-06"
+        }
+      },
+      {
+        "id": "380cbc51-c8d6-53fe-b24f-3400fcad624c",
+        "data": {
+          "meeting_ref": "1on1-0023",
+          "employee_name": "Mateo Dubois",
+          "employee_email": "mateo.dubois@fernhill.example",
+          "manager_name": "Sofia Torres",
+          "manager_email": "sofia.torres@fernhill.example",
+          "department": "Marketing",
+          "met_on": "2026-10-10",
+          "type": "One-to-one",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Great",
+          "next_on": "2026-11-27"
+        }
+      },
+      {
+        "id": "f180ad91-686c-5f34-93fb-3bbb755383dc",
+        "data": {
+          "meeting_ref": "1on1-0061",
+          "employee_name": "Rahul Mori",
+          "employee_email": "rahul.mori@fernhill.example",
+          "manager_name": "Owen Gallagher",
+          "manager_email": "owen.gallagher@fernhill.example",
+          "department": "Engineering",
+          "met_on": "2026-10-08",
+          "type": "One-to-one",
+          "agenda": "Development plan check-in",
+          "notes": "Good progress; agreed to rebalance the support rota next sprint.",
+          "actions": "Share the rota proposal; book the customer review",
+          "mood": "Okay",
+          "next_on": "2026-12-13"
+        }
+      },
+      {
+        "id": "9e70ca7d-ece3-5b2c-8bf9-89b914e120bf",
+        "data": {
+          "meeting_ref": "1on1-0014",
+          "employee_name": "Nora Laurent",
+          "employee_email": "nora.laurent@fernhill.example",
+          "manager_name": "Nora Raman",
+          "manager_email": "nora.raman@fernhill.example",
+          "department": "Sales",
+          "met_on": "2026-10-08",
+          "type": "Career conversation",
+          "agenda": "Customer escalations and support rota",
+          "notes": "Talked about the path to senior; agreed two stretch projects and a mentor.",
+          "actions": "Find a mentor; draft development plan",
+          "mood": "Low",
+          "next_on": "2026-12-06"
+        }
+      }
+    ]
+  }
+}

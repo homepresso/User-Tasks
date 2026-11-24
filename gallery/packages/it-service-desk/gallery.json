@@ -1,0 +1,114 @@
+{
+  "id": "ea85100b-e2c1-5809-b067-4f3c4afbbb15",
+  "slug": "it-service-desk",
+  "title": "IT service desk",
+  "category": "it-security",
+  "summary": "A service desk app: raise a ticket in a dialog, follow your tickets, work a team Kanban board, watch SLAs at risk or breached and point people to the knowledge base.",
+  "description": "IT service desk is a ready-made app for a small IT team. People open it from the Apps menu, read the maintenance notice and the popular fixes, and press Raise a ticket: the form opens in a dialog with the category, priority, summary, details, asset tag and screenshots.\n\nEach ticket starts the Service desk ticket workflow. It is logged in the Service desk tickets table and becomes a task for the desk with a one-day due date and a reminder. The agent resolves it or asks the requester for more information; the requester gets a task to reply and the ticket comes back to the desk, so nothing is lost in email.\n\nThe app has five pages: Home (notice, Raise a ticket, My tickets and popular fixes), Team board for agents (my workload, open and resolved counts, a Kanban board by status, open tickets per agent that filters the board and the open ticket list when you click a person), SLA (open tickets against SLA, the SLA state of the register, breached tickets, SLA by agent and the weekly trend), Insights (top categories, tickets by priority, raised versus resolved, time to resolve and the full register) and Knowledge (searchable article cards that link to your help site).",
+  "trigger": "app",
+  "entry_app": "ed43d9a0-d0bf-5d73-943f-3cca32b1552b",
+  "entry_workflow": "0e59b74c-7251-52bd-ac18-738c67d21914",
+  "entry_form": "a54ac138-74a6-58e2-bd1e-8c8e2b99bf13",
+  "start": "Open IT service desk from the Apps menu and press Raise a ticket; the form opens in a dialog and starts the ticket workflow.",
+  "difficulty": "starter",
+  "setup_minutes": 5,
+  "tags": [
+    "it service desk",
+    "tickets",
+    "sla",
+    "kanban",
+    "knowledge base",
+    "app"
+  ],
+  "version": "1.0.0",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-22",
+      "notes": "First release."
+    }
+  ],
+  "needs": [
+    "assignees"
+  ],
+  "setup": [
+    "Open Apps → IT service desk → Settings → Audience: add everyone as contributors (they raise tickets) and your IT team as contributors too (they work the board).",
+    "Assignees: pick who works new tickets (the \"Work the ticket\" step). Change it later to a service desk team queue if you have one.",
+    "Replace the Knowledge articles rows with links to your own help site, and the Popular fixes links on Home.",
+    "Edit or remove the maintenance notice on Home (it is an Announcement widget)."
+  ],
+  "steps": [
+    {
+      "title": "Raise a ticket",
+      "body": "Raise a ticket opens the form in a dialog: category, priority, summary, details, asset tag and screenshots."
+    },
+    {
+      "title": "Logged",
+      "body": "The workflow numbers the ticket and logs it in the Service desk tickets table as New."
+    },
+    {
+      "title": "Work the ticket",
+      "body": "The desk gets a task due in a day; the Team board shows every open ticket by status and agent."
+    },
+    {
+      "title": "Ask the requester",
+      "body": "If the agent needs more information, the requester gets a task to reply and the ticket returns to the desk."
+    },
+    {
+      "title": "Resolve and measure",
+      "body": "Resolving it updates the register; the SLA and Insights pages track breaches, categories and time to resolve."
+    }
+  ],
+  "sample_input": {
+    "requester": "Jordan Rivera",
+    "email": "jordan.rivera@example.com",
+    "category": "Network & VPN",
+    "priority": "P2 · High",
+    "title": "VPN disconnects every few minutes",
+    "details": "Since this morning the VPN drops every five minutes on home Wi-Fi. Restarting did not help.",
+    "asset_tag": "LT-1043"
+  },
+  "expect": "completed",
+  "verify_mocks": {
+    "tasks": [
+      {
+        "outcome": "Ask the requester",
+        "values": {
+          "resolution": "Does it also happen on a wired connection?"
+        }
+      },
+      {
+        "outcome": "Send reply",
+        "values": {
+          "reply": "Only on Wi-Fi; wired is fine."
+        }
+      },
+      {
+        "outcome": "Resolve",
+        "values": {
+          "resolution": "Updated the Wi-Fi driver and the VPN client."
+        }
+      }
+    ]
+  },
+  "icon": "headset",
+  "screenshots": [
+    {
+      "file": "screenshots/home.webp",
+      "caption": "Home: the maintenance notice, Raise a ticket, My tickets and popular fixes."
+    },
+    {
+      "file": "screenshots/board.webp",
+      "caption": "Team board: workload, open and resolved counts, and the Kanban board by status."
+    },
+    {
+      "file": "screenshots/sla.webp",
+      "caption": "SLA: open tickets against SLA, the register’s SLA state, breached tickets and SLA by agent."
+    },
+    {
+      "file": "screenshots/knowledge-dark.webp",
+      "caption": "Knowledge in dark mode: searchable article cards that link to the help site.",
+      "theme": "dark"
+    }
+  ]
+}

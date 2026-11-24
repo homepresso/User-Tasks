@@ -119,6 +119,18 @@ describe.skipIf(!DB_URL)('form wizard (local stack)', () => {
     await q(`UPDATE public.form_wizard_projects SET spec = spec #- '{audience,closes_at}' WHERE id = $1`, [created.project.id])
   })
 
+  it('one response per person holds under a double submit (migration 20270126140000)', async () => {
+    const applied = (await q(`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'form_submissions' AND column_name = 'single_response'`)).length > 0
+    if (!applied) { console.warn('skipped: migration 20270126140000 is not applied to the local stack'); return }
+    const key = created.project.spec as any
+    const values = { [key.questions[0].key]: 'Laptop', [key.questions[1].key]: 'A' }
+    const formId = created.manifest.form_id
+    const results = await Promise.allSettled([submitForm(apiCtx(APPROVER), formId, { values }, { source: 'api' }), submitForm(apiCtx(APPROVER), formId, { values }, { source: 'api' })])
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+    expect(String((results.find((r) => r.status === 'rejected') as PromiseRejectedResult).reason)).toMatch(/already responded/)
+    expect((await q('SELECT count(*)::int AS n FROM public.form_submissions WHERE form_id = $1 AND submitted_by = $2', [formId, APPROVER]))[0].n).toBe(1)
+  })
+
   it('update keeps rows and existing columns and adds new ones; another member cannot update', async () => {
     await q(`INSERT INTO public.custom_table_rows (tenant_id, table_id, data) VALUES ($1, $2, '{"what_do_you_need": "Kept"}')`, [T, created.manifest.table_id])
     const spec = { ...(created.project.spec as any), questions: [...(created.project.spec as any).questions, { id: 'q3', kind: 'date', label: 'Needed by' }] }

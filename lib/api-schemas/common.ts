@@ -27,3 +27,14 @@ export function itemResponse(key: string, item: z.ZodType = looseObject) {
 }
 
 export const deletedResponse = z.looseObject({ deleted: z.literal(true) })
+
+/**
+ * An object's free-text tags on create / update (lib/tags/normalize.ts):
+ * tidied, de-duplicated case-insensitively, at most 30 of at most 60
+ * characters. Replaces the object's tags; [] clears them.
+ */
+export const tagsBodyField = z.array(z.string().max(60)).max(30).optional()
+  .describe('Tags (replaces the current tags; [] clears). Trimmed, matched case-insensitively, at most 30 of at most 60 characters')
+
+/** `tag` list filter: rows carrying this tag. */
+export const tagQueryField = z.string().max(60).optional().describe('Only items carrying this tag')

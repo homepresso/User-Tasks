@@ -1,0 +1,336 @@
+{
+  "format_version": 3,
+  "asset_type": "workflows",
+  "id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+  "asset": {
+    "id": "0e59b74c-7251-52bd-ac18-738c67d21914",
+    "name": "Service desk ticket",
+    "description": "A ticket from the Raise a ticket form: logged with its priority, worked by the service desk, with a loop back to the requester when more information is needed.",
+    "trigger_type": "form_submitted",
+    "trigger_config": {},
+    "nodes": [
+      {
+        "id": "trigger",
+        "type": "form_submitted",
+        "label": "Ticket raised",
+        "config": {
+          "form_id": "a54ac138-74a6-58e2-bd1e-8c8e2b99bf13",
+          "form_name": "Raise a ticket"
+        },
+        "position": {
+          "x": 400,
+          "y": 60
+        }
+      },
+      {
+        "id": "ref",
+        "type": "set_variable",
+        "label": "Ticket number",
+        "config": {
+          "name": "ticket_ref",
+          "expression": "INC-{{=FORMAT_DATE(NOW(), \"YYYYMMDD\")}}-{{=UPPER(LEFT(GUID(), 4))}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "title",
+        "type": "set_title",
+        "label": "Set title",
+        "config": {
+          "title": "{{ticket_ref}} · {{form.title}}"
+        },
+        "position": {
+          "x": 400,
+          "y": 340
+        }
+      },
+      {
+        "id": "log",
+        "type": "update_data_table",
+        "label": "Log the ticket",
+        "config": {
+          "table_id": "746ab20f-5436-50e7-b277-19c420b69652",
+          "table_name": "Service desk tickets",
+          "operation": "insert",
+          "column_values": {
+            "ticket_ref": "{{ticket_ref}}",
+            "title": "{{form.title}}",
+            "requester": "{{form.requester}}",
+            "category": "{{form.category}}",
+            "priority": "{{form.priority}}",
+            "status": "New",
+            "opened_on": "{{=FORMAT_DATE(NOW(), \"YYYY-MM-DD\")}}",
+            "sla_state": "On track"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 480
+        }
+      },
+      {
+        "id": "work",
+        "type": "user_task",
+        "label": "Work the ticket",
+        "config": {
+          "task_title": "{{form.priority}}: {{form.title}}",
+          "task_description": "<p><strong>{{form.requester}}</strong> ({{form.email}}) raised a <strong>{{form.category}}</strong> ticket.</p><p>{{form.details}}</p><p>Asset tag: {{form.asset_tag}}</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Resolve",
+            "Ask the requester"
+          ],
+          "assignment_type": "individual",
+          "assignee_id": "0239f303-43f9-5194-9c3a-5782173ef6cf",
+          "fields": [
+            {
+              "key": "resolution",
+              "label": "Resolution or question for the requester",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "resolution",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "resolve",
+              "label": "Resolve",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Resolve"
+            },
+            {
+              "id": "ask_the_requester",
+              "label": "Ask the requester",
+              "kind": "outcome",
+              "style": "secondary",
+              "outcome": "Ask the requester"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Service desk ticket",
+            "align": "left",
+            "subtitle": "{{ticket_ref}} · {{form.category}} · {{form.priority}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 1,
+          "due_offset_unit": "days",
+          "reminders": [
+            {
+              "offset_minutes": 240
+            }
+          ]
+        },
+        "position": {
+          "x": 400,
+          "y": 620
+        }
+      },
+      {
+        "id": "resolved",
+        "type": "update_data_table",
+        "label": "Mark resolved",
+        "config": {
+          "table_id": "746ab20f-5436-50e7-b277-19c420b69652",
+          "table_name": "Service desk tickets",
+          "operation": "update",
+          "match_column": "ticket_ref",
+          "match_value": "{{ticket_ref}}",
+          "column_values": {
+            "status": "Resolved",
+            "sla_state": "Met",
+            "resolution": "{{task_data.resolution}}"
+          }
+        },
+        "position": {
+          "x": 400,
+          "y": 760
+        }
+      },
+      {
+        "id": "end",
+        "type": "end_workflow",
+        "label": "Resolved",
+        "config": {
+          "reason": "{{ticket_ref}} resolved"
+        },
+        "position": {
+          "x": 400,
+          "y": 900
+        }
+      },
+      {
+        "id": "waiting",
+        "type": "update_data_table",
+        "label": "Waiting on the requester",
+        "config": {
+          "table_id": "746ab20f-5436-50e7-b277-19c420b69652",
+          "table_name": "Service desk tickets",
+          "operation": "update",
+          "match_column": "ticket_ref",
+          "match_value": "{{ticket_ref}}",
+          "column_values": {
+            "status": "Waiting on requester"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 760
+        }
+      },
+      {
+        "id": "reply",
+        "type": "user_task",
+        "label": "Requester replies",
+        "config": {
+          "task_title": "The service desk needs more information: {{form.title}}",
+          "task_description": "<p>The service desk asked: <em>{{task_data.resolution}}</em></p><p>Reply below and the ticket goes back to the desk.</p>",
+          "task_priority": "medium",
+          "outcomes": [
+            "Send reply"
+          ],
+          "assignment_type": "individual",
+          "assignee_variable": "{{submitted_by}}",
+          "fields": [
+            {
+              "key": "reply",
+              "label": "Your reply",
+              "type": "textarea",
+              "required": true
+            }
+          ],
+          "form_layout": {
+            "rows": [
+              {
+                "columns": 1,
+                "cells": [
+                  {
+                    "field_key": "reply",
+                    "span": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "form_buttons": [
+            {
+              "id": "send_reply",
+              "label": "Send reply",
+              "kind": "outcome",
+              "style": "primary",
+              "outcome": "Send reply"
+            }
+          ],
+          "form_header": {
+            "enabled": true,
+            "image": "default",
+            "title": "Your ticket",
+            "align": "left",
+            "subtitle": "{{ticket_ref}}"
+          },
+          "due_date_mode": "relative",
+          "due_offset_amount": 3,
+          "due_offset_unit": "days"
+        },
+        "position": {
+          "x": 720,
+          "y": 900
+        }
+      },
+      {
+        "id": "back",
+        "type": "update_data_table",
+        "label": "Back to the desk",
+        "config": {
+          "table_id": "746ab20f-5436-50e7-b277-19c420b69652",
+          "table_name": "Service desk tickets",
+          "operation": "update",
+          "match_column": "ticket_ref",
+          "match_value": "{{ticket_ref}}",
+          "column_values": {
+            "status": "In progress"
+          }
+        },
+        "position": {
+          "x": 720,
+          "y": 1040
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e-trigger-ref",
+        "source": "trigger",
+        "target": "ref"
+      },
+      {
+        "id": "e-ref-title",
+        "source": "ref",
+        "target": "title"
+      },
+      {
+        "id": "e-title-log",
+        "source": "title",
+        "target": "log"
+      },
+      {
+        "id": "e-log-work",
+        "source": "log",
+        "target": "work"
+      },
+      {
+        "id": "e-work-resolved-resolve",
+        "source": "work",
+        "target": "resolved",
+        "label": "Resolve"
+      },
+      {
+        "id": "e-work-waiting-ask_the_requester",
+        "source": "work",
+        "target": "waiting",
+        "label": "Ask the requester"
+      },
+      {
+        "id": "e-resolved-end",
+        "source": "resolved",
+        "target": "end"
+      },
+      {
+        "id": "e-waiting-reply",
+        "source": "waiting",
+        "target": "reply"
+      },
+      {
+        "id": "e-reply-back-send_reply",
+        "source": "reply",
+        "target": "back",
+        "label": "Send reply"
+      },
+      {
+        "id": "e-back-work",
+        "source": "back",
+        "target": "work"
+      }
+    ],
+    "user_variables": [],
+    "swimlanes": [],
+    "is_active": true
+  }
+}

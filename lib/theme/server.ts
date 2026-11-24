@@ -1,5 +1,6 @@
 import { cache } from 'react'
-import { requireTenant } from '@/lib/actions/require-tenant'
+import { createClient } from '@/lib/supabase/server'
+import { loadSessionWorkspace } from '@/lib/session-workspace'
 import { readWorkspaceTheme } from '@/lib/services/workspace-theme'
 import { defaultWorkspaceTheme } from './presets'
 import type { WorkspaceTheme } from './schema'
@@ -12,8 +13,10 @@ import type { WorkspaceTheme } from './schema'
  */
 export const loadSessionWorkspaceTheme = cache(async (): Promise<WorkspaceTheme> => {
   try {
-    const { supabase, tenantId } = await requireTenant()
-    return (await readWorkspaceTheme(supabase, tenantId)).theme
+    const workspace = await loadSessionWorkspace()
+    const tenantId = workspace?.current ?? workspace?.home
+    if (!tenantId) return defaultWorkspaceTheme()
+    return (await readWorkspaceTheme(await createClient(), tenantId)).theme
   } catch {
     return defaultWorkspaceTheme()
   }

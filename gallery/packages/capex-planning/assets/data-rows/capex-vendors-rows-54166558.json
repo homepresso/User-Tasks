@@ -1,0 +1,179 @@
+{
+  "format_version": 3,
+  "asset_type": "table_rows",
+  "id": "54166558-8ae2-5d41-a80a-ec0f1ee93f45",
+  "asset": {
+    "id": "54166558-8ae2-5d41-a80a-ec0f1ee93f45",
+    "name": "CapEx vendors rows",
+    "rows": [
+      {
+        "id": "b9a0f273-0553-56f8-898c-7b42bd72322f",
+        "data": {
+          "vendor": "Northline Machine Tools",
+          "category": "Equipment",
+          "contact_email": "accounts@northlinemachinetools.example.com",
+          "payment_terms": "Net 45",
+          "preferred": true,
+          "rating": 4.6,
+          "spend_ytd": 644960
+        }
+      },
+      {
+        "id": "ec6fff20-2c91-53c5-acaa-0f58c9e60477",
+        "data": {
+          "vendor": "Ridgeway Automation",
+          "category": "Equipment",
+          "contact_email": "accounts@ridgewayautomation.example.com",
+          "payment_terms": "Net 30",
+          "preferred": true,
+          "rating": 4.4,
+          "spend_ytd": 0
+        }
+      },
+      {
+        "id": "1deac9aa-33d4-5812-9838-89862bce746f",
+        "data": {
+          "vendor": "Keystone Hydraulics",
+          "category": "Equipment",
+          "contact_email": "accounts@keystonehydraulics.example.com",
+          "payment_terms": "Net 30",
+          "preferred": false,
+          "rating": 3.9,
+          "spend_ytd": 0
+        }
+      },
+      {
+        "id": "001f6b58-0619-5951-82f1-9aa37babf716",
+        "data": {
+          "vendor": "Bluepeak Systems",
+          "category": "IT",
+          "contact_email": "accounts@bluepeaksystems.example.com",
+          "payment_terms": "Net 30",
+          "preferred": true,
+          "rating": 4.5,
+          "spend_ytd": 739910
+        }
+      },
+      {
+        "id": "4dc06d24-52e1-5dda-bd0c-ed6a48d6349c",
+        "data": {
+          "vendor": "Corvid Networks",
+          "category": "IT",
+          "contact_email": "accounts@corvidnetworks.example.com",
+          "payment_terms": "Net 30",
+          "preferred": false,
+          "rating": 4.1,
+          "spend_ytd": 0
+        }
+      },
+      {
+        "id": "40a5437f-fe70-5de1-9e78-d77569f96562",
+        "data": {
+          "vendor": "Lattice Cloud Services",
+          "category": "IT",
+          "contact_email": "accounts@latticecloudservices.example.com",
+          "payment_terms": "Net 15",
+          "preferred": true,
+          "rating": 4.2,
+          "spend_ytd": 0
+        }
+      },
+      {
+        "id": "766cc236-3fc5-5d2e-b330-f29f7c873548",
+        "data": {
+          "vendor": "Harborline Builders",
+          "category": "Facilities",
+          "contact_email": "accounts@harborlinebuilders.example.com",
+          "payment_terms": "Net 60",
+          "preferred": true,
+          "rating": 4.3,
+          "spend_ytd": 1357240
+        }
+      },
+      {
+        "id": "38a3cc3b-162b-5627-b001-a45bc00c4b72",
+        "data": {
+          "vendor": "Summit Electrical Contractors",
+          "category": "Facilities",
+          "contact_email": "accounts@summitelectricalcontractors.example.com",
+          "payment_terms": "Net 45",
+          "preferred": false,
+          "rating": 4,
+          "spend_ytd": 0
+        }
+      },
+      {
+        "id": "f6818b65-4ac0-5056-9042-09f2b6e4e380",
+        "data": {
+          "vendor": "Evergreen HVAC",
+          "category": "Facilities",
+          "contact_email": "accounts@evergreenhvac.example.com",
+          "payment_terms": "Net 30",
+          "preferred": true,
+          "rating": 4.4,
+          "spend_ytd": 0
+        }
+      },
+      {
+        "id": "6c40e4fc-4757-5980-a14c-48fc7aaeccf0",
+        "data": {
+          "vendor": "Prairie Fleet Sales",
+          "category": "Vehicles",
+          "contact_email": "accounts@prairiefleetsales.example.com",
+          "payment_terms": "Net 30",
+          "preferred": true,
+          "rating": 4.2,
+          "spend_ytd": 1062220
+        }
+      },
+      {
+        "id": "b8d4d3df-8107-5dcb-b958-a9ee6927df0e",
+        "data": {
+          "vendor": "Granite Trucks",
+          "category": "Vehicles",
+          "contact_email": "accounts@granitetrucks.example.com",
+          "payment_terms": "Net 45",
+          "preferred": false,
+          "rating": 3.8,
+          "spend_ytd": 0
+        }
+      },
+      {
+        "id": "e565acf8-ee9e-541c-a563-ea1d03fff68d",
+        "data": {
+          "vendor": "Lumen Lab Supply",
+          "category": "R&D",
+          "contact_email": "accounts@lumenlabsupply.example.com",
+          "payment_terms": "Net 30",
+          "preferred": true,
+          "rating": 4.7,
+          "spend_ytd": 258190
+        }
+      },
+      {
+        "id": "56a07cf1-5de8-56a1-bad5-7dd5b7f4998e",
+        "data": {
+          "vendor": "Meridian Test Instruments",
+          "category": "R&D",
+          "contact_email": "accounts@meridiantestinstruments.example.com",
+          "payment_terms": "Net 45",
+          "preferred": false,
+          "rating": 4.1,
+          "spend_ytd": 0
+        }
+      },
+      {
+        "id": "33e74936-a40e-5898-ad38-487b2cc74d31",
+        "data": {
+          "vendor": "Copperfield Safety Solutions",
+          "category": "Facilities",
+          "contact_email": "accounts@copperfieldsafetysolutions.example.com",
+          "payment_terms": "Net 30",
+          "preferred": true,
+          "rating": 4.5,
+          "spend_ytd": 0
+        }
+      }
+    ]
+  }
+}

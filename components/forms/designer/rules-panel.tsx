@@ -5,6 +5,7 @@
 import { surveyConditionSubjects } from '@/lib/forms/survey/controls'
 import { AnonymousStepToggle } from './anonymous-step-toggle'
 import { CallReferenceEditor } from './call-reference-editor'
+import { DataEventCallout } from './data-event-wizard'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Copy, FlaskConical, GripVertical, Plus, Search, Trash2, X } from 'lucide-react'
@@ -780,9 +781,14 @@ function TestPanel({ state, def, onScope }: { state: DesignerState; def: RulesDe
 
 /* ── The tab ────────────────────────────────────────────────────────── */
 
-export function RulesPanel({ state, onChange }: {
+export function RulesPanel({ state, onChange, offerDataEvent = false, formId, formName }: {
   state: DesignerState
   onChange: (next: DesignerState, tag?: string) => void
+  /** The form's own Rules tab (not a repeating section's): offer "Map to data event" while it has none. */
+  offerDataEvent?: boolean
+  /** The saved reusable form (Map to data event → Send to a workflow needs it). */
+  formId?: string
+  formName?: string
 }) {
   const def = useMemo(() => toDef(state), [state])
   const rules = useMemo(() => collectFormRules(def), [def])
@@ -836,6 +842,7 @@ export function RulesPanel({ state, onChange }: {
   return (
     <DesignerTestSampleProvider value={showTest && testScope ? testSample : null}>
     <div className="space-y-3" data-testid="rules-panel">
+      {offerDataEvent && <DataEventCallout state={state} formId={formId} formName={formName} onChange={onChange} />}
       <div className="flex items-center gap-2">
         <p className="flex-1 text-xs text-fg-muted">Every rule of this form — When [event] → If [conditions] → Then [actions]. Your own rules run in list order.</p>
         <button type="button" onClick={addRule} className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-2xs font-medium bg-primary text-primary-fg" data-testid="rules-new">

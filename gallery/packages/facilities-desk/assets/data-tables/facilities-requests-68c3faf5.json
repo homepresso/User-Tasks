@@ -1,0 +1,117 @@
+{
+  "format_version": 3,
+  "asset_type": "data_tables",
+  "id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+  "asset": {
+    "id": "68c3faf5-ea28-59ec-8cbc-05950141ca77",
+    "name": "Facilities requests",
+    "description": "Every request: what and where, its priority, status and the technician working on it.",
+    "columns": [
+      {
+        "id": "970df854-4e46-544d-8994-87a637760470",
+        "required": true,
+        "key": "request_ref",
+        "name": "Request",
+        "type": "text"
+      },
+      {
+        "id": "c873cfd7-7dc1-5919-9ed9-f7fb83a7a123",
+        "required": true,
+        "key": "title",
+        "name": "What",
+        "type": "text"
+      },
+      {
+        "id": "2b7014e6-8b55-55af-8d1a-13089a1910bf",
+        "required": false,
+        "key": "category",
+        "name": "Category",
+        "type": "select",
+        "options": [
+          "Electrical",
+          "Plumbing",
+          "Heating & cooling",
+          "Cleaning",
+          "Furniture",
+          "Access & security",
+          "Other"
+        ]
+      },
+      {
+        "id": "1b0e91e9-3b63-59ce-b281-d8879a156fcd",
+        "required": false,
+        "key": "site",
+        "name": "Site",
+        "type": "text"
+      },
+      {
+        "id": "09e680b8-b848-52fb-b1e0-c298c99bec6e",
+        "required": false,
+        "key": "building",
+        "name": "Building",
+        "type": "text"
+      },
+      {
+        "id": "33e2530a-96ec-5980-8578-d6702cb2c568",
+        "required": false,
+        "key": "floor",
+        "name": "Floor",
+        "type": "text"
+      },
+      {
+        "id": "c15a19b3-fb87-5b5a-96bc-4d6c8823d93a",
+        "required": false,
+        "key": "spot",
+        "name": "Exact spot",
+        "type": "text"
+      },
+      {
+        "id": "d07a165e-fe2c-5637-8d58-632c56c89649",
+        "required": false,
+        "key": "priority",
+        "name": "Priority",
+        "type": "select",
+        "options": [
+          "Urgent",
+          "High",
+          "Normal",
+          "Low"
+        ]
+      },
+      {
+        "id": "db3dcaae-b600-5e40-bc74-e851b7139ff5",
+        "required": false,
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "Open",
+          "Assigned",
+          "Done",
+          "Closed - not fixed"
+        ]
+      },
+      {
+        "id": "863999b9-d76c-5d42-8a76-dd5ed778ff7e",
+        "required": false,
+        "key": "technician",
+        "name": "Technician",
+        "type": "text"
+      },
+      {
+        "id": "9cf1725a-5097-5965-ada3-1622637c6c64",
+        "required": false,
+        "key": "requested_by",
+        "name": "Requested by",
+        "type": "text"
+      },
+      {
+        "id": "072a921d-dfe3-546c-b7ca-a98f87672c9a",
+        "required": false,
+        "key": "target_date",
+        "name": "Target date",
+        "type": "date"
+      }
+    ]
+  }
+}

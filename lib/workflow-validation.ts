@@ -1,3 +1,4 @@
+import { validateAgentErrorConfig } from './agents/error-trigger'
 import type { WorkflowNode } from './workflow-schema'
 import { WORKFLOW_UPDATABLE_TASK_FIELDS } from './task-fields'
 import { NODE_CATALOG } from './workflow-schema'
@@ -5,8 +6,10 @@ import { extensionCatalogEntry, looksLikeExtensionNodeType } from './extensions/
 import { normalizeScheduleConfig } from './workflow-schedule'
 import { setVariableValidationErrors } from './workflow-set-variable'
 import { taskDataFieldSlug } from './task-data'
+import { unmappedRequiredVariables } from './email-editor/variables'
 import { aadGroupValidationErrors } from './tasks/aad-group-assignment'
 import { AUDIO_FORMATS, IMAGE_FEATURES, MEDIA_BACKGROUND_NODE_TYPES, MEDIA_TOOL_OPERATIONS, REDACT_TARGETS, TRANSCRIPT_FORMATS, VIDEO_FEATURES, VIDEO_FORMATS, isMediaNodeType } from './media/catalog'
+import { workflowDataFields } from './agents/workflow-data'
 
 const TRIGGER_TYPES = NODE_CATALOG.filter(n => n.category === 'trigger').map(n => n.type)
 
@@ -22,6 +25,7 @@ function validateTriggerNode(node: WorkflowNode): string[] {
   const c = node.config ?? {}
   // Without a form it can never fire.
   if (node.type === 'form_submitted' && !c.form_id) return ['Choose the form whose submissions start this workflow']
+  if (node.type === 'agent_error') return validateAgentErrorConfig(c)
   if (node.type === 'schedule') {
     const hasAnyScheduleKey = SCHEDULE_CONFIG_KEYS.some((key) => c[key] !== undefined && c[key] !== null && c[key] !== '')
     if (hasAnyScheduleKey && !normalizeScheduleConfig(c)) {
@@ -57,6 +61,16 @@ function validateExtensionNode(node: WorkflowNode): string[] {
     if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) errors.push(`${field.label ?? field.name} is required`)
   }
   return errors
+}
+
+/**
+ * Email template steps: a variable the template declares required needs a
+ * mapping. Uses the snapshot of the template's variables the designer keeps
+ * on the step (`_template_variables`); steps without one (older workflows)
+ * are not checked — unmapped variables keep reading same-named run values.
+ */
+function templateVariableErrors(snapshot: unknown, mappings: unknown, noun = 'Template'): string[] {
+  return unmappedRequiredVariables(snapshot, mappings).map((v) => `${noun} variable "${v.label || v.name}" needs a value`)
 }
 
 export function validateNode(node: WorkflowNode, env: WorkflowValidationEnv = {}): string[] {
@@ -153,6 +167,7 @@ export function validateNode(node: WorkflowNode, env: WorkflowValidationEnv = {}
     case 'send_email':
       if (!c.to) errors.push('Recipient required')
       if (!c.email_template_id && !c.subject) errors.push('Subject required')
+      if (c.email_template_id) errors.push(...templateVariableErrors(c._template_variables, c.template_variables))
       break
     case 'delay':
       if (!c.duration) errors.push('Duration required')
@@ -274,6 +289,12 @@ export function validateNode(node: WorkflowNode, env: WorkflowValidationEnv = {}
       if (!c.user_id) errors.push('User required')
       if (!c.role_id && !c.role_name) errors.push('Role required')
       break
+    case 'instance_admin':
+      if (c.mode === 'action') {
+        if (!c.action) errors.push('Instance action required')
+        if (!String(c.inputs?.reason ?? '').trim()) errors.push('Reason required')
+      } else if (!c.dataset) errors.push('Dataset required')
+      break
     case 'check_permission':
       if (!c.user_id) errors.push('User required')
       if (!c.permission) errors.push('Permission required')
@@ -344,6 +365,7 @@ export function validateNode(node: WorkflowNode, env: WorkflowValidationEnv = {}
       if ((c.assignment_type ?? 'individual') === 'individual' && !c.assignee_id && !c.assignee_variable && !c.assign_to_user_id && !c.assign_to_user_variable) errors.push('Assignee required')
       if (c.assignment_type === 'team' && !c.team_id && !c.assign_to_team_id) errors.push('Team required')
       errors.push(...aadGroupValidationErrors(c, env))
+      if (c.notification_template_id) errors.push(...templateVariableErrors(c._notification_template_variables, c.notification_template_variables, 'Notification template'))
       if (c.allow_invite_on_redirect && !c.allow_redirect) errors.push('Enable redirect before invite on redirect')
       if (c.queue_behaviour !== undefined && c.queue_behaviour !== null && c.queue_behaviour !== '' && !['rules', 'queue', 'add'].includes(c.queue_behaviour)) {
         errors.push('Queue behaviour must be rules, queue or add')
@@ -389,6 +411,9 @@ export function validateNode(node: WorkflowNode, env: WorkflowValidationEnv = {}
       if (!c.user_message?.trim() && !c.message?.trim()) errors.push('Prompt / message required')
       if (c.execution_mode !== undefined && !['inline', 'queued'].includes(c.execution_mode)) errors.push('Run mode must be inline or queued')
       if (c.act_as !== undefined && !['initiator', 'owner', 'none'].includes(c.act_as)) errors.push('Act as must be initiator, owner or none')
+      if (c.include_workflow_data !== undefined && typeof c.include_workflow_data !== 'boolean') errors.push('Use this workflow\'s data must be true or false')
+      if (c.workflow_data_scope !== undefined && !['all', 'fields'].includes(c.workflow_data_scope)) errors.push('Which data must be all or fields')
+      if (c.include_workflow_data === true && c.workflow_data_scope === 'fields' && workflowDataFields(c).length === 0) errors.push('Pick at least one field to pass, or pass all of the workflow\'s data')
       break
     // end_workflow — no required fields
   }

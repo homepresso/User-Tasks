@@ -34,6 +34,7 @@ const TRIGGER_TYPES = new Set([
   'schedule',
   'webhook_received',
   'esign_event',
+  'agent_error',
   'manual',
 ])
 
@@ -54,6 +55,7 @@ const TRIGGER_LABELS: Record<string, string> = {
   schedule: 'Schedule',
   webhook_received: 'Webhook',
   esign_event: 'E-signature Event',
+  agent_error: 'Agent Error',
   manual: 'Manual Trigger',
 }
 
@@ -246,6 +248,37 @@ function deepReplaceWorkflowIds(value: any, replacementsByType: Record<string, R
   return next
 }
 
+/** "When an agent fails, notify the workspace admins and open a task" (also in the docs: /docs/ai-assistants). */
+export const AGENT_FAILURE_RECIPE = {
+  name: 'Agent Failure Alert',
+  goal: 'When an agent fails for good (after its retries), email the workspace admins and open a task for them to fix it.',
+  trigger_type: 'agent_error',
+  trigger_config: { sources: ['workflow', 'agent_run', 'system_agent'], min_severity: 'error', max_per_window: 3, window_minutes: 5 },
+  nodes: [
+    { id: 'trigger', type: 'agent_error', label: 'Agent Error', position: { x: 250, y: 60 }, config: { sources: ['workflow', 'agent_run', 'system_agent'], min_severity: 'error', max_per_window: 3, window_minutes: 5 } },
+    {
+      id: 'notify_admins', type: 'send_email', label: 'Notify Admins', position: { x: 250, y: 220 },
+      config: {
+        to: '{{admin_email}}',
+        subject: 'Agent failed: {{agent_error_kind}} ({{agent_error_severity}})',
+        body: '{{agent_error_message}}\n\nAgent: {{agent_error_agent_name}}{{agent_error_profile_name}}\nSource: {{agent_error_source}}\nWorkflow: {{agent_error_workflow_name}} (step {{agent_error_step}})\nDetails: {{agent_error_summary}}\nWhen: {{agent_error_timestamp}}\nSimilar failures skipped: {{agent_error_suppressed}}',
+      },
+    },
+    {
+      id: 'open_task', type: 'user_task', label: 'Fix Agent', position: { x: 250, y: 380 },
+      config: {
+        task_title: 'Agent failed: {{agent_error_kind}}',
+        task_description: '{{agent_error_message}} — {{agent_error_summary}}',
+        assignment_type: 'team', team_id: '{{admins_team_id}}', task_priority: 'high', outcomes: ['resolved'],
+      },
+    },
+  ],
+  edges: [
+    { id: 'e1', source: 'trigger', target: 'notify_admins' },
+    { id: 'e2', source: 'notify_admins', target: 'open_task' },
+  ],
+}
+
 export function buildWorkflowRecipes() {
   return [
     {
@@ -282,6 +315,7 @@ export function buildWorkflowRecipes() {
         { id: 'e4', source: 'approval', target: 'rework_message', label: 'rework' },
       ],
     },
+    AGENT_FAILURE_RECIPE,
     {
       name: 'Middleware Request Response',
       goal: 'Handle a synchronous request, do work, and return a response payload using end_workflow.',
@@ -651,6 +685,7 @@ TRIGGER TYPES:
 - schedule
 - webhook_received
 - esign_event
+- agent_error
 - manual
 
 TRIGGER CONFIG EXAMPLES:
@@ -662,6 +697,7 @@ TRIGGER CONFIG EXAMPLES:
 - middleware_received: {"path":"optional-custom-path","method":"POST","require_api_key":false,"input_schema":[{"name":"customerId","type":"string","required":true}]}
 - schedule: {"cron":"0 9 * * 1","timezone":"UTC"}
 - esign_event: {"integration_id":"<e-sign integration id, empty = any>","events":["envelope_completed","recipient_signed","envelope_declined","envelope_voided","envelope_expired","envelope_sent","recipient_viewed"]}
+- agent_error: {"sources":["workflow","agent_run","system_agent"] (empty = all),"agent_ids":["<agent id>"],"profile_ids":["<Agent profile id or default>"] (agents and/or profiles; empty = any),"error_kinds":["rate_limited","out_of_credit","key_rejected","model_unavailable","provider_down","timeout_network","context_too_long","content_policy","not_configured","tools_unsupported","other"] (empty = all),"min_severity":"warning"|"error"|"critical","max_per_window":3,"window_minutes":5} — fires once an agent fails for good (after retries; never on a stop); run variables {{agent_error_kind}}, {{agent_error_message}}, {{agent_error_summary}}, {{agent_error_agent_name}}, {{agent_error_workflow_name}}, {{agent_error_suppressed}} … and {{agent_error.*}}
 - workflow_error: {"workflow_id":"optional-specific-workflow-id"}
 - form_submitted: {"form_id":"form-id","button_ids":["optional-button-or-outcome"]} (forms_list for ids)
 - task events: {"filter_priority":"high"}
@@ -712,7 +748,7 @@ NODE TYPES AND CONFIGS:
 - end_workflow: {} for normal flows, or middleware response config such as { status_code: 200, headers: [{ key: "content-type", value: "application/json" }], body_mode: "json"|"text"|"file", json_body: { ok: true, order_id: "{{row_id}}" }, text_body: "done", file_url: "{{file.url}}", file_name: "report.pdf", file_content_type: "application/pdf" }
 - pause_until: { date: "{{resume_date}}" }
 - call_sub_workflow: { sub_workflow_id: "wf-id" (REQUIRED), input_mappings: { key: "{{value}}" } } → {{<prefix>_status}}, {{<prefix>_results}} (also {{sub_workflow_status}}, {{sub_workflow_results}}, {{sub_workflow_error}})
-- run_agent: { agent_id: "agent-id" (REQUIRED), user_message: "{{prompt}}" (REQUIRED), output_variable: "agent_response", max_iterations: 10 }
+- run_agent: { agent_id: "agent-id" (REQUIRED), user_message: "{{prompt}}" (REQUIRED), output_variable: "agent_response", max_iterations: 10, include_workflow_data: true (recommended: the agent also gets this run's data — trigger / form data, the row that started it, variables, earlier steps' outputs, ids, who started it; secrets and _internal keys left out, ~20 KB cap — so it acts on THIS item instead of searching for one; omitted = off), workflow_data_scope: "all"|"fields", workflow_data_fields: ["claim_id", "form.amount"] (with "fields") }
 - auto_action: { status: "completed", outcome: "Auto-approved", outcome_notes: "...", acceptance_status, priority, assignee_id, target_task_id: "{{user_task_id}}" (default: the run's task) } sets task fields without a person acting
 - custom_activity: { custom_activity_id: "activity-id" (REQUIRED), custom_activity_key: "stable_key", activity_name: "Friendly Name", source_code: "// snapshot from extensibility", manifest: { inputs: [...], outputs: [...] }, input_mappings: { score: "{{amount}}" }, _output_prefix: "scorecard" }
 - retention_policies: { operation: "list_policies"|"create_policy"|"delete_policy"|"list_assets"|"assign_policy", retention_policy_id: "policy-id", name: "Contracts", policy_mode: "review"|"review_on_exact_date"|"purge_on"|"purge_on_exact_date"|"keep_forever", duration_value: 30, duration_unit: "days"|"months"|"years", exact_date: "{{date}}", applies_to: ["data_tables","data_rows","roles"], target_type: "data_table"|"data_row"|"role", target_id: "{{row_id}}" }
@@ -743,7 +779,7 @@ NODE TYPES AND CONFIGS:
 - media_tools: { operation: "info"|"extract_audio"|"frames"|"thumbnail"|"trim"|"convert"|"compress"|"burn_subtitles", source (REQUIRED), start/end (trim, seconds or hh:mm:ss), format, interval/count (frames), at (thumbnail), quality (compress), max_width/max_height, subtitles: "{{transcript_srt}}" (burn_subtitles), output_var } (no AI provider; needs FFmpeg) → {{media_info.duration}}, {{frames}}, {{media_file}}`, {
     name: z.string().describe('Workflow name'),
     description: z.string().optional().describe('Workflow description'),
-    trigger_type: z.string().optional().describe('Trigger type. Supported: task_created, task_received, task_submitted, task_updated, task_completed, task_rejected, workflow_error, workflow_sla, retention_policy_review, retention_policy_executed, data_table_event, form_submitted, middleware_received, schedule, webhook_received, esign_event, manual. Default: task_created'),
+    trigger_type: z.string().optional().describe('Trigger type. Supported: task_created, task_received, task_submitted, task_updated, task_completed, task_rejected, workflow_error, workflow_sla, retention_policy_review, retention_policy_executed, data_table_event, form_submitted, middleware_received, schedule, webhook_received, esign_event, agent_error, manual. Default: task_created'),
     trigger_config: z.string().optional().describe('JSON string of trigger config. See tool description for examples.'),
     nodes: z.string().optional().describe('JSON string array of workflow nodes. Each node: {"id":"unique_id","type":"node_type","label":"Human Label","position":{"x":300,"y":100},"config":{...}}. See tool description for node configs.'),
     edges: z.string().optional().describe('JSON string array of edges. Each edge: {"id":"edge-1","source":"node_a","target":"node_b","label":"optional_branch_label"}. Trigger nodes should connect to the first action node. user_task outcome edges should match outcome labels.'),

@@ -11,7 +11,7 @@ import { filesToManifest, type FilesToManifestError, type RepoFile } from '@/lib
 import { PACKAGE_SECTIONS } from '@/lib/packages/build'
 import { scanAssetReferences } from '@/lib/portability/dependencies'
 import { controlAsset, readAllControlSources, type ControlSource } from './controls'
-import type { GalleryMeta } from './types'
+import { GALLERY_SCREENSHOT_FILE, GALLERY_SCREENSHOT_LIMITS, isScreenshotImage, type GalleryMeta } from './types'
 
 export const GALLERY_ROOT = resolve(process.cwd(), 'gallery')
 export const GALLERY_PACKAGES_DIR = join(GALLERY_ROOT, 'packages')
@@ -36,6 +36,8 @@ export interface GallerySource {
    * companions, so a source never copies a control module.
    */
   controls: Array<{ slug: string; tag: string; name: string }>
+  /** gallery.json screenshots that were found (bytes for the build); problems go to `errors`. */
+  screenshots: Array<{ file: string; bytes: Uint8Array }>
   errors: Array<FilesToManifestError | { path: string; error: string }>
 }
 
@@ -76,7 +78,18 @@ export function readGallerySource(slug: string, root = GALLERY_PACKAGES_DIR): Ga
   const parsed = filesToManifest(files, '')
   errors.push(...parsed.errors.map((error) => ({ path: `${slug}/assets/${error.path}`, error: error.error })))
   const controls = shipOfficialControls(parsed.manifest, parsed.paths)
-  return { dir, slug, meta, readme, files, manifest: parsed.manifest, paths: parsed.paths, controls, errors }
+  const screenshots: GallerySource['screenshots'] = []
+  for (const shot of Array.isArray(meta.screenshots) ? meta.screenshots : []) {
+    const file = String(shot?.file ?? '')
+    if (!GALLERY_SCREENSHOT_FILE.test(file)) continue // validateMeta reports the path
+    const path = join(dir, file)
+    if (!existsSync(path)) { errors.push({ path: `${slug}/${file}`, error: 'screenshot file is missing' }); continue }
+    const bytes = new Uint8Array(readFileSync(path))
+    if (bytes.byteLength > GALLERY_SCREENSHOT_LIMITS.bytes) errors.push({ path: `${slug}/${file}`, error: `screenshot is over ${GALLERY_SCREENSHOT_LIMITS.bytes / 1024} KB` })
+    else if (!isScreenshotImage(bytes, file)) errors.push({ path: `${slug}/${file}`, error: 'screenshot is not a WebP / PNG image (by its bytes)' })
+    else screenshots.push({ file, bytes })
+  }
+  return { dir, slug, meta, readme, files, manifest: parsed.manifest, paths: parsed.paths, controls, screenshots, errors }
 }
 
 let officialControls: Map<string, ControlSource> | null = null

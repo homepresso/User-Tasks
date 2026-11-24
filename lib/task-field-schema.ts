@@ -32,7 +32,7 @@ import { allActions } from '@/lib/forms/field-buttons'
 import { ruleOptionFields } from '@/lib/forms/data-actions'
 import { checkListValue, coerceListRows, keepLockedListCells, keepReadOnlyListColumns, listConfigProblem, listDerivedKeys, listDerivedValues, normalizeListConfig, type ListFieldConfig } from '@/lib/forms/list-field'
 import {
-  REPEATING_LIMITS, innerFieldsDeep, innerFormLayout, itemScopeValues, maxItems, minItems, normalizeRepeatingSectionConfig, repeatingConfigProblem, repeatingDerivedKeys,
+  ITEM_SCOPE_NAMES, REPEATING_LIMITS, innerFieldsDeep, innerFormLayout, itemScopeValues, maxItems, minItems, normalizeRepeatingSectionConfig, repeatingConfigProblem, repeatingDerivedKeys,
   repeatingDerivedValues, repeatingItems, startItems, type RepeatingSectionConfig,
 } from '@/lib/forms/repeating-section'
 import {
@@ -350,6 +350,44 @@ export function fieldKeyProblem(key: string, others: Iterable<string> = []): str
   if (RESERVED_FIELD_KEYS.has(k)) return `"${k}" is reserved`
   for (const other of others) if (other === k) return `Key "${k}" is used by another field`
   return null
+}
+
+/** A repeating section's inner key that names the item scope (`item`, `row`, `parent`, `index`, `form`), else null. */
+export function itemScopeKeyProblem(key: string): string | null {
+  if (!ITEM_SCOPE_NAMES.has(key)) return null
+  return `"${key}" can't be used inside a repeating section ({{${key === 'index' ? 'index' : `${key}.…`}}} already means the item scope there): rename it, e.g. "${key}_name"`
+}
+
+/**
+ * Keys in a raw field list (as saved: a form, a node's form, a package) that the
+ * normaliser would silently drop: reserved names (`outcome` is the task's outcome,
+ * `id`, `task`…) and, inside a repeating section (any level), the item scope's own
+ * names (`item`, `row`, `parent`, `index`, `form`). Saving refuses them with a clear
+ * message instead of losing the field. Key → problem; `section.inner` for inner keys.
+ */
+export function reservedFieldKeyProblems(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {}
+  const walk = (list: unknown, section: string | null, depth: number) => {
+    if (!Array.isArray(list) || depth > 6) return
+    for (const entry of list) {
+      if (!isPlainObject(entry)) continue
+      const label = typeof entry.label === 'string' ? entry.label.trim() : ''
+      const rawKey = typeof entry.key === 'string' ? entry.key.trim() : ''
+      const key = taskDataFieldSlug(rawKey || label).slice(0, 64)
+      if (!key) continue
+      const at = section ? `${section}.${key}` : key
+      if (RESERVED_FIELD_KEYS.has(key)) {
+        out[at] = key === 'outcome' || key === 'outcome_notes' || key === 'outcome_counts'
+          ? `"${key}" is reserved for the task's outcome (the button pressed): rename the field, e.g. "${key}_choice"`
+          : `"${key}" is a reserved name: rename the field, e.g. "${key}_value"`
+      } else if (section && ITEM_SCOPE_NAMES.has(key)) {
+        out[at] = itemScopeKeyProblem(key)!
+      }
+      if (entry.type === 'repeating_section' && isPlainObject(entry.repeating_section)) walk((entry.repeating_section as Record<string, unknown>).fields, at, depth + 1)
+    }
+  }
+  walk(raw, null, 0)
+  return out
 }
 
 /** `base`, or `base_2`, `base_3`… — the first not in `taken` and not reserved. */
@@ -1406,6 +1444,12 @@ export function mergeTaskFieldValues(
      * server's own view: rules reading the user are judged with it. Absent: such rules are skipped / trusted.
      */
     ruleUser?: Record<string, unknown> | null
+    /**
+     * Values the server worked out itself before the merge (lib/forms/task-values.ts): a lookup's verified
+     * `<key>_item` / `<key>_label` and the fields its "fill other fields" sets. Rules, labels and checks read
+     * these over anything the browser sent under those keys; they are not stored from here (the caller stores them).
+     */
+    derived?: Record<string, unknown>
   } = {},
 ): { errors: Record<string, string>; templateValues: Record<string, unknown> } {
   const meta = metadata ?? {}
@@ -1457,16 +1501,21 @@ export function mergeTaskFieldValues(
   }
   // A draft keeps only a valid choice (a submission reports a wrong one).
   if (options.partial) for (const key of Object.keys(choiceGroupValueErrors(layout, inclusion))) delete inclusion[key]
+  // Server-worked-out values (a lookup's verified item, label and fill-ins): over what the browser sent under those keys.
+  const derived = options.derived ?? {}
   // Read-only fields a form rule wrote (Set / Copy / Clear values): kept only when a rule of the saved form could produce them.
   const readOnly = fields.filter((field) => field.read_only && !isDisplayField(field) && field.type !== 'label')
   const ruleWritten = values && readOnly.length && !options.partial
-    ? ruleWrittenReadOnlyValues(layout, readOnly.map((f) => f.key), { ...existing, ...submitted, ...inclusion, ...values, ...state }, existing, null, options.ruleUser ?? null)
+    ? ruleWrittenReadOnlyValues(layout, readOnly.map((f) => f.key), { ...existing, ...submitted, ...inclusion, ...values, ...derived, ...state }, existing, null, options.ruleUser ?? null)
     : {}
-  const base = { ...existing, ...submitted, ...inclusion, ...ruleWritten, ...state }
+  // Labels read lists and repeating sections as the server types them (calculated columns worked out), never the browser's own cells.
+  const rowFields = editable.filter((f) => (f.type === 'list' || f.type === 'repeating_section') && Object.prototype.hasOwnProperty.call(submitted, f.key))
+  const typedRows = rowFields.length ? coerceTaskFieldValues(rowFields, submitted) : {}
+  const base = { ...existing, ...submitted, ...inclusion, ...ruleWritten, ...derived, ...state }
   // Labels (lib/forms/label-field.ts): recomputed from the checked values — rules judged below read these, never the browser's.
   const labels = fields.filter((f) => f.type === 'label')
   const labelValues = labels.length && values && !options.partial
-    ? serverLabelValues(fields, layout, base, { sent: values, stored: existing, rows: options.labelRows })
+    ? serverLabelValues(fields, layout, { ...base, ...typedRows }, { sent: values, stored: existing, rows: options.labelRows })
     : {}
   // Choice groups: rules judge the active alternative ({{form.<group>}}) — the default when none was sent.
   const judged = withChoiceDefaults(layout, { ...base, ...labelValues })

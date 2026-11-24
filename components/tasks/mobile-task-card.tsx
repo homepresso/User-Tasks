@@ -4,6 +4,7 @@ import Link from "next/link"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import { UnreadDot, unreadTitleClass } from "./unread-dot"
+import { TaskTags } from "./task-tags"
 
 /**
  * A task as a card, for phones: the task lists (My tasks, the Task tracker,
@@ -11,6 +12,7 @@ import { UnreadDot, unreadTitleClass } from "./unread-dot"
  *
  *   [leading]  Title, two lines max (opens the task)          [actions]
  *              KEY · meta
+ *              [tags]
  *              [status] [priority] [progress]                    due
  *              [footer: queue buttons, badges]
  *
@@ -23,7 +25,7 @@ import { UnreadDot, unreadTitleClass } from "./unread-dot"
  * <table> and group header rows).
  */
 export function MobileTaskCard({
-  as = "li", colSpan, href, title, code, done = false, unread = false, meta, status, priority, progress, due, footer, leading, actions, className, ...data
+  as = "li", colSpan, href, title, code, done = false, unread = false, meta, tags, status, priority, progress, due, footer, leading, actions, className, ...data
 }: {
   as?: "li" | "tr"
   /** Columns to span when `as="tr"`. */
@@ -35,6 +37,8 @@ export function MobileTaskCard({
   /** Not opened since it became mine: dot + bold title (never on a done task). */
   unread?: boolean
   meta?: ReactNode
+  /** The task's tags (coloured chips under the meta line). */
+  tags?: readonly string[] | null
   status?: ReactNode
   priority?: ReactNode
   progress?: ReactNode
@@ -61,6 +65,7 @@ export function MobileTaskCard({
               {meta != null && <span className="truncate">{meta}</span>}
             </p>
           )}
+          {tags?.length ? <TaskTags tags={tags} max={3} className="relative z-[1] mt-1" /> : null}
         </div>
         {actions != null && <span className="relative z-[1] -mr-1 -mt-1 flex shrink-0 items-center">{actions}</span>}
       </div>

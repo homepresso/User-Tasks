@@ -1,3 +1,4 @@
+import { agentErrorConfigSummary } from './agents/error-trigger'
 import { getWorkflowActivitySummary } from "@/lib/extensibility"
 import { dataTableLabel, type TableNames } from "@/lib/workflow-table-refs"
 import { isMediaNodeType } from "@/lib/media/catalog"
@@ -145,6 +146,10 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
       if (roleLabel) return `→ ${roleLabel}`
       return null
     }
+    case 'instance_admin': {
+      if (c.mode === 'action') return c.action ? `Action: ${String(c.action).replace(/_/g, ' ')}` : null
+      return c.dataset ? `Read: ${String(c.dataset).replace(/_/g, ' ')}` : null
+    }
     case 'remove_user_from_role': {
       const roleLabel = c.role_name || c.role_label || c.role_id
       const userLabel = c.user_label || c.user_id
@@ -232,6 +237,8 @@ export function getNodeConfigSummary(node: { type: string; config: Record<string
     }
     case 'esign_wait':
       return c.envelope_id ? `Until final (timeout ${Number(c.timeout_days) || 30} d)${c.download !== false ? ' + signed PDF' : ''} → ${c.output_var || 'signature'}` : null
+    case 'agent_error':
+      return agentErrorConfigSummary(c)
     case 'esign_event': {
       const events = Array.isArray(c.events) ? c.events : []
       return events.length ? events.map((e: string) => e.replace(/^envelope_|^recipient_/, '')).join(', ') : 'Any e-signature event'

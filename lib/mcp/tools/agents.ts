@@ -5,6 +5,7 @@ import { mcpOk, mcpErr } from '../server'
 import { agentExecutionRateLimit } from '@/lib/rate-limit'
 import { fromMcpContext, isServiceError } from '@/lib/services/context'
 import * as agents from '@/lib/services/agents'
+import { COST_SOURCES, GROUP_BYS, PERIOD_PRESETS } from '@/lib/agents/cost-breakdown'
 
 function parseJson(value: string | undefined, label: string): { ok: true; value: any } | { ok: false; error: string } {
   if (value === undefined) return { ok: true, value: undefined }
@@ -218,9 +219,19 @@ ${capabilityModelNote}`, {
     days: z.number().optional(),
   }, async (args) => run(() => agents.agentUsage(svc(), args.agent_id, args.days ?? 30)))
 
-  server.tool('agents_workspace_usage_get', 'Workspace AI agent usage: tokens and cost per day and per agent (last 30 days by default), this month, the workspace budgets and the model price table in effect (workspace overrides, instance prices, shipped list prices).', {
+  server.tool('agents_workspace_usage_get', 'Workspace AI agent usage: tokens and cost per day and per agent (last 30 days by default), this month, the workspace budgets and the model price table in effect (workspace overrides, instance prices, shipped list prices). With group_by, period, from / to or a filter it also returns `breakdown`: every AI call (agent runs, the in-product Agent, PDF import AI assist, redaction AI detection) rolled up by model, profile, agent, source, user (needs assistants.manage) or day — calls, input / output / cached tokens, stored cost, estimated_cost (recorded without a cost, at today\'s price), unknown_calls (no price), share and cost per 1k tokens.', {
     days: z.number().optional(),
-  }, async (args) => run(() => agents.workspaceAgentUsage(svc(), args.days ?? 30)))
+    group_by: z.string().optional().describe(`Comma-separated: ${GROUP_BYS.join(', ')}`),
+    period: z.enum(PERIOD_PRESETS).optional().describe('Breakdown period (default 30d); from / to win'),
+    from: z.string().optional().describe('First day, YYYY-MM-DD (UTC, inclusive)'),
+    to: z.string().optional().describe('Last day, YYYY-MM-DD (UTC, inclusive)'),
+    provider: z.string().optional().describe('Only this provider'),
+    model: z.string().optional().describe('Only this model'),
+    agent_profile: z.string().optional().describe('Only this Agent profile id (default = no profile matched)'),
+    agent: z.string().optional().describe('Only this agent id'),
+    source: z.enum(COST_SOURCES).optional().describe('Only this source'),
+    user: z.string().optional().describe('Only this person (user id; needs assistants.manage)'),
+  }, async ({ days, ...breakdown }) => run(() => agents.workspaceAgentUsage(svc(), days ?? 30, breakdown)))
 
   server.tool('agents_cost_settings_update', 'Set the workspace\'s model price overrides and agent budgets. model_prices: JSON list of {"provider":"openai","model":"gpt-4.1","input_per_1m":2,"output_per_1m":8,"cached_input_per_1m":0.5,"currency":"USD","effective_date":"2026-10-29"}; budgets: {"daily_token_budget":0,"monthly_token_budget":0,"daily_cost_budget":0,"monthly_cost_budget":0,"budget_currency":"USD"} (0 = none).', {
     model_prices: z.string().optional().describe('JSON array of price entries'),

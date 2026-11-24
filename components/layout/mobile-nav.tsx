@@ -11,6 +11,7 @@ import { useIsManager } from "@/hooks/use-is-manager"
 import type { Permission } from "@/lib/permissions"
 import { cn } from "@/lib/utils"
 import { MobileFormsMenu } from "./available-forms-menu"
+import { SidebarAppsMenu } from "@/components/apps/apps-menu"
 import { navIcon } from "./nav-icons"
 import { SidebarNavItem, sidebarFocus } from "./sidebar-nav-item"
 import { HeaderFormsMenu } from "./header-forms-menu"
@@ -116,6 +117,8 @@ export function MobileNavSheet({ open, onOpenChange }: MobileNavSheetProps) {
                 />
               </li>
             ))}
+            {/* Apps shared with this person (hidden when there are none). */}
+            <li><SidebarAppsMenu collapsed={false} /></li>
           </ul>
           {/* Available forms: the forms this person was given access to. */}
           <div className="mt-2"><MobileFormsMenu /></div>

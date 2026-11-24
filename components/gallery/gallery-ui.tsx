@@ -65,6 +65,7 @@ const TRIGGER_STYLE: Record<GalleryTrigger, string> = {
   api: "bg-(color:--mkt-primary) text-(color:--mkt-paper) ring-(color:--mkt-primary)",
   schedule: "bg-(color:--mkt-green)/[0.12] text-[#355A40] ring-(color:--mkt-green)/30",
   event: "bg-[#4E6E8E]/[0.12] text-[#34506B] ring-[#4E6E8E]/30",
+  app: "bg-[#7C5BA6]/[0.12] text-[#563F78] ring-[#7C5BA6]/30",
 }
 
 export function TriggerBadge({ trigger, size = "sm" }: { trigger: GalleryTrigger; size?: "sm" | "md" }) {
