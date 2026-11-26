@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { rateLimit } from '@/lib/rate-limit'
 import { DIRECTORY_CONNECTOR_KEYS } from '@/lib/directory-sync/connection'
 import { ScimError } from './errors'
+import { clientIp as clientIpOf } from '@/lib/client-ip'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- the service-role client is untyped */
 
@@ -53,8 +54,7 @@ export interface ScimAuth {
 }
 
 export function clientIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for')
-  return (forwarded?.split(',')[0] ?? request.headers.get('x-real-ip') ?? 'unknown').trim() || 'unknown'
+  return clientIpOf(request) ?? 'unknown'
 }
 
 async function unauthorized(request: Request, message: string): Promise<ScimError> {

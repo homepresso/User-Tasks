@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getSessionUserFast } from '@/lib/supabase/server'
 import { getCurrentTenantId, getOwnedReference } from '@/lib/integrations/auth'
+import { getUserPermissions } from '@/lib/permissions-server'
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
@@ -10,9 +11,15 @@ export async function GET(request: NextRequest) {
   const refId = request.nextUrl.searchParams.get('id')
   if (!refId) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
+  if (!(await getUserPermissions()).has('integrations.view')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   // Get user's tenant
   const tenantId = await getCurrentTenantId(supabase, sessionUser.id)
-  await getOwnedReference(supabase, tenantId, refId, 'id')
+  try {
+    await getOwnedReference(supabase, tenantId, refId, 'id')
+  } catch {
+    return NextResponse.json({ error: 'Reference not found' }, { status: 404 })
+  }
 
   // Find workflows using this reference (scan nodes JSON)
   const { data: workflows } = await supabase

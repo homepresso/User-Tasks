@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input"
 import { Eye, EyeOff } from "lucide-react"
-import { useState } from "react"
+import { useId, useState } from "react"
 import type { ConnectorField } from "@/lib/connectors/registry"
 import { getConnectorFieldValidationError, getVisibleConnectorFields, isConnectorFieldRequired } from "@/lib/connectors/form-state"
 
@@ -35,28 +35,34 @@ function FieldInput({ field, values, required, value, onChange }: { field: Conne
   const [showPassword, setShowPassword] = useState(false)
   const error = getConnectorFieldValidationError(field, values)
   const hasError = Boolean(error)
+  // Label, help and error wired to the control (they were visual only).
+  const id = `connector-field-${useId()}`
+  const describedBy = [field.helpText && `${id}-help`, field.setupHint && `${id}-hint`, error && `${id}-err`].filter(Boolean).join(' ') || undefined
+  const a11y = { id, 'aria-describedby': describedBy, 'aria-invalid': hasError || undefined, 'aria-required': required || undefined }
 
   return (
     <div className="space-y-1">
-      <label className="block text-xs font-medium text-fg">
+      <label htmlFor={id} className="block text-xs font-medium text-fg">
         {field.label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {required && <span className="text-danger ml-0.5" aria-hidden="true">*</span>}
       </label>
 
       {field.type === 'select' ? (
         <select
+          {...a11y}
           value={value}
           onChange={e => onChange(e.target.value)}
           className="w-full rounded-lg border px-3 py-2 text-sm"
           style={{ backgroundColor: 'var(--theme-card-bg)', borderColor: hasError ? 'var(--theme-danger)' : 'var(--theme-surface-border)', color: 'var(--theme-card-text)' }}
         >
-          <option value="">Select...</option>
+          <option value="">Select…</option>
           {field.options?.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
       ) : field.type === 'textarea' ? (
         <textarea
+          {...a11y}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={field.placeholder}
@@ -68,6 +74,7 @@ function FieldInput({ field, values, required, value, onChange }: { field: Conne
       ) : field.type === 'password' ? (
         <div className="relative">
           <Input
+            {...a11y}
             type={showPassword ? 'text' : 'password'}
             value={value}
             onChange={e => onChange(e.target.value)}
@@ -78,13 +85,16 @@ function FieldInput({ field, values, required, value, onChange }: { field: Conne
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? `Hide ${field.label}` : `Show ${field.label}`}
+            aria-pressed={showPassword}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 hover:opacity-70 text-fg-muted"
           >
-            {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+            {showPassword ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
           </button>
         </div>
       ) : (
         <Input
+          {...a11y}
           type={field.type === 'number' ? 'number' : 'text'}
           value={value}
           onChange={e => {
@@ -101,12 +111,12 @@ function FieldInput({ field, values, required, value, onChange }: { field: Conne
       )}
 
       {field.helpText && (
-        <p className="text-2xs text-fg-muted">
+        <p id={`${id}-help`} className="text-2xs text-fg-muted">
           {field.helpText}
         </p>
       )}
       {field.setupHint && (
-        <p className="text-2xs text-fg">
+        <p id={`${id}-hint`} className="text-2xs text-fg">
           {field.setupHint}
         </p>
       )}
@@ -116,7 +126,7 @@ function FieldInput({ field, values, required, value, onChange }: { field: Conne
         </p>
       )}
       {error && (
-        <p className="text-2xs text-danger">
+        <p id={`${id}-err`} role="alert" className="text-2xs text-danger">
           {error}
         </p>
       )}

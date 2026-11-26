@@ -1,7 +1,7 @@
 import type { ButtonAction, OpenMode, OpenModeKind } from './schema'
 
 /**
- * Open targets and the panel stack (pure, client-safe; __tests__/apps-panels.test.ts).
+ * Open targets and the panel stack (pure, client-safe; __tests__/apps-panel-stack.test.ts).
  *
  * A button, tile, card action or menu entry opens a TARGET — an app page
  * (with filter values; hidden "opened from buttons only" pages included), a
@@ -10,8 +10,10 @@ import type { ButtonAction, OpenMode, OpenModeKind } from './schema'
  * (right / left), bottom sheet, full-screen overlay, inline, navigation or
  * a new tab. Panels stack: opening a target from inside a panel slides a new
  * one over (the previous stay mounted, peeking), up to MAX_PANELS; the top
- * one closes first (Esc), and closing a panel holding unsaved form data asks
- * first. The stack lives in the URL (?panel=…) so refresh / share restores it.
+ * one closes first (Esc, the back chevron), × and the backdrop close the
+ * whole stack, and closing a panel holding unsaved form data asks first.
+ * The stack lives in the URL (?panel=…) so refresh / share restores it; each
+ * level is a history entry, so the browser's Back pops one.
  * On phones panels become full-width sheets; past the cap the target opens
  * by navigation instead.
  */
@@ -146,6 +148,78 @@ export function closePanel(stack: readonly Panel[], key: string, opts: { force?:
   if (i < 0) return { stack: [...stack], confirm: false }
   if (!opts.force && stack.slice(i).some((p) => p.dirty)) return { stack: [...stack], confirm: true }
   return { stack: stack.slice(0, i), confirm: false }
+}
+
+/**
+ * Close the whole stack (the header's × and a click on the backdrop: "close
+ * out the slider", back to the page) — or `confirm` when any panel holds
+ * unsaved data, unless forced.
+ */
+export function closeAllPanels(stack: readonly Panel[], opts: { force?: boolean } = {}): { stack: Panel[]; confirm: boolean } {
+  return stack.length ? closePanel(stack, stack[0].key, opts) : { stack: [], confirm: false }
+}
+
+/**
+ * The panel controls, in one place (components/apps/panels.tsx):
+ *   × (close) and the backdrop  → the whole stack ('all');
+ *   the back chevron and Esc    → the top panel only ('top');
+ *   a breadcrumb entry          → every panel above that entry ({ above: i }).
+ * Returns the key closePanel takes (it closes that panel and everything above it), or null for none.
+ */
+export type PanelCloseScope = 'all' | 'top' | { above: number }
+export function closeKeyFor(stack: readonly Panel[], scope: PanelCloseScope): string | null {
+  if (!stack.length) return null
+  if (scope === 'all') return stack[0].key
+  if (scope === 'top') return stack[stack.length - 1].key
+  return stack[scope.above + 1]?.key ?? null
+}
+
+/**
+ * The stack after the address changed under it (the browser's Back / Forward,
+ * or a link): the panels the address names, keeping the open ones (their keys,
+ * titles, sizes, unsaved flags) where they match — Back pops the top one, it
+ * doesn't rebuild the rest. `prefix`: the address names a lower part of the
+ * open stack (panels only came off the top); `common`: how many open panels were kept.
+ */
+export function reconcileStack(current: readonly Panel[], fromUrl: readonly Panel[]): { stack: Panel[]; same: boolean; prefix: boolean; common: number } {
+  const enc = (s: readonly Panel[]) => encodePanels(s) ?? ''
+  if (enc(current) === enc(fromUrl)) return { stack: [...current], same: true, prefix: true, common: current.length }
+  let common = 0
+  while (common < current.length && common < fromUrl.length && enc([current[common]]) === enc([fromUrl[common]])) common++
+  const kept = current.slice(0, common)
+  // Panels the address adds (Forward): fresh keys that can't collide with the kept ones.
+  const added = fromUrl.slice(common).map((p, i) => ({ ...p, key: `u${Date.now().toString(36)}${common + i}` }))
+  return { stack: [...kept, ...added], same: false, prefix: common === fromUrl.length, common }
+}
+
+/**
+ * How the address follows a change of the stack, so each state is a history
+ * entry and the browser's Back pops one level:
+ *   opening (deeper)             → push one entry;
+ *   closing n levels we pushed   → go back n entries (Back / Forward stay truthful);
+ *   closing levels we didn't push (the stack came from a shared link or a refresh)
+ *                                → go back over the ones we did push, then replace;
+ *   same depth (a panel moved to the top) → replace.
+ * `pushed`: entries this session pushed for the stack's top levels (never more than its depth).
+ */
+export type HistoryPlan = { op: 'none' } | { op: 'push' } | { op: 'replace' } | { op: 'back'; n: number; thenReplace: boolean }
+export function historyPlan(prevDepth: number, nextDepth: number, pushed: number, changed: boolean): { plan: HistoryPlan; pushed: number } {
+  if (!changed) return { plan: { op: 'none' }, pushed }
+  if (nextDepth > prevDepth) return { plan: { op: 'push' }, pushed: Math.min(pushed, prevDepth) + 1 }
+  if (nextDepth === prevDepth) return { plan: { op: 'replace' }, pushed: Math.min(pushed, nextDepth) }
+  const closing = prevDepth - nextDepth
+  const back = Math.min(closing, pushed)
+  if (!back) return { plan: { op: 'replace' }, pushed: Math.min(pushed, nextDepth) }
+  return { plan: { op: 'back', n: back, thenReplace: back < closing }, pushed: Math.min(pushed - back, nextDepth) }
+}
+
+/** The address for a stack: the current query with ?panel= set (or removed when the stack is empty). */
+export function panelHref(pathname: string, search: string, stack: readonly Panel[]): string {
+  const sp = new URLSearchParams(search)
+  const encoded = encodePanels(stack)
+  if (encoded) sp.set('panel', encoded); else sp.delete('panel')
+  const qs = sp.toString()
+  return qs ? `${pathname}?${qs}` : pathname
 }
 
 export function markDirty(stack: readonly Panel[], key: string, dirty: boolean): Panel[] {

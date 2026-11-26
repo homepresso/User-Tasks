@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest'
 import { ALL_DOC_PAGES } from '@/lib/docs/registry'
 import { parseMarkdown } from '@/lib/docs/markdown'
 import { USE_CASES } from '@/lib/use-cases'
+import { EXTENSION_DETAILS } from '@/lib/seo/extension-details'
 
 const ROOT = path.resolve(__dirname, '..')
 const SHELL_LANGS = new Set(['bash', 'sh', 'shell', 'zsh', 'console', 'shell-session'])
@@ -168,7 +169,7 @@ const siteSnippets = SITE_DIRS.flatMap((dir) => readdirSync(path.join(ROOT, dir)
   .flatMap((f) => snippetsInFile(path.join(ROOT, dir, f))))
 
 /** Snippets whose code is data, checked from that data below. */
-const DYNAMIC_ALLOWED = new Set(['useCase.snippet.code'])
+const DYNAMIC_ALLOWED = new Set(['useCase.snippet.code', 'step.code'])
 
 describe('copyable shell snippets paste into an interactive zsh', () => {
   it('the comment finder', () => {
@@ -189,6 +190,13 @@ describe('copyable shell snippets paste into an interactive zsh', () => {
   it('site <Snippet>s (marketing and gallery) have no # comments', () => {
     const bad = siteSnippets.flatMap((s) => ('code' in s && SHELL_LANGS.has(s.language) && !isScriptFile(s.code)
       ? shellCommentLines(s.code).map((line) => `${s.where}: ${line.trim()}`) : []))
+    expect(bad).toEqual([])
+  })
+
+  it('extension page setup snippets (lib/seo/extension-details.ts) have no # comments', () => {
+    const bad = Object.values(EXTENSION_DETAILS).flatMap((d) => d.setup.flatMap((step) => (step.code && !isScriptFile(step.code)
+      ? shellCommentLines(step.code).map((line) => `${d.id}: ${line.trim()}`) : [])))
+    expect(Object.values(EXTENSION_DETAILS).some((d) => d.setup.some((step) => step.code))).toBe(true)
     expect(bad).toEqual([])
   })
 

@@ -8,6 +8,7 @@ import { provisionTenant } from '@/lib/tenant-provisioning'
 import { getAuthProvider } from '@/lib/providers/auth'
 import { rateLimit } from '@/lib/rate-limit'
 import { notifyBetaSignup } from '@/lib/contact/beta-signup-chirp'
+import { clientIpFrom } from '@/lib/client-ip'
 
 /**
  * Public beta signup (cloud edition only) — rate-limits, filters bots, then
@@ -57,7 +58,7 @@ export async function betaSignup(input: BetaSignupInput): Promise<BetaSignupResu
   if (password.length < 8) return { ok: false, error: 'Password must be at least 8 characters.' }
 
   const hdrs = await headers()
-  const ip = (hdrs.get('x-forwarded-for') ?? 'unknown').split(',')[0].trim()
+  const ip = clientIpFrom(hdrs) ?? 'unknown'
   if (await rateLimited(ip)) return { ok: false, error: 'Too many signups from this network — please try again later.' }
 
   const result = await provisionTenant(createServiceClient(), {

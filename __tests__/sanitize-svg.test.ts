@@ -31,3 +31,27 @@ describe('sanitizeSvg', () => {
     expect(sanitizeSvg(dirty)).toBe('<svg><rect width="2"/></svg>')
   })
 })
+
+describe('sanitizeSvg hardening (QA 2026-11-24)', () => {
+  const vectors = [
+    '<svg/onload=alert(1)><path d="M0 0"/></svg>',
+    '<svg><rect x=""onclick="alert(1)"/></svg>',
+    '<svg><a href="&#106;avascript:alert(1)"><circle r="2"/></a></svg>',
+    '<svg><a href=javascript:alert(1)><circle r="2"/></a></svg>',
+    '<svg><a href=" javascript:alert(1)"><circle r="2"/></a></svg>',
+    '<svg><a><set attributeName="href" to="javascript:alert(1)"/><circle r="2"/></a></svg>',
+    '<svg><a><animate attributeName="href" values="javascript:alert(1)"></animate><circle r="2"/></a></svg>',
+    '<svg><image href="https://evil.example/x.svg"/></svg>',
+    '<svg onmouseover = "alert(1)" ><path d="M0 0"/></svg>',
+  ]
+  it.each(vectors)('neutralises %s', (dirty) => {
+    const clean = sanitizeSvg(dirty) ?? ''
+    expect(clean).not.toMatch(/\son[a-z]+\s*=|[/"']on[a-z]+\s*=/i)
+    expect(clean).not.toMatch(/javascript|&#106;|evil\.example/i)
+    expect(clean).not.toMatch(/<(set|animate)\b/i)
+  })
+  it('keeps same-document fragment links', () => {
+    const svg = '<svg><defs><linearGradient id="g"/></defs><a href="#g"><rect fill="url(#g)"/></a></svg>'
+    expect(sanitizeSvg(svg)).toBe(svg)
+  })
+})

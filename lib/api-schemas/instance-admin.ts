@@ -80,6 +80,11 @@ export const getAdminProcessingEndpoint = defineEndpoint({
   response: z.looseObject({
     mode: z.enum(['web', 'queue']),
     provider: z.looseObject({ extension_id: z.string(), mode: z.string(), label: z.string() }).nullable(),
+    addon: z.looseObject({
+      state: z.enum(['missing', 'unlicensed', 'ready']).describe('The Processing add-on (paid extension): missing from this build, installed without a usable licence, or ready'),
+      extensionId: z.string().nullable(),
+      reason: z.string().nullable().describe('Why it is unavailable, or (ready) the licence expiry warning: changes stop 24 hours after expiry'),
+    }),
     queue: queueHealthSchema.nullable(),
     jobs: z.array(z.looseObject({ id: z.string(), tenant_id: z.string(), workflow_id: z.string(), stuck: z.boolean() })),
     docs_href: z.string(),

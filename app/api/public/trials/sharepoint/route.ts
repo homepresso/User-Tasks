@@ -3,6 +3,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { isCloud } from '@/lib/deployment'
 import { defaultTrialDeps, requestTrial, trialsAvailable } from '@/lib/licensing/trial-service'
 import { TRIALS_UNAVAILABLE_MESSAGE } from '@/lib/licensing/trial-issuer'
+import { clientIp } from '@/lib/client-ip'
 
 /**
  * Self-serve 30-day trials of UserTasks for SharePoint Server (usertasks.com).
@@ -33,7 +34,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   if (!isCloud()) return json({ error: 'Not found' }, 404)
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+  const ip = clientIp(request) ?? 'unknown'
   for (const [key, max, windowMs] of [[`trial:h:${ip}`, 5, 3_600_000], [`trial:d:${ip}`, 20, 86_400_000], ['trial:all', 300, 3_600_000]] as const) {
     const hit = await rateLimit(key, { max, windowMs })
     if (!hit.ok) return json({ error: 'Too many trial requests from here. Please try again later.', code: 'rate_limited' }, 429, { 'Retry-After': String(Math.max(1, Math.ceil(hit.retryAfterMs / 1000))) })

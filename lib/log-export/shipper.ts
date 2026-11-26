@@ -81,6 +81,12 @@ export interface ShipperDeps {
   settleMs?: number
   /** Operational log (never receives credentials). */
   log?: (message: string) => void
+  /**
+   * Destinations shipped at the same time (default LOG_SHIP_CONCURRENCY or 4).
+   * One at a time, a few slow or hung destinations (10 s timeout each) used
+   * the whole budget and starved every other tenant's destinations.
+   */
+  concurrency?: number
 }
 
 export interface DestinationOutcome {
@@ -345,13 +351,19 @@ export async function runShipper(deps: ShipperDeps): Promise<ShipperSummary> {
   const pollMs = deps.pollMs ?? POLL_INTERVAL_MS
   const started = now()
   const deadline = started + (deps.budgetMs ?? SHIP_BUDGET_MS)
-  const ctx: ShipContext = {
+  const baseCtx: ShipContext = {
     supabase: deps.supabase, workerId, now, random: deps.random ?? Math.random, pollMs, fetch: deps.fetch,
     log: deps.log ?? ((message) => console.warn(message)),
   }
   const watermark = new Watermark(deps.settleMs ?? SETTLE_MS)
   const summary: ShipperSummary = { worker_id: workerId, claims: 0, events_sent: 0, failures: 0, destinations: {}, duration_ms: 0 }
 
+  const envConcurrency = Number(process.env.LOG_SHIP_CONCURRENCY)
+  const lanes = Math.max(1, Math.min(16, Math.floor(deps.concurrency ?? (Number.isFinite(envConcurrency) && envConcurrency > 0 ? envConcurrency : 4))))
+
+  // Each lane claims (leased per lane id, so lanes never share a destination) and ships on its own.
+  const lane = async (laneId: string) => {
+  const ctx: ShipContext = { ...baseCtx, workerId: laneId }
   while (now() < deadline) {
     const last = watermark.lastObservedAt()
     if (last === null || now() - last >= Math.min(pollMs, 1000) / 2) watermark.observe(await latestGlobalEventId(ctx.supabase), now())
@@ -364,7 +376,7 @@ export async function runShipper(deps: ShipperDeps): Promise<ShipperSummary> {
       if (through === null) continue
     }
 
-    const row = await claimDestination(ctx.supabase, workerId)
+    const row = await claimDestination(ctx.supabase, laneId)
     if (!row) {
       const wait = await msUntilNextDue(ctx.supabase, now(), pollMs)
       if (now() + wait >= deadline) break
@@ -384,6 +396,8 @@ export async function runShipper(deps: ShipperDeps): Promise<ShipperSummary> {
       ctx.log(`[ship-events] destination ${row.id}: ${(error as Error).message}`)
     }
   }
+  }
+  await Promise.all(Array.from({ length: lanes }, (_, i) => lane(lanes === 1 ? workerId : `${workerId}-${i}`)))
 
   summary.duration_ms = now() - started
   return summary

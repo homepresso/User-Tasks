@@ -56,6 +56,8 @@ export type PollReader = (table: RealtimeTopic, sinceIso: string, limit: number)
 export const REPLAY_OVERLAP_MS = 5_000
 const DEFAULT_BUFFER = 2_000
 const POLL_LIMIT = 500
+/** Pages one table may read per tick (POLL_LIMIT rows each). */
+const POLL_MAX_PAGES = 20
 
 /** Timestamp column polled per table (and whether rows are insert-only). */
 const POLL_COLUMNS: Record<RealtimeTopic, { ts: string; created?: string }> = {
@@ -323,9 +325,28 @@ export class RealtimeHub {
     const cursor = this.pollCursors.get(table)!
     // Re-read a window behind the cursor: timestamps are transaction start
     // times, so a row can commit after newer-stamped ones were seen.
-    const since = new Date(cursor - REPLAY_OVERLAP_MS * 2).toISOString()
-    const rows = await reader(table, since, POLL_LIMIT)
+    // More than POLL_LIMIT rows in that window (a bulk insert) used to come
+    // back as the same first page every tick: the cursor never passed them
+    // and the table's changes stopped for good. Full pages are followed by
+    // the next one (from 1 ms before the last row's stamp, de-duplicated by
+    // pollSeen; past it when a whole page shares one stamp).
+    let since = new Date(cursor - REPLAY_OVERLAP_MS * 2).toISOString()
     let maxTs = cursor
+    for (let page = 0; page < POLL_MAX_PAGES; page++) {
+      const rows = await reader(table, since, POLL_LIMIT)
+      maxTs = this.ingestPolled(table, rows, maxTs)
+      if (rows.length < POLL_LIMIT) break
+      const firstTs = Date.parse(String(rows[0][cols.ts] ?? ''))
+      const lastTs = Date.parse(String(rows[rows.length - 1][cols.ts] ?? ''))
+      if (!Number.isFinite(lastTs)) break
+      since = new Date(lastTs === firstTs ? lastTs : lastTs - 1).toISOString()
+    }
+    this.pollCursors.set(table, maxTs)
+  }
+
+  private ingestPolled(table: RealtimeTopic, rows: Array<Record<string, unknown>>, maxTsIn: number): number {
+    const cols = POLL_COLUMNS[table]
+    let maxTs = maxTsIn
     for (const raw of rows) {
       const stamp = String(raw[cols.ts] ?? '')
       const id = String(raw.id ?? '')
@@ -340,7 +361,7 @@ export class RealtimeHub {
       const op = cols.created && raw[cols.created] && Date.parse(String(raw[cols.created])) !== ts ? 'UPDATE' : 'INSERT'
       this.ingest({ ts, table, op, rows: [row] })
     }
-    this.pollCursors.set(table, maxTs)
+    return maxTs
   }
 }
 

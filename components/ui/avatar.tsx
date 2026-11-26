@@ -2,14 +2,15 @@ import { cn } from '@/lib/utils'
 
 const SIZE = { sm: 'size-6 text-2xs', md: 'size-7 text-xs', lg: 'size-8 text-ui' } as const
 
-// Chart-palette hue per name (deterministic): 18% wash with the hue's text token.
+// Chart-palette hue per name (deterministic): 18% wash, text = the hue's text token pulled 22% toward the card text
+// (the token is tuned for 4.5:1 on the card itself; on its wash it fell to ~4.3:1 — now ≥5.4:1 light and dark).
 const HUES = [
-  'bg-[color-mix(in_srgb,var(--theme-chart-1)_18%,var(--theme-card-bg))] text-[color:var(--theme-chart-1-text)]',
-  'bg-[color-mix(in_srgb,var(--theme-chart-2)_18%,var(--theme-card-bg))] text-[color:var(--theme-chart-2-text)]',
-  'bg-[color-mix(in_srgb,var(--theme-chart-3)_18%,var(--theme-card-bg))] text-[color:var(--theme-chart-3-text)]',
-  'bg-[color-mix(in_srgb,var(--theme-chart-4)_18%,var(--theme-card-bg))] text-[color:var(--theme-chart-4-text)]',
-  'bg-[color-mix(in_srgb,var(--theme-chart-5)_18%,var(--theme-card-bg))] text-[color:var(--theme-chart-5-text)]',
-  'bg-[color-mix(in_srgb,var(--theme-chart-6)_18%,var(--theme-card-bg))] text-[color:var(--theme-chart-6-text)]',
+  'bg-[color-mix(in_srgb,var(--theme-chart-1)_18%,var(--theme-card-bg))] text-[color:color-mix(in_srgb,var(--theme-chart-1-text)_78%,var(--theme-card-text))]',
+  'bg-[color-mix(in_srgb,var(--theme-chart-2)_18%,var(--theme-card-bg))] text-[color:color-mix(in_srgb,var(--theme-chart-2-text)_78%,var(--theme-card-text))]',
+  'bg-[color-mix(in_srgb,var(--theme-chart-3)_18%,var(--theme-card-bg))] text-[color:color-mix(in_srgb,var(--theme-chart-3-text)_78%,var(--theme-card-text))]',
+  'bg-[color-mix(in_srgb,var(--theme-chart-4)_18%,var(--theme-card-bg))] text-[color:color-mix(in_srgb,var(--theme-chart-4-text)_78%,var(--theme-card-text))]',
+  'bg-[color-mix(in_srgb,var(--theme-chart-5)_18%,var(--theme-card-bg))] text-[color:color-mix(in_srgb,var(--theme-chart-5-text)_78%,var(--theme-card-text))]',
+  'bg-[color-mix(in_srgb,var(--theme-chart-6)_18%,var(--theme-card-bg))] text-[color:color-mix(in_srgb,var(--theme-chart-6-text)_78%,var(--theme-card-text))]',
 ] as const
 
 export function avatarHue(name: string): number {

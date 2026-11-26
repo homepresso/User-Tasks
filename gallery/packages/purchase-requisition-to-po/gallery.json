@@ -17,8 +17,13 @@
     "purchase orders",
     "decision table"
   ],
-  "version": "1.1.0",
+  "version": "1.1.1",
   "changelog": [
+    {
+      "version": "1.1.1",
+      "date": "2026-11-25",
+      "notes": "Sample data, defaults and labels in USD (were NZD)."
+    },
     {
       "version": "1.1.0",
       "date": "2026-10-28",
@@ -72,7 +77,7 @@
     "item_description": "14-inch laptops for the new support team",
     "quantity": 10,
     "unit_price": 1450,
-    "currency": "NZD",
+    "currency": "USD",
     "supplier": "Contoso Computing",
     "category": "it_hardware",
     "cost_centre": "CC-310 Support",

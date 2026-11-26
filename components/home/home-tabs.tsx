@@ -20,7 +20,10 @@ import { setHomePreferences } from "@/app/actions/home"
 import { formatAbsolute, formatRelative } from "@/lib/format/date"
 import { cn } from "@/lib/utils"
 import { FollowButton, HOME_QUERY_KEY, Pager, People, ProgressPill, RowsSkeleton, SearchBox, StagePopover, When, rowClass, useDebounced } from "./shared"
-import { SubmissionDialog } from "./submission-dialog"
+import dynamic from "next/dynamic"
+
+// The form renderer (survey controls, list / data-table fields) loads when a submission is opened.
+const SubmissionDialog = dynamic(() => import("./submission-dialog").then((m) => m.SubmissionDialog), { ssr: false })
 import { FavoriteStar, useFavoriteForms } from "./favorite-star"
 import { taskFormPath } from "./task-row-details"
 import { TaskDetailPanel } from "@/components/tasks/task-detail-panel"
@@ -35,14 +38,14 @@ import { useListSort } from "@/hooks/use-list-sort"
 import { usePersistedSwitch } from "@/hooks/use-status-filter"
 import type { SortState } from "@/lib/tasks/list-sort"
 import { favoriteFormsView } from "@/lib/home/favorites"
-import { formHref } from "@/lib/forms/form-page-url"
+import { formHref } from "@/lib/forms/form-paths"
 import type { FollowedRun, HomeTask, MySubmission } from "@/lib/services/home"
 import { QueuedTaskActions, TaskStatusPill } from "@/components/tasks/queued-task-actions"
 import { ProcessViewIconLink, TaskQuickActions, TaskQuickActionsToggle } from "@/components/tasks/task-quick-actions"
 import { TimelineIconButton } from "@/components/timeline/timeline-sheet"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { ListRefreshButton } from "@/components/tasks/list-refresh-button"
-import { QueueRulesButton } from "@/components/tasks/queue-rules-dialog"
+import { QueueRulesButton } from "@/components/tasks/queue-rules-button"
 import { QUEUED_STATUS } from "@/lib/tasks/unified-list"
 
 export type HomeTab = "tasks" | "following" | "submissions" | "favorites"
@@ -186,7 +189,7 @@ function Mobile({ label }: { label: string }) {
 const stickyCellClass = "md:-my-1.5 md:-ml-4 md:py-1.5 md:pl-4 md:min-w-0"
 
 function ErrorRow({ message }: { message: string }) {
-  return <Span><EmptyState size="sm" variant="error" title="This list couldn’t be loaded" description={message} /></Span>
+  return <Span><EmptyState headingLevel={4} size="sm" variant="error" title="This list couldn’t be loaded" description={message} /></Span>
 }
 
 /* ── Task rows (My tasks) ───────────────────────────────────────────── */
@@ -359,14 +362,14 @@ export function MyTasksTab() {
         sortKeys={show === "all" ? HOME_SORT_COLUMNS : undefined} sort={sort} onSort={toggleSort} />}>
       {isPending ? <Span><RowsSkeleton /></Span> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.tasks.length ? (
         q ? (
-          <Span><EmptyState size="sm" variant="no-results" title={`No tasks match “${q}”`} description="Try another search."
+          <Span><EmptyState headingLevel={4} size="sm" variant="no-results" title={`No tasks match “${q}”`} description="Try another search."
             action={{ label: "Clear search", onClick: () => setSearch("") }} /></Span>
         ) : show === "queued" ? (
-          <Span><EmptyState size="sm" variant="first-run" icon={ListChecks} title="Nothing queued for you"
+          <Span><EmptyState headingLevel={4} size="sm" variant="first-run" icon={ListChecks} title="Nothing queued for you"
             description="Tasks sent to you for acceptance, and unclaimed tasks of your teams, show here with status Queued."
             action={{ label: "Show all my tasks", onClick: () => setShow("all") }} /></Span>
         ) : (
-          <Span><EmptyState size="sm" variant="first-run" icon={CheckSquare} title="You’re all caught up"
+          <Span><EmptyState headingLevel={4} size="sm" variant="first-run" icon={CheckSquare} title="You’re all caught up"
             description="Nothing is assigned to you right now. Tasks waiting for you to accept or claim show here too, with status Queued."
             action={{ label: "Open all tasks", href: "/tasks" }} /></Span>
         )
@@ -453,7 +456,7 @@ export function FollowingTab() {
       </>}
       header={<HeaderRow cols={FOLLOW_COLS} labels={["Process", "Current stage", "Status", "Started", "Updated", "People involved", ""]} />}>
       {isPending ? <Span><RowsSkeleton /></Span> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.runs.length ? (
-        <Span><EmptyState size="sm" variant={filtered ? "no-results" : "first-run"} icon={filtered ? undefined : Bell} title={filtered ? "Nothing matches" : "You’re not following any processes"}
+        <Span><EmptyState headingLevel={4} size="sm" variant={filtered ? "no-results" : "first-run"} icon={filtered ? undefined : Bell} title={filtered ? "Nothing matches" : "You’re not following any processes"}
           description={filtered ? "Try another search or status." : "Processes you start — including the ones your form submissions start — are followed automatically. You can also follow a run from its page."}
           action={filtered ? { label: "Clear filters", onClick: () => { setSearch(""); setStatus("all") } } : undefined} /></Span>
       ) : (
@@ -501,7 +504,7 @@ export function SubmissionsTab() {
     <ListFrame minWidth={SUB_LIST.minWidth} label="My submissions"
       footer={<>
         {data && <Pager offset={offset} limit={LIMIT} total={data.total} onChange={setOffset} />}
-        <SubmissionDialog submission={viewing} onClose={() => setViewing(null)} />
+        {viewing && <SubmissionDialog submission={viewing} onClose={() => setViewing(null)} />}
       </>}
       toolbar={<div className="flex flex-col gap-2 @xl:flex-row @xl:items-center">
         <SearchBox value={search} onChange={setSearch} placeholder="Search forms or processes" label="Search my submissions" />
@@ -510,7 +513,7 @@ export function SubmissionsTab() {
       </div>}
       header={<HeaderRow cols={SUB_COLS} labels={["Form", "Submitted", "Process", "Status", "Current stage", "People involved", "Updated", ""]} />}>
       {isPending ? <Span><RowsSkeleton /></Span> : isError ? <ErrorRow message={(error as Error).message} /> : !data?.submissions.length ? (
-        <Span><EmptyState size="sm" variant={filtered ? "no-results" : "first-run"} icon={filtered ? undefined : Inbox} title={filtered ? "Nothing matches" : "No submissions yet"}
+        <Span><EmptyState headingLevel={4} size="sm" variant={filtered ? "no-results" : "first-run"} icon={filtered ? undefined : Inbox} title={filtered ? "Nothing matches" : "No submissions yet"}
           description={filtered ? "Try another search or status." : "When you submit a form, it shows up here with the process it started and where that process is now."}
           action={filtered ? { label: "Clear filters", onClick: () => { setSearch(""); setStatus("all") } } : undefined} /></Span>
       ) : (
@@ -560,12 +563,12 @@ export function FavoritesTab() {
       header={view.forms.length ? <HeaderRow cols={FAV_COLS} labels={["Form", "Description", ""]} /> : undefined}>
       {loading ? <Span><RowsSkeleton rows={3} /></Span> : error ? <ErrorRow message="Your favourite forms couldn’t be loaded." /> : view.empty === "none" ? (
         <div data-home-favorites-empty>
-          <Span><EmptyState size="sm" icon={Star} title="No favourite forms yet"
+          <Span><EmptyState headingLevel={4} size="sm" icon={Star} title="No favourite forms yet"
             description="Star a form (☆) in the Forms menu or the Forms list, or use the heart (♡) at the top right of a form’s page, and it shows up here with an Open button."
             action={can("forms.view") ? { label: "Browse forms", href: "/automations/forms" } : undefined} /></Span>
         </div>
       ) : view.empty === "no-match" ? (
-        <Span><EmptyState size="sm" variant="no-results" title={`No favourites match “${search}”`} description="Try another search." action={{ label: "Clear search", onClick: () => setSearch("") }} /></Span>
+        <Span><EmptyState headingLevel={4} size="sm" variant="no-results" title={`No favourites match “${search}”`} description="Try another search." action={{ label: "Clear search", onClick: () => setSearch("") }} /></Span>
       ) : (
         <ul className="divide-y divide-border-subtle" data-home-favorites>
           {view.forms.map((f) => (

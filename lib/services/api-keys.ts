@@ -29,6 +29,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { applyPage, audit, dbError, type Page } from './_shared'
 import { userRolePermissions } from './roles'
+import { memberPermissions, permissionsBeyond } from './members'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- api_keys rows */
 
@@ -192,6 +193,15 @@ export async function createApiKey(ctx: ServiceContext, input: ApiKeyCreateInput
 
   if (userId) {
     await checkTenantUser(ctx, userId)
+    // A key bound to someone else acts AS them (assignee-only actions such as
+    // completing their approval tasks): only for a caller who holds at least
+    // their access — the same rule as deactivating a member.
+    if (userId !== ctx.actorId) {
+      const beyond = permissionsBeyond(new Set(held), await memberPermissions(ctx, userId))
+      if (beyond.length) {
+        throw ServiceError.forbidden(`Forbidden: that person holds permissions you don't (${beyond.slice(0, 5).join(', ')}${beyond.length > 5 ? '…' : ''}) — only someone with at least their access can create a key that acts as them`)
+      }
+    }
     // A user key's explicit permission list replaces the user's roles (lib/api-auth),
     // so it must also stay within what that user may do.
     if (permissions !== null) {

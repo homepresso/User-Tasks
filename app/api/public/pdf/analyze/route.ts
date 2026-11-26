@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/rate-limit'
 import { isCloud } from '@/lib/deployment'
+import { clientIp } from '@/lib/client-ip'
 
 /**
  * POST /api/public/pdf/analyze — the marketing site's "Try a PDF form"
@@ -24,7 +25,7 @@ const deny = (error: string, status: number, headers: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   if (!isCloud()) return deny('Not found', 404)
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+  const ip = clientIp(request) ?? 'unknown'
   for (const [key, max, windowMs] of [[`pdf-preview:m:${ip}`, 6, 60_000], [`pdf-preview:h:${ip}`, 30, 3_600_000], ['pdf-preview:all', 600, 3_600_000]] as const) {
     const hit = await rateLimit(key, { max, windowMs })
     if (!hit.ok) return deny('Too many previews from here. Please wait a few minutes and try again.', 429, { 'Retry-After': String(Math.max(1, Math.ceil(hit.retryAfterMs / 1000))) })

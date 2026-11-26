@@ -70,6 +70,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <TagStylesProvider tenantId={profile.current_tenant_id}>
           <OnboardingProvider userId={userId}>
           <div className="flex h-dvh overflow-hidden">
+            {/* WCAG 2.4.1: the first Tab stop skips the sidebar and top bar. */}
+            <a href="#main" data-skip-link className="sr-only z-[1300] rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-fg focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
+              Skip to main content
+            </a>
             <Sidebar user={profile} currentTenantId={profile.current_tenant_id} userRole={userRole} />
             <MobileNavSheet
               open={mobileNavOpen}
@@ -87,7 +91,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <main
                 key={shellContentKey(pathname)}
                 id="main"
-                className="page-transition relative flex-1 overflow-y-auto bg-bg p-4 max-md:pb-[calc(var(--ds-tabbar-h)+1.5rem+env(safe-area-inset-bottom))] md:p-6"
+                tabIndex={-1}
+                className="page-transition relative flex-1 overflow-y-auto bg-bg p-4 outline-none max-md:pb-[calc(var(--ds-tabbar-h)+1.5rem+env(safe-area-inset-bottom))] md:p-6"
               >
                 {/* A page the role doesn't allow: "Not authorized" in place of the page (nothing of it mounts). */}
                 {routeAllowed ? children : <NotAuthorizedView />}
@@ -111,7 +116,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 /** First-load frame: the sidebar and top bar outlines, a busy bar and shimmering rows (no spinner). */
 function DashboardLoadingShell() {
   return (
-    <div className="flex h-dvh overflow-hidden" aria-busy="true" aria-label="Loading your workspace">
+    <div className="flex h-dvh overflow-hidden" role="status" aria-busy="true" aria-label="Loading your workspace">
       <aside className="premium-sidebar themed-sidebar flex w-[var(--theme-sidebar-width)] shrink-0 flex-col border-r border-[color:var(--theme-sidebar-border)] max-md:hidden">
         <div className="flex h-[var(--theme-topbar-height)] items-center gap-2 border-b border-[color:var(--theme-sidebar-border)] px-4">
           <LogoMark variant="glyph" size={22} color="var(--theme-sidebar-text)" accent="var(--theme-sidebar-accent, var(--theme-primary))" />

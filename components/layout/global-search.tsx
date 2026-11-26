@@ -130,7 +130,7 @@ export function CommandTrigger() {
       <button
         type="button"
         onClick={() => openCommandPalette()}
-        className="hidden h-8 w-[280px] items-center gap-2 rounded-md border border-input-border bg-input px-2.5 text-left text-ui text-fg-subtle transition-colors duration-[var(--ds-dur-fast)] hover:border-border-strong lg:inline-flex"
+        className="hidden h-8 w-[280px] items-center gap-2 rounded-md border border-input-border bg-input px-2.5 text-left text-ui text-fg-muted transition-colors duration-[var(--ds-dur-fast)] hover:border-border-strong lg:inline-flex"
         aria-label="Search or jump to (⌘K)"
         aria-haspopup="dialog"
         data-command-trigger

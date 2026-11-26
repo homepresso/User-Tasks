@@ -247,6 +247,7 @@ export function EffortBox({ task, actions, footer }: EffortBoxProps) {
             </p>
             <DateTimePicker
               value={etaInputValue}
+              aria-label="Estimated completion"
               onChange={setEstimatedCompletion}
               disabled={!canEditExecutionPlan}
               placeholder="Set ETA"

@@ -59,7 +59,11 @@ describe('parseStructuredOutputs', () => {
 describe('executeAgent failure semantics', () => {
   it('returns status "failed" (not a silent completed) when the LLM errors', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, text: async () => 'boom' })))
-    const result = await executeAgent(baseConfig, 'hi')
+    // A 500 is retried with real backoff (seconds in total, near the 5 s test
+    // timeout on a busy CI runner): the waits are skipped here.
+    const sleeps: number[] = []
+    const result = await executeAgent(baseConfig, 'hi', { sleep: async (ms) => { sleeps.push(ms) } })
+    expect(sleeps.length).toBeGreaterThan(0)
     expect(result.status).toBe('failed')
     expect(result.error).toContain('500')
     expect(result.response).toContain('Agent error')

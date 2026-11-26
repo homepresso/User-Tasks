@@ -1,5 +1,6 @@
 "use client"
 
+import { toastError } from '@/lib/toast'
 import { useState, useEffect } from "react"
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { serverRead } from "@/lib/server-read"
@@ -166,7 +167,7 @@ export function WebhookTriggerConfig({ workflowId, workflowVariables, mode = 'we
       setMappings(newMappings)
       setShowTest(false)
     } catch {
-      alert("Invalid JSON")
+      toastError("Invalid JSON", "Check the sample payload and try again.")
     }
   }
 

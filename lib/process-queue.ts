@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks"
 import { after } from "next/server"
 import { getProcessorSecret } from "@/lib/cron-auth"
-import { appUrlOrLocalhost } from "@/lib/config/bootstrap"
+import { internalAppUrl } from "@/lib/config/bootstrap"
 import { notifyProcessing, processingHandoff } from "@/lib/processing/handoff"
 
 /**
@@ -21,7 +21,7 @@ let kickAgain = false
 
 /** Sends one kick request and waits for the processor's response. */
 async function sendKick(): Promise<void> {
-  const baseUrl = appUrlOrLocalhost()
+  const baseUrl = internalAppUrl()
   // Same resolution as the processor's own check (lib/cron-auth.ts), so a
   // deployment that only sets CRON_SECRET is not answered with a 401.
   const secret = getProcessorSecret()
@@ -118,7 +118,7 @@ export function kickAgentQueueProcessor(batchSize = 3) {
 }
 
 function sendAgentKick(batchSize: number): Promise<void> {
-  const baseUrl = appUrlOrLocalhost()
+  const baseUrl = internalAppUrl()
   const secret = getProcessorSecret() ?? ""
 
   return fetch(`${baseUrl}/api/agents/process`, {

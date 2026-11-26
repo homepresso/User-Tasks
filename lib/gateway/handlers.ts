@@ -44,6 +44,7 @@ import {
 } from './protocol'
 import { claimJobs, completeJob, GatewayQueueError, isMissingTableError, jobVisibleTo, pollJobs, purgeGatewayData, readPart, releaseClaimed, renewLeases, writePart } from './queue'
 import { gatewayVersionPolicy } from './versions'
+import { clientIp } from '@/lib/client-ip'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- service-role client, untyped tables, JSON bodies */
 
@@ -56,7 +57,7 @@ function plain(status: number, error: string, code: string): Response {
 }
 
 function clientAddress(request: Request): string {
-  return (request.headers.get('x-forwarded-for')?.split(',')[0] ?? request.headers.get('x-real-ip') ?? 'unknown').trim()
+  return clientIp(request) ?? 'unknown'
 }
 
 async function readBody(request: Request, max: number): Promise<Buffer> {

@@ -53,6 +53,8 @@ function normalizeRule(rule: any) {
       inputKey: condition?.inputKey,
       operator: condition?.operator,
       value: condition?.value == null ? '' : String(condition.value),
+      // Compare with another input (lib/decision-table-engine.ts): kept only when it names one.
+      ...(typeof condition?.valueInputKey === 'string' && condition.valueInputKey.trim() ? { valueInputKey: condition.valueInputKey.trim() } : {}),
     })),
     outputs: rule?.outputs ?? {},
   }

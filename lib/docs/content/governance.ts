@@ -199,9 +199,21 @@ Both are **on** for new connections and **off** for connections that existed bef
 
 Imported org units are keyed by source and path (for example \`company:acme/division:operations/department:finance\`, or \`ou:/engineering/web\` for Google), so a re-sync updates the same units instead of duplicating them. A renamed department gets its new name; a sync never deletes units (an emptied department stays until you delete it). Only memberships the same source created are moved or removed; people you added to a unit by hand stay.
 
+## Importing people from a directory
+
+**Organization → Import people** (also **Manage → Import people**) starts from a connected directory (Entra ID, Okta, Google Workspace or LDAP / Active Directory, set up in **Settings → SSO & directory**) or a CSV file:
+
+1. Pick the source.
+2. Preview the directory's groups and people. Nothing is written yet. Picking groups narrows the people to their members, and each person shows whether they are new, already a member, already invited, inactive or have no email.
+3. Then either:
+   - **Invite** the selected people with a role. These are one-off email invitations, and nothing stays linked to the directory. Inviting needs *team.invite*; the Admin role also needs *team.change_roles*.
+   - **Keep the selected groups in sync.** The groups become the connection's group scope, group sync and provisioning turn on, and a full sync starts. This needs *settings.edit*. Without a group selected, everyone the connection returns is kept in sync. Narrowing the scope never revokes anyone by itself; leavers are still judged on the directory's whole listing.
+
+People are re-read from the directory on the server for every action, and each invite or sync is recorded in the audit log.
+
 ## Importing from CSV
 
-**Organization → Manage → Import / export** takes a CSV file (UTF-8, up to 5 MB and 10,000 rows):
+**Organization → Manage → Import people → CSV file** takes a CSV file (UTF-8, up to 5 MB and 10,000 rows):
 
 | Column | Meaning |
 |---|---|

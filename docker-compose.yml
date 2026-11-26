@@ -32,11 +32,18 @@
 # USERTASKS_IMAGE runs another image (e.g. usertasks:local, or your registry's
 # copy); `docker compose build` / `up --build` always builds locally.
 x-app-image: &app-image
-  image: ${USERTASKS_IMAGE:-ghcr.io/homepresso/usertasks:0.3.0}
+  image: ${USERTASKS_IMAGE:-ghcr.io/homepresso/usertasks:0.4.1}
   env_file:
     # USERTASKS_ENV_FILE: another env file (npm run stack uses one per profile).
     - path: ${USERTASKS_ENV_FILE:-.env}
       required: false
+  environment:
+    # How the app and the worker reach the app from inside the Compose network
+    # (queue, deletion and background-job kicks). APP_URL is the address
+    # people open (the host's port or your HTTPS name), which usually doesn't
+    # answer inside the container: kicks to it failed and queued workflows
+    # waited for the worker's next minute tick.
+    INTERNAL_APP_URL: ${INTERNAL_APP_URL:-http://app:3000}
 
 x-app-build: &app-build
   build:
@@ -71,7 +78,8 @@ services:
       - "${APP_PORT:-3000}:3000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/config/public"]
+      # /api/ready: 503 while the database is unreachable (lib/health.ts).
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/ready"]
       interval: 10s
       timeout: 5s
       start_period: 30s
@@ -148,6 +156,14 @@ services:
     profiles: [standalone]
     command: ["node", "worker.cjs"]
     restart: unless-stopped
+    # The worker rewrites its heartbeat file every minute (lib/scheduler/heartbeat.ts):
+    # unhealthy when the loop stops for 3 minutes.
+    healthcheck:
+      test: ["CMD", "node", "-e", "const f=process.env.WORKER_HEARTBEAT_FILE||'/tmp/usertasks-worker-heartbeat';process.exit(Date.now()-require('fs').statSync(f).mtimeMs<180000?0:1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
     depends_on:
       migrate:
         condition: service_completed_successfully

@@ -16,6 +16,17 @@ export interface ExpressionContext {
    */
   escape?: (value: string) => string
   /**
+   * With `escape` set: applied instead of it to `{{{variable}}}` (triple
+   * braces = the explicit raw form, for variables that legitimately hold HTML)
+   * — e.g. an HTML sanitizer. Without `escape`, `{{{x}}}` reads like `{{x}}`.
+   */
+  raw?: (value: string) => string
+  /**
+   * With `escape` and `raw` set: `{{variable}}` paths this accepts get `raw`
+   * too (e.g. email variables typed HTML, or named *_html).
+   */
+  rawVariable?: (path: string) => boolean
+  /**
    * Interpolate object / array values as JSON instead of String() — for
    * templates whose result is JSON (e.g. a reference's custom body), where
    * "[object Object]" would corrupt the document.
@@ -194,10 +205,37 @@ function parseTemplate(expr: string): ParsedTemplate {
   return parsed
 }
 
+const TRIPLE_VAR = /\{\{\{([\w.\-[\]]+)\}\}\}/g
+
+/**
+ * `{{{variable}}}`: resolved first, kept out of `escape` (`raw` applies
+ * instead), and put back after the rest of the template resolves. The
+ * placeholders carry a per-call nonce so an interpolated value can't forge one.
+ * null when the text has no triple-brace variable.
+ */
+function resolveTripleBraces(expr: string, ctx: ExpressionContext): string | null {
+  const raws: string[] = []
+  const nonce = Math.random().toString(36).slice(2, 10)
+  const stripped = expr.replace(TRIPLE_VAR, (_: string, path: string) => {
+    const value = resolveVariable(path, ctx)
+    const text = value === undefined || value === null ? "" : ctx.json && typeof value === "object" ? JSON.stringify(value) : String(value)
+    raws.push(ctx.escape ? (ctx.raw ? ctx.raw(text) : text) : text)
+    return `\u0000${nonce}:${raws.length - 1}\u0000`
+  })
+  if (!raws.length) return null
+  const rest = resolveExpression(stripped, ctx)
+  const out = rest === undefined || rest === null ? "" : String(rest)
+  return out.replace(new RegExp(`\u0000${nonce}:(\\d+)\u0000`, "g"), (_: string, i: string) => raws[Number(i)] ?? "")
+}
+
 export function resolveExpression(expr: any, ctx: ExpressionContext): any {
   if (typeof expr !== "string") return expr
   // Nothing to resolve without "{{" — the common case for plain config text.
   if (!expr.includes("{{")) return expr
+  if (expr.includes("{{{")) {
+    const tripled = resolveTripleBraces(expr, ctx)
+    if (tripled !== null) return tripled
+  }
   resolveGeneration++
 
   const { fnMatches, wholeVar, wholeFn } = parseTemplate(expr)
@@ -229,16 +267,22 @@ export function resolveExpression(expr: any, ctx: ExpressionContext): any {
   }
 
   // If the entire string was a single variable expression, return the raw value (not string)
+  const rawFor = escape && ctx.raw && ctx.rawVariable ? ctx.rawVariable : null
+  const interpolateVar = (path: string, value: unknown) => {
+    if (!rawFor || !rawFor(path)) return interpolate(value)
+    const text = value === undefined || value === null ? "" : json && typeof value === "object" ? JSON.stringify(value) : String(value)
+    return ctx.raw!(text)
+  }
   if (wholeVar !== null) {
     const raw = resolveVariable(wholeVar, ctx)
-    if (escape) return interpolate(raw)
+    if (escape) return interpolateVar(wholeVar, raw)
     if (raw !== undefined) return raw
     return ""
   }
 
   // Step 2: Resolve remaining {{variable}} patterns
   return resolved.replace(/\{\{([\w.\-[\]]+)\}\}/g, (_: string, path: string) => {
-    return interpolate(resolveVariable(path, ctx))
+    return interpolateVar(path, resolveVariable(path, ctx))
   })
 }
 

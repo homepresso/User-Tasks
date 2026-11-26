@@ -72,7 +72,7 @@ export function KanbanWidget({ widget, context }: { widget: AppWidget; context: 
                   )}
                 </li>
               ))}
-              {!col.tasks.length && <li className="px-1 py-3 text-center text-2xs text-fg-subtle">Nothing here</li>}
+              {!col.tasks.length && <li className="px-1 py-3 text-center text-2xs text-fg-muted">Nothing here</li>}
             </ul>
           </section>
         ))}
@@ -158,7 +158,7 @@ function TableBoard({ widget, context, data }: { widget: AppWidget; context: Wid
                   </li>
                 )
               })}
-              {!(col.cards ?? []).length && <li className="px-1 py-3 text-center text-2xs text-fg-subtle">Nothing here</li>}
+              {!(col.cards ?? []).length && <li className="px-1 py-3 text-center text-2xs text-fg-muted">Nothing here</li>}
               {col.total > (col.cards ?? []).length && <li className="px-1 text-center text-2xs text-fg-subtle">+{formatCount(col.total - (col.cards ?? []).length)} more</li>}
             </ul>
           </section>

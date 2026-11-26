@@ -386,6 +386,7 @@ const REPO_LINKS: Record<string, string> = {
   'optional-drivers.md': '/docs/self-hosting/optional-drivers',
   'switching-providers.md': '/docs/self-hosting/switching-providers',
   'infrastructure-add-on.md': '/docs/self-hosting/infrastructure-add-on',
+  'processing-add-on.md': '/docs/self-hosting/processing-add-on',
   'deployment-profiles.md': '/docs/self-hosting/deployment-profiles',
   'setup-on-prem.md': '/docs/self-hosting/on-premises',
   'setup-azure.md': '/docs/self-hosting/azure',

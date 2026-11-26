@@ -19,11 +19,16 @@ function getValue(row: any, key: string) {
 }
 
 function exportCSV(data: any[], columns: { key: string; label: string }[], filename: string) {
-  const header = columns.map(c => `"${c.label}"`).join(',')
+  // Formula injection: a cell starting with = + - @ tab or CR gets a leading quote.
+  const cell = (v: unknown) => {
+    const s = String(v)
+    return `"${(/^[=+\-@\t\r]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`
+  }
+  const header = columns.map(c => cell(c.label)).join(',')
   const rows = data.map(row =>
     columns.map(c => {
       const v = getValue(row, c.key)
-      return v == null ? '' : `"${String(v).replace(/"/g, '""')}"`
+      return v == null ? '' : cell(v)
     }).join(',')
   )
   const csv = [header, ...rows].join('\n')

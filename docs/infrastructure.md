@@ -836,8 +836,9 @@ request/response webhooks, run actions, the agent's start-workflow tool)
 wait for the job, up to `PROCESSING_WAIT_TIMEOUT_MS` (default 55 s; then
 504 with the job id while the run carries on). Designer test runs stay in
 the web app unless the add-on's *test runs on workers* option is on. Without
-a valid licence the web app processes again automatically. See the add-on's
-documentation for Compose / Helm (HPA, KEDA) set-up and its settings.
+a valid licence the web app processes again automatically. See the
+[Processing add-on](processing-add-on.md) (a paid extension, $2,500 USD per
+deployment per year) for Compose / Helm (HPA, KEDA) set-up and its settings.
 
 ### Reliability (every mode)
 

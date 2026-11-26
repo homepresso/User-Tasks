@@ -18,7 +18,7 @@ import { useJobs } from '@/components/jobs/jobs-provider'
 import { getDataEventOptions, createDataEventWorkflow } from '@/app/actions/form-data-event'
 import { definitionFrom, type DesignerState } from '@/lib/forms/designer-state'
 import {
-  SYSTEM_COLUMNS, autoMap, autoOrder, compileDirectRule, dataEventSources, fieldColumnFit, formDataEvents, hasErrors, idFeeds, moveStep,
+  SYSTEM_COLUMNS, autoMap, autoOrder, compileDirectRule, dataEventSources, fieldColumnFit, formDataEvents, hasErrors, idFeeds, itemWords, moveStep,
   newStepId, parentPath, planProblems, proposeTable, proposedStep, proposedTarget, sourceChain, suggestParentLink,
   type DataEventColumn, type DataEventDestination, type DataEventField, type DataEventPlan, type DataEventProblem, type DataEventSource,
   type DataEventStep, type DataEventTarget, type DataEventValue, type ProposedTable,
@@ -41,7 +41,7 @@ import { designerInputClass as inputClass } from './designer-controls'
  *   and required columns shown)   4. Order (parent before child, which id
  *   feeds which)   5. Review (the rule, or the workflow outline) → Create.
  *
- * Write directly adds one Before submit rule (and the variables that carry
+ * Write directly adds one After submit (server_steps) rule (and the variables that carry
  * parent ids) to the designer's form — saving the form keeps it. Send to a
  * workflow creates a draft workflow (and any new tables) on the server from
  * the form as last saved (lib/services/form-data-event.ts).
@@ -62,6 +62,8 @@ const STEPS = [
 ] as const
 
 const muted = 'text-fg-muted'
+const capitalize = (text: string) => `${text.charAt(0).toUpperCase()}${text.slice(1)}`
+const SOURCE_KIND_HINT: Record<DataEventSource['kind'], string> = { form: 'The form', list: 'List', repeating_section: 'Repeating section', grid: 'Data table' }
 
 export function useDataEventOptions(formId: string | undefined, enabled = true) {
   return useQuery({
@@ -152,7 +154,11 @@ export function DataEventWizard({ open, onClose, state, formId, formName = 'Form
 
   const targetOf = (s: DataEventStep) => targets.find((t) => t.kind === s.target.kind && t.id === s.target.id)
   const sourceLabel = (key: string) => (key ? sources.find((s) => s.key === key)?.label ?? key : 'the form')
+  /** "for each item of Order lines" / "for each row added to Parts" / "once for the form". */
+  const runsWords = (key: string) => (key ? itemWords(sources.find((s) => s.key === key), key) : 'once for the form')
   const childSources = sources.filter((s) => s.depth > 0 && (destination === 'workflow' || s.depth === 1))
+  // Write directly: nested sections / Lists / tables are not offered (a rule can't link each nested item to its own parent item).
+  const nestedSources = destination === 'direct' ? sources.filter((s) => s.depth > 1) : []
 
   /** A new step for a target: auto-mapped, linked to the parent step of its source. */
   function addStep(target: DataEventTarget, source: string) {
@@ -242,15 +248,15 @@ export function DataEventWizard({ open, onClose, state, formId, formName = 'Form
             <DestinationStep value={destination} onChange={(d) => { setDestination(d); setSteps([]); setNewTables([]) }} options={options} formId={formId} />
           ) : stepIndex === 1 ? (
             <TargetsStep
-              destination={destination!} steps={steps} targets={targets} sources={sources} childSources={childSources} options={options}
-              newTables={newTables} onAdd={addStep} onAddNew={addNewTable} onRemove={removeStep} onSource={changeSource} sourceLabel={sourceLabel}
+              destination={destination!} steps={steps} targets={targets} sources={sources} childSources={childSources} nestedSources={nestedSources} options={options}
+              newTables={newTables} onAdd={addStep} onAddNew={addNewTable} onRemove={removeStep} onSource={changeSource} runsWords={runsWords}
               onIdPath={(id, path) => updateStep(id, { id_path: path || undefined })}
             />
           ) : stepIndex === 2 ? (
-            <MapStep steps={steps} targets={targets} sources={sources} problems={problems} onMap={(id, map) => updateStep(id, { map })} sourceLabel={sourceLabel} />
+            <MapStep steps={steps} targets={targets} sources={sources} problems={problems} onMap={(id, map) => updateStep(id, { map })} sourceLabel={sourceLabel} runsWords={runsWords} />
           ) : stepIndex === 3 ? (
             <OrderStep steps={steps} problems={problems} dragging={dragging} setDragging={setDragging}
-              onReorder={setSteps} onAuto={() => setSteps(autoOrder(steps, sources))} sourceLabel={sourceLabel} />
+              onReorder={setSteps} onAuto={() => setSteps(autoOrder(steps, sources))} runsWords={runsWords} />
           ) : (
             <ReviewStep destination={destination!} plan={plan} sources={sources} targets={targets} problems={problems} def={def} formId={formId} formName={formName}
               openAccess={openAccess} setOpenAccess={setOpenAccess} workflowName={workflowName} setWorkflowName={setWorkflowName}
@@ -323,14 +329,14 @@ function DestinationStep({ value, onChange, options, formId }: { value: DataEven
       <legend className="mb-2 text-sm text-fg">Where should the form&apos;s data go?</legend>
       {destinations.direct && (
         <ChoiceCard selected={value === 'direct'} onSelect={() => onChange('direct')} icon={<Database className="size-4" />} title="Write directly to a table or API reference" testId="data-event-direct">
-          A rule writes the answers when the form is submitted — the parent record first, then a row for each item of a repeating section or List, linked by the parent&apos;s new id.
+          A rule writes the answers when the form is submitted — the parent record first, then a row for each item of a repeating section or List and each row added to a Data table, linked by the parent&apos;s new id.
           {!permissions.write_tables && ' (API references only: writing tables needs the Manage rows permission.)'}
           {!permissions.call_references && permissions.write_tables && ' (Data tables only: calling API references needs the Test integrations permission.)'}
         </ChoiceCard>
       )}
       {destinations.workflow && (
         <ChoiceCard selected={value === 'workflow'} disabled={!formId} onSelect={() => onChange('workflow')} icon={<Workflow className="size-4" />} title="Send to a workflow" testId="data-event-workflow">
-          A draft workflow starts when the form is submitted, with an insert step for each record and a loop for each repeating section or List — built from the form, reviewed here before it is created.
+          A draft workflow starts when the form is submitted, with an insert step for each record and a loop for each repeating section, List or Data table (nested ones too) — built from the form, reviewed here before it is created.
           {!formId && ' Save the form to the Forms library first.'}
         </ChoiceCard>
       )}
@@ -338,19 +344,20 @@ function DestinationStep({ value, onChange, options, formId }: { value: DataEven
   )
 }
 
-function TargetsStep({ destination, steps, targets, sources, childSources, options, newTables, onAdd, onAddNew, onRemove, onSource, sourceLabel, onIdPath }: {
+function TargetsStep({ destination, steps, targets, sources, childSources, nestedSources, options, newTables, onAdd, onAddNew, onRemove, onSource, runsWords, onIdPath }: {
   destination: DataEventDestination
   steps: DataEventStep[]
   targets: DataEventTarget[]
   sources: DataEventSource[]
   childSources: DataEventSource[]
+  nestedSources: DataEventSource[]
   options: Options
   newTables: ProposedTable[]
   onAdd: (target: DataEventTarget, source: string) => void
   onAddNew: (source: string) => void
   onRemove: (id: string) => void
   onSource: (step: DataEventStep, source: string) => void
-  sourceLabel: (key: string) => string
+  runsWords: (key: string) => string
   onIdPath: (id: string, path: string) => void
 }) {
   const used = new Set(steps.map((s) => s.source))
@@ -361,12 +368,15 @@ function TargetsStep({ destination, steps, targets, sources, childSources, optio
     ...existing.filter((t) => t.kind === 'table').map((t) => ({ value: `table:${t.id}`, label: t.name, hint: `Data table · ${t.columns.filter((c) => !SYSTEM_COLUMNS.has(c.key)).length} columns` })),
     ...existing.filter((t) => t.kind === 'reference').sort((a, b) => Number(Boolean(b.writes)) - Number(Boolean(a.writes))).map((t) => ({ value: `reference:${t.id}`, label: t.name, hint: `API reference${t.writes ? ' · Writes data' : ''} · ${t.columns.length} input${t.columns.length === 1 ? '' : 's'}` })),
   ]
-  const sourceOptions: AutocompleteOption[] = [{ value: '', label: 'Once for the form' }, ...childSources.map((s) => ({ value: s.key, label: `For each item of ${s.label}`, hint: s.kind === 'list' ? 'List' : 'Repeating section' }))]
+  const sourceOptions: AutocompleteOption[] = [{ value: '', label: 'Once for the form' }, ...childSources.map((s) => ({ value: s.key, label: capitalize(itemWords(s)), hint: SOURCE_KIND_HINT[s.kind] }))]
   const canCreate = destination === 'workflow' && options.permissions.create_tables
   const unmade = sources.filter((s) => (s.depth === 0 || childSources.includes(s)) && !newTables.some((t) => t.source === s.key))
   return (
     <div className="space-y-4">
-      <p className="text-sm text-fg">Pick the {options.permissions.view_tables ? 'data tables' : ''}{options.permissions.view_tables && options.permissions.view_references ? ' and ' : ''}{options.permissions.view_references ? 'API references' : ''} to write, and whether each runs once or for every item of a repeating section / List.</p>
+      <p className="text-sm text-fg">Pick the {options.permissions.view_tables ? 'data tables' : ''}{options.permissions.view_tables && options.permissions.view_references ? ' and ' : ''}{options.permissions.view_references ? 'API references' : ''} to write, and whether each runs once or for every item of a repeating section / List, or every row added to a Data table.</p>
+      {nestedSources.length > 0 && (
+        <InlineNotice tone="info" message={`${nestedSources.map((s) => `"${s.label}"`).join(', ')} ${nestedSources.length === 1 ? 'sits' : 'sit'} inside another repeating part. A rule can't link each nested item to its own parent item, so ${nestedSources.length === 1 ? 'it is' : 'they are'} not offered here — go Back and choose "Send to a workflow" to save ${nestedSources.length === 1 ? 'it' : 'them'} too.`} />
+      )}
       <div className="flex flex-wrap items-end gap-2 rounded-md border border-border p-3" data-testid="data-event-add">
         <div className="min-w-[14rem] flex-1">
           <span id="de-target-label" className="mb-0.5 block text-2xs font-semibold text-fg-muted">Table or API reference</span>
@@ -404,7 +414,7 @@ function TargetsStep({ destination, steps, targets, sources, childSources, optio
                 {s.target.new_table && <Badge tone="info">New table</Badge>}
                 {target?.writes && <Badge tone="warning">Writes data</Badge>}
                 {s.target.new_table ? (
-                  <span className={cn('text-xs', muted)}>{s.source ? `For each item of ${sourceLabel(s.source)}` : 'Once for the form'}</span>
+                  <span className={cn('text-xs', muted)}>{capitalize(runsWords(s.source))}</span>
                 ) : (
                   <div className="w-56">
                     <AutocompleteSelect value={s.source} options={sourceOptions} onChange={(v) => onSource(s, v)} dataAttrs={{ 'aria-label': `When ${s.target.name} runs` } as any} />
@@ -436,7 +446,7 @@ function FitIcon({ level, note }: { level: 'ok' | 'warn' | 'bad'; note?: string 
   )
 }
 
-function MapStep({ steps, targets, sources, problems, onMap, sourceLabel }: { steps: DataEventStep[]; targets: DataEventTarget[]; sources: DataEventSource[]; problems: DataEventProblem[]; onMap: (id: string, map: Record<string, DataEventValue>) => void; sourceLabel: (key: string) => string }) {
+function MapStep({ steps, targets, sources, problems, onMap, sourceLabel, runsWords }: { steps: DataEventStep[]; targets: DataEventTarget[]; sources: DataEventSource[]; problems: DataEventProblem[]; onMap: (id: string, map: Record<string, DataEventValue>) => void; sourceLabel: (key: string) => string; runsWords: (key: string) => string }) {
   return (
     <div className="space-y-5">
       <p className="text-sm text-fg">Map form fields to columns{steps.some((s) => s.target.kind === 'reference') ? ' and inputs' : ''}. Matching names are mapped for you; check the types.</p>
@@ -455,7 +465,7 @@ function MapStep({ steps, targets, sources, problems, onMap, sourceLabel }: { st
           <section key={s.id} className="space-y-2" aria-labelledby={`de-map-${s.id}`} data-map-step={s.id}>
             <div className="flex flex-wrap items-center gap-2">
               <h3 id={`de-map-${s.id}`} className="text-sm font-semibold text-fg">{i + 1}. {s.target.name}</h3>
-              <span className={cn('text-xs', muted)}>{s.source ? `for each item of ${sourceLabel(s.source)}` : 'once for the form'}</span>
+              <span className={cn('text-xs', muted)}>{runsWords(s.source)}</span>
               {target && <Button size="sm" variant="ghost" className="ml-auto" leadingIcon={<Wand2 />} onClick={() => onMap(s.id, autoMap(fields, target.columns, s.map))}>Auto-map</Button>}
             </div>
             {unmappedRequired.length > 0 && <InlineNotice tone="warning" message={`Required ${s.target.kind === 'table' ? 'columns' : 'inputs'} without a value: ${unmappedRequired.map((c) => c.label).join(', ')}`} />}
@@ -514,9 +524,9 @@ function MapRow({ step, column, value, fields, steps, targets, options, onChange
   )
 }
 
-function OrderStep({ steps, problems, dragging, setDragging, onReorder, onAuto, sourceLabel }: {
+function OrderStep({ steps, problems, dragging, setDragging, onReorder, onAuto, runsWords }: {
   steps: DataEventStep[]; problems: DataEventProblem[]; dragging: string | null; setDragging: (id: string | null) => void
-  onReorder: (steps: DataEventStep[]) => void; onAuto: () => void; sourceLabel: (key: string) => string
+  onReorder: (steps: DataEventStep[]) => void; onAuto: () => void; runsWords: (key: string) => string
 }) {
   const feeds = idFeeds(steps)
   const orderProblems = problems.filter((x) => x.severity === 'error' && /must run after|does not hold/.test(x.message))
@@ -539,7 +549,7 @@ function OrderStep({ steps, problems, dragging, setDragging, onReorder, onAuto, 
               <GripVertical className="mt-1 size-4 shrink-0 cursor-grab text-fg-muted" aria-hidden />
               <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-subtle text-2xs font-semibold text-fg-muted" aria-hidden>{i + 1}</span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-fg">{s.target.name} <span className={cn('font-normal', muted)}>· {s.source ? `each item of ${sourceLabel(s.source)}` : 'once'}</span></p>
+                <p className="text-sm font-medium text-fg">{s.target.name} <span className={cn('font-normal', muted)}>· {runsWords(s.source)}</span></p>
                 {into.map((f) => <p key={`${f.from}-${f.column}`} className="text-2xs text-info">← {f.column} = new id of {name(f.from)} ({f.path})</p>)}
                 {out.length > 0 && <p className={cn('text-2xs', muted)}>Its new id feeds {[...new Set(out.map((f) => name(f.to)))].join(', ')}</p>}
               </div>
@@ -583,15 +593,15 @@ function ReviewStep({ destination, plan, sources, targets, problems, def, formId
     <div className="space-y-4">
       {destination === 'direct' && rule && (
         <>
-          <p className="text-sm text-fg">This rule is added to the form. It runs <strong>before the form is submitted</strong>, step by step:</p>
+          <p className="text-sm text-fg">This rule is added to the form. It runs on the server <strong>once a submission is accepted</strong> (a refused submission writes nothing), step by step:</p>
           <ol className="space-y-1.5 rounded-md border border-border p-3" aria-label="Rule steps">
-            <li className="flex items-center gap-2 text-xs font-medium text-fg"><Flag className="size-3.5 text-fg-muted" aria-hidden />When: Before submit — {rule.rule.name}</li>
+            <li className="flex items-center gap-2 text-xs font-medium text-fg"><Flag className="size-3.5 text-fg-muted" aria-hidden />When: After submit — {rule.rule.name}</li>
             {plan.steps.map((s, i) => {
               const out = rule.variables.filter((v) => v.name.startsWith(`${s.id}_`))
               return (
                 <li key={s.id} className="flex flex-wrap items-center gap-2 pl-4 text-xs text-fg" data-review-step={s.id}>
                   {s.target.kind === 'table' ? <Database className="size-3.5 text-fg-muted" aria-hidden /> : <Globe className="size-3.5 text-fg-muted" aria-hidden />}
-                  <span>{i + 1}. {s.target.kind === 'table' ? 'Add a row to' : 'Call'} <strong>{s.target.name}</strong>{s.source ? <> for each item of {sources.find((x) => x.key === s.source)?.label}</> : null}</span>
+                  <span>{i + 1}. {s.target.kind === 'table' ? 'Add a row to' : 'Call'} <strong>{s.target.name}</strong>{s.source ? <> {itemWords(sources.find((x) => x.key === s.source), s.source)}</> : null}</span>
                   {out.map((v) => <code key={v.name} className="rounded bg-subtle px-1 font-mono text-2xs">→ {`{{var.${v.name}}}`}</code>)}
                   <span className="ml-auto flex gap-1">
                     <Button size="sm" variant="ghost" onClick={() => onEdit(s.id)}>Edit</Button>

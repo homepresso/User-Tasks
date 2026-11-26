@@ -344,7 +344,7 @@ describe('runShipper', () => {
       clock.now += ms
       if (!injected && clock.now > T0 + 5000) { injected = true; db.tables.event_stream.push(ev(3)) }
     }
-    const summary = await runShipper({ supabase: db, fetch, now: () => clock.now, sleep, random: () => 0.5, settleMs: 0, budgetMs: 20_000, workerId: 'w-run', log: () => {} })
+    const summary = await runShipper({ supabase: db, fetch, now: () => clock.now, sleep, random: () => 0.5, settleMs: 0, budgetMs: 20_000, workerId: 'w-run', log: () => {}, concurrency: 1 })
     expect(summary.events_sent).toBe(6)
     expect(summary.failures).toBe(0)
     expect(row(db)).toMatchObject({ cursor: 3, events_sent: 3, locked_by: null })
@@ -355,6 +355,29 @@ describe('runShipper', () => {
       expect(verifyWebhookSignature(SIGNING, (init.headers as any)['X-UserTasks-Signature'], String(init.body), { now: clock.now })).toBe(true)
     }
     expect(JSON.stringify(summary)).not.toContain(TOKEN)
+  })
+
+  it('ships several destinations at once, so slow ones do not starve the rest', async () => {
+    const make = () => makeDb({
+      events: [ev(1)],
+      destinations: Array.from({ length: 4 }, (_, i) => destination({ id: `dest-${i}`, name: `Hook ${i}`, type: 'webhook', config: { url: URL_HOOK }, credentials: { signing_secret: encryptSecret(SIGNING) } })),
+    }, { now: Date.now() })
+    const slow = fakeFetch(() => ({ status: 200 }))
+    const timed = async (concurrency: number) => {
+      const db = make()
+      const t0 = Date.now()
+      const done: number[] = []
+      const delayed = (async (url: any, init: any) => { await new Promise((r) => setTimeout(r, 200)); done.push(Date.now() - t0); return slow(url, init) }) as typeof slow
+      const summary = await runShipper({ supabase: db, fetch: delayed, settleMs: 0, budgetMs: 1500, pollMs: 50, workerId: `w-c${concurrency}`, log: () => {}, concurrency })
+      return { allShippedMs: done.length >= 4 ? done[3] : Infinity, sent: summary.events_sent }
+    }
+    const serial = await timed(1)
+    const parallel = await timed(4)
+    expect(serial.sent).toBe(4)
+    expect(parallel.sent).toBe(4)
+    // 4 destinations x 200 ms: one lane needs ~800 ms, four lanes ~200 ms.
+    expect(serial.allShippedMs).toBeGreaterThanOrEqual(750)
+    expect(parallel.allShippedMs).toBeLessThan(serial.allShippedMs / 2)
   })
 
   it('waits for the settle window before shipping', async () => {

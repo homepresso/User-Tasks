@@ -204,7 +204,8 @@ export function RetentionPoliciesManager({ policies }: Props) {
   const queryClient = useQueryClient()
   const jobs = useJobs()
   const { can } = usePermissions()
-  const { layoutPreference, setLayoutPreference } = useAppStore()
+  const layoutPreference = useAppStore((s) => s.layoutPreference)
+  const setLayoutPreference = useAppStore((s) => s.setLayoutPreference)
   const viewMode = (layoutPreference.retentionPolicies === 'list' ? 'list' : 'grid') as 'grid' | 'list'
   const [draft, setDraft] = useState<PolicyDraft>(createEmptyDraft())
   const [localPolicies, setLocalPolicies] = useState<RetentionPolicy[]>(policies)
@@ -399,7 +400,7 @@ export function RetentionPoliciesManager({ policies }: Props) {
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-fg">Retention Policies</h2>
+          <h2 className="text-lg font-semibold text-fg">Retention policies</h2>
           <p className="mt-1 text-sm text-fg-muted">
             Create reusable policies once, then apply them to tables/lists, rows, roles and forms (their submissions) across the platform.
           </p>
@@ -413,7 +414,7 @@ export function RetentionPoliciesManager({ policies }: Props) {
           {error ? <p className="text-xs text-danger">{error}</p> : <span />}
           <Button onClick={handleCreate} disabled={saving === 'new'}>
             <Plus size={14} className="mr-1" />
-            {saving === 'new' ? 'Creating...' : 'Create Policy'}
+            {saving === 'new' ? 'Creating…' : 'Create policy'}
           </Button>
         </div>
       </div>
@@ -701,7 +702,7 @@ export function RetentionPoliciesManager({ policies }: Props) {
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
-                <button type="button" className="rounded-full p-1.5 transition hover:opacity-80 text-fg-muted">
+                <button type="button" aria-label="Close" className="rounded-full p-1.5 transition hover:opacity-80 text-fg-muted">
                   <X size={16} />
                 </button>
               </Dialog.Close>
@@ -720,7 +721,7 @@ export function RetentionPoliciesManager({ policies }: Props) {
                 <Button variant="outline">Cancel</Button>
               </Dialog.Close>
               <Button onClick={handleEditSave} disabled={!editingPolicy || saving === editingPolicy?.id}>
-                {saving === editingPolicy?.id ? 'Saving...' : 'Save Changes'}
+                {saving === editingPolicy?.id ? 'Saving…' : 'Save changes'}
               </Button>
             </div>
           </Dialog.Content>

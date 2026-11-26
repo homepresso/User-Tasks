@@ -45,8 +45,24 @@ import { instanceFacts } from './instance-admin'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const NO_MATCH = '00000000-0000-0000-0000-000000000000'
-/** Most rows a chart / sum / SLA widget aggregates in memory. */
-export const AGGREGATE_ROW_CAP = 5000
+/**
+ * Most rows the database returns for one read: PostgREST max_rows (1,000 on
+ * Supabase unless changed), mirrored by DB_MAX_ROWS for the in-process
+ * provider (0 = no cap). A larger .limit() is silently cut to it.
+ */
+export function serverRowCap(env: Record<string, string | undefined> = process.env): number {
+  const raw = env.DB_MAX_ROWS
+  if (raw === undefined || raw === '') return 1000
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : Number.POSITIVE_INFINITY
+}
+/**
+ * Most rows a chart / sum / SLA widget aggregates in memory: 5,000, but never
+ * more than the server returns, so `truncated` (rows.length >= cap) is true
+ * when rows were cut. It was 5,000 against a 1,000-row server cap: widgets
+ * silently counted the first 1,000 rows and never said so.
+ */
+export const AGGREGATE_ROW_CAP = Math.min(5000, serverRowCap())
 
 export type WidgetTask = HomeTask
 

@@ -80,7 +80,7 @@ export const WRITE_CASES: Case[] = [
     run: (db) => db.from('user_teams').upsert({ id: UT, user_id: BOB, team_id: id(0x102), role: 'member' }).select('user_id, team_id, role') },
 
   // ── update ──
-  { name: 'update by id, select single', from: 'lib/services/tasks.ts', as: ['service', 'alice'], reset: seedTask, after: taskState, volatile: ['updated_at', 'started_at'],
+  { name: 'update by id, select single', from: 'lib/services/tasks.ts', as: ['service', 'alice'], reset: seedTask, after: taskState, volatile: ['updated_at', 'started_at', 'routed_at'],
     run: (db) => db.from('tasks').update({ status: 'in_progress', priority: 'high' }).eq('id', TK).eq('tenant_id', T).select('*').single() },
   { name: 'update minimal', from: 'lib/services/tasks.ts', as: ['service'], reset: seedTask, after: taskState,
     run: (db) => db.from('tasks').update({ status: 'completed' }).eq('id', TK).eq('tenant_id', T).is('deleted_at', null) },

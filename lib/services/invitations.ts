@@ -17,6 +17,8 @@ import { applyPage, audit, dbError, type Page } from './_shared'
 
 const COLUMNS = 'id, email, role, invited_by, accepted_at, expires_at, created_at'
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** Roles only someone who may assign roles (team.change_roles) can invite with. */
+export const ELEVATED_ROLES: ReadonlySet<string> = new Set(['owner', 'admin'])
 
 export type InvitableRole = (typeof INVITABLE_ROLES)[number]
 
@@ -82,6 +84,9 @@ export async function sendInvitation(ctx: ServiceContext, input: { email: string
   if (!EMAIL_PATTERN.test(email) || email.length > 320) throw ServiceError.validation('A valid email address is required')
   const role = (input.role ?? 'member') as InvitableRole
   if (!INVITABLE_ROLES.includes(role)) throw ServiceError.validation(`role must be one of: ${INVITABLE_ROLES.join(', ')}`)
+  // Accepting gives the invited role, so inviting as Admin or Owner is giving that role: the same
+  // permission as assigning one (team.change_roles). team.invite alone (Managers) can't escalate.
+  if (ELEVATED_ROLES.has(role)) requirePerm(ctx, 'team.change_roles')
   const invitedBy = inviterId(ctx)
 
   const { data: member } = await (ctx.supabase as any).from('users')

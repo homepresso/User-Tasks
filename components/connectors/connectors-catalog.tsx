@@ -226,6 +226,7 @@ export function ConnectorsCatalog({ connectors, references = [] }: CatalogProps)
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'name' | 'category' | 'instances' | 'status')}
+              aria-label="Sort connectors"
               className="rounded-lg border px-3 py-2 text-xs border-border bg-panel text-fg"
             >
               <option value="name">Sort by name</option>

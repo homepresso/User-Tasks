@@ -155,7 +155,7 @@ describe('Send to a workflow', () => {
     expect(out.tables.map((t) => t.source)).toEqual(['', 'lines'])
     const nodes = store.workflows[0].nodes
     expect(nodes.find((n: any) => n.id === 'step_1').config.table_id).toBe(store.created[0].id)
-    expect(nodes.find((n: any) => n.id === 'step_2').config.column_values.parent_row_id).toBe('{{step_1_id}}')
+    expect(nodes.find((n: any) => n.id === 'step_2').config.column_values.parent_row_id).toBe('{{order_form_submission_id}}')
   })
 
   it('new tables need data.create; a workflow needs workflows.create / edit; the form forms.edit', async () => {
@@ -194,10 +194,10 @@ describe('status and Write directly (the agent / MCP path)', () => {
     const direct = { ...plan, destination: 'direct', steps: [plan.steps[1], plan.steps[0]] }
     const out = await planDataEventRule(ctx(ALL), { form_id: FORM, plan: direct })
     expect(out.problems.filter((p) => p.severity === 'error')).toEqual([])
-    expect(out.rule.event).toBe('before_submit')
-    expect(out.rule.then.map((a) => [a.type, a.table_id, a.each_item ?? null])).toEqual([['table_create', ORDERS, null], ['table_create', LINES, 'lines']])
-    expect(out.rule.then[1].column_values).toEqual({ order_id: '{{var.step_1_id}}', sku: '{{row.sku}}' })
-    expect(out.variables.map((v) => v.name)).toEqual(['step_1_id'])
+    expect(out.rule).toMatchObject({ event: 'after_submit', server_steps: true })
+    expect(out.rule.then.map((a) => [a.type, a.table_id ?? null, a.each_item ?? null])).toEqual([['table_create', ORDERS, null], ['table_create', LINES, 'lines']])
+    expect(out.rule.then[1].column_values).toEqual({ order_id: '{{var.order_id}}', sku: '{{row.sku}}' })
+    expect(out.variables.map((v) => v.name)).toEqual(['order_id'])
     await expect(planDataEventRule(ctx(ALL.filter((x) => x !== 'data.manage_rows')), { form_id: FORM, plan: direct })).rejects.toThrow(/data\.manage_rows/)
     await expect(planDataEventRule(ctx(ALL.filter((x) => x !== 'integrations.test')), { form_id: FORM, plan: { destination: 'direct', steps: [{ id: 'step_1', target: { kind: 'reference', id: REF, name: 'Create deal' }, source: '', map: { name: { kind: 'field', key: 'customer' } } }] } })).rejects.toThrow(/integrations\.test/)
   })

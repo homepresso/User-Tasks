@@ -48,7 +48,7 @@ No Supabase. These containers start:
 | `worker` | The scheduler (`node worker.cjs`). The app runs with `SCHEDULER_IN_PROCESS=false`. |
 | `mailpit` | Catches all email. The UI is at `http://localhost:8025`. Point `SMTP_HOST` at your relay for real delivery. |
 | `valkey` | The shared cache store (`CACHE_PROVIDER=redis`): rate limits and cache invalidations for every app replica and the worker. No persistence — nothing in it is the source of truth. Use `CACHE_PROVIDER=postgres` to run without it. |
-| `app` | The web server, with a healthcheck on `/api/config/public`. |
+| `app` | The web server, with a healthcheck on `/api/ready` (503 while the database is unreachable). |
 
 One command writes `.env` from `deploy/compose/standalone.env.example` with
 fresh secrets, gets the app image (below), starts the stack, waits until it

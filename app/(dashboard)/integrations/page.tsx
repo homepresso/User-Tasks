@@ -96,7 +96,7 @@ export default function IntegrationsPage() {
       description={
         <>
           Connect external APIs, databases and services, then expose them as references your workflows, forms and agents call.{" "}
-          <Link href="/docs/integrations" className="text-primary-text underline-offset-4 hover:underline">How integrations work</Link>
+          <Link href="/docs/integrations" className="text-primary-text underline underline-offset-4">How integrations work</Link>
         </>
       }
       actions={

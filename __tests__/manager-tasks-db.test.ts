@@ -79,6 +79,13 @@ describe.skipIf(!DB_URL)('manager tasks migration (local DB)', () => {
   }
 
   it('a signed-in user (even the assignee) cannot complete a workflow task directly', async () => {
+    // Since 20270130140000 signed-in users hold no UPDATE grant on tasks at all.
+    const denied = await as('authenticated', ALICE, `UPDATE public.tasks SET status = 'completed' WHERE id = '${TASK}'`)
+    expect(denied.error?.code).toBe('42501')
+    expect(denied.error?.message).toContain('permission denied')
+    // The completion trigger stays as a second layer: give the grant back
+    // (rolled back with the test) to keep exercising it.
+    await db.query('GRANT UPDATE ON public.tasks TO authenticated')
     for (const sql of [
       `UPDATE public.tasks SET status = 'completed' WHERE id = '${TASK}'`,
       `UPDATE public.tasks SET outcome = 'approved' WHERE id = '${TASK}'`,

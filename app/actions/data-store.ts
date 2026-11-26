@@ -160,16 +160,18 @@ export async function bulkDeleteCustomTables(tableIds: string[]) {
   return { queued: (tables ?? []).length }
 }
 
-export async function insertRow(tableId: string, tenantId: string, data: Record<string, any>) {
+export async function insertRow(tableId: string, _clientTenantId: string, data: Record<string, any>) {
   await requirePermission('data.manage_rows')
   const { supabase, user } = await requireAuth()
 
-  const { data: profile } = await supabase.from('users').select('current_tenant_id, tenant_id').eq('id', user.id).single()
-  const userTenantId = profile?.current_tenant_id ?? profile?.tenant_id
-  const effectiveTenantId = userTenantId ?? tenantId
+  // The row belongs to the table's workspace — never a tenant id the client
+  // sent (the parameter stays for the existing callers and is ignored). The
+  // table read goes through RLS, so it must be visible to the caller.
+  const { data: table } = await supabase.from('custom_tables').select('columns, tenant_id').eq('id', tableId).single()
+  if (!table) throw new Error('Table not found')
+  const effectiveTenantId = String((table as any).tenant_id)
 
   // Auto-populate system columns
-  const { data: table } = await supabase.from('custom_tables').select('columns').eq('id', tableId).single()
   const cols = (table?.columns ?? []) as any[]
 
   // Auto-number ID

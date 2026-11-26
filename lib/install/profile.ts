@@ -164,6 +164,16 @@ export const ProfileSchema = z.object({
   cache: providerBlock('cache').default({ provider: 'memory', options: {} }),
   secrets: providerBlock('secrets').default({ provider: 'env', options: {} }),
   kms: providerBlock('kms').default({ provider: 'env', options: {} }),
+  /**
+   * Processing add-on (paid, needs its licence at install time): `workers`
+   * writes PROCESSING_MODE=workers — the web app only queues and processors
+   * (`node worker.cjs --processor`) run the work. Omitted / `web`: the web
+   * app processes (free, the default).
+   */
+  processing: z.object({
+    mode: z.enum(['web', 'workers']).default('web'),
+    testRunsOnWorkers: z.boolean().optional(),
+  }).strict().optional(),
 }).strict()
 
 export type ProfileInput = z.input<typeof ProfileSchema>
@@ -630,6 +640,12 @@ export function profileToConfig(profile: Profile): ProfileConfig {
     putEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', profile.supabase.anonKey)
     putEnv('SUPABASE_SERVICE_ROLE_KEY', profile.supabase.serviceRoleKey)
     putEnv('SUPABASE_JWT_SECRET', profile.supabase.jwtSecret)
+  }
+
+  if (profile.processing?.mode === 'workers') {
+    putEnv('PROCESSING_MODE', 'workers')
+    if (profile.processing.testRunsOnWorkers !== undefined) putEnv('PROCESSING_TEST_RUNS_ON_WORKERS', profile.processing.testRunsOnWorkers ? 'true' : 'false')
+    notes.push('Processing runs on separate workers (Processing add-on): start at least one processor — `node worker.cjs --processor` with this environment (Docker Compose: docker-compose.processing.yml --profile processing; Kubernetes: the usertasks-processing chart). Until one runs, queued work waits.')
   }
 
   const db = profile.database

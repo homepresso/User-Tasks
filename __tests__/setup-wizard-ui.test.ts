@@ -18,6 +18,8 @@ vi.mock('@/app/actions/infrastructure', () => ({
   retryProviderSwitch: vi.fn(), checkSecretReference: vi.fn(), canViewInfrastructureAction: vi.fn(),
 }))
 
+vi.mock('@/app/actions/processing', () => ({ configureProcessingSettings: vi.fn(), refreshProcessingStatus: vi.fn(), recoverProcessingJob: vi.fn() }))
+
 const { SetupWizard } = await import('@/components/setup-wizard/setup-wizard')
 const { summariseIdp, checkAddress } = await import('@/lib/setup/wizard-model')
 import type { WizardPageData } from '@/lib/setup/wizard-data'
@@ -95,6 +97,44 @@ describe('setup wizard steps (rendered)', () => {
     expect(html).toContain('href="#move-off-supabase"')
     expect(html).not.toContain('/x/infrastructure')
     expect(html).not.toContain('usertasks-admin switch')
+  })
+
+  it('services on the bundled stack (nothing on Supabase) without the add-on: the add-on card on its own, Change… leads to it', () => {
+    const d = data('services')
+    d.services!.areas = d.services!.areas.map((a) => (a.area === 'storage' ? { ...a, provider: 'local', providerLabel: 'Local disk', onSupabase: false } : a))
+    d.services!.addon = { state: 'unlicensed', href: '/x/infrastructure', reason: 'infrastructure is not licensed on this installation.' }
+    const html = render(d)
+    expect(html).not.toContain('Moving off Supabase')
+    expect(html).toContain('id="infrastructure-addon"')
+    expect(html).toContain('data-addon-upsell="infrastructure"')
+    expect(html).toContain('href="#infrastructure-addon"')
+    expect(html).not.toContain('href="#move-off-supabase"')
+    expect(html).toContain('no usable licence: infrastructure is not licensed on this installation.')
+    // Licensed: Change… opens the add-on's page and no card is shown.
+    d.services!.addon = { state: 'ready', href: '/x/infrastructure', reason: null }
+    const ready = render(d)
+    expect(ready).not.toContain('data-addon-upsell')
+    expect(ready).toContain('href="/x/infrastructure?area=db"')
+  })
+
+  it('processing (optional): the Processing add-on card without a licence, the switch with one', () => {
+    const d = data('services')
+    d.services!.processing = { addon: { state: 'unlicensed', extensionId: 'processing', reason: 'the licence expired' }, mode: 'web', settings: null, workersOnline: 0 }
+    let html = render(d)
+    expect(html).toContain('Processing (optional)')
+    expect(html).toContain('data-addon-upsell="processing"')
+    expect(html).toContain('the licence expired')
+    expect(html).not.toContain('Use separate workers')
+    const settings = { mode: 'web' as const, test_runs_on_workers: false, locked: { mode: false, test_runs_on_workers: false }, can_use_workers: false }
+    d.services!.processing = { addon: { state: 'ready', extensionId: 'processing', reason: null }, mode: 'web', settings, workersOnline: 0 }
+    html = render(d)
+    expect(html).not.toContain('data-addon-upsell="processing"')
+    expect(html).toContain('node worker.cjs --processor')
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>)[^])*Use separate workers/)
+    d.services!.processing = { addon: { state: 'ready', extensionId: 'processing', reason: null }, mode: 'queue', settings: { ...settings, mode: 'workers', can_use_workers: true }, workersOnline: 2 }
+    html = render(d)
+    expect(html).toContain('separate workers</strong> · 2 workers online')
+    expect(html).toContain('Process in the web app')
   })
 
   it('sign-in: providers listed without secrets, test sign-in link, redirect URIs', () => {

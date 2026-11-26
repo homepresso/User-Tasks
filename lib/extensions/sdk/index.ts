@@ -1990,6 +1990,35 @@ export interface ProcessorHost {
   db: any
 }
 
+/** One processor process as the provider reports it (SDK 1.3). */
+export interface ProcessingWorkerSummary {
+  id: string
+  hostname: string | null
+  version: string | null
+  /** running | paused (memory or licence) | draining | stopped */
+  state: string
+  /** Heartbeat younger than the provider's online window. */
+  online: boolean
+  queues: string[]
+  concurrency: number
+  jobs_running: number
+  jobs_per_minute: number
+  rss_bytes: number | null
+  listening: boolean
+  last_seen: string
+  note?: string | null
+}
+
+/** The provider's switches (SDK 1.3): what Settings → Infrastructure → Processing shows and changes through `configure`. */
+export interface ProcessingSettingsView {
+  mode: 'web' | 'workers'
+  test_runs_on_workers: boolean
+  /** Set in the server environment: the UI and API cannot change it. */
+  locked: { mode: boolean; test_runs_on_workers: boolean }
+  /** Switching to workers is possible now (at least one worker online). */
+  can_use_workers?: boolean
+}
+
 /** Settings → Infrastructure → Processing: what the provider reports. */
 export interface ProcessingStatus {
   mode: ProcessingHandoff
@@ -1999,6 +2028,10 @@ export interface ProcessingStatus {
   details?: string[]
   /** The provider's own page (e.g. /x/processing). */
   href?: string
+  /** SDK 1.3: the switches, so core's Settings card can show and change them (through `configure`). */
+  settings?: ProcessingSettingsView
+  /** SDK 1.3: processor processes (most recent first, at most 50). */
+  workers?: ProcessingWorkerSummary[]
 }
 
 /**

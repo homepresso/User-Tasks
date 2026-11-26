@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { RowChangeHistory } from './change-history'
 import { useState, useEffect, useRef } from 'react'
 import { Trash2, Copy, Check, FileText, Upload, ExternalLink, Loader2, X } from 'lucide-react'
@@ -81,6 +82,7 @@ export async function uploadRowFile(tableId: string, file: File) {
  * Save; closing with unsaved changes asks first.
  */
 export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: RowDetailDrawerProps) {
+  const [confirm, confirmDialog] = useConfirm()
   const [editData, setEditData] = useState<Record<string, any>>({})
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -168,8 +170,8 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
     setTimeout(() => setCopiedId(false), 1500)
   }
 
-  function handleClose() {
-    if (dirty && !confirm('Discard unsaved changes?')) return
+  async function handleClose() {
+    if (dirty && !(await confirm({ title: 'Discard unsaved changes?', description: 'Your edits to this row haven’t been saved.', confirmLabel: 'Discard', destructive: true }))) return
     onOpenChange(false)
   }
 
@@ -191,6 +193,7 @@ export function RowDetailDrawer({ open, onOpenChange, row, columns, tableId }: R
             </button>
           }
         >
+          {confirmDialog}
           <DialogBody className="space-y-5">
             <Card variant="inset" padding="sm" className="grid grid-cols-2 gap-3">
               <MetaField label="Created by" user={row.creator} timestamp={row.created_at} />

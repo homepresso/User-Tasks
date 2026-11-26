@@ -84,6 +84,12 @@ export interface EndpointDef<
    */
   multipart?: MultipartOptions
   /**
+   * JSON body cap (lib/api/body-limit.ts): 'default' = API_MAX_BODY_BYTES
+   * (5 MiB); 'package' = API_MAX_PACKAGE_BODY_BYTES (50 MB) for bodies that
+   * carry base64 packages or large documents with no multipart alternative.
+   */
+  bodyLimit?: 'default' | 'package'
+  /**
    * Update endpoints: the matching GET response is also accepted as the body,
    * so `get -o json > x.json` → edit → `update -f x.json` works (see
    * prepareRoundTripBody).

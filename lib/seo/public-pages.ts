@@ -5,6 +5,7 @@ import { USE_CASES } from '@/lib/use-cases'
 import { SITE_CONTENT_UPDATED } from '@/lib/seo/site'
 import { SHAREPOINT_GET_STARTED, SHAREPOINT_TRIAL } from '@/lib/seo/sharepoint-facts'
 import { EXTENSION_DETAIL_IDS, EXTENSIONS_PAGE, EXTENSIONS_UPDATED, extensionById } from '@/lib/seo/extensions'
+import { SUPPORT_PAGE, SUPPORT_UPDATED } from '@/lib/seo/support'
 
 /**
  * Every indexable top-level page of the public site, in one list: the
@@ -69,6 +70,7 @@ export const PUBLIC_PAGES: PublicPage[] = [
   { path: SHAREPOINT_TRIAL.path, title: SHAREPOINT_TRIAL.title, description: SHAREPOINT_TRIAL.description, group: 'product' },
   { path: EXTENSIONS_PAGE.path, title: EXTENSIONS_PAGE.title, description: EXTENSIONS_PAGE.description, group: 'product', updated: EXTENSIONS_UPDATED },
   ...EXTENSION_DETAIL_IDS.map((id): PublicPage => { const extension = extensionById(id); return { path: extension.href, title: extension.page.title, description: extension.page.description, group: 'product', updated: EXTENSIONS_UPDATED } }),
+  { path: SUPPORT_PAGE.path, title: SUPPORT_PAGE.title, description: SUPPORT_PAGE.description, group: 'product', updated: SUPPORT_UPDATED },
   { path: '/contact', title: CONTACT_PAGE.title, description: CONTACT_PAGE.description, group: 'company' },
 ]
 

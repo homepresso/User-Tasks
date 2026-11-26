@@ -48,6 +48,7 @@ import { deriveInputFields } from '@/lib/workflow-inputs'
 import { isPlainObject } from '@/lib/utils/guards'
 import { hasPerm, isAnonymous, rateSubject, requirePerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
+import { loadReportingIndex, type ReportingIndex } from '@/lib/reporting-lines'
 import { hasSignatureColumns, type ListFieldConfig } from '@/lib/forms/list-field'
 import { holdsNestedSignatures, listSignatureUploadKeys, mapNestedSignatures, nestedSignatureCells, resolveFileControl, signatureFieldForColumn } from '@/lib/forms/signature-cells'
 
@@ -903,21 +904,47 @@ export async function loadFormFile(db: AnySupabaseClient, fileId: string): Promi
  *    team members, the manager chain) and tasks.view_all / tasks.manage_queue;
  *  - a submission's file: its submitter and forms.edit.
  */
-export async function authorizeFileDownload(ctx: ServiceContext, row: FormFileRow): Promise<boolean> {
+/**
+ * Shared work for checking many files at once (search results): the
+ * workspace's reporting lines load once, and each task is checked once.
+ */
+export interface FileAuthzBatch {
+  loadIndex: () => Promise<ReportingIndex>
+  taskAnswers: Map<string, Promise<boolean>>
+}
+
+export function fileAuthzBatch(ctx: ServiceContext): FileAuthzBatch {
+  let index: Promise<ReportingIndex> | null = null
+  return {
+    loadIndex: () => (index ??= serviceRoleClient(ctx).then((db) => loadReportingIndex(db, ctx.tenantId))),
+    taskAnswers: new Map(),
+  }
+}
+
+export async function authorizeFileDownload(ctx: ServiceContext, row: FormFileRow, batch?: FileAuthzBatch): Promise<boolean> {
   if (row.tenant_id !== ctx.tenantId || (row.status !== 'pending' && row.status !== 'bound') || !ctx.actorId) return false
   if (row.uploaded_by && row.uploaded_by === ctx.actorId) return true
   if (row.status === 'pending' && row.context_kind !== 'task') return false
   const db = await serviceRoleClient(ctx)
   if (row.task_id) {
-    const { data: task } = await (db as any).from('tasks').select('id').eq('id', row.task_id).eq('tenant_id', row.tenant_id).is('deleted_at', null).maybeSingle()
-    if (task) {
+    const taskId = row.task_id
+    const actorId = ctx.actorId
+    const check = async () => {
+      const { data: task } = await (db as any).from('tasks').select('id').eq('id', taskId).eq('tenant_id', row.tenant_id).is('deleted_at', null).maybeSingle()
+      if (!task) return false
       if (hasPerm(ctx, 'tasks.view_all') || hasPerm(ctx, 'tasks.manage_queue')) return true
       const { canUserSeeTask } = await import('@/lib/task-authz')
-      if (await canUserSeeTask(db, row.tenant_id, ctx.actorId, row.task_id)) return true
+      if (await canUserSeeTask(db, row.tenant_id, actorId, taskId, batch ? { loadIndex: batch.loadIndex } : {})) return true
       // Invited viewers (read only) see the task's form files too.
       const { findTaskViewerGrant } = await import('@/lib/task-authz')
-      if (await findTaskViewerGrant(db, row.tenant_id, ctx.actorId, row.task_id)) return true
+      return Boolean(await findTaskViewerGrant(db, row.tenant_id, actorId, taskId))
     }
+    let answer = batch?.taskAnswers.get(taskId)
+    if (!answer) {
+      answer = check()
+      batch?.taskAnswers.set(taskId, answer)
+    }
+    if (await answer) return true
   }
   if (row.submission_id) {
     if (hasPerm(ctx, 'forms.edit')) return true

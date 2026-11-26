@@ -70,7 +70,11 @@ function savepointPool(client: Client): Pool {
         query(text: any, values?: any) {
           if (typeof text === 'string' && /^BEGIN\b/.test(text)) return query('SAVEPOINT pgq')
           // Writes made through the clients are kept until the test's own ROLLBACK.
-          if (text === 'COMMIT') return query('RELEASE SAVEPOINT pgq')
+          // A released savepoint keeps the request's SET LOCAL role, which a real
+          // COMMIT would end: reset it, or the next service-role request (pg-query
+          // runs it as the session owner where service_role has no BYPASSRLS, the
+          // managed-PostgreSQL CI job) and the test's own statements inherit it.
+          if (text === 'COMMIT') return query('RELEASE SAVEPOINT pgq; RESET ROLE')
           if (text === 'ROLLBACK') return query('ROLLBACK TO SAVEPOINT pgq; RELEASE SAVEPOINT pgq')
           return query(text, values)
         },

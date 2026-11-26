@@ -12,6 +12,7 @@ import { normalizeSignatureValue, stampSignature, type SignatureStampInput } fro
 import { holdsNestedSignatures, mapNestedSignatures, nestedSignatureCells } from '@/lib/forms/signature-cells'
 import type { TaskFieldDef } from '@/lib/task-field-schema'
 import type { AnySupabaseClient } from './context'
+import { clientIpFrom } from '@/lib/client-ip'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- users read untyped */
 
@@ -20,8 +21,7 @@ export async function requestAudit(): Promise<{ ip: string | null; user_agent: s
   try {
     const { headers } = await import('next/headers')
     const h = await headers()
-    const forwarded = h.get('x-forwarded-for')
-    const ip = (forwarded?.split(',')[0] ?? h.get('x-real-ip') ?? '').trim() || null
+    const ip = clientIpFrom(h)
     return { ip, user_agent: h.get('user-agent') }
   } catch {
     return null

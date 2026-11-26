@@ -7,6 +7,7 @@ import {
   type DirectoryGroup,
   type DirectoryUser,
 } from '@/lib/directory-sync/types'
+import { assertSafeEgressUrl } from '@/lib/egress-guard'
 
 /**
  * Minimal Okta management-API client for directory sync — plain fetch with an
@@ -46,18 +47,33 @@ export function oktaProfile(profile: Record<string, any>): DirectoryProfile {
 
 export function createOktaClient(credentials: OktaCredentials): DirectoryClient {
   const base = String(credentials.orgUrl ?? '').replace(/\/+$/, '')
+  // The org URL is tenant-supplied: https only, and every request (paging
+  // links included) stays on that origin and passes the egress guard — no
+  // redirects, so a hostile "Okta" can't steer the server at internal hosts.
+  const baseOrigin = (() => { try { return new URL(base) } catch { return null } })()
+
+  async function guard(url: string): Promise<void> {
+    let target: URL
+    try { target = new URL(url) } catch { throw new DirectoryApiError(400, 'Okta org URL is not a valid URL') }
+    if (!baseOrigin || baseOrigin.protocol !== 'https:') throw new DirectoryApiError(400, 'Okta org URL must start with https://')
+    if (target.origin !== baseOrigin.origin) throw new DirectoryApiError(502, 'Okta paging link left the org URL')
+    await assertSafeEgressUrl(url)
+  }
 
   const MAX_RETRIES = 3
   const MAX_RETRY_WAIT_MS = 45_000
 
   async function request<T>(url: string): Promise<{ data: T; next: string | null }> {
     for (let attempt = 0; ; attempt++) {
+      await guard(url)
       const res = await fetch(url, {
+        redirect: 'manual',
         headers: {
           Authorization: `SSWS ${credentials.apiToken}`,
           Accept: 'application/json',
         },
       })
+      if (res.status >= 300 && res.status < 400) throw new DirectoryApiError(res.status, `Okta API ${res.status}: redirects are not followed`)
       if (res.ok) {
         const next = parseNextLink(res.headers?.get?.('link') ?? null)
         return { data: (await res.json()) as T, next }

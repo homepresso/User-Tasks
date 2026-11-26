@@ -38,9 +38,9 @@
  */
 
 import { coerceTaskFieldValues, normalizeTaskFields } from '@/lib/task-field-schema'
-import { conditionPaths, findServerRuleAction, resolveRuleTemplate, ruleConditionsMet, serverVerifiable } from '@/lib/forms/form-rules'
+import { conditionPaths, findServerRuleAction, resolveRuleTemplate, ruleConditionsMet, serverVerifiable, submittedServerRules } from '@/lib/forms/form-rules'
 import { loadRuleUser } from './form-rule-user'
-import { layoutFormVariables, serverFormContext } from '@/lib/forms/form-params'
+import { FORM_VARS_KEY, layoutFormVariables, serverFormContext } from '@/lib/forms/form-params'
 import { mapReferenceResults } from '@/lib/forms/reference-results'
 import { ruleValue } from '@/lib/forms/form-rules'
 import { allActions, type FieldButtonAction } from '@/lib/forms/field-buttons'
@@ -49,7 +49,7 @@ import {
   type ActionScope,
 } from '@/lib/forms/data-actions'
 import { mapActionOutputs } from '@/lib/forms/action-outputs'
-import { LIST_SELECT_KEY, listSelectionEntries, rawListRows } from '@/lib/forms/list-field'
+import { LIST_SELECT_KEY, eachItemRows, listSelectionEntries } from '@/lib/forms/list-field'
 import { ROW_CURRENT_KEY, rowCurrentEntries } from '@/lib/forms/row-rules'
 import { DataTableQueryError, conditionTerm, isConditionGroup, type DataTableColumnType, type DataTableConditionGroup } from '@/lib/forms/data-table'
 import { unwrapExecutorResult } from '@/lib/response-collections'
@@ -184,10 +184,11 @@ export async function runRuleAction(ctx: ServiceContext, target: { task_id: stri
   }
   // The same event names the browser's rules read (row_id, previous_value, item.<field>, from / to).
   const event = enrichEventContext(rule.event, isPlainObject(input.event) ? input.event : {})
-  // Once per item of a repeating section / List (each_item): the item comes from the submitted values by
-  // its position — never from the event the browser sent.
+  // Once per item of a repeating section / List / the rows added to an editable Data table (each_item): the
+  // item comes from the submitted values by its position — never from the event the browser sent.
   if (action.each_item && !action.each_selected) {
-    const items = rawListRows(typed[action.each_item] ?? submitted[action.each_item])
+    const grid = t.fields.find((f) => f.key === action.each_item && f.type === 'data_table')?.data_table
+    const items = eachItemRows(grid ? submitted[action.each_item] : typed[action.each_item] ?? submitted[action.each_item], grid ?? null)
     const at = Number(event.index)
     if (!Number.isInteger(at) || at < 0 || at >= items.length) throw ServiceError.validation('That item is not in the form')
     event.row = items[at]
@@ -259,6 +260,85 @@ export async function runRuleAction(ctx: ServiceContext, target: { task_id: stri
     for (const [key, options] of Object.entries(result.options)) await store.set(optionsKey(t.owner, key), JSON.stringify(options.map((o) => o.value)), OPTIONS_TTL_MS).catch(() => undefined)
   }
   return result
+}
+
+/* ── After submit: data writes (a rule's `server_steps`) ───────────────── */
+
+export interface SubmittedStepResult {
+  rule_id: string
+  rule_name: string
+  /** Steps that ran (a per-item step counts once per item). */
+  written: number
+  /** The first failure: the rule's later steps did not run. */
+  error?: string
+}
+
+/**
+ * Run the After-submit `server_steps` rules of an ACCEPTED submission
+ * (called from runButtonActions, after the submission is stored — a
+ * submission the server refuses never gets here, so it writes nothing).
+ *
+ *  - Rules and steps come from the saved layout the submission was checked
+ *    against; the values are the stored, typed values (never the request).
+ *  - Steps run in order with the submitter's own rights (data.manage_rows /
+ *    the step's open_access, exactly as the rule-action endpoint), each_item
+ *    over the stored items (eachItemRows), outputs into the rule's variables
+ *    ({{var.x}} for its later steps; nothing is written back to the stored
+ *    submission).
+ *  - Anonymous submissions run only steps the author allowed for anonymous
+ *    visitors (like the bar's start_workflow / apply_table_changes).
+ *  - A failing step stops that rule (reported, never thrown: the submission
+ *    is already stored); other rules still run.
+ *  - Runs once per stored submission: submitForm replays a repeated
+ *    idempotency key from the stored result without running anything again.
+ */
+export async function runSubmittedServerSteps(ctx: ServiceContext, input: {
+  fields: import('@/lib/task-field-schema').TaskFieldDef[]
+  layout: unknown
+  values: Record<string, unknown>
+  buttonId: string | null
+  form: { id: string; name: string }
+  taskId: string | null
+  submissionId: string | null
+}): Promise<SubmittedStepResult[]> {
+  const rules = submittedServerRules(input.layout, input.buttonId, input.values)
+  if (!rules.length) return []
+  const db = await serviceRoleClient(ctx)
+  const t = {
+    db, fields: input.fields, layout: input.layout, stored: input.values,
+    form: { id: input.form.id, name: input.form.name }, taskId: input.taskId,
+    owner: input.submissionId ? `submit:${input.submissionId}` : `task:${input.taskId ?? 'none'}`, storedParams: null,
+  } as Target
+  const editable = input.fields.filter((f) => !f.read_only && f.type !== 'button' && f.type !== 'heading' && f.type !== 'divider')
+  const user = await actorScope(db, ctx)
+  const out: SubmittedStepResult[] = []
+  for (const rule of rules) {
+    const result: SubmittedStepResult = { rule_id: rule.id, rule_name: rule.name ?? rule.id, written: 0 }
+    out.push(result)
+    // The rule's own variables (outputs of earlier steps), starting from what the submission stored.
+    let vars: Record<string, unknown> = isPlainObject(input.values[FORM_VARS_KEY]) ? { ...(input.values[FORM_VARS_KEY] as Record<string, unknown>) } : {}
+    try {
+      for (const action of rule.then) {
+        if (isAnonymous(ctx) && action.allow_anonymous !== true) continue
+        const grid = action.each_item ? input.fields.find((f) => f.key === action.each_item && f.type === 'data_table')?.data_table ?? null : null
+        const items = action.each_item ? eachItemRows(input.values[action.each_item], grid) : [null]
+        for (const [index, item] of items.entries()) {
+          const event: Record<string, unknown> = item ? { row: item, row_number: index + 1, index } : {}
+          const scope = { values: { ...input.values, [FORM_VARS_KEY]: vars }, user, event }
+          const stepCtx = anonymousStepContext(ctx)
+          const step = action.type === 'call_reference'
+            ? await runCallReference(stepCtx, t, rule, action, scope, editable)
+            : await runTableAction(stepCtx, t, rule, action, scope, editable)
+          if (step.vars) vars = { ...vars, ...step.vars }
+          result.written++
+        }
+      }
+    } catch (error) {
+      result.error = error instanceof ServiceError ? error.message : 'The data could not be saved'
+      console.warn(`[forms.submittedSteps] rule ${rule.id}: ${result.error}`)
+    }
+  }
+  return out
 }
 
 /* ── Data and API steps (lib/forms/data-actions.ts) ──────────────────── */

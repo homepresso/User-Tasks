@@ -11,6 +11,7 @@
  */
 
 import { z } from 'zod'
+import { isoDateTime } from '@/lib/zod-datetime'
 import { RATING_ICONS, SURVEY_OPTION_ICONS } from '@/lib/forms/survey/controls'
 
 /* ── Templates ───────────────────────────────────────────────────────── */
@@ -203,8 +204,8 @@ export const AudienceSchema = z.object({
   /** false: one response per person (signed-in people). */
   multiple_responses: z.boolean().default(true),
   /** Responses are accepted from / until (ISO date-time; absent = always). */
-  opens_at: z.string().datetime({ offset: true }).nullable().optional(),
-  closes_at: z.string().datetime({ offset: true }).nullable().optional(),
+  opens_at: isoDateTime({ offset: true }).nullable().optional(),
+  closes_at: isoDateTime({ offset: true }).nullable().optional(),
 }).refine((a) => a.internal || a.public_link, { message: 'Choose who fills it in: people in the workspace, a public link, or both' })
   .refine((a) => !a.opens_at || !a.closes_at || a.opens_at < a.closes_at, { message: 'The closing date must be after the opening date' })
 export type WizardAudience = z.infer<typeof AudienceSchema>

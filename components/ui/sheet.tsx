@@ -3,7 +3,7 @@
 import * as RadixDialog from '@radix-ui/react-dialog'
 import { forwardRef, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { DialogHeader, overlayClass } from './dialog'
+import { DialogHeader, focusFirstField, overlayClass } from './dialog'
 
 /**
  * Sheet: a right-side Dialog (480px md, 640px lg) for details, submissions,
@@ -37,6 +37,7 @@ export const SheetContent = forwardRef<HTMLDivElement, SheetContentProps>(
           className,
         )}
         {...(description == null ? { 'aria-describedby': undefined } : {})}
+        onOpenAutoFocus={focusFirstField}
         {...props}
       >
         <DialogHeader title={title} description={description} showClose={showClose} className="pb-1" />

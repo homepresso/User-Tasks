@@ -56,8 +56,11 @@ export function NotAuthorizedView() {
 }
 
 export interface RouteErrorProps {
-  error: Error & { digest?: string }
-  /** Next 16: re-fetch and re-render the segment. */
+  /** Next 16.4: the thrown value (a Server Component error is an Error with a digest; a client throw may be anything). */
+  error: unknown
+  /** Next 16.4+: re-fetch and re-render the segment. */
+  retry?: () => void
+  /** Next 16.0–16.3's name for retry. */
   unstable_retry?: () => void
   /** Older API: re-render without re-fetching. */
   reset?: () => void
@@ -65,12 +68,19 @@ export interface RouteErrorProps {
   title?: string
 }
 
+/** The digest Next attaches to a Server Component error (the ID in the server logs), when there is one. */
+export function errorDigest(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("digest" in error)) return undefined
+  const digest = (error as { digest?: unknown }).digest
+  return typeof digest === "string" && digest ? digest : undefined
+}
+
 /** An error boundary's content: what happened, Try again, and the error ID to quote to support. */
-export function RouteErrorView({ error, unstable_retry, reset, title = "Something went wrong" }: RouteErrorProps) {
+export function RouteErrorView({ error, retry: retryProp, unstable_retry, reset, title = "Something went wrong" }: RouteErrorProps) {
   const [copied, setCopied] = useState(false)
   useEffect(() => { console.error(error) }, [error])
-  const id = error.digest
-  const retry = unstable_retry ?? reset
+  const id = errorDigest(error)
+  const retry = retryProp ?? unstable_retry ?? reset
   return (
     <div className="flex min-h-[50vh] items-center justify-center" data-route-error>
       <EmptyState

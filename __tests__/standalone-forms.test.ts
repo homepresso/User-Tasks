@@ -49,6 +49,7 @@ vi.mock('@/lib/services/form-sign-in-page', async () => {
   const { DEFAULT_SIGN_IN_SETTINGS } = await import('@/lib/forms/sign-in-page')
   return {
     tenantOfForm: async () => state.tenantOfForm,
+    formSignInLogoChoice: async () => ({ kind: 'inherit' }),
     loadPublicSignInPage: async (tenantId: string | null) => {
       state.loaded.push(tenantId)
       return { settings: { ...DEFAULT_SIGN_IN_SETTINGS, design: 2, heading: 'Welcome to Acme forms' }, workspace: tenantId ? { name: 'Acme', slug: 'acme' } : null, theme: null }

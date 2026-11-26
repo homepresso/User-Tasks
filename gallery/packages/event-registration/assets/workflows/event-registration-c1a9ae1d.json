@@ -331,7 +331,7 @@
               "key": "cost",
               "label": "Extra cost",
               "type": "currency",
-              "currency": "NZD"
+              "currency": "USD"
             }
           ],
           "form_layout": {

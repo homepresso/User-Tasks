@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Upload, FileJson, Globe, Key, CheckCircle, XCircle, Loader2, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { parseApiSpec, detectFormat, type ParsedIntegration, type ParsedReference } from '@/lib/api-spec-parser'
+import type { ParsedIntegration, ParsedReference } from '@/lib/api-spec-parser'
 import { createImportedApiIntegration } from '@/app/actions/integrations'
 import { useRouter } from 'next/navigation'
 
@@ -49,9 +50,11 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
     setFileName(file.name)
 
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const content = ev.target?.result as string
       try {
+        // The parser (with the yaml package) loads when a file is chosen, not with the integrations page.
+        const { detectFormat, parseApiSpec } = await import('@/lib/api-spec-parser')
         const fmt = detectFormat(content)
         setFormat(fmt === 'openapi2' ? 'Swagger 2.0' : fmt === 'openapi3' ? 'OpenAPI 3.0' : fmt === 'postman' ? 'Postman Collection' : 'Unknown')
 
@@ -180,22 +183,20 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div
-        className="w-[90vw] max-w-3xl max-h-[80vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden bg-panel border-border"
-      >
+    <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <DialogContent size="xl" className="max-w-3xl max-h-[80vh] rounded-2xl border border-border" aria-describedby={undefined}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 shrink-0" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
           <div className="flex items-center gap-2">
-            <Upload size={16} className="text-primary-text" />
-            <span className="text-sm font-semibold">Import API Specification</span>
+            <Upload size={16} className="text-primary-text" aria-hidden="true" />
+            <DialogTitle className="text-sm font-semibold">Import an API specification</DialogTitle>
             {format && (
               <span className="text-2xs px-2 py-0.5 rounded-full bg-primary-wash text-primary-text">
                 {format}
               </span>
             )}
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:opacity-70 text-fg-muted">
+          <button type="button" onClick={onClose} aria-label="Close" className="p-1 rounded hover:opacity-70 text-fg-muted">
             <XCircle size={18} />
           </button>
         </div>
@@ -342,7 +343,7 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
                     References ({selectedRefs.size}/{parsed.references.length} selected)
                   </h3>
                   <div className="flex gap-2">
-                    <button onClick={() => setSelectedRefs(new Set(parsed.references.map((_, i) => i)))} className="text-2xs underline text-primary-text">Select All</button>
+                    <button onClick={() => setSelectedRefs(new Set(parsed.references.map((_, i) => i)))} className="text-2xs underline text-primary-text">Select all</button>
                     <button onClick={() => setSelectedRefs(new Set())} className="text-2xs underline text-fg-muted">Clear</button>
                   </div>
                 </div>}
@@ -436,7 +437,7 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
               ) : importResult?.success ? (
                 <>
                   <CheckCircle size={40} className="mb-4 text-success" />
-                  <p className="text-sm font-semibold">Import Complete</p>
+                  <p className="text-sm font-semibold">Import complete</p>
                   <p className="text-xs mt-1 text-fg-muted">
                     Created integration with {importResult.refCount} references
                   </p>
@@ -447,7 +448,7 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
               ) : (
                 <>
                   <XCircle size={40} className="mb-4 text-danger" />
-                  <p className="text-sm font-semibold">Import Failed</p>
+                  <p className="text-sm font-semibold">Import failed</p>
                   <p className="text-xs mt-1 text-danger">
                     {importResult?.error ?? 'Unknown error'}
                   </p>
@@ -472,7 +473,7 @@ export function ImportApiDialog({ open, onClose }: ImportApiDialogProps) {
             </Button>
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

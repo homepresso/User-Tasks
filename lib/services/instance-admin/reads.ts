@@ -1,5 +1,5 @@
 import {
-  INSTANCE_ACTION_LABELS, INSTANCE_DATASET_COLUMNS, isInstanceAction, projectRow,
+  INSTANCE_ACTION_LABELS, INSTANCE_DATASET_COLUMNS, isInstanceAction, projectRow, workspaceSummary,
   type InstanceDataset, type InstanceDatasetParams,
 } from '@/lib/instance-admin/schema'
 import { ServiceError } from '../context'
@@ -163,6 +163,7 @@ export async function getWorkspace(workspaceId: string): Promise<Record<string, 
   const s = stats.get(workspaceId)
   return projectRow('workspace', {
     ...t, status: workspaceStatus(s, ents, Boolean(t.deleted_at)), owners: owners.join(', '),
+    summary: workspaceSummary({ slug: t.slug, members: s?.members ?? null, owners: owners.join(', ') }),
     members: s?.members ?? null, active_members: s?.active_members ?? null, active_7d: s?.active_7d ?? null, active_30d: s?.active_30d ?? null,
     pending_invitations: s?.pending_invitations ?? null, runs_30d: s?.runs_30d ?? null, failed_runs_7d: s?.failed_runs_7d ?? null,
     open_tasks: s?.open_tasks ?? null, ai_requests_30d: s?.ai_requests_30d ?? null, ai_cost_30d: s?.ai_cost_30d ?? null,
@@ -622,11 +623,19 @@ export async function getOverview(): Promise<Record<string, unknown>> {
     dailyCounts('ai_requests', ago(30), now),
     queueHealth(),
   ])
-  const [filesA, filesB] = await Promise.all([
-    db.from('form_files').select('size').limit(50_000),
-    db.from('task_attachments').select('size').is('deleted_at', null).limit(50_000),
-  ])
-  const storage = [...((filesA.data ?? []) as any[]), ...((filesB.data ?? []) as any[])].reduce((s, r) => s + num(r.size), 0)
+  // Summed in the database (migration 20270131130000): the row lists were
+  // cut at max_rows (1,000), so the figure stopped at ~1,000 files.
+  let storage: number
+  const summed = await (db as any).rpc('instance_admin_storage_bytes')
+  if (!summed.error && summed.data !== null && summed.data !== undefined) {
+    storage = num(summed.data)
+  } else {
+    const [filesA, filesB] = await Promise.all([
+      db.from('form_files').select('size').limit(50_000),
+      db.from('task_attachments').select('size').is('deleted_at', null).limit(50_000),
+    ])
+    storage = [...((filesA.data ?? []) as any[]), ...((filesB.data ?? []) as any[])].reduce((s, r) => s + num(r.size), 0)
+  }
   const runsTotal = runs.rows.reduce((s, r) => s + r.n, 0)
   const failed = runs.rows.filter((r) => r.status === 'failed').reduce((s, r) => s + r.n, 0)
   const qh: any = queue

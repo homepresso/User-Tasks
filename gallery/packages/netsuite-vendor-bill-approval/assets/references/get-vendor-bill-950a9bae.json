@@ -197,7 +197,7 @@
                 {
                   "name": "refName",
                   "type": "string",
-                  "example": "NZD"
+                  "example": "USD"
                 }
               ]
             },
@@ -801,7 +801,7 @@
               }
             ],
             "id": "5",
-            "refName": "NZD"
+            "refName": "USD"
           },
           "exchangeRate": 1.0,
           "account": {

@@ -20,10 +20,10 @@ From draft to an approved entry in the contract register: a stepped request form
 
 | Rule | Finance | General counsel |
 |---|---|---|
-| High risk and NZD 250,000 or more | yes | yes |
+| High risk and USD 250,000 or more | yes | yes |
 | High risk | no | yes |
-| NZD 1,000,000 or more | yes | yes |
-| NZD 250,000 or more | yes | no |
+| USD 1,000,000 or more | yes | yes |
+| USD 250,000 or more | yes | no |
 | Three or more playbook deviations | no | yes |
 | Anything else | no | no (legal approval is enough) |
 
@@ -32,7 +32,7 @@ From draft to an approved entry in the contract register: a stepped request form
 ## What it shows
 
 - **Steps with a numbered stepper** and **Application mode**: the form's own Next / Back / Send for review buttons, no bottom bar.
-- **Form rules** (**Rules** tab): the board approval reference only appears for NZD 1,000,000 or more (Always → hide) and is then required (Before submit); the end date must be after the start date; an auto-renewing contract needs its notice period; choosing the other side's template shows a note.
+- **Form rules** (**Rules** tab): the board approval reference only appears for USD 1,000,000 or more (Always → hide) and is then required (Before submit); the end date must be after the start date; an auto-renewing contract needs its notice period; choosing the other side's template shows a note.
 - A **Data table in a task form**: legal ticks deviations in the Clause playbook (select mode, several rows), and a **Row selected** rule flags must-have clauses.
 - **Compare Documents** between versions: similarity, insertions and deletions, and a PDF redline, shown to legal on the next review.
 - **Data table** pages with a "renewal within 90 days" base filter, status and risk badges, **row clicked → copy values and go to the details tab** and **for each changed row → update the Contract register**.

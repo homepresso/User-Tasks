@@ -1,7 +1,8 @@
+import { createHash, timingSafeEqual } from "node:crypto"
 import { NextResponse } from "next/server"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { processorSecret } from "@/lib/config/bootstrap"
-import { requireServiceDb } from "@/lib/providers/db"
+import { ACTOR_HEADER, getServiceDb, hasServiceDb, requireServiceDb } from "@/lib/providers/db"
 
 /**
  * Shared authorization for internal service endpoints (cron jobs, queue/deletion
@@ -19,15 +20,20 @@ export function getProcessorSecret(): string | undefined {
   return processorSecret()
 }
 
+/** Constant-time comparison (digests first, so lengths don't leak either). */
+function secretEquals(a: string, b: string): boolean {
+  return timingSafeEqual(createHash("sha256").update(a).digest(), createHash("sha256").update(b).digest())
+}
+
 export function isAuthorizedServiceCall(request: Request): boolean {
   const expected = getProcessorSecret()
   if (!expected) return false // fail closed — no secret configured
 
   const headerSecret = request.headers.get("x-processor-secret")
-  if (headerSecret && headerSecret === expected) return true
+  if (headerSecret && secretEquals(headerSecret, expected)) return true
 
   const authHeader = request.headers.get("authorization")
-  if (authHeader && authHeader === `Bearer ${expected}`) return true
+  if (authHeader && secretEquals(authHeader, `Bearer ${expected}`)) return true
 
   return false
 }
@@ -57,4 +63,15 @@ export function createServiceClient(): SupabaseClient {
   return requireServiceDb(
     "createServiceClient: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set",
   )
+}
+
+/**
+ * Service-role client for a write an end user's checks already allowed: the
+ * user rides along in ACTOR_HEADER so task triggers attribute the change to
+ * them (end users hold no write grants on the task tables).
+ */
+export function createActorServiceClient(actorId: string | null | undefined): SupabaseClient {
+  if (!actorId) return createServiceClient()
+  if (!hasServiceDb()) throw new Error("createServiceClient: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
+  return getServiceDb({ headers: { [ACTOR_HEADER]: actorId } }) as unknown as SupabaseClient
 }

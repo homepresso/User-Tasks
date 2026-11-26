@@ -14,6 +14,17 @@ vi.mock('@/lib/providers/db/session', () => ({
   getSessionDbWithUser: async () => ({ supabase: session.db, user: session.user }),
 }))
 vi.mock('@/lib/permissions-server', () => ({ getUserPermissions: async () => new Set(['tasks.complete']) }))
+// Service-role writes made for the acting user (lib/services/_shared actorServiceClient,
+// the task actions) land in the same memory database.
+const actorWrites = vi.hoisted(() => ({ db: null as any }))
+vi.mock('@/lib/cron-auth', async (orig) => ({ ...(await orig() as object), createActorServiceClient: () => actorWrites.db }))
+// actorServiceClient reaches cron-auth through a dynamic import; under vitest,
+// concurrent dynamic imports of a mocked module (the ten-timer test below) can
+// resolve to the real module, so the session branch is stubbed here too.
+vi.mock('@/lib/services/_shared', async (orig) => {
+  const real = await orig() as Record<string, unknown> & { actorServiceClient: (ctx: any) => Promise<unknown> }
+  return { ...real, actorServiceClient: async (c: any) => (c.authKind === 'session' ? actorWrites.db : real.actorServiceClient(c)) }
+})
 
 import type { ServiceContext } from '@/lib/services/context'
 import { fromSession } from '@/lib/services/context'
@@ -42,6 +53,7 @@ function seed() {
 type Db = ReturnType<typeof seed>
 
 function ctx(db: Db, permissions: string[] = ['tasks.complete'], extra: Partial<ServiceContext> = {}): ServiceContext {
+  actorWrites.db = db
   return {
     db: db as any, supabase: db as any, tenantId: 'tenant-a', actorId: 'user-1',
     permissions: new Set(permissions), authKind: 'session', source: 'ui', ...extra,
@@ -58,6 +70,14 @@ let db: Db
 beforeEach(() => { db = seed() })
 
 describe('task effort service', () => {
+  it('entries saved at the same time all count towards actual_effort (no lost update)', async () => {
+    // QA 2026-11-24: ten timers stopped at once used to leave actual_effort at +1 minute.
+    const results = await Promise.all(Array.from({ length: 10 }, () => effort.logTimerEntry(ctx(db), 'task-a', { elapsedSeconds: 60 })))
+    expect(results.every((r) => r.minutes === 1)).toBe(true)
+    expect(row(db, 'task-a').actual_effort).toBe(40)
+    expect(db.tables.effort_records!.filter((r: any) => r.record_type === 'timer_entry')).toHaveLength(10)
+  })
+
   it('logs manual effort: actual record, actual_effort total and a timeline event', async () => {
     const result = await effort.logManualEffort(ctx(db), 'task-a', { hours: 1.5, minutes: 10, notes: '', logDate: '2026-10-20', entryAt: '2026-10-20T09:00:00.000Z' })
     expect(result).toEqual({ minutes: 100, actual_effort: 130 })
@@ -86,6 +106,35 @@ describe('task effort service', () => {
     expect(task).toMatchObject({ estimated_effort_assigner: 120, estimated_effort_assignee: 90 })
     expect(db.tables.effort_records).toEqual([expect.objectContaining({ record_type: 'assignee_estimate', minutes: 90, user_id: 'user-1' })])
     expect(db.tables.lifecycle_events.map((e: any) => e.metadata.source)).toEqual(['assigner_estimate', 'assignee_estimate'])
+  })
+
+  it('remaining effort keeps a metadata change saved between its read and its write', async () => {
+    // QA 2026-11-24: the whole metadata object read at the start was written back, dropping concurrent changes.
+    row(db, 'task-a').updated_at = 'v1'
+    const from = db.from.bind(db)
+    let raced = false
+    ;(db as any).from = (table: string) => {
+      const api: any = from(table)
+      if (table !== 'tasks' || raced) return api
+      const update = api.update.bind(api)
+      api.update = (payload: any) => {
+        if (payload?.metadata && !raced) {
+          raced = true
+          // Another writer (a workflow step) lands first and bumps updated_at, as trg_tasks_updated does.
+          Object.assign(row(db, 'task-a'), { metadata: { ...row(db, 'task-a').metadata, step: 'done' }, updated_at: 'v2' })
+        }
+        return update(payload)
+      }
+      return api
+    }
+    await effort.setRemainingEffort(ctx(db), 'task-a', 45)
+    expect(raced).toBe(true)
+    expect(row(db, 'task-a').metadata).toMatchObject({ keep: true, step: 'done', remaining_effort_minutes: 45 })
+  })
+
+  it('estimated completion refuses a calendar day that does not exist', async () => {
+    await expect(effort.setEstimatedCompletion(ctx(db), 'task-a', '2027-02-30')).rejects.toThrow(/must be a date/)
+    await expect(effort.setEstimatedCompletion(ctx(db), 'task-a', '2028-02-29')).resolves.toMatchObject({ estimated_completion: '2028-02-29T00:00:00.000Z' })
   })
 
   it('remaining effort merges into the stored metadata', async () => {
@@ -181,7 +230,7 @@ describe('session contexts for a task\'s workspace', () => {
   }
 
   it('acts in the task\'s tenant with the permissions held there', async () => {
-    session.db = sessionDb(['tenant-a', 'tenant-b'], { 'tenant-b': ['tasks.complete', 'tasks.view_all'] })
+    session.db = actorWrites.db = sessionDb(['tenant-a', 'tenant-b'], { 'tenant-b': ['tasks.complete', 'tasks.view_all'] })
     session.user = { id: 'user-1' }
     const c = await fromSessionForTask('task-b')
     expect(c).toMatchObject({ tenantId: 'tenant-b', actorId: 'user-1', authKind: 'session', source: 'ui' })
@@ -190,14 +239,14 @@ describe('session contexts for a task\'s workspace', () => {
   })
 
   it('refuses a workspace the user is not a member of', async () => {
-    session.db = sessionDb(['tenant-a'], {})
+    session.db = actorWrites.db = sessionDb(['tenant-a'], {})
     session.user = { id: 'user-1' }
     await expect(fromSession({ tenantId: 'tenant-b' })).rejects.toMatchObject({ code: 'forbidden' })
     await expect(fromSessionForTask('task-b')).rejects.toMatchObject({ code: 'forbidden' })
   })
 
   it('refuses unknown tasks and signed-out users', async () => {
-    session.db = sessionDb(['tenant-a'], {})
+    session.db = actorWrites.db = sessionDb(['tenant-a'], {})
     await expect(fromSessionForTask('missing')).rejects.toMatchObject({ code: 'not_found' })
     session.user = null
     await expect(fromSession({ tenantId: 'tenant-a' })).rejects.toMatchObject({ code: 'unauthorized' })

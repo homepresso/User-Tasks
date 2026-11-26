@@ -1,4 +1,5 @@
 import { syncDirectoryManagers } from './managers'
+import { scopeFilter } from './scope'
 import { syncDirectoryOrg } from './profiles'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { invalidateCredentialCache } from '@/lib/api-auth-cache'
@@ -171,7 +172,7 @@ async function createDirectoryAuthUser(supabase: SupabaseClient, email: string, 
     try {
       return (await resolveAuthProvider(authId).admin.createUser({ email, emailConfirmed: true, metadata })).id
     } catch (error) {
-      console.warn(`[directory-sync] auth user creation failed for ${email}:`, (error as Error).message)
+      console.warn(`[directory-sync] auth user creation failed for ${maskEmail(email)}:`, (error as Error).message)
       return null
     }
   }
@@ -181,7 +182,7 @@ async function createDirectoryAuthUser(supabase: SupabaseClient, email: string, 
     user_metadata: metadata,
   })
   if (createErr || !created?.user) {
-    console.warn(`[directory-sync] auth user creation failed for ${email}:`, createErr?.message)
+    console.warn(`[directory-sync] auth user creation failed for ${maskEmail(email)}:`, createErr?.message)
     return null
   }
   return String(created.user.id)
@@ -315,7 +316,7 @@ export async function provisionDirectoryUser(
   if (!existingRow || existingRow.current_tenant_id !== tenantId) payload.current_tenant_id = tenantId
   const { error: userErr } = await (supabase as any).from('users').upsert(payload, { onConflict: 'id' })
   if (userErr) {
-    console.warn(`[directory-sync] users upsert failed for ${email}:`, userErr.message)
+    console.warn(`[directory-sync] users upsert failed for ${maskEmail(email)}:`, userErr.message)
     return null
   }
 
@@ -399,10 +400,14 @@ export async function runDirectorySync(
   }
   stats.users_seen = directoryUsers.length
 
+  // Group scope (lib/directory-sync/scope.ts, chosen in Organization → Import people):
+  // only members of these groups are brought in, and only these groups become teams.
+  const { userInScope: inScope, groupInScope } = await scopeFilter(client, connection.settings)
+
   let directoryGroups: DirectoryGroup[] = []
   const groupMemberIds = new Map<string, string[]>()
   if (connection.syncGroups) {
-    directoryGroups = await client.listGroups()
+    directoryGroups = (await client.listGroups()).filter(groupInScope)
     // Fetch member lists a few groups at a time — sequential batches with a
     // small concurrency cap so big directories don't hammer the API.
     for (const batch of chunk(directoryGroups, GROUP_FETCH_CONCURRENCY)) {
@@ -429,7 +434,9 @@ export async function runDirectorySync(
   }
 
   // ── Phase 2: users ─────────────────────────────────────────────────────────
-  const activeUsers = directoryUsers.filter((u) => u.active && u.email)
+  // Outside the scope: not brought in. (Deprovisioning below still judges the directory's whole
+  // listing, so narrowing the scope never revokes anyone by itself.)
+  const activeUsers = directoryUsers.filter((u) => u.active && u.email && inScope(u))
   await report({ phase: 'users', message: `Syncing ${activeUsers.length} users…`, users_done: 0, users_total: activeUsers.length })
 
   // Local rows for already-linked users (display-name drift detection).
@@ -561,7 +568,7 @@ export async function runDirectorySync(
   for (const batch of chunk(uniqueActiveUsers, USER_SYNC_CONCURRENCY)) {
     await Promise.all(batch.map((user) =>
       processUser(user).catch((error) => {
-        console.warn(`[directory-sync] user sync failed for ${user.email}:`, error?.message ?? error)
+        console.warn(`[directory-sync] user sync failed for ${maskEmail(user.email)}:`, error?.message ?? error)
       }),
     ))
     usersDone += batch.length
@@ -861,4 +868,12 @@ export async function enqueueScheduledDirectorySyncs(supabase: SupabaseClient): 
     if (!insertError) enqueued++
   }
   return enqueued
+}
+
+/** a***@example.com: enough to find the person in the directory, without the address in the logs. */
+export function maskEmail(email: string | null | undefined): string {
+  if (!email) return '(no email)'
+  const at = email.indexOf('@')
+  if (at <= 0) return '***'
+  return `${email[0]}***${email.slice(at)}`
 }

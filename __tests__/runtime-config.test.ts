@@ -215,7 +215,7 @@ describe('instance_settings service', () => {
     await svc.listInstanceSettings()
     await svc.loadInstanceSettings()
     await svc.deleteInstanceSetting('providers.email')
-    expect(createClientMock).toHaveBeenCalledWith('http://127.0.0.1:54321', 'service-role-key')
+    expect(createClientMock).toHaveBeenCalledWith('http://127.0.0.1:54321', 'service-role-key', expect.objectContaining({ auth: expect.objectContaining({ autoRefreshToken: false }) }))
     expect(sessionClientMock).not.toHaveBeenCalled()
   })
 

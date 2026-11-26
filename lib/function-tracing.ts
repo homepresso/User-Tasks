@@ -91,8 +91,8 @@ export const REQUIRED_TRACED_FILES: { routes: RegExp; files: string[]; why: stri
   },
   {
     routes: /^\/form-controls\/frame\/gallery\//,
-    files: ['gallery/controls/chart/manifest.json', 'gallery/controls/chart/dist/ut-chart.js'],
-    why: 'official form controls are served from gallery/controls',
+    files: ['public/gallery/index.json'],
+    why: 'gallery control previews read the published packages in public/gallery (lib/gallery/control-preview.ts)',
   },
   {
     routes: /^\/docs\/\[\.\.\.slug\]\/page$/,

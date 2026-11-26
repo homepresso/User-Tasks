@@ -14854,6 +14854,8 @@ export interface operations {
                             operator: string;
                             /** @description Comparison value (stored as a string) */
                             value?: unknown;
+                            /** @description Compare with another input of this table instead of value (e.g. amount less_than_or_equal budget) */
+                            valueInputKey?: string;
                         } & {
                             [key: string]: unknown;
                         })[];
@@ -15039,6 +15041,8 @@ export interface operations {
                             operator: string;
                             /** @description Comparison value (stored as a string) */
                             value?: unknown;
+                            /** @description Compare with another input of this table instead of value (e.g. amount less_than_or_equal budget) */
+                            valueInputKey?: string;
                         } & {
                             [key: string]: unknown;
                         })[];
@@ -15232,6 +15236,8 @@ export interface operations {
                             operator: string;
                             /** @description Comparison value (stored as a string) */
                             value?: unknown;
+                            /** @description Compare with another input of this table instead of value (e.g. amount less_than_or_equal budget) */
+                            valueInputKey?: string;
                         } & {
                             [key: string]: unknown;
                         })[];
@@ -16500,7 +16506,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @description The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows (hosted instances accept request bodies up to about 4.5 MB). With multipart/form-data: the `file` field. */
+                    /** @description The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows. A JSON body is capped at API_MAX_BODY_BYTES (default 5 MiB; hosted instances about 4.5 MB): send larger files as multipart/form-data, in the `file` field. */
                     file_base64: string;
                     /** @description File name; its extension (.csv, .tsv, .xlsx) picks the reader */
                     file_name: string;
@@ -75964,6 +75970,18 @@ export interface operations {
                             } & {
                                 [key: string]: unknown;
                             }) | null;
+                            addon: {
+                                /**
+                                 * @description The Processing add-on (paid extension): missing from this build, installed without a usable licence, or ready
+                                 * @enum {string}
+                                 */
+                                state: "missing" | "unlicensed" | "ready";
+                                extensionId: string | null;
+                                /** @description Why it is unavailable, or (ready) the licence expiry warning: changes stop 24 hours after expiry */
+                                reason: string | null;
+                            } & {
+                                [key: string]: unknown;
+                            };
                             queue: ({
                                 due: number;
                                 scheduled: number;

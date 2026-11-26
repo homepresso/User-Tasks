@@ -46,7 +46,8 @@ import { evaluateDecisionTable } from "./decision-table-engine";
 import { ActionRunError, executeStoredAction, loadStoredAction } from "./custom-actions/execute";
 import { actionManifestOf, operationOf } from "./custom-actions/manifest";
 import { isExtensionTriggerType } from "./extensions/nodes";
-import { evaluateOperator, normalizeOperator } from "./conditions";
+import { evaluateOperator, normalizeOperator, orderedMatch } from "./conditions";
+import { applyAuthHeaders } from "./integrations/attach-auth";
 import { normalizeTaskFieldValue, WORKFLOW_UPDATABLE_TASK_FIELDS } from "./task-fields";
 import { resolveTaskDescriptionTemplate } from "./task-description";
 import { htmlToPlainText } from "./html-sanitize";
@@ -70,7 +71,7 @@ import { preResolveLookupConfig, preResolveLookupTemplate } from "./forms/lookup
 import { preResolveDataTableConfig } from "./forms/data-table";
 import { resolveContextParams, substituteParams } from "./forms/form-params";
 import { loadEmailTemplate } from "./email-templates";
-import { renderEmailTemplate } from "./email-editor/render";
+import { emailSubjectLine, renderEmailTemplate, renderTemplateHtml } from "./email-editor/render";
 import { RunNotResumableError } from "./workflow-run-errors";
 import {
   INITIATOR_VARIABLES,
@@ -103,6 +104,8 @@ import {
 } from "./workflow-parallel";
 import { appUrlOrLocalhost, configuredAppUrl } from "@/lib/config/bootstrap";
 import { fetchFile, fileSource, storeWorkflowFile, type StoredWorkflowFile } from "@/lib/storage/files";
+import { capResponseBody } from "@/lib/capped-response";
+import { kickQueueProcessor } from "@/lib/process-queue";
 import { dataTableIdOf } from "./workflow-table-refs";
 import { esignEdgeMatches } from "./esign/catalog";
 import { reportableRunVariables } from "./workflow-run-variables";
@@ -411,6 +414,8 @@ interface ExecutionContext {
     startedAt: number;
     nodeVisits: number;
     edgeTraversals: number;
+    /** Last time the run row was checked for a manual cancel (see checkRunCancelled). */
+    cancelCheckedAt?: number;
   };
   /** Parallel join tracking (shared by every branch of the run). */
   parallel?: ParallelRuntime;
@@ -584,29 +589,64 @@ function getRunCache(ctx: ExecutionContext): RunCache {
   });
 }
 
+/**
+ * People directories shared across runs of a workspace for a short while:
+ * each run used to load the whole membership + users list again (2–11
+ * queries per run that uses USER_NAME / USER_EMAIL). Bounded by workspaces.
+ */
+const PEOPLE_DIRECTORY_TTL_MS = 60_000;
+const PEOPLE_DIRECTORY_TENANTS = 200;
+const peopleDirectories = new Map<string, { at: number; directory: Promise<Map<string, PersonEntry>> }>();
+
+/** Test hook: forget the shared people directories. */
+export function clearPeopleDirectoriesForTests(): void {
+  peopleDirectories.clear();
+}
+
+async function loadPeopleDirectory(supabase: any, tenantId: string): Promise<Map<string, PersonEntry>> {
+  // Keyset pages: one select is cut at max_rows (1,000), so the cap of
+  // PEOPLE_DIRECTORY_CAP was really 1,000 and later names resolved to "".
+  const ids: string[] = [];
+  let after: string | null = null;
+  while (ids.length < PEOPLE_DIRECTORY_CAP) {
+    let query = supabase.from("user_memberships").select("user_id").eq("tenant_id", tenantId);
+    if (after) query = query.gt("user_id", after);
+    const { data: members, error } = await query.order("user_id", { ascending: true }).limit(1000);
+    if (error) throw new Error(`People lookup failed: ${error.message}`);
+    const page = ((members ?? []) as Array<{ user_id: string }>).map((m) => m.user_id).filter(Boolean);
+    ids.push(...page);
+    if (page.length < 1000) break;
+    after = page[page.length - 1];
+  }
+  const unique = [...new Set(ids)].slice(0, PEOPLE_DIRECTORY_CAP);
+  const users: Array<{ id: string; display_name: string | null; email: string | null }> = [];
+  for (let i = 0; i < unique.length; i += 200) {
+    const { data, error: userError } = await supabase
+      .from("users")
+      .select("id, display_name, email")
+      .in("id", unique.slice(i, i + 200));
+    if (userError) throw new Error(`People lookup failed: ${userError.message}`);
+    users.push(...(data ?? []));
+  }
+  return buildDirectory(users);
+}
+
 /** The run's people directory (lib/workflow-people.ts): this workspace's members only, on a Symbol key the run never saves. */
 async function ensurePeopleDirectory(ctx: ExecutionContext): Promise<void> {
   const vars = ctx.variables as Record<string | symbol, unknown>;
   if (vars[PEOPLE] instanceof Map) return;
   const cache = getRunCache(ctx);
-  cache.people ??= (async () => {
-    const { data: members, error } = await (ctx.supabase as any)
-      .from("user_memberships")
-      .select("user_id")
-      .eq("tenant_id", ctx.tenantId)
-      .limit(PEOPLE_DIRECTORY_CAP);
-    if (error) throw new Error(`People lookup failed: ${error.message}`);
-    const ids = [...new Set(((members ?? []) as Array<{ user_id: string }>).map((m) => m.user_id).filter(Boolean))];
-    const users: Array<{ id: string; display_name: string | null; email: string | null }> = [];
-    for (let i = 0; i < ids.length; i += 500) {
-      const { data, error: userError } = await (ctx.supabase as any)
-        .from("users")
-        .select("id, display_name, email")
-        .in("id", ids.slice(i, i + 500));
-      if (userError) throw new Error(`People lookup failed: ${userError.message}`);
-      users.push(...(data ?? []));
-    }
-    return buildDirectory(users);
+  cache.people ??= (() => {
+    const tenantId = String(ctx.tenantId);
+    const now = Date.now();
+    const shared = peopleDirectories.get(tenantId);
+    if (shared && now - shared.at < PEOPLE_DIRECTORY_TTL_MS) return shared.directory;
+    const directory = loadPeopleDirectory(ctx.supabase as any, tenantId);
+    peopleDirectories.delete(tenantId);
+    peopleDirectories.set(tenantId, { at: now, directory });
+    while (peopleDirectories.size > PEOPLE_DIRECTORY_TENANTS) peopleDirectories.delete(peopleDirectories.keys().next().value as string);
+    directory.catch(() => { if (peopleDirectories.get(tenantId)?.directory === directory) peopleDirectories.delete(tenantId); });
+    return directory;
   })();
   cache.people.catch(() => { cache.people = undefined; });
   vars[PEOPLE] = await cache.people;
@@ -635,6 +675,9 @@ function loadReference(ctx: ExecutionContext, refId: string): Promise<CachedRow>
       .from("integration_references")
       .select("*, integration:integrations(*)")
       .eq("id", refId)
+      // Service-role client: a reference id in a node's config must never
+      // reach (and run with the credentials of) another workspace's reference.
+      .eq("tenant_id", ctx.tenantId)
       .single();
     if (!ref) throw new Error("Reference not found");
     const integration = ref.integration as { config?: unknown } | null;
@@ -654,6 +697,7 @@ function loadTableColumns(
       .from("custom_tables")
       .select("columns")
       .eq("id", tableId)
+      .eq("tenant_id", ctx.tenantId)
       .single();
     // A failed read is not cached (evicted on rejection); callers fall back to [].
     if (error) throw new Error(error.message);
@@ -684,7 +728,122 @@ export const ENGINE_LIMITS = {
   },
   /** Delays up to this long wait inline; longer ones pause the run. */
   inlineDelayMaxMs: TIMEOUTS.STANDARD,
+  /**
+   * Max steps (node visits, every loop iteration and Go To jump counted) one
+   * run segment may take. Without it a Go To cycle with no exit, or a
+   * Loop N Times of millions, ran until the worker ran out of memory (taking
+   * every other job on it down) or held its slot for hours.
+   */
+  get maxStepsPerRun() {
+    return envLimit("WORKFLOW_MAX_STEPS_PER_RUN", 200_000);
+  },
+  /**
+   * Max wall-clock time of one run segment (env WORKFLOW_MAX_RUN_MS, default
+   * 6 hours): steps are capped, but a loop of inline waits or slow calls could
+   * otherwise hold a worker slot (its lease renewed) for days.
+   */
+  get maxRunMs() {
+    return envLimit("WORKFLOW_MAX_RUN_MS", 6 * 60 * 60 * 1000);
+  },
+  /** Max nesting of Call Sub-workflow (a workflow calling itself started runs without end). */
+  get maxSubworkflowDepth() {
+    return envLimit("WORKFLOW_MAX_SUBWORKFLOW_DEPTH", 10);
+  },
 };
+
+/**
+ * Is `userId` a person of `tenantId` (an active membership, or it being their
+ * home workspace — single-workspace users may have no membership row)?
+ */
+async function isWorkspacePerson(supabase: SupabaseClient, tenantId: string, userId: string): Promise<boolean> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return false;
+  const [{ data: membership }, { data: home }] = await Promise.all([
+    (supabase as any).from("user_memberships").select("user_id").eq("user_id", userId).eq("tenant_id", tenantId).eq("is_active", true).limit(1).maybeSingle(),
+    (supabase as any).from("users").select("id").eq("id", userId).eq("tenant_id", tenantId).maybeSingle(),
+  ]);
+  return Boolean(membership || home);
+}
+
+/**
+ * A URL for an error message / run log: origin and path only — the query
+ * string (API keys, tokens) and userinfo are dropped.
+ */
+function urlForMessage(raw: string): string {
+  try {
+    const url = new URL(raw);
+    return `${url.origin}${url.pathname}${url.search ? "?…" : ""}`;
+  } catch {
+    return String(raw).split("?")[0].replace(/\/\/[^/@]*@/, "//");
+  }
+}
+
+/** Engine-owned run variable: how deep in Call Sub-workflow this run is. */
+const SUBWORKFLOW_DEPTH_KEY = "_subworkflow_depth";
+
+/** A run that took more steps than ENGINE_LIMITS.maxStepsPerRun: fails the run (never continued past by onError=continue). */
+export class StepLimitError extends Error {
+  constructor(limit: number, message?: string) {
+    super(message ?? `Step limit reached: this run took more than ${limit.toLocaleString("en-US")} steps (a loop or Go To cycle that never ends?). Raise WORKFLOW_MAX_STEPS_PER_RUN if the workflow really needs more.`);
+    this.name = "StepLimitError";
+  }
+}
+
+function assertStepBudget(ctx: ExecutionContext) {
+  const limit = ENGINE_LIMITS.maxStepsPerRun;
+  if ((ctx.metrics?.nodeVisits ?? 0) > limit) throw new StepLimitError(limit);
+  // Wall-clock budget of one run segment (a wait that pauses the run starts a new segment).
+  const maxMs = ENGINE_LIMITS.maxRunMs;
+  const startedAt = ctx.metrics?.startedAt;
+  if (startedAt && Date.now() - startedAt > maxMs) {
+    throw new StepLimitError(maxMs, `Time limit reached: this run has been running for more than ${Math.round(maxMs / 60_000)} minutes without pausing. Raise WORKFLOW_MAX_RUN_MS if the workflow really needs longer.`);
+  }
+}
+
+/** = CANCELLED_RUN_ERROR in lib/services/workflow-runs (Runs → Cancel writes it with status failed). */
+export const RUN_CANCELLED_ERROR = "Manually cancelled";
+/** How often a running run looks at its row for a manual cancel (never during its first interval). */
+const CANCEL_CHECK_INTERVAL_MS = 2_000;
+
+/** The run was cancelled (Runs → Cancel) while it ran: stop, and leave the cancelled row as it is. */
+export class RunCancelledError extends Error {
+  constructor() {
+    super(RUN_CANCELLED_ERROR);
+    this.name = "RunCancelledError";
+  }
+}
+
+/**
+ * Was this run cancelled while it ran? Runs → Cancel marks the row failed /
+ * "Manually cancelled", but the worker running it never looked: it kept
+ * running steps (side effects included) and its final write turned the run
+ * back into `completed`. Checked at most every CANCEL_CHECK_INTERVAL_MS
+ * (short runs never query); `force` checks now (before the final write of a
+ * run that lasted longer than one interval).
+ */
+async function runWasCancelled(ctx: ExecutionContext, force = false): Promise<boolean> {
+  if (!ctx.runId || ctx.isTest) return false;
+  const metrics = ctx.metrics;
+  if (!metrics) return false;
+  const now = Date.now();
+  const last = metrics.cancelCheckedAt ?? metrics.startedAt;
+  if (now - last < CANCEL_CHECK_INTERVAL_MS && !(force && now - metrics.startedAt >= CANCEL_CHECK_INTERVAL_MS)) return false;
+  metrics.cancelCheckedAt = now;
+  try {
+    const { data } = await ctx.supabase
+      .from("workflow_runs")
+      .select("status, error")
+      .eq("id", ctx.runId)
+      .maybeSingle();
+    const row = data as { status?: string; error?: string | null } | null;
+    return Boolean(row && (row.status === "cancelled" || (row.status === "failed" && row.error === RUN_CANCELLED_ERROR)));
+  } catch {
+    return false; // can't tell: keep running
+  }
+}
+
+async function assertNotCancelled(ctx: ExecutionContext) {
+  if (await runWasCancelled(ctx)) throw new RunCancelledError();
+}
 
 /** node_results with each oversized output replaced by a `_truncated` preview. */
 function nodeResultsForStorage(
@@ -1022,15 +1181,32 @@ async function fireWorkflowErrorTriggers(
         matchesWorkflowErrorScope(wf).catch(() => false),
       ),
     );
-    errorWorkflows.forEach((wf, i) => {
+    // Queued (a job with a lease, retries and recovery) rather than an
+    // unawaited run inside this worker, which a serverless invocation could
+    // end before it finished. Inline only when the queue refuses the job.
+    let enqueued = 0;
+    await Promise.all(errorWorkflows.map(async (wf, i) => {
       if (!matches[i]) return;
-      executeWorkflow(wf.id, undefined, false, errorData, undefined, undefined, undefined, {
+      const { error: enqueueError } = await supabase.rpc("enqueue_workflow", {
+        p_workflow_id: wf.id,
+        p_tenant_id: tenantId,
+        p_trigger_type: "workflow_error",
+        p_trigger_data: errorData,
+        p_priority: 0,
+      });
+      if (!enqueueError) {
+        enqueued++;
+        return;
+      }
+      await executeWorkflow(wf.id, undefined, false, errorData, undefined, undefined, undefined, {
         supabase,
         initiator: { userId: null, via: "event" },
+        tenantId,
       }).catch(() => {
         // Silently ignore — don't let error workflow failures cascade
       });
-    });
+    }));
+    if (enqueued > 0) kickQueueProcessor();
   } catch {
     // Silently ignore — error trigger failures must not affect the original workflow
   }
@@ -1069,6 +1245,13 @@ export async function executeWorkflow(
      * existing run row, replaying its checkpoint instead of starting anew.
      */
     recover?: { runId: string; checkpoint: RunCheckpoint };
+    /**
+     * The tenant the workflow must belong to (sub-workflow calls: the parent
+     * run's tenant). A workflow of any other tenant is "not found" — the
+     * engine's client is service-role, so an id in a node's config must
+     * never reach another workspace's workflow.
+     */
+    tenantId?: string;
   },
 ): Promise<{
   status: string;
@@ -1108,6 +1291,7 @@ export async function executeWorkflow(
   ]);
 
   if (!workflow) throw new Error("Workflow not found");
+  if (options?.tenantId && (workflow as any).tenant_id !== options.tenantId) throw new Error("Workflow not found");
 
   // Use published version if available (unless testing, which uses draft)
   let nodes: WorkflowNode[];
@@ -1463,9 +1647,9 @@ export async function executeWorkflow(
       error: errMsg,
     });
 
-    // Fire workflow_error triggers
-    if (!test) {
-      fireWorkflowErrorTriggers(
+    // Fire workflow_error triggers (not for a run someone cancelled)
+    if (!test && !(error instanceof RunCancelledError)) {
+      await fireWorkflowErrorTriggers(
         supabase,
         workflowId,
         workflow.name,
@@ -1499,8 +1683,13 @@ async function finishRun(
 ) {
   // Joins that never ran (the run failed or ended first) are not steps of the run.
   clearJoinPlaceholders(ctx);
+  // Cancelled while it ran (Runs → Cancel): the cancelled row stays as it is.
+  const cancelled = runId ? await runWasCancelled(ctx, true) : false;
+  if (cancelled) {
+    ctx.logs.push({ level: "warn", message: "Run was cancelled while it ran: stopped; the run stays cancelled." });
+  }
   await Promise.all([
-    runId
+    runId && !cancelled
       ? updateWorkflowRunCompat(supabase, runId, {
           status: opts.error === undefined ? "completed" : "failed",
           completed_at: new Date().toISOString(),
@@ -2466,9 +2655,10 @@ export async function resumeWorkflow(
       message: `Workflow failed after resume: ${errMsg}`,
     });
     await finishRun(supabase, ctx, workflow.id, runId, { error: errMsg });
+    if (error instanceof RunCancelledError) return { status: "failed", node_results: ctx.nodeResults, error: errMsg };
 
     // Fire workflow_error triggers
-    fireWorkflowErrorTriggers(
+    await fireWorkflowErrorTriggers(
       supabase,
       workflow.id,
       workflow.name,
@@ -2966,6 +3156,7 @@ async function resolveLiveBindingsForNode(
           let query = ctx.supabase
             .from("custom_table_rows")
             .select("id, data, created_at, updated_at")
+            .eq("tenant_id", ctx.tenantId)
             .eq("table_id", tblId);
           for (const f of (snap.filters ?? []) as {
             column: string;
@@ -2998,6 +3189,7 @@ async function resolveLiveBindingsForNode(
           const { data: row } = await ctx.supabase
             .from("custom_table_rows")
             .select("id, data, created_at, updated_at")
+            .eq("tenant_id", ctx.tenantId)
             .eq("id", rowId)
             .single();
           data = row
@@ -3861,6 +4053,8 @@ async function executeNode(
   ctx.executedNodes.add(node.id);
   boundRunMemory(ctx);
   traceNodeVisit(ctx, node, "enter");
+  assertStepBudget(ctx);
+  await assertNotCancelled(ctx);
   // USER_NAME / USER_EMAIL: the workspace's people, loaded once per run for the steps that use them.
   if (usesPeopleFunctions(node.config)) await ensurePeopleDirectory(ctx);
 
@@ -4244,6 +4438,8 @@ async function executeNode(
     // An expired licence parks the run at this step (retryable after
     // renewal); continuing past it would skip the step for good.
     if (isLicenceExpiredStepError(error)) throw error;
+    // Out of steps: the whole run stops (continuing would only spend more).
+    if (error instanceof StepLimitError || error instanceof RunCancelledError) throw error;
 
     // Check if node is configured to continue on error
     if (node.onError === "continue") {
@@ -4571,13 +4767,24 @@ async function runNodeAction(
         }
       }
 
-      // The sub-run is started by whoever started this run.
+      // Nesting depth (engine-owned, carried in the sub-run's variables): a
+      // workflow that calls itself (directly or through others) stops here
+      // instead of starting runs until the worker runs out of memory.
+      const depth = Math.max(0, Math.floor(Number(ctx.variables[SUBWORKFLOW_DEPTH_KEY]) || 0)) + 1;
+      if (depth > ENGINE_LIMITS.maxSubworkflowDepth) {
+        throw new Error(`Sub-workflow nesting is deeper than ${ENGINE_LIMITS.maxSubworkflowDepth} levels (a workflow that calls itself?). Raise WORKFLOW_MAX_SUBWORKFLOW_DEPTH if it really needs more.`);
+      }
+      subVariables[SUBWORKFLOW_DEPTH_KEY] = depth;
+
+      // The sub-run is started by whoever started this run, in this run's
+      // workspace only (tenantId: a workflow id of another one is not found).
       const subInitiator = initiatorFromRunVariables(ctx.variables, "subworkflow");
       if (node.executionMode === "async") {
         // Fire and forget — don't wait
         executeWorkflow(subWorkflowId, taskId, false, subVariables, undefined, undefined, undefined, {
           supabase,
           initiator: subInitiator,
+          tenantId,
         }).catch(
           (err) => {
             ctx.logs.push({
@@ -4614,7 +4821,7 @@ async function runNodeAction(
           undefined,
           undefined,
           undefined,
-          { supabase, initiator: subInitiator },
+          { supabase, initiator: subInitiator, tenantId },
         );
 
         // Merge sub-workflow logs into the parent's returned/streamed logs. They
@@ -5397,6 +5604,16 @@ async function runNodeAction(
         else if (plan.kind === "claim") { groupMode = "claim"; groupUserIds = plan.userIds; }
       }
 
+      // The assignee must be a person of this workspace: the id can come from
+      // run data (assignee_variable ← a webhook payload, a form field), and
+      // the client is service-role, so a user id of another workspace would
+      // get this workspace's task notification (and see its title). Not one:
+      // the task is created unassigned, with a warning in the run log.
+      if (assigneeId && assignmentType !== "aad_group" && !(await isWorkspacePerson(supabase, tenantId, String(assigneeId)))) {
+        ctx.logs.push({ node_id: node.id, node_type: node.type, node_label: node.label, level: "warn", message: `Assignee ${String(assigneeId)} is not a member of this workspace: the task was created unassigned` });
+        assigneeId = null;
+      }
+
       // Calculate due date
       let dueDate: string | null = null;
       const dueDateMode = config.due_date_mode ?? "relative";
@@ -5853,10 +6070,12 @@ async function runNodeAction(
               : resolvedTemplate;
           if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
             throw new Error("not an object");
+          // The callback contract wins over the template: a template's own
+          // "event_id": "{{event_id}}" still holds the previous wait's id here.
           outboundPayload = {
+            ...parsed,
             event_id: eventId,
             event_name: eventName,
-            ...parsed,
           };
         } catch {
           throw new Error(
@@ -5922,37 +6141,39 @@ async function runNodeAction(
           if (ref) {
             const integration = ref.integration as any;
             const reqConfig = ref.request_config as any;
-            const baseUrl = (integration.config as any)?.base_url ?? "";
-            let path = reqConfig?.path_template ?? "";
-            let body = JSON.stringify(outboundPayload);
+            const integrationConfig = (integration?.config ?? {}) as any;
+            const baseUrl = integrationConfig.base_url ?? "";
+            const body = JSON.stringify(outboundPayload);
 
-            // Resolve path variables from payload
-            for (const [key, val] of Object.entries(outboundPayload)) {
-              path = path.replace(`{{${key}}}`, String(val ?? ""));
-            }
+            // Path variables from the payload: every {{key}}, each value
+            // URL-encoded (a "/" or "?" in a value can't change the path).
+            const path = String(reqConfig?.path_template ?? "").replace(
+              /\{\{\s*([\w.-]+)\s*\}\}/g,
+              (whole: string, key: string) =>
+                Object.prototype.hasOwnProperty.call(outboundPayload, key)
+                  ? encodeURIComponent(String(outboundPayload[key] ?? ""))
+                  : whole,
+            );
 
+            // The integration's own auth, as Call Reference applies it
+            // (bearer, API key, basic, OAuth 2 token store, minted tokens).
             const headers: Record<string, string> = {
               "Content-Type": "application/json",
             };
-            const authCfg = (integration.config as any)?.auth_config;
-            if (
-              (integration.config as any)?.auth_type === "bearer" &&
-              authCfg?.token
-            ) {
-              headers["Authorization"] = `Bearer ${authCfg.token}`;
-            } else if (
-              (integration.config as any)?.auth_type === "api_key" &&
-              authCfg?.key_value
-            ) {
-              headers[authCfg.key_name || "X-API-Key"] = authCfg.key_value;
-            }
-
+            const authQuery: Record<string, string> = {};
+            await applyAuthHeaders(integrationConfig, headers, {
+              supabase,
+              integrationId: integration?.id ?? null,
+              tenantId,
+            }, authQuery);
             try {
+              const target = new URL(baseUrl + path);
+              for (const [k, v] of Object.entries(authQuery)) target.searchParams.set(k, v);
               // Egress-guarded on every redirect hop (private-network
               // allowlist, metadata always blocked); credentials dropped on a
               // cross-origin redirect; one attempt, as before.
               const { connectorFetch } = await import("@/lib/integrations/http");
-              const resp = await connectorFetch(baseUrl + path, {
+              const resp = await connectorFetch(target.toString(), {
                 method: reqConfig?.method ?? "POST",
                 headers,
                 body,
@@ -5966,12 +6187,41 @@ async function runNodeAction(
           }
         }
       } else if (outboundAction === "data_table" && dataTableIdOf(config)) {
-        // Write event to a data table
-        await supabase.from("custom_table_rows").insert({
-          table_id: dataTableIdOf(config),
-          tenant_id: tenantId,
-          data: outboundPayload,
-        } as any);
+        // Write the event to a data table the way Update Data Table inserts a
+        // row: the table must be this workspace's, a failed insert fails the
+        // step, and the table's row-created triggers fire.
+        const eventTableId = String(dataTableIdOf(config));
+        const { data: eventTable, error: tableError } = await supabase
+          .from("custom_tables")
+          .select("id")
+          .eq("id", eventTableId)
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        if (tableError || !eventTable)
+          throw new Error(`Server event: data table not found${tableError ? ` (${tableError.message})` : ""}`);
+        const { data: insertedEvent, error: insertError } = await supabase
+          .from("custom_table_rows")
+          .insert({
+            table_id: eventTableId,
+            tenant_id: tenantId,
+            data: outboundPayload,
+          } as any)
+          .select("id")
+          .single();
+        if (insertError)
+          throw new Error(`Server event: could not write the event row: ${insertError.message}`);
+        if ((insertedEvent as any)?.id) {
+          await enqueueDataTableEventWorkflows({
+            supabase,
+            tenantId,
+            tableId: eventTableId,
+            rowId: (insertedEvent as any).id,
+            rowData: outboundPayload,
+            eventType: "created",
+            tableCache: getRunCache(ctx).triggerTables,
+            initiator: initiatorFromRunVariables(ctx.variables, "data_table"),
+          });
+        }
       }
 
       // Store event_id in variables for reference
@@ -6032,7 +6282,10 @@ async function runNodeAction(
 
     // ─── Loop N Times ───
     case "loop_n_times": {
-      const n = Number(resolveExpression(config.count, ctx)) || 0;
+      const n = Math.max(0, Math.floor(Number(resolveExpression(config.count, ctx)) || 0));
+      // Each iteration is at least one step: refuse up front rather than
+      // allocate the index list of a count no run could finish.
+      if (n > ENGINE_LIMITS.maxStepsPerRun) throw new StepLimitError(ENGINE_LIMITS.maxStepsPerRun);
       const indexVar = config.index_var ?? "i";
       ctx.variables[`${indexVar}_total`] = n;
       return {
@@ -6154,6 +6407,11 @@ async function runNodeAction(
       // Legacy configs stored the table as tableId / data_table_id.
       const tableId = dataTableIdOf(config);
       if (!tableId) return { skipped: true, reason: "No table selected" };
+      // The table must be this workspace's (cached per run; the row queries
+      // below are tenant-filtered too). A foreign id is "not found".
+      await loadTableColumns(ctx, tableId).catch(() => {
+        throw new Error("Data table not found");
+      });
       const operation = config.operation ?? "insert";
       const shouldApplyRowRetention =
         operation === "set_retention" ||
@@ -6247,7 +6505,8 @@ async function runNodeAction(
             await supabase
               .from("custom_tables")
               .update({ columns: newCols } as any)
-              .eq("id", tableId);
+              .eq("id", tableId)
+              .eq("tenant_id", tenantId);
             // The engine changed the columns: drop the cached copies.
             getRunCache(ctx).tableColumns.delete(tableId);
             getRunCache(ctx).triggerTables.delete(tableId);
@@ -6289,6 +6548,7 @@ async function runNodeAction(
         const { data: matchedRow, error: matchError } = await supabase
           .from("custom_table_rows")
           .select("id")
+          .eq("tenant_id", tenantId)
           .eq("table_id", tableId)
           .eq(`data->>${matchField}`, matchValue)
           .order("created_at", { ascending: false })
@@ -6308,6 +6568,7 @@ async function runNodeAction(
           const { data: row, error } = await supabase
             .from("custom_table_rows")
             .select("id, data, created_at, updated_at")
+            .eq("tenant_id", tenantId)
             .eq("id", rowId)
             .single();
           if (error) throw new Error(`Get failed: ${error.message}`);
@@ -6392,6 +6653,7 @@ async function runNodeAction(
             const { data: lastRow } = await supabase
               .from("custom_table_rows")
               .select("data")
+              .eq("tenant_id", tenantId)
               .eq("table_id", tableId)
               .order("created_at", { ascending: false })
               .limit(1);
@@ -6456,6 +6718,7 @@ async function runNodeAction(
         const { data: existingRow } = await supabase
           .from("custom_table_rows")
           .select("data")
+          .eq("tenant_id", tenantId)
           .eq("id", rowId)
           .maybeSingle();
         rowData = {
@@ -6469,6 +6732,7 @@ async function runNodeAction(
         const { error } = await supabase
           .from("custom_table_rows")
           .update(updatePayload as any)
+          .eq("tenant_id", tenantId)
           .eq("id", rowId);
         if (error) throw new Error(`Update failed: ${error.message}`);
         await enqueueDataTableEventWorkflows({
@@ -6499,11 +6763,13 @@ async function runNodeAction(
         const { data: existingRow } = await supabase
           .from("custom_table_rows")
           .select("data")
+          .eq("tenant_id", tenantId)
           .eq("id", rowId)
           .maybeSingle();
         const { error } = await supabase
           .from("custom_table_rows")
           .delete()
+          .eq("tenant_id", tenantId)
           .eq("id", rowId);
         if (error) throw new Error(`Delete failed: ${error.message}`);
         await enqueueDataTableEventWorkflows({
@@ -6547,6 +6813,7 @@ async function runNodeAction(
         let query = supabase
           .from("custom_table_rows")
           .select("id, data, created_at, updated_at")
+          .eq("tenant_id", tenantId)
           .eq("table_id", tableId);
 
         // Apply filters
@@ -7596,9 +7863,11 @@ async function runNodeAction(
           headers,
           body: body as BodyInit | undefined,
         }, { timeoutMs: sentFiles.length ? TIMEOUTS.LARGE_FILE : TIMEOUTS.DEFAULT, retry: "never" });
+        // The body is read into memory below: capped (WORKFLOW_DOWNLOAD_MAX_BYTES).
+        resp = capResponseBody(resp);
       } catch (e: unknown) {
         throw new Error(
-          `HTTP Request to ${baseUrl} failed: ${toErrorMessage(e)}`,
+          `HTTP Request to ${urlForMessage(baseUrl)} failed: ${toErrorMessage(e)}`,
         );
       }
 
@@ -7646,13 +7915,18 @@ async function runNodeAction(
         return { status: resp.status, file: fileRef };
       }
 
-      const data = await resp.json().catch(async () => {
-        const text = await resp
-          .clone()
-          .text()
-          .catch(() => null);
-        return text;
-      });
+      // JSON when the body parses as JSON, else its text (HTML, XML, CSV,
+      // plain text). Read once: the old json()-then-clone() fallback threw
+      // "Body has already been consumed" for every non-JSON response.
+      const text = await resp.text();
+      let data: unknown = text;
+      if (text.trim()) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          // not JSON: keep the text
+        }
+      }
       setVar("response", data);
       if (outputVar) ctx.variables[outputVar] = data;
       ctx.variables[`${_prefix}_status`] = resp.status;
@@ -7696,10 +7970,12 @@ async function runNodeAction(
         : null;
       const subject = renderedTemplate
         ? renderedTemplate.subject
-        : resolveExpression(config.subject, ctx);
+        : emailSubjectLine(resolveExpression(config.subject, ctx));
+      // Inline subject / body follow the template rules: one header line, and
+      // run values escaped in the HTML body ({{{var}}} / *_html stay raw, sanitised).
       const body = renderedTemplate
         ? renderedTemplate.html
-        : resolveExpression(config.body, ctx);
+        : renderTemplateHtml(config.body, ctx);
       const from = config.from
         ? resolveExpression(config.from, ctx)
         : undefined;
@@ -8679,14 +8955,14 @@ function evaluateRule(
     // Regular expression (ReDoS-guarded; an invalid pattern reads as no match).
     case "matches":
       return evaluateOperator(op, fieldValue, compareValue);
+    // Greater / less than: the form rules' ordering (lib/conditions.ts
+    // compareOrdered) — numbers as numbers, ISO dates as dates, an empty side
+    // never matches (empty is not 0), other text case-insensitively.
     case "gt":
-      return Number(fieldValue) > Number(compareValue);
     case "lt":
-      return Number(fieldValue) < Number(compareValue);
     case "gte":
-      return Number(fieldValue) >= Number(compareValue);
     case "lte":
-      return Number(fieldValue) <= Number(compareValue);
+      return orderedMatch(op, fieldValue, compareValue);
     case "is_empty":
       // Parity with the form-rules operator: 0 and false are VALUES, not empty.
       return fieldValue === null || fieldValue === undefined || fieldValue === "" ||

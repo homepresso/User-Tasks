@@ -10,6 +10,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { provisionTenant } from '@/lib/tenant-provisioning'
 import { setupDb, setupNeeded } from '@/lib/setup/server'
 import { runSetup, SETUP_RATE_LIMIT, type SetupInput, type SetupResult } from '@/lib/setup/run'
+import { clientIpFrom } from '@/lib/client-ip'
 
 /**
  * First-run setup (self-hosted, /setup): creates the first workspace and its
@@ -22,7 +23,7 @@ export async function completeFirstRunSetup(input: SetupInput): Promise<SetupRes
     return { ok: false, done: true, error: 'This install already has an admin account. Sign in instead.' }
   }
   const h = await headers()
-  const ip = (h.get('x-forwarded-for') ?? h.get('x-real-ip') ?? '').split(',')[0].trim() || null
+  const ip = clientIpFrom(h)
   const host = h.get('x-forwarded-host') ?? h.get('host')
   const proto = h.get('x-forwarded-proto') ?? (host?.startsWith('localhost') || host?.startsWith('127.') ? 'http' : 'https')
   const origin = (configuredAppUrl()?.trim() || h.get('origin') || (host ? `${proto}://${host}` : '')).replace(/\/+$/, '')

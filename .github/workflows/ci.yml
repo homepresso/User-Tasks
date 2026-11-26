@@ -14,8 +14,12 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # next build peaks near 10 GB: on the private repo's standard runner
+    # (2 cores, 7 GB) it swaps and takes far longer than on a public repo's
+    # 4-core / 16 GB one. Set the repository variable BUILD_RUNNER to a larger
+    # runner label to speed it up.
+    runs-on: ${{ vars.BUILD_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 60
     env:
       NEXT_TELEMETRY_DISABLED: 1
     steps:
@@ -33,8 +37,17 @@ jobs:
       - name: Generate Next.js types
         run: npx next typegen
 
+      # tsc over the whole app outgrew Node's default ~4 GB heap (OOM in 0.4.0);
+      # the private repo's runner has 7 GB of RAM, so add swap for headroom.
+      - name: Add swap
+        run: |
+          sudo fallocate -l 8G /swapfile-ut && sudo chmod 600 /swapfile-ut && sudo mkswap /swapfile-ut >/dev/null && sudo swapon /swapfile-ut
+          free -h
+
       - name: Type check (app + packages)
         run: npm run typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
 
       - name: OpenAPI spec, SDK types and CLI commands up to date
         run: npm run openapi:check

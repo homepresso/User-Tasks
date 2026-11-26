@@ -19,7 +19,7 @@
           "notice_period_days": 61,
           "auto_renew": true,
           "annual_value": 184000,
-          "currency": "NZD",
+          "currency": "USD",
           "status": "active",
           "renewal_stage": "Not started"
         }
@@ -37,7 +37,7 @@
           "notice_period_days": 29,
           "auto_renew": true,
           "annual_value": 42000,
-          "currency": "NZD",
+          "currency": "USD",
           "status": "active",
           "renewal_stage": "Not started"
         }
@@ -73,7 +73,7 @@
           "notice_period_days": 90,
           "auto_renew": true,
           "annual_value": 58000,
-          "currency": "NZD",
+          "currency": "USD",
           "status": "active",
           "renewal_stage": "Not started"
         }
@@ -91,7 +91,7 @@
           "notice_period_days": 45,
           "auto_renew": false,
           "annual_value": 211000,
-          "currency": "NZD",
+          "currency": "USD",
           "status": "active",
           "renewal_stage": "Not started"
         }
@@ -109,7 +109,7 @@
           "notice_period_days": 60,
           "auto_renew": true,
           "annual_value": 73000,
-          "currency": "NZD",
+          "currency": "USD",
           "status": "active",
           "renewal_stage": "Not started"
         }
@@ -127,7 +127,7 @@
           "notice_period_days": 30,
           "auto_renew": true,
           "annual_value": 18500,
-          "currency": "NZD",
+          "currency": "USD",
           "status": "expired",
           "renewal_stage": "Renewed",
           "decision_notes": "Replaced by CT-1009"
@@ -146,7 +146,7 @@
           "notice_period_days": 60,
           "auto_renew": false,
           "annual_value": 120000,
-          "currency": "NZD",
+          "currency": "USD",
           "status": "active",
           "renewal_stage": "Decision requested",
           "decision_notes": "Reviewing panel rates"

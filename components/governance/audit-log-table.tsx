@@ -1,5 +1,6 @@
 'use client'
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { Clock, Shield, UserPlus, UserMinus, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TableScroll } from '@/components/ui/table'
@@ -19,11 +20,7 @@ interface Props {
 export function AuditLogTable({ entries }: Props) {
   if (entries.length === 0) {
     return (
-      <div className="text-center py-16">
-        <Clock size={32} className="mx-auto mb-3 opacity-20" />
-        <p className="text-sm text-fg-muted">No audit log entries yet</p>
-        <p className="text-xs mt-1 text-fg-muted">Changes to roles and permissions will appear here</p>
-      </div>
+      <EmptyState size="lg" icon={Clock} title="No audit log entries yet" description="Changes to roles and permissions will appear here." />
     )
   }
 

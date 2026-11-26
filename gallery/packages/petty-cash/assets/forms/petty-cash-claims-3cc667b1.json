@@ -5,7 +5,7 @@
   "asset": {
     "id": "3cc667b1-535a-5bd4-87a0-dae9c8b368a3",
     "name": "Petty cash claims",
-    "description": "Claims from the Petty cash ledger in two Data tables: My claims (base filter: the claimant is you) and This month (base filter: claimed since the start of the month), with NZD amounts, dates, status badges and receipt links, search, filters and sorting on the server. Click a claim to open its details tab.",
+    "description": "Claims from the Petty cash ledger in two Data tables: My claims (base filter: the claimant is you) and This month (base filter: claimed since the start of the month), with USD amounts, dates, status badges and receipt links, search, filters and sorting on the server. Click a claim to open its details tab.",
     "tags": [
       "petty cash",
       "expenses",
@@ -74,7 +74,7 @@
               "filterable": true,
               "format": {
                 "kind": "currency",
-                "currency": "NZD",
+                "currency": "USD",
                 "decimals": 2
               }
             },
@@ -241,7 +241,7 @@
               "filterable": true,
               "format": {
                 "kind": "currency",
-                "currency": "NZD",
+                "currency": "USD",
                 "decimals": 2
               }
             },
@@ -365,7 +365,7 @@
         "key": "d_amount",
         "label": "Amount",
         "type": "currency",
-        "currency": "NZD"
+        "currency": "USD"
       },
       {
         "key": "d_claimant",

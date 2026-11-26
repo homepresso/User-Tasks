@@ -120,7 +120,7 @@
         "key": "contract_value",
         "label": "Total contract value",
         "type": "currency",
-        "currency": "NZD",
+        "currency": "USD",
         "min": 0
       },
       {
@@ -155,7 +155,7 @@
         "key": "dispute_amount",
         "label": "Amount in dispute",
         "type": "currency",
-        "currency": "NZD",
+        "currency": "USD",
         "min": 0
       },
       {

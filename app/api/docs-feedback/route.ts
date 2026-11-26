@@ -5,6 +5,7 @@ import { isCloud, publicBaseUrl } from '@/lib/deployment'
 import { escapeHtml } from '@/lib/contact/chirpme'
 import { notifyTeam, teamNotifyAvailable } from '@/lib/contact/team-requests'
 import { getDocPage } from '@/lib/docs/registry'
+import { clientIp } from '@/lib/client-ip'
 
 /**
  * POST /api/docs-feedback — "Was this page helpful?" on the public docs
@@ -28,7 +29,7 @@ function isDocsPath(path: string): boolean {
 export async function POST(request: NextRequest) {
   if (!isCloud()) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+  const ip = clientIp(request) ?? 'unknown'
   const limit = await countHit(`docs-feedback:${ip}`, { max: 20, windowMs: 60 * 60 * 1000 })
   if (!limit.ok) return NextResponse.json({ error: 'Too many feedback requests. Please try again later.' }, { status: 429 })
 

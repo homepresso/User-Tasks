@@ -32,6 +32,8 @@ export interface SignInLayoutProps {
   /** The logo's URL (resolved), or null for the workspace name (design 1: the UserTasks logo). */
   logoUrl: string | null
   workspaceName: string | null
+  /** The form's header says "no logo" (lib/forms/sign-in-page.ts formSignInLogo): the workspace name, never the UserTasks logo. */
+  noLogo?: boolean
   /** The form, drawn for the panel it sits on. */
   form: (tone: PanelTone) => ReactNode
   /** Heading family: Fraunces (the UserTasks look) or the theme's sans. */
@@ -124,7 +126,7 @@ const CANVAS: CSSProperties = { backgroundImage: 'var(--theme-canvas-image, none
 
 const CARD = 'fsi-enter w-full rounded-2xl border border-border bg-panel text-fg'
 
-export function FormSignInLayout({ design, settings, colors, logoUrl, workspaceName, form, headings = 'display', preview = false }: SignInLayoutProps) {
+export function FormSignInLayout({ design, settings, colors, logoUrl, workspaceName, noLogo = false, form, headings = 'display', preview = false }: SignInLayoutProps) {
   const d = signInDesign(design)
   const root: CSSProperties = {
     '--fsi-accent': colors.accent,
@@ -282,7 +284,7 @@ export function FormSignInLayout({ design, settings, colors, logoUrl, workspaceN
             <section className="relative flex flex-col gap-8 overflow-hidden border-b border-border-subtle bg-panel px-6 py-8 @3xl:px-10 @4xl:justify-between @4xl:border-b-0 @4xl:border-r @4xl:p-12" data-sign-in-brand-panel>
               <span aria-hidden className="pointer-events-none absolute -right-28 -top-28 size-96 rounded-full blur-3xl" style={{ backgroundColor: 'color-mix(in srgb, var(--theme-accent, #b08a54) 14%, transparent)' }} />
               <span aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 size-80 rounded-full blur-3xl" style={{ backgroundColor: 'color-mix(in srgb, var(--fsi-accent) 7%, transparent)' }} />
-              <div className="relative">{logoUrl ? brand('md') : <UserTasksBrand />}</div>
+              <div className="relative">{logoUrl || noLogo ? brand('md') : <UserTasksBrand />}</div>
               <div className="relative max-w-md">
                 {heading({ size: 'lg' })}
                 {workspaceName && (

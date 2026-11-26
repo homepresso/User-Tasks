@@ -11,7 +11,21 @@ export interface DecisionTableCondition {
   id: string
   inputKey: string
   operator: string
+  /** The fixed comparison value (ignored when `valueInputKey` is set). */
   value: string
+  /**
+   * Compare with another input of this table instead of a fixed value:
+   * `amount` less_than_or_equal input `budget`, `end_date` greater_than
+   * input `start_date`. The right side is then that input's value for this
+   * evaluation (typed like the left input). Absent / '' = the fixed value.
+   */
+  valueInputKey?: string
+}
+
+/** The condition's right-hand side for these inputs: another input's value, or the fixed value. */
+export function decisionConditionRight(condition: Pick<DecisionTableCondition, 'value' | 'valueInputKey'>, inputs: Record<string, any>): any {
+  const other = typeof condition.valueInputKey === 'string' ? condition.valueInputKey.trim() : ''
+  return other ? inputs[other] : condition.value
 }
 
 export interface DecisionTableRule {
@@ -60,6 +74,12 @@ function tryParseDate(value: any): number | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed.getTime()
 }
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/
+
+function looksLikeIsoDate(value: any): boolean {
+  return value instanceof Date || (typeof value === 'string' && ISO_DATE_RE.test(value.trim()))
+}
+
 function normalizeForComparison(left: any, right: any, type: DecisionFieldType) {
   if (type === 'number') {
     return { left: tryParseNumber(left), right: tryParseNumber(right) }
@@ -76,8 +96,10 @@ function normalizeForComparison(left: any, right: any, type: DecisionFieldType) 
     return { left: numericLeft, right: numericRight }
   }
 
-  const dateLeft = tryParseDate(left)
-  const dateRight = tryParseDate(right)
+  // Only date-shaped text (YYYY-MM-DD…) compares as dates: the lenient Date
+  // parser reads "Tier 1" and "Plan 1" both as 1 Jan 2001, which made them equal.
+  const dateLeft = looksLikeIsoDate(left) ? tryParseDate(left) : null
+  const dateRight = looksLikeIsoDate(right) ? tryParseDate(right) : null
   if (dateLeft != null && dateRight != null) {
     return { left: dateLeft, right: dateRight }
   }
@@ -95,11 +117,15 @@ export function evaluateDecisionCondition(
 ): boolean {
   const rawLeft = inputs[condition.inputKey]
   const type = field?.type ?? 'text'
-  const parsed = normalizeForComparison(rawLeft, condition.value, type)
+  const fromInput = typeof condition.valueInputKey === 'string' && condition.valueInputKey.trim() !== ''
+  const rawRight = decisionConditionRight(condition, inputs)
+  // Another input with no value never satisfies a comparison (it isn't "anything").
+  if (fromInput && (rawRight == null || String(rawRight).trim() === '') && !['is_empty', 'is_not_empty', 'not_equals'].includes(condition.operator)) return false
+  const parsed = normalizeForComparison(rawLeft, rawRight, type)
   const left = parsed.left
   const right = parsed.right
   const leftText = String(rawLeft ?? '').toLowerCase()
-  const rightText = String(condition.value ?? '').toLowerCase()
+  const rightText = String(rawRight ?? '').toLowerCase()
 
   // Wildcard match — LLMs and hand-authored rules often use "*"
   // to mean "match any value for this input". Without this, a rule
@@ -108,7 +134,7 @@ export function evaluateDecisionCondition(
   // fails. We only apply this to equals/not_equals so empty-string
   // equality (a valid check) keeps its meaning.
   const normalizedRight = String(condition.value ?? '').trim()
-  if (normalizedRight === '*') {
+  if (!fromInput && normalizedRight === '*') {
     if (condition.operator === 'equals') return true
     if (condition.operator === 'not_equals') return false
   }

@@ -9,7 +9,7 @@ import { ChevronRight, FileText, Search, Star, X, type LucideIcon } from "lucide
 import { FavoriteStar, useFavoriteForms } from "@/components/home/favorite-star"
 import { serverQuery } from "@/lib/server-read"
 import { usePermissions } from "@/lib/permissions-context"
-import { formHref } from "@/lib/forms/form-page-url"
+import { formHref } from "@/lib/forms/form-paths"
 import {
   AVAILABLE_FORMS_QUERY_KEY, SIDEBAR_FORMS_SEARCH_MIN, withFavoriteForms, availableFormsExpandedKey, filterAvailableForms, highlightMatch, showsAvailableFormsSearch, availableFormTags,
   type AvailableForm,

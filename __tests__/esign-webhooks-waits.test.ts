@@ -339,6 +339,17 @@ describe('POST /api/webhooks/esign/{provider}/{integrationId}', () => {
     return POST(request, { params: Promise.resolve({ provider: provider.replace(/_/g, '-'), integrationId }) })
   }
 
+  it('refuses a chunked body over 5 MB with 413 without buffering it whole (2026-11 QA pass)', async () => {
+    const { POST } = await import('@/app/api/webhooks/esign/[provider]/[integrationId]/route')
+    let pulled = 0
+    const chunk = new Uint8Array(1024 * 1024).fill(32)
+    const body = new ReadableStream<Uint8Array>({ pull(c) { pulled++; c.enqueue(chunk) } }) // endless, no Content-Length
+    const request = new NextRequest(`https://app.example${esignWebhookPath('pandadoc' as never, INTEGRATION)}`, { method: 'POST', body, duplex: 'half', headers: { 'content-type': 'application/json' } } as never)
+    const res = await POST(request, { params: Promise.resolve({ provider: 'pandadoc', integrationId: INTEGRATION }) })
+    expect(res.status).toBe(413)
+    expect(pulled).toBeLessThan(12)
+  })
+
   it('resolves the tenant from the URL, verifies, refuses bad signatures, other providers and unknown integrations', async () => {
     const body = JSON.stringify([{ event: 'document_state_changed', data: { id: 'doc-x', status: 'document.sent' } }])
     const mod = await import('@/lib/esign/providers/pandadoc')

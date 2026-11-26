@@ -143,7 +143,7 @@ export function WizardStep2Browse({
       <Card>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold">Select Objects</h3>
+            <h3 className="text-sm font-semibold">Select objects</h3>
             <p className="text-xs text-fg-muted">
               Choose tables, views, and procedures to create references from.
               {selectedItems.length > 0 && (

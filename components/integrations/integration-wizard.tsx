@@ -59,7 +59,7 @@ export function IntegrationWizard({ integration, references }: IntegrationWizard
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete Integration"
+        title="Delete integration"
         description={`This permanently removes "${integration.name}" and ALL of its API references (${references.length}). Workflows or forms still calling those references will fail until re-pointed.`}
         confirmLabel="Delete integration"
         destructive

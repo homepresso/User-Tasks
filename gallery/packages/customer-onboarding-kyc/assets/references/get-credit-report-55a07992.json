@@ -45,7 +45,7 @@
             {
               "name": "currency",
               "type": "string",
-              "example": "NZD"
+              "example": "USD"
             },
             {
               "name": "payment_behaviour",
@@ -75,7 +75,7 @@
           "score": 640,
           "rating": "B",
           "suggested_limit": 40000,
-          "currency": "NZD",
+          "currency": "USD",
           "payment_behaviour": {
             "days_beyond_terms": 6,
             "defaults_last_24m": 0

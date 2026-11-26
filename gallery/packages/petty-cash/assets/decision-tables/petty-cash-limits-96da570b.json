@@ -9,7 +9,7 @@
     "inputs": [
       {
         "key": "amount",
-        "label": "Amount (NZD)",
+        "label": "Amount (USD)",
         "type": "number",
         "id": "fd157920-5282-5f11-89c5-4387eb4d7ae7"
       },
@@ -67,7 +67,7 @@
           "route": "Above limit",
           "auto_approve": false,
           "auto_reject": true,
-          "note": "Petty cash covers up to NZD 250; please submit an expense claim instead"
+          "note": "Petty cash covers up to USD 250; please submit an expense claim instead"
         },
         "id": "c091616c-4ac7-5d0a-875c-989ad8c0ade7",
         "enabled": true
@@ -92,7 +92,7 @@
           "route": "Receipt missing",
           "auto_approve": false,
           "auto_reject": true,
-          "note": "A receipt is needed for anything over NZD 20"
+          "note": "A receipt is needed for anything over USD 20"
         },
         "id": "beaf6a7b-77b1-56db-b0fb-df27b8a51928",
         "enabled": true
@@ -130,7 +130,7 @@
           "route": "Small with receipt",
           "auto_approve": true,
           "auto_reject": false,
-          "note": "Up to NZD 50 with a receipt is paid without approval"
+          "note": "Up to USD 50 with a receipt is paid without approval"
         },
         "id": "967cd4aa-8ac1-57a6-b54f-eb4bffe49a37",
         "enabled": true
@@ -142,7 +142,7 @@
           "route": "Budget holder",
           "auto_approve": false,
           "auto_reject": false,
-          "note": "NZD 50 to 250: the budget holder approves"
+          "note": "USD 50 to 250: the budget holder approves"
         },
         "id": "3a631c40-55d1-545e-8a0d-18788599e651",
         "enabled": true

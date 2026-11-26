@@ -81,7 +81,7 @@ export const NODE_DOCS: Record<NodeType, NodeDoc> = {
 
   // ─── Logic & flow ───
   condition: {
-    settings: '`branches` is an ordered list of if / else-if branches, each with rules (`field`, `operator`, `value`) joined by AND/OR; `has_else` adds an Else path. Connect one edge per branch label. Operators: `equals`, `not_equals`, `contains`, `not_contains`, `starts_with`, `ends_with`, `in` (comma-separated list), `matches` (regular expression), `gt`, `gte`, `lt`, `lte` (also `greater_than`, `>=`, …), `is_empty`, `is_not_empty`, `is_true`, `is_false`. `is_true` / `is_false` need no value: `true`, `"true"`, `1`, `"1"`, `"yes"` and `"on"` are true; `false`, `"false"`, `0`, `"0"`, `""`, `"no"`, `"off"` and a missing value are false.',
+    settings: '`branches` is an ordered list of if / else-if branches, each with rules (`field`, `operator`, `value`) joined by AND/OR; `has_else` adds an Else path. Connect one edge per branch label. Operators: `equals`, `not_equals`, `contains`, `not_contains`, `starts_with`, `ends_with`, `in` (comma-separated list), `matches` (regular expression), `gt`, `gte`, `lt`, `lte` (also `greater_than`, `>=`, …) — numbers compare as numbers, ISO dates and date-times (`2027-05-01`, `2027-05-01T09:00:00Z`) compare as dates, an empty or missing value never matches (empty is not 0), other text compares case-insensitively; `is_empty`, `is_not_empty`, `is_true`, `is_false`. `is_true` / `is_false` need no value: `true`, `"true"`, `1`, `"1"`, `"yes"` and `"on"` are true; `false`, `"false"`, `0`, `"0"`, `""`, `"no"`, `"off"` and a missing value are false.',
     example: { branches: [{ label: 'Large', logic: 'and', rules: [{ field: '{{amount}}', operator: 'greater_than', value: '10000' }] }], has_else: true },
   },
   switch_case: {

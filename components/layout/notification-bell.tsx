@@ -17,6 +17,7 @@ import { InlineNotice } from "@/components/ui/inline-notice"
 import { IconButton } from "@/components/ui/icon-button"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
+import { useConfirm } from "@/components/ui/use-confirm"
 import { Tooltip } from "@/components/ui/tooltip"
 import { floatingSurfaceClass } from "@/components/ui/dropdown-menu"
 import { OPEN_JOBS_PANEL_EVENT } from "@/components/jobs/jobs-provider"
@@ -78,6 +79,7 @@ export function NotificationBell() {
   const [actionError, setActionError] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const [confirm, confirmDialog] = useConfirm()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { data: notifications, unreadCount } = useNotifications()
   const queryClient = useQueryClient()
@@ -107,10 +109,12 @@ export function NotificationBell() {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node
+      // The delete confirmation is a dialog of its own: clicks there don't close the panel.
+      if ((target as Element).closest?.('[role="alertdialog"]')) return
       if (ref.current && !ref.current.contains(target) && dropdownRef.current && !dropdownRef.current.contains(target)) setOpen(false)
     }
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") { setOpen(false); triggerRef.current?.focus() }
+      if (e.key === "Escape" && !(e.target as Element | null)?.closest?.('[role="alertdialog"]')) { setOpen(false); triggerRef.current?.focus() }
     }
     document.addEventListener("mousedown", handleClickOutside)
     document.addEventListener("keydown", handleKey)
@@ -149,7 +153,7 @@ export function NotificationBell() {
 
   async function deleteSelected() {
     if (selectedIds.size === 0) return
-    if (!confirm(`Delete ${plural(selectedIds.size, 'notification')}?`)) return
+    if (!(await confirm({ title: `Delete ${plural(selectedIds.size, 'notification')}?`, description: 'They are removed for you; this can’t be undone.', confirmLabel: 'Delete', destructive: true }))) return
     const ids = [...selectedIds]
     // RLS filters a delete silently (0 rows, no error), so the action returns
     // the deleted ids — a short list is a failure too.
@@ -355,6 +359,7 @@ export function NotificationBell() {
         </div>,
         document.body
       )}
+      {confirmDialog}
     </div>
   )
 }

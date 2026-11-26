@@ -1,5 +1,6 @@
 'use client'
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { useTeamMembers } from '@/hooks/use-team-members'
 import { UserPicker } from './user-picker'
 import { RoleBadge } from './role-badge'
@@ -43,7 +44,7 @@ export function TeamMembers({ teamId, canManage }: TeamMembersProps) {
           {[0, 1, 2].map((i) => <Skeleton key={i} className="h-6 w-2/3" />)}
         </div>
       ) : !members?.length ? (
-        <p className="text-ui text-fg-muted">No members yet.</p>
+        <EmptyState size="sm" title="No members yet" />
       ) : (
         <ul className="divide-y divide-border-subtle">
           {members.map(m => (

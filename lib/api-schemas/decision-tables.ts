@@ -16,6 +16,7 @@ export const decisionTableConditionSchema = z.looseObject({
   inputKey: z.string().min(1),
   operator: z.string().min(1).describe('equals, not_equals, contains, not_contains, starts_with, ends_with, greater_than, greater_than_or_equal, less_than, less_than_or_equal, is_empty, is_not_empty'),
   value: z.any().optional().describe('Comparison value (stored as a string)'),
+  valueInputKey: z.string().optional().describe('Compare with another input of this table instead of value (e.g. amount less_than_or_equal budget)'),
 })
 
 export const decisionTableRuleSchema = z.looseObject({

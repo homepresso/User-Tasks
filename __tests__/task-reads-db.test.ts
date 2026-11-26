@@ -116,7 +116,12 @@ describe.skipIf(!DB_URL)('task reads / unread tasks (local database)', () => {
        VALUES ($1, $2, $3, $4::task_status, 'medium', $5, $6, $7, $8, $9)`,
     [tid, o.tenant ?? A, o.title, o.status ?? 'todo', o.assignee ?? null, ASSIGNER, o.team ?? null, o.parent ?? null, o.team ? 'team' : 'individual'])
 
+  // The services under test read through the service client (serviceRoleClient):
+  // point it at the same stack (CI sets no NEXT_PUBLIC_SUPABASE_URL / service key).
+  const prevEnv = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY }
   beforeAll(async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = API_URL
+    process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY
     await db.connect()
     await cleanup()
     await q(`INSERT INTO public.tenants (id, name, slug) VALUES ($1, 'Reads A', 'reads-a-test'), ($2, 'Reads B', 'reads-b-test')`, [A, B])
@@ -148,6 +153,10 @@ describe.skipIf(!DB_URL)('task reads / unread tasks (local database)', () => {
     await cleanup().catch(() => undefined)
     await db.end()
     await pool.end()
+    for (const [name, value] of [['NEXT_PUBLIC_SUPABASE_URL', prevEnv.url], ['SUPABASE_SERVICE_ROLE_KEY', prevEnv.key]] as const) {
+      if (value === undefined) delete process.env[name]
+      else process.env[name] = value
+    }
   }, 60_000)
 
   /* ── the rule ──────────────────────────────────────────────────────── */

@@ -11,6 +11,10 @@ describe('number formatting', () => {
     expect(formatCount(null)).toBe('—')
     expect(formatCount(Number.NaN)).toBe('—')
     expect(formatCompact(1250)).toBe('1.3K')
+    // Same suffixes on every ICU (ICU 78 / Node 22.21+ prints en-GB k, m, bn, tn).
+    expect(formatCompact(4_439_382)).toBe('4.4M')
+    expect(formatCompact(7.2e9)).toBe('7.2B')
+    expect(formatCompact(3.1e12)).toBe('3.1T')
   })
 
   it('percent: 0 dp at 10% and above, 1 dp below', () => {
@@ -31,6 +35,7 @@ describe('number formatting', () => {
     expect(formatCurrency(1234.5, 'usd')).toBe('$1,234.50')
     expect(formatCurrencyHeadline(4439382, 'USD')).toBe('$4.44M')
     expect(formatCurrencyHeadline(73989.7, 'USD')).toBe('$73,990')
+    expect(formatCurrencyHeadline(7.2e9, 'USD')).toBe('$7.20B')
     // A whole amount has no cents: an empty total reads $0, not $0.00.
     expect(formatCurrencyHeadline(0, 'USD')).toBe('$0')
     expect(formatCurrencyHeadline(250, 'USD')).toBe('$250')

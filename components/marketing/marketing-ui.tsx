@@ -145,7 +145,7 @@ export function MarketingFooter({ cta = true }: { cta?: boolean }) {
         </div>
         <div className="flex flex-col items-start justify-between gap-3 border-t border-white/10 py-6 text-xs text-[#A89E8C] sm:flex-row sm:items-center">
           <p>© {new Date().getFullYear()} UserTasks · Apache-2.0</p>
-          <p className="flex flex-wrap gap-x-5 gap-y-1"><Link href="/contact" className="hover:text-white">Contact</Link><Link href="/login" className="hover:text-white">Sign in</Link><a href="/sitemap.xml" className="hover:text-white">Sitemap</a></p>
+          <p className="flex flex-wrap gap-x-5 gap-y-1"><Link href="/extensions/support" className="hover:text-white">Support</Link><Link href="/contact" className="hover:text-white">Contact</Link><Link href="/login" className="hover:text-white">Sign in</Link><a href="/sitemap.xml" className="hover:text-white">Sitemap</a></p>
         </div>
       </div>
     </footer>

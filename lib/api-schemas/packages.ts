@@ -356,7 +356,7 @@ export const downloadPackageVersionEndpoint = defineEndpoint({
   response: z.looseObject({ file_name: z.string(), checksum: z.string(), size_bytes: z.number().int(), file_base64: z.string() }),
 })
 export const inspectPackageEndpoint = defineEndpoint({
-  method: 'POST', path: '/packages/inspect', operationId: 'inspectPackage', tags, summary: 'Verify and describe a .utpkg file (nothing is installed)',
+  method: 'POST', path: '/packages/inspect', bodyLimit: 'package', operationId: 'inspectPackage', tags, summary: 'Verify and describe a .utpkg file (nothing is installed)',
   permission: 'packages.view', body: packageInspectBody, multipart: { files: { file: { name: 'file_name', content: 'file' } } },
   response: summaryResponse.extend({ installed: z.looseObject({ id: z.string(), version: z.string(), status: z.string() }).nullable() }),
 })
@@ -373,13 +373,13 @@ export const getPackageInstallEndpoint = defineEndpoint({
   cli: { resource: 'package-installs', verb: 'get', positional: ['id'] },
 })
 export const planPackageInstallEndpoint = defineEndpoint({
-  method: 'POST', path: '/package-installs/plan', operationId: 'planPackageInstall', tags,
+  method: 'POST', path: '/package-installs/plan', bodyLimit: 'package', operationId: 'planPackageInstall', tags,
   summary: 'Dry run: verify a package and show what installing or upgrading it would do',
   description: 'Per asset create / update / unchanged with field diffs (upgrade in place: assets map onto their earlier install), locally modified assets, assets removed in this version (never deleted), requirement status, data rows and dependencies. `blockers` lists why a real install would be refused.',
   permission: 'packages.view', body: packageInstallBody, multipart: { files: { file: { name: 'file_name', content: 'file' } } }, response: installPlanResponse,
 })
 export const installPackageEndpoint = defineEndpoint({
-  method: 'POST', path: '/package-installs', operationId: 'installPackage', tags,
+  method: 'POST', path: '/package-installs', bodyLimit: 'package', operationId: 'installPackage', tags,
   summary: 'Install or upgrade a package (upgrade in place when it is installed already)',
   description: 'Verifies checksum and signature (tampered packages are refused), applies the assets (each section also needs its own create / edit permission) and records the install. Missing required values fail the install unless keep_incomplete: affected assets are then disabled and dependent workflows cannot be activated until POST /package-installs/{id}/complete. Upgrades keep local requirement values.',
   permission: 'packages.install', body: packageInstallBody, multipart: { files: { file: { name: 'file_name', content: 'file' } } },
@@ -387,7 +387,7 @@ export const installPackageEndpoint = defineEndpoint({
   async: true,
 })
 export const upgradePackageInstallEndpoint = defineEndpoint({
-  method: 'POST', path: '/package-installs/{id}/upgrade', operationId: 'upgradePackageInstall', tags,
+  method: 'POST', path: '/package-installs/{id}/upgrade', bodyLimit: 'package', operationId: 'upgradePackageInstall', tags,
   summary: 'Upgrade an installed package to the version in the file (dry_run for the diff)',
   permission: 'packages.install', params: z.object({ id: z.string().describe('Install id or package slug') }),
   body: packageInstallBody.extend({ dry_run: z.boolean().optional() }), multipart: { files: { file: { name: 'file_name', content: 'file' } } },

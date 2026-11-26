@@ -19,8 +19,13 @@
     "forms",
     "lookup"
   ],
-  "version": "1.1.0",
+  "version": "1.1.1",
   "changelog": [
+    {
+      "version": "1.1.1",
+      "date": "2026-11-25",
+      "notes": "Sample data, defaults and labels in USD (were NZD)."
+    },
     {
       "version": "1.1.0",
       "date": "2026-10-28",
@@ -74,7 +79,7 @@
     "claim_title": "Client visit Wellington",
     "category": "travel",
     "amount": 640,
-    "currency": "NZD",
+    "currency": "USD",
     "expense_date": "2026-10-20",
     "receipt_url": "https://files.example.com/receipts/r-20931.pdf",
     "business_purpose": "Quarterly review with Contoso"

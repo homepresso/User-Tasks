@@ -40,6 +40,8 @@ const state = vi.hoisted(() => ({
   member: true,
   current: 'tenant-x',
   switched: [] as string[],
+  logoChoice: { kind: 'inherit' } as { kind: 'inherit' } | { kind: 'none' } | { kind: 'image'; url: string },
+  logoAsked: [] as unknown[],
 }))
 
 vi.mock('@/lib/forms/form-link-visitor', () => ({
@@ -69,6 +71,7 @@ vi.mock('@/lib/services/form-sign-in-page', async () => {
   const { parseFormSignInSettings } = await import('@/lib/forms/sign-in-page')
   return {
     tenantOfForm: async () => null,
+    formSignInLogoChoice: async (tenantId: string | null, ref: unknown) => { state.logoAsked.push({ tenantId, ref }); return state.logoChoice },
     tenantBySlug: async (slug: string) => state.bySlug[slug] ?? null,
     loadPublicSignInPage: async (tenantId: string | null, options: { appSlug?: string | null } = {}) => {
       state.loaded.push({ tenantId, appSlug: options.appSlug ?? null })
@@ -114,6 +117,8 @@ beforeEach(() => {
   state.app = null
   state.bySlug = {}
   state.loaded = []
+  state.logoChoice = { kind: 'inherit' }
+  state.logoAsked = []
   state.member = true
   state.current = 'tenant-x'
   state.switched = []
@@ -246,6 +251,30 @@ describe('/form-login keeps working for form links', () => {
     const page = await formLogin({ redirect: '/form/contact-us' })
     expect(page).not.toBeInstanceOf(Redirect)
     expect(state.loaded).toEqual([{ tenantId: 'tenant-a', appSlug: null }])
+  })
+
+  it('follows the form’s own logo choice: "none" hides every logo, an image replaces the workspace one', async () => {
+    state.host = { kind: 'signed_out', tenant: A }
+    state.settings = { design: 1, logo_url: '/files/logos/tenant-a/form-sign-in.png' }
+    const inherit = renderToStaticMarkup(await formLogin({ redirect: '/form/contact-us' }) as ReactElement)
+    expect(state.logoAsked).toEqual([{ tenantId: 'tenant-a', ref: { formId: null, formName: 'contact-us' } }])
+    expect(inherit).toContain('form-sign-in.png')
+    state.logoChoice = { kind: 'none' }
+    const none = renderToStaticMarkup(await formLogin({ redirect: '/form/contact-us' }) as ReactElement)
+    expect(none).not.toContain('data-sign-in-logo')
+    expect(none).not.toContain('data-sign-in-usertasks-logo')
+    expect(none).toContain('Acme')
+    state.logoChoice = { kind: 'image', url: '/files/task-files/form-headers/00000000-0000-4000-8000-000000000001/h.png' }
+    const image = renderToStaticMarkup(await formLogin({ redirect: '/form/contact-us', embed: '1' }) as ReactElement)
+    expect(image).not.toContain('form-sign-in.png')
+    // Embedded: the compact design keeps the form's image too.
+    expect(image).toMatch(/form-headers\/00000000-0000-4000-8000-000000000001\/h\.png/)
+  })
+
+  it('apps never read a form’s logo', async () => {
+    state.host = { kind: 'signed_out', tenant: A }
+    await signIn({ redirect: '/apps/crm' })
+    expect(state.logoAsked).toEqual([])
   })
 
   it('form links turned off (use_for_forms false): the standard sign-in', async () => {

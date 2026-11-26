@@ -8,6 +8,7 @@ import {
 } from "@/lib/mcp/server";
 import { buildMcpInfoPayload } from "@/lib/mcp/metadata";
 import { configuredAppUrl } from "@/lib/config/bootstrap";
+import { apiMaxBodyBytes, apiMaxPackageBodyBytes, bodyTooLargeMessage, isMcpPackageCall, mentionsMcpPackageTool, readCappedBody } from "@/lib/api/body-limit";
 
 /**
  * MCP Server — Streamable HTTP transport (2025-03-26 spec).
@@ -58,6 +59,13 @@ function withCors(response: Response, request: NextRequest) {
   });
 }
 
+function jsonRpcError(status: number, message: string, code: number): Response {
+  return new Response(JSON.stringify({ jsonrpc: "2.0", error: { code, message }, id: null }), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 async function handleMcpRequest(request: NextRequest): Promise<Response> {
   // Auth (Bearer API key OR OAuth 2.0 access token — both flow through
   // validateApiKey). On failure emit the RFC 9728 discovery header so MCP
@@ -97,6 +105,31 @@ async function handleMcpRequest(request: NextRequest): Promise<Response> {
     credentialOwnerId: authResult.createdBy,
   };
 
+  // JSON-RPC bodies are capped like /api/v1 (lib/api/body-limit): read here,
+  // after auth, and handed to the transport already parsed. API_MAX_BODY_BYTES
+  // for every message, except a tools/call to a tool that takes a base64
+  // package or large document (MCP_PACKAGE_TOOLS), which may use
+  // API_MAX_PACKAGE_BODY_BYTES — like the /api/v1 endpoints behind them.
+  let parsedBody: unknown = undefined;
+  if (request.method === "POST") {
+    const limit = apiMaxBodyBytes();
+    const packageLimit = Math.max(limit, apiMaxPackageBodyBytes());
+    const body = await readCappedBody(request, packageLimit);
+    if (!body.ok) {
+      const tooLarge = body.reason === "too_large";
+      return withCors(jsonRpcError(tooLarge ? 413 : 400, tooLarge ? bodyTooLargeMessage(packageLimit, { tier: "package", multipart: false }) : "Could not read the request body", -32600), request);
+    }
+    const overDefault = body.size > limit;
+    const tooLargeForMessage = () => withCors(jsonRpcError(413, bodyTooLargeMessage(limit, { tier: "default", multipart: false }), -32600), request);
+    if (overDefault && !mentionsMcpPackageTool(body.text)) return tooLargeForMessage();
+    try {
+      parsedBody = JSON.parse(body.text);
+    } catch {
+      return withCors(jsonRpcError(400, "Parse error: Invalid JSON", -32700), request);
+    }
+    if (overDefault && !isMcpPackageCall(parsedBody)) return tooLargeForMessage();
+  }
+
   // Fresh protocol server per request (stateless); the tool catalog and the
   // context-bound handlers are cached in lib/mcp/server.
   const mcpServer = createMcpProtocolServer(ctx);
@@ -111,6 +144,7 @@ async function handleMcpRequest(request: NextRequest): Promise<Response> {
   // Let the transport handle the request (POST, GET, DELETE)
   const response = await transport.handleRequest(request, {
     authInfo: { token: "", clientId: "", scopes: [] },
+    ...(parsedBody !== undefined ? { parsedBody } : {}),
   });
 
   // Clean up

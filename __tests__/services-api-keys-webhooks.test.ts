@@ -158,6 +158,16 @@ describe('api keys: creation caps', () => {
     expect(stored.permissions).toEqual(['workflows.view', 'tasks.view_all'])
   })
 
+  it('a key bound to someone else needs at least their access (it acts as them)', async () => {
+    const supabase = seed()
+    // user-2 holds workflows.view + tasks.view_all; a manager holding only one of them cannot act as user-2.
+    await expect(apiKeys.createApiKey(context(supabase, ['settings.manage_api_keys', 'workflows.view']), { name: 'x', key_type: 'user', user_id: 'user-2', permissions: ['workflows.view'] }))
+      .rejects.toMatchObject({ status: 403 })
+    // Holding all of user-2's permissions: allowed.
+    const { api_key } = await apiKeys.createApiKey(context(supabase, MANAGER), { name: 'ok', key_type: 'user', user_id: 'user-2' })
+    expect(api_key.user_id).toBe('user-2')
+  })
+
   it('user keys made by a tenant admin stay within the bound user and the tenant', async () => {
     const supabase = seed()
     await expect(apiKeys.createApiKey(context(supabase, PERMISSION_KEYS), { name: 'x', key_type: 'user', user_id: 'user-2', permissions: ['workflows.delete'] }))

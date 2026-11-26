@@ -20,7 +20,7 @@ import { parseFormControlManifest } from '@/lib/forms/custom-controls/manifest'
 import type { FormControlManifest } from '@/lib/forms/custom-controls/contract'
 import { fromPackageFiles } from '@/lib/packages/build'
 import { unpackPackage } from '@/lib/packages/format'
-import { GALLERY_OUTPUT_DIR } from './source'
+import { GALLERY_OUTPUT_DIR } from './paths'
 import { getGalleryControl } from './site'
 
 const cache = new Map<string, { manifest: FormControlManifest; bundle: string }>()

@@ -87,7 +87,7 @@ workspace with `scripts/screenshots/` (see its README).
 
 ## Quick start
 
-Requirements: Node.js 22 LTS (20.9 or later works), and a Supabase project (hosted, or local
+Requirements: Node.js 22 LTS (20.18.1 or later works), and a Supabase project (hosted, or local
 via the Supabase CLI and Docker).
 
 Every install starts here, on Supabase, with no provider settings. Supabase

@@ -20,6 +20,7 @@
  * colours (light / dark) from the chart palette resolver.
  */
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { Angry, Frown, Heart, Laugh, Meh, Smile, Star, ThumbsUp, type LucideIcon } from 'lucide-react'
 import { ChartFrame, type ChartTableData } from '@/components/reports/chart-kit'
 import { statHeadline, type ChoiceStat, type CsatStat, type LikertStat, type MatrixStat, type NpsStat, type NumberStat, type RankingStat, type RatingStat, type SliderStat, type SurveyStat } from '@/lib/forms/survey-stats'
@@ -295,7 +296,7 @@ export function SurveyStatChart({ stat, className }: { stat: SurveyStat; classNa
     <ChartFrame className={className} title={stat.label} description={`${stat.answered} of ${stat.total} answered`} table={statTable(stat)}>
       <p className="sr-only">{headline}</p>
       <div data-survey-chart={stat.kind} data-field-type={stat.field_type}>
-        {stat.answered === 0 ? <p className="py-6 text-center text-sm text-fg-muted">No answers yet</p> : <StatBody stat={stat} />}
+        {stat.answered === 0 ? <EmptyState size="sm" headingLevel={4} title="No answers yet" /> : <StatBody stat={stat} />}
       </div>
     </ChartFrame>
   )

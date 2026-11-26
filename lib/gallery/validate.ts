@@ -473,6 +473,7 @@ export function validateGallerySource(source: GallerySource, options: { communit
       }
       for (const condition of rule.conditions ?? []) {
         if (!inputs.has(condition.inputKey)) issues.push({ path, message: `rule "${rule.label}" uses unknown input "${condition.inputKey}"` })
+        if (condition.valueInputKey && !inputs.has(condition.valueInputKey)) issues.push({ path, message: `rule "${rule.label}" compares with unknown input "${condition.valueInputKey}"` })
         if (!DECISION_OPERATORS.has(condition.operator)) issues.push({ path, message: `rule "${rule.label}" uses operator "${condition.operator}", which decision tables do not evaluate` })
       }
       for (const key of Object.keys(rule.outputs ?? {})) if (!outputs.has(key)) issues.push({ path, message: `rule "${rule.label}" sets unknown output "${key}"` })

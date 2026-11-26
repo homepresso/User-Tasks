@@ -5,7 +5,7 @@
   "asset": {
     "id": "6755460d-7e72-57f6-be5b-f4eb5afd67b8",
     "name": "Petty cash claim",
-    "description": "The claim form employees open from Forms (or its /f/ link): two steps with a numbered stepper (You & cost centre → The purchase & receipt) in Application mode, with in-form Next / Back / Submit claim buttons. The cost centre autocomplete stores the code and shows \"Name (code)\", and fills the budget holder and GL account; rules ask for a receipt over NZD 20 and refuse a future purchase date. Submit claim starts the Petty cash claim workflow and shows a success screen.",
+    "description": "The claim form employees open from Forms (or its /f/ link): two steps with a numbered stepper (You & cost centre → The purchase & receipt) in Application mode, with in-form Next / Back / Submit claim buttons. The cost centre autocomplete stores the code and shows \"Name (code)\", and fills the budget holder and GL account; rules ask for a receipt over USD 20 and refuse a future purchase date. Submit claim starts the Petty cash claim workflow and shows a success screen.",
     "tags": [
       "finance",
       "petty cash"
@@ -107,10 +107,10 @@
         "label": "Amount",
         "type": "currency",
         "required": true,
-        "currency": "NZD",
+        "currency": "USD",
         "min": 0.5,
         "max": 250,
-        "help_text": "Up to NZD 250. Larger amounts go through expense claims."
+        "help_text": "Up to USD 250. Larger amounts go through expense claims."
       },
       {
         "key": "spent_on",
@@ -143,7 +143,7 @@
         "key": "receipt_url",
         "label": "Receipt",
         "type": "url",
-        "help_text": "Link to a photo or scan of the receipt. Needed for anything over NZD 20."
+        "help_text": "Link to a photo or scan of the receipt. Needed for anything over USD 20."
       },
       {
         "key": "who_next",
@@ -356,13 +356,13 @@
       "rules": [
         {
           "id": "r_receipt",
-          "name": "A receipt for anything over NZD 20",
+          "name": "A receipt for anything over USD 20",
           "event": "before_submit",
           "then": [
             {
               "type": "field_error",
               "field": "receipt_url",
-              "text": "Add the receipt: claims over NZD 20 need one."
+              "text": "Add the receipt: claims over USD 20 need one."
             }
           ],
           "if": {
@@ -468,7 +468,7 @@
             "type": "success_screen",
             "title": "Claim submitted",
             "screen_button": "submit_another",
-            "text": "Thanks {{claimant_name}}. Your claim of NZD {{amount}} is on its way to {{budget_holder_name}}. Reference: {{run_reference}}.",
+            "text": "Thanks {{claimant_name}}. Your claim of USD {{amount}} is on its way to {{budget_holder_name}}. Reference: {{run_reference}}.",
             "screen_button_label": "Submit another claim"
           }
         ]

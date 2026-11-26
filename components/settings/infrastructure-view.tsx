@@ -107,7 +107,9 @@ export function InfrastructureView({ view, aiPrices = [], egress, processing }: 
           email and sign-in settings can be changed here.{' '}
           {view.addon.state === 'ready'
             ? <>Change providers with the Infrastructure add-on (checks, backups, switch log and rollback), here or with <code>usertasks-admin switch</code>.</>
-            : <>Moving a service off the standard stack is the <Link href="#infrastructure-addon" className="underline">Infrastructure add-on</Link>.</>}
+            : view.addon.cloud
+              ? <>Provider changes are not offered on UserTasks Cloud: the Infrastructure add-on is for self-hosted installs.</>
+              : <>Moving a service off the standard stack is the <Link href="#infrastructure-addon" className="underline">Infrastructure add-on</Link>.</>}
         </p>
       </div>
 
@@ -145,7 +147,7 @@ export function InfrastructureView({ view, aiPrices = [], egress, processing }: 
               <p className="text-xs mt-1" style={muted}>
                 Set by {SOURCE_LABELS[area.source] ?? area.source} · <Link href={area.docs} className="underline">docs</Link>
               </p>
-              <AreaActionNotes area={area.area} actions={area.actions} />
+              <AreaActionNotes area={area.area} actions={area.actions} changeHidden={view.addon.cloud && view.addon.state !== 'ready'} />
               {area.checks.length > 0 && (
                 <ul className="mt-3 space-y-1 text-sm">
                   {area.checks.map((check, i) => (
@@ -162,7 +164,7 @@ export function InfrastructureView({ view, aiPrices = [], egress, processing }: 
         })}
       </div>
 
-      {view.addon.state !== 'ready' && <AddonUpsellCard kind="infrastructure" id="infrastructure-addon" state={view.addon.state} reason={view.addon.state === 'unlicensed' ? view.addon.reason : null} />}
+      {view.addon.state !== 'ready' && !view.addon.cloud && <AddonUpsellCard kind="infrastructure" id="infrastructure-addon" state={view.addon.state} reason={view.addon.state === 'unlicensed' ? view.addon.reason : null} />}
 
       {processing && <ProcessingCard initial={processing} />}
 
@@ -205,7 +207,7 @@ function SwitchHistory({ records, error, addon }: { records: View['switches']; e
           ))}
         </ul>
       )}
-      {addon.state !== 'ready' && records.some((r) => r.canRollback) && (
+      {addon.state !== 'ready' && !addon.cloud && records.some((r) => r.canRollback) && (
         <p className="text-xs" style={muted}>Rolling a change back is part of the <Link href="#infrastructure-addon" className="underline">Infrastructure add-on</Link>; your current configuration keeps running without it.</p>
       )}
     </section>

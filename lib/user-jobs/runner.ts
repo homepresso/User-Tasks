@@ -2,7 +2,7 @@ import { after } from 'next/server'
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient, getProcessorSecret } from '@/lib/cron-auth'
-import { appUrlOrLocalhost } from '@/lib/config/bootstrap'
+import { internalAppUrl } from '@/lib/config/bootstrap'
 import { isServiceError, ServiceError, type ServiceContext } from '@/lib/services/context'
 import { getJobKind } from './kinds'
 import { isContinue, type JobKind, type JobOrigin, type JobOutput, type JobRun, type StoredJobResult, type UserJobRow } from './define'
@@ -191,7 +191,7 @@ export function startUserJob(jobId: string, deps: RunnerDeps = {}): void {
 /** Ask a fresh invocation to drain due jobs (the next chunk of a long job). Best effort. */
 export function kickUserJobRunner(): void {
   const secret = getProcessorSecret()
-  const send = fetch(`${appUrlOrLocalhost()}/api/cron/user-jobs`, {
+  const send = fetch(`${internalAppUrl()}/api/cron/user-jobs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(secret ? { 'X-Processor-Secret': secret } : {}) },
     body: '{}',

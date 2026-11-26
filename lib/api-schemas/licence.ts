@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isoDateTime } from '@/lib/zod-datetime'
 import { defineEndpoint } from './registry'
 
 /**
@@ -158,8 +159,8 @@ export const grantEntitlementBody = z.object({
   limits: z.record(z.string().min(1).max(100), z.number().finite().nonnegative()).optional().describe('Numeric limits, e.g. {"sharepoint.farms": 2}'),
   status: z.enum(['active', 'suspended', 'revoked']).optional().describe('Default active'),
   source: z.enum(['admin', 'trial', 'stripe', 'licence']).optional().describe('Default admin'),
-  starts_at: z.string().datetime({ offset: true }).nullable().optional(),
-  ends_at: z.string().datetime({ offset: true }).nullable().optional().describe('Expiry; the extension stops 24 hours after it. Omitted: no end'),
+  starts_at: isoDateTime({ offset: true }).nullable().optional(),
+  ends_at: isoDateTime({ offset: true }).nullable().optional().describe('Expiry; the extension stops 24 hours after it. Omitted: no end'),
   notes: z.string().max(2000).nullable().optional(),
 })
 

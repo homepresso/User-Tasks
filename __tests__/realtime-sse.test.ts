@@ -371,6 +371,44 @@ describe('RealtimeHub', () => {
     ])
   })
 
+  it('poll mode: more than one page of rows in the overlap window does not stall the cursor (bulk insert)', async () => {
+    const { RealtimeHub } = await import('@/lib/realtime/hub')
+    const base = Date.now() - 2_000
+    // 1,200 rows stamped within 1.2 s (3 pages of 500), then a later change.
+    const all = Array.from({ length: 1200 }, (_, i) => ({ id: `bulk${i}`, tenant_id: A, updated_at: new Date(base + i).toISOString(), created_at: '2020-01-01T00:00:00Z', assignee_id: ME, assigner_id: null, parent_task_id: null }))
+    all.push({ id: 'later', tenant_id: A, updated_at: new Date(base + 1500).toISOString(), created_at: '2020-01-01T00:00:00Z', assignee_id: ME, assigner_id: null, parent_task_id: null })
+    const hub = new RealtimeHub({
+      connectionString: null,
+      pollMs: 20,
+      pollReader: async (table, since, limit) => table === 'tasks' ? all.filter((r) => Date.parse(r.updated_at) > Date.parse(since)).slice(0, limit) : [],
+    })
+    const seen = new Set<string>()
+    const unsub = hub.subscribe((m) => { if (m.kind === 'change') for (const r of m.event.rows ?? []) seen.add(r.id) })
+    await vi.waitFor(() => expect(seen.has('later')).toBe(true), { timeout: 5000 })
+    unsub()
+    await hub.stop()
+    expect(seen.size).toBe(1201)
+  })
+
+  it('audience refresh is shared by a user\'s streams for 25 s (not 4-5 queries per tab per 30 s), never across users', async () => {
+    const { sharedAudience, clearSharedAudiences } = await import('@/lib/realtime/authorize')
+    clearSharedAudiences()
+    let clock = 0
+    const load = vi.fn(async () => ({ userId: ME } as any))
+    for (let tab = 0; tab < 12; tab++) await sharedAudience(ME, load, () => clock)
+    expect(load).toHaveBeenCalledTimes(1)
+    await sharedAudience('someone-else', load, () => clock)
+    expect(load).toHaveBeenCalledTimes(2)
+    clock = 26_000
+    await sharedAudience(ME, load, () => clock)
+    expect(load).toHaveBeenCalledTimes(3)
+    const failing = vi.fn(async () => { throw new Error('session') })
+    await expect(sharedAudience('u-fail', failing, () => clock)).rejects.toThrow('session')
+    await expect(sharedAudience('u-fail', failing, () => clock)).rejects.toThrow('session')
+    expect(failing).toHaveBeenCalledTimes(2) // failures are not cached
+    clearSharedAudiences()
+  })
+
   it('listen mode falls back to polling when the NOTIFY migration is missing', async () => {
     vi.resetModules()
     const queries: string[] = []

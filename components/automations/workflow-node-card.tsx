@@ -26,9 +26,11 @@ import {
   Signature, FileSignature, Hourglass, FileCheck, BotOff,
 } from 'lucide-react'
 import { cn } from "@/lib/utils"
+import { isKeyboardClick } from "@/lib/a11y/keyboard"
 
 import { BRANCH_COLORS as EDGE_BRANCH_COLORS } from "./edge-renderer"
 import { resolveStorageUrl } from "@/lib/storage/refs"
+import { sanitizeSvg } from "@/lib/sanitize-svg"
 
 /** The canvas-coloured gap between a runtime card and its status / heat ring. */
 const RING_GAP = "0 0 0 2px var(--theme-surface)"
@@ -105,7 +107,8 @@ export function nodeCardModel(node: WorkflowNode, lookups: SummaryLookups = {}):
     // An importer's open questions (e.g. a column the list lacks) show like errors until marked reviewed.
     validationErrors: safe ? [] : [...validateNode(node), ...importReviewNotes(config)],
     customIcon: {
-      svg: (config.node_icon_svg as string | undefined) ?? null,
+      // Re-sanitised at render: the saved config can come from the API, MCP or a package import.
+      svg: typeof config.node_icon_svg === 'string' ? sanitizeSvg(config.node_icon_svg) : null,
       url: resolveStorageUrl((config.node_icon_url as string | undefined) ?? null),
       lucide: (config.node_icon_lucide as string | undefined) ?? null,
       color: (config.node_icon_color as string | undefined) ?? null,
@@ -389,6 +392,7 @@ export function WorkflowNodeCard({
               style={{ borderColor: nodeColor, color: m.textColor }}
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); startOrFinish(undefined, side) }}
+              onClick={(e) => { if (isKeyboardClick(e)) { e.stopPropagation(); startOrFinish(undefined, side) } }}
             >
               <Link2 size={12} />
             </button>
@@ -454,6 +458,7 @@ export function WorkflowNodeCard({
           )}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); startOrFinish(undefined, 'bottom') }}
+          onClick={(e) => { if (isKeyboardClick(e)) { e.stopPropagation(); startOrFinish(undefined, 'bottom') } }}
         >
           <span
             className={cn(

@@ -64,8 +64,15 @@ function seed() {
   return db
 }
 
+/** The service-role view of the same database (global search reads candidate task / run ids with it, then RLS-reads the rows). */
 function seedAdmin() {
   return createMemorySupabase({
+    tasks: [
+      { id: 't1', tenant_id: T, title: 'Invoice review', status: 'todo', priority: 'high', deleted_at: null, created_at: '2' },
+      { id: 't2', tenant_id: T, title: 'Other', description: 'about invoice', status: 'todo', priority: 'low', deleted_at: null, created_at: '1' },
+      { id: 't3', tenant_id: 'tenant-b', title: 'Invoice elsewhere', status: 'todo', priority: 'low', deleted_at: null, created_at: '5' },
+    ],
+    workflow_runs: [{ id: 'r1', tenant_id: T, title: 'Invoice 42', status: 'completed', started_at: '1' }],
     packages: [{ id: 'pk1', tenant_id: T, name: 'Invoice pack', slug: 'invoice-pack', latest_version: '1.0.0', updated_at: '1' }],
     form_submissions: [
       { id: 'sub1', tenant_id: T, form_id: 'f1', form_name: 'Invoice request', submitted_by: 'user-1', created_at: '2' },
@@ -130,6 +137,40 @@ describe('globalSearch', () => {
     const editor = await search.globalSearch(ctx(seed(), ['forms.view', 'forms.submit', 'forms.edit']), 'invoice')
     expect(section(editor, 'submissions')!.hits.map((h) => h.id)).toEqual(['sub2', 'sub1'])
     expect(section(editor, 'files')!.hits.map((h) => h.id).sort()).toEqual(['file1', 'file2'])
+  })
+
+  it('files: the manager of a task\'s assignee finds its files, with ONE reporting-lines load and one check per task (not per hit)', async () => {
+    const admin: any = createMemorySupabase({
+      tasks: [
+        { id: 'tk1', tenant_id: T, title: 'A', assignee_id: 'report-1', deleted_at: null },
+        { id: 'tk2', tenant_id: T, title: 'B', assignee_id: 'stranger', deleted_at: null },
+      ],
+      task_assignees: [],
+      user_memberships: [
+        { tenant_id: T, user_id: 'report-1', manager_user_id: 'user-1', is_active: true },
+        { tenant_id: T, user_id: 'stranger', manager_user_id: null, is_active: true },
+        { tenant_id: T, user_id: 'user-1', manager_user_id: null, is_active: true },
+      ],
+      form_files: Array.from({ length: 8 }, (_, i) => ({ id: `tf${i}`, tenant_id: T, name: `invoice-task-${i}.pdf`, status: 'bound', uploaded_by: 'someone', task_id: i % 2 ? 'tk2' : 'tk1', created_at: String(10 + i) })),
+    })
+    const from = admin.from.bind(admin)
+    const reads: Record<string, number> = {}
+    admin.from = (table: string) => { reads[table] = (reads[table] ?? 0) + 1; return from(table) }
+    hoisted.admin = admin
+    const results = await search.globalSearch(ctx(seed(), ['tasks.view_own']), 'invoice', { limit: 8 } as any)
+    const files = section(results, 'files')!.hits.map((h) => h.id)
+    expect(files.length).toBeGreaterThan(0)
+    expect(files.every((id) => Number(id.slice(2)) % 2 === 0)).toBe(true)
+    // Before: one full membership read per hit (each through canUserSeeTask) and two task checks per hit.
+    expect(reads.user_memberships).toBe(1)
+  })
+
+  it('tasks and runs: candidate ids come from the service role, but rows are read through the caller (RLS decides)', async () => {
+    const user = seed()
+    user.tables.tasks = user.tables.tasks.filter((t: any) => t.id !== 't1') // RLS hides t1 from this caller
+    const results = await search.globalSearch(ctx(user, ALL), 'invoice')
+    expect(section(results, 'tasks')!.hits.map((h) => h.id)).toEqual(['t2'])
+    expect(section(results, 'runs')!.hits.map((h) => h.id)).toEqual(['r1'])
   })
 
   it('reports: shared or the caller\'s own', async () => {

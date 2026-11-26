@@ -131,6 +131,16 @@ export interface RunCheckpoint {
 
 const MAX_STEP_BYTES = 256 * 1024
 const MAX_BASE_BYTES = 1024 * 1024
+/**
+ * Most bytes of completed-step records one segment keeps. Each record is
+ * merged into workflow_runs.checkpoint (the whole jsonb rewritten per step)
+ * and kept in worker memory, so a Loop of thousands of side-effecting steps
+ * grew both without bound (5,000 visits x up to 256 KB). Past the budget a
+ * step is recorded without its output and variables (`t`, as a step too
+ * large to restore): replay then runs it again when that is safe, else
+ * reports outcome unknown, exactly as for a single oversized step.
+ */
+export const MAX_COMPLETED_BYTES = 2 * 1024 * 1024
 
 export function newCheckpoint(base: CheckpointBase): RunCheckpoint {
   const segment = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
@@ -234,6 +244,21 @@ export class CheckpointRuntime {
     return { kind: "run" }
   }
 
+  /** Bytes of completed records so far (those already in the checkpoint, when replaying, count too). */
+  private completedBytes: number | null = null
+
+  /** The step as recorded within MAX_COMPLETED_BYTES: past it, without output / variables (`t`). */
+  private withinBudget(step: CompletedStep): CompletedStep {
+    if (this.completedBytes === null) this.completedBytes = safeSize(this.checkpoint.completed)
+    let size = safeSize(step)
+    if (this.completedBytes + size > MAX_COMPLETED_BYTES) {
+      step = { o: null, d: {}, t: true, ...(step.e ? { e: step.e.slice(0, 500) } : {}), at: step.at }
+      size = safeSize(step)
+    }
+    this.completedBytes += size
+    return step
+  }
+
   private records(type: string): boolean {
     if (this.mode === "off" || this.checkpoint.disabled || NEVER_MEMOIZED.has(type)) return false
     return this.mode === "all" || isSideEffectingNode(type)
@@ -258,6 +283,7 @@ export class CheckpointRuntime {
     const key = this.key(node.id, visit)
     let step: CompletedStep = { o: null, d: delta.set, ...(delta.removed.length ? { x: delta.removed } : {}), e: message.slice(0, 4000), at: new Date().toISOString() }
     if (safeSize(step) > MAX_STEP_BYTES) step = { o: null, d: {}, t: true, e: step.e, at: step.at }
+    step = this.withinBudget(step)
     this.checkpoint.completed[key] = step
     await this.write({ p_completed: { [key]: step } })
   }
@@ -270,6 +296,7 @@ export class CheckpointRuntime {
     if (safeSize(step) > MAX_STEP_BYTES) {
       step = { o: truncateForStorage(output, 2048), d: {}, t: true, at: step.at }
     }
+    step = this.withinBudget(step)
     this.checkpoint.completed[key] = step
     await this.write({ p_completed: { [key]: step } })
   }

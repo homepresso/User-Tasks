@@ -1,5 +1,6 @@
 "use client"
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { useEffect, useMemo, useRef, useState } from "react"
 import { generateApiKey, revokeApiKey, deleteApiKey } from "@/app/actions/api-keys"
 import { bulkDeleteWithJob, useJobs } from "@/components/jobs/jobs-provider"
@@ -84,6 +85,7 @@ const KEY_TYPES = [
 ]
 
 export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, workflows, tables, users }: ApiKeysManagerProps) {
+  const [confirm, confirmDialog] = useConfirm()
   const [localApiKeys, setLocalApiKeys] = useState<ApiKey[]>(apiKeys)
   const [creating, setCreating] = useState(false)
   const [newKey, setNewKey] = useState<string | null>(null)
@@ -137,14 +139,14 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
   }
 
   async function handleRevoke(id: string) {
-    if (!confirm("Revoke this API key? It will stop working immediately.")) return
+    if (!(await confirm({ title: "Revoke this API key?", description: "It stops working immediately.", confirmLabel: "Revoke key", destructive: true }))) return
     await revokeApiKey(id)
     setDeleteNotice({ tone: 'success', message: 'API key revoked. It will stop working immediately.' })
     router.refresh()
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this API key permanently?")) return
+    if (!(await confirm({ title: "Delete this API key?", description: "It is deleted permanently and stops working.", confirmLabel: "Delete key", destructive: true }))) return
     const previous = localApiKeys
     setLocalApiKeys((current) => current.filter((key) => key.id !== id))
     try {
@@ -161,7 +163,7 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
   async function handleDeleteVisible() {
     const ids = filteredKeys.map((key) => key.id)
     if (ids.length === 0) return
-    if (!confirm(`Delete ${ids.length} visible API key${ids.length !== 1 ? 's' : ''} permanently?`)) return
+    if (!(await confirm({ title: `Delete ${ids.length} visible API key${ids.length !== 1 ? 's' : ''}?`, description: 'They are deleted permanently and stop working.', confirmLabel: 'Delete keys', destructive: true }))) return
     const previous = localApiKeys
     setLocalApiKeys((current) => current.filter((key) => !ids.includes(key.id)))
     try {
@@ -225,6 +227,7 @@ export function ApiKeysManager({ apiKeys, workflowSources, webhooks: _webhooks, 
 
   return (
     <div className="space-y-4">
+      {confirmDialog}
       {deleteNotice && (
         <InlineNotice
           tone={deleteNotice.tone}

@@ -17,8 +17,13 @@
     "lookup",
     "no integrations"
   ],
-  "version": "1.1.0",
+  "version": "1.1.1",
   "changelog": [
+    {
+      "version": "1.1.1",
+      "date": "2026-11-25",
+      "notes": "Sample data, defaults and labels in USD (were NZD)."
+    },
     {
       "version": "1.1.0",
       "date": "2026-11-04",

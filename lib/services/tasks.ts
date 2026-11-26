@@ -16,7 +16,7 @@ import { normalizeTaskFieldValue, UPDATABLE_TASK_FIELDS, validateTaskFieldValue 
 import { withDescriptionText } from '@/lib/task-description-format'
 import { hasPerm, requirePerm, ServiceError, type ServiceContext } from './context'
 import { SUBTASK_MAX_DEPTH, validateSubtaskInput, type SubtaskInput } from '@/lib/tasks/subtask-input'
-import { dbError } from './_shared'
+import { actorServiceClient, dbError } from './_shared'
 import { canReachTask } from '@/lib/task-authz'
 import { writeLifecycleEvent } from '@/lib/lifecycle-events'
 
@@ -91,7 +91,7 @@ export async function updateTask(ctx: ServiceContext, taskId: string, input: Tas
   }
   updates.updated_at = new Date().toISOString()
 
-  const { data, error } = await (ctx.supabase as any).from('tasks')
+  const { data, error } = await (await actorServiceClient(ctx) as any).from('tasks')
     .update(updates).eq('id', taskId).eq('tenant_id', ctx.tenantId).select('*').single()
   if (error || !data) throw dbError(error, 'Failed to update task')
   return withDescriptionText(data)
@@ -143,7 +143,7 @@ export async function completeStandardTask(ctx: ServiceContext, taskId: string, 
   if (task.is_workflow_task && task.event_id) throw ServiceError.conflict('Workflow tasks complete through their workflow step')
   const notes = typeof input.notes === 'string' && input.notes ? input.notes.slice(0, 10_000) : null
 
-  const { error } = await (ctx.supabase as any).from('tasks')
+  const { error } = await (await actorServiceClient(ctx) as any).from('tasks')
     .update({ status: 'completed', outcome, outcome_notes: notes })
     .eq('id', taskId).eq('tenant_id', ctx.tenantId)
   if (error) throw dbError(error, 'Failed to complete the task')
@@ -159,7 +159,7 @@ export async function completeStandardTask(ctx: ServiceContext, taskId: string, 
 /** Reopen a completed task: back to todo with the outcome cleared. */
 export async function reopenTask(ctx: ServiceContext, taskId: string) {
   await loadScopedTask(ctx, taskId, 'id')
-  const { error } = await (ctx.supabase as any).from('tasks')
+  const { error } = await (await actorServiceClient(ctx) as any).from('tasks')
     .update({ status: 'todo', outcome: null, outcome_notes: null })
     .eq('id', taskId).eq('tenant_id', ctx.tenantId)
   if (error) throw dbError(error, 'Failed to reopen the task')
@@ -173,7 +173,7 @@ export async function reopenTask(ctx: ServiceContext, taskId: string) {
 export async function setSubtaskCompleted(ctx: ServiceContext, subtaskId: string, completed: boolean, options: { logToTaskId?: string | null } = {}) {
   const subtask = await loadScopedTask(ctx, subtaskId, 'id, title')
   const status = completed ? 'completed' : 'todo'
-  const { error } = await (ctx.supabase as any).from('tasks')
+  const { error } = await (await actorServiceClient(ctx) as any).from('tasks')
     .update({ status, completed_at: completed ? new Date().toISOString() : null })
     .eq('id', subtaskId).eq('tenant_id', ctx.tenantId)
   if (error) throw dbError(error, 'Failed to update the subtask')
@@ -293,7 +293,7 @@ export async function addSubtask(ctx: ServiceContext, parentTaskId: string, inpu
     .order('sequence', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
   const sequence = Number(last?.sequence ?? 0) + 1
 
-  const { data, error } = await (ctx.supabase as any).from('tasks').insert({
+  const { data, error } = await (await actorServiceClient(ctx) as any).from('tasks').insert({
     tenant_id: parent.tenant_id,
     parent_task_id: parentTaskId,
     title: values.title,
@@ -329,7 +329,7 @@ export async function updateSubtask(ctx: ServiceContext, subtaskId: string, inpu
   if (Object.keys(checked.values).length === 0) throw ServiceError.validation('No fields to update')
   const subtask = await loadScopedTask(ctx, subtaskId, 'id, tenant_id, parent_task_id')
   if (!subtask.parent_task_id || (options.parentTaskId && subtask.parent_task_id !== options.parentTaskId)) throw ServiceError.notFound('Subtask not found')
-  const { data, error } = await (ctx.supabase as any).from('tasks')
+  const { data, error } = await (await actorServiceClient(ctx) as any).from('tasks')
     .update({ ...checked.values, updated_at: new Date().toISOString() })
     .eq('id', subtaskId).eq('tenant_id', subtask.tenant_id).select(SUBTASK_COLUMNS).single()
   if (error || !data) throw dbError(error, 'Failed to update the subtask')

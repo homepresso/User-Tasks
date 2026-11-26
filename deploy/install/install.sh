@@ -248,6 +248,7 @@ ut_check_docker() {
   _dm=$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo 0)
   if [ "$_dm" -gt 0 ] 2>/dev/null && [ "$_dm" -lt 2500000000 ]; then
     ut_warn "Docker has $((_dm / 1048576)) MB of memory; give it at least 3 GB (Docker Desktop: Settings → Resources → Memory)"
+  elif [ "$_dm" -gt 0 ] 2>/dev/null; then ut_ok "Docker memory: $((_dm / 1073741824)) GB"
   fi
 }
 

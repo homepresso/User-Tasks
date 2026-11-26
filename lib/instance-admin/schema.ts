@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isoDateTime } from '@/lib/zod-datetime'
 import { INVITABLE_ROLES } from '@/lib/invitation-roles'
 
 /**
@@ -85,7 +86,7 @@ export const INSTANCE_DATASET_COLUMNS: Record<InstanceDataset, readonly Instance
     c('ai_requests_30d', 'AI requests (30 days)', 'number'), c('ai_cost_30d', 'AI spend (30 days)', 'currency'),
     c('storage_bytes', 'Storage', 'bytes'), c('queue_pending', 'Queue: pending', 'number'), c('queue_dead', 'Queue: dead (7 days)', 'number'),
     c('licences', 'Licences', 'number'), c('trial_ends_at', 'Trial ends', 'date'), c('sso_only', 'SSO only', 'boolean'),
-    c('last_activity_at', 'Last activity', 'date'),
+    c('last_activity_at', 'Last activity', 'date'), c('summary', 'Summary'),
   ],
   users: [
     c('id', 'ID'), c('email', 'Email'), c('display_name', 'Name'), c('home_workspace', 'Home workspace'),
@@ -157,6 +158,13 @@ export const INSTANCE_DATASET_COLUMNS: Record<InstanceDataset, readonly Instance
     c('id', 'ID'), c('created_at', 'When', 'date'), c('workspace_id', 'Workspace ID'), c('object_type', 'Object type'),
     c('action', 'Action'), c('actor', 'Actor'), c('on_behalf', 'On behalf', 'boolean'),
   ],
+}
+
+/** A workspace in one line, for headers: "conca · 1 member · owners: ada@example.com". */
+export function workspaceSummary(w: { slug?: unknown; members?: unknown; owners?: unknown }): string {
+  const n = typeof w.members === 'number' && Number.isFinite(w.members) ? w.members : null
+  const owners = typeof w.owners === 'string' && w.owners.trim() ? w.owners.trim() : '—'
+  return [typeof w.slug === 'string' && w.slug ? w.slug : null, n === null ? null : `${n} member${n === 1 ? '' : 's'}`, `owners: ${owners}`].filter(Boolean).join(' · ')
 }
 
 /** Datasets that answer one record (not a list). */
@@ -262,7 +270,7 @@ export const INSTANCE_ACTION_INPUTS = {
   change_role: z.object({ ...base, workspace_id: uuid, user_id: uuid, role }).strict(),
   deactivate_member: z.object({ ...base, workspace_id: uuid, user_id: uuid }).strict(),
   reactivate_member: z.object({ ...base, workspace_id: uuid, user_id: uuid, role: role.optional() }).strict(),
-  extend_trial: z.object({ ...base, workspace_id: uuid, extension_id: extension, days: z.coerce.number().int().min(1).max(365).optional(), ends_at: z.string().datetime({ offset: true }).optional() }).strict()
+  extend_trial: z.object({ ...base, workspace_id: uuid, extension_id: extension, days: z.coerce.number().int().min(1).max(365).optional(), ends_at: isoDateTime({ offset: true }).optional() }).strict()
     .refine((v) => v.days !== undefined || v.ends_at !== undefined, 'Give days or ends_at'),
   reactivate_licence: z.object({ ...base, workspace_id: uuid, extension_id: extension }).strict(),
   resume_paused_runs: z.object({ ...base, workspace_id: uuid, extension_id: extension.optional() }).strict(),

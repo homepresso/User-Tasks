@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { setSubtaskCompleted } from '@/app/actions/tasks'
@@ -10,6 +10,9 @@ import { InlineNotice } from '@/components/ui/inline-notice'
 import { SUBTASK_MAX_DEPTH } from '@/lib/tasks/subtask-input'
 import { SubtaskForm } from './subtask-form'
 import { TaskTreeNode, type TreeTask } from './task-tree-node'
+import { childrenIndex } from '@/lib/tasks/tree-index'
+
+const NO_CHILDREN: TreeTask[] = []
 
 interface TaskTreeProps {
   task: TreeTask & { tenant_id?: string; priority?: string | null }
@@ -40,16 +43,12 @@ export function TaskTree({ task, subtasks: initialSubtasks, totalCount, complete
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Apply optimistic overrides for instant UI feedback
-  const subtasks = initialSubtasks.map(s =>
+  // Apply optimistic overrides for instant UI feedback; children indexed once per change (not per node).
+  const subtasks = useMemo(() => initialSubtasks.map(s =>
     localOverrides[s.id] ? { ...s, status: localOverrides[s.id] } : s
-  )
-
-  function buildTree(parentId: string): TreeTask[] {
-    return subtasks
-      .filter((s) => s.parent_task_id === parentId)
-      .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
-  }
+  ), [initialSubtasks, localOverrides])
+  const children = useMemo(() => childrenIndex(subtasks), [subtasks])
+  const buildTree = useCallback((parentId: string): TreeTask[] => children.get(parentId) ?? NO_CHILDREN, [children])
 
   async function refresh() {
     await Promise.all(REFRESH_KEYS.map((queryKey) => queryClient.invalidateQueries({ queryKey: [...queryKey] })))

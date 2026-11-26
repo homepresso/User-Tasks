@@ -308,7 +308,8 @@ describe('outbound calls that bypassed the guard', () => {
   it('workflow engine: no plain fetch() left (server-event push and file responses use the guarded paths)', () => {
     const source = readFileSync(path.join(process.cwd(), 'lib/workflow-engine.ts'), 'utf8')
     expect(source).not.toMatch(/(^|[^\w.])fetch\(/m)
-    expect(source).toMatch(/connectorFetch\(baseUrl \+ path/)
+    // The server-event push (URL built from base_url + the encoded path, auth query added).
+    expect(source).toMatch(/connectorFetch\(target\.toString\(\)/)
   })
 })
 

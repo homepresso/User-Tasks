@@ -39,6 +39,7 @@ import {
   type ButtonEffects, type FormAction, type FormButton,
 } from '@/lib/forms/buttons'
 import { afterSubmitActions } from '@/lib/forms/form-rules'
+import { runSubmittedServerSteps, type SubmittedStepResult } from './form-rule-actions'
 import { applySubmittedPage } from '@/lib/forms/submitted-page'
 import { buildFormSubmittedPayload, readFormSubmittedConfig, triggerMatchesButton, FORM_SUBMITTED_TRIGGER } from '@/lib/forms/submitted-trigger'
 import { lookupItemKey, lookupLabelKey } from '@/lib/forms/lookup'
@@ -160,7 +161,7 @@ export async function runButtonActions(
     /** The record's values ({{target.<name>}}) for workflow inputs and texts. */
     targetContext?: Record<string, unknown>
   },
-): Promise<{ runs: StartedRun[]; effects: ButtonEffects; table_changes: TableChangesSummary[] }> {
+): Promise<{ runs: StartedRun[]; effects: ButtonEffects; table_changes: TableChangesSummary[]; rule_steps: SubmittedStepResult[] }> {
   // Form rules on "After submit" (this button or any) add their actions after the button's own (lib/forms/form-rules.ts).
   input = { ...input, button: withAfterSubmitRules(input.button, input.layout, input.values) }
   // Anonymous submissions: server steps run only when the author ticked "Allow for anonymous".
@@ -191,6 +192,15 @@ export async function runButtonActions(
       const message = error instanceof ServiceError ? error.message : 'The table changes could not be applied'
       tableChanges.push({ field: action.table_changes.field, target: action.table_changes.target, total: 0, succeeded: 0, failed: 1, skipped: 0, by_kind: { added: 0, updated: 0, deleted: 0 }, results: [], text: message, stopped: true })
     }
+  }
+  // After-submit data writes (rules marked server_steps — "Map to data event"): the submission is accepted and
+  // stored by now, so a refused one never writes. Forms without such rules run nothing here.
+  let ruleSteps: SubmittedStepResult[] = []
+  if (input.fields && input.layout) {
+    ruleSteps = await runSubmittedServerSteps(ctx, {
+      fields: input.fields, layout: input.layout, values: input.values, buttonId: input.button.id,
+      form: input.form, taskId: input.taskId ?? null, submissionId: input.submissionId,
+    })
   }
   const tableSummary = tableChanges.map((t) => t.text).join('; ')
   const starts = actions.filter((a) => a.type === 'start_workflow' && a.workflow_id)
@@ -245,9 +255,10 @@ export async function runButtonActions(
     const summary = tableChanges[i]
     if (summary && a.table_changes?.show_summary !== false && (summary.total || summary.failed)) effects.messages.unshift({ text: summary.text, tone: summary.failed ? 'info' : 'success' })
   })
+  for (const r of ruleSteps.filter((x) => x.error)) effects.messages.push({ text: `Your answers were saved, but "${r.rule_name}" could not write everything: ${r.error}`, tone: 'info' })
   const failed = runs.filter((r) => r.status === 'failed')
   if (failed.length) effects.messages.push({ text: `${failed.length === 1 ? 'A follow-up workflow' : `${failed.length} follow-up workflows`} could not be started: ${failed.map((r) => r.error).join('; ')}`, tone: 'info' })
-  return { runs, effects, table_changes: tableChanges }
+  return { runs, effects, table_changes: tableChanges, rule_steps: ruleSteps }
 }
 
 /** The button with the After-submit rules' actions appended (conditions judged on the stored values). */
@@ -517,14 +528,14 @@ export async function submitForm(ctx: ServiceContext, formId: string, input: Sub
     url_params: requestUrlParams(def.layout, input),
     layout: def.layout,
   })
-  const { runs, effects, table_changes } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id, fields: def.fields, layout: def.layout, context: shownContext(def.layout, input), submission: payload.submission as SubmissionMeta, targetReturnUrl: written?.returnUrl ?? notWrittenReturnUrl, targetContext })
+  const { runs, effects, table_changes, rule_steps } = await runButtonActions(ctx, db, { button, values, form: { id: formId, name: row.name }, submissionId: inserted.id, fields: def.fields, layout: def.layout, context: shownContext(def.layout, input), submission: payload.submission as SubmissionMeta, targetReturnUrl: written?.returnUrl ?? notWrittenReturnUrl, targetContext })
   if (written) {
     payload.data_target = { label: written.label, record: written.record }
     if (written.message) effects.messages = [{ text: written.message, tone: 'success' }, ...effects.messages]
   }
   const triggered = await enqueueFormSubmittedWorkflows(db, ctx.tenantId, payload, anonymous ? 'anonymous' : 'form')
   const dataTarget = written ? { label: written.label, record: written.record, version: written.version } : null
-  await (db as any).from('form_submissions').update({ result: { runs, effects, triggered, ...(options.surface ? { surface: options.surface } : {}), ...(table_changes.length ? { table_changes } : {}), ...(dataTarget ? { data_target: dataTarget } : {}) } }).eq('id', inserted.id).eq('tenant_id', ctx.tenantId)
+  await (db as any).from('form_submissions').update({ result: { runs, effects, triggered, ...(options.surface ? { surface: options.surface } : {}), ...(table_changes.length ? { table_changes } : {}), ...(rule_steps.length ? { rule_steps } : {}), ...(dataTarget ? { data_target: dataTarget } : {}) } }).eq('id', inserted.id).eq('tenant_id', ctx.tenantId)
   return { submission: presentSubmission(inserted), effects, runs, ...(table_changes.length ? { table_changes } : {}), ...(dataTarget ? { data_target: dataTarget } : {}) }
 }
 

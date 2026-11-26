@@ -23,7 +23,7 @@ import { formPageOf } from '@/lib/forms/form-page'
 import { rankByMatch } from '@/lib/search/rank'
 import { getDb, hasPerm, ServiceError, type AnySupabaseClient, type ServiceContext } from './context'
 import { dbError, serviceRoleClient } from './_shared'
-import { authorizeFileDownload } from './form-files'
+import { authorizeFileDownload, fileAuthzBatch } from './form-files'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- search rows */
 
@@ -173,6 +173,15 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
   const want = limit * 2 + 1
   let adminDb: AnySupabaseClient | null = null
   const admin = async () => (adminDb ??= await serviceRoleClient(ctx)) as any
+  /** Ids matching a filter, read with the service role (index-friendly); null when there is no service client. */
+  const candidateIds = async (table: string, filter: (q: any) => any): Promise<string[] | null> => {
+    let client: any
+    try { client = await admin() } catch { return null }
+    if (!client || client === db) return null
+    const { data, error } = await filter(client.from(table).select('id'))
+    if (error) return null
+    return ((data ?? []) as Array<{ id: string }>).map((r) => r.id)
+  }
 
   const can = (permission: string) => hasPerm(ctx, permission)
   const plans: SectionPlan[] = []
@@ -206,9 +215,20 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
 
   /* Tasks: title, description, then status / priority keywords; RLS decides which. */
   if (can('tasks.view_own') || can('tasks.view_all')) {
-    const tasksBy = (column: 'title' | 'description') => (n: number) => db.from('tasks')
-      .select(TASK_COLUMNS).eq('tenant_id', tenantId).ilike(column, pattern).is('deleted_at', null)
-      .order('created_at', { ascending: false }).limit(n)
+    // ILIKE through the caller's client never uses the trigram index: under RLS, Postgres won't use
+    // a non-leakproof operator (~~*) as an index condition, so it scanned the workspace's tasks per
+    // keystroke. The service role finds candidate ids with the index (this workspace only); the
+    // caller's client then reads those rows, so RLS still decides what is returned.
+    const tasksBy = (column: 'title' | 'description') => async (n: number) => {
+      const ids = await candidateIds('tasks', (q) => q.eq('tenant_id', tenantId).ilike(column, pattern).is('deleted_at', null).order('created_at', { ascending: false }).limit(n))
+      if (ids === null) {
+        return db.from('tasks').select(TASK_COLUMNS).eq('tenant_id', tenantId).ilike(column, pattern).is('deleted_at', null)
+          .order('created_at', { ascending: false }).limit(n)
+      }
+      if (!ids.length) return { data: [], error: null }
+      return db.from('tasks').select(TASK_COLUMNS).eq('tenant_id', tenantId).in('id', ids).is('deleted_at', null)
+        .order('created_at', { ascending: false }).limit(n)
+    }
     const status = keyword(TASK_STATUSES, lowerQ)
     const priority = keyword(TASK_PRIORITIES, lowerQ)
     const toHit = (t: any): SearchHit => ({
@@ -278,7 +298,13 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
       rank: false,
       loaders: [
         ...(isId ? [{ load: () => db.from('workflow_runs').select(columns).eq('tenant_id', tenantId).eq('id', q).limit(1), toHit }] : []),
-        { load: (n: number) => db.from('workflow_runs').select(columns).eq('tenant_id', tenantId).ilike('title', pattern).order('started_at', { ascending: false }).limit(n), toHit },
+        { load: async (n: number) => {
+          // Index-assisted candidates (see tasksBy); RLS applies to the rows read.
+          const ids = await candidateIds('workflow_runs', (q) => q.eq('tenant_id', tenantId).ilike('title', pattern).order('started_at', { ascending: false }).limit(n))
+          if (ids === null) return db.from('workflow_runs').select(columns).eq('tenant_id', tenantId).ilike('title', pattern).order('started_at', { ascending: false }).limit(n)
+          if (!ids.length) return { data: [], error: null }
+          return db.from('workflow_runs').select(columns).eq('tenant_id', tenantId).in('id', ids).order('started_at', { ascending: false }).limit(n)
+        }, toHit },
       ],
     })
   }
@@ -461,7 +487,9 @@ export async function globalSearch(ctx: ServiceContext, rawQuery: string, option
         }),
       }],
       filter: async (hits, byId) => {
-        const allowed = await Promise.all(hits.map((hit) => authorizeFileDownload(ctx, byId.get(hit.id)).catch(() => false)))
+        // One reporting-lines load and one check per task for all hits (was per hit, each loading every membership).
+        const batch = fileAuthzBatch(ctx)
+        const allowed = await Promise.all(hits.map((hit) => authorizeFileDownload(ctx, byId.get(hit.id), batch).catch(() => false)))
         return hits.filter((_, i) => allowed[i])
       },
     })

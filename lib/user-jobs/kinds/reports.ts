@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { requirePerm, ServiceError } from '@/lib/services/context'
+import { audit } from '@/lib/services/_shared'
 import { defineJobKind } from '../define'
 
 /*
@@ -40,7 +41,7 @@ export const reportExportJob = defineJobKind({
   params: z.object({ filename: z.string().max(200).default('report') }),
   title: (p) => `Excel export “${reportFileName(p.filename)}”`,
   authorize: (ctx) => requirePerm(ctx, 'reports.view'),
-  async run({ params, progress, readInput }) {
+  async run({ ctx, params, progress, readInput }) {
     const input = await readInput()
     if (!input) throw ServiceError.validation('The report rows are missing')
     let body: { columns?: unknown; rows?: unknown }
@@ -56,6 +57,7 @@ export const reportExportJob = defineJobKind({
     }
     await progress(20, `Building the workbook (${rows.length.toLocaleString('en')} rows)`)
     const bytes = await buildReportWorkbook(columns, rows)
+    await audit(ctx, { objectType: 'report', objectId: 'excel', action: 'export', summary: `Exported "${reportFileName(params.filename)}" to Excel (${rows.length} rows)`, metadata: { rows: rows.length, columns: columns.length } })
     return {
       file: { name: `${reportFileName(params.filename)}.xlsx`, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', body: bytes },
       counts: { rows: rows.length },

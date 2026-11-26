@@ -132,8 +132,15 @@ describe.skipIf(!DB_URL)('enqueue_workflow tenant checks (local DB)', () => {
     expect(foreignTask.error?.message).toContain('task_not_found')
   })
 
-  it('task trigger: a signed-in user creating a task enqueues the matching workflow', async () => {
-    const res = await as('authenticated', `INSERT INTO public.tasks (tenant_id, title) VALUES ('${TENANT_A}', 'Via trigger') RETURNING id`)
+  it('task trigger: a task the server creates for a signed-in user enqueues the matching workflow', async () => {
+    // Since 20270130140000 signed-in users hold no write grant on tasks: the
+    // server creates the task with the service role, naming the user in the
+    // x-usertasks-actor header.
+    const direct = await as('authenticated', `INSERT INTO public.tasks (tenant_id, title) VALUES ('${TENANT_A}', 'Direct') RETURNING id`)
+    expect(direct.error?.code).toBe('42501')
+    await db.query(`SELECT set_config('request.headers', $1, true)`, [JSON.stringify({ 'x-usertasks-actor': USER })])
+    const res = await as('service_role', `INSERT INTO public.tasks (tenant_id, title) VALUES ('${TENANT_A}', 'Via trigger') RETURNING id`)
+    await db.query(`SELECT set_config('request.headers', '', true)`)
     expect(res.error).toBeNull()
     const { rows } = await db.query(
       `SELECT workflow_id, task_id, trigger_type FROM public.workflow_queue WHERE tenant_id = $1`,
@@ -164,8 +171,9 @@ describe.skipIf(!DB_URL)('enqueue_workflow tenant checks (local DB)', () => {
     expect(own.rows[0].tree.task.id).toBe(TASK_A)
     const other = await as('authenticated', `SELECT public.get_task_tree('${TASK_B}') AS tree`)
     expect(other.rows[0].tree.task).toBeNull()
+    // anon has no EXECUTE on it (20270130121500).
     const anon = await as('anon', `SELECT public.get_task_tree('${TASK_A}') AS tree`)
-    expect(anon.rows[0].tree.task).toBeNull()
+    expect(anon.error?.code).toBe('42501')
     const svc = await as('service_role', `SELECT public.get_task_tree('${TASK_B}') AS tree`)
     expect(svc.rows[0].tree.task.id).toBe(TASK_B)
 
@@ -179,9 +187,12 @@ describe.skipIf(!DB_URL)('enqueue_workflow tenant checks (local DB)', () => {
     const ok = await as('authenticated', `SELECT public.check_object_permission('workflow', '${WF_A}', 'view') AS allowed`)
     expect(ok.rows[0].allowed).toBe(true)
     const injected = await as(
-      'anon',
+      'authenticated',
       `SELECT public.check_object_permission('workflow', '${WF_A}', 'view = true OR (SELECT true) OR can_view') AS allowed`,
     )
     expect(injected.error?.code).toBe('22023')
+    // anon has no EXECUTE on it at all (20270130121500).
+    const anon = await as('anon', `SELECT public.check_object_permission('workflow', '${WF_A}', 'view') AS allowed`)
+    expect(anon.error?.code).toBe('42501')
   })
 })

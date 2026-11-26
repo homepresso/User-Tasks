@@ -45,3 +45,20 @@ export async function register() {
   void startSchedulerWorker().catch((error: Error) => console.error(`[scheduler] worker failed to start: ${error.message}`))
 }
 
+
+/**
+ * Every server error (render, route handler, server action, proxy) as one
+ * JSON line with its digest and request id (lib/request-error-log.ts).
+ */
+export async function onRequestError(
+  error: unknown,
+  request: { path: string; method: string; headers: Record<string, string | string[] | undefined> },
+  context: { routerKind?: string; routePath?: string; routeType?: string; renderSource?: string },
+) {
+  try {
+    const { requestErrorLine } = await import('./lib/request-error-log')
+    console.error(requestErrorLine(error, request, context))
+  } catch {
+    // Never let error reporting throw.
+  }
+}

@@ -85,7 +85,8 @@ export function AgentList({ agents }: AgentListProps) {
   const { can } = usePermissions()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const { layoutPreference, setLayoutPreference } = useAppStore()
+  const layoutPreference = useAppStore((s) => s.layoutPreference)
+  const setLayoutPreference = useAppStore((s) => s.setLayoutPreference)
   const viewMode = (layoutPreference.agents === 'list' ? 'list' : 'grid') as 'grid' | 'list'
   const setViewMode = (v: 'grid' | 'list') => setLayoutPreference('agents', v)
   const [sortBy, setSortBy] = useState<SortField>('updated_at')

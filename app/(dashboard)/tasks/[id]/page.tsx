@@ -1,7 +1,7 @@
 "use client"
 
 import { ExtensionDetailTab, useExtensionDetailTabs } from '@/components/extensions/detail-tabs'
-import { use, useEffect, useMemo, useState } from 'react'
+import { use, useEffect, useMemo, useRef, useState } from 'react'
 import { serverRead } from '@/lib/server-read'
 import { RecentActivity } from '@/components/timeline/run-timeline'
 import { TimelineSheet } from '@/components/timeline/timeline-sheet'
@@ -49,6 +49,9 @@ import { TaskCompletedScreen, type TaskCompletedEvent } from '@/components/tasks
 import { resolveTaskCompletion, taskCompletedOverride } from '@/lib/tasks/completion-screen'
 import { useAssistantSurface } from '@/lib/assistants/client-registry'
 import { useMarkTaskReadOnOpen } from '@/hooks/use-task-read-state'
+
+/** Pause in typing before a task form's draft is saved (localStorage). */
+const DRAFT_SAVE_DELAY_MS = 400
 
 // Task tree plus tenant badge, assignee/assigner names and workflow source, read server-side.
 async function loadTaskDetail(id: string) {
@@ -244,11 +247,22 @@ function TaskDetailContent({
   )
   const hasChanges = inputFields.some((f) => JSON.stringify(fieldValues[f.key] ?? null) !== JSON.stringify(savedValues[f.key] ?? null))
 
+  // Save the draft after a pause in typing, not on every keystroke: each store
+  // write re-serialises the whole persisted app state into localStorage.
+  // A pending draft is written at once when the page unmounts.
+  const pendingDraft = useRef<(() => void) | null>(null)
   useEffect(() => {
     if (!canEditFields) return
-    if (hasChanges) setTaskDraft(id, draftValues)
-    else clearTaskDraft(id)
+    const write = () => {
+      pendingDraft.current = null
+      if (hasChanges) setTaskDraft(id, draftValues)
+      else clearTaskDraft(id)
+    }
+    pendingDraft.current = write
+    const timer = setTimeout(() => { if (pendingDraft.current === write) write() }, DRAFT_SAVE_DELAY_MS)
+    return () => clearTimeout(timer)
   }, [canEditFields, clearTaskDraft, draftValues, hasChanges, id, setTaskDraft])
+  useEffect(() => () => { pendingDraft.current?.() }, [id])
 
   function handleFieldChange(key: string, value: unknown) {
     setFieldValues((prev) => ({ ...prev, [key]: value }))
@@ -272,6 +286,7 @@ function TaskDetailContent({
         setSaveState('idle')
         return
       }
+      pendingDraft.current = null
       clearTaskDraft(id)
       setSaveState('saved')
       queryClient.invalidateQueries({ queryKey: ['task-detail', id] })
@@ -417,7 +432,7 @@ function TaskDetailContent({
                   onErrors={setFieldErrors}
                   layout={formLayout}
                   onCompleted={handleCompleted}
-                  onReset={() => { setFieldValues(savedValues); setFieldErrors({}); clearTaskDraft(id) }}
+                  onReset={() => { pendingDraft.current = null; setFieldValues(savedValues); setFieldErrors({}); clearTaskDraft(id) }}
                 />
               ) : null}
             />

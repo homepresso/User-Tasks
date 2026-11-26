@@ -40,7 +40,7 @@
             {
               "name": "currency",
               "type": "string",
-              "example": "NZD"
+              "example": "USD"
             },
             {
               "name": "decline_code",
@@ -57,7 +57,7 @@
           "authorization_id": "AUTH-5Q2K91",
           "status": "authorized",
           "amount": 162.38,
-          "currency": "NZD",
+          "currency": "USD",
           "decline_code": null,
           "expires_at": "2026-11-02T10:05:00Z"
         },

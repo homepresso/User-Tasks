@@ -22,6 +22,9 @@ import type { FormHeader } from './header'
 import type { FormLayout } from './layout'
 import type { FormThemeOverrides } from './form-theme'
 import { defaultTaskFieldValues, valueFields, type TaskFieldDef } from '@/lib/task-field-schema'
+import { formPagePath, formPageUrl } from './form-paths'
+
+export { formPagePath, formPageUrl }
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- nodes are loose JSON */
 
@@ -57,14 +60,6 @@ export function formSubmittedTrigger(nodes: unknown): { id: string; config: Reco
 }
 
 /** The page a reusable form is filled in on. */
-export function formPagePath(formId: string): string {
-  return `/f/${encodeURIComponent(formId)}`
-}
-
-export function formPageUrl(origin: string, formId: string): string {
-  return `${origin.replace(/\/+$/, '')}${formPagePath(formId)}`
-}
-
 /** A form's starting values (defaults; `{{…}}` defaults are left empty, as on /f/<id>). */
 export function formDefaultValues(fields: TaskFieldDef[]): Record<string, unknown> {
   return defaultTaskFieldValues(fields, (v) => (/\{\{/.test(v) ? '' : v))

@@ -4,6 +4,7 @@ import {
   addressInRules, getEgressPolicy, hasCidrRules, hostMatchesRules, httpAllowedForHost, httpAllowHint, inCidr4, ipv4ToInt, ipv6Hextets,
   loadEgressPolicy, privateAllowHint, type EgressPolicy,
 } from './egress-policy'
+import { egressFetch, installEgressAddressCheck } from '@/lib/egress-transport'
 
 /**
  * SSRF egress guard for user-supplied connection targets (integration base URLs,
@@ -52,6 +53,7 @@ const METADATA_IPV4 = new Set([
   '169.254.170.2', // ECS task metadata / credentials
   '169.254.170.23', // EKS Pod Identity
   '100.100.100.200', // Alibaba Cloud
+  '168.63.129.16', // Azure WireServer (VM agent / extension config)
 ])
 const METADATA_IPV6 = [
   [0xfd00, 0x0ec2, 0, 0, 0, 0, 0, 0x0254], // AWS IMDSv6
@@ -78,6 +80,10 @@ function classifyIpv4(ip: string): AddressClass {
   if (inCidr4(n, '127.0.0.0', 8)) return 'loopback'
   if (inCidr4(n, '169.254.0.0', 16)) return 'link_local'
   if (inCidr4(n, '10.0.0.0', 8) || inCidr4(n, '100.64.0.0', 10) || inCidr4(n, '172.16.0.0', 12) || inCidr4(n, '192.168.0.0', 16)) return 'private'
+  // Special-purpose ranges that are never a public service: IETF protocol
+  // assignments, benchmarking, multicast, reserved and broadcast.
+  if (inCidr4(n, '192.0.0.0', 24) || inCidr4(n, '198.18.0.0', 15)) return 'private'
+  if (inCidr4(n, '224.0.0.0', 4) || inCidr4(n, '240.0.0.0', 4)) return 'unspecified'
   return 'public'
 }
 
@@ -94,6 +100,7 @@ function classifyAddress(ip: string): AddressClass {
   if ((h[0] & 0xffc0) === 0xfe80) return 'link_local' // fe80::/10
   if ((h[0] & 0xfe00) === 0xfc00) return 'private' // fc00::/7 unique local
   if ((h[0] & 0xffc0) === 0xfec0) return 'private' // fec0::/10 site-local (deprecated)
+  if ((h[0] & 0xff00) === 0xff00) return 'unspecified' // ff00::/8 multicast
   const v4 = embeddedIpv4(h)
   return v4 ? classifyIpv4(v4) : 'public'
 }
@@ -206,6 +213,12 @@ export function assertSafeResolvedAddress(host: string, address: string): void {
   }
 }
 
+// The pinned transport checks every address it connects to with this.
+installEgressAddressCheck(assertSafeResolvedAddress)
+
+/** fetch() whose socket connects only to addresses the egress policy allows (lib/egress-transport). */
+export { egressFetch }
+
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
 
 /**
@@ -279,6 +292,16 @@ export function hostAllowed(host: string, allowedHosts: readonly string[] | unde
   })
 }
 
+/** Header names that carry credentials (standard ones and the usual custom spellings). */
+const SECRET_HEADER_RE = /^(authorization|cookie|proxy-authorization)$|token|secret|key|auth|signature|password|session/i
+
+function withoutSecretHeaders(headers: HeadersInit | undefined): Record<string, string> {
+  const entries = headers instanceof Headers ? [...headers.entries()] : Array.isArray(headers) ? headers : Object.entries(headers ?? {})
+  const out: Record<string, string> = {}
+  for (const [k, v] of entries) if (!SECRET_HEADER_RE.test(k)) out[k] = String(v)
+  return out
+}
+
 /**
  * fetch() for URLs that untrusted input chose (agent tools: the model picks
  * the URL). Every hop is checked by assertSafeEgressUrl (and the optional
@@ -286,7 +309,8 @@ export function hostAllowed(host: string, allowedHosts: readonly string[] | unde
  * bounce the request to a private or metadata address.
  */
 export async function safeFetch(rawUrl: string, init: RequestInit = {}, options: SafeFetchOptions = {}): Promise<Response> {
-  const doFetch = options.fetchImpl ?? fetch
+  // Default transport pins the connection to the checked addresses (no DNS-rebinding window).
+  const doFetch = options.fetchImpl ?? egressFetch
   const maxRedirects = options.maxRedirects ?? 3
   let current = rawUrl
   let currentInit: RequestInit = { ...init, redirect: 'manual' }
@@ -296,11 +320,21 @@ export async function safeFetch(rawUrl: string, init: RequestInit = {}, options:
     if (!hostAllowed(host, options.allowedHosts)) {
       throw new EgressBlockedError(host, 'not in this agent\'s allowed hosts')
     }
-    const res = await doFetch(current, currentInit)
+    let res: Response
+    try {
+      res = await doFetch(current, currentInit)
+    } catch (error) {
+      // A connect-time refusal by the pinned transport, wrapped by fetch.
+      const cause = (error as { cause?: unknown } | null)?.cause
+      throw cause instanceof EgressBlockedError ? cause : error
+    }
     const location = res.headers.get('location')
     if (res.status >= 300 && res.status < 400 && location) {
       await res.body?.cancel().catch(() => {})
-      current = new URL(location, current).toString()
+      const next = new URL(location, current)
+      // Never forward credentials to another origin (browsers drop Authorization too).
+      if (next.origin !== new URL(current).origin) currentInit = { ...currentInit, headers: withoutSecretHeaders(currentInit.headers) }
+      current = next.toString()
       // 303 (and 301/302 after POST, as browsers do) continue as GET without a body.
       if (res.status === 303 || ((res.status === 301 || res.status === 302) && String(currentInit.method ?? 'GET').toUpperCase() === 'POST')) {
         const { body: _body, ...rest } = currentInit

@@ -109,3 +109,29 @@ export async function loadAudience(db: SessionDb, userId: string): Promise<Audie
     agentMember: new Set(agentTenants),
   }
 }
+
+/**
+ * One audience refresh per user per window, shared by that user's open
+ * streams on this instance (up to 12 tabs each re-read it every 30 s:
+ * 4-5 queries per tab). Same user, same identity: nothing crosses users.
+ * In-flight loads are shared; failures are not cached. Bounded (LRU).
+ */
+const AUDIENCE_TTL_MS = 25_000
+const AUDIENCE_CACHE_MAX = 10_000
+const sharedAudiences = new Map<string, { at: number; audience: Promise<Audience> }>()
+
+export function sharedAudience(userId: string, load: () => Promise<Audience>, now: () => number = Date.now): Promise<Audience> {
+  const hit = sharedAudiences.get(userId)
+  if (hit && now() - hit.at < AUDIENCE_TTL_MS) return hit.audience
+  const audience = load()
+  sharedAudiences.delete(userId)
+  sharedAudiences.set(userId, { at: now(), audience })
+  while (sharedAudiences.size > AUDIENCE_CACHE_MAX) sharedAudiences.delete(sharedAudiences.keys().next().value as string)
+  audience.catch(() => { if (sharedAudiences.get(userId)?.audience === audience) sharedAudiences.delete(userId) })
+  return audience
+}
+
+/** Test hook. */
+export function clearSharedAudiences(): void {
+  sharedAudiences.clear()
+}

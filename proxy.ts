@@ -9,6 +9,7 @@ import { EMBED_TOKEN_PARAM, verifyEmbedToken } from "@/lib/embedding-token"
 import { authCookieSecure } from "@/lib/providers/auth/cookies"
 import { embedFrameSrc, readSsoFrameSources } from "@/lib/providers/auth/sso/frame-sources"
 import { isDesignerEmbedPath } from "@/lib/embed/designers"
+import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/request-id"
 import {
   HOST_WORKSPACE_HEADER, INVALID_HOST_MARK, REQUEST_PATH_HEADER, WORKSPACE_HOP_PREFIX,
   baseDomainFromEnv, classifyHost, parseWorkspaceHop, workspaceOrigin,
@@ -36,6 +37,10 @@ export async function proxy(request: NextRequest) {
     const target = `${pathname.replace(/\/+$/, "").replace(/^\/{2,}/, "/") || "/"}${request.nextUrl.search}`
     return NextResponse.redirect(new URL(target, new URL(request.url).origin), 308)
   }
+
+  // Correlation id (lib/request-id.ts): forwarded to the server, echoed on the response.
+  const requestId = resolveRequestId(request.headers.get(REQUEST_ID_HEADER))
+  request.headers.set(REQUEST_ID_HEADER, requestId)
 
   // Workspace addresses (lib/workspace-address.ts): tell the server which
   // workspace the Host names. Client-sent copies of these headers are
@@ -77,8 +82,13 @@ export async function proxy(request: NextRequest) {
   }
 
   const response = await updateSession(request)
+  response.headers.set(REQUEST_ID_HEADER, requestId)
   // Custom form control frames carry their own (much stricter) CSP.
   if (request.nextUrl.pathname.startsWith(FRAME_PATH_PREFIX)) return response
+  // Stored files (/files/<bucket>/<key>, lib/storage/serve.ts) carry their own
+  // sandboxing CSP; Next keeps a header the proxy already set over the route's,
+  // so the app policy (inline scripts allowed) must not be set here.
+  if (request.nextUrl.pathname.startsWith("/files/")) return response
   // Per-request CSP from the runtime config (replaces next.config's
   // build-time header on every proxied path).
   // Public form links (/p/<token>, and /form/<name> for a visitor without a

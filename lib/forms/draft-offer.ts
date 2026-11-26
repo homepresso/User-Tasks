@@ -53,3 +53,16 @@ export function personHasEntered(values: Record<string, unknown>, edited: boolea
 export function shouldOfferDraft(input: { anonymous: boolean; displayOnly: boolean; hasDraft: boolean; decided: boolean; entered: boolean }): boolean {
   return !input.anonymous && !input.displayOnly && input.hasDraft && !input.decided && !input.entered
 }
+
+/**
+ * Unsaved for a host that asks before closing (an app panel): the person edited
+ * AND some value of theirs differs from what the form filled in by itself (its
+ * defaults, e.g. {{param.workspace_id}}). Clicking into a field, or a form that
+ * only holds its own defaults, is nothing to lose.
+ */
+export function hasUnsavedEntries(values: Record<string, unknown>, defaults: Record<string, unknown>, edited: boolean): boolean {
+  if (!edited) return false
+  const empty = (v: unknown) => v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length)
+  const same = (a: unknown, b: unknown) => { try { return JSON.stringify(a ?? null) === JSON.stringify(b ?? null) } catch { return a === b } }
+  return Object.entries(values).some(([k, v]) => !k.startsWith('__form_') && !empty(v) && !same(v, defaults[k]))
+}

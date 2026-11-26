@@ -18,6 +18,7 @@ import {
   allCollapsed, allExpanded, initialPaletteCollapse, isGroupCollapsed, loadCollapseMap, paletteCollapseReducer, safeLocalStorage, saveCollapseMap,
 } from "@/lib/palette-collapse"
 import { cn } from "@/lib/utils"
+import { onActivateKey } from "@/lib/a11y/keyboard"
 import { serverRead } from "@/lib/server-read"
 import { IconButton } from "@/components/ui/icon-button"
 import { SearchInput } from "@/components/ui/input"
@@ -89,6 +90,10 @@ function DraggablePaletteItem({
         isDragging && "opacity-30",
       )}
       onClick={() => !isDisabled && !isDragging && onAddNode(type as NodeType)}
+      // dnd-kit makes this role="button" + tabIndex 0 but adds no key handling: Enter / Space adds the step.
+      onKeyDown={onActivateKey(() => { if (!isDisabled) onAddNode(type as NodeType) })}
+      aria-label={`Add ${label}`}
+      aria-disabled={isDisabled || undefined}
     >
       <Icon size={16} className="shrink-0" style={{ color }} aria-hidden="true" />
       <span className="flex-1 min-w-0 truncate">{label}</span>

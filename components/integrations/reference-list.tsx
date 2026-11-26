@@ -1,5 +1,7 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { SubmitButton } from '@/components/ui/submit-button'
@@ -64,6 +66,7 @@ interface ReferenceListProps {
 }
 
 export function ReferenceList({ integrationId, integrationBaseUrl, references }: ReferenceListProps) {
+  const [confirm, confirmDialog] = useConfirm()
   const [localReferences, setLocalReferences] = useState(references)
   const [adding, setAdding] = useState(false)
   // Synchronous guard: React 19 renders state set inside a form action only
@@ -120,7 +123,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
 
   async function bulkDelete() {
     setConfirmState({
-      title: 'Delete References',
+      title: 'Delete references',
       description: `Delete ${selected.size} reference${selected.size !== 1 ? 's' : ''}? This cannot be undone.`,
       action: async () => {
         setBulkDeleting(true)
@@ -176,7 +179,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
   async function runTest(ref: Reference) {
     const ext = extensionMeta(ref)
     if (ext) {
-      if (ext.writes && !window.confirm(`"${ref.name}" changes data${ext.destructive ? ' and is destructive' : ''}. Running the test does it for real with the connection's account. Continue?`)) return
+      if (ext.writes && !(await confirm({ title: `Run “${ref.name}” for real?`, description: `It changes data${ext.destructive ? ' and is destructive' : ''}. Running the test does it for real with the connection’s account.`, confirmLabel: 'Run test', destructive: true }))) return
       setTestLoading(true)
       setTestResult(null)
       try {
@@ -193,7 +196,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
       setTestLoading(false)
       return
     }
-    if (isWriteReference(ref) && !window.confirm(`"${ref.name}" writes data. Running the test sends it for real with the integration's credentials (recorded in the call log). Continue?`)) return
+    if (isWriteReference(ref) && !(await confirm({ title: `Run “${ref.name}” for real?`, description: 'It writes data. Running the test sends it for real with the integration’s credentials (recorded in the call log).', confirmLabel: 'Run test', destructive: true }))) return
     setTestLoading(true)
     setTestResult(null)
     try {
@@ -219,7 +222,7 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
 
   async function handleDelete(refId: string, refName: string) {
     setConfirmState({
-      title: 'Delete Reference',
+      title: 'Delete reference',
       description: `Delete reference "${refName}"? This cannot be undone.`,
       action: async () => {
         const previous = localReferences
@@ -458,19 +461,20 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
         const methodColors: Record<string, string> = { GET: 'var(--theme-success)', POST: 'var(--status-info)', PUT: 'var(--theme-warning)', DELETE: 'var(--theme-danger)', PATCH: 'var(--theme-chart-6)' }
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'var(--theme-overlay)' }}>
-            <div className="w-[90vw] max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden bg-panel border-border">
+          <Dialog open onOpenChange={(open) => { if (!open) setTestingRef(null) }}>
+            <DialogContent size="lg" className="max-w-2xl max-h-[80vh] rounded-2xl" aria-describedby={undefined}>
+              {confirmDialog}
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--theme-surface-border)' }}>
                 <div className="flex items-center gap-2">
-                  <Play size={14} className="text-primary-text" />
-                  <span className="text-sm font-semibold">Test: {ref.name}</span>
+                  <Play size={14} className="text-primary-text" aria-hidden="true" />
+                  <DialogTitle className="text-sm font-semibold">Test: {ref.name}</DialogTitle>
                   <span className="text-2xs font-bold px-1.5 py-0.5 rounded"
                     style={{ color: methodColors[config?.method] ?? 'var(--theme-muted-text)', backgroundColor: `color-mix(in srgb, ${methodColors[config?.method] ?? 'var(--theme-muted-text)'} 8%, transparent)` }}>
                     {config?.method ?? 'GET'}
                   </span>
                 </div>
-                <button onClick={() => setTestingRef(null)} className="p-1 rounded hover:opacity-70 text-fg-muted">
+                <button type="button" onClick={() => setTestingRef(null)} aria-label="Close" className="p-1 rounded hover:opacity-70 text-fg-muted">
                   <X size={16} />
                 </button>
               </div>
@@ -545,8 +549,8 @@ export function ReferenceList({ integrationId, integrationBaseUrl, references }:
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+            </DialogContent>
+          </Dialog>
         )
       })()}
 

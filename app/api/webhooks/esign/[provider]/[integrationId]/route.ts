@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { esignProvider, providerFromWebhookSlug } from '@/lib/esign/catalog'
+import { capResponseBody, ResponseBodyTooLargeError } from '@/lib/capped-response'
 
 /**
  * E-signature webhooks: /api/webhooks/esign/{provider}/{integrationId}
@@ -37,8 +38,14 @@ async function handle(request: NextRequest, context: Params) {
 
   const declared = Number(request.headers.get('content-length'))
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
-  const rawBody = Buffer.from(await request.arrayBuffer())
-  if (rawBody.byteLength > MAX_BODY_BYTES) return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+  // Streamed with a cap: a chunked body (no Content-Length) is refused once it passes it, never buffered whole.
+  let rawBody: Buffer
+  try {
+    rawBody = Buffer.from(await capResponseBody(new Response(request.body), MAX_BODY_BYTES).arrayBuffer())
+  } catch (error) {
+    if (error instanceof ResponseBodyTooLargeError) return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+    throw error
+  }
 
   const { serviceDb, contextFromIntegration } = await import('@/lib/esign/service')
   const db = await serviceDb()

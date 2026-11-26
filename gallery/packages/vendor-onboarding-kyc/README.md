@@ -36,7 +36,7 @@ curl -X POST "$USERTASKS_URL/api/v1/workflows/start" \
 
 - **Vendor application** form page with steps and a progress bar, in Application mode: the form's own Next / Back / Submit application buttons, no bottom bar.
 - Autocomplete with a stored value and a display label: the country stores `NZ` and shows "New Zealand (NZ)", and fills the country risk.
-- Form rules (**Rules** tab): the spend justification shows only for NZD 100,000 or more and is required then; a declared conflict of interest needs details; the vendor contact cannot be your own email; picking a medium or high risk country shows a note.
+- Form rules (**Rules** tab): the spend justification shows only for USD 100,000 or more and is required then; a declared conflict of interest needs details; the vendor contact cannot be your own email; picking a medium or high risk country shows a note.
 - **Vendor applications** table, written by the workflow at each step (Screening → Compliance review → Bank verification → Approved / Declined, with the risk tier, score, ERP vendor id and re-screen date).
 - **Vendor applications** page: a Data table with formats, filters and a 12-month base filter; click a row to open its details, or change a status / note and **Save changes** (for each changed row → update the table).
 - Upgrading from 1.1.0 keeps your Country risk rows and settings; the new table, forms and workflow steps are added.

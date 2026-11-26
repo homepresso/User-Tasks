@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { KeyRound, Pencil, Plus, ScanSearch, Trash2 } from 'lucide-react'
@@ -134,13 +135,14 @@ function IdpForm({ initial, existing, appUrl, orgSlug, onDone }: { initial: IdpF
 }
 
 export function SignInStep({ data }: { data: WizardPageData }) {
+  const [confirm, confirmDialog] = useConfirm()
   const router = useRouter()
   const { signIn } = data
   const [editing, setEditing] = useState<{ form: IdpFormInput; existing: IdpSummary | null } | null>(signIn.idps.length ? null : signIn.refusal ? null : { form: blankForm('entra'), existing: null })
   const [message, setMessage] = useState<Notice>(null)
   const [pending, start] = useTransition()
   const remove = (idp: IdpSummary) => start(async () => {
-    if (!window.confirm(`Remove ${idp.name ?? idp.id}? People who sign in with it will need a password or another provider.`)) return
+    if (!(await confirm({ title: `Remove ${idp.name ?? idp.id}?`, description: 'People who sign in with it will need a password or another provider.', confirmLabel: 'Remove', destructive: true }))) return
     const res = await setupWizardRemoveIdp(idp.id)
     if (!res.ok) { setMessage({ tone: 'danger', message: res.error }); return }
     setMessage({ tone: 'success', message: `${idp.name ?? idp.id} removed (recorded in the switch log).` })
@@ -150,6 +152,7 @@ export function SignInStep({ data }: { data: WizardPageData }) {
 
   return (
     <>
+      {confirmDialog}
       <p className="text-sm text-fg-muted">
         Optional. People can always sign in with an email and password. Add your company&apos;s identity provider so they can use their work account
         instead: Microsoft Entra ID, AD FS, Okta, Keycloak, Google Workspace or any OpenID Connect or SAML provider.

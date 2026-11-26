@@ -103,6 +103,8 @@ describe('inputs', () => {
     const bad = html(h(Field, { label: 'Name', error: 'Required', id: 'n', children: h(Input) }))
     expect(bad).toContain('aria-invalid="true"')
     expect(bad).toContain('aria-describedby="n-err"')
+    // The error is announced when it appears (not only when the control is next focused).
+    expect(bad).toMatch(/id="n-err" role="alert"/)
     expect(bad).not.toContain('Help')
   })
 

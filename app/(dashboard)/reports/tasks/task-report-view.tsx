@@ -1,72 +1,62 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { PageHeader } from '@/components/ui/page-header'
 import { ReportMetricRow } from '@/components/reports/report-metric-row'
 import { ReportChart } from '@/components/reports/lazy-charts'
 import { ReportDataTable } from '@/components/reports/report-data-table'
 import { ReportExportButton } from '@/components/reports/report-export'
-import { ReportDateFilter, getDateFrom } from '@/components/reports/report-filters'
+import { ReportDateFilter } from '@/components/reports/report-filters'
+import { OVERDUE_BUCKETS, TASK_PRIORITIES, TASK_STATUSES, type TaskSummary } from '@/lib/reports/task-summary'
 
 interface Props {
-  allTasks: any[]
-  completedRecent: any[]
+  days: number
+  onDaysChange: (days: number) => void
+  /** Counted in the database for the selected range (lib/reports/task-summary.ts); null while loading. */
+  summary: TaskSummary | null
   effortRecords: any[]
-  overdueTasks: any[]
   recentCompleted: any[]
   userMap: Record<string, string>
 }
 
-export function TaskReportView({ allTasks, completedRecent, effortRecords, overdueTasks, recentCompleted, userMap }: Props) {
-  const [days, setDays] = useState(30)
+const label = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 
-  const dateFrom = getDateFrom(days)
-  const tasks = useMemo(() => {
-    if (!dateFrom) return allTasks
-    return allTasks.filter(t => new Date(t.created_at) >= dateFrom)
-  }, [allTasks, dateFrom])
-
-  const total = tasks.length
-  const completed = tasks.filter(t => t.status === 'completed').length
+export function TaskReportView({ days, onDaysChange, summary, effortRecords, recentCompleted, userMap }: Props) {
+  const total = summary?.total ?? 0
+  const completed = summary?.completed ?? 0
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
 
   // Avg completion time (days)
-  const completedWithDates = tasks.filter(t => t.status === 'completed' && t.completed_at && t.created_at)
-  const avgCompletionDays = completedWithDates.length > 0
-    ? (completedWithDates.reduce((sum, t) => sum + (new Date(t.completed_at).getTime() - new Date(t.created_at).getTime()), 0) / completedWithDates.length / 86400000).toFixed(1)
+  const avgCompletionDays = summary?.avg_completion_ms != null
+    ? (summary.avg_completion_ms / 86400000).toFixed(1)
     : '—'
 
-  const overdueRate = total > 0 ? Math.round((overdueTasks.length / total) * 100) : 0
+  const overdueCount = summary?.overdue.count ?? 0
+  const overdueRate = total > 0 ? Math.round((overdueCount / total) * 100) : 0
 
   // Status distribution
-  const statusCounts = ['todo', 'in_progress', 'blocked', 'completed', 'cancelled'].map(s => ({
-    name: s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-    value: tasks.filter(t => t.status === s).length,
+  const statusCounts = TASK_STATUSES.map(s => ({
+    name: label(s),
+    value: summary?.status[s] ?? 0,
   })).filter(s => s.value > 0)
 
   // Completion trend (weekly for 12 weeks)
   const weeklyCompleted = useMemo(() => {
-    const weeks: { name: string; completed: number }[] = []
     const now = new Date()
-    for (let i = 11; i >= 0; i--) {
+    return Array.from({ length: 12 }, (_, idx) => {
+      const i = 11 - idx
       const weekEnd = new Date(now)
       weekEnd.setDate(weekEnd.getDate() - i * 7)
       const weekStart = new Date(weekEnd)
       weekStart.setDate(weekStart.getDate() - 7)
-      const count = completedRecent.filter(t => {
-        const d = new Date(t.completed_at)
-        return d >= weekStart && d < weekEnd
-      }).length
-      const label = `${weekStart.getDate()}/${weekStart.getMonth() + 1}`
-      weeks.push({ name: label, completed: count })
-    }
-    return weeks
-  }, [completedRecent])
+      return { name: `${weekStart.getDate()}/${weekStart.getMonth() + 1}`, completed: summary?.weekly[idx] ?? 0 }
+    })
+  }, [summary])
 
   // Priority breakdown
-  const priorityCounts = ['critical', 'high', 'medium', 'low', 'none'].map(p => ({
+  const priorityCounts = TASK_PRIORITIES.map(p => ({
     name: p.charAt(0).toUpperCase() + p.slice(1),
-    value: tasks.filter(t => (t.priority ?? 'none') === p).length,
+    value: summary?.priority[p] ?? 0,
   })).filter(p => p.value > 0)
 
   // Effort accuracy scatter
@@ -82,33 +72,11 @@ export function TaskReportView({ allTasks, completedRecent, effortRecords, overd
   }, [effortRecords])
 
   // Overdue by severity
-  const overdueBuckets = useMemo(() => {
-    const buckets = [
-      { name: '1-3 days', min: 1, max: 3, count: 0 },
-      { name: '4-7 days', min: 4, max: 7, count: 0 },
-      { name: '8-14 days', min: 8, max: 14, count: 0 },
-      { name: '15+ days', min: 15, max: 9999, count: 0 },
-    ]
-    const now = new Date()
-    overdueTasks.forEach(t => {
-      const daysLate = Math.floor((now.getTime() - new Date(t.due_date).getTime()) / 86400000)
-      const bucket = buckets.find(b => daysLate >= b.min && daysLate <= b.max)
-      if (bucket) bucket.count++
-    })
-    return buckets.map(b => ({ name: b.name, value: b.count }))
-  }, [overdueTasks])
+  const overdueBuckets = OVERDUE_BUCKETS.map((b, i) => ({ name: b.name, value: summary?.overdue.buckets[i] ?? 0 }))
 
   // Assignee leaderboard
-  const assigneeLeaderboard = useMemo(() => {
-    const counts = new Map<string, number>()
-    tasks.filter(t => t.status === 'completed' && t.assignee_id).forEach(t => {
-      counts.set(t.assignee_id, (counts.get(t.assignee_id) ?? 0) + 1)
-    })
-    return [...counts.entries()]
-      .map(([id, count]) => ({ name: userMap[id] ?? id.slice(0, 8), value: count }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10)
-  }, [tasks, userMap])
+  const assigneeLeaderboard = useMemo(() => (summary?.leaderboard ?? [])
+    .map(({ assignee_id, count }) => ({ name: userMap[assignee_id] ?? assignee_id.slice(0, 8), value: count })), [summary, userMap])
 
   const exportColumns = [
     { key: 'title', label: 'Title' },
@@ -128,7 +96,7 @@ export function TaskReportView({ allTasks, completedRecent, effortRecords, overd
         className="mb-0"
         actions={
           <>
-            <ReportDateFilter days={days} onDaysChange={setDays} />
+            <ReportDateFilter days={days} onDaysChange={onDaysChange} />
             <ReportExportButton data={recentCompleted} columns={exportColumns} filename="task-report" />
           </>
         }
@@ -138,7 +106,7 @@ export function TaskReportView({ allTasks, completedRecent, effortRecords, overd
         { label: 'Total tasks', value: total },
         { label: 'Completion rate', value: `${completionRate}%`, subtitle: `${completed} completed` },
         { label: 'Avg completion', value: `${avgCompletionDays}d`, subtitle: 'Created to completed' },
-        { label: 'Overdue rate', value: `${overdueRate}%`, subtitle: `${overdueTasks.length} overdue` },
+        { label: 'Overdue rate', value: `${overdueRate}%`, subtitle: `${overdueCount} overdue` },
       ]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

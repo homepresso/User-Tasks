@@ -1,5 +1,6 @@
 'use client'
 
+import { toastError } from '@/lib/toast'
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -12,7 +13,6 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { InlineNotice } from '@/components/ui/inline-notice'
-import { Card } from '@/components/ui/card'
 import { ReferenceInputsEditor } from '@/components/shared/reference-inputs-editor'
 import { SearchableOptionPicker } from '@/components/ui/searchable-option-picker'
 import { SearchableMultiOptionPicker } from '@/components/ui/searchable-multi-option-picker'
@@ -39,6 +39,9 @@ import { serverQuery } from '@/lib/server-read'
 import { usePermissions } from '@/lib/permissions-context'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { TagInput } from '@/components/ui/tag-input'
+import { Dialog, DialogBody, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { Field } from '@/components/ui/field'
+import { Textarea } from '@/components/ui/textarea'
 
 const VIZ_OPTIONS = [
   { value: 'table', label: 'Table', icon: '▦' },
@@ -813,7 +816,7 @@ export default function ReportBuilderPage() {
       })
       router.push(`/reports/${(result as any).id}`)
     } catch (err: any) {
-      alert(err.message)
+      toastError('Could not save the report', err.message)
     }
   }
 
@@ -1839,35 +1842,30 @@ export default function ReportBuilderPage() {
         </div>
       </div>
 
-      {/* Save dialog */}
-      {showSave && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowSave(false)}>
-          <Card className="w-full max-w-md p-6 space-y-4 bg-panel" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-fg">Save report</h2>
-            <div className="space-y-3">
+      {/* Save dialog: the shared Dialog (focus trap, Esc, focus return, labelled fields). */}
+      <Dialog open={showSave} onOpenChange={setShowSave}>
+        <DialogContent size="sm" title="Save report">
+          <DialogBody className="space-y-3">
+            <Field label="Report name">
               <Input value={saveName} onChange={e => setSaveName(e.target.value)} placeholder="Report name" autoFocus />
-              <textarea
-                value={saveDesc}
-                onChange={e => setSaveDesc(e.target.value)}
-                placeholder="Description (optional)"
-                rows={2}
-                className="w-full rounded-lg border px-3 py-2 text-sm border-border bg-panel text-fg"
-              />
-              <TagInput value={saveTags} onChange={setSaveTags} listInline placeholder="Tags (optional)" aria-label="Tags" />
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" checked={saveShared} onChange={e => setSaveShared(e.target.checked)} className="rounded" />
-                <span className="text-fg">Share with team</span>
-              </label>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowSave(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleSave} disabled={!saveName.trim() || saving}>
-                {saving ? 'Saving...' : 'Save Report'}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+            </Field>
+            <Field label="Description" optional>
+              <Textarea value={saveDesc} onChange={e => setSaveDesc(e.target.value)} rows={2} />
+            </Field>
+            <TagInput value={saveTags} onChange={setSaveTags} listInline placeholder="Tags (optional)" aria-label="Tags" />
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={saveShared} onChange={e => setSaveShared(e.target.checked)} className="rounded" />
+              <span className="text-fg">Share with team</span>
+            </label>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" size="sm" onClick={() => setShowSave(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleSave} disabled={!saveName.trim() || saving}>
+              {saving ? 'Saving…' : 'Save report'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

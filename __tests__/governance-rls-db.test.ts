@@ -127,7 +127,7 @@ describe.skipIf(!DB_URL)('governance RLS', () => {
       createTable: 'err:42501',
       createIntegration: 'err:42501',
       writeConnector: 'err:42501',
-      eraseAudit: 'ok:0',
+      eraseAudit: 'err:42501', // DELETE privilege revoked (20270130090000): refused, not just 0 rows
       readOAuthTokens: 'err:42501',
     })
   })
@@ -138,7 +138,7 @@ describe.skipIf(!DB_URL)('governance RLS', () => {
       expect(r[k], k).toBe('err:42501')
     }
     expect(r.readKeys).toBe('ok:0')
-    expect(r.eraseAudit).toBe('ok:0')
+    expect(r.eraseAudit).toBe('err:42501')
   })
 
   it('an Admin of the workspace still can (permission-gated, not revoked); audit rows stay append-only', async () => {
@@ -156,7 +156,7 @@ describe.skipIf(!DB_URL)('governance RLS', () => {
       createTable: 'ok:1',
       createIntegration: 'ok:1',
       writeConnector: 'ok:1',
-      eraseAudit: 'ok:0',
+      eraseAudit: 'err:42501', // DELETE privilege revoked (20270130090000): refused, not just 0 rows
       readOAuthTokens: 'err:42501',
     })
   })

@@ -79,10 +79,16 @@ export async function instanceList(ctx: ServiceContext, req: InstanceListRequest
   return { dataset: req.dataset, page, columns }
 }
 
-/** A row id for a dataset row (its id, else the workspace / person it is about). */
+/**
+ * A row id for a dataset row: its id, else what it is about — all of it (an
+ * asset row is one KIND of one workspace: every row of a workspace's Assets
+ * shares the workspace id, and those duplicate keys made the grid drop and
+ * mix up rows and cells).
+ */
 export function instanceRowId(row: Record<string, unknown>, index: number): string {
-  const id = row.id ?? row.workspace_id ?? row.user_id ?? row.kind ?? row.queue
-  return String(id ?? `row-${index}`).slice(0, 120)
+  if (row.id !== null && row.id !== undefined && row.id !== '') return String(row.id).slice(0, 120)
+  const parts = [row.workspace_id, row.user_id, row.kind, row.queue, row.day].filter((v) => v !== null && v !== undefined && v !== '').map(String)
+  return (parts.length ? parts.join(':') : `row-${index}`).slice(0, 120)
 }
 
 /** A dataset row for display: bytes as readable sizes. */

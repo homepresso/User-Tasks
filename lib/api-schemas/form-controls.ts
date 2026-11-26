@@ -46,7 +46,7 @@ export const listFormControlsEndpoint = defineEndpoint({
 })
 
 export const createFormControlEndpoint = defineEndpoint({
-  method: 'POST', path: '/form-controls', operationId: 'createFormControl', tags,
+  method: 'POST', path: '/form-controls', bodyLimit: 'package', operationId: 'createFormControl', tags,
   summary: 'Upload a form control package (or import one from a URL): a new control, or a new version of the one with the same tag',
   description: `${NOTE} Re-uploading identical content for an existing version is a no-op (outcome "unchanged"); different content for an existing version is refused (409).`,
   permission: 'extensibility.create',
@@ -105,7 +105,7 @@ export const exportFormControlEndpoint = defineEndpoint({
 })
 
 export const importFormControlEndpoint = defineEndpoint({
-  method: 'POST', path: '/form-controls/import', operationId: 'importFormControl', tags,
+  method: 'POST', path: '/form-controls/import', bodyLimit: 'package', operationId: 'importFormControl', tags,
   summary: 'Import a portable export: creates the control and adds the versions it lacks (checksums verified)', permission: 'extensibility.create',
   body: z.looseObject({ form_control: looseObject.optional() }), successStatus: 201,
   response: saveResponse.extend({ added: z.array(z.string()), skipped: z.array(z.string()) }),

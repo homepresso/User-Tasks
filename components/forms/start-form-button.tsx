@@ -10,7 +10,7 @@ import { createFormTheme } from '@/app/actions/forms'
 import { normalizeFormDefinition, type FormDefinition } from '@/lib/forms/definition'
 import { START_FORM_TYPES, startFormConfig, startFormFromVariables, variablesFromStartForm, type StartFormVariable } from '@/lib/forms/start-form'
 import type { TaskFieldDef, TaskFieldType } from '@/lib/task-field-schema'
-import { FormDesignerDialog } from './designer/form-designer-dialog'
+import { LazyFormDesignerDialog as FormDesignerDialog } from './designer/lazy-form-designer-dialog'
 import type { SavedFormTheme } from './designer/theme-editor'
 import { SavedFormPicker } from './node-form-section'
 

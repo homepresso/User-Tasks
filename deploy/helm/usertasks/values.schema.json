@@ -1997,6 +1997,14 @@
               "type": "string",
               "pattern": "^/"
             },
+            "readinessPath": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "livenessPath": {
+              "type": "string",
+              "pattern": "^/"
+            },
             "startup": {
               "type": "object",
               "properties": {

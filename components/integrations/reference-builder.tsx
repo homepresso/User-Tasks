@@ -513,7 +513,7 @@ export function ReferenceBuilder({ reference, integrationBaseUrl }: ReferenceBui
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete Reference"
+        title="Delete reference"
         description="Delete this reference? This cannot be undone."
         confirmLabel="Delete"
         destructive

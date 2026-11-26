@@ -88,6 +88,16 @@ plain PostgreSQL database (see
 | `20270128100000_repair_signup_workspaces.sql` | Data repair for cloud workspaces from the July–11 Nov 2026 beta self-signup: the single founder (users.role already owner, membership 'member', no owner) becomes owner of their own workspace; the empty leftover personal workspaces those signups created are deleted. Targets named explicitly and guarded on current state, so a no-op elsewhere and safe to re-run |
 | `20270128110000_default_theme_onyx.sql` | New workspaces are seeded with the Onyx theme instead of Basecamp (`seed_workspace_theme`). Existing workspaces keep their theme. Replaces a function only; safe to re-run |
 | `20270129090000_instance_admin.sql` | Instance admin ("cloud admin") operations (`lib/services/instance-admin`, `/api/v1/instance/*`): `instance_admin_audit` (every on-behalf action of an instance admin: who, target workspace / person, action, reason, outcome, detail, channel, idempotency key; RLS on, service role only, no foreign keys so it outlives workspaces and people), `instance_admin_daily_counts()` and `instance_admin_workspace_stats()` (per-day / per-workspace counts and sums of runs, tasks, agent runs, AI requests and cost, signups, people, members, invitations, assets, queue, storage bytes — counts only, no content), and Supabase-Auth-only helpers `instance_admin_auth_state()` (last sign-in, ban, confirmation, open sessions, verified MFA factors, sign-in providers), `instance_admin_locked_users()` and `instance_admin_revoke_sessions()` (sign out everywhere: deletes the person's `auth.sessions`; access tokens live until they expire). Every function is service-role only (`SECURITY DEFINER` ones read `auth.*` through dynamic SQL and return nothing where `auth.*` does not exist). Additive and idempotent. Apply before or after the code: until it is applied the reads fall back to capped plain queries, the audit trail is empty with a note, and **every on-behalf action is refused (503)** — nothing happens unaudited |
+| `20270130090000_audit_actor_integrity.sql` | Audit trail integrity: a BEFORE INSERT trigger (`fn_audit_actor_is_caller`) on `object_audit_log`, `permission_audit_log` and `lifecycle_events` sets `actor_id` to `auth.uid()` when the statement runs as `authenticated` / `anon` (a member could otherwise write audit rows in someone else's name, which flow on to `event_stream` and log export); the service role and SECURITY DEFINER paths keep their actor. UPDATE, DELETE and TRUNCATE are revoked from `anon` / `authenticated` on those tables (RLS already refused the first two). Idempotent; apply any time (no code depends on it). Test: `__tests__/audit-actor-integrity-db.test.ts` |
+| `20270130121500_security_membership_and_definer_fixes.sql` | security fixes (function bodies and grants only, no table changes): `get_user_tenant_ids()` / `get_current_tenant_id()` no longer return a home / current workspace where the user's membership is inactive (a deactivated SSO / directory member kept tenant RLS access to their home organisation; accounts with no membership row for their home are unchanged); `add_task_dependency` refuses callers without a workspace (a NULL comparison let anon add dependency edges in any workspace); anon loses EXECUTE on the signed-in-only definer RPCs (`add_task_dependency`, `create_task_with_subtasks`, `get_task_tree`, `check_object_permission`, `get_user_role_in_tenant`, `mark_notifications_read`, `mark_all_notifications_read`, `switch_tenant`). Idempotent; apply any time (no code depends on it). Test: `__tests__/security-membership-db.test.ts` |
+| `20270130140000_task_tables_service_writes.sql` | end users lose INSERT / UPDATE / DELETE on `tasks`, `task_assignees`, `task_dependencies`, `task_reminders`, `task_escalations` and INSERT on `notifications` (the `notifications_insert` policy is dropped; owners keep UPDATE / DELETE of their notifications); SELECT is unchanged. A member could otherwise make themselves a task's assignee or collaborator through the data API with their own JWT and complete it. Adds `public.request_actor_id()` (the `x-usertasks-actor` header, trusted from the service role only) and the tasks triggers `fn_log_lifecycle_event` / `fn_notify_on_task_change` use it, so service-role writes made for a user keep that user as the actor. **Apply after deploying the code that ships with it** (older code wrote these tables with the session client). Test: `__tests__/task-tables-service-writes-db.test.ts` |
+| `20270130150000_app_tags_audience.sql` | App tags for an app's audience again: since app drafts the `apps` row is the editors' draft, so Settings → Tags counted and listed no apps for the people an app is shared with. Adds `app_audience_tagged(tenant)` (`SECURITY DEFINER`: the published, tagged apps the caller sees as audience — `app_access = 'view'` — in a visible workspace, under the published name) and adds its rows to `tag_usage` / `tag_objects` (still `SECURITY INVOKER`). Unpublished apps and apps the caller is not in the audience of stay hidden. Replaces functions only; additive, idempotent, safe before or after the code |
+| `20270131090000_perf_data_table_rows.sql` | Data table grids at scale (QA perf pass): `(table_id, updated_at)` / `(table_id, created_at)` indexes on `custom_table_rows` (plain grid page on 200k rows 380–560 ms → 3–20 ms); `data_table_rows_page` / `data_table_row_groups` rewritten with the same results (lean sort keys, jsonb only for the page, every filter evaluated inline in SQL instead of the plpgsql matcher: column sort 10–11.6 s → 0.9–2.0 s, group rows 4–6 s → 0.7 s); `data_table_numeric` caps exponents at 3 digits (an md5-like cell broke the whole grouped / sorted grid). SECURITY INVOKER, anon no EXECUTE. Additive and idempotent; on a large live table build the two indexes `CONCURRENTLY` first. Tests: `__tests__/data-table-grouping-db.test.ts` |
+| `20270131100000_report_task_summary.sql` | `report_task_summary(p_since, p_now)` (SECURITY INVOKER): the Task analytics report's totals, splits, leaderboard, overdue buckets, 12-week trend and effort scatter as one small jsonb (the report used to count capped task lists in the browser: wrong past 1,000 tasks). Additive; apply any time (the read falls back to the old lists until it is applied). Test: `__tests__/report-task-summary-db.test.ts` |
+| `20270131110000_perf_task_list_index.sql` | Partial index `idx_tasks_tenant_toplevel_due` (top-level, non-deleted tasks by due date) for `tasks.list`. Additive; build `CONCURRENTLY` on a large live table |
+| `20270131120000_perf_fk_indexes.sql` | Partial indexes on `notifications.task_id`, `form_submissions.task_id`, `workflow_queue.task_id`, `dead_letter_events.task_id` and `custom_table_rows.created_by` (FK checks when deleting tasks / users scanned those tables: a 121-task tree with 200k notifications 2.72 s → 0.35 s). Additive; build `CONCURRENTLY` on large live tables |
+| `20270131130000_instance_admin_storage_bytes.sql` | `instance_admin_storage_bytes()` (service role only): the instance admin overview's stored bytes summed in SQL (the row lists were cut at 1,000 files). Additive; the read falls back until it is applied |
+| `20270131140000_grid_query_guards.sql` | Large data-table grid protection: a GIN trigram index on the row text (`idx_custom_rows_data_trgm`, `(data::text)`), `data_table_search_ids()` (SECURITY DEFINER: candidate row ids for a grid search through that index, restricted like the `custom_rows_select` policy, so it works under RLS where ILIKE can never use an index), and `data_table_rows_page` / `data_table_row_groups` with a trailing `p_timeout_ms` (default 8 s, 1–60 s): a per-row clock check stops the scan at the deadline with SQLSTATE 57014, which the app answers with a clear message (503), never a 500. Same results as before. The index is about the table's size; build it `CONCURRENTLY` on a large live table first. App settings: `DATA_GRID_QUERY_TIMEOUT_MS`, `DATA_GRID_MAX_CONCURRENT` (4 per instance), `DATA_GRID_MAX_CONCURRENT_PER_WORKSPACE` (2, held in the cache provider), `DATA_GRID_QUEUE_MS` (2000), `DATA_GRID_TOTAL_CACHE_MS` (45000), `DATA_GRID_TOTAL_CACHE_MIN_ROWS` (10000). Apply before or after the code (the code retries without `p_timeout_ms`). Test: `__tests__/data-table-grouping-db.test.ts` |
 
 Supabase-only statements are guarded so the same files run on plain
 PostgreSQL: storage buckets and policies (`0003`, `20261031000000`,
@@ -205,6 +215,51 @@ Notes:
   the canonical set, run `20261103100000_cron_consolidation.sql` in the SQL
   editor (not `20261015000002_cron_jobs.sql`, which brings back the 13
   separate jobs).
+
+## Rolling back the hotfix (20270130090000 / 121500 / 140000)
+
+The November 2026 security hotfix ships three migrations. Two need nothing on
+a code rollback; one does:
+
+- `20270130090000_audit_actor_integrity` and
+  `20270130121500_security_membership_and_definer_fixes` only add a trigger,
+  replace function bodies and tighten grants. Code from before the hotfix works
+  with them: leave them applied.
+- `20270130140000_task_tables_service_writes` takes the task-table and
+  notification write grants away from signed-in users. Code from before the
+  hotfix writes those tables with the user's session, so after a code rollback
+  every task create / assign / complete / edit and notification send would
+  fail until the grants are back.
+
+Order:
+
+1. Promote the previous deployment (`vercel promote <previous deployment url> --yes`).
+2. Then, and only if 140000 was applied, run the down script once against the
+   database (SQL editor or `psql "$DATABASE_URL" -1 -f …`):
+   `supabase/rollback/20270130140000_task_tables_service_writes.down.sql`.
+   It grants back exactly what 140000 revoked (the baseline `GRANT ALL` on
+   `tasks`, `task_assignees`, `task_dependencies`, `task_reminders`,
+   `task_escalations` and `notifications` for `anon` / `authenticated`) and
+   recreates the `notifications_insert` policy. `request_actor_id()` and the
+   trigger bodies stay (with a session they behave as before). It is
+   idempotent. It lives outside `supabase/migrations` so it never applies by
+   itself; leave the 140000 row in the migration history, and re-apply 140000
+   (it is idempotent) when the hotfix code is deployed again.
+
+Never run the down script while the hotfix code is live: it reopens the
+direct data-API task writes the hotfix closed.
+
+Checked by `__tests__/task-tables-rollback-db.test.ts` (grants and policy
+after up → down, in a rolled-back transaction) and by the RLS semantics test
+run with the down script against the pre-140000 snapshot:
+
+```sh
+git show a77d25f7a:__tests__/__snapshots__/rls-semantics.json > /tmp/rls-pre-140000.json
+EVENT_STREAM_DB_URL=… \
+RLS_SEMANTICS_PRE_SQL="$PWD/supabase/migrations/20270130140000_task_tables_service_writes.sql,$PWD/supabase/rollback/20270130140000_task_tables_service_writes.down.sql" \
+RLS_SEMANTICS_SNAPSHOT=/tmp/rls-pre-140000.json \
+npx vitest run __tests__/rls-semantics-db.test.ts
+```
 
 ## Pending on production
 

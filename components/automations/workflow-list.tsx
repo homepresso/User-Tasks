@@ -105,7 +105,8 @@ function RelativeDate({ value, prefix }: { value: string; prefix?: string }) {
  */
 export function WorkflowList() {
   const router = useRouter()
-  const { layoutPreference, setLayoutPreference } = useAppStore()
+  const layoutPreference = useAppStore((s) => s.layoutPreference)
+  const setLayoutPreference = useAppStore((s) => s.setLayoutPreference)
   const { can } = usePermissions()
   // The view the user chose is remembered; until they choose, more than
   // LIST_VIEW_THRESHOLD workflows open as a table (the facets give the total).

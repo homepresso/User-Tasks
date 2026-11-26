@@ -239,5 +239,6 @@ export async function exportOrgCsv(ctx: ServiceContext): Promise<{ csv: string; 
   if (error) throw dbError(error)
   const slug = String(tenant?.slug ?? '').toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
   const stamp = new Date().toISOString().slice(0, 10)
+  await audit(ctx, { objectType: 'org', objectId: ctx.tenantId, action: 'export', summary: `Exported the org structure (${rows.length} rows)`, metadata: { rows: rows.length } })
   return { csv: toCsv(ORG_IMPORT_COLUMNS, rows), filename: `org-structure-${slug || 'workspace'}-${stamp}.csv`, rows: rows.length }
 }

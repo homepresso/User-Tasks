@@ -27,6 +27,7 @@ import { getProviderConfig } from '../lib/config'
 import { bootstrapEncryptionKey } from '../lib/providers/secrets/bootstrap'
 import { bootstrapKms } from '../lib/providers/kms/bootstrap'
 import { createSchedulerWorker, warnIfPgCronStillScheduled } from '../lib/scheduler/runtime'
+import { writeHeartbeat } from '../lib/scheduler/heartbeat'
 
 /** `--processor`: run the processing provider's processor loop on core's host (lib/processing/processor-host). */
 async function runProcessor(): Promise<never> {
@@ -80,7 +81,8 @@ async function main() {
     console.warn(`[scheduler] SCHEDULER_PROVIDER is ${config.id}, not worker; running the worker anyway`)
   }
   await warnIfPgCronStillScheduled('worker', config.options)
-  const worker = createSchedulerWorker(config.options)
+  // Liveness for the container healthcheck (lib/scheduler/heartbeat.ts); not for --once.
+  const worker = createSchedulerWorker(config.options, once ? {} : { onMinute: () => writeHeartbeat() })
 
   if (once) {
     const outcome = await worker.runMinute(new Date())
@@ -89,6 +91,7 @@ async function main() {
     process.exit(outcome === 'error' ? 1 : 0)
   }
 
+  writeHeartbeat()
   worker.start()
   console.log('[scheduler] worker running; Ctrl+C to stop')
   // The loop's timers don't hold the process open on their own.

@@ -278,6 +278,24 @@ describe('createEventStream', () => {
     expect(fetchPage.mock.calls.length).toBe(callsAtAbort)
   })
 
+  it('pauses reading pages while a slow client has not drained the queue (bounded memory on a backlog)', async () => {
+    const controller = new AbortController()
+    let next = 0
+    // An endless backlog: every page is full and has_more.
+    const fetchPage = vi.fn(async () => page(Array.from({ length: 500 }, () => ({ id: ++next, type: 'task.completed' })), true))
+    const stream = createEventStream({ after: '0', maxMs: 60_000, pollMs: 5, drainPollMs: 5, highWaterMark: 64, signal: controller.signal, fetchPage })
+    const reader = stream.getReader()
+    // The client never reads: before the fix this looped as fast as pages came back.
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(fetchPage.mock.calls.length).toBe(1)
+    // Reading lets it continue.
+    for (let i = 0; i < 520; i++) await reader.read()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(fetchPage.mock.calls.length).toBe(2)
+    controller.abort()
+    await reader.cancel()
+  })
+
   it('splits multi-line data', () => {
     expect(formatSseMessage({ event: 'x', data: 'a\nb' })).toBe('event: x\ndata: a\ndata: b\n\n')
   })

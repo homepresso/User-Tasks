@@ -92,6 +92,17 @@ function normalizeLabel(value: unknown) {
 }
 
 export function buildAggregateFlowStats(workflow: any, runs: any[]): AggregateFlowStats {
+  const acc = createFlowStatsAccumulator(workflow)
+  acc.add(runs)
+  return acc.result()
+}
+
+/**
+ * The same aggregate, fed page by page (each run counts on its own), so a
+ * caller reading thousands of runs holds one page of node_results /
+ * execution_trace at a time instead of all of them.
+ */
+export function createFlowStatsAccumulator(workflow: any): { add: (runs: any[]) => void; result: () => AggregateFlowStats } {
   const nodes = parseJsonField<any[]>(workflow.nodes, [])
   const edges = parseJsonField<any[]>(workflow.edges, [])
   const nodeCounts: Record<string, number> = {}
@@ -102,7 +113,7 @@ export function buildAggregateFlowStats(workflow: any, runs: any[]): AggregateFl
     resolvedEdges.map((edge: any) => [`${edge.source}→${edge.target}`, edge.id])
   )
 
-  for (const run of runs) {
+  const add = (runs: any[]) => { for (const run of runs) {
     const executionTrace = parseJsonField<unknown[]>(run?.execution_trace, []).filter(isTraceEntry)
     const tracedNodeIds = new Set<string>()
     const tracedEdgeIds = new Set<string>()
@@ -220,13 +231,14 @@ export function buildAggregateFlowStats(workflow: any, runs: any[]): AggregateFl
         }
       }
     }
-  }
+  } }
 
-  return {
+  const result = (): AggregateFlowStats => ({
     nodeCounts,
     edgeCounts,
     maxNodeCount: Math.max(0, ...Object.values(nodeCounts)),
     maxEdgeCount: Math.max(0, ...Object.values(edgeCounts)),
     nodeStats,
-  }
+  })
+  return { add, result }
 }

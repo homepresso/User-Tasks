@@ -109,7 +109,9 @@ describe.skipIf(!DB_URL)('available forms (local stack)', () => {
     await q(`INSERT INTO public.tenants (id, name, slug) VALUES ($1, 'Avail A', 'avail-a-test'), ($2, 'Avail B', 'avail-b-test'), ($3, 'Avail C', 'avail-c-test')`, [A, B, C])
     for (const user of USERS) {
       await q(`INSERT INTO auth.users (id, email, instance_id, aud, role) VALUES ($1, $2, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated')`,
-        [user, `u${user.slice(-3)}.${Date.now().toString(36)}@avail.test`])
+        // The ids differ in their first 8 characters (all end in …0af): two users
+        // inserted in the same millisecond got the same address (users_email_partial_key).
+        [user, `u${user.slice(0, 8)}.${Date.now().toString(36)}@avail.test`])
     }
     const home = (user: string) => (user === OUTSIDER ? B : A)
     for (const user of USERS) {

@@ -197,3 +197,25 @@ describe('/files route module', () => {
     delete process.env.STORAGE_LOCAL_ROOT
   })
 })
+
+describe('/files: SVG and the sandbox CSP (QA 2026-11-24)', () => {
+  it('serves SVG (even under a non-.svg key) as an attachment with the sandbox CSP', async () => {
+    await provider.put('task-files', 'workflow-files/tenant-a/x.bin', new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'), { contentType: 'image/svg+xml' })
+    await provider.put('logos', 'tenant-a/icon.svg', new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>'), { contentType: 'image/svg+xml' })
+    for (const [bucket, key] of [['task-files', 'workflow-files/tenant-a/x.bin'], ['logos', 'tenant-a/icon.svg']]) {
+      const res = await serve(bucket, key)
+      expect(res.headers.get('content-disposition')).toMatch(/^attachment;/)
+      expect(res.headers.get('content-security-policy')).toMatch(/sandbox/)
+    }
+  })
+
+  it('neither the proxy nor next.config puts the app CSP on /files (Next keeps the first CSP set, dropping the route sandbox)', async () => {
+    const { readFileSync } = await import('node:fs')
+    const proxy = readFileSync(path.join(process.cwd(), 'proxy.ts'), 'utf8')
+    const early = proxy.indexOf('startsWith("/files/")) return response')
+    expect(early).toBeGreaterThan(-1)
+    expect(early).toBeLessThan(proxy.indexOf('response.headers.set("Content-Security-Policy"'))
+    const config = readFileSync(path.join(process.cwd(), 'next.config.ts'), 'utf8')
+    expect(config).toContain('|embed/|files/).*)"')
+  })
+})

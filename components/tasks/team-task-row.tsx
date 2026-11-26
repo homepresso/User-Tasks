@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useRef, useState } from "react"
+import { memo, useId, useRef, useState } from "react"
 import Link from "next/link"
 import { AlertTriangle, ChevronDown, Clock, ExternalLink, UserCheck } from "lucide-react"
 import type { serverQuery } from "@/lib/server-read"
@@ -40,7 +40,7 @@ export function teamPersonName(p: { display_name: string | null; email: string |
   return p?.display_name || p?.email || "Unknown"
 }
 
-export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, onDone }: {
+export const TeamTaskRow = memo(function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, onDone }: {
   task: TeamTaskRowData
   readOnly: boolean
   reassigning: boolean
@@ -215,4 +215,4 @@ export function TeamTaskRow({ task, readOnly, reassigning, onReassign, targets, 
       {picking && <AssignTaskDialog taskIds={[task.id]} open={picking} onOpenChange={setPicking} title={task.title} currentAssignee={teamPersonName(task.assignee)} onDone={() => { setPicking(false); onDone() }} />}
     </>
   )
-}
+})

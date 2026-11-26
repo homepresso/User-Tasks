@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { completeOidcCallback, completionUrl, ssoOrigin } from '@/lib/providers/auth/sso/flow'
+import { clientIp } from '@/lib/client-ip'
 
 /**
  * OpenID Connect redirect URI: <APP_URL>/auth/sso/<id>/callback (register it at
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest, { params }: { params: Promise<{ idp: string }> }) {
   const { idp } = await params
   const ctx = {
-    ip: (request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
+    ip: clientIp(request),
     userAgent: request.headers.get('user-agent'),
   }
   const target = await completeOidcCallback(idp, request, ctx)

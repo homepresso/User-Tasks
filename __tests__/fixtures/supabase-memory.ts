@@ -104,8 +104,15 @@ export function createMemorySupabase(seed: Record<string, Row[]> = {}, options: 
       gte(field: string, value: any) { state.filters.push((row) => row[field] != null && row[field] >= value); return api },
       lte(field: string, value: any) { state.filters.push((row) => row[field] != null && row[field] <= value); return api },
       lt(field: string, value: any) { state.filters.push((row) => row[field] != null && row[field] < value); return api },
-      // Numeric-aware: bigint cursors arrive as strings.
-      gt(field: string, value: any) { state.filters.push((row) => row[field] != null && Number(row[field]) > Number(value)); return api },
+      // Numeric-aware: bigint cursors arrive as strings; other text compares as text (uuid keyset cursors).
+      gt(field: string, value: any) {
+        state.filters.push((row) => {
+          if (row[field] == null) return false
+          const l = Number(row[field]), r = Number(value)
+          return Number.isFinite(l) && Number.isFinite(r) ? l > r : String(row[field]) > String(value)
+        })
+        return api
+      },
       like(field: string, pattern: string) {
         let source = ''
         for (let i = 0; i < pattern.length; i++) {

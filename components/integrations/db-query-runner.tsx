@@ -190,6 +190,7 @@ export function DbQueryRunner({ integrationId }: DbQueryRunnerProps) {
             </div>
             <button
               onClick={loadTables}
+              aria-label="Refresh tables"
               disabled={loadingTables}
               className="p-1 hover:opacity-70 text-fg-muted"
             >

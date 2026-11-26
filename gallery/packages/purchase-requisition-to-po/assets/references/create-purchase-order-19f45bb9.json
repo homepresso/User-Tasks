@@ -40,7 +40,7 @@
             {
               "name": "currency",
               "type": "string",
-              "example": "NZD"
+              "example": "USD"
             },
             {
               "name": "document_url",
@@ -63,7 +63,7 @@
           "po_number": "PO-4500871",
           "status": "issued",
           "amount": 14500,
-          "currency": "NZD",
+          "currency": "USD",
           "document_url": "https://erp.example.com/documents/po/PO-4500871.pdf",
           "expected_delivery": "2026-11-13",
           "created_at": "2026-10-26T10:04:00Z"

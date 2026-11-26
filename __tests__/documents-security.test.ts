@@ -84,6 +84,19 @@ describe('XML: XXE and entity expansion', () => {
   it('deep nesting is bounded', () => {
     expect(() => parseXml(`${'<a>'.repeat(600)}${'</a>'.repeat(600)}`)).toThrow(/nested too deeply/)
   })
+
+  it('attribute parsing is linear: a huge attribute run without `=` does not stall (ReDoS)', () => {
+    // The old unanchored attribute regex took ~12 s for 40 KB and minutes for 160 KB.
+    const started = Date.now()
+    const el = parseXml(`<r a${'b'.repeat(1_000_000)} x="1"/>`)
+    expect(Date.now() - started).toBeLessThan(2_000)
+    expect(el.attrs.x).toBe('1')
+  })
+
+  it('attributes: boolean names skipped, unspaced pairs and both quote styles read, Object.prototype names are not entities', () => {
+    const el = parseXml(`<r disabled x="1" y='2'z="3" a = "&amp;&constructor;"/>`)
+    expect(el.attrs).toEqual({ x: '1', y: '2', z: '3', a: '&&constructor;' })
+  })
 })
 
 describe('size limits', () => {

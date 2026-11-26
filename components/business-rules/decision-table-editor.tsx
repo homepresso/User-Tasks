@@ -97,6 +97,7 @@ function normalizeRules(rules: any[] | undefined) {
           inputKey: condition.inputKey ?? '',
           operator: condition.operator ?? 'equals',
           value: condition.value ?? '',
+          ...(typeof condition.valueInputKey === 'string' && condition.valueInputKey ? { valueInputKey: condition.valueInputKey } : {}),
         }))
       : [{ id: crypto.randomUUID(), inputKey: '', operator: 'equals', value: '' }],
     outputs: rule.outputs ?? {},
@@ -347,7 +348,7 @@ export function DecisionTableEditor({ table }: { table: any }) {
 
                       return (
                         <div key={condition.id} className="space-y-1.5">
-                          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
                             <Select
                               value={condition.inputKey ?? ''}
                               onChange={(e) => updateRuleCondition(setRules, rules, index, conditionIndex, { inputKey: e.target.value })}
@@ -367,13 +368,6 @@ export function DecisionTableEditor({ table }: { table: any }) {
                                 <option key={operator.value} value={operator.value}>{operator.label}</option>
                               ))}
                             </Select>
-                            <Input
-                              value={condition.value ?? ''}
-                              onChange={(e) => updateRuleCondition(setRules, rules, index, conditionIndex, { value: e.target.value })}
-                              placeholder="Comparison value"
-                              aria-label="Comparison value"
-                              disabled={['is_empty', 'is_not_empty'].includes(condition.operator)}
-                            />
                             <IconButton
                               size="sm"
                               variant="danger-ghost"
@@ -389,6 +383,44 @@ export function DecisionTableEditor({ table }: { table: any }) {
                                 setRules(next)
                               }}
                             />
+                            {/* Compare with a fixed value or with another input (lib/decision-table-engine.ts valueInputKey):
+                                "amount ≤ budget", "end date > start date" — the values the workflow sends in. */}
+                            <div className="flex min-w-0 gap-1 md:col-span-2" data-dt-compare={condition.valueInputKey !== undefined ? 'input' : 'value'}>
+                              <Select
+                                wrapperClassName="w-[6.5rem] shrink-0"
+                                value={condition.valueInputKey !== undefined ? 'input' : 'value'}
+                                onChange={(e) => updateRuleCondition(setRules, rules, index, conditionIndex,
+                                  e.target.value === 'input' ? { valueInputKey: '', value: '' } : { valueInputKey: undefined })}
+                                aria-label="Compare with"
+                                disabled={['is_empty', 'is_not_empty'].includes(condition.operator)}
+                              >
+                                <option value="value">Value</option>
+                                <option value="input">Input</option>
+                              </Select>
+                              {condition.valueInputKey !== undefined ? (
+                                <Select
+                                  wrapperClassName="min-w-0 flex-1"
+                                  value={condition.valueInputKey}
+                                  onChange={(e) => updateRuleCondition(setRules, rules, index, conditionIndex, { valueInputKey: e.target.value })}
+                                  aria-label="Comparison input"
+                                  disabled={['is_empty', 'is_not_empty'].includes(condition.operator)}
+                                >
+                                  <option value="">Select input…</option>
+                                  {availableInputKeys.filter((field) => field.key !== condition.inputKey).map((field) => (
+                                    <option key={field.key} value={field.key}>{field.label}</option>
+                                  ))}
+                                </Select>
+                              ) : (
+                                <Input
+                                  wrapperClassName="min-w-0 flex-1"
+                                  value={condition.value ?? ''}
+                                  onChange={(e) => updateRuleCondition(setRules, rules, index, conditionIndex, { value: e.target.value })}
+                                  placeholder="Comparison value"
+                                  aria-label="Comparison value"
+                                  disabled={['is_empty', 'is_not_empty'].includes(condition.operator)}
+                                />
+                              )}
+                            </div>
                           </div>
 
                           {selectedField && (

@@ -275,7 +275,7 @@
         "name": "currency",
         "type": "string",
         "description": "Currency",
-        "defaultValue": "NZD"
+        "defaultValue": "USD"
       },
       {
         "id": "v-risk_score",

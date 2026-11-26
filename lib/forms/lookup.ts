@@ -156,8 +156,11 @@ export function isLookupColumn(value: unknown): value is string {
   return typeof value === 'string' && COLUMN_RE.test(value)
 }
 
+const FORBIDDEN_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype'])
+const hasForbiddenSegment = (path: string) => path.split('.').some((segment) => FORBIDDEN_SEGMENTS.has(segment))
+
 export function isLookupPath(value: unknown): value is string {
-  return typeof value === 'string' && PATH_RE.test(value)
+  return typeof value === 'string' && PATH_RE.test(value) && !hasForbiddenSegment(value)
 }
 
 /** `task_data.<key>_item` key of a lookup field. */
@@ -373,6 +376,9 @@ export function pathValue(value: unknown, path: string): unknown {
 }
 
 function setPath(target: Record<string, unknown>, path: string, value: unknown) {
+  // Never walk into a prototype: `__proto__.x` would write to Object.prototype
+  // for the whole process (every tenant), not to this item.
+  if (hasForbiddenSegment(path)) return
   const parts = path.split('.')
   let cursor = target
   for (let i = 0; i < parts.length - 1; i++) {

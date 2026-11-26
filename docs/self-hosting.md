@@ -21,7 +21,7 @@ services with v0.2.0 / v0.3.0.
 [Choose your topology](topologies/README.md) helps you decide where each one
 should run, and [Choosing each service](services/README.md) lists the options.
 
-Requirements: Node.js 22 LTS (20.9 or later works, with an `EBADENGINE`
+Requirements: Node.js 22 LTS (20.18.1 or later works, with an `EBADENGINE`
 warning from one package) and Docker. Building the Docker image needs about
 10 GB of memory for Docker ([Deployment profiles: Memory](deployment-profiles.md#memory));
 running from source doesn't build anything in Docker.
@@ -107,7 +107,9 @@ examples, is [Give your install a friendly address](https://usertasks.com/docs/s
    `tasks.example.com` pointing at the server.
 2. **HTTPS**: a reverse proxy in front of port 3000 that holds the
    certificate, passes the original `Host` header, sets `X-Forwarded-Proto` /
-   `X-Forwarded-For`, doesn't buffer Server-Sent Events (nginx:
+   `X-Forwarded-For` (appending; the client address is read from its right
+   end, one hop per proxy — set `TRUSTED_PROXY_HOPS` when more than one proxy
+   appends, e.g. `2` for a CDN plus nginx), doesn't buffer Server-Sent Events (nginx:
    `proxy_buffering off;` and a long `proxy_read_timeout`) and accepts the
    upload size below. With Docker Compose, `APP_PORT=127.0.0.1:3000` keeps
    the app's port off the network so only the proxy reaches it. Serve
@@ -494,12 +496,14 @@ the trade-off: [Requirements → Windows servers](https://usertasks.com/docs/sel
 
 ### Version and health check
 
-Two unauthenticated endpoints, cached for 60 seconds, that return nothing
-secret:
+Unauthenticated endpoints that return nothing secret:
 
-- `GET /api/version` returns `{ "version": "0.1.0", "commit": "…" | null, "buildTime": "…" | null }`.
-- `GET /api/config/public` (the container healthcheck) returns the browser
-  config plus `version` and `commit`.
+- `GET /api/version` returns `{ "version": "0.1.0", "commit": "…" | null, "buildTime": "…" | null }` (cached 60 s).
+- `GET /api/config/public` returns the browser config plus `version` and `commit` (cached 60 s).
+- `GET /api/health` (liveness) answers 200 while the process runs; no dependency checks.
+- `GET /api/ready` (readiness, the Compose healthcheck and the Helm readiness probe)
+  answers 200 `{ "status": "ready" }` when the database responds within 3 s, otherwise
+  503 `{ "status": "unavailable", "checks": { "database": "unavailable" } }`.
 
 `version` comes from `package.json`. `commit` comes from
 `VERCEL_GIT_COMMIT_SHA` on Vercel, otherwise from `GIT_COMMIT` or

@@ -49,9 +49,14 @@ describe('public contact delivery', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('is unavailable without a configured ChirpMe channel', async () => {
+  it('is unavailable without a configured ChirpMe channel (and no team requests to keep it in)', async () => {
     vi.stubEnv('CHIRPME_API_KEY', 'server-only-test-key')
     vi.stubEnv('CHIRPME_CHANNEL_ID', '')
+    vi.stubEnv('TEAM_NOTIFY_EMAIL', '')
+    // Cloud records a team request whenever a service database is configured
+    // (the DB CI jobs set DATABASE_URL), and then the enquiry is not lost: 200.
+    // This case is the one with nowhere at all to send it.
+    vi.stubEnv('TEAM_REQUESTS_ENABLED', 'false')
     const fetchMock = vi.spyOn(globalThis, 'fetch')
     const request = new NextRequest('https://usertasks.com/api/contact', {
       method: 'POST',

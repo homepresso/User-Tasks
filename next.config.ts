@@ -136,12 +136,15 @@ const nextConfig: NextConfig = {
   // production build minifies it, the string becomes a template literal with
   // octal escapes that Node refuses to parse ("Failed to load chunk"). Load
   // both packages from node_modules untouched.
-  serverExternalPackages: ["pg", "mssql", "ssh2", "bcryptjs", "@azure/identity", "exceljs", "quickjs-emscripten-core", "@jitl/quickjs-singlefile-cjs-release-sync", ...OPTIONAL_EXTERNALS],
+  serverExternalPackages: ["pg", "undici", "mssql", "ssh2", "bcryptjs", "@azure/identity", "exceljs", "quickjs-emscripten-core", "@jitl/quickjs-singlefile-cjs-release-sync", ...OPTIONAL_EXTERNALS],
   // Prebuilt Vercel deploys are built on macOS; the darwin sharp/libvips
   // binaries (~15 MB) cannot run on Vercel's Linux functions and push every
-  // function towards the 250 MB limit.
+  // function towards the 250 MB limit. sharp 0.35's WebAssembly build
+  // (@img/sharp-wasm32, ~9 MB, installed on every platform since 0.35) is
+  // only for WebContainers / FreeBSD: Vercel's Linux functions load the
+  // native linux-x64 binary.
   outputFileTracingExcludes: process.env.VERCEL
-    ? { "/*": ["node_modules/@img/sharp-darwin-*/**/*", "node_modules/@img/sharp-libvips-darwin-*/**/*"] }
+    ? { "/*": ["node_modules/@img/sharp-darwin-*/**/*", "node_modules/@img/sharp-libvips-darwin-*/**/*", "node_modules/@img/sharp-wasm32/**/*"] }
     : undefined,
   // Files read at runtime through paths the tracer is told to ignore (see
   // lib/function-tracing.ts). Everything else a route needs is traced from
@@ -170,6 +173,8 @@ const nextConfig: NextConfig = {
       { source: "/webhooks", destination: "/settings/webhooks", permanent: true },
       // The theme designer is /settings/theme (early links said brand-theme).
       { source: "/settings/brand-theme", destination: "/settings/theme", permanent: true },
+      // Support plans live in the extensions gallery; /support is the short link.
+      { source: "/support", destination: "/extensions/support", permanent: true },
       // The K2 and Nintex SEO pages became migration guides under /use-cases.
       ...Object.entries(USE_CASE_REDIRECTS).map(([source, destination]) => ({ source, destination, permanent: true })),
       // Docs pages that moved when /docs was restructured.
@@ -181,8 +186,14 @@ const nextConfig: NextConfig = {
       // Custom form control frames (app/form-controls/frame) set their own
       // CSP (sandboxed, framed by the app only): no DENY framing, no app CSP.
       {
-        source: "/((?!form-controls/frame/|f/|form/|form-login|p/|embed/).*)",
+        source: "/((?!form-controls/frame/|f/|form/|form-login|p/|embed/|files/).*)",
         headers: securityHeaders,
+      },
+      // Stored files (lib/storage/serve.ts) set their own sandboxing CSP; a
+      // config header would win over the route's and allow inline script.
+      {
+        source: "/files/:path*",
+        headers: securityHeaders.filter((h) => h.key !== "Content-Security-Policy"),
       },
       // Trusted-embedding routes (lib/embedding.ts): no static
       // X-Frame-Options; proxy.ts sets frame-ancestors per request ('self' +

@@ -220,6 +220,11 @@ app:
   # Probes on GET /api/config/public (the image's healthcheck).
   probes:
     path: /api/config/public
+    # Readiness checks the database (503 while it is unreachable, so traffic
+    # moves away); liveness only checks the process, so a database outage
+    # never restarts every pod.
+    readinessPath: /api/ready
+    livenessPath: /api/health
     startup: { periodSeconds: 5, failureThreshold: 60, timeoutSeconds: 5 }
     readiness: { periodSeconds: 10, failureThreshold: 3, timeoutSeconds: 5 }
     liveness: { periodSeconds: 20, failureThreshold: 6, timeoutSeconds: 5 }

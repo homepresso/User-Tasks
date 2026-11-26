@@ -86,7 +86,7 @@ function SignedInFrame(props: EmbeddedDesignerShellProps) {
   useEffect(() => { setHydrated(true) }, [])
   if (!hydrated || (loading && !profile)) {
     return (
-      <div className="relative h-dvh" aria-busy="true" aria-label="Loading">
+      <div className="relative h-dvh" role="status" aria-busy="true" aria-label="Loading">
         <BusyBar className="absolute inset-x-0 top-0" />
       </div>
     )

@@ -7,7 +7,9 @@
 
 import { getPublicConfig } from '@/lib/config/public'
 import { classifyHost } from '@/lib/workspace-address'
-import { formPagePath, formPageUrl } from './workflow-start-form'
+import { formAppPath, formHref, formPagePath, formPageUrl } from './form-paths'
+
+export { formAppPath, formHref, formPagePath }
 
 /** The app's public origin, no trailing slash ('' on a server without APP_URL). */
 export function publicAppOrigin(): string {
@@ -31,19 +33,4 @@ export function onWorkspaceAddress(): boolean {
   let base: string | undefined
   try { base = getPublicConfig().baseDomain } catch { base = undefined }
   return classifyHost(window.location.host, base ?? null).kind === 'workspace'
-}
-
-/** The in-app page of a form: inside the dashboard shell (/fill/<id>). */
-export function formAppPath(formId: string): string {
-  return `/fill/${encodeURIComponent(formId)}`
-}
-
-/**
- * Where an in-app link to a form goes (the Forms menu, Home favourites,
- * search): the form inside the app, /fill/<id>. Links people share
- * (/f/<id>, /form/<system name>) open the form on its own page, without the
- * shell (docs/changes/standalone-forms.md).
- */
-export function formHref(form: { id: string; system_name?: string | null }): string {
-  return formAppPath(form.id)
 }

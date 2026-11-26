@@ -58,7 +58,7 @@ export function SubmissionDialog({ submission, onClose }: { submission: { id: st
       <DialogContent size="md" title={submission?.form_name ?? "Submission"} aria-describedby={undefined} data-testid="home-submission">
         <DialogBody className="text-ui">
           {isLoading ? (
-            <div className="space-y-2" aria-busy="true" aria-label="Loading"><Skeleton className="h-2.5 w-1/2" /><Skeleton className="h-2.5 w-2/3" /></div>
+            <div className="space-y-2" role="status" aria-busy="true" aria-label="Loading"><Skeleton className="h-2.5 w-1/2" /><Skeleton className="h-2.5 w-2/3" /></div>
           ) : error ? <p role="alert" className="text-danger">{(error as Error).message}</p>
             : (
               <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-[12rem_1fr]">

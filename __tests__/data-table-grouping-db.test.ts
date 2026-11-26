@@ -1,7 +1,7 @@
 /**
  * Grouping and child records against the real schema and RLS (migration
- * 20270119090000_data_table_grouping, applied inside this test's transaction
- * and rolled back). User `a` (owner of workspace A only) runs the grid's
+ * 20270119090000_data_table_grouping and 20270131090000_perf_data_table_rows,
+ * applied inside this test's transaction and rolled back). User `a` (owner of workspace A only) runs the grid's
  * reads through a pg-query client bound to their identity — exactly as the
  * dashboard runs them:
  *
@@ -28,6 +28,10 @@ import { buildGroupTree, groupRowsInMemory, rowMatchesFilters, sortRowsLikeDatab
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
 const MIGRATION = readFileSync(join(process.cwd(), 'supabase/migrations/20270119090000_data_table_grouping.sql'), 'utf8')
+// The faster definitions of the same functions (same results; lean sort keys, inline equals).
+const PERF_MIGRATION = readFileSync(join(process.cwd(), 'supabase/migrations/20270131090000_perf_data_table_rows.sql'), 'utf8')
+// Large-table protection: per-call time cap, trigram-indexed search candidates (scoped like RLS).
+const GUARD_MIGRATION = readFileSync(join(process.cwd(), 'supabase/migrations/20270131140000_grid_query_guards.sql'), 'utf8')
 
 function uid(key: string): string {
   const h = createHash('md5').update(`dt-grouping-db:${key}`).digest('hex')
@@ -88,6 +92,8 @@ describe.skipIf(!DB_URL)('data table grouping and child records (local DB, RLS)'
     await db.connect()
     await db.query('BEGIN')
     await db.query(MIGRATION)
+    await db.query(PERF_MIGRATION)
+    await db.query(GUARD_MIGRATION)
     for (const k of ['A', 'B'] as const) {
       await db.query('INSERT INTO public.tenants (id, name, slug) VALUES ($1, $2, $3)', [TENANT[k], `grp ${k}`, `dt-grouping-db-${k.toLowerCase()}`])
       await db.query(`INSERT INTO auth.users (id, email, instance_id, aud, role) VALUES ($1, $2, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated')`, [USER[k], `grp-${k.toLowerCase()}@iso.test`])
@@ -166,6 +172,27 @@ describe.skipIf(!DB_URL)('data table grouping and child records (local DB, RLS)'
     const children = await read('data.childRows', { tableId: ORDERS.A, rowId: O1, relationId: 'r_lines' })
     expect(children.rows.map((r: any) => r.data.qty).sort()).toEqual([2, 3])
     expect(children.total).toBe(2)
+  })
+
+  it('reads a huge exponent (an md5 like 0e4620…) as text instead of failing the whole grouped / sorted grid', async () => {
+    const { rows } = await db.query(`select public.data_table_numeric('0e462097431906509019562988736854') as big, public.data_table_numeric(' 1.5e3 ') as small`)
+    expect(rows[0].big).toBeNull()
+    expect(Number(rows[0].small)).toBe(1500)
+  })
+
+  it('search candidates (data_table_search_ids) never cross workspaces for a signed-in caller; the time cap raises 57014', async () => {
+    await db.query('SAVEPOINT guard')
+    try {
+      await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: USER.A, role: 'authenticated' })])
+      await db.query('SET LOCAL ROLE authenticated')
+      const own = await db.query(`select count(*)::int n from public.data_table_search_ids($1, '%A-1%')`, [ORDERS.A])
+      const foreign = await db.query(`select count(*)::int n from public.data_table_search_ids($1, '%A-1%')`, [ORDERS.B])
+      expect(own.rows[0].n).toBe(1) // A's own row; B's row stored under A's table id is not a candidate
+      expect(foreign.rows[0].n).toBe(0)
+      await expect(db.query('select public.data_table_grid_timeout()')).rejects.toMatchObject({ code: '57014' })
+    } finally {
+      await db.query('ROLLBACK TO SAVEPOINT guard')
+    }
   })
 
   it('gives anon no EXECUTE on the new functions', async () => {

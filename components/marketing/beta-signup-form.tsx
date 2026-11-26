@@ -97,21 +97,21 @@ export function BetaSignupForm({ defaultEmail = '', next, redirect = null }: { d
         </div>
         <div>
           <label htmlFor="beta-company" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-(color:--mkt-muted)">Company</label>
-          <input id="beta-company" required value={form.company} onChange={set('company')} placeholder="Acme Inc" className={inputClass} disabled={busy} />
-          <p className="mt-1 text-2xs leading-relaxed text-(color:--mkt-subtle)">Used to name your private workspace. You can change it later.</p>
+          <input id="beta-company" aria-describedby="beta-company-hint" required value={form.company} onChange={set('company')} placeholder="Acme Inc" className={inputClass} disabled={busy} />
+          <p id="beta-company-hint" className="mt-1 text-2xs leading-relaxed text-(color:--mkt-subtle)">Used to name your private workspace. You can change it later.</p>
         </div>
       </div>
 
       <div>
         <label htmlFor="beta-email" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-(color:--mkt-muted)">Work email</label>
-        <input id="beta-email" required type="email" value={form.email} onChange={set('email')} placeholder="ada@acme.com" className={inputClass} disabled={busy} autoComplete="email" />
-        <p className="mt-1 text-2xs leading-relaxed text-(color:--mkt-subtle)">You become the workspace owner and can invite your team after setup.</p>
+        <input id="beta-email" aria-describedby="beta-email-hint" required type="email" value={form.email} onChange={set('email')} placeholder="ada@acme.com" className={inputClass} disabled={busy} autoComplete="email" />
+        <p id="beta-email-hint" className="mt-1 text-2xs leading-relaxed text-(color:--mkt-subtle)">You become the workspace owner and can invite your team after setup.</p>
       </div>
 
       <div>
         <label htmlFor="beta-password" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-(color:--mkt-muted)">Password</label>
-        <input id="beta-password" required type="password" minLength={8} value={form.password} onChange={set('password')} placeholder="At least 8 characters" className={inputClass} disabled={busy} autoComplete="new-password" />
-        <p className="mt-1 text-2xs leading-relaxed text-(color:--mkt-subtle)">Use at least 8 characters. Enterprise SSO can be configured from workspace settings.</p>
+        <input id="beta-password" aria-describedby="beta-password-hint" required type="password" minLength={8} value={form.password} onChange={set('password')} placeholder="At least 8 characters" className={inputClass} disabled={busy} autoComplete="new-password" />
+        <p id="beta-password-hint" className="mt-1 text-2xs leading-relaxed text-(color:--mkt-subtle)">Use at least 8 characters. Enterprise SSO can be configured from workspace settings.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -126,8 +126,8 @@ export function BetaSignupForm({ defaultEmail = '', next, redirect = null }: { d
         </div>
         <div>
           <label htmlFor="beta-usecase" className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-(color:--mkt-muted)">What will you automate? <span className="normal-case text-(color:--mkt-subtle)">(optional)</span></label>
-          <input id="beta-usecase" value={form.useCase} onChange={set('useCase')} placeholder="Approvals, onboarding, reporting…" className={inputClass} disabled={busy} />
-          <p className="mt-1 text-2xs leading-relaxed text-(color:--mkt-subtle)">This helps us understand what you want to build; it does not limit your workspace.</p>
+          <input id="beta-usecase" aria-describedby="beta-usecase-hint" value={form.useCase} onChange={set('useCase')} placeholder="Approvals, onboarding, reporting…" className={inputClass} disabled={busy} />
+          <p id="beta-usecase-hint" className="mt-1 text-2xs leading-relaxed text-(color:--mkt-subtle)">This helps us understand what you want to build; it does not limit your workspace.</p>
         </div>
       </div>
 

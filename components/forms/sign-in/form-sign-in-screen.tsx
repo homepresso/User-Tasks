@@ -33,6 +33,8 @@ export interface FormSignInScreenProps {
   settings: FormSignInSettings
   /** The logo's URL, resolved for the browser. */
   logoUrl: string | null
+  /** The form's own header says "no logo": no image and no UserTasks logo (the workspace name only). */
+  noLogo?: boolean
   workspace: { name: string; slug: string } | null
   /** The tokens and accent (signInThemeStyle on the server, or in the settings card). */
   themeStyle: SignInThemeStyle
@@ -69,6 +71,7 @@ export function FormSignInScreen(props: FormSignInScreenProps) {
           settings={settings}
           colors={colors}
           logoUrl={logoUrl}
+          noLogo={props.noLogo}
           workspaceName={workspace?.name ?? null}
           headings={themeStyle.headings}
           preview={preview}

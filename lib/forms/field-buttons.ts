@@ -47,7 +47,7 @@ import { FORM_VARS_KEY, setVariables } from './form-params'
 import { isResultPath, normalizeResultPath } from './result-paths'
 import {
   LIST_EDIT_KEY, LIST_SELECT_KEY, childListAt, coerceListRow, isBlankListRow, listColumnWritable, listEditingRow, listLabelKey, listRowErrors, listSelection, nestedListKey, nestedRowsIn,
-  rawListRows, remapAfterRemoval, withListEditing, withListSelected, withNestedRows, type ListFieldConfig,
+  eachItemRows, rawListRows, remapAfterRemoval, withListEditing, withListSelected, withNestedRows, type ListFieldConfig,
 } from './list-field'
 import { stripRowMarkers } from './row-markers'
 import { rowFormRequest, type RowFormRequest } from './list-row-form'
@@ -114,7 +114,7 @@ export const SERVER_RULE_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set([
 export function isServerRuleAction(action: Pick<FieldButtonAction, 'type' | 'commit_mode'>): boolean {
   return SERVER_RULE_ACTIONS.has(action.type) || ((action.type === 'commit_row' || action.type === 'delete_row') && action.commit_mode === 'save_now')
 }
-/** Steps that may run once per item of a repeating section / List (`each_item`). */
+/** Steps that may run once per item of a repeating section / List / an editable Data table's added rows (`each_item`). */
 export const EACH_ITEM_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['table_create', 'table_update', 'table_delete', 'call_reference'])
 /** Steps with on-success / on-failure steps of their own (server steps, and Commit / Delete row). */
 export const BRANCHING_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['call_reference', ...TABLE_ACTION_TYPES, 'commit_row', 'delete_row'])
@@ -1720,8 +1720,8 @@ export async function runFieldButton(config: Pick<FieldButtonConfig, 'actions'> 
               const base = isPlainObject(extras.event) ? extras.event : {}
               for (const i of picked) outcome = await host.runExtra(index, action, values, branch, { ...base, row: rows[i], row_number: i + 1, index: i })
             } else if (action.each_item && !action.each_selected && EACH_ITEM_ACTIONS.has(action.type)) {
-              // Once per item of a repeating section / List (child records): no items, nothing to write.
-              const rows = rawListRows(values[action.each_item])
+              // Once per item of a repeating section / List / the rows added to an editable Data table (child records): no items, nothing to write.
+              const rows = eachItemRows(values[action.each_item], host.field?.(action.each_item)?.data_table)
               const base = isPlainObject(extras.event) ? extras.event : {}
               for (let i = 0; i < rows.length; i++) outcome = await host.runExtra(index, action, values, branch, { ...base, row: rows[i], row_number: i + 1, index: i })
             } else {

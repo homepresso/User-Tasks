@@ -16,7 +16,7 @@ const auditMock = vi.hoisted(() => vi.fn(async () => {}))
 vi.mock('@/lib/audit-log', () => ({ writeAudit: auditMock }))
 vi.mock('@/lib/process-queue', () => ({ kickQueueProcessor: vi.fn() }))
 
-import { recoverProcessingJob, refreshProcessingStatus } from '@/app/actions/processing'
+import { configureProcessingSettings, recoverProcessingJob, refreshProcessingStatus } from '@/app/actions/processing'
 import { __setProcessingProviderForTests } from '@/lib/processing/handoff'
 import { createFakeSupabase } from './helpers/fake-supabase'
 
@@ -89,5 +89,30 @@ describe('processing settings (instance admins only)', () => {
     expect(await recoverProcessingJob(LIVE, 'cancel', true)).toEqual({ ok: true, action: 'cancel', lease_expired: false, forced: true })
     expect(fake.tables.workflow_queue.find((j) => j.id === LIVE)!.status).toBe('dead')
     expect(auditMock).toHaveBeenLastCalledWith(expect.objectContaining({ action: 'force_cancel_queue_job' }))
+  })
+
+  it('without the add-on the card shows the upsell (addon missing) and changes are refused', async () => {
+    seed()
+    const result = await refreshProcessingStatus()
+    expect(result.ok && result.status.addon).toMatchObject({ state: 'missing' })
+    expect(await configureProcessingSettings({ mode: 'workers' })).toMatchObject({ ok: false, status: 409 })
+  })
+
+  it("the add-on's switches: instance admins only, through the provider's configure, refused when it refuses", async () => {
+    seed()
+    const configure = vi.fn(async ({ changes }: any) => {
+      if (changes.mode === 'workers') { const e: any = new Error('No processing worker has reported in the last 60 seconds.'); e.status = 409; throw e }
+      return { mode: 'web' as const, label: 'In the web app', settings: { mode: 'web' as const, test_runs_on_workers: changes.test_runs_on_workers === true, locked: { mode: false, test_runs_on_workers: false } } }
+    })
+    __setProcessingProviderForTests({ extensionId: 'processing', ctx: {} as any, provider: { handoff: async () => 'web', configure } })
+    expect(await configureProcessingSettings({ test_runs_on_workers: true })).toMatchObject({ ok: true })
+    expect(configure).toHaveBeenLastCalledWith(expect.objectContaining({ changes: { test_runs_on_workers: true } }))
+    expect(await configureProcessingSettings({ mode: 'workers' })).toMatchObject({ ok: false, status: 409, error: expect.stringContaining('No processing worker') })
+    expect(await configureProcessingSettings({ mode: 'fast' as any })).toMatchObject({ ok: false, status: 400 })
+    expect(await configureProcessingSettings({})).toMatchObject({ ok: false, status: 400 })
+    canSeeMock.mockResolvedValue(false)
+    configure.mockClear()
+    expect(await configureProcessingSettings({ test_runs_on_workers: false })).toMatchObject({ ok: false, status: 403 })
+    expect(configure).not.toHaveBeenCalled()
   })
 })

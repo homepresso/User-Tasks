@@ -4,6 +4,7 @@ import { generateOAuthToken } from '@/lib/oauth/tokens'
 import { OAUTH_SCOPES, requestsFirstPartyScope, withoutFirstPartyScopes } from '@/lib/oauth/scopes'
 import { isRegistrableRedirectUri } from '@/lib/oauth/redirect'
 import { oauthError, oauthJson, oauthOptions, OAUTH_CORS_HEADERS } from '@/lib/oauth/errors'
+import { clientIp } from '@/lib/client-ip'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     return oauthError('invalid_request', 'Body must be JSON')
   }
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const ip = clientIp(request) ?? 'unknown'
   const supabase = service()
   const hourAgo = new Date(Date.now() - 3600_000).toISOString()
 

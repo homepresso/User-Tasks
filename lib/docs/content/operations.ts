@@ -499,6 +499,14 @@ Copy \`.env.example\` to \`.env.local\` (for \`npm run dev\` / \`npm start\`) or
 `,
   },
   {
+    slug: 'self-hosting/processing-add-on',
+    title: 'Processing add-on',
+    description: 'Paid add-on ($2,500 USD per deployment per year): separate, scalable processing workers instead of the web app (mode switch, LISTEN/NOTIFY wake-ups, memory backpressure, graceful drain, heartbeats, Prometheus metrics, designer test runs on workers) for self-hosted installs, including worker machines elsewhere on your own network; what stays free, licence and expiry.',
+    body: `
+::include docs/processing-add-on.md
+`,
+  },
+  {
     slug: 'self-hosting/switching-providers',
     title: 'Switching providers',
     description: 'Infrastructure add-on: move a running install between providers with usertasks-admin or from Settings → Infrastructure: status, doctor, switch per area (database, auth, storage, scheduler, realtime, email, secrets, cache, KMS) with backups and rollback, provider settings, background switches with live progress, downtime expectations.',

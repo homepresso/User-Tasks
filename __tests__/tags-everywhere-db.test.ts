@@ -27,6 +27,8 @@ import { Client } from 'pg'
 const DB_URL = process.env.EVENT_STREAM_DB_URL
 const STYLES = readFileSync(join(process.cwd(), 'supabase/migrations/20270121150000_tag_styles.sql'), 'utf8')
 const MIGRATION = readFileSync(join(process.cwd(), 'supabase/migrations/20270122150000_tags_everywhere.sql'), 'utf8')
+// App tags for an app's audience (published apps only), on top of the above.
+const AUDIENCE = readFileSync(join(process.cwd(), 'supabase/migrations/20270130150000_app_tags_audience.sql'), 'utf8')
 
 function uid(key: string): string {
   const h = createHash('md5').update(`tags-everywhere-db:${key}`).digest('hex')
@@ -35,7 +37,7 @@ function uid(key: string): string {
 const TENANT = { A: uid('tenant:A'), B: uid('tenant:B') }
 const U = { builder: uid('u:builder'), viewer: uid('u:viewer'), other: uid('u:other') }
 const ROLE = { builder: uid('role:builder'), viewer: uid('role:viewer'), other: uid('role:other') }
-const APP = { open: uid('app:open'), hidden: uid('app:hidden'), b: uid('app:b') }
+const APP = { open: uid('app:open'), hidden: uid('app:hidden'), b: uid('app:b'), unpublished: uid('app:unpublished') }
 const NEW_TABLES = ['custom_tables', 'reports', 'decision_tables', 'email_templates', 'form_controls', 'apps', 'packages']
 const BUILDER_PERMS = ['data.view', 'reports.view', 'workflows.view', 'extensibility.view', 'apps.view', 'packages.view']
 
@@ -71,6 +73,7 @@ describe.skipIf(!DB_URL)('tags on every object type (local DB, RLS)', () => {
     await db.query('BEGIN')
     await db.query(STYLES)
     await db.query(MIGRATION)
+    await db.query(AUDIENCE)
     for (const k of ['A', 'B'] as const) {
       await db.query('INSERT INTO public.tenants (id, name, slug) VALUES ($1, $2, $3)', [TENANT[k], `tags everywhere ${k}`, `tags-everywhere-db-${k.toLowerCase()}`])
     }
@@ -106,6 +109,15 @@ describe.skipIf(!DB_URL)('tags on every object type (local DB, RLS)', () => {
     await db.query(`INSERT INTO public.apps (id, tenant_id, slug, name, tags) VALUES ($1, $3, 'open', 'Open app', ARRAY['Finance']), ($2, $3, 'hidden', 'Hidden app', ARRAY['Finance']), ($4, $5, 'b', 'B app', ARRAY['Finance'])`, [APP.open, APP.hidden, TENANT.A, APP.b, TENANT.B])
     await db.query(`INSERT INTO public.app_editors (tenant_id, app_id, user_id) VALUES ($1, $2, $3), ($1, $4, $3)`, [TENANT.A, APP.open, U.builder, APP.hidden])
     await db.query(`INSERT INTO public.app_audience (tenant_id, app_id, principal_type, principal_id, app_role) VALUES ($1, $2, 'user', $3, 'viewer')`, [TENANT.A, APP.open, U.viewer])
+    // Published: open (under its published name; the draft has been renamed since), hidden and B's app.
+    for (const [app, name] of [[APP.open, 'Open app'], [APP.hidden, 'Hidden app'], [APP.b, 'B app']] as const) {
+      await db.query(`INSERT INTO public.app_versions (tenant_id, app_id, version, snapshot, summary) VALUES ($1, $2, 1, '{}', jsonb_build_object('name', $3::text))`, [TENANT.A, app, name])
+      await db.query('UPDATE public.apps SET published_version = 1 WHERE id = $1', [app])
+    }
+    await db.query(`UPDATE public.apps SET name = 'Open app (unpublished rename)' WHERE id = $1`, [APP.open])
+    // Shared with the viewer but never published: its audience sees nothing of it, tags included.
+    await db.query(`INSERT INTO public.apps (id, tenant_id, slug, name, tags) VALUES ($1, $2, 'unpublished', 'Unpublished app', ARRAY['Finance'])`, [APP.unpublished, TENANT.A])
+    await db.query(`INSERT INTO public.app_audience (tenant_id, app_id, principal_type, principal_id, app_role) VALUES ($1, $2, 'user', $3, 'viewer')`, [TENANT.A, APP.unpublished, U.viewer])
   })
 
   afterAll(async () => {
@@ -142,15 +154,18 @@ describe.skipIf(!DB_URL)('tags on every object type (local DB, RLS)', () => {
     expect(Object.keys(counts).some((k) => k.startsWith('packages:'))).toBe(false)
   })
 
-  it('a viewer counts only their own and shared reports, and only the apps shared with them', async () => {
+  it('a viewer counts only their own and shared reports, and only the published apps shared with them', async () => {
     const counts = await usage(U.viewer)
     expect(counts['reports:finance']).toBe(2) // their shared + private ones
+    // The published app shared with them (20270130150000), not the hidden one
+    // nor the unpublished one that names them.
     expect(counts['apps:finance']).toBe(1)
     const objects = await as(U.viewer, `SELECT name FROM public.tag_objects($1, 'FINANCE', 'reports', 20, 0) ORDER BY name`, [TENANT.A])
     expect(objects.rows.map((r) => r.name)).toEqual(['Private', 'Shared'])
     const builderReports = await as(U.builder, `SELECT name, total::int AS total FROM public.tag_objects($1, 'finance', 'reports', 20, 0) ORDER BY name`, [TENANT.A])
     expect(builderReports.rows).toEqual([{ name: 'Mine', total: 2 }, { name: 'Shared', total: 2 }])
     const apps = await as(U.viewer, `SELECT name FROM public.tag_objects($1, 'finance', 'apps', 20, 0)`, [TENANT.A])
+    // Under its published name: an unpublished rename never reaches the audience.
     expect(apps.rows.map((r) => r.name)).toEqual(['Open app'])
   })
 
@@ -184,7 +199,7 @@ describe.skipIf(!DB_URL)('tags on every object type (local DB, RLS)', () => {
   it('rename_tag renames on every new type, packages included, in one workspace only', async () => {
     await db.query('SAVEPOINT rename')
     const { rows } = await db.query(`SELECT public.rename_tag($1, 'FINANCE', 'Money', NULL) AS result`, [TENANT.A])
-    expect(rows[0].result.objects).toMatchObject({ data_tables: 1, reports: 3, business_rules: 1, email_templates: 1, form_controls: 1, apps: 2, packages: 1 })
+    expect(rows[0].result.objects).toMatchObject({ data_tables: 1, reports: 3, business_rules: 1, email_templates: 1, form_controls: 1, apps: 3, packages: 1 }) // apps: open, hidden and the unpublished one
     const { rows: tagged } = await db.query(`SELECT tags FROM public.form_controls WHERE tenant_id = $1`, [TENANT.A])
     expect(tagged[0].tags).toEqual(['Money', 'survey'])
     const { rows: b } = await db.query(`SELECT tags FROM public.packages WHERE tenant_id = $1`, [TENANT.B])
@@ -195,7 +210,7 @@ describe.skipIf(!DB_URL)('tags on every object type (local DB, RLS)', () => {
   it('remove_tag removes from every new type in one workspace only', async () => {
     await db.query('SAVEPOINT remove')
     const { rows } = await db.query(`SELECT public.remove_tag($1, 'finance') AS result`, [TENANT.A])
-    expect(rows[0].result.objects).toMatchObject({ data_tables: 1, reports: 3, business_rules: 1, email_templates: 1, form_controls: 1, apps: 2, packages: 1 })
+    expect(rows[0].result.objects).toMatchObject({ data_tables: 1, reports: 3, business_rules: 1, email_templates: 1, form_controls: 1, apps: 3, packages: 1 }) // apps: open, hidden and the unpublished one
     const { rows: left } = await db.query(`SELECT tags FROM public.custom_tables WHERE tenant_id = $1 AND name = 'Clients'`, [TENANT.A])
     expect(left[0].tags).toEqual(['crm'])
     const { rows: b } = await db.query(`SELECT count(*)::int AS n FROM public.reports WHERE tenant_id = $1 AND 'Finance' = ANY(tags)`, [TENANT.B])

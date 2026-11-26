@@ -5,7 +5,7 @@
   "asset": {
     "id": "e5cab48e-47e3-5c67-b334-96212ed1e816",
     "name": "Contract review request",
-    "description": "The request a contract owner fills in: The contract → Term & value → Document → Approvals & submit, with a numbered stepper and in-form Next / Back / Send for review buttons (Application mode). The notice period appears only for auto-renewing contracts and the board approval reference only for NZD 1,000,000 or more; rules check the dates, the notice period and the board reference. Submitting starts the Contract review workflow through its Form submitted trigger.",
+    "description": "The request a contract owner fills in: The contract → Term & value → Document → Approvals & submit, with a numbered stepper and in-form Next / Back / Send for review buttons (Application mode). The notice period appears only for auto-renewing contracts and the board approval reference only for USD 1,000,000 or more; rules check the dates, the notice period and the board reference. Submitting starts the Contract review workflow through its Form submitted trigger.",
     "tags": [
       "contracts",
       "legal",
@@ -61,7 +61,7 @@
         "label": "Total contract value",
         "type": "currency",
         "required": true,
-        "currency": "NZD",
+        "currency": "USD",
         "min": 0,
         "help_text": "Over the whole term, excluding GST"
       },
@@ -69,7 +69,7 @@
         "key": "board_approval_ref",
         "label": "Board approval reference",
         "type": "text",
-        "help_text": "Contracts of NZD 1,000,000 or more need board approval first"
+        "help_text": "Contracts of USD 1,000,000 or more need board approval first"
       },
       {
         "key": "start_date",
@@ -470,7 +470,7 @@
       "rules": [
         {
           "id": "r_board_hide",
-          "name": "Board reference only for NZD 1,000,000 or more",
+          "name": "Board reference only for USD 1,000,000 or more",
           "event": "always",
           "then": [
             {
@@ -504,7 +504,7 @@
             {
               "type": "field_error",
               "field": "board_approval_ref",
-              "text": "Add the board approval reference: contracts of NZD 1,000,000 or more need it."
+              "text": "Add the board approval reference: contracts of USD 1,000,000 or more need it."
             }
           ],
           "if": {

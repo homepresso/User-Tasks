@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ConnectorFieldRenderer } from "./connector-field-renderer"
 import {
   X, Loader2, CheckCircle2, XCircle, Zap, Trash2, Power, PowerOff,
@@ -166,12 +167,9 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40" />
-      <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden bg-panel"
-        onClick={e => e.stopPropagation()}
-      >
+    // The shared Dialog primitive: focus trap, Esc, focus return, dialog role named by the title below.
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent size="md" className="max-w-lg rounded-2xl" aria-describedby={undefined}>
         {notice && (
           <div className="px-6 pt-4">
             <InlineNotice tone={notice.tone} message={notice.message} onDismiss={() => setNotice(null)} />
@@ -186,9 +184,9 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-fg">
+              <DialogTitle className="text-sm font-semibold text-fg">
                 {definition.name}
-              </h2>
+              </DialogTitle>
               <span className="text-2xs font-semibold px-2 py-0.5 rounded-full"
                 style={{
                   backgroundColor: statusColor + (effectiveStatus === 'active' ? '15' : '20'),
@@ -204,7 +202,7 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
             )}
           </div>
           <ExportAssetButton ids={[connector.id]} name={connector.display_name || definition.name} className="!h-7" />
-          <button onClick={onClose} className="hover:opacity-70 text-fg-muted">
+          <button type="button" onClick={onClose} aria-label="Close" className="hover:opacity-70 text-fg-muted">
             <X size={18} />
           </button>
         </div>
@@ -414,11 +412,11 @@ export function ConnectorDetail({ definition, connector, liveReferences = [], on
             <Button size="sm" onClick={handleSave} disabled={saving || !canSave}
               className={!canSave ? "opacity-60" : ""}
               style={{ backgroundColor: definition.color, color: 'white', borderColor: definition.color }}>
-              {saving ? <><Loader2 size={14} className="mr-1.5 animate-spin" /> Saving...</> : 'Save Changes'}
+              {saving ? <><Loader2 size={14} className="mr-1.5 animate-spin" /> Saving…</> : 'Save changes'}
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -71,7 +71,7 @@ export const listImportersEndpoint = defineEndpoint({
 })
 
 export const analyzeImportEndpoint = defineEndpoint({
-  method: 'POST', path: '/importers/{importer}/analyze', operationId: 'analyzeImport', tags,
+  method: 'POST', path: '/importers/{importer}/analyze', bodyLimit: 'package', operationId: 'analyzeImport', tags,
   summary: 'Analyse files with an importer (dry run): mapping coverage, complexity score, readiness and what an import would make',
   description: 'Nothing is stored (the files neither). report.items lists every element of the source and how it converts (mapped, partial = review, placeholder = a labelled placeholder step keeps the original, skipped); markdown is the same report as Markdown. Needs the view permission of what the importer makes.',
   permission: null, params: importerParams, body: importBody,
@@ -80,7 +80,7 @@ export const analyzeImportEndpoint = defineEndpoint({
 })
 
 export const runImportEndpoint = defineEndpoint({
-  method: 'POST', path: '/importers/{importer}/import', operationId: 'runImport', tags,
+  method: 'POST', path: '/importers/{importer}/import', bodyLimit: 'package', operationId: 'runImport', tags,
   summary: 'Import files with an importer: creates draft workflows (inactive) and forms, and returns them with the report',
   description: 'Workflows are created inactive (a draft to review and publish); unmapped steps become labelled placeholder steps. Needs the importer\'s permission (default workflows.create for workflows, forms.edit for forms). Audited.',
   permission: null, params: importerParams, body: importBody, successStatus: 201,

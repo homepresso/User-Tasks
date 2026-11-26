@@ -50,7 +50,7 @@
             {
               "name": "currency",
               "type": "string",
-              "example": "NZD"
+              "example": "USD"
             }
           ]
         },
@@ -60,7 +60,7 @@
           "scheduled_date": "2026-11-19",
           "payment_run": "PR-2026-11-19",
           "amount": 11500,
-          "currency": "NZD"
+          "currency": "USD"
         },
         "samples": 1,
         "updated_at": "2026-10-26T00:00:00.000Z"

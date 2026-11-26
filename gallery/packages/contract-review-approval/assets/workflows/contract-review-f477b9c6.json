@@ -162,7 +162,7 @@
         },
         "config": {
           "task_title": "Legal review: {{form.title}} v{{version}} ({{contract_ref}})",
-          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, NZD {{form.value}}, submitted by {{submitted_by_name}}. Version {{version}}: <a href=\"{{current_document[0].url}}\">{{current_document[0].name}}</a>.</p><p>{{changes_note}}</p><p>Tick the clauses that depart from the playbook on <strong>Clause checklist</strong>, set the overall risk and approve, ask for changes or reject.</p>",
+          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, USD {{form.value}}, submitted by {{submitted_by_name}}. Version {{version}}: <a href=\"{{current_document[0].url}}\">{{current_document[0].name}}</a>.</p><p>{{changes_note}}</p><p>Tick the clauses that depart from the playbook on <strong>Clause checklist</strong>, set the overall risk and approve, ask for changes or reject.</p>",
           "task_priority": "high",
           "outcomes": [
             "Approve",
@@ -192,7 +192,7 @@
               "label": "Value and term",
               "type": "text",
               "read_only": true,
-              "default": "NZD {{form.value}} · {{form.start_date}} to {{form.end_date}} · auto-renews: {{form.auto_renew}}"
+              "default": "USD {{form.value}} · {{form.start_date}} to {{form.end_date}} · auto-renews: {{form.auto_renew}}"
             },
             {
               "key": "t_document",
@@ -630,8 +630,8 @@
           "y": 1930
         },
         "config": {
-          "task_title": "Finance: approve {{form.title}} (NZD {{form.value}})",
-          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}: NZD {{form.value}} from {{form.start_date}} to {{form.end_date}} for {{form.business_unit}}. Legal approved it at <strong>{{risk_level}}</strong> risk; deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
+          "task_title": "Finance: approve {{form.title}} (USD {{form.value}})",
+          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}: USD {{form.value}} from {{form.start_date}} to {{form.end_date}} for {{form.business_unit}}. Legal approved it at <strong>{{risk_level}}</strong> risk; deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
           "task_priority": "high",
           "outcomes": [
             "Approve",
@@ -723,7 +723,7 @@
         },
         "config": {
           "task_title": "General counsel: approve {{form.title}} ({{risk_level}} risk)",
-          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, NZD {{form.value}}. Legal rated it <strong>{{risk_level}}</strong> risk with these playbook deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
+          "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, USD {{form.value}}. Legal rated it <strong>{{risk_level}}</strong> risk with these playbook deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
           "task_priority": "high",
           "outcomes": [
             "Approve",

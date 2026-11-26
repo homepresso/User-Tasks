@@ -96,6 +96,7 @@
  */
 
 import { isPlainObject } from '@/lib/utils/guards'
+import { orderedMatch } from '@/lib/conditions'
 import { pathValue } from './lookup'
 import {
   DATA_TABLE_OPERATORS, DATA_TABLE_OPERATOR_LABELS, changeCount, isChangeSet, isConditionGroup, normalizeConditionGroup,
@@ -265,6 +266,16 @@ export const ALWAYS_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['show
 export const ALWAYS_ONLY_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['set_style'])
 /** After submit runs on the server with the submission: these actions only. */
 export const AFTER_SUBMIT_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['message', 'open_link', 'start_workflow', 'apply_table_changes'])
+/**
+ * An After-submit rule marked `server_steps` (the data writes "Map to data
+ * event" makes): only these steps, run on the server once the submission is
+ * stored (lib/services/form-rule-actions.ts runSubmittedServerSteps), with
+ * the stored values — so a submission the server refuses writes nothing.
+ */
+export const SERVER_STEP_ACTIONS: ReadonlySet<FieldButtonActionType> = new Set(['table_create', 'table_update', 'call_reference'])
+
+/** Fields a per-item step (`each_item`) can run over: a repeating section's items, a List's rows, an editable Data table's added rows / a Select table's selected rows (lib/forms/list-field.ts eachItemRows). */
+export const EACH_ITEM_FIELD_TYPES: ReadonlySet<string> = new Set(['list', 'repeating_section', 'data_table'])
 
 /* ── The model ──────────────────────────────────────────────────────── */
 
@@ -284,6 +295,13 @@ export interface FormRule {
   then: FieldButtonAction[]
   /** Before submit: also check it when a step's Next is pressed (default: at submit only). */
   step_check?: boolean
+  /**
+   * After submit only: the rule's steps are data writes (SERVER_STEP_ACTIONS)
+   * run on the server after the submission is accepted — outputs into the
+   * rule's own variables, each_item over the stored values. Rules without it
+   * behave exactly as before.
+   */
+  server_steps?: true
 }
 
 export const FORM_RULE_LIMITS = { rules: 100, actions: 12, name: 80, description: 2000 } as const
@@ -341,6 +359,7 @@ export function normalizeFormRules(raw: unknown): FormRule[] {
     const group = cleanGroup(entry.if)
     if (group) rule.if = group
     if (event === 'before_submit' && entry.step_check === true) rule.step_check = true
+    if (event === 'after_submit' && entry.server_steps === true) rule.server_steps = true
     const actions = Array.isArray(entry.then) ? entry.then : []
     rule.then = actions.map((a) => normalizeFieldButtonAction(a, { rule: true })).filter((a): a is FieldButtonAction => Boolean(a)).slice(0, FORM_RULE_LIMITS.actions)
     out.push(rule)
@@ -494,19 +513,6 @@ function asNumber(v: unknown): number | null {
   if (typeof v === 'string' && /^\s*-?\d+(?:\.\d+)?\s*$/.test(v)) return Number(v)
   return null
 }
-function asTime(v: unknown): number | null {
-  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(v)) return null
-  const t = Date.parse(v.length === 10 ? `${v}T00:00:00Z` : v)
-  return Number.isNaN(t) ? null : t
-}
-function order(a: unknown, b: unknown): number | null {
-  const na = asNumber(a); const nb = asNumber(b)
-  if (na !== null && nb !== null) return na - nb
-  const ta = asTime(a); const tb = asTime(b)
-  if (ta !== null && tb !== null) return ta - tb
-  if (blank(a) || blank(b)) return null
-  return text(a).localeCompare(text(b))
-}
 function equal(a: unknown, b: unknown): boolean {
   if (typeof a === 'boolean' || typeof b === 'boolean' || ['true', 'false'].includes(text(b))) {
     const bool = (v: unknown) => (typeof v === 'boolean' ? v : ['true', '1', 'yes', 'on'].includes(text(v)) ? true : ['false', '0', 'no', 'off', ''].includes(text(v)) ? false : null)
@@ -534,11 +540,7 @@ export function ruleConditionMet(cond: DataTableCondition, scope: RuleScope): bo
       const options = (Array.isArray(right) ? right : String(right ?? '').split(',')).map((v) => text(v)).filter(Boolean)
       return list ? list.some((v) => options.includes(text(v))) : options.includes(text(left))
     }
-    case 'gt': case 'gte': case 'lt': case 'lte': {
-      const o = order(left, right)
-      if (o === null) return false
-      return cond.operator === 'gt' ? o > 0 : cond.operator === 'gte' ? o >= 0 : cond.operator === 'lt' ? o < 0 : o <= 0
-    }
+    case 'gt': case 'gte': case 'lt': case 'lte': return orderedMatch(cond.operator, left, right)
     default: return false
   }
 }
@@ -894,7 +896,7 @@ export function ruleWrittenReadOnlyValues(layout: unknown, readOnlyKeys: readonl
 export function afterSubmitActions(layout: unknown, buttonId: string | null | undefined, values: Record<string, unknown>): Array<Record<string, unknown>> {
   const out: Array<Record<string, unknown>> = []
   for (const rule of layoutFormRules(layout)) {
-    if (rule.disabled || rule.event !== 'after_submit') continue
+    if (rule.disabled || rule.event !== 'after_submit' || rule.server_steps) continue
     if (rule.target && rule.target !== buttonId) continue
     if (!serverVerifiable(rule) || !ruleConditionsMet(rule.if, { values })) continue
     for (const action of rule.then) {
@@ -905,6 +907,16 @@ export function afterSubmitActions(layout: unknown, buttonId: string | null | un
     }
   }
   return out
+}
+
+/**
+ * After submit, data writes (`server_steps`): the enabled rules for this bar
+ * button (or any) whose condition holds for the stored values — in rule
+ * order. Their steps run on the server (lib/services/form-rule-actions.ts).
+ */
+export function submittedServerRules(layout: unknown, buttonId: string | null | undefined, values: Record<string, unknown>): FormRule[] {
+  return layoutFormRules(layout).filter((rule) => !rule.disabled && rule.event === 'after_submit' && rule.server_steps === true
+    && (!rule.target || rule.target === buttonId) && serverVerifiable(rule) && ruleConditionsMet(rule.if, { values }))
 }
 
 /** Workflows the rules start (save-time permission check, dependencies). */
@@ -927,7 +939,8 @@ export function ruleWorkflowIds(layout: unknown): string[] {
  * question's buttons, or a step that is not a server step, reaches nothing.
  */
 export function findServerRuleAction(layout: unknown, ruleId: string, index: number, branch?: ActionBranch | null): { rule: FormRule; action: FieldButtonAction } | null {
-  const rule = layoutFormRules(layout).find((r) => r.id === ruleId && !r.disabled)
+  // A server_steps rule's writes run only from an accepted submission (runSubmittedServerSteps), never on request.
+  const rule = layoutFormRules(layout).find((r) => r.id === ruleId && !r.disabled && !r.server_steps)
   const action = rule ? actionAt(rule.then, index, branch) : null
   if (!rule || !action || !isServerRuleAction(action)) return null
   return { rule, action }
@@ -1018,7 +1031,14 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
     const only = allActions(rule.then).find((a) => ALWAYS_ONLY_ACTIONS.has(a.type))
     if (only) return `"${RULE_ACTION_LABELS[only.type]}" works in "Always" rules (the style follows the condition, and goes when it stops)`
   }
-  if (rule.event === 'after_submit') {
+  if (rule.event === 'after_submit' && rule.server_steps) {
+    const bad = rule.then.find((a) => !SERVER_STEP_ACTIONS.has(a.type))
+    if (bad) return `This rule writes data after the submission is accepted: "${RULE_ACTION_LABELS[bad.type]}" is not available there (add a row, update rows or call an API reference)`
+    const branched = rule.then.find((a) => a.on_success?.length || a.on_failure?.length)
+    if (branched) return `${RULE_ACTION_LABELS[branched.type]}: steps that write after the submission have no on-success / on-failure steps`
+    const intoField = rule.then.find((a) => (a.outputs ?? []).some((o) => !o.to.startsWith('var.')) || Object.keys(a.results ?? {}).length)
+    if (intoField) return `${RULE_ACTION_LABELS[intoField.type]}: after the submission only variables can take a result (the answers are already stored)`
+  } else if (rule.event === 'after_submit') {
     const bad = rule.then.find((a) => !AFTER_SUBMIT_ACTIONS.has(a.type))
     if (bad) return `After submit runs on the server: "${RULE_ACTION_LABELS[bad.type]}" is not available there (use message, open link, start workflow or apply table changes)`
   }
@@ -1103,7 +1123,7 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
         break
       case 'call_reference':
         if (!a.reference_id) return 'Call an API reference: choose the reference'
-        if (a.each_item && !['list', 'repeating_section'].includes(known.fieldTypes.get(a.each_item) ?? '')) return `Call an API reference: "${a.each_item}" is not a repeating section or List of this form`
+        if (a.each_item && !EACH_ITEM_FIELD_TYPES.has(known.fieldTypes.get(a.each_item) ?? '')) return `Call an API reference: "${a.each_item}" is not a repeating section, List or Data table of this form`
         { const bad = outputTargetProblem(a, known); if (bad) return `${RULE_ACTION_LABELS[a.type]}: ${bad}` }
         if (a.wait === false && (a.outputs?.length || a.on_success?.length || Object.keys(a.results ?? {}).length)) return `${RULE_ACTION_LABELS[a.type]}: a call that doesn't wait has no response to map — turn waiting on, or remove the outputs / on-success steps`
         for (const key of Object.values(a.results ?? {})) {
@@ -1131,7 +1151,7 @@ export function formRuleProblem(rule: FormRule, known: RuleKnown): string | null
         if ((a.type === 'table_create' || a.type === 'table_update') && !Object.keys(a.column_values ?? {}).length) return `${label}: set at least one column`
         if ((a.type === 'table_read' || a.type === 'table_update') && !a.row_id && !a.filter) return `${label}: give a row id or a filter`
         if (a.type === 'table_delete' && !a.row_id) return `${label}: give the row id (e.g. {{row.row_id}})`
-        if (a.each_item && !['list', 'repeating_section'].includes(known.fieldTypes.get(a.each_item) ?? '')) return `${label}: "${a.each_item}" is not a repeating section or List of this form`
+        if (a.each_item && !EACH_ITEM_FIELD_TYPES.has(known.fieldTypes.get(a.each_item) ?? '')) return `${label}: "${a.each_item}" is not a repeating section, List or Data table of this form`
         const bad = outputTargetProblem(a, known)
         if (bad) return `${label}: ${bad}`
         break
@@ -1237,6 +1257,13 @@ function groupAsVisibleWhen(group: DataTableConditionGroup | undefined): { field
   if (!operator || c.column.startsWith('event.') || c.column.startsWith('user.') || String(c.value ?? '').includes('{{')) return null
   if (c.column.includes('.') && !stateRuleFlag(c.column)) return null
   return { field: c.column, operator, ...(c.operator === 'is_set' || c.operator === 'is_not_set' ? {} : { value: c.value ?? '' }) }
+}
+
+/** "for each item of Order lines"; a Data table: "for each row added to Parts" / "for each row selected in Products". */
+function eachItemWords(def: RulesDefinition, key: string): string {
+  const f = def.fields.find((x) => x.key === key) as { type?: string; data_table?: { mode?: string } } | undefined
+  if (f?.type === 'data_table') return `for each row ${f.data_table?.mode === 'select' ? 'selected in' : 'added to'} ${fieldName(def, key)}`
+  return `for each item of ${fieldName(def, key)}`
 }
 
 function fieldName(def: RulesDefinition, key: string): string {
@@ -1507,7 +1534,7 @@ function describeOneAction(def: RulesDefinition, a: FieldButtonAction, sample?: 
     case 'table_read': case 'table_list': case 'table_create': case 'table_update': case 'table_delete': {
       const verb = { table_read: 'Read a row of', table_list: 'List rows of', table_create: 'Add a row to', table_update: 'Update rows of', table_delete: 'Delete a row of' }[a.type]
       const outs = (a.outputs ?? []).map((o) => (o.as === 'options' ? `options of ${fieldName(def, o.to)}` : o.to.startsWith('var.') ? `{{${o.to}}}` : fieldName(def, o.to)))
-      return `${verb} ${a.table_name ?? 'a table'}${a.each_selected ? ` for each selected row of ${fieldName(def, a.each_selected)}` : a.each_item ? ` for each item of ${fieldName(def, a.each_item)}` : ''}${outs.length ? ` → ${outs.join(', ')}` : ''} (server)${branchSummary(def, a, sample)}`
+      return `${verb} ${a.table_name ?? 'a table'}${a.each_selected ? ` for each selected row of ${fieldName(def, a.each_selected)}` : a.each_item ? ` ${eachItemWords(def, a.each_item)}` : ''}${outs.length ? ` → ${outs.join(', ')}` : ''} (server)${branchSummary(def, a, sample)}`
     }
     case 'set_state': return `${a.state_value === 'toggle' ? 'Toggle' : 'Set'} state.${a.flag || '?'}${a.state_value === 'toggle' ? '' : ` = ${a.state_value}`}`
     case 'set_variable': return a.variable_mode === 'clear' ? `Clear var.${a.variable ?? '?'}` : a.variable_mode === 'reset' ? `Reset var.${a.variable ?? '?'}` : `Set var.${a.variable ?? '?'} = ${shown(a.value ?? '')}`
@@ -1520,7 +1547,7 @@ function describeOneAction(def: RulesDefinition, a: FieldButtonAction, sample?: 
     case 'run_lookup': return `Run lookup ${a.field ? fieldName(def, a.field) : '…'}${a.query ? ` for ${a.query}` : ''}`
     case 'call_reference': {
       const outs = [...Object.values(a.results ?? {}).map((k) => fieldName(def, k)), ...(a.outputs ?? []).map((o) => (o.as === 'options' ? `options of ${fieldName(def, o.to)}` : o.to.startsWith('var.') ? `{{${o.to}}}` : fieldName(def, o.to)))]
-      return `Call API reference${a.each_item ? ` for each item of ${fieldName(def, a.each_item)}` : ''}${outs.length ? ` → ${outs.join(', ')}` : ''} (server${a.wait === false ? ', without waiting' : ''})${branchSummary(def, a, sample)}`
+      return `Call API reference${a.each_item ? ` ${eachItemWords(def, a.each_item)}` : ''}${outs.length ? ` → ${outs.join(', ')}` : ''} (server${a.wait === false ? ', without waiting' : ''})${branchSummary(def, a, sample)}`
     }
     case 'start_workflow': return `Start workflow ${a.workflow_name ?? ''} (server)`.replace(/\s+/g, ' ')
     case 'apply_table_changes': return `For each changed row of ${a.table_changes?.field ? fieldName(def, a.table_changes.field) : '…'} (server)`

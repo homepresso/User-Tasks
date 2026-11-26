@@ -1,5 +1,6 @@
 'use client'
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -93,12 +94,10 @@ export function LogExportSettings() {
 
       {entries.length === 0 ? (
         <Card>
-          <p className="text-sm font-medium">No log destinations yet</p>
-          <p className="text-xs mt-1 text-fg-muted">
-            {canEdit
+          <EmptyState size="sm" title="No log destinations yet"
+            description={canEdit
               ? 'Add one to start shipping events. New destinations start from now; choose “start of retention” to also send events from the last 72 hours.'
-              : 'Ask a workspace admin to add one.'}
-          </p>
+              : 'Ask a workspace admin to add one.'} />
         </Card>
       ) : (
         <div className="space-y-3">

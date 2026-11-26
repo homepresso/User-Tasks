@@ -17,11 +17,20 @@ export function sanitizeSvg(raw: string): string | null {
   // Drop dangerous elements entirely (with their content).
   svg = svg.replace(/<(script|foreignObject|iframe|object|embed|style)[\s\S]*?<\/\1\s*>/gi, '')
   svg = svg.replace(/<(script|foreignObject|iframe|object|embed|style)[^>]*\/?>/gi, '')
-  // <use> can pull external content via href.
-  svg = svg.replace(/<use[^>]*>/gi, '')
-  // Strip event handlers and scriptable URLs from attributes.
-  svg = svg.replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-  svg = svg.replace(/\s(href|xlink:href|src)\s*=\s*("(?:javascript|data):[^"]*"|'(?:javascript|data):[^']*')/gi, '')
+  // <use> can pull external content via href; SMIL animation elements can
+  // rewrite attributes (e.g. <set attributeName="href" to="javascript:…">).
+  svg = svg.replace(/<(use|animate|animateMotion|animateTransform|set|handler|listener)\b[\s\S]*?<\/\1\s*>/gi, '')
+  svg = svg.replace(/<\/?(use|animate|animateMotion|animateTransform|set|handler|listener)\b[^>]*>/gi, '')
+  // Strip event handlers: after whitespace, "/" (<svg/onload=…>) or a closing
+  // quote (x=""onclick=…) — HTML parsers accept all three as separators.
+  let prev: string
+  do {
+    prev = svg
+    svg = svg.replace(/([\s/"'])on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '$1')
+  } while (svg !== prev)
+  // Links: only same-document fragments (#id) survive. Anything else —
+  // javascript:, data:, entity-encoded schemes, external URLs — is dropped.
+  svg = svg.replace(/([\s/"'])(href|xlink:href|src)\s*=\s*("(?!#)[^"]*"|'(?!#)[^']*'|(?!["'#])[^\s>]+)/gi, '$1')
 
   return svg.trim() || null
 }

@@ -96,7 +96,7 @@ export async function writeAudit(params: WriteAuditParams): Promise<void> {
     const { supabase, tenantId, actorId, objectType, objectId, action, summary, diff, metadata } = params
     if (!tenantId || !objectType || !objectId || !action) return
 
-    await (supabase as any).from('object_audit_log').insert({
+    const { error } = await (supabase as any).from('object_audit_log').insert({
       tenant_id: tenantId,
       actor_id: actorId,
       object_type: objectType,
@@ -106,6 +106,8 @@ export async function writeAudit(params: WriteAuditParams): Promise<void> {
       diff: diff ?? null,
       metadata: metadata ?? null,
     })
+    // supabase-js reports a failed insert in `error` (it doesn't throw).
+    if (error) console.warn(`[audit-log] writeAudit failed (${objectType} ${action}): ${error.message ?? error}`)
   } catch (err) {
     // Swallow — audit writes must never break the real action
     console.warn('[audit-log] writeAudit failed:', err)

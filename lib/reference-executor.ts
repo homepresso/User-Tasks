@@ -118,11 +118,42 @@ export function redactHeaders(
   return out;
 }
 
+/**
+ * The `<name>…</name>` elements of an XML list response, scanned with
+ * indexOf (linear). A lazy `[\s\S]*?` regex re-scanned to the end from every
+ * unclosed start tag — quadratic on a hostile upstream body.
+ */
+export function* xmlElements(raw: string, name: string): Generator<string> {
+  const open = `<${name}>`;
+  const close = `</${name}>`;
+  let from = 0;
+  for (;;) {
+    const start = raw.indexOf(open, from);
+    if (start < 0) return;
+    const end = raw.indexOf(close, start + open.length);
+    if (end < 0) return;
+    yield raw.slice(start, end + close.length);
+    from = end + close.length;
+  }
+}
+
+/** Webhook URLs whose path itself is the secret (Teams incoming webhooks, Power Automate / Logic Apps triggers). */
+const SECRET_PATH_HOST_RE = /(^|\.)(webhook\.office\.com|logic\.azure\.com|powerplatform\.com|hooks\.slack\.com)$/i;
+
 /** Strip sensitive query params (and URL userinfo) from a URL for safe logging */
 export function redactUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   try {
-    return url
+    let out = url;
+    try {
+      const parsed = new URL(url);
+      if (SECRET_PATH_HOST_RE.test(parsed.hostname) && parsed.pathname.length > 1) {
+        out = url.replace(parsed.pathname, "/***");
+      }
+    } catch {
+      // not an absolute URL: query / userinfo redaction below
+    }
+    return out
       .replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/@]*@/i, "$1***@")
       .replace(SENSITIVE_QUERY_RE, (_, prefix, key) => `${prefix}${key}=***`);
   } catch {
@@ -1262,10 +1293,7 @@ async function executeAzureBlobRequest(opts: {
     const nextMarker = tag(raw, "NextMarker") || null;
     if (raw.includes("<Blobs>")) {
       const blobs: any[] = [];
-      const blobRe = /<Blob>[\s\S]*?<\/Blob>/g;
-      let m;
-      while ((m = blobRe.exec(raw)) !== null) {
-        const chunk = m[0];
+      for (const chunk of xmlElements(raw, "Blob")) {
         blobs.push({
           name: xmlDecode(tag(chunk, "Name") ?? ""),
           size: Number(tag(chunk, "Content-Length") ?? 0),
@@ -1278,10 +1306,7 @@ async function executeAzureBlobRequest(opts: {
       data = { blobs, count: blobs.length, next_marker: nextMarker, ...(prefixes.length ? { prefixes } : {}) };
     } else if (raw.includes("<Containers>")) {
       const containers: any[] = [];
-      const contRe = /<Container>[\s\S]*?<\/Container>/g;
-      let m;
-      while ((m = contRe.exec(raw)) !== null) {
-        const chunk = m[0];
+      for (const chunk of xmlElements(raw, "Container")) {
         containers.push({
           name: xmlDecode(tag(chunk, "Name") ?? ""),
           last_modified: tag(chunk, "Last-Modified") ?? "",

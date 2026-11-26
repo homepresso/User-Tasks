@@ -157,8 +157,8 @@ async function readCapped(response: Response, max: number, name: string): Promis
 }
 
 async function fetchExternal(url: string, options: ResolveFileOptions, signal: AbortSignal): Promise<Response> {
-  const { assertSafeEgressUrl } = await import('@/lib/egress-guard')
-  const doFetch = options.fetchImpl ?? fetch
+  const { assertSafeEgressUrl, egressFetch } = await import('@/lib/egress-guard')
+  const doFetch = options.fetchImpl ?? egressFetch
   let current = url
   for (let hop = 0; hop < 4; hop++) {
     await assertSafeEgressUrl(current)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { FloatingLayer } from './floating-layer'
 import { CalendarClock, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -11,6 +11,9 @@ interface DateTimePickerProps {
   disabled?: boolean
   className?: string
   placeholder?: string
+  /** Accessible name for the trigger when no <label htmlFor> points at it (e.g. "Estimated completion"). */
+  'aria-label'?: string
+  id?: string
 }
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -37,6 +40,19 @@ function formatLocalDateTimeInput(date: Date): string {
   return `${year}-${month}-${day}T${hour}:${minute}`
 }
 
+/** "Monday, November 23, 2026" — what a screen reader hears for a day button. */
+export function dayLabel(date: Date): string {
+  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+}
+
+/** Arrow keys move by a day / a week inside the month grid (Home / End: start / end of the week). */
+export function dayStep(key: string, day: number, daysInMonth: number, weekday: number): number | null {
+  const delta = key === 'ArrowLeft' ? -1 : key === 'ArrowRight' ? 1 : key === 'ArrowUp' ? -7 : key === 'ArrowDown' ? 7
+    : key === 'Home' ? -weekday : key === 'End' ? 6 - weekday : null
+  if (delta == null) return null
+  return Math.min(daysInMonth, Math.max(1, day + delta))
+}
+
 function getDisplayValue(date: Date | null, placeholder?: string) {
   if (!date) return placeholder || 'Set date and time'
   return date.toLocaleString('en-US', {
@@ -55,10 +71,14 @@ export function DateTimePicker({
   disabled,
   className,
   placeholder,
+  'aria-label': ariaLabel,
+  id,
 }: DateTimePickerProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const panelRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const dialogId = useId()
   const selected = useMemo(() => parseLocalDateTime(value), [value])
   const [viewDate, setViewDate] = useState<Date>(() => selected ?? new Date())
 
@@ -75,6 +95,9 @@ export function DateTimePicker({
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
+  // Roving tab stop in the month grid: the selected day, else today, else the 1st (arrows move between days).
+  const rovingDay = selected && selected.getFullYear() === year && selected.getMonth() === month ? selected.getDate()
+    : today.getFullYear() === year && today.getMonth() === month ? today.getDate() : 1
   const selectedDate = selected ?? new Date()
   const selectedHour24 = selectedDate.getHours()
   const selectedMinute = selectedDate.getMinutes()
@@ -98,6 +121,13 @@ export function DateTimePicker({
   function selectDay(day: number, monthOffset = 0) {
     const next = withSelectedTime(new Date(year, month + monthOffset, day))
     updateDate(next)
+  }
+
+  function moveDay(e: React.KeyboardEvent, day: number) {
+    const next = dayStep(e.key, day, daysInMonth, new Date(year, month, day).getDay())
+    if (next == null) return
+    e.preventDefault()
+    panelRef.current?.querySelector<HTMLElement>(`[data-day="${next}"]`)?.focus()
   }
 
   function setHour(hourLabel: string) {
@@ -126,9 +156,26 @@ export function DateTimePicker({
     updateDate(next)
   }
 
+  // The panel is portalled to the end of <body>: move focus into it on open (the selected day, else
+  // today, else the first day) so keyboard users can reach it, and back to the trigger on close.
+  useEffect(() => {
+    if (!open) return
+    const id = requestAnimationFrame(() => {
+      const panel = panelRef.current
+      const target = panel?.querySelector<HTMLElement>('[aria-pressed="true"][data-day], [aria-current="date"], [data-day]')
+      target?.focus()
+    })
+    return () => cancelAnimationFrame(id)
+  }, [open])
+
+  function close() {
+    setOpen(false)
+    requestAnimationFrame(() => triggerRef.current?.focus())
+  }
+
   function clearValue() {
     onChange('')
-    setOpen(false)
+    close()
   }
 
   function setToday() {
@@ -140,9 +187,15 @@ export function DateTimePicker({
   return (
     <div ref={rootRef} className={cn('relative', className)}>
       <button
+        ref={triggerRef}
+        id={id}
         type="button"
         onClick={() => !disabled && setOpen((current) => !current)}
         disabled={disabled}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={open ? dialogId : undefined}
+        aria-label={ariaLabel ? `${ariaLabel}: ${getDisplayValue(selected, placeholder)}` : undefined}
         className={cn(
           'flex h-10 w-full items-center gap-2.5 rounded-xl border px-3 text-left shadow-sm transition-all',
           disabled && 'cursor-not-allowed opacity-70'
@@ -154,7 +207,7 @@ export function DateTimePicker({
           boxShadow: open ? '0 0 0 3px color-mix(in srgb, var(--theme-primary) 14%, transparent), var(--shadow-sm)' : 'var(--shadow-sm)',
         }}
       >
-        <CalendarClock size={16} className="text-primary-text" />
+        <CalendarClock size={16} className="text-primary-text" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
           {getDisplayValue(selected, placeholder)}
         </span>
@@ -168,9 +221,12 @@ export function DateTimePicker({
       <FloatingLayer
           anchorRef={rootRef}
           open={open}
-          onDismiss={() => setOpen(false)}
+          onDismiss={close}
           closeOnEscape
           panelRef={panelRef}
+          id={dialogId}
+          role="dialog"
+          aria-label={ariaLabel ? `Choose ${ariaLabel.toLowerCase()}` : 'Choose date and time'}
           width={576}
           maxHeight={560}
           gap={8}
@@ -187,14 +243,17 @@ export function DateTimePicker({
                 <button
                   type="button"
                   onClick={() => setViewDate(new Date(year, month - 1, 1))}
+                  aria-label="Previous month"
                   className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-80 bg-bg text-fg"
                 >
-                  <ChevronLeft size={14} />
+                  <ChevronLeft size={14} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewDate(selected ?? new Date())}
                   className="flex items-center gap-1 text-sm font-semibold text-fg"
+                  aria-live="polite"
+                  aria-label={`${MONTHS[month]} ${year}. Go to ${selected ? 'the selected' : 'this'} month`}
                 >
                   {MONTHS[month]} {year}
                   <ChevronDown size={13} className="text-fg-muted" />
@@ -202,15 +261,16 @@ export function DateTimePicker({
                 <button
                   type="button"
                   onClick={() => setViewDate(new Date(year, month + 1, 1))}
+                  aria-label="Next month"
                   className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-80 bg-bg text-fg"
                 >
-                  <ChevronRight size={14} />
+                  <ChevronRight size={14} aria-hidden="true" />
                 </button>
               </div>
 
               <div className="grid grid-cols-7 gap-0.5 text-center">
                 {DAYS.map((day, index) => (
-                  <div key={`${day}-${index}`} className="py-1.5 text-2xs font-semibold uppercase tracking-wide text-fg-muted">
+                  <div key={`${day}-${index}`} aria-hidden="true" className="py-1.5 text-2xs font-semibold uppercase tracking-wide text-fg-muted">
                     {day}
                   </div>
                 ))}
@@ -222,6 +282,8 @@ export function DateTimePicker({
                       key={`prev-${day}`}
                       type="button"
                       onClick={() => selectDay(day, -1)}
+                      tabIndex={-1}
+                      aria-label={dayLabel(new Date(year, month - 1, day))}
                       className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg text-xs transition-opacity hover:opacity-75"
                       style={{ color: 'color-mix(in srgb, var(--theme-muted-text) 80%, transparent)' }}
                     >
@@ -244,6 +306,12 @@ export function DateTimePicker({
                       key={`day-${day}`}
                       type="button"
                       onClick={() => selectDay(day)}
+                      data-day={day}
+                      tabIndex={day === rovingDay ? 0 : -1}
+                      aria-label={dayLabel(dateObj)}
+                      aria-pressed={isSelected}
+                      aria-current={isToday ? 'date' : undefined}
+                      onKeyDown={(e) => moveDay(e, day)}
                       className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg text-xs font-medium transition-all hover:opacity-85"
                       style={{
                         backgroundColor: isSelected ? 'var(--theme-primary-light)' : isToday ? 'color-mix(in srgb, var(--theme-primary) 10%, transparent)' : 'transparent',
@@ -263,6 +331,8 @@ export function DateTimePicker({
                       key={`next-${day}`}
                       type="button"
                       onClick={() => selectDay(day, 1)}
+                      tabIndex={-1}
+                      aria-label={dayLabel(new Date(year, month + 1, day))}
                       className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg text-xs transition-opacity hover:opacity-75"
                       style={{ color: 'color-mix(in srgb, var(--theme-muted-text) 80%, transparent)' }}
                     >
@@ -304,9 +374,10 @@ function TimeColumn({
   selected: string
   onSelect: (value: string) => void
 }) {
+  const groupId = useId()
   return (
-    <div className="min-w-0">
-      <div className="mb-1.5 px-1 text-2xs font-semibold uppercase tracking-wide text-fg-muted">
+    <div className="min-w-0" role="group" aria-labelledby={`${groupId}-label`}>
+      <div id={`${groupId}-label`} className="mb-1.5 px-1 text-2xs font-semibold uppercase tracking-wide text-fg-muted">
         {label}
       </div>
       <div className="max-h-[16rem] space-y-1 overflow-y-auto pr-1">
@@ -317,6 +388,8 @@ function TimeColumn({
               key={item}
               type="button"
               onClick={() => onSelect(item)}
+              aria-pressed={active}
+              aria-label={`${label} ${item}`}
               className="flex h-9 w-full items-center justify-center rounded-lg text-sm font-semibold transition-all hover:opacity-85"
               style={{
                 backgroundColor: active ? 'var(--theme-surface)' : 'transparent',

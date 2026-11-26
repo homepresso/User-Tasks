@@ -32,6 +32,7 @@
   },
   "include": [
     "src",
-    "test"
+    "test",
+    "../../types/optional-db-drivers.d.ts"
   ]
 }

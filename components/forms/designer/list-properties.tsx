@@ -608,7 +608,7 @@ function ValidationsEditor<T extends ListValidation | ListRowValidation>({ items
             <span className="text-2xs font-medium text-fg-muted">Show an error when</span>
             <button type="button" className="ml-auto rounded p-0.5" aria-label={`Remove ${rowLevel ? 'row check' : 'validation'} ${i + 1}`} onClick={() => set(items.filter((_, j) => j !== i))}><X size={11} /></button>
           </div>
-          <GroupEditor group={v.if} depth={0} columns={subjects} placeholders={placeholders}
+          <GroupEditor group={v.if} depth={0} columns={subjects} placeholders={placeholders} valueFields={subjects}
             onChange={(next, tag) => (next ? set(items.map((x, j) => (j === i ? { ...x, if: next } : x)), tag ? `${tagBase}-vif-${i}-${tag}` : undefined) : set(items.filter((_, j) => j !== i)))} />
           <label className="block text-2xs" htmlFor={`${idBase}-vmsg-${i}`}>Message</label>
           <input id={`${idBase}-vmsg-${i}`} className={inputClass} value={v.message} maxLength={LIST_LIMITS.message} placeholder="e.g. Quantity is over the stock on hand ({{row.qty}})"

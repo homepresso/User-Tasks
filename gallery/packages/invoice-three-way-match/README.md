@@ -18,7 +18,7 @@ Match invoices to purchase orders and goods receipts, pay what matches and route
 ```bash
 curl -X POST "$USERTASKS_URL/api/v1/workflows/start" \
   -H "Authorization: Bearer $USERTASKS_API_KEY" -H "Content-Type: application/json" \
-  -d '{"workflow_id":"<workflow id>","variables":{"invoice_number":"INV-55410","vendor_id":"V-2001","po_number":"PO-4500123","invoice_total":11500,"currency":"NZD","invoice_date":"2026-10-20","lines":[{"line":1,"quantity":200,"unit_price":12.5}]}}'
+  -d '{"workflow_id":"<workflow id>","variables":{"invoice_number":"INV-55410","vendor_id":"V-2001","po_number":"PO-4500123","invoice_total":11500,"currency":"USD","invoice_date":"2026-10-20","lines":[{"line":1,"quantity":200,"unit_price":12.5}]}}'
 ```
 
 ## New in 1.1.0

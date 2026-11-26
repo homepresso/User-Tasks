@@ -81,7 +81,7 @@
         "id": "79f14a60-91b6-5da7-a534-ae759bea6e65",
         "required": false,
         "key": "amount",
-        "name": "Amount (NZD)",
+        "name": "Amount (USD)",
         "type": "number"
       },
       {

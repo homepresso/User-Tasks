@@ -3,6 +3,9 @@ import { createEntraClient } from '@/lib/directory-sync/entra'
 import { createOktaClient, parseNextLink } from '@/lib/directory-sync/okta'
 import { DirectoryApiError } from '@/lib/directory-sync/types'
 
+// The egress guard is covered in directory-okta-egress.test.ts; no DNS here.
+vi.mock('@/lib/egress-guard', () => ({ assertSafeEgressUrl: vi.fn(async () => ({ private: null })) }))
+
 const fetchMock = vi.fn()
 
 beforeEach(() => {

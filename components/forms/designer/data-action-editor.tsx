@@ -294,15 +294,7 @@ export function TableActionEditor({ action, state, placeholders, onChange }: {
           </select>
         </label>
       )}
-      {(action.type === 'table_create' || action.type === 'table_update' || action.type === 'table_delete') && !action.each_selected && state.fields.some((f) => f.type === 'list' || f.type === 'repeating_section') && (
-        <label className="block text-2xs">For each item
-          <select className={inputClass} value={action.each_item ?? ''} data-each-item
-            onChange={(e) => onChange({ ...action, each_item: e.target.value || undefined })}>
-            <option value="">Once</option>
-            {state.fields.filter((f) => f.type === 'list' || f.type === 'repeating_section').map((f) => <option key={f.key} value={f.key}>Once for each item of {f.label || f.key} ({'{{row.<field>}}'})</option>)}
-          </select>
-        </label>
-      )}
+      {(action.type === 'table_create' || action.type === 'table_update' || action.type === 'table_delete') && !action.each_selected && <EachItemSelect action={action} state={state} onChange={onChange} />}
       {(action.type === 'table_read' || action.type === 'table_list' || action.type === 'table_update') && (
         <div ref={filterRef}>
           <ActionFilterEditor value={action.filter} columns={columns} placeholders={placeholders} onChange={(filter) => onChange({ ...action, filter })} />
@@ -340,6 +332,32 @@ export function TableActionEditor({ action, state, placeholders, onChange }: {
 }
 
 /** call_reference's extras: wait or fire and forget, timeout, the response rows' filter / sort / limit, outputs, Test. */
+/** Fields a per-item step can run over: repeating sections, Lists, and editable / Select Data tables (their added / selected rows). */
+export function eachItemFields(state: Pick<DesignerState, 'fields'>) {
+  return state.fields.filter((f) => f.type === 'list' || f.type === 'repeating_section' || (f.type === 'data_table' && (f.data_table?.mode === 'edit' || f.data_table?.mode === 'select')))
+}
+
+/** "For each item": run the step once, or once per item of a repeating section / List / per row added to (selected in) a Data table. */
+export function EachItemSelect({ action, state, onChange }: { action: FieldButtonAction; state: Pick<DesignerState, 'fields'>; onChange: (next: FieldButtonAction, tag?: string) => void }) {
+  const fields = eachItemFields(state)
+  if (!fields.length && !action.each_item) return null
+  return (
+    <label className="block text-2xs">For each item
+      <select className={inputClass} value={action.each_item ?? ''} data-each-item
+        onChange={(e) => onChange({ ...action, each_item: e.target.value || undefined })}>
+        <option value="">Once</option>
+        {fields.map((f) => (
+          <option key={f.key} value={f.key}>
+            {f.type === 'data_table'
+              ? `Once for each row ${f.data_table?.mode === 'select' ? 'selected in' : 'added to'} ${f.label || f.key} ({{row.<column>}})`
+              : `Once for each item of ${f.label || f.key} ({{row.<field>}})`}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
 export function CallReferenceExtras({ action, state, placeholders, onChange }: {
   action: FieldButtonAction
   state: DesignerState

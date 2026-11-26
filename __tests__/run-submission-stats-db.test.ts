@@ -11,8 +11,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client } from 'pg'
 import { aggregateRuns } from '@/lib/extensions/insights-host'
+import { dbCapabilities, setRoleSql } from './helpers/db-capabilities'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// service_role without BYPASSRLS (managed PostgreSQL): the app runs it as the schema owner.
+const caps = await dbCapabilities()
 
 const T1 = '0e000000-0000-4000-8000-0000000d0001'
 const T2 = '0e000000-0000-4000-8000-0000000d0002'
@@ -44,7 +47,7 @@ describe.skipIf(!DB_URL)('workflow_run_stats / form_submission_stats (local DB)'
   async function asService<T = any>(sql: string, params: unknown[]): Promise<T> { // eslint-disable-line @typescript-eslint/no-explicit-any
     await db.query('SAVEPOINT svc')
     try {
-      await db.query('SET LOCAL ROLE service_role')
+      await db.query(setRoleSql('service_role', caps))
       const { rows } = await db.query(sql, params)
       await db.query('RESET ROLE')
       await db.query('RELEASE SAVEPOINT svc')

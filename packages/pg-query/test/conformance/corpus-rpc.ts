@@ -38,7 +38,7 @@ export const RPC_CASES: Case[] = [
     after: `SELECT run_count FROM public.workflows WHERE id = '${id(0x202)}'` },
   { name: 'rpc create_task_with_subtasks (volatile, jsonb arg)', from: 'lib/services/tasks.ts', as: ['alice'],
     reset: `DELETE FROM public.tasks WHERE tenant_id = '${T}' AND title LIKE 'RPC %'`,
-    volatile: ['id', 'task_id', 'parent_task_id', 'created_at', 'updated_at'],
+    volatile: ['id', 'task_id', 'parent_task_id', 'created_at', 'updated_at', 'routed_at'],
     run: (db) => db.rpc('create_task_with_subtasks', { p_title: 'RPC parent', p_priority: 'high', p_subtasks: [{ title: 'RPC child' }] }),
     after: `SELECT title, priority, status, (parent_task_id IS NOT NULL) AS is_child FROM public.tasks WHERE tenant_id = '${T}' AND title LIKE 'RPC %' ORDER BY title` },
   { name: 'rpc add_task_dependency raising (P0001/23505)', as: ['alice'], run: (db) => db.rpc('add_task_dependency', { p_task: id(0x303), p_depends_on: id(0x302) }) },

@@ -1,10 +1,11 @@
 "use client"
 
-import { useContext, useRef } from "react"
+import { memo, useContext, useRef } from "react"
 import { useDraggable } from "@dnd-kit/core"
 import type { PortSide, WorkflowNode } from "@/lib/workflow-schema"
 import { CanvasZoomContext, scaledDragTransform } from "./use-canvas-zoom"
 import { WorkflowNodeCard, NODE_ICON_MAP } from "./workflow-node-card"
+import { onActivateKey } from "@/lib/a11y/keyboard"
 
 interface CanvasNodeProps {
   node: WorkflowNode
@@ -26,7 +27,7 @@ interface CanvasNodeProps {
  * (dnd-kit), selectable and connectable. Viewers render the same card
  * read-only with a runtime overlay.
  */
-export function CanvasNode({
+export const CanvasNode = memo(function CanvasNode({
   node, isSelected, isConnecting, connectingSource, isActive, dimmed = false, emphasis,
   onSelect, onDelete, onStartConnect, onFinishConnect,
 }: CanvasNodeProps) {
@@ -102,9 +103,16 @@ export function CanvasNode({
           window.dispatchEvent(new CustomEvent('toggle-collapse', { detail: { nodeId: node.id } }))
         },
       }}
-      headerProps={{ ...attributes, ...listeners }}
+      // The header is dnd-kit's handle (role="button", tabIndex 0): Enter / Space selects the step,
+      // or finishes a connection started from another step's handle (keyboard alternative to clicking).
+      headerProps={{
+        ...attributes, ...listeners,
+        "aria-label": isDropTarget ? `Connect to ${node.label}` : `${node.label} step`,
+        "aria-pressed": isSelected,
+        onKeyDown: onActivateKey(() => { if (isDropTarget) onFinishConnect(); else onSelect() }),
+      }}
     />
   )
-}
+})
 
 export { NODE_ICON_MAP }

@@ -2121,8 +2121,7 @@
      },
      {
       "name": "temperature",
-      "type": "body",
-      "placeholder": "0"
+      "type": "body"
      },
      {
       "name": "max_tokens",
@@ -2220,8 +2219,7 @@
      },
      {
       "name": "temperature",
-      "type": "body",
-      "placeholder": "0"
+      "type": "body"
      },
      {
       "name": "max_tokens",
@@ -2299,8 +2297,7 @@
      },
      {
       "name": "temperature",
-      "type": "body",
-      "placeholder": "0"
+      "type": "body"
      },
      {
       "name": "max_tokens",
@@ -3391,7 +3388,7 @@
       "name": "file_base64",
       "type": "body",
       "required": true,
-      "description": "The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows (hosted instances accept request bodies up to about 4.5 MB). With multipart/form-data: the `file` field."
+      "description": "The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows. A JSON body is capped at API_MAX_BODY_BYTES (default 5 MiB; hosted instances about 4.5 MB): send larger files as multipart/form-data, in the `file` field."
      },
      {
       "name": "file_name",
@@ -4890,7 +4887,6 @@
      {
       "name": "available_in_menu",
       "type": "body",
-      "placeholder": "false",
       "description": "Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false)."
      },
      {
@@ -4990,7 +4986,6 @@
      {
       "name": "available_in_menu",
       "type": "body",
-      "placeholder": "false",
       "description": "Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false)."
      },
      {

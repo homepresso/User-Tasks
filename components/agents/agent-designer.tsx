@@ -1,5 +1,6 @@
 'use client'
 
+import { toastError } from '@/lib/toast'
 import { useAssistantChanges, useDesignerContext, type AssistantChange } from '@/lib/assistants/client-registry'
 import { isCustomReference, isWriteReference } from '@/lib/custom-references/types'
 import { WritesDataBadge } from '@/components/integrations/writes-data-badge'
@@ -325,7 +326,7 @@ export function AgentDesigner({ agent: initial, integrations, references, dataTa
           output_config: imported.output_config ?? { variables: [] },
           is_active: imported.is_active ?? true,
         })
-      } catch { alert('Invalid agent JSON file') }
+      } catch { toastError('Invalid agent JSON file', 'Choose an agent exported from UserTasks (.json).') }
     }
     reader.readAsText(file)
     e.target.value = ''

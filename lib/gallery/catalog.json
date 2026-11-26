@@ -27677,8 +27677,13 @@
         "forms",
         "lookup"
       ],
-      "version": "1.1.0",
+      "version": "1.1.1",
       "changelog": [
+        {
+          "version": "1.1.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.1.0",
           "date": "2026-10-28",
@@ -27731,15 +27736,15 @@
       "optional_needs": [],
       "systems": [],
       "native": false,
-      "released": "2026-10-28",
-      "file_name": "expense-claims-1.1.0.utpkg",
-      "checksum": "sha256:ad023b09241127b5f6d5db686c0f6a454420b09155c7dd8a640d418f3c6545d8",
+      "released": "2026-11-25",
+      "file_name": "expense-claims-1.1.1.utpkg",
+      "checksum": "sha256:06d8df9e596f14b25a69b6534eb85ad0c7da9ab75139b1d6982313abd21f11d2",
       "sample_input": {
         "employee_id": "E-1001",
         "claim_title": "Client visit Wellington",
         "category": "travel",
         "amount": 640,
-        "currency": "NZD",
+        "currency": "USD",
         "expense_date": "2026-10-20",
         "receipt_url": "https://files.example.com/receipts/r-20931.pdf",
         "business_purpose": "Quarterly review with Contoso"
@@ -27787,9 +27792,9 @@
           "type": "select",
           "required": false,
           "options": [
-            "NZD",
-            "AUD",
             "USD",
+            "AUD",
+            "NZD",
             "EUR",
             "GBP"
           ],
@@ -29766,8 +29771,13 @@
         "decision table",
         "erp"
       ],
-      "version": "1.1.0",
+      "version": "1.1.1",
       "changelog": [
+        {
+          "version": "1.1.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.1.0",
           "date": "2026-10-28",
@@ -29823,15 +29833,15 @@
       "icon": "file-check",
       "systems": [],
       "native": false,
-      "released": "2026-10-28",
-      "file_name": "invoice-three-way-match-1.1.0.utpkg",
-      "checksum": "sha256:2196a6508cd4af46b35f2bc5ba913010de709c9b5be4ed70306df27228185a88",
+      "released": "2026-11-25",
+      "file_name": "invoice-three-way-match-1.1.1.utpkg",
+      "checksum": "sha256:a57936d4e50e2aaffc1439af8c730beef631c0d5086399fa0693750205fe06a3",
       "sample_input": {
         "invoice_number": "INV-55410",
         "vendor_id": "V-2001",
         "po_number": "PO-4500123",
         "invoice_total": 11500,
-        "currency": "NZD",
+        "currency": "USD",
         "invoice_date": "2026-10-20",
         "lines": [
           {
@@ -31731,8 +31741,13 @@
         "decision table",
         "lookup"
       ],
-      "version": "1.0.0",
+      "version": "1.0.1",
       "changelog": [
+        {
+          "version": "1.0.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.0.0",
           "date": "2026-10-28",
@@ -31786,9 +31801,9 @@
         "Oracle NetSuite"
       ],
       "native": false,
-      "released": "2026-10-28",
-      "file_name": "netsuite-vendor-bill-approval-1.0.0.utpkg",
-      "checksum": "sha256:1b2ae257876cc0179edabe7fe1a20d384ad6a3a1158a013c804e09bb7f0b097e",
+      "released": "2026-11-25",
+      "file_name": "netsuite-vendor-bill-approval-1.0.1.utpkg",
+      "checksum": "sha256:8963f4dc5c1ee6b9216a82bf7e477bd1966f90f2ea631c0b993475d1c096bd9d",
       "sample_input": {
         "bill_id": "48213",
         "tran_id": "INV-77120",
@@ -32820,7 +32835,7 @@
       "title": "Petty cash claims",
       "category": "finance",
       "summary": "A themed petty cash claim form with a cost-centre lookup and receipt link, float and limit rules, budget-holder approval and a ledger.",
-      "description": "Petty cash claims takes the cash tin and the paper slips online. People fill in the Petty cash claim form: they find the cost centre in the Petty cash cost centres table (the budget holder and GL account fill in), pick the budget holder as approver, enter the amount, date and category and paste a link to the receipt. Its Submit claim button starts the Petty cash claim workflow with the form values as inputs and shows a success screen with the run reference.\n\nThe workflow reads the cost centre, adds up what was paid from its float this month in the Petty cash ledger and applies the Petty cash limits decision table: claims over NZD 250 or without a receipt over NZD 20 are declined with the reason, up to NZD 50 with a receipt is paid straight away, and the rest (or anything taking the cost centre over its float) goes to the budget holder.\n\nThe budget holder gets an Approve / Reject task with the receipt, the float used and the GL account, with a reminder and escalation. Every claim is in the ledger with its decision rule and payment date, and the claimant is emailed. Everything is built in.\n\nThe claim form is two steps with a numbered stepper (you and the cost centre, then the purchase and its receipt) in Application mode with its own Next, Back and Submit claim buttons; form rules ask for a receipt over NZD 20 before the claim is sent and refuse a future purchase date. The Petty cash claims page lists the ledger in two Data tables, My claims (only the signed-in person's) and This month, with NZD amounts, status badges and receipt links; click a claim to see its details.",
+      "description": "Petty cash claims takes the cash tin and the paper slips online. People fill in the Petty cash claim form: they find the cost centre in the Petty cash cost centres table (the budget holder and GL account fill in), pick the budget holder as approver, enter the amount, date and category and paste a link to the receipt. Its Submit claim button starts the Petty cash claim workflow with the form values as inputs and shows a success screen with the run reference.\n\nThe workflow reads the cost centre, adds up what was paid from its float this month in the Petty cash ledger and applies the Petty cash limits decision table: claims over USD 250 or without a receipt over USD 20 are declined with the reason, up to USD 50 with a receipt is paid straight away, and the rest (or anything taking the cost centre over its float) goes to the budget holder.\n\nThe budget holder gets an Approve / Reject task with the receipt, the float used and the GL account, with a reminder and escalation. Every claim is in the ledger with its decision rule and payment date, and the claimant is emailed. Everything is built in.\n\nThe claim form is two steps with a numbered stepper (you and the cost centre, then the purchase and its receipt) in Application mode with its own Next, Back and Submit claim buttons; form rules ask for a receipt over USD 20 before the claim is sent and refuse a future purchase date. The Petty cash claims page lists the ledger in two Data tables, My claims (only the signed-in person's) and This month, with USD amounts, status badges and receipt links; click a claim to see its details.",
       "trigger": "form",
       "entry_workflow": "e4361734-9d71-5aba-ab8a-6e3fefe6af77",
       "entry_form": "6755460d-7e72-57f6-be5b-f4eb5afd67b8",
@@ -32839,12 +32854,17 @@
         "data table",
         "form rules"
       ],
-      "version": "1.1.0",
+      "version": "1.1.1",
       "changelog": [
+        {
+          "version": "1.1.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.1.0",
           "date": "2026-11-01",
-          "notes": "The Petty cash claim form is now two steps with a numbered stepper in Application mode (in-form Next / Back / Submit claim buttons), the cost centre autocomplete shows \"Name (code)\" while storing the code, and form rules ask for a receipt over NZD 20 and refuse a future purchase date. New Petty cash claims page: My claims and This month Data tables over the ledger (base filters on the signed-in user and the month, NZD / date / badge / link formats, search, filters, sorting) with a row click that opens the claim details."
+          "notes": "The Petty cash claim form is now two steps with a numbered stepper in Application mode (in-form Next / Back / Submit claim buttons), the cost centre autocomplete shows \"Name (code)\" while storing the code, and form rules ask for a receipt over USD 20 and refuse a future purchase date. New Petty cash claims page: My claims and This month Data tables over the ledger (base filters on the signed-in user and the month, USD / date / badge / link formats, search, filters, sorting) with a row click that opens the claim details."
         },
         {
           "version": "1.0.0",
@@ -32859,7 +32879,7 @@
       "setup": [
         "Nothing to configure: install it and share the Petty cash claim form from Forms.",
         "Replace the sample rows in Petty cash cost centres with yours (code, budget holder, monthly float, GL account).",
-        "Adjust the Petty cash limits decision table if your limits differ from NZD 20 (receipt), 50 (no approval) and 250 (maximum).",
+        "Adjust the Petty cash limits decision table if your limits differ from USD 20 (receipt), 50 (no approval) and 250 (maximum).",
         "Optional: set EMAIL_PROVIDER so claimants receive the approval and decline emails."
       ],
       "steps": [
@@ -32893,9 +32913,9 @@
       "slug": "petty-cash",
       "systems": [],
       "native": true,
-      "released": "2026-11-01",
-      "file_name": "petty-cash-1.1.0.utpkg",
-      "checksum": "sha256:d8570329dcdc19daa53b16201aa67925434834fa9388e8af8f8460a309796203",
+      "released": "2026-11-25",
+      "file_name": "petty-cash-1.1.1.utpkg",
+      "checksum": "sha256:d8a19b7e89fbe541d026423440617053969a9c0eeb1fe45066ba8fb4f01f728b",
       "sample_input": {
         "claimant_name": "Ivy Chen",
         "claimant_email": "ivy.chen@example.com",
@@ -32941,7 +32961,7 @@
           "label": "Amount",
           "type": "number",
           "required": true,
-          "description": "Amount in NZD"
+          "description": "Amount in USD"
         },
         {
           "key": "category",
@@ -33181,7 +33201,7 @@
         {
           "workflow": "Petty cash claim",
           "step": "Budget holder approval",
-          "title": "Approve petty cash: NZD {{amount}} for {{claimant_name}} ({{cost_centre}})",
+          "title": "Approve petty cash: USD {{amount}} for {{claimant_name}} ({{cost_centre}})",
           "outcomes": [
             "Approve",
             "Reject"
@@ -33269,7 +33289,7 @@
                 "y": 480
               },
               "config": {
-                "title": "Petty cash {{claim_ref}}: NZD {{amount}} · {{claimant_name}}"
+                "title": "Petty cash {{claim_ref}}: USD {{amount}} · {{claimant_name}}"
               }
             },
             {
@@ -33455,8 +33475,8 @@
                 "y": 1760
               },
               "config": {
-                "task_title": "Approve petty cash: NZD {{amount}} for {{claimant_name}} ({{cost_centre}})",
-                "task_description": "<p><strong>{{claimant_name}}</strong> claims <strong>NZD {{amount}}</strong> from <strong>{{cost_centre_row.name}}</strong> ({{cost_centre}}) for {{description}} ({{category}}, bought {{spent_on}}).</p><p>Receipt: <a href=\"{{receipt_url}}\">{{receipt_url}}</a></p><p>Float this month: NZD {{float_used}} paid of {{cost_centre_row.monthly_float}}. Rule: {{route}}: {{note}}.</p>",
+                "task_title": "Approve petty cash: USD {{amount}} for {{claimant_name}} ({{cost_centre}})",
+                "task_description": "<p><strong>{{claimant_name}}</strong> claims <strong>USD {{amount}}</strong> from <strong>{{cost_centre_row.name}}</strong> ({{cost_centre}}) for {{description}} ({{category}}, bought {{spent_on}}).</p><p>Receipt: <a href=\"{{receipt_url}}\">{{receipt_url}}</a></p><p>Float this month: USD {{float_used}} paid of {{cost_centre_row.monthly_float}}. Rule: {{route}}: {{note}}.</p>",
                 "task_priority": "medium",
                 "outcomes": [
                   "Approve",
@@ -33530,7 +33550,7 @@
                   "image": "default",
                   "title": "Petty cash claim",
                   "align": "left",
-                  "subtitle": "{{claim_ref}} · NZD {{amount}} · {{cost_centre}}"
+                  "subtitle": "{{claim_ref}} · USD {{amount}} · {{cost_centre}}"
                 },
                 "due_date_mode": "relative",
                 "due_offset_amount": 2,
@@ -33605,7 +33625,7 @@
                 "y": 2240
               },
               "config": {
-                "reason": "{{claim_ref}} paid: NZD {{amount}} from {{cost_centre}}"
+                "reason": "{{claim_ref}} paid: USD {{amount}} from {{cost_centre}}"
               }
             },
             {
@@ -33813,12 +33833,12 @@
         {
           "section": "forms",
           "name": "Petty cash claim",
-          "description": "The claim form employees open from Forms (or its /f/ link): two steps with a numbered stepper (You & cost centre → The purchase & receipt) in Application mode, with in-form Next / Back / Submit claim buttons. The cost centre autocomplete stores the code and shows \"Name (code)\", and fills the budget holder and GL account; rules ask for a receipt over NZD 20 and refuse a future purchase date. Submit claim starts the Petty cash claim workflow and shows a success screen."
+          "description": "The claim form employees open from Forms (or its /f/ link): two steps with a numbered stepper (You & cost centre → The purchase & receipt) in Application mode, with in-form Next / Back / Submit claim buttons. The cost centre autocomplete stores the code and shows \"Name (code)\", and fills the budget holder and GL account; rules ask for a receipt over USD 20 and refuse a future purchase date. Submit claim starts the Petty cash claim workflow and shows a success screen."
         },
         {
           "section": "forms",
           "name": "Petty cash claims",
-          "description": "Claims from the Petty cash ledger in two Data tables: My claims (base filter: the claimant is you) and This month (base filter: claimed since the start of the month), with NZD amounts, dates, status badges and receipt links, search, filters and sorting on the server. Click a claim to open its details tab."
+          "description": "Claims from the Petty cash ledger in two Data tables: My claims (base filter: the claimant is you) and This month (base filter: claimed since the start of the month), with USD amounts, dates, status badges and receipt links, search, filters and sorting on the server. Click a claim to open its details tab."
         },
         {
           "section": "workflows",
@@ -33836,7 +33856,7 @@
             "Cost centre",
             "Budget holder",
             "Budget holder email",
-            "Monthly float (NZD)",
+            "Monthly float (USD)",
             "GL account",
             "Active"
           ],
@@ -33856,7 +33876,7 @@
             "Category",
             "Date of purchase",
             "What for",
-            "Amount (NZD)",
+            "Amount (USD)",
             "Receipt",
             "Decision rule",
             "Status",
@@ -33889,8 +33909,13 @@
         "purchase orders",
         "decision table"
       ],
-      "version": "1.1.0",
+      "version": "1.1.1",
       "changelog": [
+        {
+          "version": "1.1.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.1.0",
           "date": "2026-10-28",
@@ -33943,15 +33968,15 @@
       "optional_needs": [],
       "systems": [],
       "native": false,
-      "released": "2026-10-28",
-      "file_name": "purchase-requisition-to-po-1.1.0.utpkg",
-      "checksum": "sha256:127e6a24a926c913d5d10e59e5fef65736e4510d0192566a8c28afbd55f430b1",
+      "released": "2026-11-25",
+      "file_name": "purchase-requisition-to-po-1.1.1.utpkg",
+      "checksum": "sha256:26bf9884c8ce50a3fe3524cd8b6b3bccdc176ae20a654364edc7ae1d10405318",
       "sample_input": {
         "requester_email": "alex.morgan@example.com",
         "item_description": "14-inch laptops for the new support team",
         "quantity": 10,
         "unit_price": 1450,
-        "currency": "NZD",
+        "currency": "USD",
         "supplier": "Contoso Computing",
         "category": "it_hardware",
         "cost_centre": "CC-310 Support",
@@ -33993,9 +34018,9 @@
           "type": "select",
           "required": false,
           "options": [
-            "NZD",
-            "AUD",
             "USD",
+            "AUD",
+            "NZD",
             "EUR",
             "GBP"
           ],
@@ -39184,7 +39209,7 @@
       "title": "Vendor onboarding with KYC",
       "category": "finance",
       "summary": "Screen new vendors for sanctions, registry and adverse media, tier the risk, review and verify bank details, then create the vendor in the ERP.",
-      "description": "Vendor onboarding with KYC is a controlled path for adding a supplier. Procurement fills in the Vendor application, a four-step form page with a progress bar: Company details (the country is an autocomplete that stores the ISO code, shows the country name and fills the country risk), Banking (account and an independently sourced phone number), Spend & compliance (category, expected annual spend, a justification that appears only for NZD 100,000 or more, and any conflict of interest) and Review & submit. The form is in Application mode: its own Next, Back and Submit application buttons move people along, and form rules check the justification, the conflict details and that the vendor contact is not the requester before it is sent.\n\nSubmitting starts the workflow and adds the application to the Vendor applications table. The workflow reads the country rating from the Country risk table and sends the company to your KYC screening service for sanctions, registry and adverse-media checks. The Vendor risk tier decision table turns the results and the expected spend into a tier (low, medium, high or blocked), the approvals needed and when to re-screen. Blocked vendors stop with an email to the requester. Medium and high risk vendors go to a compliance review, which can approve, approve with conditions or reject.\n\nEvery approved vendor then goes to finance to verify the bank account by calling a number from an independent source; the step repeats until the call-back is recorded. The vendor is created in the ERP with its tier and re-screen date, and the vendor contact gets a welcome email. The application's row follows each step (screening, compliance review, bank verification, approved or declined), and the Vendor applications page lists them all in a Data table: formatted amounts, dates and status badges, search, filters and sorting; a click on a row opens its details, and procurement can update a status or note and save it back. Adapt the country ratings, the tier rules and the two API calls to your providers.",
+      "description": "Vendor onboarding with KYC is a controlled path for adding a supplier. Procurement fills in the Vendor application, a four-step form page with a progress bar: Company details (the country is an autocomplete that stores the ISO code, shows the country name and fills the country risk), Banking (account and an independently sourced phone number), Spend & compliance (category, expected annual spend, a justification that appears only for USD 100,000 or more, and any conflict of interest) and Review & submit. The form is in Application mode: its own Next, Back and Submit application buttons move people along, and form rules check the justification, the conflict details and that the vendor contact is not the requester before it is sent.\n\nSubmitting starts the workflow and adds the application to the Vendor applications table. The workflow reads the country rating from the Country risk table and sends the company to your KYC screening service for sanctions, registry and adverse-media checks. The Vendor risk tier decision table turns the results and the expected spend into a tier (low, medium, high or blocked), the approvals needed and when to re-screen. Blocked vendors stop with an email to the requester. Medium and high risk vendors go to a compliance review, which can approve, approve with conditions or reject.\n\nEvery approved vendor then goes to finance to verify the bank account by calling a number from an independent source; the step repeats until the call-back is recorded. The vendor is created in the ERP with its tier and re-screen date, and the vendor contact gets a welcome email. The application's row follows each step (screening, compliance review, bank verification, approved or declined), and the Vendor applications page lists them all in a Data table: formatted amounts, dates and status badges, search, filters and sorting; a click on a row opens its details, and procurement can update a status or note and save it back. Adapt the country ratings, the tier rules and the two API calls to your providers.",
       "trigger": "form",
       "entry_workflow": "633cff3d-656f-4eb7-85a8-ca74f2b6e1d2",
       "entry_form": "ee5b8d4c-face-546e-b519-c2665f251d31",
@@ -39202,8 +39227,13 @@
         "data table",
         "form rules"
       ],
-      "version": "1.2.0",
+      "version": "1.2.1",
       "changelog": [
+        {
+          "version": "1.2.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.2.0",
           "date": "2026-11-01",
@@ -39266,9 +39296,9 @@
       "optional_needs": [],
       "systems": [],
       "native": false,
-      "released": "2026-11-01",
-      "file_name": "vendor-onboarding-kyc-1.2.0.utpkg",
-      "checksum": "sha256:958e5cc02d5e2a2c21832647b1f78d9eb7516f5b5ad4e78d28cb863ea7aa3bbf",
+      "released": "2026-11-25",
+      "file_name": "vendor-onboarding-kyc-1.2.1.utpkg",
+      "checksum": "sha256:7286534ae27eaae29bfa6fd25be22ec948d08aa1f1e97cf5143d0f54440fdeeb",
       "sample_input": {
         "legal_name": "Harbourline Logistics Limited",
         "registration_number": "5123987",
@@ -39499,7 +39529,7 @@
             },
             {
               "key": "spend_justification",
-              "label": "Why this vendor? (spend of NZD 100,000 or more)",
+              "label": "Why this vendor? (spend of USD 100,000 or more)",
               "type": "textarea",
               "required": false
             },
@@ -40978,7 +41008,7 @@
         {
           "section": "forms",
           "name": "Vendor applications",
-          "description": "Every vendor application in one Data table: formatted dates, NZD amounts and risk / status badges, search, filters and sorting on the server, the last 12 months as a base filter. Click a row to open its details tab; edit a status or note and Save changes writes them back to the Vendor applications table (for each changed row)."
+          "description": "Every vendor application in one Data table: formatted dates, USD amounts and risk / status badges, search, filters and sorting on the server, the last 12 months as a base filter. Click a row to open its details tab; edit a status or note and Save changes writes them back to the Vendor applications table (for each changed row)."
         },
         {
           "section": "workflows",
@@ -54809,8 +54839,13 @@
         "credit check",
         "compliance"
       ],
-      "version": "1.1.0",
+      "version": "1.1.1",
       "changelog": [
+        {
+          "version": "1.1.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.1.0",
           "date": "2026-10-28",
@@ -54865,9 +54900,9 @@
       "optional_needs": [],
       "systems": [],
       "native": false,
-      "released": "2026-10-28",
-      "file_name": "customer-onboarding-kyc-1.1.0.utpkg",
-      "checksum": "sha256:97dbe45ac0cd28e7247c96e8e3f0cf22add0e5045d3033c1cb6a69a2bddd064c",
+      "released": "2026-11-25",
+      "file_name": "customer-onboarding-kyc-1.1.1.utpkg",
+      "checksum": "sha256:4e834885442374d315233a701c7d5fee9eaa1a1c1f8328d63914478d1b690277",
       "sample_input": {
         "company_name": "Harbourside Logistics Ltd",
         "registration_number": "5523017",
@@ -56300,8 +56335,13 @@
         "lookup",
         "no integrations"
       ],
-      "version": "1.1.0",
+      "version": "1.1.1",
       "changelog": [
+        {
+          "version": "1.1.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.1.0",
           "date": "2026-11-04",
@@ -56355,9 +56395,9 @@
       "slug": "event-registration",
       "systems": [],
       "native": true,
-      "released": "2026-11-04",
-      "file_name": "event-registration-1.1.0.utpkg",
-      "checksum": "sha256:dee7ec760e329293cb2c90590697c174365173c229c59d71e0521ae1de5d93d7",
+      "released": "2026-11-25",
+      "file_name": "event-registration-1.1.1.utpkg",
+      "checksum": "sha256:e365ff5f0d91d5fceb1747e1dfb6ac42d418daf8c00f758677b100dd0d94ca56",
       "sample_input": {
         "event": "EVT-BRK-1119",
         "name": "Priya Shah",
@@ -56924,7 +56964,7 @@
                     "key": "cost",
                     "label": "Extra cost",
                     "type": "currency",
-                    "currency": "NZD"
+                    "currency": "USD"
                   }
                 ],
                 "form_layout": {
@@ -58055,8 +58095,13 @@
         "cpq",
         "decision table"
       ],
-      "version": "1.1.0",
+      "version": "1.1.1",
       "changelog": [
+        {
+          "version": "1.1.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.1.0",
           "date": "2026-10-28",
@@ -58109,9 +58154,9 @@
       "optional_needs": [],
       "systems": [],
       "native": false,
-      "released": "2026-10-28",
-      "file_name": "quote-approval-discount-tiers-1.1.0.utpkg",
-      "checksum": "sha256:83058f8060898f921043806124f48b8b5ab70ddc01ded27a960323ebc5ee164d",
+      "released": "2026-11-25",
+      "file_name": "quote-approval-discount-tiers-1.1.1.utpkg",
+      "checksum": "sha256:89377bf023baee49b4d866521940a980f5acd98a97ad9fc4eb401d60444e7cba",
       "sample_input": {
         "quote_id": "Q-2026-0457",
         "customer": "Fourth Coffee",
@@ -58166,9 +58211,9 @@
           "type": "select",
           "required": false,
           "options": [
-            "NZD",
-            "AUD",
             "USD",
+            "AUD",
+            "NZD",
             "EUR",
             "GBP"
           ],
@@ -74117,8 +74162,13 @@
         "schedule",
         "sub-workflow"
       ],
-      "version": "1.1.0",
+      "version": "1.1.1",
       "changelog": [
+        {
+          "version": "1.1.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.1.0",
           "date": "2026-10-28",
@@ -74170,9 +74220,9 @@
       "optional_needs": [],
       "systems": [],
       "native": false,
-      "released": "2026-10-28",
-      "file_name": "contract-renewal-reminders-1.1.0.utpkg",
-      "checksum": "sha256:ad434292e629b44c6aa3fafd7f24e809a20b9dabe243152e35c093e5790ff44c",
+      "released": "2026-11-25",
+      "file_name": "contract-renewal-reminders-1.1.1.utpkg",
+      "checksum": "sha256:cd238bc59574f80da69966d972460f3fedbe1e05a97055948f0ade4cc4bf947d",
       "sample_input": {
         "as_of": "2026-11-02"
       },
@@ -75059,7 +75109,7 @@
       "title": "Contract review & approval",
       "category": "operations-compliance",
       "summary": "Contract owners submit a draft on a stepped form; legal checks it against a clause playbook, redlines revisions, the right people approve it and a register tracks renewals.",
-      "description": "Contract review & approval takes a contract from draft to an approved entry in your contract register, with no e-signature or integration needed. The contract owner fills in the Contract review request, four numbered steps: the contract and counterparty, the term and value (the notice period appears only for contracts that renew automatically, and a board approval reference only for NZD 1,000,000 or more), the draft itself, and who approves the spend. The form is in Application mode with its own Next, Back and Send for review buttons, and its rules check that the contract ends after it starts, that an auto-renewing contract has a notice period and that large contracts carry the board reference.\n\nSubmitting adds the contract to the Contract register with its renewal decision date (the end date less the notice period) and gives legal a tabbed review task: the contract on one tab, and on the other a Clause checklist, a Data table of the Clause playbook (our position, the fallback we accept, must-have clauses and the risk) where legal ticks every clause the draft departs from, then sets the overall risk. Ticking a must-have clause shows a note.\n\nLegal approves, rejects or asks for changes. Changes go back to the owner with legal's notes and the list of deviations; when the owner uploads the revised contract, a Compare Documents step diffs it against the previous version, makes a PDF redline and tells legal how similar it is before the review starts again. The Contract approval route decision table then decides who else approves, from legal's risk rating, the value and the number of deviations: finance (the person the owner named, or your default), the general counsel, or both.\n\nThe Contract register page lists every contract in Data tables: Renewals due shows active contracts whose renewal decision falls in the next 90 days, soonest first, and All contracts has value, end date, check marks and risk and status badges, filters and sorting, with an editable status. A click on any row opens the contract's details.",
+      "description": "Contract review & approval takes a contract from draft to an approved entry in your contract register, with no e-signature or integration needed. The contract owner fills in the Contract review request, four numbered steps: the contract and counterparty, the term and value (the notice period appears only for contracts that renew automatically, and a board approval reference only for USD 1,000,000 or more), the draft itself, and who approves the spend. The form is in Application mode with its own Next, Back and Send for review buttons, and its rules check that the contract ends after it starts, that an auto-renewing contract has a notice period and that large contracts carry the board reference.\n\nSubmitting adds the contract to the Contract register with its renewal decision date (the end date less the notice period) and gives legal a tabbed review task: the contract on one tab, and on the other a Clause checklist, a Data table of the Clause playbook (our position, the fallback we accept, must-have clauses and the risk) where legal ticks every clause the draft departs from, then sets the overall risk. Ticking a must-have clause shows a note.\n\nLegal approves, rejects or asks for changes. Changes go back to the owner with legal's notes and the list of deviations; when the owner uploads the revised contract, a Compare Documents step diffs it against the previous version, makes a PDF redline and tells legal how similar it is before the review starts again. The Contract approval route decision table then decides who else approves, from legal's risk rating, the value and the number of deviations: finance (the person the owner named, or your default), the general counsel, or both.\n\nThe Contract register page lists every contract in Data tables: Renewals due shows active contracts whose renewal decision falls in the next 90 days, soonest first, and All contracts has value, end date, check marks and risk and status badges, filters and sorting, with an editable status. A click on any row opens the contract's details.",
       "trigger": "form",
       "entry_workflow": "f477b9c6-0758-5abd-bc77-8eaddc10769e",
       "entry_form": "e5cab48e-47e3-5c67-b334-96212ed1e816",
@@ -75079,8 +75129,13 @@
         "data table",
         "form rules"
       ],
-      "version": "1.0.0",
+      "version": "1.0.1",
       "changelog": [
+        {
+          "version": "1.0.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.0.0",
           "date": "2026-11-01",
@@ -75127,9 +75182,9 @@
       "icon": "file-signature",
       "systems": [],
       "native": true,
-      "released": "2026-11-01",
-      "file_name": "contract-review-approval-1.0.0.utpkg",
-      "checksum": "sha256:33f1fe1cc2b17aa03af05d867ab56f9e3874f5fe118543723ca0a30c4b3bcb6d",
+      "released": "2026-11-25",
+      "file_name": "contract-review-approval-1.0.1.utpkg",
+      "checksum": "sha256:7c2b80e70b74449c31fbde0c784bb0e1ce8b3327405223859aad33fbef8ec01b",
       "sample_input": {
         "title": "Cleaning and facilities services",
         "counterparty": "CleanCo Services Ltd",
@@ -75584,7 +75639,7 @@
               "label": "Value and term",
               "type": "text",
               "required": false,
-              "default": "NZD {{form.value}} · {{form.start_date}} to {{form.end_date}} · auto-renews: {{form.auto_renew}}"
+              "default": "USD {{form.value}} · {{form.start_date}} to {{form.end_date}} · auto-renews: {{form.auto_renew}}"
             },
             {
               "key": "t_document",
@@ -75655,7 +75710,7 @@
         {
           "workflow": "Contract review",
           "step": "Finance approval",
-          "title": "Finance: approve {{form.title}} (NZD {{form.value}})",
+          "title": "Finance: approve {{form.title}} (USD {{form.value}})",
           "outcomes": [
             "Approve",
             "Reject"
@@ -75892,7 +75947,7 @@
               },
               "config": {
                 "task_title": "Legal review: {{form.title}} v{{version}} ({{contract_ref}})",
-                "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, NZD {{form.value}}, submitted by {{submitted_by_name}}. Version {{version}}: <a href=\"{{current_document[0].url}}\">{{current_document[0].name}}</a>.</p><p>{{changes_note}}</p><p>Tick the clauses that depart from the playbook on <strong>Clause checklist</strong>, set the overall risk and approve, ask for changes or reject.</p>",
+                "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, USD {{form.value}}, submitted by {{submitted_by_name}}. Version {{version}}: <a href=\"{{current_document[0].url}}\">{{current_document[0].name}}</a>.</p><p>{{changes_note}}</p><p>Tick the clauses that depart from the playbook on <strong>Clause checklist</strong>, set the overall risk and approve, ask for changes or reject.</p>",
                 "task_priority": "high",
                 "outcomes": [
                   "Approve",
@@ -75922,7 +75977,7 @@
                     "label": "Value and term",
                     "type": "text",
                     "read_only": true,
-                    "default": "NZD {{form.value}} · {{form.start_date}} to {{form.end_date}} · auto-renews: {{form.auto_renew}}"
+                    "default": "USD {{form.value}} · {{form.start_date}} to {{form.end_date}} · auto-renews: {{form.auto_renew}}"
                   },
                   {
                     "key": "t_document",
@@ -76360,8 +76415,8 @@
                 "y": 1930
               },
               "config": {
-                "task_title": "Finance: approve {{form.title}} (NZD {{form.value}})",
-                "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}: NZD {{form.value}} from {{form.start_date}} to {{form.end_date}} for {{form.business_unit}}. Legal approved it at <strong>{{risk_level}}</strong> risk; deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
+                "task_title": "Finance: approve {{form.title}} (USD {{form.value}})",
+                "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}: USD {{form.value}} from {{form.start_date}} to {{form.end_date}} for {{form.business_unit}}. Legal approved it at <strong>{{risk_level}}</strong> risk; deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
                 "task_priority": "high",
                 "outcomes": [
                   "Approve",
@@ -76453,7 +76508,7 @@
               },
               "config": {
                 "task_title": "General counsel: approve {{form.title}} ({{risk_level}} risk)",
-                "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, NZD {{form.value}}. Legal rated it <strong>{{risk_level}}</strong> risk with these playbook deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
+                "task_description": "<p><strong>{{form.title}}</strong> with {{form.counterparty}}, USD {{form.value}}. Legal rated it <strong>{{risk_level}}</strong> risk with these playbook deviations: {{deviation_list}}.</p><p>Approval path: {{approval_path}}.</p>",
                 "task_priority": "high",
                 "outcomes": [
                   "Approve",
@@ -77108,12 +77163,12 @@
         {
           "section": "forms",
           "name": "Contract register",
-          "description": "The contract register as Data tables: Renewals due (base filter: Active or Approved contracts whose renewal decision falls in the next 90 days) and All contracts (editable status saved back for each changed row), with NZD values, dates, check marks and risk / status badges, search, filters and sorting on the server. Click a row to open the contract details tab."
+          "description": "The contract register as Data tables: Renewals due (base filter: Active or Approved contracts whose renewal decision falls in the next 90 days) and All contracts (editable status saved back for each changed row), with USD values, dates, check marks and risk / status badges, search, filters and sorting on the server. Click a row to open the contract details tab."
         },
         {
           "section": "forms",
           "name": "Contract review request",
-          "description": "The request a contract owner fills in: The contract → Term & value → Document → Approvals & submit, with a numbered stepper and in-form Next / Back / Send for review buttons (Application mode). The notice period appears only for auto-renewing contracts and the board approval reference only for NZD 1,000,000 or more; rules check the dates, the notice period and the board reference. Submitting starts the Contract review workflow through its Form submitted trigger."
+          "description": "The request a contract owner fills in: The contract → Term & value → Document → Approvals & submit, with a numbered stepper and in-form Next / Back / Send for review buttons (Application mode). The notice period appears only for auto-renewing contracts and the board approval reference only for USD 1,000,000 or more; rules check the dates, the notice period and the board reference. Submitting starts the Contract review workflow through its Form submitted trigger."
         },
         {
           "section": "workflows",
@@ -79909,8 +79964,13 @@
         "data table",
         "form rules"
       ],
-      "version": "1.0.0",
+      "version": "1.0.1",
       "changelog": [
+        {
+          "version": "1.0.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.0.0",
           "date": "2026-11-01",
@@ -79960,9 +80020,9 @@
       "icon": "scale",
       "systems": [],
       "native": true,
-      "released": "2026-11-01",
-      "file_name": "legal-request-intake-1.0.0.utpkg",
-      "checksum": "sha256:bfac88191a5da4f6996d75474e5b949ef9bef4b56e914797df017447b3651fee",
+      "released": "2026-11-25",
+      "file_name": "legal-request-intake-1.0.1.utpkg",
+      "checksum": "sha256:f0e1b4736df5cfc7f93a72fe7218d30a48d44150b18eda3ce443e8789158adae",
       "sample_input": {
         "requester_name": "Mia Walker",
         "requester_email": "mia.walker@example.com",
@@ -114591,8 +114651,13 @@
         "dms",
         "contracts"
       ],
-      "version": "1.0.0",
+      "version": "1.0.1",
       "changelog": [
+        {
+          "version": "1.0.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.0.0",
           "date": "2026-10-26",
@@ -114644,16 +114709,16 @@
       "icon": "file-text",
       "systems": [],
       "native": false,
-      "released": "2026-10-26",
-      "file_name": "document-generation-pipeline-1.0.0.utpkg",
-      "checksum": "sha256:bc3f0fe727c5fcea4b94dddbf96d68eb926e2310b453ab1e8c0c9800e88495f1",
+      "released": "2026-11-25",
+      "file_name": "document-generation-pipeline-1.0.1.utpkg",
+      "checksum": "sha256:707da09ebee7fd1a833073c902ead1f2a2c1eac17086719e3ad9be2f409fd41c",
       "sample_input": {
         "doc_type": "service_agreement",
         "customer_name": "Fourth Coffee Limited",
         "contract_reference": "CT-2026-118",
         "start_date": "2026-11-01",
         "amount": 48000,
-        "currency": "NZD",
+        "currency": "USD",
         "term_months": 24,
         "signer_name": "Robin Diaz",
         "signer_email": "robin.diaz@fourthcoffee.example.com"
@@ -115515,8 +115580,13 @@
         "currency",
         "headless"
       ],
-      "version": "1.0.0",
+      "version": "1.0.1",
       "changelog": [
+        {
+          "version": "1.0.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.0.0",
           "date": "2026-10-26",
@@ -115528,7 +115598,7 @@
       ],
       "setup": [
         "Data warehouse integration: set the base URL and API token. Ingest order posts the JSON record to /ingest/orders.",
-        "Update the Currency rates rows (or keep them current with another workflow); the base currency is NZD in the samples.",
+        "Update the Currency rates rows (or keep them current with another workflow); the base currency is USD in the samples.",
         "Adjust the Warehouse record step to your warehouse column names.",
         "Load data by inserting rows into Orders staging with load_status pending."
       ],
@@ -115558,9 +115628,9 @@
       "optional_needs": [],
       "systems": [],
       "native": false,
-      "released": "2026-10-26",
-      "file_name": "event-driven-etl-1.0.0.utpkg",
-      "checksum": "sha256:f5fa34865e0767271bade4896a326358710112ca898cb99c5ec929241e640e1d",
+      "released": "2026-11-25",
+      "file_name": "event-driven-etl-1.0.1.utpkg",
+      "checksum": "sha256:5a992dadda3c0bc53521e036de46cf8c555d7c57ef909655b6c69674301a01f3",
       "sample_input": {
         "data_event": "created",
         "data_event_type": "created",
@@ -116232,8 +116302,13 @@
         "fulfilment",
         "orchestration"
       ],
-      "version": "1.0.0",
+      "version": "1.0.1",
       "changelog": [
+        {
+          "version": "1.0.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.0.0",
           "date": "2026-10-26",
@@ -116283,14 +116358,14 @@
       "optional_needs": [],
       "systems": [],
       "native": false,
-      "released": "2026-10-26",
-      "file_name": "order-orchestration-api-1.0.0.utpkg",
-      "checksum": "sha256:98ca5b7a7a8c657c5c8530823f155dfbf32d42ed78ff31625e61951aa6952482",
+      "released": "2026-11-25",
+      "file_name": "order-orchestration-api-1.0.1.utpkg",
+      "checksum": "sha256:75407fb05187deea57103d17e9c30a8a8e8992cd609b229d7a56d98bd464d365",
       "sample_input": {
         "order_id": "SO-100482",
         "customer_id": "C-20931",
         "email": "jamie.fox@example.com",
-        "currency": "NZD",
+        "currency": "USD",
         "lines": [
           {
             "sku": "MUG-BLK-350",
@@ -118174,8 +118249,13 @@
         "loop",
         "headless"
       ],
-      "version": "1.0.0",
+      "version": "1.0.1",
       "changelog": [
+        {
+          "version": "1.0.1",
+          "date": "2026-11-25",
+          "notes": "Sample data, defaults and labels in USD (were NZD)."
+        },
         {
           "version": "1.0.0",
           "date": "2026-10-26",
@@ -118220,9 +118300,9 @@
       "icon": "scale",
       "systems": [],
       "native": false,
-      "released": "2026-10-26",
-      "file_name": "scheduled-data-reconciliation-1.0.0.utpkg",
-      "checksum": "sha256:8c5633764fc12603969aa1af2a13476feeb76fdac3aa80f9c33d9958b740fe2e",
+      "released": "2026-11-25",
+      "file_name": "scheduled-data-reconciliation-1.0.1.utpkg",
+      "checksum": "sha256:3f8255f1ce8bc2fb050ca597d202b224cfe66409a6077ef769cd08b2885fe8ae",
       "sample_input": {
         "as_of": "2026-10-25",
         "finance_ops_email": "finance-ops@example.com",

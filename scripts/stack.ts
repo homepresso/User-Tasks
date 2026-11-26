@@ -388,10 +388,14 @@ function compose(args: string[], opts: { capture?: boolean; extraProfiles?: stri
   const res = spawnSync('docker', [...composeArgs(opts.extraProfiles), ...args], {
     cwd: ROOT, env: composeEnv(), encoding: 'utf8', input: opts.input,
     stdio: opts.capture ? ['pipe', 'pipe', 'pipe'] : ['pipe', 'inherit', 'inherit'],
+    // Captured output can be large: the server reference manifest the smoke
+    // reads passed spawnSync's 1 MB default in 0.4.0 (1.1 MB), which killed
+    // the exec (ENOBUFS, exit 255) and failed every profile gate.
+    maxBuffer: 64 * 1024 * 1024,
   })
   if (res.status !== 0 && !opts.allowFail) {
     if (opts.capture) process.stderr.write(res.stderr ?? '')
-    fail(`docker ${[...args].slice(0, 3).join(' ')}… exited with ${res.status}`)
+    fail(`docker ${[...args].slice(0, 3).join(' ')}… exited with ${res.status}${res.error ? ` (${(res.error as NodeJS.ErrnoException).code ?? res.error.message})` : ''}`)
   }
   return { status: res.status ?? 1, stdout: res.stdout ?? '' }
 }

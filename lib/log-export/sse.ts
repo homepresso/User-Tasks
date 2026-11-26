@@ -34,6 +34,10 @@ export interface EventStreamOptions {
   /** Consecutive read failures before the stream gives up (default 5). */
   maxFailures?: number
   now?: () => number
+  /** Messages queued for a slow client before reading pauses (default 64). */
+  highWaterMark?: number
+  /** How often a paused stream checks whether the client caught up (default 25 ms). */
+  drainPollMs?: number
   onError?: (error: unknown) => void
 }
 
@@ -68,6 +72,7 @@ export function createEventStream(options: EventStreamOptions): ReadableStream<U
   const retryMs = options.retryMs ?? 2_000
   const maxFailures = options.maxFailures ?? 5
   const now = options.now ?? Date.now
+  const drainPollMs = options.drainPollMs ?? 25
   // Stop on either a request abort or the consumer cancelling the stream.
   const stop = new AbortController()
   if (options.signal) {
@@ -75,6 +80,7 @@ export function createEventStream(options: EventStreamOptions): ReadableStream<U
     else options.signal.addEventListener('abort', () => stop.abort(), { once: true })
   }
 
+  const highWaterMark = options.highWaterMark ?? 64
   return new ReadableStream<Uint8Array>({
     start(controller) {
       const startedAt = now()
@@ -96,9 +102,20 @@ export function createEventStream(options: EventStreamOptions): ReadableStream<U
         try { controller.close() } catch { /* already closed */ }
       }
 
+      // Backpressure: read the next page only once the client has taken what
+      // was queued (at most one page plus highWaterMark messages stay in
+      // memory however slowly the client reads or however far behind it is).
+      const drained = async () => {
+        while (!stop.signal.aborted && (controller.desiredSize ?? 1) <= 0 && now() - startedAt < options.maxMs) {
+          await sleep(drainPollMs, stop.signal)
+        }
+      }
+
       const loop = async () => {
         write(`retry: ${retryMs}\n: connected\n\n`)
         while (!stop.signal.aborted) {
+          await drained()
+          if (stop.signal.aborted) break
           if (now() - startedAt >= options.maxMs) {
             write(formatSseMessage({ ...(cursor ? { id: cursor } : {}), event: 'reconnect', data: { after: cursor } }))
             break
@@ -130,7 +147,7 @@ export function createEventStream(options: EventStreamOptions): ReadableStream<U
     cancel() {
       stop.abort()
     },
-  })
+  }, new CountQueuingStrategy({ highWaterMark }))
 }
 
 export const SSE_HEADERS: Record<string, string> = {

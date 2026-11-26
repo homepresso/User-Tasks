@@ -8,6 +8,7 @@ import { checkInvitation, inviteTokenMatches, joinInvitedTenant } from '@/lib/pr
 import { sanitizeRedirect } from '@/lib/safe-redirect'
 import { getCachedUser } from '@/lib/supabase/server'
 import { isCloud } from '@/lib/deployment'
+import { clientIpFrom } from '@/lib/client-ip'
 
 /*
  * Sign-in, sign-up, sign-out, password reset and SSO start — all server side.
@@ -25,7 +26,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 async function requestContext(): Promise<AuthRequestContext & { origin: string }> {
   const h = await headers()
-  const ip = (h.get('x-forwarded-for') ?? h.get('x-real-ip') ?? '').split(',')[0].trim() || null
+  const ip = clientIpFrom(h)
   const host = h.get('x-forwarded-host') ?? h.get('host')
   const proto = h.get('x-forwarded-proto') ?? (host?.startsWith('localhost') || host?.startsWith('127.') ? 'http' : 'https')
   const requestOrigin = h.get('origin') ?? (host ? `${proto}://${host}` : '')
@@ -111,7 +112,8 @@ export async function signInAction(input: SignInInput): Promise<AuthActionResult
     }
   }
   if (check.existingUserId) {
-    return { ok: false, error: 'Incorrect password. Please try again.', code: isAuthError(signInError) ? signInError.code : undefined }
+    // Same message as an unknown account: sign-in never says whether an address has an account.
+    return { ok: false, error: 'Invalid email or password.', code: isAuthError(signInError) ? signInError.code : undefined }
   }
 
   // 3. No account yet — create one. A matching invite token proves the address.
@@ -149,8 +151,12 @@ export async function signInAction(input: SignInInput): Promise<AuthActionResult
 
   // 4. Workspace setup with the now-verified session user.
   const user = await getCachedUser().catch(() => null) ?? created.user
-  const joined = await joinInvitedTenant(user, slug, inviteToken).catch(() => null)
+  // A Supabase session from sign-up does not prove the address (email
+  // confirmations may be off): join on the invitation only with its token.
+  const unproven = provider.id === 'supabase' && !proven
+  const joined = await joinInvitedTenant(user, slug, unproven ? input.inviteToken ?? null : inviteToken, undefined, { requireInviteToken: unproven }).catch(() => null)
   if (!joined?.ok) {
+    if (unproven && joined?.status === 403) return { ok: false, error: joined.error ?? 'Open the invitation link from your email to join this workspace.' }
     return { ok: false, error: 'Account created but workspace setup failed. Please try signing in.' }
   }
   await touchUserLastSeen(user.id).catch(() => undefined)

@@ -54,10 +54,10 @@ spec:
             httpGet: { path: {{ $p.path }}, port: http }
             {{- toYaml $p.startup | nindent 12 }}
           readinessProbe:
-            httpGet: { path: {{ $p.path }}, port: http }
+            httpGet: { path: {{ $p.readinessPath | default $p.path }}, port: http }
             {{- toYaml $p.readiness | nindent 12 }}
           livenessProbe:
-            httpGet: { path: {{ $p.path }}, port: http }
+            httpGet: { path: {{ $p.livenessPath | default $p.path }}, port: http }
             {{- toYaml $p.liveness | nindent 12 }}
           lifecycle:
             # Let the Service / ingress stop routing before the server stops.

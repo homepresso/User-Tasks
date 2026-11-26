@@ -1,10 +1,11 @@
 import { z } from 'zod'
+import { isoDateTime } from '@/lib/zod-datetime'
 import { QUEUE_PRIORITIES, type QueuePriority } from '@/lib/tasks/queue-rules'
 import { getDb, hasPerm, ServiceError, type ServiceContext } from '../context'
 import * as tasksService from '../tasks'
 import { enrichTrackerTasks, searchTrackerTasks, TRACKER_TASK_SELECT } from '../task-tracker'
 import { withUnread } from '../task-reads'
-import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
+import { activeMemberUsers, check, defineRead, id, NO_ARGS, type UiRead } from './define'
 import { CLAIM_CANDIDATE_ROLE, displayStatus, matchesStatusFilter, QUEUED_STATUS, queueActionFor, queuedFirst, storedStatusesFor } from '@/lib/tasks/unified-list'
 import { invalidTaskStatusMessage } from '@/lib/tasks/status-filter'
 
@@ -28,7 +29,7 @@ const statusList = z.array(z.string().max(50)).max(20)
 /** task_priority values (another value is a 400, not a database error). */
 const priorityList = z.array(z.enum(QUEUE_PRIORITIES as unknown as [QueuePriority, ...QueuePriority[]])).max(20)
 const column = z.string().regex(/^[a-z_]+$/).max(64)
-const isoTime = z.iso.datetime()
+const isoTime = isoDateTime()
 
 // List columns (no deleted/scheduling internals); one joined query for the
 // tenant badge and assignee/assigner names.
@@ -581,14 +582,12 @@ export const reads = {
       const [{ serviceRoleClient }] = await Promise.all([import('../_shared')])
       const db = await serviceRoleClient(ctx) as any
       const teamQuery = (columns: string) => db.from('teams').select(columns).eq('tenant_id', ctx.tenantId).order('name').limit(500)
-      const [members, teamsFull, { withOrigin }] = await Promise.all([
-        db.from('user_memberships').select('user_id').eq('tenant_id', ctx.tenantId).eq('is_active', true).limit(2000),
+      const [users, teamsFull, { withOrigin }] = await Promise.all([
+        activeMemberUsers(db, ctx.tenantId),
         teamQuery('id, name, source, source_label, origin'),
         import('../teams'),
       ])
       const teams = teamsFull.error ? await teamQuery('id, name') : teamsFull
-      const ids = ((members.data ?? []) as any[]).map((m) => String(m.user_id))
-      const { data: users } = ids.length ? await db.from('users').select('id, display_name, email').in('id', ids).is('deleted_at', null) : { data: [] }
       return {
         users: ((users ?? []) as any[]).map((u) => ({ id: String(u.id), name: String(u.display_name || u.email || 'Someone'), email: u.email ?? null }))
           .sort((a, b) => a.name.localeCompare(b.name)),

@@ -11,10 +11,12 @@
  *
  * Colours start from the legacy themeToCSS() output and then go through the
  * legibility pass (lib/theme/legibility.ts), so every template meets the
- * contrast pairs in lib/theme/contrast.ts in both modes. Themes without a dark
- * variant use their one palette in both modes — the legacy dark-OS rule
- * darkened only primaryLight / accentLight, which put near-black washes under
- * dark text on light cards. Dark cards get the dark status palette.
+ * contrast pairs in lib/theme/contrast.ts in both modes. Every light theme
+ * (and marketplace preset) carries its own dark palette (`dark`), so members
+ * in dark mode get a dark workspace; a theme without one would use its one
+ * palette in both modes — the legacy dark-OS rule darkened only primaryLight /
+ * accentLight, which put near-black washes under dark text on light cards.
+ * Dark cards get the dark status palette.
  */
 
 import { CARD_SHADOWS, DEFAULT_COMPONENTS, THEMES, THEME_PRESETS, PLATFORM_DEFAULT_THEME_ID, themeToCSS, type Theme, type ThemeComponents } from '@/lib/themes'
@@ -320,7 +322,7 @@ export function presetToWorkspaceTheme(id: string): WorkspaceTheme | null {
       const market = THEME_PRESETS.find((p) => marketplaceId(p.name) === id)
       if (!market) return null
       theme = legacyToWorkspaceTheme(
-        { id, name: market.name, description: market.description, colors: market.colors, components: market.components },
+        { id, name: market.name, description: market.description, colors: market.colors, dark: market.dark, components: market.components },
         {},
         id,
       )

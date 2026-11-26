@@ -92,6 +92,7 @@ function normalizeImportedRules(rules: any[] | undefined) {
           inputKey: String(condition.inputKey ?? ''),
           operator: condition.operator ?? 'equals',
           value: condition.value ?? '',
+          ...(typeof condition.valueInputKey === 'string' && condition.valueInputKey.trim() ? { valueInputKey: condition.valueInputKey.trim() } : {}),
         }))
       : [{ id: crypto.randomUUID(), inputKey: '', operator: 'equals', value: '' }],
     outputs: typeof rule.outputs === 'object' && rule.outputs !== null ? rule.outputs : {},

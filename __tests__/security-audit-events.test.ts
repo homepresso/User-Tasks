@@ -32,6 +32,7 @@ function builder(table: string) {
     select: () => b,
     eq: (col: string, value: unknown) => { filters.push((r) => r[col] === value); return b },
     is: (col: string, value: unknown) => { filters.push((r) => (r[col] ?? null) === value); return b },
+    in: (col: string, values: unknown[]) => { filters.push((r) => values.includes(r[col])); return b },
     limit: (n: number) => { limit = n; return b },
     insert: (row: Row) => { op = 'insert'; payload = row; return b },
     update: (values: Row) => { op = 'update'; payload = values; return b },
@@ -159,6 +160,23 @@ describe('OAuth token audits', () => {
     const res = await tokenPOST(form({ grant_type: 'client_credentials', client_id: 'svc-client', client_secret: 'nope' }))
     expect(res.status).toBe(401)
     expect(auditRows()).toHaveLength(0)
+  })
+
+  it('a refresh token rotated by a concurrent request is not rotated twice (the loser gets invalid_grant)', async () => {
+    const raw = 'uor_concurrent_refresh_token'
+    let reads = 0
+    const row: Record<string, unknown> = {
+      id: 'r1', tenant_id: 'tenant-o', token_type: 'refresh', token_hash: hashOAuthToken(raw), client_id: 'svc-client',
+      user_id: 'u1', grant_type: 'client_credentials', scopes: ['tasks:read'], refresh_parent: null,
+      expires_at: '2099-01-01T00:00:00Z',
+    }
+    // The first read (the lookup) sees it live; by the rotating UPDATE the other request has revoked it.
+    Object.defineProperty(row, 'revoked_at', { enumerable: true, get: () => (reads++ === 0 ? null : '2026-01-01T00:00:00Z') })
+    tables.oauth_tokens = [row]
+    const res = await tokenPOST(form({ grant_type: 'refresh_token', refresh_token: raw, client_id: 'svc-client', client_secret: SECRET }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('invalid_grant')
+    expect(inserts.filter((i) => i.table === 'oauth_tokens')).toHaveLength(0)
   })
 
   it('revocation writes security.oauth.token_revoked', async () => {

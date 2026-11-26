@@ -117,7 +117,7 @@ describe('both Process view surfaces render the links', () => {
     const run = { id: 'r1', status: 'waiting_for_event', paused_node_id: 'approve', node_results: {}, execution_trace: [], started_at: '2026-11-01T00:00:00Z' }
     const client = new QueryClient()
     const out = html(createElement(QueryClientProvider, { client }, createElement(ProcessViewer, { workflow, run, logs: [], tasks: [task()] })))
-    expect(out).toContain('User Tasks')
+    expect(out).toContain('User tasks')
     expect(out).toContain('data-node-adornment="approve"')
     expect(out).toContain('href="/tasks/tk1?tab=form"')
   })

@@ -3,6 +3,7 @@ import type { SupabaseStorageClient } from '@/lib/providers/storage/supabase'
 import { fileRefFields } from './persist'
 import { isStorageRef, parseOwnStorageUrl, resolveStorageUrl } from './refs'
 import { getPublicConfig } from '@/lib/config/public'
+import { capResponseBody } from '@/lib/capped-response'
 
 /**
  * Server helpers for files the workflow engine and document handlers write
@@ -102,7 +103,8 @@ export async function fetchFile(url: string, init?: RequestInit, options: { tena
   // anything else a workflow names is egress-guarded on every redirect hop.
   if (isFirstPartyUrl(target)) return fetch(target, init)
   const { safeFetch } = await import('@/lib/egress-guard')
-  return safeFetch(target, init, { maxRedirects: 5 })
+  // Capped (WORKFLOW_DOWNLOAD_MAX_BYTES): callers read the body into memory.
+  return capResponseBody(await safeFetch(target, init, { maxRedirects: 5 }))
 }
 
 /** Same origin as the configured Supabase URL or APP_URL (the app's own storage and file routes). */

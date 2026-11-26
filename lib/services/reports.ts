@@ -28,6 +28,7 @@ export async function exportReport(ctx: ServiceContext, reportId: string): Promi
     .select('*').eq('id', reportId).eq('tenant_id', ctx.tenantId), ctx.actorId).maybeSingle()
   if (error) throw dbError(error)
   if (!data) throw ServiceError.notFound('Report not found')
+  await audit(ctx, { objectType: 'report', objectId: reportId, action: 'export', summary: `Exported report "${data.name}"` })
   return {
     version: REPORT_EXPORT_VERSION,
     asset_type: 'report',

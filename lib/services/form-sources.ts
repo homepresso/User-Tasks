@@ -45,13 +45,13 @@ export interface FormSourceState {
 /** Test seam: where core sources come from. */
 export const formSourceDeps = {
   async table(ctx: ServiceContext, id: string): Promise<{ id: string; name: string; columns: unknown } | null> {
-    const { data, error } = await (getDb(ctx) as any).from('custom_tables').select('id, name, columns').eq('id', id).maybeSingle()
+    const { data, error } = await (getDb(ctx) as any).from('custom_tables').select('id, name, columns').eq('tenant_id', ctx.tenantId).eq('id', id).maybeSingle()
     if (error) throw new ServiceError('validation_error', `Could not read the data table: ${error.message}`)
     return data ?? null
   },
   async reference(ctx: ServiceContext, id: string): Promise<Record<string, any> | null> {
     if (!hasPerm(ctx, 'integrations.view')) throw ServiceError.forbidden('Forbidden: binding a form to an API reference needs integrations.view')
-    const { data, error } = await (getDb(ctx) as any).from('integration_references').select('id, name, outputs, request_config, integration_id, integration:integrations(id, name, type)').eq('id', id).maybeSingle()
+    const { data, error } = await (getDb(ctx) as any).from('integration_references').select('id, name, outputs, request_config, integration_id, integration:integrations(id, name, type)').eq('tenant_id', ctx.tenantId).eq('id', id).maybeSingle()
     if (error) throw new ServiceError('validation_error', `Could not read the API reference: ${error.message}`)
     return data ?? null
   },

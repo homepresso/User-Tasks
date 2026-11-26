@@ -54,7 +54,7 @@ export function Field({ label, description, error, optional, required, id, class
       </div>
       {control}
       {error ? (
-        <p id={errId} className="flex items-start gap-1.5 text-xs text-danger">
+        <p id={errId} role="alert" className="flex items-start gap-1.5 text-xs text-danger">
           <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </p>

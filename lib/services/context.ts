@@ -254,15 +254,15 @@ export async function fromSession(options: { tenantId?: string } = {}): Promise<
   }
 
   // Independent lookups: the profile (for the tenant) and the permissions.
-  const [{ data: profile }, permissions] = await Promise.all([
-    supabase
-      .from('users')
-      .select('current_tenant_id, tenant_id')
-      .eq('id', user.id)
-      .maybeSingle(),
+  // get_current_tenant_id(): COALESCE(current, home) — and NULL for a
+  // workspace where the user's membership is inactive (a deactivated member
+  // must not keep acting there through service-role code paths).
+  const [{ data: currentTenant, error: tenantError }, permissions] = await Promise.all([
+    supabase.rpc('get_current_tenant_id' as never),
     getUserPermissions(),
   ])
-  const tenantId = profile?.current_tenant_id ?? profile?.tenant_id ?? null
+  if (tenantError) throw new Error(tenantError.message)
+  const tenantId = (currentTenant as unknown as string | null) ?? null
   if (!tenantId) throw ServiceError.forbidden('No workspace selected')
 
   return {

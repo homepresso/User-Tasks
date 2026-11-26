@@ -20,7 +20,7 @@ One front door for legal: NDAs, contract reviews, legal questions and disputes, 
 | Rule | Queue | SLA (days) | GC review |
 |---|---|---|---|
 | Dispute or claim | Disputes | 2 | yes |
-| Contract review of NZD 500,000 or more | Commercial | 5 | yes |
+| Contract review of USD 500,000 or more | Commercial | 5 | yes |
 | Contract review, Critical | Commercial | 1 | no |
 | Contract review | Commercial | 5 | no |
 | NDA, Critical | Commercial | 1 | no |

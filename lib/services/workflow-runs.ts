@@ -24,7 +24,7 @@
 
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { applyScope, requireVisibleRun, resolveRunScope, runScopeFilter } from './run-visibility'
-import { audit, dbError } from './_shared'
+import { actorServiceClient, audit, dbError } from './_shared'
 import { RunNotResumableError } from '@/lib/workflow-run-errors'
 import { QueuedRunTimeoutError, resumeRun } from '@/lib/processing/dispatch'
 
@@ -97,7 +97,7 @@ async function runNodeIds(ctx: ServiceContext, run: { workflow_id: string | null
 /** Cancel the open tasks waiting on `eventId` (the tasks trigger logs the lifecycle event). */
 async function closeOpenTasks(ctx: ServiceContext, eventId: string | null): Promise<string[]> {
   if (!eventId) return []
-  const { data, error } = await (ctx.supabase as any).from('tasks')
+  const { data, error } = await (await actorServiceClient(ctx) as any).from('tasks')
     .update({ status: 'cancelled' })
     .eq('tenant_id', ctx.tenantId)
     .eq('event_id', eventId)

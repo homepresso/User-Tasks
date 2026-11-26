@@ -164,6 +164,7 @@ export function InlineTaskWorkPlan({ task, density = 'compact' }: InlineTaskWork
           </label>
           <DateTimePicker
             value={estimatedCompletion}
+            aria-label="ETA"
             onChange={setEstimatedCompletion}
             disabled={!canEditExecutionPlan}
             placeholder="Set ETA"

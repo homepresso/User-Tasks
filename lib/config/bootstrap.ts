@@ -108,6 +108,19 @@ export function appUrlOrLocalhost(): string {
   return configuredAppUrl() || 'http://localhost:3000'
 }
 
+/**
+ * Origin the server uses to call itself (queue / deletion / user-job kicks):
+ * INTERNAL_APP_URL when set, else the public app URL. In Docker the public
+ * URL is the host's address (http://localhost:59610, or an HTTPS name behind
+ * a proxy) and often doesn't reach the container from inside it, so every
+ * kick failed silently and queued work waited for the next worker tick (up
+ * to a minute); docker-compose.yml sets INTERNAL_APP_URL=http://app:3000.
+ */
+export function internalAppUrl(): string {
+  const internal = process.env.INTERNAL_APP_URL?.trim().replace(/\/+$/, '')
+  return internal || appUrlOrLocalhost()
+}
+
 /** Shared secret for internal service endpoints (WORKFLOW_PROCESSOR_SECRET ?? CRON_SECRET). */
 export function processorSecret(): string | undefined {
   return getBootstrapConfig().processorSecret

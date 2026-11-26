@@ -142,7 +142,7 @@ describe('reports.individual', () => {
 })
 
 describe('pre-built reports', () => {
-  it('task report: overdue/recent lists, assignee names, effort collapsed per task', async () => {
+  it('task report: summary (fallback without the RPC), recent list, assignee names, effort collapsed per task', async () => {
     const past = new Date(Date.now() - 5 * 86400000).toISOString()
     const future = new Date(Date.now() + 5 * 86400000).toISOString()
     const seed = {
@@ -160,16 +160,28 @@ describe('pre-built reports', () => {
         { task_id: 't2', minutes: 10, record_type: 'assigner_estimate' },
       ],
     }
+    // No report_task_summary RPC on the memory client: the summary is counted from the lists (fallback).
     const { data } = await run(ctx(db(seed)), 'reports.tasks') as any
-    expect(data.allTasks.map((t: any) => t.id).sort()).toEqual(['t1', 't2', 't3'])
-    expect(data.overdueTasks.map((t: any) => t.id).sort()).toEqual(['t1', 't4'])
+    expect(data.summary).toMatchObject({ total: 3, completed: 1, status: { todo: 2, completed: 1 }, leaderboard: [{ assignee_id: 'u2', count: 1 }] })
+    expect(data.summary.overdue).toEqual({ count: 2, buckets: [0, 2, 0, 0] })
+    expect(data.summary.weekly.reduce((a: number, b: number) => a + b, 0)).toBe(1)
     expect(data.recentCompleted).toMatchObject([{ id: 't3', assignee_name: 'Bob' }])
-    expect(data.completedRecent.map((t: any) => t.id)).toEqual(['t3'])
-    expect(data.userMap).toEqual({ u1: 'Ann', u2: 'Bob' })
+    expect(data.userMap).toEqual({ u2: 'Bob' })
     expect(data.effortRecords).toEqual([
       { task_id: 't1', minutes: 30, record_type: 'assigner_estimate' },
       { task_id: 't1', minutes: 35, record_type: 'actual' },
     ])
+  })
+
+  it('task report: uses report_task_summary when present (exact, one small payload) for the selected range', async () => {
+    const memory = db({ tasks: [], users: [{ id: 'u9', display_name: 'Dee' }], effort_records: [] }) as any
+    const raw = { total: '25000', completed: 9000, avg_completion_ms: 3600000, status: { todo: 16000, completed: 9000 }, priority: { high: 25000 }, leaderboard: [{ assignee_id: 'u9', count: 9000 }], overdue: { count: 120, buckets: [1, 2, 3, 4] }, weekly: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }
+    memory.rpc = vi.fn(async () => ({ data: raw, error: null }))
+    const since = '2026-10-01T00:00:00.000Z'
+    const { data } = await run(ctx(memory), 'reports.tasks', { since }) as any
+    expect(memory.rpc).toHaveBeenCalledWith('report_task_summary', expect.objectContaining({ p_since: since }))
+    expect(data.summary).toMatchObject({ total: 25000, completed: 9000, avg_completion_ms: 3600000, overdue: { count: 120, buckets: [1, 2, 3, 4] } })
+    expect(data.userMap).toEqual({ u9: 'Dee' })
   })
 
   it('collapsed effort records give the same estimated-vs-actual pairs as the raw ones', () => {

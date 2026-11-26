@@ -1339,7 +1339,7 @@
         "name": "currency",
         "type": "string",
         "description": "ISO currency code",
-        "defaultValue": "NZD",
+        "defaultValue": "USD",
         "label": "Currency"
       },
       {

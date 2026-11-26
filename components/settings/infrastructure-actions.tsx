@@ -115,9 +115,10 @@ function noteKey(state: ActionState): string {
 }
 
 /** The explanation (and remedy) under an area's buttons for each disabled one. */
-export function AreaActionNotes({ area, actions }: { area: string; actions: AreaActionStates }) {
+export function AreaActionNotes({ area, actions, changeHidden = false }: { area: string; actions: AreaActionStates; changeHidden?: boolean }) {
   const notes: Array<{ id: string; which: string; state: ActionState }> = []
-  const change = actions.change
+  // changeHidden: no Change… control here (UserTasks Cloud without the add-on), so no note about it either.
+  const change = changeHidden ? { enabled: true, block: null } : actions.change
   const settings = actions.settings
   if (!change.enabled) notes.push({ id: `${area}-change-why`, which: settings.enabled || noteKey(settings) !== noteKey(change) ? 'Change…' : 'Change… and Settings', state: change })
   if (!settings.enabled && (change.enabled || noteKey(settings) !== noteKey(change))) notes.push({ id: `${area}-settings-why`, which: 'Settings', state: settings })

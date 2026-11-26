@@ -323,8 +323,9 @@ describe('provider resolution', () => {
     expect(canvasMode(gallery, true)).toBe('dark')
     expect(canvasMode(gallery, false)).toBe('light')
     expect(canvasMode(presetToWorkspaceTheme('trailside')!, true)).toBe('dark')
-    // Light presets without a dark variant keep a light canvas in dark OS mode (as before).
-    expect(canvasMode(presetToWorkspaceTheme('corporate-blue')!, true)).toBe('light')
+    // Every light preset now has its own dark palette: Follow device turns the canvas dark (QA 2026-11-24).
+    expect(canvasMode(presetToWorkspaceTheme('corporate-blue')!, true)).toBe('dark')
+    expect(canvasMode(presetToWorkspaceTheme('corporate-blue')!, false)).toBe('light')
     expect(canvasMode(presetToWorkspaceTheme('midnight')!, true)).toBe('dark')
     expect(canvasMode(presetToWorkspaceTheme('night-drive')!, false)).toBe('dark')
     const forced = presetToWorkspaceTheme('midnight')!

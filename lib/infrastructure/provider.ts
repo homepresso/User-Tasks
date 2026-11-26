@@ -15,6 +15,7 @@
  */
 import type { ExtensionContext, InfrastructureProvider } from '@/lib/extensions/sdk'
 import { hasExtensions } from '@/lib/extensions/registry'
+import { getDeploymentMode } from '@/lib/deployment'
 import { addonRequiredMessage, INFRASTRUCTURE_FEATURE } from './addon'
 
 export interface ResolvedInfrastructureProvider {
@@ -27,7 +28,7 @@ export type InfrastructureAddonState =
   /** No extension in this build provides it. */
   | { state: 'missing'; reason: string }
   /** Installed but not usable now (no licence, expired more than 24 hours ago, wrong feature). */
-  | { state: 'unlicensed'; extensionId: string; reason: string; href: string }
+  | { state: 'unlicensed'; extensionId: string; reason: string; href: string; licenceReason?: string | null }
   | { state: 'ready'; resolved: ResolvedInfrastructureProvider; warning: string | null }
 
 type Override = (() => Promise<InfrastructureAddonState>) | null
@@ -48,7 +49,7 @@ export async function infrastructureAddon(): Promise<InfrastructureAddonState> {
     if (!provider) continue
     const access = await extensionAccess(null, server.id, provider.feature ?? INFRASTRUCTURE_FEATURE)
     if (!access.usable) {
-      return { state: 'unlicensed', extensionId: server.id, href: provider.href, reason: `${addonRequiredMessage()} ${access.reason ?? ''}`.trim() }
+      return { state: 'unlicensed', extensionId: server.id, href: provider.href, reason: `${addonRequiredMessage()} ${access.reason ?? ''}`.trim(), licenceReason: access.reason ?? null }
     }
     return {
       state: 'ready',
@@ -72,13 +73,24 @@ export interface InfrastructureAddonView {
   href: string | null
   /** Why changes are unavailable (missing / unlicensed), or the expiry warning (ready). */
   reason: string | null
+  /**
+   * UserTasks Cloud: paid extensions are for self-hosted installs, so pages
+   * show the status read-only instead of the add-on's card and Change… links.
+   */
+  cloud?: boolean
 }
 
 export async function infrastructureAddonView(): Promise<InfrastructureAddonView> {
+  const view = await addonView()
+  return getDeploymentMode() === 'cloud' ? { ...view, cloud: true } : view
+}
+
+async function addonView(): Promise<InfrastructureAddonView> {
   try {
     const addon = await infrastructureAddon()
     if (addon.state === 'ready') return { state: 'ready', href: addon.resolved.provider.href, reason: addon.warning }
-    if (addon.state === 'unlicensed') return { state: 'unlicensed', href: addon.href, reason: addon.reason }
+    // Pages say "installed, but no usable licence: <why>", so only the licence's own reason (not the whole refusal again).
+    if (addon.state === 'unlicensed') return { state: 'unlicensed', href: addon.href, reason: addon.licenceReason || addon.reason }
     return { state: 'missing', href: null, reason: addon.reason }
   } catch (error) {
     return { state: 'missing', href: null, reason: `${addonRequiredMessage()} (${(error as Error).message})` }

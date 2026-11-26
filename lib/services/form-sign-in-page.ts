@@ -15,6 +15,8 @@
  *    else of the workspace leaves the server.
  */
 
+import { formSignInLogo, type FormSignInLogo } from '@/lib/forms/sign-in-logo'
+import { readWorkspaceTheme } from './workspace-theme'
 import {
   DEFAULT_SIGN_IN_SETTINGS, SIGN_IN_SETTINGS_KEY, applyFormSignInPatch, cleanOrgSlug, formSignInInputProblem, parseAppSignInChoice,
   signInSettingsFromTenantSettings, type AppSignInChoice, type FormSignInSettings,
@@ -112,7 +114,6 @@ export async function loadPublicSignInPage(tenantId: string | null, options: { a
     let theme: WorkspaceTheme | null = null
     if (settings.use_workspace_theme) {
       try {
-        const { readWorkspaceTheme } = await import('./workspace-theme')
         theme = (await readWorkspaceTheme(db, tenantId)).theme
       } catch { /* the UserTasks look */ }
     }
@@ -151,6 +152,33 @@ export async function tenantBySlug(slug: string | null | undefined): Promise<{ i
     return typeof data?.id === 'string' ? { id: data.id, slug: String(data.slug ?? clean) } : null
   } catch {
     return null
+  }
+}
+
+/**
+ * The form's own logo choice for its sign-in page (lib/forms/sign-in-logo.ts): the form
+ * named by /f/<id> or /form/<system name> in this workspace, its published header, and
+ * the workspace theme's logo for "Workspace logo". Inherit on anything missing.
+ */
+export async function formSignInLogoChoice(tenantId: string | null, ref: { formId?: string | null; formName?: string | null }): Promise<FormSignInLogo> {
+  if (!tenantId || (!ref.formId && !ref.formName)) return { kind: 'inherit' }
+  try {
+    const db = await formSignInDeps.serviceClient()
+    let query = (db as any).from('forms').select('header').eq('tenant_id', tenantId)
+    query = ref.formId ? query.eq('id', ref.formId) : query.eq('system_name', ref.formName)
+    const { data } = await query.maybeSingle()
+    if (!data) return { kind: 'inherit' }
+    const header = data.header as { enabled?: unknown; image?: unknown } | null
+    let workspaceLogo: string | null = null
+    if (header?.enabled === true && header.image === 'workspace_logo') {
+      try {
+        const branding = (await readWorkspaceTheme(db, tenantId)).theme.branding
+        workspaceLogo = branding.logoLight ?? branding.logoDark ?? null
+      } catch { /* inherit */ }
+    }
+    return formSignInLogo(data.header, workspaceLogo)
+  } catch {
+    return { kind: 'inherit' }
   }
 }
 

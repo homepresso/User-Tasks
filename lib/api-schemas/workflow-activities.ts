@@ -103,7 +103,7 @@ export const createWorkflowActivityEndpoint = defineEndpoint({
 })
 
 export const importWorkflowActivityEndpoint = defineEndpoint({
-  method: 'POST', path: '/workflow-activities/import', operationId: 'importWorkflowActivity', tags,
+  method: 'POST', path: '/workflow-activities/import', bodyLimit: 'package', operationId: 'importWorkflowActivity', tags,
   summary: 'Create an activity from a portable export', description: `Body: the JSON from GET /workflow-activities/{id}/export. ${CODE_NOTE}`,
   permission: 'extensibility.create',
   query: z.object({ publish: booleanFlag('true = import as active regardless of the exported status') }),
@@ -142,7 +142,7 @@ export const exportWorkflowActivityEndpoint = defineEndpoint({
 })
 
 export const uploadWorkflowActionEndpoint = defineEndpoint({
-  method: 'POST', path: '/workflow-activities/upload', operationId: 'uploadWorkflowAction', tags,
+  method: 'POST', path: '/workflow-activities/upload', bodyLimit: 'package', operationId: 'uploadWorkflowAction', tags,
   summary: 'Upload a packaged action (manifest v1 + one ES module): a new action, or a new version of the one with the same key',
   description: `Re-uploading identical content for an existing version is a no-op (outcome "unchanged"); different content for an existing version is refused (409). ${CODE_NOTE}`,
   permission: 'extensibility.create',

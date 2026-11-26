@@ -8,6 +8,7 @@ import {
   usesWorkspaceSignIn,
 } from '@/lib/forms/sign-in-page'
 import { signInThemeStyle } from '@/lib/forms/sign-in-theme'
+import { formNameOfReturnPath, signInLogoFor } from '@/lib/forms/sign-in-logo'
 import { configuredAppUrl } from '@/lib/config/bootstrap'
 import { authCookieSecure } from '@/lib/providers/auth/cookies'
 import { resolveStorageUrl } from '@/lib/storage/refs'
@@ -83,12 +84,15 @@ export async function signInRoute(query: SignInQuery) {
   // An app on the main address with no workspace named: the standard sign-in, as before.
   if (kind === 'app' && !tenantId && topLevel) redirect(standardLogin(null, returnPath, orgHint))
 
-  const [page, options] = await Promise.all([
+  // A form link: the form's own logo choice (its header) over the workspace setting.
+  const formName = kind === 'app' ? null : formNameOfReturnPath(returnPath)
+  const [page, options, logoChoice] = await Promise.all([
     svc.loadPublicSignInPage(tenantId, app ? { appSlug: app.slug } : {}),
     import('@/app/actions/auth').then((m) => m.getLoginOptions()).catch((error) => {
       console.error('[auth] login options unavailable:', (error as Error).message)
       return FALLBACK
     }),
+    kind === 'app' ? Promise.resolve({ kind: 'inherit' } as const) : svc.formSignInLogoChoice(tenantId, { formId, formName }),
   ])
 
   // Turned off for this kind of link (or by the app): the standard sign-in.
@@ -99,6 +103,8 @@ export async function signInRoute(query: SignInQuery) {
   let settings = kind === 'app' ? settingsForApp(page.settings) : page.settings
   // The app's own colour as the accent, when the workspace asks for it.
   if (kind === 'app' && settings.use_app_color && !settings.use_workspace_theme && page.app?.color) settings = { ...settings, accent_color: page.app.color }
+
+  const logo = signInLogoFor(logoChoice, settings.logo_url)
 
   // SSO callbacks live on the main address; with shared sessions a workspace address starts SSO there and hops back.
   const base = baseDomainFromEnv()
@@ -112,7 +118,8 @@ export async function signInRoute(query: SignInQuery) {
       <PublicThemeReset />
       <FormSignInScreen
         settings={settings}
-        logoUrl={settings.logo_url ? resolveStorageUrl(settings.logo_url) : null}
+        logoUrl={logo.logo ? resolveStorageUrl(logo.logo) ?? null : null}
+        noLogo={logo.noLogo}
         workspace={page.workspace}
         themeStyle={signInThemeStyle(settings, page.theme)}
         options={options}

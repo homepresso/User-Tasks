@@ -1,5 +1,6 @@
 "use client"
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -929,7 +930,7 @@ function DeploymentsCard({
       )}
 
       {deployments.length === 0 ? (
-        <p className="text-sm py-3 text-fg-muted">No deployments yet.</p>
+        <EmptyState size="sm" title="No deployments yet" />
       ) : (
         <div className="space-y-2">
           {deployments.slice(0, 8).map((deployment) => {

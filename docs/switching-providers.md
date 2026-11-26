@@ -76,8 +76,10 @@ usertasks-admin switch <area> --to <provider> [--dry-run] [--yes]
 
 1. **Pre-flight.** The target is checked before anything changes (reachable,
    writable, configured). Any failed check stops the switch.
-2. **Backup**, in `<backup dir>/<switch id>/` (default `./backups/switches`,
-   or `BACKUP_DIR`; created with mode 0700):
+2. **Backup**, in `<backup dir>/<switch id>/` (`--backup-dir`, else
+   `BACKUP_DIR`, else `~/.usertasks/backups/switches` of the account the app
+   or `usertasks-admin` runs as, outside the app's working tree; created with
+   mode 0700):
    - `config.json`: the `instance_settings` rows (secret rows stay
      encrypted) and the `<AREA>_PROVIDER` environment variables;
    - row snapshots of what the switch modifies (`url-rewrite.jsonl` for
@@ -181,6 +183,14 @@ DATABASE_AUTH=<azure|gcp|aws, with token auth>
 ```
 
 Set them (and remove the old ones), then restart the app and the worker.
+If the environment also sets `MIGRATION_DATABASE_URL`,
+`REALTIME_DATABASE_URL` or `SCHEDULER_DATABASE_URL` (the bundled stack and
+the installers write all three), point each at the target too: they are
+session connections for migrations, live updates (LISTEN) and the
+scheduler's leader lock, and left on the source they keep listening and
+locking there. The **Database** health check (`usertasks-admin doctor`,
+Settings → Infrastructure) fails while one of them reaches a different
+database than `DATABASE_URL`.
 
 Requirements: when the target isn't Supabase, no Supabase-only provider
 left: switch **auth** to `builtin` / `oidc` / `saml`, **realtime** to `sse`
@@ -205,7 +215,8 @@ target's rows), then restart the app with the new environment. Expect a few
 minutes for a small install; the copy runs at roughly bulk-insert speed.
 
 **Rollback:** point the app back at the source (the switch never writes to
-it); the printed `DB_PROVIDER` / `DATABASE_URL` are the previous values.
+it); the printed `DB_PROVIDER` / `DATABASE_URL` are the previous values
+(and the other `*_DATABASE_URL` go back with them).
 Writes made to the target since the switch are not copied back.
 
 ## Auth
@@ -472,8 +483,8 @@ database switch's `--target-url "$TARGET_DATABASE_URL"`) and `secret://`
 references are passed as they are. `INFRA_UI_BACKGROUND_JOBS=on|off`
 overrides the runtime detection (Cloud Run with always-allocated CPU can use
 `on`). Background switches write their backups under `BACKUP_DIR` (default
-`./backups/switches` in the app's working directory): mount a volume there
-in containers, so the backups outlive the container.
+`~/.usertasks/backups/switches` of the app's account): in containers, set
+`BACKUP_DIR` to a mounted volume so the backups outlive the container.
 
 A queued switch keeps its options in its switch log row (`job`); secret
 values there are encrypted with `ENCRYPTION_KEY` and removed once the

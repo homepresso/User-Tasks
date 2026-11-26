@@ -735,14 +735,25 @@ export const ADDON_CLI_MISSING = (name: string) =>
   'To change providers: get the add-on and a licence (Settings → Extensions and Settings → Licence, or usertasks-admin licence install <file>), ' +
   'then run this command from a build that includes it.'
 
+export const ADDON_CLI_CLOUD = (name: string) =>
+  `usertasks-admin ${name} is not available on UserTasks Cloud (DEPLOYMENT_MODE=cloud): the Infrastructure add-on and every other ` +
+  'paid extension are for self-hosted installs only. The cloud deployment keeps its providers; status, doctor and history work as before.'
+
+/** DEPLOYMENT_MODE=cloud in the CLI's environment (lib/config/bootstrap reads it the same way). */
+function cloudDeployment(env: NodeJS.ProcessEnv): boolean {
+  return env.DEPLOYMENT_MODE?.trim().toLowerCase() === 'cloud'
+}
+
 /**
- * `usertasks-admin switch|rollback`: run by the Infrastructure add-on when
+ * `usertasks-admin switch|rollback`: refused on UserTasks Cloud (paid
+ * extensions are self-hosted only, exit 2); else run by the Infrastructure add-on when
  * this build includes it and the instance has a licence for
  * infrastructure-separation (the licences installed in the database and
  * USERTASKS_LICENCE[_FILE], checked offline; an expired licence works for 24
  * hours, then changes stop). Otherwise a clear refusal (exit 2).
  */
 export async function runAddonCommand(name: 'switch' | 'rollback', argv: string[], io: CliIO): Promise<number> {
+  if (cloudDeployment(io.env)) { io.err(ADDON_CLI_CLOUD(name)); return 2 }
   const { getServerExtensions } = await import('@/lib/extensions/server-registry')
   const ext = getServerExtensions().find((s) => s.infrastructure?.cli?.[name])
   if (!ext) { io.err(ADDON_CLI_MISSING(name)); return 2 }

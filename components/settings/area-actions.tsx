@@ -13,7 +13,8 @@ import { isFreeSettingsChange } from '@/lib/infrastructure/addon'
  *  - with the Infrastructure add-on licensed, Change… (and Settings for the
  *    other areas) open the add-on's page for this area;
  *  - without it, Change… leads to the add-on card on this page (what it does,
- *    how to get it).
+ *    how to get it); on UserTasks Cloud (paid extensions are self-hosted
+ *    only) there is no Change… at all.
  *
  * A disabled control (cloud lock, no direct connection) points at the note
  * under the card that says why and what to do (AreaActionNotes).
@@ -26,7 +27,7 @@ export function AreaActions({ area, label, provider, actions, addon, upsellAncho
   label: string
   provider: string
   actions: AreaActionStates
-  addon: Pick<InfrastructureAddonView, 'state' | 'href'>
+  addon: Pick<InfrastructureAddonView, 'state' | 'href' | 'cloud'>
   upsellAnchor?: string
 }) {
   const ready = addon.state === 'ready' && addon.href
@@ -50,7 +51,10 @@ export function AreaActions({ area, label, provider, actions, addon, upsellAncho
       : disabled(settingsLabel, 'settings', `${label} settings`)
   }
   let change: React.ReactNode
-  if (!ready) {
+  if (!ready && addon.cloud) {
+    // UserTasks Cloud: the add-on is for self-hosted installs; the status stays read-only.
+    change = null
+  } else if (!ready) {
     change = (
       <Link href={upsellAnchor} className={btn} style={border} aria-label={`Change ${label} provider (Infrastructure add-on)`} title="Changing providers needs the Infrastructure add-on" data-addon-link>
         {changeLabel}<span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--theme-muted-text)' }}>add-on</span>

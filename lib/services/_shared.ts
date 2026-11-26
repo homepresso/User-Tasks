@@ -129,6 +129,19 @@ export function dbError(error: { message?: string } | null | undefined, fallback
  * API and MCP contexts are service-role already; the cookie-bound session
  * client is swapped for a service-role one. Callers filter tenant_id.
  */
+/**
+ * Client for writes to tables end users hold no write grant on (the task
+ * tables, notifications — migration 20270130140000), after the service's own
+ * checks. API / MCP contexts are service-role already; a session gets a
+ * service-role client that carries the actor (ACTOR_HEADER), so task triggers
+ * attribute the change to them as before. Callers filter tenant_id.
+ */
+export async function actorServiceClient(ctx: ServiceContext): Promise<AnySupabaseClient> {
+  if (ctx.authKind !== 'session') return getDb(ctx)
+  const { createActorServiceClient } = await import('@/lib/cron-auth')
+  return createActorServiceClient(ctx.actorId) as unknown as AnySupabaseClient
+}
+
 export async function serviceRoleClient(ctx: ServiceContext): Promise<AnySupabaseClient> {
   if (ctx.authKind !== 'session') return getDb(ctx)
   // Via lib/cron-auth (which wraps lib/providers/db) so existing mocks apply.

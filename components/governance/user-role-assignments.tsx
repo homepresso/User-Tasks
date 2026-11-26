@@ -105,7 +105,7 @@ export function UserRoleAssignments({ users, roles }: Props) {
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-lg font-semibold text-fg">User Assignments</h2>
+          <h2 className="text-lg font-semibold text-fg">User assignments</h2>
           <p className="text-xs mt-0.5 text-fg-muted">
             {users.length} user{users.length !== 1 ? 's' : ''} in this tenant
           </p>

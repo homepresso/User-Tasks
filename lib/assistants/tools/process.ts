@@ -62,7 +62,7 @@ async function namesFor(deps: ProcessDeps, nodes: any[], extraUserIds: string[])
     ids('workflow_id').length ? db.from('workflows').select('id, name').eq('tenant_id', deps.tenantId).in('id', ids('workflow_id')) : { data: [] },
   ])
   const ruleText = (r: any) => {
-    const conds = (Array.isArray(r?.conditions) ? r.conditions : []).map((c: any) => `${c.inputKey} ${c.operator === 'equals' ? 'is' : String(c.operator ?? 'is').replace(/_/g, ' ')} ${plainExpression(c.value)}`).join(' and ')
+    const conds = (Array.isArray(r?.conditions) ? r.conditions : []).map((c: any) => `${c.inputKey} ${c.operator === 'equals' ? 'is' : String(c.operator ?? 'is').replace(/_/g, ' ')} ${c.valueInputKey ? c.valueInputKey : plainExpression(c.value)}`).join(' and ')
     const outs = Object.entries(r?.outputs ?? {}).slice(0, 3).map(([k, v]) => `${k} = ${String(v).slice(0, 40)}`).join(', ')
     return `${conds || 'otherwise'} → ${outs || r?.label || 'a result'}`
   }

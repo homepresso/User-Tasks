@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { TeamList } from '@/components/team/team-list'
 import { CreateTeamDialog } from '@/components/team/create-team-dialog'
-import { OrgImportPanel } from '@/components/org/org-import-panel'
+import { ImportPeopleWizard } from '@/components/org/import-people-wizard'
 import { PeopleEditor } from './people-editor'
 import { UnitsEditor } from './units-editor'
 import { ProjectsEditor } from './projects-editor'
@@ -35,7 +35,7 @@ export function OrgManagePage() {
     if (canOrg) out.push({ value: 'units', label: 'Org units' })
     if (canTeams) out.push({ value: 'teams', label: 'Teams' })
     if (can('projects.manage')) out.push({ value: 'projects', label: 'Projects' })
-    if (canOrg || can('org.view')) out.push({ value: 'import', label: 'Import / export' })
+    if (canOrg || can('org.view')) out.push({ value: 'import', label: 'Import people' })
     return out
   }, [can, canOrg, canTeams])
   const requested = params.get('tab') as Tab | null
@@ -67,7 +67,7 @@ export function OrgManagePage() {
         </div>
       )}
       {tab === 'projects' && <ProjectsEditor />}
-      {tab === 'import' && <OrgImportPanel canManage={canOrg} />}
+      {tab === 'import' && <ImportPeopleWizard canManage={canOrg} />}
     </div>
   )
 }

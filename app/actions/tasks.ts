@@ -22,6 +22,14 @@ import type { SubtaskInput } from '@/lib/tasks/subtask-input'
 import { findRecentDuplicate } from '@/lib/recent-duplicate'
 import { decideAcceptance, type QueueTaskFacts } from '@/lib/tasks/queue-rules'
 import { decideAcceptanceForAssignees } from '@/lib/tasks/queue-rules-server'
+import { mapLimit } from '@/lib/media/http'
+
+const REORDER_CONCURRENCY = 8
+
+import { createActorServiceClient } from '@/lib/cron-auth'
+/** Task-table and notification writes: end users hold no write grant on them (migration 20270130140000), so they run with the service role after this file's checks — carrying the acting user for the task triggers — always scoped to the task's workspace. */
+const taskWriter = (actorId: string | null | undefined) => createActorServiceClient(actorId) as any
+
 
 export async function createTask(formData: FormData) {
   await requirePermission('tasks.create')
@@ -185,7 +193,7 @@ export async function createTask(formData: FormData) {
     updates.assignee_id = null
     updates.assigned_team_id = assignedTeamId
     updates.acceptance_status = acceptanceFor(null)
-    await supabase.from('tasks').update(updates as any).eq('id', taskData.task.id)
+    await taskWriter(user.id).from('tasks').update(updates as any).eq('id', taskData.task.id).eq('tenant_id', tenantId)
   } else if (assignmentMode === 'individual' && assigneeIds.length > 1) {
     // ─── Individual mode: create copies ───
     const groupId = crypto.randomUUID()
@@ -196,7 +204,7 @@ export async function createTask(formData: FormData) {
     // Update the original task as the first copy
     updates.assignee_id = assigneeIds[0]
     updates.acceptance_status = acceptanceFor(assigneeIds[0])
-    await supabase.from('tasks').update(updates as any).eq('id', taskData.task.id)
+    await taskWriter(user.id).from('tasks').update(updates as any).eq('id', taskData.task.id).eq('tenant_id', tenantId)
 
     // Create copies for remaining assignees
     for (let i = 1; i < assigneeIds.length; i++) {
@@ -219,28 +227,25 @@ export async function createTask(formData: FormData) {
         if (assignedTeamId) copyUpdates.assigned_team_id = assignedTeamId
         if (availableOutcomesJson) copyUpdates.available_outcomes = updates.available_outcomes
         // accepted_at set when user accepts from queue
-        await supabase.from('tasks').update(copyUpdates as any).eq('id', copyTask.id)
+        await taskWriter(user.id).from('tasks').update(copyUpdates as any).eq('id', copyTask.id).eq('tenant_id', tenantId)
       }
     }
 
-    // Notify all assignees
-    for (const aid of assigneeIds) {
-      if (aid !== user.id) {
-        await supabase.from('notifications').insert({
-          user_id: aid, tenant_id: tenantId, type: 'task_assigned',
-          title: 'New task assigned to you',
-          body: assignedBody(aid),
-          task_id: taskData.task.id,
-        } as any)
-      }
-    }
+    // Notify all assignees (one insert, not one round trip per person)
+    const assignedNotes = assigneeIds.filter((aid) => aid !== user.id).map((aid) => ({
+      user_id: aid, tenant_id: tenantId, type: 'task_assigned',
+      title: 'New task assigned to you',
+      body: assignedBody(aid),
+      task_id: taskData.task.id,
+    }))
+    if (assignedNotes.length) await taskWriter(user.id).from('notifications').insert(assignedNotes as any)
   } else if (assignmentMode === 'collaborative' && assigneeIds.length > 1) {
     // ─── Collaborative mode: one task, multiple assignees ───
     updates.assignment_mode = 'collaborative'
     updates.assignee_id = assigneeIds[0]
     updates.acceptance_status = acceptanceFor(assigneeIds[0])
     if (assignedTeamId) updates.assigned_team_id = assignedTeamId
-    await supabase.from('tasks').update(updates as any).eq('id', taskData.task.id)
+    await taskWriter(user.id).from('tasks').update(updates as any).eq('id', taskData.task.id).eq('tenant_id', tenantId)
 
     // Insert task_assignees rows
     const assigneeRows = assigneeIds.map((aid, i) => ({
@@ -252,19 +257,16 @@ export async function createTask(formData: FormData) {
         ? { acceptance_status: 'accepted', accepted_at: new Date().toISOString() }
         : { acceptance_status: 'pending', accepted_at: null }),
     }))
-    await (supabase as any).from('task_assignees').insert(assigneeRows)
+    await taskWriter(user.id).from('task_assignees').insert(assigneeRows)
 
-    // Notify collaborators
-    for (const aid of assigneeIds) {
-      if (aid !== user.id) {
-        await supabase.from('notifications').insert({
-          user_id: aid, tenant_id: tenantId, type: 'task_assigned',
-          title: 'Collaborative task assigned',
-          body: `"${title}" — you've been added as a collaborator`,
-          task_id: taskData.task.id,
-        } as any)
-      }
-    }
+    // Notify collaborators (one insert)
+    const collaboratorNotes = assigneeIds.filter((aid) => aid !== user.id).map((aid) => ({
+      user_id: aid, tenant_id: tenantId, type: 'task_assigned',
+      title: 'Collaborative task assigned',
+      body: `"${title}" — you've been added as a collaborator`,
+      task_id: taskData.task.id,
+    }))
+    if (collaboratorNotes.length) await taskWriter(user.id).from('notifications').insert(collaboratorNotes as any)
   } else {
     // ─── Single assignment ───
     const singleAssignee = assigneeIds[0] || null
@@ -273,10 +275,10 @@ export async function createTask(formData: FormData) {
     updates.acceptance_status = acceptanceFor(singleAssignee)
     if (assignedTeamId) updates.assigned_team_id = assignedTeamId
     if (Object.keys(updates).length > 0) {
-      await supabase.from('tasks').update(updates as any).eq('id', taskData.task.id)
+      await taskWriter(user.id).from('tasks').update(updates as any).eq('id', taskData.task.id).eq('tenant_id', tenantId)
     }
     if (singleAssignee && singleAssignee !== user.id) {
-      await supabase.from('notifications').insert({
+      await taskWriter(user.id).from('notifications').insert({
         user_id: singleAssignee, tenant_id: tenantId, type: 'task_assigned',
         title: 'New task assigned to you',
         body: assignedBody(singleAssignee),
@@ -287,13 +289,13 @@ export async function createTask(formData: FormData) {
 
   // Auto-invite assignees who aren't members of this tenant
   if (assigneeIds.length > 0 && tenantId) {
-    for (const aId of assigneeIds) {
-      const { data: assigneeUser } = await supabase
-        .from('users')
-        .select('id, email, tenant_id')
-        .eq('id', aId)
-        .single()
-      if (assigneeUser && assigneeUser.email && (assigneeUser as any).tenant_id !== tenantId) {
+    // One lookup for every assignee (was one query each).
+    const { data: assigneeUsers } = await supabase
+      .from('users')
+      .select('id, email, tenant_id')
+      .in('id', [...new Set(assigneeIds)])
+    for (const assigneeUser of (assigneeUsers ?? []) as Array<{ id: string; email: string | null; tenant_id: string | null }>) {
+      if (assigneeUser.email && assigneeUser.tenant_id !== tenantId) {
         inviteAssigneeAsViewer(assigneeUser.email, tenantId, user.id).catch(() => {})
       }
     }
@@ -348,7 +350,7 @@ export async function updateTaskField(
     if ((current as any)?.is_workflow_task && (current as any)?.event_id) throw new Error('A workflow task completes through its workflow step')
     if (value === 'completed') throw new Error('Complete a task with its outcome (Complete) rather than by editing its status')
   }
-  const { error } = await supabase
+  const { error } = await taskWriter(ctx.actorId)
     .from('tasks')
     .update({ [field]: normalizeTaskFieldValue(field, value) } as any)
     .eq('id', taskId)
@@ -401,13 +403,14 @@ export async function saveTaskFieldValues(
   const { errors, templateValues } = await mergeTaskFieldValuesChecked(supabase, task.tenant_id, metadata, values, { partial: true, taskId })
   if (Object.keys(errors).length > 0) return { success: false, errors }
 
-  const { error } = await supabase
+  const user = await getCachedUser()
+  const { error } = await taskWriter(user?.id)
     .from('tasks')
     .update({ metadata: { ...metadata, template_values: templateValues } as Json })
     .eq('id', taskId)
+    .eq('tenant_id', task.tenant_id)
   if (error) throw new Error(error.message)
 
-  const user = await getCachedUser()
   await writeLifecycleEvent({ supabase, tenantId: task.tenant_id, taskId, eventType: 'task_data_saved', actorId: user?.id ?? null, metadata: { fields: Object.keys(values) } })
 
   revalidatePath(`/tasks/${taskId}`)
@@ -420,20 +423,18 @@ export async function reorderTasks(
   await requirePermission('tasks.assign')
   const ids = Array.isArray(taskIds) ? taskIds.filter((id) => typeof id === 'string').slice(0, 500) : []
   const ctx = await fromSession()
-  // Every task must be one the person can reach, in their workspace.
-  for (const id of ids) await tasksService.requireTaskReach(ctx, id)
-  const supabase = await createClient()
+  // Every task must be one the person can reach, in their workspace — all checked before anything is
+  // written (8 at a time: one after another, 100 tasks took ~100 sequential authorisation chains).
+  await mapLimit(ids, REORDER_CONCURRENCY, (id) => tasksService.requireTaskReach(ctx, id))
 
-  // Update sequence for each task based on new order
-  const updates = ids.map((id, index) =>
-    supabase
+  // Update sequence for each task based on new order (bounded: was one burst of up to 500 requests).
+  // Service-role writer (hotfix 1bbfe596e: session clients may not write the task tables).
+  await mapLimit(ids, REORDER_CONCURRENCY, (id, index) =>
+    Promise.resolve(taskWriter(ctx.actorId)
       .from('tasks')
       .update({ sequence: index + 1 })
       .eq('id', id)
-      .eq('tenant_id', ctx.tenantId)
-  )
-
-  await Promise.all(updates)
+      .eq('tenant_id', ctx.tenantId)))
   revalidatePath('/tasks')
   revalidatePath('/tasks/assigned')
   return { success: true }

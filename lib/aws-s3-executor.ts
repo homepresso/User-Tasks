@@ -33,6 +33,7 @@ import {
   MAX_STRUCTURED_RESPONSE_BYTES,
 } from '@/lib/integrations/http'
 import { presignUrl, rfc3986 } from '@/lib/aws/sigv4'
+import { egressFetch } from '@/lib/egress-guard'
 
 // ─── Types ───
 
@@ -257,7 +258,8 @@ function buildSignedRequest(
  * and the 3xx handed back to us.
  */
 const fetchWithoutRedirects: typeof fetch = async (input, init) => {
-  const res = await fetch(input as any, init)
+  // Pinned transport (connects only to addresses the egress policy allows).
+  const res = await egressFetch(input as any, init)
   const location = res.headers.get('location')
   if (res.status >= 300 && res.status < 400 && location) {
     const headers = new Headers(res.headers)

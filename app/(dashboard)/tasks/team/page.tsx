@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useState } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { AlertTriangle, ChevronDown, ChevronRight, Clock, ExternalLink, Loader2, UserCheck, Users } from "lucide-react"
@@ -143,6 +143,16 @@ export default function MyTeamPage() {
   if (!can("tasks.view_own")) {
     return <EmptyState variant="error" title="Not authorized" description="You don’t have access to your team’s tasks." />
   }
+  // Stable row props (TeamTaskRow is memoised): typing in the search box no longer re-renders up to 500 rows.
+  const reassignTargets = useMemo(() => (all?.reports ?? []).map((w) => w.user), [all?.reports])
+  const rowCallbacks = useRef(new Map<string, () => void>())
+  const reassignFor = useCallback((id: string) => {
+    let fn = rowCallbacks.current.get(id)
+    if (!fn) { fn = () => setReassigning((current) => (current === id ? null : id)); rowCallbacks.current.set(id, fn) }
+    return fn
+  }, [])
+  const onRowDone = useCallback(() => { setReassigning(null); void queryClient.invalidateQueries({ queryKey: ["team-tasks"] }) }, [queryClient])
+
   if (isLoading && !data) return <PageSkeleton variant="list" />
   if (error) {
     return (
@@ -155,7 +165,6 @@ export default function MyTeamPage() {
 
   const workload = all?.reports ?? []
   const totals = workload.reduce((acc, w) => ({ open: acc.open + w.open, overdue: acc.overdue + w.overdue, sla: acc.sla + w.sla_breached }), { open: 0, overdue: 0, sla: 0 })
-  const reassignTargets = workload.map((w) => w.user)
 
   if (workload.length === 0) {
     return (
@@ -168,14 +177,13 @@ export default function MyTeamPage() {
     )
   }
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["team-tasks"] })
   const rowProps = (t: Row) => ({
     task: t,
     readOnly: isMobile,
     reassigning: reassigning === t.id,
-    onReassign: () => setReassigning(reassigning === t.id ? null : t.id),
+    onReassign: reassignFor(t.id),
     targets: reassignTargets,
-    onDone: () => { setReassigning(null); void refresh() },
+    onDone: onRowDone,
   })
 
   return (

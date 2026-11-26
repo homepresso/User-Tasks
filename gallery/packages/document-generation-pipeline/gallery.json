@@ -18,8 +18,13 @@
     "dms",
     "contracts"
   ],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-11-25",
+      "notes": "Sample data, defaults and labels in USD (were NZD)."
+    },
     {
       "version": "1.0.0",
       "date": "2026-10-26",
@@ -74,7 +79,7 @@
     "contract_reference": "CT-2026-118",
     "start_date": "2026-11-01",
     "amount": 48000,
-    "currency": "NZD",
+    "currency": "USD",
     "term_months": 24,
     "signer_name": "Robin Diaz",
     "signer_email": "robin.diaz@fourthcoffee.example.com"

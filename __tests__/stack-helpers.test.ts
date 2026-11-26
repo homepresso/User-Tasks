@@ -86,3 +86,13 @@ describe('the image is built once, without tsc unless asked', () => {
     expect(readFileSync(path.join(ROOT, 'scripts/bundle.ts'), 'utf8')).toContain("'--build-arg', 'TYPECHECK=true'")
   })
 })
+
+describe('scripts/stack.ts compose helper', () => {
+  it('captures large output (the 1.1 MB server reference manifest the smoke reads; spawnSync defaults to 1 MB)', async () => {
+    const { readFileSync } = await import('node:fs')
+    const src = readFileSync(new URL('../scripts/stack.ts', import.meta.url), 'utf8')
+    const compose = src.slice(src.indexOf('function compose('), src.indexOf('function adminExec('))
+    const mb = compose.match(/maxBuffer:\s*(\d+)\s*\*\s*1024\s*\*\s*1024/)
+    expect(Number(mb?.[1])).toBeGreaterThanOrEqual(16)
+  })
+})

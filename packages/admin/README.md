@@ -38,7 +38,9 @@ Areas: `database`, `auth`, `storage`, `realtime`, `scheduler`, `email`,
 `secrets`. Global options: `--db-url` (default `MIGRATION_DATABASE_URL`, then
 `DATABASE_URL`), `--actor` (recorded in the switch log; default
 `user@host`), `--backup-dir` (default `BACKUP_DIR`, else
-`./backups/switches`).
+`~/.usertasks/backups/switches`). `switch` and `rollback` come with the
+Infrastructure add-on (self-hosted only): on UserTasks Cloud
+(`DEPLOYMENT_MODE=cloud`) they are refused.
 
 `switch` options: `--set <option>=<value>` and `--secret <option>=<value>`
 (encrypted) write `<area>.<option>` settings; `--no-dump` skips the

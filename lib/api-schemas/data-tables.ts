@@ -208,7 +208,7 @@ const jsonText = <T extends z.ZodType>(schema: T) => z.union([schema, z.string()
 const importColumnType = z.enum(['text', 'longtext', 'number', 'date', 'boolean', 'select'])
 
 export const rowImportBody = z.object({
-  file_base64: z.string().min(1).describe('The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows (hosted instances accept request bodies up to about 4.5 MB). With multipart/form-data: the `file` field.'),
+  file_base64: z.string().min(1).describe('The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows. A JSON body is capped at API_MAX_BODY_BYTES (default 5 MiB; hosted instances about 4.5 MB): send larger files as multipart/form-data, in the `file` field.'),
   file_name: z.string().min(1).max(255).describe('File name; its extension (.csv, .tsv, .xlsx) picks the reader'),
   sheet: z.string().max(200).optional().describe('.xlsx: the sheet to read (default the first)'),
   delimiter: z.enum(['auto', ',', ';', '\t']).optional().describe('CSV delimiter (default auto: comma, semicolon or tab, detected)'),
@@ -235,7 +235,7 @@ export const rowImportBody = z.object({
 const importErrorSchema = z.object({ row: z.number().int(), column: z.string(), value: z.string(), reason: z.string() })
 
 export const importRowsEndpoint = defineEndpoint({
-  method: 'POST', path: '/data-tables/{id}/rows/import', operationId: 'importDataRows', tags,
+  method: 'POST', path: '/data-tables/{id}/rows/import', bodyLimit: 'package', operationId: 'importDataRows', tags,
   summary: 'Import rows from a CSV, TSV or .xlsx file (insert, upsert or replace)', permission: 'data.manage_rows',
   description: 'Reads the file (BOM, quoted fields with embedded newlines, comma / semicolon / tab, UTF-8 / UTF-16 / Windows-1252, an .xlsx sheet), matches headers to columns (or `mapping`; `new_columns` adds columns), validates every row (numbers incl. currency like $1,234.50, dates → YYYY-MM-DD, yes / no, choices, required columns) and writes in batches of 500. Row errors carry the spreadsheet row number (header = row 1), the column and the reason; with errors nothing is written unless skip_invalid. Values are stored as plain text / numbers and never evaluated. Limits: 10 MB, 50,000 rows, 200 columns; more than 5,000 rows need the async variant. Replace deletes the existing rows through the deletion queue (stored files removed; audited). ' + TRIGGER_NOTE.replace('.', ' unless fire_triggers is false.'),
   params: idParams, body: rowImportBody,

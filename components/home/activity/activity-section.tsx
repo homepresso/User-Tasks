@@ -7,7 +7,12 @@ import type { HomeWidgetId } from "@/lib/home/layout"
 import { HOME_QUERY_KEY } from "../shared"
 import { useHome } from "../home-context"
 import { ChartSkeleton } from "./chart-card"
-import { CompletedChart, DurationChart, TopProcessesChart } from "./charts"
+import dynamic from "next/dynamic"
+
+// recharts (with redux toolkit and d3 parts) loads with the first chart, not with Home.
+const CompletedChart = dynamic(() => import("./charts").then((m) => m.CompletedChart), { ssr: false, loading: () => <ChartSkeleton /> })
+const DurationChart = dynamic(() => import("./charts").then((m) => m.DurationChart), { ssr: false, loading: () => <ChartSkeleton /> })
+const TopProcessesChart = dynamic(() => import("./charts").then((m) => m.TopProcessesChart), { ssr: false, loading: () => <ChartSkeleton /> })
 
 export const periodKey = (userId: string | null | undefined) => `home_activity_period:${userId ?? "anon"}`
 

@@ -2,6 +2,8 @@ import type { InstanceConfig } from '@/lib/config'
 import type { CheckStatus, DoctorCheck } from '@/lib/admin/doctor'
 import type { AreaActionStates, SwitchAccess, SwitchingGate } from '@/lib/admin/switch-runtime'
 import type { InfrastructureAddonView } from '@/lib/infrastructure/provider'
+import type { ProcessingAddonView } from '@/lib/processing/addon'
+import type { ProcessingSettingsView } from '@/lib/extensions/sdk'
 import type { ProviderArea } from '@/lib/config/schema'
 import { checkAddress, nextStep, parseStoredIdps, summariseIdp, type AddressCheck, type IdpSummary, type WizardProgress, type WizardStepId } from './wizard-model'
 
@@ -53,10 +55,21 @@ export interface WizardPageData {
     backgroundAvailable: boolean
     /** The Infrastructure add-on (moving areas off Supabase); missing / unlicensed: the wizard shows the add-on card. */
     addon: InfrastructureAddonView
+    /** Processing (optional): the Processing add-on's switch when licensed, else its card. */
+    processing?: WizardProcessing | null
   } | null
   signIn: { provider: string; source: string; idps: IdpSummary[]; refusal: string | null }
   email: { provider: string; source: string; from: string | null; values: Record<string, string>; secretsSet: string[]; pinned: string[] }
   team: { pending: number | null }
+}
+
+export interface WizardProcessing {
+  addon: ProcessingAddonView
+  /** web: the web app runs queued work; queue: separate workers do. */
+  mode: 'web' | 'queue'
+  /** The add-on's switches (ready only). */
+  settings: ProcessingSettingsView | null
+  workersOnline: number
 }
 
 export function signInSummary(config: InstanceConfig, envPinned: boolean): WizardPageData['signIn'] {

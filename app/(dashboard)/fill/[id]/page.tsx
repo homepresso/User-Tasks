@@ -2,6 +2,7 @@
 
 import { use } from 'react'
 import { StandaloneForm } from '@/components/forms/standalone-form'
+import { UnpublishedDraftNotice } from '@/components/forms/unpublished-draft-notice'
 
 /**
  * A reusable form inside the app (the dashboard shell): where the app's own
@@ -19,6 +20,8 @@ export default function FormPage({ params, searchParams }: { params: Promise<{ i
   const query = use(searchParams)
   return (
     <div className="py-2">
+      {/* Editors: the form's saved draft isn't what this page draws until it is published. */}
+      <UnpublishedDraftNotice formId={id} />
       <StandaloneForm formId={id} query={query} />
     </div>
   )

@@ -123,6 +123,15 @@ describe('groups (in-memory fallback until the migration is applied)', () => {
     expect(rpc).toHaveBeenCalledWith('data_table_rows_page', expect.objectContaining({ p_sort: '_updated_at', p_tenant_id: T }))
     expect(exact).toEqual({ rows: [{ id: O1, data: {} }], total: 7, truncated: false })
   })
+
+  it('data.rowPage: a search or cell sort runs over every row through data_table_rows_page (not the newest 2,000)', async () => {
+    const db = seed()
+    const rpc = vi.fn(async () => ({ data: [{ id: O1, data: {}, _total: 250_000 }], error: null }))
+    ;(db as any).rpc = rpc
+    const res = await runUiRead({ ...ctx(db), authKind: 'session', source: 'ui' } as ServiceContext, { name: 'data.rowPage', args: { tableId: ORDERS, sort: 'total', dir: 'asc', search: 'acme', limit: 50, offset: 100 } })
+    expect(rpc).toHaveBeenCalledWith('data_table_rows_page', expect.objectContaining({ p_table_id: ORDERS, p_sort: 'total', p_dir: 'asc', p_search: 'acme', p_limit: 50, p_offset: 100 }))
+    expect(res.ok && (res.data as any)).toMatchObject({ total: 250_000, truncated: false })
+  })
 })
 
 describe('child relations (saved with the schema)', () => {

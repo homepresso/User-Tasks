@@ -3,6 +3,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { isCloud } from '@/lib/deployment'
 import { InfoPathFileError } from '@/lib/infopath/archive'
 import { PUBLIC_INFOPATH_LIMITS, publicInfoPathSummary } from '@/lib/infopath/public-summary'
+import { clientIp } from '@/lib/client-ip'
 
 /**
  * POST /api/public/infopath/analyze — the marketing site's "Migrate from
@@ -27,7 +28,7 @@ const deny = (error: string, status: number, headers: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   if (!isCloud()) return deny('Not found', 404)
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+  const ip = clientIp(request) ?? 'unknown'
   for (const [key, max, windowMs] of [[`infopath-preview:m:${ip}`, 6, 60_000], [`infopath-preview:h:${ip}`, 30, 3_600_000], ['infopath-preview:all', 600, 3_600_000]] as const) {
     const hit = await rateLimit(key, { max, windowMs })
     if (!hit.ok) return deny('Too many previews from here. Please wait a few minutes and try again.', 429, { 'Retry-After': String(Math.max(1, Math.ceil(hit.retryAfterMs / 1000))) })

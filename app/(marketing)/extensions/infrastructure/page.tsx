@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { pageMetadata } from '@/lib/seo/site'
 import { extensionById } from '@/lib/seo/extensions'
-import { ExtensionDetailPage } from '@/components/marketing/extensions-page'
+import { ExtensionDetailPage } from '@/components/marketing/extension-detail-page'
 
 const extension = extensionById('infrastructure')
 

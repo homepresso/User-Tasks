@@ -1,5 +1,6 @@
 'use client'
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -106,8 +107,7 @@ export function GatewaysSettings() {
 
       {(data?.gateways ?? []).length === 0 ? (
         <Card className="p-4">
-          <p className="text-sm font-medium">No gateways yet</p>
-          <p className="text-xs mt-1 text-fg-muted">{canEdit ? 'Add one, then install it on a server that can reach your systems.' : 'Ask a workspace admin to add one.'}</p>
+          <EmptyState size="sm" title="No gateways yet" description={canEdit ? 'Add one, then install it on a server that can reach your systems.' : 'Ask a workspace admin to add one.'} />
         </Card>
       ) : (
         <div className="space-y-3">

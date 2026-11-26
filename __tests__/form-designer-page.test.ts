@@ -82,9 +82,13 @@ describe('one designer, two frames', () => {
   it('the workflow builder keeps the modal (a step form, a start form)', () => {
     for (const file of ['components/forms/node-form-section.tsx', 'components/forms/start-form-button.tsx']) {
       const text = read(file)
-      expect(text, file).toMatch(/import \{ FormDesignerDialog[^}]*\} from '\.\/designer\/form-designer-dialog'/)
+      // The modal, loaded on first open (perf: keeps the designer out of the builder's bundle).
+      expect(text, file).toMatch(/import \{ LazyFormDesignerDialog as FormDesignerDialog \} from '\.\/designer\/lazy-form-designer-dialog'/)
       expect(text, file).toContain('<FormDesignerDialog')
     }
+    const lazy = read('components/forms/designer/lazy-form-designer-dialog.tsx')
+    expect(lazy).toMatch(/dynamic\(\(\) => import\('\.\/form-designer-dialog'\)\.then\(\(m\) => m\.FormDesignerDialog\), \{ ssr: false \}\)/)
+    expect(lazy).toContain('if (!props.open) return null')
   })
 
   it('the page frame: toolbar (back, name, version, pills, undo / redo, Design / Preview, Open form, Save, ⋯), palette + outline, status bar, extra tabs', () => {

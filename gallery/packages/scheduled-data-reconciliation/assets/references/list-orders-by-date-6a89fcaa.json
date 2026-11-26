@@ -45,7 +45,7 @@
                   },
                   {
                     "type": "string",
-                    "example": "NZD",
+                    "example": "USD",
                     "name": "currency"
                   },
                   {
@@ -74,21 +74,21 @@
               "id": "SO-71001",
               "customer": "Harbour Logistics Ltd",
               "total": 1250,
-              "currency": "NZD",
+              "currency": "USD",
               "status": "shipped"
             },
             {
               "id": "SO-71004",
               "customer": "Tidewater Dental",
               "total": 615.2,
-              "currency": "NZD",
+              "currency": "USD",
               "status": "shipped"
             },
             {
               "id": "SO-71002",
               "customer": "Kowhai Cafe Group",
               "total": 389.5,
-              "currency": "NZD",
+              "currency": "USD",
               "status": "shipped"
             }
           ],

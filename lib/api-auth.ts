@@ -222,11 +222,15 @@ function touchLastUsed(supabase: SupabaseClient, table: 'api_keys' | 'oauth_toke
 async function validateRawApiKey(supabase: SupabaseClient, token: string): Promise<AuthResult> {
   const prefix = token.slice(0, 8)
 
-  const { data: keys } = await supabase
+  const { data: keys, error: lookupError } = await supabase
     .from('api_keys')
     .select('id, tenant_id, key_hash, key_type, user_id, permissions, scopes, expires_at, created_by')
     .eq('key_prefix', prefix)
     .eq('is_revoked', false)
+
+  // Database unreachable: say so (503) instead of "Invalid API key", which
+  // makes clients treat a working key as revoked during an outage.
+  if (lookupError) return credentialStoreUnavailable(lookupError)
 
   if (!keys?.length) {
     await auditUnmatchedPrefix(supabase, token, prefix)
@@ -423,6 +427,14 @@ async function validateOAuthAccessToken(supabase: SupabaseClient, token: string)
 /** Success response */
 export function ok(data: any, status = 200) {
   return NextResponse.json({ success: true, data }, { status })
+}
+
+/** The credential lookup itself failed (database down): 503 with Retry-After, never a 401. */
+function credentialStoreUnavailable(error: { message?: string }): AuthResult {
+  console.error(`[api-auth] credential lookup failed: ${error.message ?? 'unknown error'}`)
+  const response = err('Service temporarily unavailable', 503)
+  response.headers.set('Retry-After', '5')
+  return { success: false, response }
 }
 
 /** Error response */

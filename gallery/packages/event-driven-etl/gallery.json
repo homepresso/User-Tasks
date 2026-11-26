@@ -17,8 +17,13 @@
     "currency",
     "headless"
   ],
-  "version": "1.0.0",
+  "version": "1.0.1",
   "changelog": [
+    {
+      "version": "1.0.1",
+      "date": "2026-11-25",
+      "notes": "Sample data, defaults and labels in USD (were NZD)."
+    },
     {
       "version": "1.0.0",
       "date": "2026-10-26",
@@ -30,7 +35,7 @@
   ],
   "setup": [
     "Data warehouse integration: set the base URL and API token. Ingest order posts the JSON record to /ingest/orders.",
-    "Update the Currency rates rows (or keep them current with another workflow); the base currency is NZD in the samples.",
+    "Update the Currency rates rows (or keep them current with another workflow); the base currency is USD in the samples.",
     "Adjust the Warehouse record step to your warehouse column names.",
     "Load data by inserting rows into Orders staging with load_status pending."
   ],

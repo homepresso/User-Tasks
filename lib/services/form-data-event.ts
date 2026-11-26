@@ -221,7 +221,7 @@ export async function getDataEventStatus(ctx: ServiceContext, formId: string): P
 }
 
 /**
- * Write directly: the Before submit rule (and the variables carrying parent
+ * Write directly: the After submit (server_steps) rule (and the variables carrying parent
  * ids) a plan compiles to, with its problems — to add to the form's
  * layout.rules / layout.variables with a draft save (nothing is stored here;
  * the form's save checks data.manage_rows / integrations.test).

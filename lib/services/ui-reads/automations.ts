@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isoDateTime } from '@/lib/zod-datetime'
 import type { RunTask } from '@/lib/run-tasks'
 import { getDb } from '../context'
 import { normalizeAgentSettings } from '@/lib/assistants/config'
@@ -41,8 +42,8 @@ const QUEUE_LIST_ARGS = z.object({
   startedBy: uuidList,
   assigneeIds: uuidList,
   dateField: z.enum(['created', 'started', 'updated']).optional(),
-  dateFrom: z.string().datetime({ offset: true }).optional(),
-  dateTo: z.string().datetime({ offset: true }).optional(),
+  dateFrom: isoDateTime({ offset: true }).optional(),
+  dateTo: isoDateTime({ offset: true }).optional(),
   sla: z.array(z.enum(['on_track', 'warning', 'breached'])).max(3).optional(),
   triggers: z.array(z.enum(TRIGGER_GROUPS.map((g) => g.value) as [QueueTriggerGroup, ...QueueTriggerGroup[]])).max(10).optional(),
   versionIds: uuidList,

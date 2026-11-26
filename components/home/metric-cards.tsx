@@ -15,7 +15,7 @@ import { HOME_QUERY_KEY } from "./shared"
 import { useHome } from "./home-context"
 import { useActivityStats } from "./activity/activity-section"
 import { ChartDataTable, InfoTip, type ChartTable } from "./activity/chart-card"
-import { APPROVAL_RULE, periodWords, useDecisionSegments } from "./activity/charts"
+import { APPROVAL_RULE, periodWords, useDecisionSegments } from "./activity/decisions"
 import { SegmentedBar, useSlots, type Segment } from "./activity/segmented-bar"
 import { nextStableHeight } from "./activity/measure"
 

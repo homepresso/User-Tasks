@@ -95,6 +95,8 @@ function normalizeDecisionTableRuleForScaffold(rule: any) {
         inputKey: String(condition?.inputKey ?? condition?.input_key ?? '').trim(),
         operator: String(condition?.operator ?? 'equals').trim() || 'equals',
         value: condition?.value ?? '',
+        ...(typeof (condition?.valueInputKey ?? condition?.value_input_key) === 'string' && String(condition?.valueInputKey ?? condition?.value_input_key).trim()
+          ? { valueInputKey: String(condition?.valueInputKey ?? condition?.value_input_key).trim() } : {}),
       }))
     : isObjectLike(rule?.conditions)
       ? Object.entries(rule.conditions).map(([inputKey, rawValue]) => {

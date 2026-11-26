@@ -28,6 +28,7 @@ import {
 } from '@/lib/grid/grouping'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
 import { dbError } from './_shared'
+import { GRID_LIMITS, gridTimeoutError, isGridTimeout, withGridGuard } from './data-table-guard'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- jsonb rows */
 
@@ -47,10 +48,23 @@ export function isMissingObject(error: any): boolean {
 
 const MISSING_RPC = { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } }
 
-/** Call an RPC; a client without RPCs (or a database without the function) answers PGRST202. */
-async function callRpc(db: any, fn: string, args: Record<string, unknown>): Promise<{ data: any; error: any }> {
+const GRID_RPCS = new Set(['data_table_rows_page', 'data_table_row_groups'])
+
+/**
+ * Call an RPC; a client without RPCs (or a database without the function) answers PGRST202.
+ * The expensive grid RPCs run under the concurrency / time caps (lib/services/data-table-guard):
+ * `workspace` keys the per-workspace cap (else the call's tenant, else the table).
+ */
+async function callRpc(db: any, fn: string, args: Record<string, unknown>, workspace?: string | null): Promise<{ data: any; error: any }> {
   if (typeof db?.rpc !== 'function') return MISSING_RPC
-  return db.rpc(fn, args)
+  if (!GRID_RPCS.has(fn)) return db.rpc(fn, args)
+  return withGridGuard(workspace || (args.p_tenant_id as string | null) || `table:${String(args.p_table_id)}`, async () => {
+    let res = await db.rpc(fn, { ...args, p_timeout_ms: GRID_LIMITS.timeoutMs })
+    // Before migration 20270131140000 the function has no p_timeout_ms.
+    if (res.error && isMissingObject(res.error)) res = await db.rpc(fn, args)
+    if (res.error && isGridTimeout(res.error)) throw gridTimeoutError()
+    return res
+  })
 }
 
 function scoped(query: any, tenantId: string | null | undefined) {
@@ -77,6 +91,8 @@ export interface RowGroupsQuery {
   sum?: string[]
   /** Per level: the order of the groups (default ascending; blank first). */
   direction?: Array<'asc' | 'desc'>
+  /** The caller's workspace: keys the per-workspace cap on expensive grid queries (lib/services/data-table-guard). */
+  workspace?: string | null
 }
 
 export interface RowGroupsResult {
@@ -105,7 +121,7 @@ export async function computeRowGroups(db: any, tableId: string, query: RowGroup
     p_table_id: tableId, p_group_by: groupBy, p_search: query.search?.trim() || null, p_filters: filters, p_sum: sum,
     p_tenant_id: tenantId ?? null, p_limit: GROUPING_LIMITS.groups,
     ...(root ? { p_root_field: root.field, p_root_source: root.source } : {}),
-  })
+  }, query.workspace)
   if (error && !isMissingObject(error)) throw dbError(error)
   if (!error) {
     flat = ((data ?? []) as any[]).map((r) => ({ g1: r.g1 ?? null, g2: r.g2 ?? null, row_count: Number(r.row_count) || 0, sums: r.sums ?? {} }))
@@ -130,10 +146,23 @@ export interface FilteredPageQuery {
   dir?: 'asc' | 'desc'
   limit: number
   offset: number
+  /** The caller's workspace: keys the per-workspace cap on expensive grid queries (lib/services/data-table-guard). */
+  workspace?: string | null
 }
 
 /** One page of rows passing the filters, with the exact total (or over the newest GROUP_SCAN rows until the migration is applied). */
 export async function queryFilteredRows(db: any, tableId: string, query: FilteredPageQuery, tenantId?: string | null): Promise<{ rows: any[]; total: number; truncated: boolean }> {
+  const exact = await queryFilteredRowsExact(db, tableId, query, tenantId)
+  if (exact) return exact
+  const sort = query.sort && (query.sort.startsWith('_') || isSafeColumnKey(query.sort)) ? query.sort : '_updated_at'
+  const { filters, root } = splitRootFilter(query.filters)
+  const scan = await scanRows(db, tableId, tenantId)
+  const rows = sortRowsLikeDatabase((root ? filterRoots(scan.rows, root) : scan.rows).filter((row) => rowMatchesSearch(row, query.search) && rowMatchesFilters(row, filters)), sort, query.dir ?? 'desc')
+  return { rows: rows.slice(query.offset, query.offset + query.limit), total: rows.length, truncated: scan.truncated }
+}
+
+/** The page through data_table_rows_page (exact), or null when the function is not there (migration not applied). */
+export async function queryFilteredRowsExact(db: any, tableId: string, query: FilteredPageQuery, tenantId?: string | null): Promise<{ rows: any[]; total: number; truncated: false } | null> {
   const sort = query.sort && (query.sort.startsWith('_') || isSafeColumnKey(query.sort)) ? query.sort : '_updated_at'
   const dir = query.dir ?? 'desc'
   const { filters, root } = splitRootFilter(query.filters)
@@ -142,22 +171,20 @@ export async function queryFilteredRows(db: any, tableId: string, query: Filtere
     p_limit: query.limit, p_offset: query.offset, p_tenant_id: tenantId ?? null,
     ...(root ? { p_root_field: root.field, p_root_source: root.source } : {}),
   }
-  const { data, error } = await callRpc(db, 'data_table_rows_page', args)
+  const { data, error } = await callRpc(db, 'data_table_rows_page', args, query.workspace)
   if (error && !isMissingObject(error)) throw dbError(error)
   if (!error) {
     const list = ((data ?? []) as any[]).map((r) => (typeof r === 'string' ? JSON.parse(r) : r))
     let total = list.length ? Number(list[0]._total) || 0 : 0
     if (!list.length && query.offset > 0) {
-      const probe = await callRpc(db, 'data_table_rows_page', { ...args, p_limit: 1, p_offset: 0 })
+      const probe = await callRpc(db, 'data_table_rows_page', { ...args, p_limit: 1, p_offset: 0 }, query.workspace)
       if (probe.error) throw dbError(probe.error)
       const first = ((probe.data ?? []) as any[])[0]
       total = first ? Number((typeof first === 'string' ? JSON.parse(first) : first)._total) || 0 : 0
     }
     return { rows: list.map(({ _total, ...row }) => row), total, truncated: false }
   }
-  const scan = await scanRows(db, tableId, tenantId)
-  const rows = sortRowsLikeDatabase((root ? filterRoots(scan.rows, root) : scan.rows).filter((row) => rowMatchesSearch(row, query.search) && rowMatchesFilters(row, filters)), sort, dir)
-  return { rows: rows.slice(query.offset, query.offset + query.limit), total: rows.length, truncated: scan.truncated }
+  return null
 }
 
 /* ── Child relations ─────────────────────────────────────────────────── */

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { submittableFormKey } from '@/lib/forms/form-query-keys'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -182,6 +183,8 @@ export function FormDesignerPage({ formId, returnTo, step = null }: { formId: st
   const refreshLists = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: ['forms-library'] }),
     queryClient.invalidateQueries({ queryKey: AVAILABLE_FORMS_QUERY_KEY }),
+    // The form's own pages (/fill, /f) cache what they drew: after a publish they must draw the new version.
+    ...(form ? [queryClient.invalidateQueries({ queryKey: submittableFormKey(form.id) })] : []),
   ])
   const refresh = async () => { await Promise.all([refetch(), refreshLists()]) }
 
@@ -226,6 +229,7 @@ export function FormDesignerPage({ formId, returnTo, step = null }: { formId: st
         if (!result.ok) return result.error
         if (result.data.mode === 'live') {
           jobs.notify({ tone: 'success', title: `Saved version ${result.data.form.version}` })
+          void queryClient.invalidateQueries({ queryKey: submittableFormKey(form.id) })
           return null
         }
         draftStamp.current = result.data.draft.updated_at

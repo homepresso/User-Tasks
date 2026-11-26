@@ -1322,7 +1322,7 @@ dig +short test.tasks.yourcompany.com
 UserTasks itself speaks plain http on port 3000. Put a **reverse proxy** in front of it: a small web server that holds the certificate, answers on \`https://\` (port 443) and passes each request on to the app. Whichever you use, it must:
 
 - pass the original \`Host\` header (the app reads the address, and the workspace, from it, and sign-in forms check it);
-- send \`X-Forwarded-Proto\` and \`X-Forwarded-For\`;
+- send \`X-Forwarded-Proto\` and \`X-Forwarded-For\` (appending, as the examples do). The app takes the client address from the right end of \`X-Forwarded-For\`, one hop per proxy: with more than one proxy in front (a CDN and nginx, say) set \`TRUSTED_PROXY_HOPS\` to their number, or rate limits see the inner proxy's address for everyone;
 - not buffer streamed responses (live updates and run progress are Server-Sent Events) and allow long reads;
 - accept uploads of at least 50 MB, the app's default limit (\`FORM_UPLOAD_MAX_BODY_MB\`; see [file upload limits](/docs/self-hosting#file-uploads-and-request-size-limits)).
 
@@ -1861,6 +1861,22 @@ Back up three things. The database matters most.
 3. **Keys and settings.** Your \`.env\`, \`.env.local\` or Kubernetes Secret.
    - Keep a safe copy of \`ENCRYPTION_KEY\` (or your KMS key) in particular: without it, the connector passwords and tokens stored in the database can't be read.
    - If the Helm chart created the Secret for you, back up its generated \`ENCRYPTION_KEY\` and \`CRON_SECRET\`.
+
+### Restore
+
+With the one-line installer, \`usertasks restore <backup folder | latest>\` does all of this (and takes a fresh backup first). By hand:
+
+1. Stop the app and the worker so nothing writes meanwhile (\`docker compose stop app worker\`, or scale the Deployments to 0).
+2. Restore the database into an empty database of the same name. For the standalone profile:
+
+   \`\`\`bash
+   docker compose exec -T postgres psql -U usertasks -d postgres -c 'DROP DATABASE IF EXISTS usertasks WITH (FORCE)' -c 'CREATE DATABASE usertasks'
+   docker compose exec -T postgres pg_restore -U usertasks -d usertasks --no-owner --exit-on-error < usertasks-2026-01-31.dump
+   \`\`\`
+
+   Your own PostgreSQL: \`pg_restore --clean --if-exists --no-owner -d "$MIGRATION_DATABASE_URL" usertasks.dump\`.
+3. Put the files back where they came from (the MinIO volume, your bucket, or \`STORAGE_LOCAL_ROOT\`).
+4. Use the same \`ENCRYPTION_KEY\` (or KMS key) as when the backup was taken, then start the app again. Its migrations bring an older backup up to the running version; a backup from a newer version needs that version.
 
 Provider switches make their own backups before they change anything: see [Switching providers](/docs/self-hosting/switching-providers). To keep workflows, forms and settings in Git as well, use [Config as code](/docs/config-as-code) (\`usertasks config export <dir>\`).
 `,

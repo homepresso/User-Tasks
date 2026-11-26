@@ -11,6 +11,7 @@ import { InlineNotice } from '@/components/ui/inline-notice'
 import { cn } from '@/lib/utils'
 import { toUrlSlug } from '@/lib/utils/slug'
 import { setupWizardOrganisation, setupWizardStep } from '@/app/actions/setup-wizard'
+import { configureProcessingSettings } from '@/app/actions/processing'
 import type { CheckStatus } from '@/lib/admin/doctor'
 import type { WizardPageData } from '@/lib/setup/wizard-data'
 import { AreaActions } from '@/components/settings/area-actions'
@@ -83,6 +84,9 @@ export function ServicesStep({ data }: { data: WizardPageData }) {
   if (!s) return <StepFooter step="services" />
   const counts = { ok: 0, warn: 0, fail: 0, skip: 0 } as Record<CheckStatus, number>
   for (const a of s.areas) counts[a.health]++
+  // Without the add-on, Change… leads to its card: the "Moving off Supabase" section when a service runs on Supabase, else the card on its own.
+  const onSupabase = s.areas.some((a) => a.onSupabase)
+  const upsellAnchor = onSupabase ? '#move-off-supabase' : '#infrastructure-addon'
   const summary = counts.fail ? `${counts.fail} service${counts.fail === 1 ? ' is' : 's are'} not working.` : counts.warn ? `Everything works; ${counts.warn} could use a look.` : 'Everything is working.'
   return (
     <>
@@ -93,8 +97,10 @@ export function ServicesStep({ data }: { data: WizardPageData }) {
       </div>
       {!s.gate.enabled && <InlineNotice tone="warning" message={s.gate.reason ?? 'Changes from this page are turned off on this server.'} />}
       <p className="text-sm text-fg-muted">
-        Every service below is checked. <strong>Settings</strong> on Email and Sign-in edits them here (free); <strong>Change…</strong> moves a
-        service to another provider with the Infrastructure add-on (a connection test and a review before anything is saved).
+        Every service below is checked. <strong>Settings</strong> on Email and Sign-in edits them here (free);{' '}
+        {s.addon.cloud && s.addon.state !== 'ready'
+          ? <>the other services are shown read-only (the Infrastructure add-on is for self-hosted installs).</>
+          : <><strong>Change…</strong> moves a service to another provider with the Infrastructure add-on (a connection test and a review before anything is saved).</>}{' '}
         Passwords and keys you type are stored encrypted and never shown again.
       </p>
       <ul className="grid gap-2">
@@ -106,11 +112,11 @@ export function ServicesStep({ data }: { data: WizardPageData }) {
               {a.onSupabase && <span className="rounded-full bg-subtle px-2 py-0.5 text-xs text-fg-muted">Supabase</span>}
               <span className="ml-auto flex items-center gap-2">
                 <HealthBadge status={a.health} />
-                <AreaActions area={a.area} label={a.label} provider={a.provider} actions={a.actions} addon={s.addon} upsellAnchor="#move-off-supabase" />
+                <AreaActions area={a.area} label={a.label} provider={a.provider} actions={a.actions} addon={s.addon} upsellAnchor={upsellAnchor} />
               </span>
             </div>
             <p className="mt-0.5 text-xs text-fg-muted">{a.what}{a.source === 'env' ? ' Set in the server environment.' : ''}</p>
-            <AreaActionNotes area={a.area} actions={a.actions} />
+            <AreaActionNotes area={a.area} actions={a.actions} changeHidden={s.addon.cloud && s.addon.state !== 'ready'} />
             {a.checks.some((c) => c.status === 'fail' || c.status === 'warn') && (
               <ul className="mt-2 space-y-0.5 text-xs">
                 {a.checks.filter((c) => c.status === 'fail' || c.status === 'warn').map((c) => (
@@ -127,7 +133,10 @@ export function ServicesStep({ data }: { data: WizardPageData }) {
           </li>
         ))}
       </ul>
-      {s.areas.some((a) => a.onSupabase) && <SupabaseMoves addon={s.addon} />}
+      {onSupabase
+        ? <SupabaseMoves addon={s.addon} />
+        : s.addon.state !== 'ready' && !s.addon.cloud && <AddonUpsellCard kind="infrastructure" id="infrastructure-addon" state={s.addon.state === 'unlicensed' ? 'unlicensed' : 'missing'} reason={s.addon.reason} compact />}
+      {s.processing && <ProcessingSection processing={s.processing} />}
       <StepFooter step="services" />
     </>
   )
@@ -151,6 +160,55 @@ function SupabaseMoves({ addon }: { addon: NonNullable<WizardPageData['services'
       {addon.state === 'ready' && addon.href
         ? <Link href={`${addon.href}?section=move-off-supabase`} className="inline-flex items-center gap-1 text-sm underline"><ArrowRight className="size-3.5" aria-hidden /> Plan the move off Supabase</Link>
         : <AddonUpsellCard kind="infrastructure" state={addon.state === 'unlicensed' ? 'unlicensed' : 'missing'} reason={addon.reason} compact />}
+    </section>
+  )
+}
+
+/**
+ * "Processing (optional)": where workflow, agent and media work runs. With
+ * the Processing add-on licensed: the mode switch (separate workers once one
+ * reports) and how to start a worker; without it, the add-on card. The same
+ * switch is on Settings → Infrastructure → Processing.
+ */
+function ProcessingSection({ processing }: { processing: NonNullable<NonNullable<WizardPageData['services']>['processing']> }) {
+  const router = useRouter()
+  const [pending, start] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const { addon, settings } = processing
+  const change = (mode: 'web' | 'workers') => start(async () => {
+    setError(null)
+    const result = await configureProcessingSettings({ mode })
+    if (!result.ok) setError(result.error)
+    else router.refresh()
+  })
+  const workers = settings?.mode === 'workers'
+  return (
+    <section aria-labelledby="processing-title" id="processing" className="space-y-3 rounded-lg border border-border bg-subtle p-4 scroll-mt-24" data-wizard-processing={addon.state}>
+      <h3 id="processing-title" className="text-sm font-semibold text-fg">Processing (optional)</h3>
+      <p className="text-xs text-fg-muted">
+        The web app runs workflow, agent and media work itself, which suits most installs. Separate processing workers take that work
+        off the web app and scale on their own — part of the Processing add-on.
+      </p>
+      {addon.state === 'ready' && settings ? (
+        <div className="space-y-2 text-sm">
+          {addon.reason && <InlineNotice tone="warning" message={addon.reason} />}
+          <p data-testid="processing-mode">
+            Now: <strong>{workers ? 'separate workers' : 'in the web app'}</strong> · {processing.workersOnline} worker{processing.workersOnline === 1 ? '' : 's'} online
+          </p>
+          {!workers && processing.workersOnline === 0 && (
+            <p className="text-xs text-fg-muted">Start a worker first: <code>node worker.cjs --processor</code> (Docker Compose: the processing profile; Kubernetes: the processing chart). It appears here within a few seconds.</p>
+          )}
+          {settings.locked.mode
+            ? <p className="text-xs text-fg-muted">Set by PROCESSING_MODE in the server environment.</p>
+            : workers
+              ? <Button size="sm" variant="secondary" loading={pending} onClick={() => change('web')}>Process in the web app</Button>
+              : <Button size="sm" loading={pending} disabled={processing.workersOnline === 0} onClick={() => change('workers')}>Use separate workers</Button>}
+          {error && <InlineNotice tone="danger" message={error} />}
+          <Link href="/settings/infrastructure" className="inline-flex items-center gap-1 text-xs underline"><ArrowRight className="size-3" aria-hidden /> Workers, queue health and test runs: Settings → Infrastructure → Processing</Link>
+        </div>
+      ) : (
+        <AddonUpsellCard kind="processing" state={addon.state === 'unlicensed' ? 'unlicensed' : 'missing'} reason={addon.reason} compact />
+      )}
     </section>
   )
 }

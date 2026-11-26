@@ -38,7 +38,7 @@ export const INFRASTRUCTURE_ADDON_NAME = 'Infrastructure add-on'
 /** Owner-approved list price (USD, per deployment, per year; decided 2026-11-23). */
 export const INFRASTRUCTURE_PRICE = '$9,000 USD per deployment per year'
 
-/** The separate processing add-on (worker tier, remote runners): a different paid extension. */
+/** The separate processing add-on (separate processing workers, self-hosted): a different paid extension. */
 export const PROCESSING_EXTENSION_ID = 'processing'
 export const PROCESSING_FEATURE = 'processing'
 export const PROCESSING_SKU = 'processing-tier'
@@ -51,7 +51,7 @@ export const ADDON_LINKS = {
   extensions: '/settings/extensions',
   licence: '/settings/licence',
   infrastructureDocs: '/docs/self-hosting/infrastructure-add-on',
-  processingDocs: '/docs/self-hosting/infrastructure#processing-tier',
+  processingDocs: '/docs/self-hosting/processing-add-on',
   contact: '/contact',
 } as const
 

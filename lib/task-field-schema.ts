@@ -767,12 +767,35 @@ function toBoolean(value: unknown): boolean | null {
   return null
 }
 
+/**
+ * Decimal number text: digits with an optional "." fraction and exponent;
+ * commas only as thousands separators in groups of three ("1,000.5").
+ * Ambiguous or non-decimal text is refused rather than guessed: "1,5" (a
+ * decimal comma, or 15?), "0x10" (hex), "Infinity", "1_000".
+ */
+const DECIMAL_RE = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/
+const THOUSANDS_RE = /^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/
+
 function toNumber(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
-  const s = String(value ?? '').trim().replace(/,/g, '')
+  let s = String(value ?? '').trim()
   if (!s) return null
+  if (s.includes(',')) {
+    if (!THOUSANDS_RE.test(s)) return null
+    s = s.replace(/,/g, '')
+  }
+  if (!DECIMAL_RE.test(s)) return null
   const n = Number(s)
   return Number.isFinite(n) ? n : null
+}
+
+/** Choice values compare after Unicode NFC normalisation ("A\u0308" is "Ä"). */
+const nfc = (v: string) => v.normalize('NFC')
+/** The option a submitted value names (NFC-equal), or undefined. */
+function matchOption(options: readonly string[], value: string): string | undefined {
+  if (options.includes(value)) return value
+  const n = nfc(value)
+  return options.find((o) => nfc(o) === n)
 }
 
 /** Multi-select value → array of strings (array, JSON array text or comma list). */
@@ -793,8 +816,18 @@ function toStringArray(value: unknown): string[] {
   return [String(value)]
 }
 
+/** A date (YYYY-MM-DD) or ISO date-time whose calendar day exists. */
+export function isValidDateValue(s: string): boolean {
+  return validDate(s.trim())
+}
+
 function validDate(s: string): boolean {
-  return DATE_RE.test(s) && !Number.isNaN(new Date(s).getTime())
+  if (!DATE_RE.test(s) || Number.isNaN(new Date(s).getTime())) return false
+  // The calendar day must exist: Date rolls 2027-02-30 over to 2 March instead of refusing it.
+  const [y, m, d] = s.slice(0, 10).split('-').map(Number)
+  const day = new Date(0)
+  day.setUTCFullYear(y, m - 1, d)
+  return day.getUTCFullYear() === y && day.getUTCMonth() === m - 1 && day.getUTCDate() === d
 }
 
 function dateKey(s: string): number {
@@ -1167,7 +1200,7 @@ function valueError(field: TaskFieldDef, value: unknown, looseOptions = false): 
     const allowed = field.options ?? []
     // Options from a binding not resolved here (the browser before they load): the server resolves them
     // for the submission and judges against those (lib/services/form-dynamic-values.ts), never this list.
-    const bad = hasUnresolvedOptions(field) || looseOptions ? [] : list.filter((v) => !allowed.includes(v))
+    const bad = hasUnresolvedOptions(field) || looseOptions ? [] : list.filter((v) => matchOption(allowed, v) === undefined)
     if (bad.length) return `${label} must be from: ${allowed.join(', ')}`
     if (field.min !== undefined && list.length < field.min) return `${label}: choose at least ${field.min}`
     if (field.max !== undefined && list.length > field.max) return `${label}: choose at most ${field.max}`
@@ -1193,7 +1226,7 @@ function valueError(field: TaskFieldDef, value: unknown, looseOptions = false): 
     }
     case 'choice': {
       const options = field.options ?? []
-      if (!hasUnresolvedOptions(field) && !looseOptions && !options.includes(s)) return `${label} must be one of: ${options.join(', ')}`
+      if (!hasUnresolvedOptions(field) && !looseOptions && matchOption(options, s) === undefined) return `${label} must be one of: ${options.join(', ')}`
       return null
     }
     case 'user':
@@ -1254,7 +1287,7 @@ function coerceOne(field: TaskFieldDef, value: unknown): TaskFieldValue {
   if (field.type === 'list') return coerceListRows(field.list, value) as unknown as TaskFieldValue
   if (field.type === 'repeating_section') return coerceRepeatingItems(field.repeating_section, value) as unknown as TaskFieldValue
   if (field.type === 'boolean') return toBoolean(value) ?? false
-  if (field.type === 'multi_choice') return toStringArray(value)
+  if (field.type === 'multi_choice') { const options = field.options ?? []; return toStringArray(value).map((v) => matchOption(options, v) ?? v) }
   if (field.type === 'lookup' && field.lookup?.multiple) return lookupValues(value, true)
   if (field.type === 'attachments') return normalizeAttachmentValue(value)
   if (field.type === 'image') return normalizeImageValue(value)
@@ -1265,13 +1298,16 @@ function coerceOne(field: TaskFieldDef, value: unknown): TaskFieldValue {
   if (isBlank(value)) return null
   if (field.type === 'number' || field.type === 'currency') return toNumber(value)
   if (field.type === 'datetime') {
-    const d = new Date(String(value).trim())
+    // No timezone in the text: UTC (workspaces have no timezone setting), never the server's local zone.
+    const raw = String(value).trim()
+    const d = new Date(/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/.test(raw) ? `${raw.replace(' ', 'T')}Z` : raw)
     return Number.isNaN(d.getTime()) ? String(value) : d.toISOString()
   }
   if (field.type === 'date') {
     const s = String(value).trim()
     return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : s
   }
+  if (field.type === 'choice' && typeof value === 'string') return matchOption(field.options ?? [], value.trim()) ?? value
   return typeof value === 'string' ? value : String(value)
 }
 

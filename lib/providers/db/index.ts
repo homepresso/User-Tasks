@@ -36,6 +36,8 @@ export interface ServiceDbOptions {
    * engine, SLA scheduler, inbound webhooks, profile/last-seen updates).
    */
   anonFallback?: boolean
+  /** Extra request headers (e.g. ACTOR_HEADER: the end user a service-role write acts for). */
+  headers?: Record<string, string>
 }
 
 /**
@@ -113,17 +115,36 @@ export function hasServiceDb(): boolean {
  * created. Use requireServiceDb() for a descriptive error instead.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+/**
+ * Request header naming the end user a service-role write acts for. The
+ * database trusts it only from the service role (public.request_actor_id(),
+ * migration 20270130140000): task triggers record that user as the actor
+ * (lifecycle history, "don't notify yourself") as they did when the write ran
+ * with the user's own JWT.
+ */
+export const ACTOR_HEADER = 'x-usertasks-actor'
+
 export function getServiceDb<DB = any>(options: ServiceDbOptions = {}): ServiceDb<DB> {
   const key = supabaseServiceRoleKey() || (options.anonFallback ? supabaseAnonKey() : undefined)
   if (activeDbProvider() === 'postgres') {
     // Same anon fallback as before: without a service key those callers ran as anon.
     const kind = !supabaseServiceRoleKey() && key ? 'anon' : 'service'
     return createClient<DB>(supabaseUrl() || PLACEHOLDER_URL, key || PLACEHOLDER_KEY, {
-      global: { fetch: lazyPostgresFetch(kind) },
+      auth: SERVICE_AUTH,
+      global: { fetch: lazyPostgresFetch(kind), ...(options.headers ? { headers: options.headers } : {}) },
     }) as unknown as ServiceDb<DB>
   }
-  return createClient<DB>(supabaseUrl() as string, key as string) as unknown as ServiceDb<DB>
+  if (options.headers) return createClient<DB>(supabaseUrl() as string, key as string, { auth: SERVICE_AUTH, global: { headers: options.headers } }) as unknown as ServiceDb<DB>
+  return createClient<DB>(supabaseUrl() as string, key as string, { auth: SERVICE_AUTH }) as unknown as ServiceDb<DB>
 }
+
+/**
+ * A service client keeps no session. supabase-js's defaults (persistSession,
+ * autoRefreshToken) start a 30-second refresh interval per client on the
+ * server that is never cleared, so every getServiceDb() call (one or more
+ * per request) leaked a client and its timer for the life of the process.
+ */
+const SERVICE_AUTH = { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } as const
 
 /** Service-role client that throws `message` when the URL or key is missing (no anon fallback). */
 export function requireServiceDb(

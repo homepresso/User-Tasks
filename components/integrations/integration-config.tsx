@@ -475,7 +475,7 @@ export function IntegrationConfig({ integration }: IntegrationConfigProps) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete Integration"
+        title="Delete integration"
         description="This will remove the integration, all its references, and any generated endpoints."
         confirmLabel="Delete"
         destructive

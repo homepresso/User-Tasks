@@ -38,7 +38,7 @@ for installs that don't use it: the Supabase providers stay the defaults.
 
 ## Notes
 
-- Backups (`BACKUP_DIR`, default `./backups/switches`) hold config snapshots
+- Backups (`BACKUP_DIR`, default `~/.usertasks/backups/switches`) hold config snapshots
   and, for auth switches, password hashes: they are created private (0700)
   and belong with your other database backups.
 - The Docker image's `admin.cjs` now also loads the optional storage / email

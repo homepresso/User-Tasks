@@ -142,7 +142,7 @@ export function ChartSkeleton() {
 export function PageSkeleton({ variant }: { variant: 'list' | 'grid' | 'detail' | 'dashboard' | 'settings' }) {
   return (
     <Delayed>
-    <div className="space-y-4 page-transition" aria-busy="true" aria-label="Loading">
+    <div className="space-y-4 page-transition" role="status" aria-busy="true" aria-label="Loading">
       {variant === 'list' && (
         <>
           <HeaderSkeleton />

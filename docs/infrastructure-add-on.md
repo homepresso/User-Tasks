@@ -4,6 +4,11 @@ UserTasks runs on a **standard stack** out of the box. Moving services off that
 stack, one at a time, is the **Infrastructure add-on**: a paid extension,
 licensed per deployment at **$9,000 USD per deployment per year**.
 
+The add-on is for **self-hosted** installs only (the Enterprise edition). It
+is not offered on UserTasks Cloud: there Settings → Infrastructure is a
+read-only status page and `usertasks-admin switch` / `rollback` are refused
+(`DEPLOYMENT_MODE=cloud`).
+
 ## What is free
 
 The open-source edition **runs any configuration**. Every runtime provider is
@@ -113,8 +118,8 @@ already uses needs no licence.
 The add-on's page is **Infrastructure changes** (`/x/infrastructure`); the
 **Change…** buttons in Settings → Infrastructure open it.
 
-The separate [Processing add-on](/docs/self-hosting/infrastructure#processing-tier), for
-separate processing workers and remote runners, is a different paid extension
+The separate [Processing add-on](/docs/self-hosting/processing-add-on), for
+separate processing workers (including worker machines elsewhere on your own network), is a different paid extension
 at $2,500 USD per deployment per year.
 
 ## A note on open source

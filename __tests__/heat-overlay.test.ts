@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs'
 import path from 'path'
 import { describe, expect, it } from 'vitest'
-import { buildAggregateFlowStats } from '@/lib/report-flow-stats'
+import { buildAggregateFlowStats, createFlowStatsAccumulator } from '@/lib/report-flow-stats'
 import { computeHeatOverlay, edgeHeatColor, formatErrorRate, HEAT_EDGE_MAX_EXTRA, HEAT_EDGE_MIN_WIDTH, heatColor, heatSummary } from '@/lib/workflow-heat-overlay'
 
 const workflow = {
@@ -25,6 +25,15 @@ describe('aggregate flow stats per step', () => {
     run({ trg: { status: 'success', duration_ms: 3 }, get: { status: 'success', duration_ms: 400 }, ok: { status: 'success', duration_ms: 1 } }),
   ]
   const stats = buildAggregateFlowStats(workflow, runs)
+
+  it('aggregates page by page exactly as over the whole run set (the route keeps one page in memory)', () => {
+    const acc = createFlowStatsAccumulator(workflow)
+    acc.add(runs.slice(0, 1))
+    acc.add([])
+    acc.add(runs.slice(1, 3))
+    acc.add(runs.slice(3))
+    expect(acc.result()).toEqual(stats)
+  })
 
   it('counts runs, errors and durations from node_results', () => {
     expect(stats.nodeStats?.get).toEqual({ runs: 4, errors: 2, durationTotalMs: 1000, durationCount: 4 })

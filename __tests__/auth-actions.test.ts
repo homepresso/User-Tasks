@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
   invitation: { ok: true, status: 200 } as Record<string, unknown>,
   tokenMatches: false,
   joined: [] as Array<{ user: { id: string }; slug: string; invite: string | null }>,
+  joinOptions: [] as Array<Record<string, unknown> | undefined>,
 }))
 
 vi.mock('@/lib/providers/auth', async (importOriginal) => ({
@@ -25,8 +26,9 @@ vi.mock('@/lib/providers/auth', async (importOriginal) => ({
 vi.mock('@/lib/providers/auth/provisioning', () => ({
   checkInvitation: async () => state.invitation,
   inviteTokenMatches: async () => state.tokenMatches,
-  joinInvitedTenant: async (user: { id: string }, slug: string, invite: string | null) => {
+  joinInvitedTenant: async (user: { id: string }, slug: string, invite: string | null, _db?: unknown, options?: Record<string, unknown>) => {
     state.joined.push({ user, slug, invite })
+    state.joinOptions.push(options)
     return { ok: true, status: 200, tenantId: 't-1' }
   },
 }))
@@ -50,6 +52,7 @@ describe('signInAction', () => {
     state.invitation = { ok: true, status: 200, inviteToken: 'inv-1', existingUserId: null }
     state.tokenMatches = false
     state.joined = []
+    state.joinOptions = []
   })
 
   it('existing account: signs in and returns the (sanitised) redirect', async () => {
@@ -72,7 +75,8 @@ describe('signInAction', () => {
     const { signInAction } = await import('@/app/actions/auth')
     state.provider = stubProvider({})
     state.invitation = { ok: true, status: 200, existingUserId: 'u-9' }
-    expect(await signInAction(input)).toMatchObject({ ok: false, error: 'Incorrect password. Please try again.' })
+    // The same message as an unknown account (sign-in never reveals that an account exists).
+    expect(await signInAction(input)).toMatchObject({ ok: false, error: 'Invalid email or password.' })
   })
 
   it('invited, no account: creates it (invitation token travels on) and joins the organisation', async () => {
@@ -89,6 +93,22 @@ describe('signInAction', () => {
     state.tokenMatches = true
     await signInAction({ ...input, inviteToken: 'from-link' })
     expect(state.provider.signUp).toHaveBeenCalledWith(expect.objectContaining({ emailConfirmed: true }), expect.anything())
+  })
+
+  it('Supabase sign-up without a matching invite token: joins only with the token from the link (requireInviteToken)', async () => {
+    const { signInAction } = await import('@/app/actions/auth')
+    state.provider = stubProvider({})
+    await signInAction(input) // typed the invited address, no link
+    expect(state.joined[0].invite).toBeNull() // never the invitation's own token from the database
+    expect(state.joinOptions[0]).toEqual({ requireInviteToken: true })
+  })
+
+  it('a proven address (matching token) joins without the extra requirement', async () => {
+    const { signInAction } = await import('@/app/actions/auth')
+    state.provider = stubProvider({})
+    state.tokenMatches = true
+    await signInAction({ ...input, inviteToken: 'from-link' })
+    expect(state.joinOptions[0]).toEqual({ requireInviteToken: false })
   })
 
   it('built-in with confirmation pending → /check-email, no workspace join yet', async () => {

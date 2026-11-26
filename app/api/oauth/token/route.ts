@@ -8,6 +8,7 @@ import { verifyPkce } from '@/lib/oauth/pkce'
 import { appBaseUrl } from '@/lib/oauth/redirect'
 import { oauthError, oauthJson, oauthOptions } from '@/lib/oauth/errors'
 import { auditOAuthEvent, grantName } from '@/lib/oauth/audit'
+import { clientIp } from '@/lib/client-ip'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
   const { clientId, clientSecret } = extractClientAuth(request, form)
   if (!clientId) return oauthError('invalid_client')
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const ip = clientIp(request) ?? 'unknown'
   if (!(await rateLimit(`oauth-token:${clientId}:${ip}`, { max: RATE_MAX, windowMs: RATE_WINDOW_MS })).ok) {
     return oauthError('invalid_request', 'Rate limit exceeded — retry later')
   }
@@ -218,10 +219,18 @@ export async function POST(request: NextRequest) {
     if (new Date(row.expires_at) < new Date()) return oauthError('invalid_grant')
 
     // Rotate: revoke the presented token, issue a fresh pair linked to it.
-    await (supabase as any)
+    // Conditional, so two concurrent refreshes can't both rotate it: the
+    // loser is treated as reuse (the chain is revoked).
+    const { data: rotated } = await (supabase as any)
       .from('oauth_tokens')
       .update({ revoked_at: new Date().toISOString() })
       .eq('id', row.id)
+      .is('revoked_at', null)
+      .select('id')
+    if (!rotated?.length) {
+      await revokeRefreshChain(supabase, row.id)
+      return oauthError('invalid_grant')
+    }
 
     const scopes = row.scopes ?? []
     const access = await insertToken(supabase, {

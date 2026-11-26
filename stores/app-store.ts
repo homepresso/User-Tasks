@@ -80,6 +80,9 @@ export const useAppStore = create<AppState>()(persist(
       }),
     clearTaskDraft: (taskId) =>
       set((s) => {
+        // No draft: keep the state object, so subscribers don't re-render
+        // (the task page calls this on every render without changes).
+        if (!(taskId in s.taskDrafts)) return s
         const nextDrafts = { ...s.taskDrafts }
         delete nextDrafts[taskId]
         return { taskDrafts: nextDrafts }

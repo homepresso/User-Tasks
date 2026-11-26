@@ -111,8 +111,9 @@ describe.skipIf(!DB_URL || !CAPS?.supabase)('workspace themes (local stack)', ()
   })
 
   it('new tenants get the platform default theme stub', async () => {
-    expect(await themeRow(TENANT)).toMatchObject({ theme: { base_preset: 'basecamp' }, version: 1, updated_by: null })
-    expect(await themeRow(OTHER)).toMatchObject({ theme: { base_preset: 'basecamp' } })
+    // Onyx since 20270128110000_default_theme_onyx (was Basecamp): the seed trigger for new tenants.
+    expect(await themeRow(TENANT)).toMatchObject({ theme: { base_preset: 'onyx' }, version: 1, updated_by: null })
+    expect(await themeRow(OTHER)).toMatchObject({ theme: { base_preset: 'onyx' } })
   })
 
   it("the migration's seed maps theme_policy.default_theme_id (unsafe ids → basecamp)", async () => {
@@ -140,7 +141,7 @@ describe.skipIf(!DB_URL || !CAPS?.supabase)('workspace themes (local stack)', ()
     expect(other.data).toEqual([])
     const anon = await createClient(API_URL, ANON_KEY, opts).from('workspace_themes').select('tenant_id')
     expect(anon.data ?? []).toEqual([])
-    expect((await readWorkspaceTheme(member, TENANT)).theme.meta.basePreset).toBe('basecamp')
+    expect((await readWorkspaceTheme(member, TENANT)).theme.meta.basePreset).toBe('onyx')
   })
 
   it('nobody writes the table over REST, not even settings.edit holders', async () => {
@@ -151,7 +152,7 @@ describe.skipIf(!DB_URL || !CAPS?.supabase)('workspace themes (local stack)', ()
       expect(ins.error).not.toBeNull()
       await client.from('workspace_themes').delete().eq('tenant_id', TENANT)
     }
-    expect(await themeRow(TENANT)).toMatchObject({ theme: { base_preset: 'basecamp' }, version: 1 })
+    expect(await themeRow(TENANT)).toMatchObject({ theme: { base_preset: 'onyx' }, version: 1 })
   })
 
   it('the service writes for settings.edit holders and refuses plain members', async () => {

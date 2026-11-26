@@ -238,12 +238,12 @@ export function TDActions({ className, ...props }: React.TdHTMLAttributes<HTMLTa
   )
 }
 
-/** Empty body: an EmptyState sm spanning every column. */
+/** Empty body: an EmptyState sm spanning every column (an h2: list tables sit right under the page h1; pass headingLevel inside a section). */
 export function TableEmpty({ colSpan, ...props }: { colSpan: number } & EmptyStateProps) {
   return (
     <tr>
       <TableDetailCell colSpan={colSpan}>
-        <EmptyState size="sm" {...props} />
+        <EmptyState size="sm" headingLevel={2} {...props} />
       </TableDetailCell>
     </tr>
   )

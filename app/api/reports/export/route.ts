@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { getUserPermissions } from '@/lib/permissions-server'
+import { getCurrentTenantId } from '@/lib/get-user-id'
+import { writeAudit } from '@/lib/audit-log'
 
 /**
  * Excel export for report tables, synchronous. The report Export button now
@@ -53,6 +55,13 @@ export async function POST(request: NextRequest) {
   const xl = await import('@/lib/excel')
 
   const filename = safeFilename(body.filename)
+  const tenantId = await getCurrentTenantId()
+  if (tenantId) {
+    await writeAudit({
+      supabase, tenantId, actorId: user.id, objectType: 'report', objectId: 'excel', action: 'export',
+      summary: `Exported "${filename}" to Excel (${rows.length} rows)`, metadata: { rows: rows.length, columns: columns.length, via: 'session' },
+    })
+  }
   return new NextResponse(buffer as Uint8Array<ArrayBuffer>, {
     headers: {
       'Content-Type': xl.EXCEL_MIME,

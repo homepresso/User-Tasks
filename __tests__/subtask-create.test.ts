@@ -29,6 +29,10 @@ vi.mock('@/lib/api-auth', async (importOriginal) => {
   return { ...actual, validateApiKey: vi.fn() }
 })
 vi.mock('@/lib/audit-log', () => ({ writeAudit: vi.fn(async () => {}) }))
+// Service-role writes made for the acting user (lib/services/_shared actorServiceClient,
+// the task actions) land in the same memory database.
+const actorWrites = vi.hoisted(() => ({ db: null as any }))
+vi.mock('@/lib/cron-auth', async (orig) => ({ ...(await orig() as object), createActorServiceClient: () => actorWrites.db }))
 
 import { validateApiKey, type ApiKeySuccessResult } from '@/lib/api-auth'
 import * as tasksService from '@/lib/services/tasks'
@@ -66,6 +70,7 @@ function seed() {
 type Db = ReturnType<typeof seed>
 const WORKER = ['tasks.complete', 'tasks.view_own']
 function ctx(db: Db, actorId: string, permissions: string[] = WORKER): ServiceContext {
+  actorWrites.db = db
   return { db: db as any, supabase: db as any, tenantId: 'tenant-a', actorId, permissions: new Set(permissions), authKind: 'session', source: 'ui' }
 }
 const subtasksOf = (db: Db, parent: string) => db.tables.tasks!.filter((t: any) => t.parent_task_id === parent)

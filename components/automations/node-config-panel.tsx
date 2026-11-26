@@ -59,6 +59,7 @@ import { DataPickerProvider, LoopItemsInput, type DataPickerContextValue } from 
 import { LoopCollectionPicker } from './loop-collection-picker'
 import { HttpResponseModelEditor } from './response-model-editor'
 import { AgentPinBadge } from './agent-pin-badge'
+import { sanitizeSvg as sanitizeIconSvg } from '@/lib/sanitize-svg'
 import { AadGroupAssignmentConfig, AssignmentSegments, useDirectoryCapabilities } from './aad-group-assignment'
 
 const SWITCH_COLORS = ["var(--theme-chart-1)", "var(--theme-chart-2)", "var(--theme-chart-3)", "var(--theme-chart-4)", "var(--theme-chart-5)", "var(--theme-chart-6)", "var(--theme-chart-7)", "var(--theme-chart-8)"]
@@ -515,7 +516,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
             <>
               <span
                 className="inline-flex h-5 w-5 items-center justify-center overflow-hidden [&_svg]:h-4 [&_svg]:w-4"
-                dangerouslySetInnerHTML={{ __html: node.config.node_icon_svg }}
+                dangerouslySetInnerHTML={{ __html: sanitizeIconSvg(String(node.config.node_icon_svg)) ?? '' }}
               />
               <button
                 type="button"
@@ -2232,7 +2233,7 @@ export function NodeConfigPanel({ workflowId, node, onUpdateNode, allNodes, work
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5">Body (HTML)</label>
-              <VariableInput multiline rows={6} value={node.config.body ?? ""} onChange={(value) => updateConfig("body", value)} placeholder={"<h2>Task Update</h2>\n<p>Task <strong>{{task.title}}</strong> has been {{task.status}}.</p>"} extraVariables={extraVariables} />
+              <VariableInput multiline rows={6} value={node.config.body ?? ""} onChange={(value) => updateConfig("body", value)} placeholder={"<h2>Task update</h2>\n<p>Task <strong>{{task.title}}</strong> has been {{task.status}}.</p>"} extraVariables={extraVariables} />
             </div>
           </>}
           <div className="grid grid-cols-2 gap-2">

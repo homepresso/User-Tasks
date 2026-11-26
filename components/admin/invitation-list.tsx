@@ -5,6 +5,8 @@ import { RoleBadge } from '@/components/team/role-badge'
 import { formatRelativeDate } from '@/lib/utils'
 import { RefreshCw, X } from 'lucide-react'
 import { useState } from 'react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface Invitation {
   id: string
@@ -21,17 +23,14 @@ interface InvitationListProps {
 
 export function InvitationList({ invitations }: InvitationListProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [confirm, confirmDialog] = useConfirm()
 
   if (invitations.length === 0) {
-    return (
-      <p className="text-sm py-4 text-fg-muted">
-        No pending invitations.
-      </p>
-    )
+    return <EmptyState size="sm" headingLevel={3} title="No pending invitations" description="People you invite appear here until they accept." />
   }
 
-  async function handleRevoke(id: string) {
-    if (!confirm('Revoke this invitation?')) return
+  async function handleRevoke(id: string, email: string) {
+    if (!(await confirm({ title: 'Revoke this invitation?', description: `${email} will no longer be able to join with this link.`, confirmLabel: 'Revoke', destructive: true }))) return
     setLoadingId(id)
     try { await revokeInvitation(id) } catch {}
     setLoadingId(null)
@@ -73,14 +72,16 @@ export function InvitationList({ invitations }: InvitationListProps) {
                 disabled={loadingId === inv.id}
                 className="p-1.5 rounded-md hover:opacity-70 transition-colors text-fg-muted"
                 title="Resend invitation"
+                aria-label={`Resend invitation to ${inv.email}`}
               >
                 <RefreshCw size={14} />
               </button>
               <button
-                onClick={() => handleRevoke(inv.id)}
+                onClick={() => handleRevoke(inv.id, inv.email)}
                 disabled={loadingId === inv.id}
                 className="p-1.5 rounded-md hover:text-danger transition-colors text-fg-muted"
                 title="Revoke invitation"
+                aria-label={`Revoke invitation for ${inv.email}`}
               >
                 <X size={14} />
               </button>
@@ -88,6 +89,7 @@ export function InvitationList({ invitations }: InvitationListProps) {
           </div>
         )
       })}
+      {confirmDialog}
     </div>
   )
 }

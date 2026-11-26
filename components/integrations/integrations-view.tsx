@@ -1,5 +1,6 @@
 "use client"
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { Fragment, useEffect, useState, useMemo, type ReactNode } from "react"
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Card } from "@/components/ui/card"
@@ -82,6 +83,7 @@ interface IntegrationsViewProps {
 }
 
 export function IntegrationsView({ description, actions, integrations, references, connectors = [], mcpServers = [] }: IntegrationsViewProps) {
+  const [confirm, confirmDialog] = useConfirm()
   // ?tab= and ?q= (header search box) pick the tab and filter it.
   const searchParams = useSearchParams()
   const linkedTab = (tab: string | null) => (["integrations", "references", "connectors", "objects", "mcp"] as const).find((t) => t === tab) ?? null
@@ -134,7 +136,7 @@ export function IntegrationsView({ description, actions, integrations, reference
   }
 
   async function runRefTest(ref: any) {
-    if (isWriteReference(ref) && !window.confirm(`"${ref.name}" writes data. Running the test sends it for real with the integration's credentials (recorded in the call log). Continue?`)) return
+    if (isWriteReference(ref) && !(await confirm({ title: `Run “${ref.name}” for real?`, description: 'It writes data. Running the test sends it for real with the integration’s credentials (recorded in the call log).', confirmLabel: 'Run test', destructive: true }))) return
     setTestLoading(true)
     setTestResult(null)
     try {
@@ -591,7 +593,7 @@ export function IntegrationsView({ description, actions, integrations, reference
       <ConfirmDialog
         open={Boolean(integrationToDelete)}
         onOpenChange={(open) => { if (!open) setIntegrationToDelete(null) }}
-        title="Delete Integration"
+        title="Delete integration"
         description={`This permanently removes "${integrationToDelete?.name ?? ''}" and ALL of its API references. Workflows or forms still calling those references will fail until re-pointed.`}
         confirmLabel="Delete integration"
         destructive
@@ -832,6 +834,7 @@ export function IntegrationsView({ description, actions, integrations, reference
               <UIDialog open={Boolean(ref)} onOpenChange={(open) => { if (!open) setTestingRefId(null) }}>
                 {ref && (
                   <DialogContent size="lg" title={`Test “${ref.name}”`} description={integration?.name}>
+                    {confirmDialog}
                     <DialogBody className="space-y-4">
                       <Card variant="inset" padding="sm" className="flex min-w-0 items-center gap-2">
                         <Tag mono>{config?.method ?? 'GET'}</Tag>

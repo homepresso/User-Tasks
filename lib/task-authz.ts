@@ -233,7 +233,7 @@ export function decideTaskAction(input: {
 }
 
 /** Load the facts decideTaskAction needs (tenant-filtered reads). */
-export async function loadTaskActorFacts(db: any, task: AuthzTask, actorId: string | null, options: { index?: ReportingIndex; workflowManagerOf?: boolean } = {}): Promise<TaskActorFacts> {
+export async function loadTaskActorFacts(db: any, task: AuthzTask, actorId: string | null, options: { index?: ReportingIndex; loadIndex?: () => Promise<ReportingIndex>; workflowManagerOf?: boolean } = {}): Promise<TaskActorFacts> {
   const tenantId = String(task.tenant_id)
   const { data: collaborators } = await db
     .from('task_assignees')
@@ -261,7 +261,7 @@ export async function loadTaskActorFacts(db: any, task: AuthzTask, actorId: stri
 
   let managedAssigneeId: string | null = null
   if (!isAssignee && !isTeamMember && assigneeIds.length) {
-    const index = options.index ?? await loadReportingIndex(db, tenantId)
+    const index = options.index ?? (options.loadIndex ? await options.loadIndex() : await loadReportingIndex(db, tenantId))
     managedAssigneeId = assigneeIds.find((id) => isInManagerChain(index, actorId, id)) ?? null
   }
   let workflowManager = false
@@ -380,7 +380,7 @@ export async function authorizeTaskAssignment(db: any, params: {
  * task): the user's own tasks (assignee, collaborator, team) and their
  * reports' tasks, and the tasks of workflows they manage (explicit Edit grant).
  */
-export async function canUserSeeTask(db: any, tenantId: string, userId: string, taskId: string): Promise<boolean> {
+export async function canUserSeeTask(db: any, tenantId: string, userId: string, taskId: string, options: { loadIndex?: () => Promise<ReportingIndex> } = {}): Promise<boolean> {
   const { data: task } = await db
     .from('tasks')
     .select(AUTHZ_TASK_COLUMNS)
@@ -389,7 +389,7 @@ export async function canUserSeeTask(db: any, tenantId: string, userId: string, 
     .is('deleted_at', null)
     .maybeSingle()
   if (!task) return false
-  const facts = await loadTaskActorFacts(db, task, userId)
+  const facts = await loadTaskActorFacts(db, task, userId, options)
   return facts.isAssignee || facts.isTeamMember || Boolean(facts.managedAssigneeId) || facts.isWorkflowManager === true
 }
 

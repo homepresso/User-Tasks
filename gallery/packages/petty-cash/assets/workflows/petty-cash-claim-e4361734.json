@@ -54,7 +54,7 @@
           "y": 480
         },
         "config": {
-          "title": "Petty cash {{claim_ref}}: NZD {{amount}} · {{claimant_name}}"
+          "title": "Petty cash {{claim_ref}}: USD {{amount}} · {{claimant_name}}"
         }
       },
       {
@@ -240,8 +240,8 @@
           "y": 1760
         },
         "config": {
-          "task_title": "Approve petty cash: NZD {{amount}} for {{claimant_name}} ({{cost_centre}})",
-          "task_description": "<p><strong>{{claimant_name}}</strong> claims <strong>NZD {{amount}}</strong> from <strong>{{cost_centre_row.name}}</strong> ({{cost_centre}}) for {{description}} ({{category}}, bought {{spent_on}}).</p><p>Receipt: <a href=\"{{receipt_url}}\">{{receipt_url}}</a></p><p>Float this month: NZD {{float_used}} paid of {{cost_centre_row.monthly_float}}. Rule: {{route}}: {{note}}.</p>",
+          "task_title": "Approve petty cash: USD {{amount}} for {{claimant_name}} ({{cost_centre}})",
+          "task_description": "<p><strong>{{claimant_name}}</strong> claims <strong>USD {{amount}}</strong> from <strong>{{cost_centre_row.name}}</strong> ({{cost_centre}}) for {{description}} ({{category}}, bought {{spent_on}}).</p><p>Receipt: <a href=\"{{receipt_url}}\">{{receipt_url}}</a></p><p>Float this month: USD {{float_used}} paid of {{cost_centre_row.monthly_float}}. Rule: {{route}}: {{note}}.</p>",
           "task_priority": "medium",
           "outcomes": [
             "Approve",
@@ -315,7 +315,7 @@
             "image": "default",
             "title": "Petty cash claim",
             "align": "left",
-            "subtitle": "{{claim_ref}} · NZD {{amount}} · {{cost_centre}}"
+            "subtitle": "{{claim_ref}} · USD {{amount}} · {{cost_centre}}"
           },
           "due_date_mode": "relative",
           "due_offset_amount": 2,
@@ -390,7 +390,7 @@
           "y": 2240
         },
         "config": {
-          "reason": "{{claim_ref}} paid: NZD {{amount}} from {{cost_centre}}"
+          "reason": "{{claim_ref}} paid: USD {{amount}} from {{cost_centre}}"
         }
       },
       {
@@ -607,7 +607,7 @@
         "id": "v-amount",
         "name": "amount",
         "type": "number",
-        "description": "Amount in NZD",
+        "description": "Amount in USD",
         "defaultValue": "",
         "required": true,
         "label": "Amount"

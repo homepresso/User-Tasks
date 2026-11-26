@@ -5,6 +5,7 @@ import { isCloud } from '@/lib/deployment'
 import { editionById } from '@/lib/editions/catalog'
 import { issuePullToken } from '@/lib/editions/pull-service'
 import { defaultPullServiceDeps, requestIpHash } from '@/lib/editions/server'
+import { clientIp } from '@/lib/client-ip'
 
 /**
  * Licence-gated edition downloads (usertasks.com):
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ editio
   const edition = editionById((await ctx.params).edition)
   if (!edition) return json({ error: 'Unknown edition', code: 'not_found' }, 404)
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+  const ip = clientIp(request) ?? 'unknown'
   const ipLimit = await limited([[`edition-token:h:${ip}`, 20, 3_600_000], [`edition-token:d:${ip}`, 100, 86_400_000], ['edition-token:all', 2_000, 3_600_000]])
   if (ipLimit) return ipLimit
 

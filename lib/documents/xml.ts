@@ -43,7 +43,7 @@ export function decodeXmlEntities(text: string): string {
       if (!Number.isFinite(code) || code < 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return ''
       return String.fromCodePoint(code)
     }
-    return ENTITIES[body] ?? whole
+    return Object.hasOwn(ENTITIES, body) ? ENTITIES[body] : whole
   })
 }
 
@@ -57,7 +57,29 @@ export function escapeXml(text: string): string {
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g, '')
 }
 
-const ATTR_RE = /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g
+// Sticky (anchored) matchers: the attribute scan is linear. An unanchored
+// global `name\s*=\s*"…"` regex re-scans the rest of the tag from every
+// start position, so one long attribute run without `=` took quadratic time
+// (a 40 KB tag froze the event loop for ~12 s).
+const ATTR_NAME_RE = /[^\s=/>]+/y
+const ATTR_VALUE_RE = /\s*=\s*(?:"([^"]*)"|'([^']*)')/y
+
+function parseAttributes(text: string, attrs: Record<string, string>): void {
+  let pos = 0
+  while (pos < text.length) {
+    ATTR_NAME_RE.lastIndex = pos
+    const name = ATTR_NAME_RE.exec(text)
+    if (!name) { pos++; continue }
+    ATTR_VALUE_RE.lastIndex = ATTR_NAME_RE.lastIndex
+    const value = ATTR_VALUE_RE.exec(text)
+    if (value) {
+      attrs[name[0]] = decodeXmlEntities(value[1] ?? value[2] ?? '')
+      pos = ATTR_VALUE_RE.lastIndex
+    } else {
+      pos = ATTR_NAME_RE.lastIndex
+    }
+  }
+}
 
 function localName(name: string): string {
   const colon = name.indexOf(':')
@@ -122,12 +144,7 @@ export function parseXml(input: string, options: ParseXmlOptions = {}): XmlEleme
     const name = nameEnd === -1 ? body : body.slice(0, nameEnd)
     if (!name) throw new Error('Malformed XML: empty tag name')
     const attrs: Record<string, string> = {}
-    if (nameEnd !== -1) {
-      ATTR_RE.lastIndex = 0
-      const attrText = body.slice(nameEnd)
-      let m: RegExpExecArray | null
-      while ((m = ATTR_RE.exec(attrText))) attrs[m[1]] = decodeXmlEntities(m[2] ?? m[3] ?? '')
-    }
+    if (nameEnd !== -1) parseAttributes(body.slice(nameEnd), attrs)
     const el: XmlElement = { name, local: localName(name), attrs, children: [] }
     if (++nodes > maxNodes) throw new XmlSecurityError('XML has too many elements')
     stack[stack.length - 1].children.push(el)

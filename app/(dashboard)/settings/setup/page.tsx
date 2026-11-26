@@ -8,6 +8,7 @@ import { catalogueEntry } from '@/lib/admin/catalogue'
 import { getInstanceSetting } from '@/lib/config/instance-settings'
 import { fieldViews } from '@/lib/admin/infrastructure-settings'
 import { backgroundRuntime } from '@/lib/admin/switch-runtime'
+import { loadProcessingStatus } from '@/lib/admin/processing-status'
 import { pageMetadata } from '@/lib/page-title'
 import { AREA_PLAIN, signInSummary, type WizardPageData } from '@/lib/setup/wizard-data'
 import { WIZARD_STATE_SETTING, checkAddress, isStepId, nextStep, parseProgress } from '@/lib/setup/wizard-model'
@@ -51,7 +52,10 @@ export default async function SetupWizardPage({ searchParams }: { searchParams: 
   // Services (the doctor checks, cached 5 minutes): only where they are shown.
   let services: WizardPageData['services'] = null
   if (step === 'services' || step === 'done') {
-    const view = await loadInfrastructureView({ refresh: params.refresh === '1' })
+    const [view, processing] = await Promise.all([
+      loadInfrastructureView({ refresh: params.refresh === '1' }),
+      loadProcessingStatus().catch(() => null),
+    ])
     const runtime = backgroundRuntime()
     const areas = view.areas.map((a) => ({
       area: a.area, label: AREA_PLAIN[a.area].label, what: AREA_PLAIN[a.area].what, provider: a.provider, providerLabel: a.providerLabel,
@@ -60,6 +64,14 @@ export default async function SetupWizardPage({ searchParams }: { searchParams: 
     services = {
       areas, checkedAt: view.checkedAt, gate: view.switching.gate, access: view.switching.access, backgroundAvailable: runtime.available,
       addon: view.addon,
+      processing: processing
+        ? {
+            addon: processing.addon,
+            mode: processing.mode,
+            settings: processing.provider?.settings ?? null,
+            workersOnline: (processing.provider?.workers ?? []).filter((w) => w.online).length,
+          }
+        : null,
     }
   }
 

@@ -2,7 +2,7 @@ import { columnKey } from '@/lib/data-table-cells'
 import { z } from 'zod'
 import * as forms from '../forms'
 import { resolvePage } from '../_shared'
-import { defineRead, id, NO_ARGS } from './define'
+import { activeMemberUsers, defineRead, id, NO_ARGS } from './define'
 import { getDb } from '../context'
 
 /**
@@ -101,12 +101,10 @@ export const reads = {
     run: async (ctx) => {
       const { serviceRoleClient } = await import('../_shared')
       const db = await serviceRoleClient(ctx) as any
-      const [members, teams] = await Promise.all([
-        db.from('user_memberships').select('user_id').eq('tenant_id', ctx.tenantId).eq('is_active', true).limit(2000),
+      const [users, teams] = await Promise.all([
+        activeMemberUsers(db, ctx.tenantId),
         db.from('teams').select('id, name').eq('tenant_id', ctx.tenantId).order('name').limit(500),
       ])
-      const ids = ((members.data ?? []) as any[]).map((m) => String(m.user_id))
-      const { data: users } = ids.length ? await db.from('users').select('id, display_name, email').in('id', ids).is('deleted_at', null) : { data: [] }
       return {
         users: ((users ?? []) as any[]).map((u) => ({ id: String(u.id), name: String(u.display_name || u.email || 'Someone'), email: (u.email ?? null) as string | null }))
           .sort((x, y) => x.name.localeCompare(y.name)),

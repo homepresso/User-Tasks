@@ -35,6 +35,7 @@ import { getExtensionManifest } from './registry'
 import { getServerExtension, getServerExtensions } from './server-registry'
 import { extensionAccess } from './state'
 import { TransportUnavailableError } from '@/lib/integrations/transports'
+import { clientIp } from '@/lib/client-ip'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- extension payloads */
 
@@ -128,7 +129,7 @@ export function extensionEndpointDefs(): EndpointDef[] {
 /* ── Public routes ─────────────────────────────────────────────────── */
 
 function clientKey(request: Request): string {
-  return (request.headers.get('x-forwarded-for')?.split(',')[0] ?? request.headers.get('x-real-ip') ?? 'unknown').trim()
+  return clientIp(request) ?? 'unknown'
 }
 
 function signatureMatches(secret: string, body: string, header: string | null): boolean {

@@ -2,18 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { ChevronDown, SlidersHorizontal } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogBody, DialogContent, DialogFooter } from "@/components/ui/dialog"
-import { IconButton } from "@/components/ui/icon-button"
 import { InlineNotice } from "@/components/ui/inline-notice"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { QueueRulesEditor, useQueueRuleOptions, type QueueRuleOptions } from "@/components/settings/queue-rules-editor"
-import { useIsMobile } from "@/hooks/use-mobile"
 import { NAV_COUNTS_QUERY_KEY } from "@/hooks/use-nav-counts"
 import { serverQuery, serverRead } from "@/lib/server-read"
 import {
@@ -34,16 +32,8 @@ export const MY_QUEUE_RULES_KEY = ["tasks", "my-queue-rules"] as const
 
 type MyRules = { rules: QueueRules; saved: boolean; timeZone: string | null }
 
-export function QueueRulesButton() {
-  const [open, setOpen] = useState(false)
-  const mobile = useIsMobile()
-  return (
-    <>
-      <IconButton size="sm" label="Queue rules" icon={<SlidersHorizontal />} onClick={() => setOpen(true)} aria-haspopup="dialog" data-queue-rules-button />
-      {open && <QueueRulesDialog open={open} onOpenChange={setOpen} mobile={mobile} />}
-    </>
-  )
-}
+/** The toolbar button lives in ./queue-rules-button (it loads this dialog on demand). */
+export { QueueRulesButton } from "./queue-rules-button"
 
 export function QueueRulesDialog({ open, onOpenChange, mobile }: { open: boolean; onOpenChange: (open: boolean) => void; mobile: boolean }) {
   const queryClient = useQueryClient()

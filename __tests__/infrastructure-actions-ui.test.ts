@@ -175,6 +175,19 @@ describe('Settings → Infrastructure page without the add-on (free edition)', (
     expect(html).toMatch(/keeps running on its current providers/)
   })
 
+  it('UserTasks Cloud without the add-on (paid extensions are self-hosted only): read-only status, no Change…, no add-on card', () => {
+    for (const addon of [{ ...MISSING, cloud: true }, { state: 'unlicensed' as const, href: '/x/infrastructure', reason: 'cannot run in this build', cloud: true }]) {
+      const html = renderToStaticMarkup(createElement(InfrastructureView, { view: view(LOCKED, 'direct', addon) }))
+      expect(html).toContain('Provider changes are not offered on UserTasks Cloud')
+      expect(html).not.toContain('data-addon-upsell')
+      expect(html).not.toContain('data-addon-link')
+      for (const area of PROVIDER_AREAS) expect(buttons(html, AREA_LABELS[area]).filter(([label]) => label.startsWith('Change '))).toEqual([])
+      expect(html).not.toMatch(/Change…(?: and Settings)?:<\/span>/)
+      // Email and sign-in settings stay behind the cloud lock, with Unlock….
+      expect(sectionOf(html, AREA_LABELS.email)).toMatch(/Locked on this cloud deployment/)
+    }
+  })
+
   it('installed but unlicensed (e.g. expired): says why and links to Settings → Licence', () => {
     const html = renderToStaticMarkup(createElement(InfrastructureView, { view: view(SELF_HOSTED, 'direct', { state: 'unlicensed', href: '/x/infrastructure', reason: 'The licence for infrastructure expired.' }) }))
     expect(html).toContain('data-addon-state="unlicensed"')

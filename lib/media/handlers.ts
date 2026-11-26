@@ -202,6 +202,8 @@ const ff = () => import('./ffmpeg')
 
 function extOf(file: { name: string; mime_type: string }): string {
   const fromName = /\.([a-z0-9]{1,5})$/i.exec(file.name)?.[1]?.toLowerCase()
+  // Playlist / list formats name other files or URLs to read: never by extension.
+  if (fromName && /^(m3u8?|ffconcat|concat|sdp|txt)$/.test(fromName)) return 'bin'
   if (fromName) return fromName
   const m = file.mime_type.split('/')[1] ?? 'bin'
   return m.replace(/^x-/, '').replace('mpeg', 'mp3').replace('quicktime', 'mov').slice(0, 5)

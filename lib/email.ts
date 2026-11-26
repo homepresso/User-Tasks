@@ -44,9 +44,9 @@ export async function sendEmail(params: SendEmailParams): Promise<{ success: boo
     const toAddresses = (Array.isArray(params.to) ? params.to : [params.to]).map((to) => to.trim()).filter(Boolean)
     const replyTo = params.replyTo || emailOption(options, 'reply_to') || undefined
 
-    console.log(`[email] Sending via ${provider.id} to ${toAddresses.join(', ')} from ${fromAddress} — subject: ${params.subject}`)
     const attachments = params.attachments?.length ? params.attachments : undefined
-    if (attachments) console.log(`[email] ${attachments.length} attachment(s): ${attachments.map((a) => a.filename).join(', ')}`)
+    // No addresses, subjects or file names in the logs (personal data): counts only.
+    console.log(`[email] Sending via ${provider.id} to ${toAddresses.length} recipient(s)${attachments ? `, ${attachments.length} attachment(s)` : ''}`)
     const result = await provider.send({ from: fromAddress, to: toAddresses, subject: params.subject, html: params.body, ...(params.text?.trim() ? { text: params.text } : {}), replyTo, ...(attachments ? { attachments } : {}) })
     console.log(`[email] Sent successfully — id: ${result.id}`)
     return { success: true, id: result.id }

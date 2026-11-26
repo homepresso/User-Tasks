@@ -149,7 +149,7 @@ export function FollowButton({ runId, following, size = "sm", onChange, compact 
 /** A placeholder row while a tab loads. */
 export function RowsSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="divide-y divide-border-subtle" aria-busy="true" aria-label="Loading">
+    <div className="divide-y divide-border-subtle" role="status" aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex h-[var(--theme-density-row-height)] items-center gap-3 px-4">
           <Skeleton className="h-2.5 w-1/3" />

@@ -1,5 +1,6 @@
 "use client"
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -587,6 +588,7 @@ function DraftBanner({ app, page, base, preview, asRole, previewHref, onChanged,
 const CLIPBOARD_KEY = "ut:apps:clipboard"
 
 function PageBuilder({ app, page, base, previewHref, onDone, onSaved, openSettings, settingsTab }: { app: AppDetail; page: AppPage; base: string; previewHref: string; onDone: () => void; onSaved: () => Promise<void>; openSettings: boolean; settingsTab?: "audience" }) {
+  const [confirm, confirmDialog] = useConfirm()
   const router = useRouter()
   const invalidateApps = useInvalidateApps()
   const [widgets, setWidgets] = useState<AppWidget[]>(page.layout.widgets)
@@ -727,6 +729,7 @@ function PageBuilder({ app, page, base, previewHref, onDone, onSaved, openSettin
 
   return (
     <div className="flex flex-col gap-3" data-app-builder>
+      {confirmDialog}
       <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-elevated p-2 shadow-elev-1" role="toolbar" aria-label="Page builder">
         <div className="w-36" title="Page icon (the menu, the nav bar and the page header use it)"><IconPicker app={app.id} value={pageIcon} onChange={setPageIcon} label="Page icon" /></div>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Page title" size="sm" className="w-44" maxLength={120} data-page-title-input />
@@ -817,7 +820,7 @@ function PageBuilder({ app, page, base, previewHref, onDone, onSaved, openSettin
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <AppDraftControls app={app} previewHref={previewHref} dirty={dirty} onChanged={onSaved} compact />
           {dirty && <span className="text-xs text-fg-muted" role="status">Unsaved changes</span>}
-          <Button size="sm" variant="ghost" onClick={() => (dirty ? (window.confirm("Discard your changes to this page?") && onDone()) : onDone())}>{dirty ? "Discard" : "Done"}</Button>
+          <Button size="sm" variant="ghost" onClick={async () => { if (!dirty || await confirm({ title: "Discard your changes to this page?", description: "Your unsaved edits to this page are lost.", confirmLabel: "Discard", destructive: true })) onDone() }}>{dirty ? "Discard" : "Done"}</Button>
           <Button size="sm" loading={busy} disabled={!dirty} onClick={() => void save(true)} data-save-page>Save</Button>
         </div>
       </div>

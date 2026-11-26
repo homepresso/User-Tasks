@@ -13,6 +13,7 @@ import { writeAudit } from '@/lib/audit-log'
 import { queueLeaseExpired } from '@/lib/automations/queue-filters'
 import type { ProcessingStatus, QueueHealth } from '@/lib/extensions/sdk'
 import { kickQueueProcessor } from '@/lib/process-queue'
+import { processingAddonView, type ProcessingAddonView } from '@/lib/processing/addon'
 import { invalidateProcessingHandoff, processingHandoff, resolveProcessingProvider, type HandoffMode } from '@/lib/processing/handoff'
 import { getServiceDb } from '@/lib/providers/db'
 
@@ -39,6 +40,8 @@ export interface StuckJob {
 export interface ProcessingStatusView {
   mode: HandoffMode
   provider: (ProcessingStatus & { extension_id: string }) | null
+  /** The Processing add-on in this build: missing / unlicensed (upsell, with the reason) / ready (expiry warning in reason). */
+  addon: ProcessingAddonView
   /** null before migration 20270124090000. */
   queue: QueueHealth | null
   /** Processing jobs, stuck ones first (at most 50). */
@@ -49,7 +52,7 @@ export interface ProcessingStatusView {
 export async function loadProcessingStatus(): Promise<ProcessingStatusView> {
   invalidateProcessingHandoff()
   const db = getServiceDb() as any
-  const [mode, resolved, health, processing] = await Promise.all([
+  const [mode, resolved, health, processing, addon] = await Promise.all([
     processingHandoff(),
     resolveProcessingProvider().catch(() => null),
     db.rpc('get_queue_health', { p_tenant_id: null }).then((r: any) => (r.error ? null : (r.data as QueueHealth)), () => null),
@@ -59,6 +62,7 @@ export async function loadProcessingStatus(): Promise<ProcessingStatusView> {
       .order('locked_at', { ascending: true })
       .limit(200)
       .then((r: any) => (r.error ? [] : (r.data ?? [])), () => []),
+    processingAddonView(),
   ])
   let provider: ProcessingStatusView['provider'] = null
   if (resolved) {
@@ -91,7 +95,7 @@ export async function loadProcessingStatus(): Promise<ProcessingStatusView> {
     const names = new Map(((data ?? []) as any[]).map((w) => [w.id, w.name]))
     for (const job of jobs) job.workflow_name = names.get(job.workflow_id) ?? null
   }
-  return { mode, provider, queue: health, jobs, docs_href: PROCESSING_DOCS_HREF }
+  return { mode, provider, addon, queue: health, jobs, docs_href: PROCESSING_DOCS_HREF }
 }
 
 export type RecoverStuckJobResult =
@@ -157,11 +161,19 @@ export type ConfigureProcessingResult =
   | { ok: true; status: ProcessingStatus }
   | { ok: false; status: number; error: string }
 
-/** PATCH /admin/processing: hand the change to the processing provider (the add-on); 409 without one. */
+/**
+ * PATCH /admin/processing and the Settings card: hand the change to the
+ * processing provider (the add-on). Refused (409) without a provider that is
+ * in the build AND licensed now — resolveProcessingProvider checks the
+ * licence on every call (an expired licence stops changes 24 hours after
+ * expiry; work then runs in the web app again).
+ */
 export async function configureProcessing(changes: { mode?: 'web' | 'workers'; test_runs_on_workers?: boolean }): Promise<ConfigureProcessingResult> {
+  if (changes.mode !== undefined && changes.mode !== 'web' && changes.mode !== 'workers') return { ok: false, status: 400, error: 'mode must be web or workers' }
+  if (changes.test_runs_on_workers !== undefined && typeof changes.test_runs_on_workers !== 'boolean') return { ok: false, status: 400, error: 'test_runs_on_workers must be true or false' }
   const resolved = await resolveProcessingProvider().catch(() => null)
   if (!resolved?.provider.configure) {
-    return { ok: false, status: 409, error: 'Separate processing workers need the processing add-on and its licence; without it the web app runs queued work.' }
+    return { ok: false, status: 409, error: 'Separate processing workers need the Processing add-on and a valid licence; without it the web app runs queued work.' }
   }
   try {
     const status = await resolved.provider.configure({ ctx: resolved.ctx, changes })

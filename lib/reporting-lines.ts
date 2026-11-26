@@ -99,15 +99,32 @@ export function wouldCreateCycle(index: ReportingIndex, userId: string, managerI
   return managerChain(index, managerId, 1000).includes(userId)
 }
 
-/** Active members' reporting lines in one workspace. */
+/** Rows per page when reading reporting lines (at most the server's max_rows, 1,000 by default). */
+export const REPORTING_LINES_PAGE = 1000
+
+/**
+ * Active members' reporting lines in one workspace, every one of them: read
+ * in user_id keyset pages, because one unpaged select is silently cut at
+ * PostgREST max_rows (1,000), which made manager chains (task visibility,
+ * My team, Active tasks) wrong in larger workspaces.
+ */
 export async function loadReportingLines(db: any, tenantId: string): Promise<ReportingLine[]> {
-  const { data, error } = await db
-    .from('user_memberships')
-    .select('user_id, manager_user_id')
-    .eq('tenant_id', tenantId)
-    .eq('is_active', true)
-  if (error) throw new Error(error.message)
-  return ((data ?? []) as any[]).map((row) => ({ user_id: String(row.user_id), manager_user_id: row.manager_user_id ? String(row.manager_user_id) : null }))
+  const out: ReportingLine[] = []
+  let after: string | null = null
+  for (;;) {
+    let query = db
+      .from('user_memberships')
+      .select('user_id, manager_user_id')
+      .eq('tenant_id', tenantId)
+      .eq('is_active', true)
+    if (after) query = query.gt('user_id', after)
+    const { data, error } = await query.order('user_id', { ascending: true }).limit(REPORTING_LINES_PAGE)
+    if (error) throw new Error(error.message)
+    const rows = (data ?? []) as any[]
+    for (const row of rows) out.push({ user_id: String(row.user_id), manager_user_id: row.manager_user_id ? String(row.manager_user_id) : null })
+    if (rows.length < REPORTING_LINES_PAGE) return out
+    after = String(rows[rows.length - 1].user_id)
+  }
 }
 
 export async function loadReportingIndex(db: any, tenantId: string): Promise<ReportingIndex> {

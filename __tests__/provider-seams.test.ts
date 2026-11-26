@@ -125,6 +125,9 @@ describe('browser database client (phase 4: realtime and auth only)', () => {
   })
 })
 
+// Service clients keep no session and start no refresh timer (one leaked per call otherwise).
+const NO_SESSION = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+
 describe('getServiceDb', () => {
   // DB_PROVIDER / DATABASE_URL too: these cases pin the provider they test,
   // so the suite also passes when it runs with DB_PROVIDER=postgres.
@@ -139,9 +142,20 @@ describe('getServiceDb', () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon'
     const { getServiceDb } = await import('@/lib/providers/db')
     getServiceDb()
-    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', 'service')
+    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', 'service', NO_SESSION)
     getServiceDb({ anonFallback: true })
-    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', 'service')
+    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', 'service', NO_SESSION)
+  })
+
+  it('carries the acting user in ACTOR_HEADER when asked (service-role writes made for a user)', async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service'
+    process.env.DB_PROVIDER = 'supabase'
+    const { ACTOR_HEADER } = await import('@/lib/providers/db')
+    const { createActorServiceClient } = await import('@/lib/cron-auth')
+    createActorServiceClient('11111111-1111-4111-8111-111111111111')
+    expect(ACTOR_HEADER).toBe('x-usertasks-actor')
+    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', 'service', { ...NO_SESSION, global: { headers: { 'x-usertasks-actor': '11111111-1111-4111-8111-111111111111' } } })
   })
 
   it('falls back to the anon key only when asked', async () => {
@@ -150,9 +164,9 @@ describe('getServiceDb', () => {
     const { getServiceDb, hasServiceDb } = await import('@/lib/providers/db')
     expect(hasServiceDb()).toBe(false)
     getServiceDb({ anonFallback: true })
-    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', 'anon')
+    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', 'anon', NO_SESSION)
     getServiceDb()
-    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', undefined)
+    expect(createClientMock).toHaveBeenLastCalledWith('http://127.0.0.1:54321', undefined, NO_SESSION)
   })
 
   it('createServiceClient (lib/cron-auth) still refuses to run without the service key', async () => {
@@ -175,9 +189,10 @@ describe('getServiceDb', () => {
     process.env.DATABASE_URL = 'postgresql://u:p@127.0.0.1:1/db'
     expect(hasServiceDb()).toBe(true)
     getServiceDb()
-    const [url, key, options] = createClientMock.mock.lastCall as unknown as [string, string, { global: { fetch: unknown } }]
+    const [url, key, options] = createClientMock.mock.lastCall as unknown as [string, string, { auth: unknown; global: { fetch: unknown } }]
     expect([url, key]).toEqual(['http://127.0.0.1:54321', 'service'])
     expect(typeof options.global.fetch).toBe('function')
+    expect(options.auth).toEqual(NO_SESSION.auth)
     // No Supabase project at all: placeholders, REST still in-process.
     delete process.env.NEXT_PUBLIC_SUPABASE_URL
     delete process.env.SUPABASE_SERVICE_ROLE_KEY

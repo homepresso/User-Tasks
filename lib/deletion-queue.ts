@@ -1,7 +1,7 @@
 import { getServiceDb } from '@/lib/providers/db'
 import { enqueueDataTableEventWorkflows, invalidateDataTableTriggerCache } from '@/lib/data-table-workflow-triggers'
 import { deactivateWorkflowsReferencingAgent } from '@/lib/agent-references'
-import { appUrlOrLocalhost, processorSecret } from '@/lib/config/bootstrap'
+import { internalAppUrl, processorSecret } from '@/lib/config/bootstrap'
 import { getStorageProviderFor } from '@/lib/providers/storage'
 import type { SupabaseStorageClient } from '@/lib/providers/storage/supabase'
 import { isSafeStorageKey } from '@/lib/storage/buckets'
@@ -30,7 +30,7 @@ function createServiceClient() {
 }
 
 export function kickDeletionProcessor() {
-  const baseUrl = appUrlOrLocalhost()
+  const baseUrl = internalAppUrl()
   fetch(`${baseUrl}/api/deletions/process`, {
     method: 'POST',
     headers: {

@@ -983,10 +983,13 @@ function InlineList({ field, config, value, onChange, id, describedBy, invalid, 
   // Nested List columns are a button (their rows open under the row), not in the Enter flow.
   // Cell rules (list.cell_rules): a row's hidden cells are empty, its read-only cells show the value (the server keeps it too).
   const cellStates = rows.map((r) => listCellStates(config, r, checkCtx))
-  const lockedCell = (row: Record<string, unknown>, c: ListColumn) => Boolean(cellStates[rows.indexOf(row)]?.locked[c.key])
+  // Row -> index once per render: rows.indexOf per cell made every render O(rows² × columns).
+  const rowIndex = new Map<Record<string, unknown>, number>(rows.map((r, i) => [r, i]))
+  const indexOfRow = (row: Record<string, unknown>) => rowIndex.get(row) ?? -1
+  const lockedCell = (row: Record<string, unknown>, c: ListColumn) => Boolean(cellStates[indexOfRow(row)]?.locked[c.key])
   const hiddenCell = (r: number, c: ListColumn) => Boolean(cellStates[r]?.hidden[c.key])
   const writable = (row: Record<string, unknown>, c: ListColumn) => listColumnWritable(config, c.key, row) && !lockedCell(row, c)
-  const editableIn = (row: Record<string, unknown>) => inputs.filter((c) => c.type !== 'list' && writable(row, c) && !hiddenCell(rows.indexOf(row), c))
+  const editableIn = (row: Record<string, unknown>) => inputs.filter((c) => c.type !== 'list' && writable(row, c) && !hiddenCell(indexOfRow(row), c))
   // A New row asking for a column's focus (new_row's focus_column).
   useEffect(() => {
     if (current === null || !focusColumn) return

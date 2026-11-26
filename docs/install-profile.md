@@ -102,6 +102,19 @@ working:
 With `--format json`, a refusal is
 `{ "ok": false, "code": "licence_required", "separated": [...] }`.
 
+## Separate processing workers need a Processing licence
+
+`processing: { mode: workers }` (optional `testRunsOnWorkers: true`) writes
+`PROCESSING_MODE=workers`: the web app only queues and processors
+(`node worker.cjs --processor`) run the work. That is the
+[Processing add-on](processing-add-on.md), a paid extension: `validate`,
+`write` and `apply` refuse it unless `--licence <file>` (or
+`USERTASKS_LICENCE_FILE` / `USERTASKS_LICENCE`) holds a Processing licence
+(checked offline, like the Infrastructure licence; it stops 24 hours after
+expiry). A re-run whose merged env file already has `PROCESSING_MODE=workers`
+keeps it. Leaving `processing` out (or `mode: web`) is free: the web app
+processes. `apply` installs the licence into the instance.
+
 ## The profile
 
 ```json

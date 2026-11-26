@@ -9,7 +9,7 @@ import { Tooltip } from "@/components/ui/tooltip"
 import { Avatar } from "@/components/ui/avatar"
 import { usePermissions } from "@/lib/permissions-context"
 import { serverQuery } from "@/lib/server-read"
-import { formAppPath } from "@/lib/forms/form-page-url"
+import { formAppPath } from "@/lib/forms/form-paths"
 import type { AppMenuItem, AppMenuLeaf, BadgeSource, OpenMode } from "@/lib/apps/schema"
 import { resolveParams } from "@/lib/apps/params"
 import { displayLabel } from "@/lib/apps/labels"
@@ -251,7 +251,7 @@ export function NavMenu({ items: rawItems, nav, orientation, rail = false, densi
   }
 
   const nodes = items.map((m, i) => (m.kind === "group" ? group(m, `g${i}`) : leaf(m, `i${i}`)))
-  if (horizontal) return <div className={cn("flex min-w-0 items-center gap-0.5", className)} role="list">{nodes}</div>
+  if (horizontal) return <div className={cn("flex min-w-0 items-center gap-0.5", className)}>{nodes}</div>
   return <ul className={cn("space-y-0.5", className)}>{nodes}</ul>
 }
 

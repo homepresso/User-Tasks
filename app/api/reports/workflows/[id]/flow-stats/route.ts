@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { getUserPermissions } from '@/lib/permissions-server'
-import { buildAggregateFlowStats } from '@/lib/report-flow-stats'
+import { createFlowStatsAccumulator } from '@/lib/report-flow-stats'
 
 /**
  * Per-node / per-edge visit counts for a workflow's newest runs (the process
@@ -31,9 +31,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!workflow) return NextResponse.json({ error: 'Workflow not found' }, { status: 404 })
 
-  // Same run set as the page (newest RUN_LIMIT), fetched in pages to bound
-  // the size of each response.
-  const runs: Array<Record<string, unknown>> = []
+  // Same run set as the page (newest RUN_LIMIT), fetched in pages and
+  // aggregated page by page: one page of traces / node results in memory.
+  const stats = createFlowStatsAccumulator(workflow)
   for (let offset = 0; offset < RUN_LIMIT; offset += PAGE_SIZE) {
     const { data, error: runsError } = await supabase
       .from('workflow_runs')
@@ -43,11 +43,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       .order('id', { ascending: false })
       .range(offset, Math.min(offset + PAGE_SIZE, RUN_LIMIT) - 1)
     if (runsError) return NextResponse.json({ error: runsError.message }, { status: 500 })
-    runs.push(...((data ?? []) as Array<Record<string, unknown>>))
+    stats.add((data ?? []) as Array<Record<string, unknown>>)
     if ((data ?? []).length < PAGE_SIZE) break
   }
 
-  return NextResponse.json(buildAggregateFlowStats(workflow, runs), {
+  return NextResponse.json(stats.result(), {
     headers: { 'Cache-Control': 'private, max-age=30' },
   })
 }

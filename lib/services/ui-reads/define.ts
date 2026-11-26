@@ -35,3 +35,19 @@ export function check<T>(result: { data: T; error: { message: string } | null })
   if (result.error) throw new Error(result.error.message)
   return result.data
 }
+
+/**
+ * Active members' user rows (id, display_name, email) of a workspace, for
+ * pickers. The ids go to `.in()` in chunks of 200: one list of 2,000 uuids
+ * is ~74 KB of query string over PostgREST (gateways reject long URLs).
+ */
+export async function activeMemberUsers(db: any, tenantId: string, cap = 2000): Promise<Array<{ id: string; display_name: string | null; email: string | null }>> {
+  const { data: members } = await db.from('user_memberships').select('user_id').eq('tenant_id', tenantId).eq('is_active', true).limit(cap)
+  const ids = ((members ?? []) as any[]).map((m) => String(m.user_id))
+  const out: any[] = []
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data } = await db.from('users').select('id, display_name, email').in('id', ids.slice(i, i + 200)).is('deleted_at', null)
+    out.push(...((data ?? []) as any[]))
+  }
+  return out
+}

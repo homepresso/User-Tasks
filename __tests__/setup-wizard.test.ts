@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   WIZARD_STEP_IDS, checkAddress, idpFromForm, markStep, nextStep, parseInviteList, parseProgress, parseStoredIdps, stepAfter, stepBefore, summariseIdp, upsertIdp, idpRedirects,
 } from '@/lib/setup/wizard-model'
@@ -6,9 +6,16 @@ import { signInSummary } from '@/lib/setup/wizard-data'
 import { markStepAs, removeIdpAs, saveEmailAs, saveIdpAs, sendTestEmailAs, testIdpAs, type WizardDeps } from '@/lib/setup/wizard-server'
 import { hostsForOptions, hostOfUrl } from '@/lib/install/egress'
 import { resolveInstanceConfig, type InstanceConfig } from '@/lib/config'
+import { PROVIDER_ENV } from '@/lib/config/schema'
 import { runSetup, type SetupDeps } from '@/lib/setup/run'
 
 const ADMIN = { id: '11111111-1111-1111-1111-111111111111', email: 'owner@example.com' }
+
+// The configurations here are stored settings; a provider env var (the plain
+// PostgreSQL CI job sets AUTH_PROVIDER=builtin, STORAGE_PROVIDER…) would rightly
+// win over them, so the file runs with none set.
+beforeEach(() => { for (const name of Object.values(PROVIDER_ENV)) vi.stubEnv(name, '') })
+afterEach(() => { vi.unstubAllEnvs() })
 
 describe('setup wizard model', () => {
   it('progress: parse tolerantly, mark, next step, finish', () => {

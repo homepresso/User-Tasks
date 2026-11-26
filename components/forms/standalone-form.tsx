@@ -20,13 +20,14 @@ import { cn } from '@/lib/utils'
 import { isPaged } from '@/lib/forms/layout'
 import { pageSettings } from '@/lib/forms/pages'
 import { serverRead } from '@/lib/server-read'
+import { submittableFormKey } from '@/lib/forms/form-query-keys'
 import { deleteStandaloneFormRecord, submitStandaloneForm } from '@/app/actions/forms'
 import { planButtonEffects, type ButtonEffects, type FormButton } from '@/lib/forms/buttons'
 import { freshSubmissionValues, screenButtonOutcome } from '@/lib/forms/submitted-page'
 import { validateTaskFieldValues } from '@/lib/task-field-schema'
 import { FORM_PARAMS_KEY, formParamsMessage, layoutFormParams, paramsFromQuery, parseFormParams, withFormContext } from '@/lib/forms/form-params'
 import { openingFieldDefaults } from '@/lib/forms/preview-inputs'
-import { VALUE_CONTROL_SELECTOR, isPersonEdit, personHasEntered, shouldOfferDraft, type EditEventLike } from '@/lib/forms/draft-offer'
+import { VALUE_CONTROL_SELECTOR, hasUnsavedEntries, isPersonEdit, personHasEntered, shouldOfferDraft, type EditEventLike } from '@/lib/forms/draft-offer'
 import type { AnonymousFormPage } from '@/lib/services/anonymous-forms'
 import type { FormLookupSource } from '@/components/forms/lookup-field'
 import { AnonymousCaptcha, AnonymousHoneypot, submitAnonymous } from '@/components/forms/anonymous-form-parts'
@@ -199,11 +200,13 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   // The URL query goes to the server: a form bound to an external record (a data target, lib/forms/data-target.ts) loads the record its URL parameters name.
   const urlQuery = useMemo(() => cleanQuery(query), [query])
   const { data: form, error, isPending: isLoading, refetch } = useQuery({
-    queryKey: ['form-submittable', formId, urlQuery],
+    queryKey: [...submittableFormKey(formId), urlQuery],
     enabled: !anonymous,
     initialData: anonymous?.page.form ?? initialForm,
     // Server-prepared (trusted embedding): no refetch on mount, so the record is read once per page load.
-    ...(initialForm ? { staleTime: 30_000 } : {}),
+    // Otherwise the published form is read again on every visit (the cached copy only paints first):
+    // an edit published a moment ago — a header image removed — must show at once (customer report, Nov 2026).
+    ...(initialForm ? { staleTime: 30_000 } : { staleTime: 0, refetchOnMount: 'always' as const }),
     queryFn: async () => {
       const { data, error: readError } = await serverRead('forms.submittable', { id: formId, ...(urlQuery ? { query: urlQuery } : {}) })
       if (readError) throw new Error(readError.message)
@@ -226,8 +229,6 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   // Defaults: {{param.x}} filled in; other placeholders have nothing to fill them on a form page.
   const defaults = useMemo(() => (form ? openingFieldDefaults(form.fields, params?.parsed.values ?? null) : {}), [form, params])
   const [values, setValues] = useState<Record<string, unknown>>({})
-  const hasValues = Object.values(values).some((v) => v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length))
-  useEffect(() => { onDirtyChange?.(hasValues) }, [hasValues]) // eslint-disable-line react-hooks/exhaustive-deps
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState<string | null>(null)
   // Synchronous guard: two clicks in one frame both see busy === null.
@@ -251,10 +252,16 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
   // a repeating section's items, form-load rules): only their own edit events count (lib/forms/draft-offer.ts).
   const [edited, setEdited] = useState(false)
   const dirty = personHasEntered(values, edited)
+  // Unsaved for the host (an app panel asks before closing): only what the PERSON entered — a form fills
+  // bound defaults ({{param.x}}) by itself when it opens, and that alone must never block closing it.
+  // What the form had already written when the person first edited (dynamic defaults included) doesn't count as theirs.
+  const [baseline, setBaseline] = useState<Record<string, unknown>>({})
+  const unsaved = hasUnsavedEntries(values, { ...defaults, ...baseline }, edited)
+  useEffect(() => { onDirtyChange?.(unsaved) }, [unsaved]) // eslint-disable-line react-hooks/exhaustive-deps
   const noteEdit = (event: React.SyntheticEvent) => {
     if (edited) return
     const target = event.target as Element | null
-    if (isPersonEdit(event.nativeEvent as unknown as EditEventLike, Boolean(target?.closest?.(VALUE_CONTROL_SELECTOR)))) setEdited(true)
+    if (isPersonEdit(event.nativeEvent as unknown as EditEventLike, Boolean(target?.closest?.(VALUE_CONTROL_SELECTOR)))) { setBaseline(values); setEdited(true) }
   }
   // "Resume later" (steps / tabs forms): unsent answers and the step stay in this browser.
   const resumeKey = !anonymous && form && isPaged(form.layout) && pageSettings(form.layout).resume ? `form:${form.id}` : undefined
@@ -394,6 +401,8 @@ export function StandaloneForm({ formId, query, anonymous, surface = 'app', embe
         if (anonymous?.page.captcha) { setCaptcha(null); setCaptchaRound((n) => n + 1) }
         onSubmitted?.({ submission_id: ((result.data as { submission_id?: string; id?: string }).submission_id ?? (result.data as { id?: string }).id ?? null), values: shown })
         setErrors({})
+        // Sent: nothing is unsaved any more (an app panel showing the success screen closes without "Discard the form you started?").
+        setEdited(false)
         forgetDraft()
         if (!anonymous) drafts.submitted()
         setDraftDecided(true)

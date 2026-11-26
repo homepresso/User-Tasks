@@ -2,12 +2,13 @@
 
 import { NextResponse } from 'next/server'
 import { isServiceError } from '@/lib/services/context'
+import { clientIpFrom } from '@/lib/client-ip'
 
 export const NO_STORE = { 'Cache-Control': 'no-store' }
 
 /** The client address (first X-Forwarded-For hop, X-Real-IP, or unknown); only ever hashed. */
 export function clientAddress(headers: Headers): string {
-  return headers.get('x-forwarded-for')?.split(',')[0]?.trim() || headers.get('x-real-ip') || 'unknown'
+  return clientIpFrom(headers) ?? 'unknown'
 }
 
 export function galleryError(error: unknown, label: string) {

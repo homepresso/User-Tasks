@@ -93,6 +93,49 @@ function toArray(value: any): string[] {
   return [String(value)]
 }
 
+/**
+ * Order two values for greater / less than — the form rules' semantics,
+ * shared by workflow Branch by Condition and event-wait conditions:
+ * numbers (or numeric text) compare as numbers; ISO dates / date-times
+ * (YYYY-MM-DD…) compare as instants (a date alone is midnight UTC); an empty
+ * side (null, '', whitespace, []) has no order, so every comparison is false
+ * (empty is not 0); anything else compares as trimmed, case-insensitive text.
+ * Returns <0, 0, >0, or null when there is no order.
+ */
+export function compareOrdered(a: unknown, b: unknown): number | null {
+  const na = orderNumber(a); const nb = orderNumber(b)
+  if (na !== null && nb !== null) return na - nb
+  const ta = orderTime(a); const tb = orderTime(b)
+  if (ta !== null && tb !== null) return ta - tb
+  if (orderBlank(a) || orderBlank(b)) return null
+  return orderText(a).localeCompare(orderText(b))
+}
+
+function orderBlank(v: unknown): boolean {
+  return v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0) || (typeof v === 'string' && !v.trim())
+}
+function orderText(v: unknown): string {
+  return typeof v === 'boolean' ? String(v) : String(v ?? '').trim().toLowerCase()
+}
+function orderNumber(v: unknown): number | null {
+  if (typeof v === 'number' && Number.isFinite(v)) return v
+  if (typeof v === 'string' && /^\s*-?\d+(?:\.\d+)?\s*$/.test(v)) return Number(v)
+  return null
+}
+function orderTime(v: unknown): number | null {
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.getTime()
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(v)) return null
+  const t = Date.parse(v.length === 10 ? `${v}T00:00:00Z` : v)
+  return Number.isNaN(t) ? null : t
+}
+
+/** gt / gte / lt / lte by compareOrdered (no order → false). */
+export function orderedMatch(op: 'gt' | 'gte' | 'lt' | 'lte', a: unknown, b: unknown): boolean {
+  const o = compareOrdered(a, b)
+  if (o === null) return false
+  return op === 'gt' ? o > 0 : op === 'gte' ? o >= 0 : op === 'lt' ? o < 0 : o <= 0
+}
+
 export interface EvaluateOperatorOptions {
   /** Resolved value of `compareField` for field-to-field operators. */
   compareValue?: any
@@ -119,10 +162,10 @@ export function evaluateOperator(
     case 'not_equals': return String(fv ?? '') !== String(cv ?? '')
     case 'contains': return String(fv ?? '').includes(String(cv ?? ''))
     case 'not_contains': return !String(fv ?? '').includes(String(cv ?? ''))
-    case 'gt': return Number(fv) > Number(cv)
-    case 'lt': return Number(fv) < Number(cv)
-    case 'gte': return Number(fv) >= Number(cv)
-    case 'lte': return Number(fv) <= Number(cv)
+    case 'gt': return orderedMatch('gt', fv, cv)
+    case 'lt': return orderedMatch('lt', fv, cv)
+    case 'gte': return orderedMatch('gte', fv, cv)
+    case 'lte': return orderedMatch('lte', fv, cv)
     // Plain falsiness (!fv) would misclassify legitimate 0 / false values as
     // "empty" — only null/undefined/'' and empty arrays count as empty.
     case 'is_empty': return fv === null || fv === undefined || fv === '' || (Array.isArray(fv) && !fv.length)
@@ -138,10 +181,10 @@ export function evaluateOperator(
     case 'changed': return !valuesEqual(fv, previousValue)
     case 'equals_field': return String(fv ?? '') === String(compareValue ?? '')
     case 'not_equals_field': return String(fv ?? '') !== String(compareValue ?? '')
-    case 'gt_field': return Number(fv) > Number(compareValue)
-    case 'lt_field': return Number(fv) < Number(compareValue)
-    case 'gte_field': return Number(fv) >= Number(compareValue)
-    case 'lte_field': return Number(fv) <= Number(compareValue)
+    case 'gt_field': return orderedMatch('gt', fv, compareValue)
+    case 'lt_field': return orderedMatch('lt', fv, compareValue)
+    case 'gte_field': return orderedMatch('gte', fv, compareValue)
+    case 'lte_field': return orderedMatch('lte', fv, compareValue)
     case 'has_role': return toArray(fv).includes(String(cv ?? ''))
     case 'has_permission': return toArray(fv).includes(String(cv ?? ''))
     case 'in_team': return toArray(fv).includes(String(cv ?? ''))

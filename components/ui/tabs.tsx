@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useRef, type KeyboardEvent, type ReactNode } from "react"
+import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import { CountBadge } from "./badge"
 
@@ -43,6 +43,16 @@ export function Tabs<V extends string = string>({ items, value, onValueChange, c
   const base = idBase ?? `tabs${auto}`
   const listRef = useRef<HTMLDivElement>(null)
 
+  // aria-controls only when the panel is in the DOM: many tab rows render their own content
+  // (or none), and an id that points nowhere is an invalid ARIA reference (axe aria-valid-attr-value).
+  useEffect(() => {
+    for (const tab of Array.from(listRef.current?.querySelectorAll<HTMLElement>('[role="tab"][data-panel-id]') ?? [])) {
+      const id = tab.dataset.panelId!
+      if (document.getElementById(id)) tab.setAttribute("aria-controls", id)
+      else tab.removeAttribute("aria-controls")
+    }
+  })
+
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     const keys = ["ArrowLeft", "ArrowRight", "Home", "End"]
     if (!keys.includes(e.key)) return
@@ -74,7 +84,7 @@ export function Tabs<V extends string = string>({ items, value, onValueChange, c
               role="tab"
               id={`${base}-tab-${item.value}`}
               aria-selected={selected}
-              aria-controls={item.href ? undefined : `${base}-panel-${item.value}`}
+              data-panel-id={item.href ? undefined : `${base}-panel-${item.value}`}
               aria-disabled={item.disabled || undefined}
               tabIndex={selected ? 0 : -1}
               data-state={selected ? "active" : "inactive"}

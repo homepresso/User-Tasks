@@ -33,7 +33,7 @@ vi.mock('@/lib/services/_shared', async (importOriginal) => {
 vi.mock('@/lib/audit-log', () => ({ writeAudit: vi.fn(async (entry: any) => { memory.audits.push(entry) }) }))
 vi.mock('@/lib/email', () => ({ sendEmail: vi.fn(async () => ({ success: true })) }))
 vi.mock('@/lib/process-queue', () => ({ kickQueueProcessor: vi.fn() }))
-vi.mock('@/lib/cron-auth', () => ({ createServiceClient: () => memory.db, isAuthorizedServiceCall: () => false }))
+vi.mock('@/lib/cron-auth', () => ({ createServiceClient: () => memory.db, createActorServiceClient: () => memory.db, isAuthorizedServiceCall: () => false }))
 vi.mock('@/lib/workflow-resume-queue', () => ({ enqueueResume: vi.fn(async (input: any) => { memory.resumes.push(input); return { run_id: 'run-1', workflow_id: 'wf-1', job_id: 'job-1', resumed: 'queued' } }) }))
 vi.mock('@/lib/services/task-completion-screen', () => ({ nextStepForResponse: vi.fn(async () => ({ state: 'assigned', run_id: 'run-1', steps: [{ name: 'CFO approval', assignees: ['Priya Shah'], team: null }], process: { name: 'Leave' }, run_view: 'full' })) }))
 

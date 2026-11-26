@@ -33,6 +33,7 @@ import { contextVariableOptions } from '@/lib/forms/form-params'
 import { controlVariables, ruleVariableOptions } from '@/lib/forms/rule-variables'
 import { DesignerVariableScope } from './designer-variable-scope'
 import { cn } from '@/lib/utils'
+import { conditionFieldValue, conditionValueMode, conditionValueRef, type ConditionValueMode } from '@/lib/forms/condition-value'
 import { designerInputClass as inputClass } from './designer-controls'
 import { ColumnControlFields } from '@/components/grid/column-editor'
 import { BOUND_CONTROLS, GRID_CONTROL_LABELS, gridColumnFromForm, hasCustomControl, type GridColumnDef } from '@/lib/grid/column-model'
@@ -183,13 +184,22 @@ export function FormatEditor({ col, onChange, hideKind }: {
 
 /* ── Base filter builder ─────────────────────────────────────────────── */
 
-function ConditionRow({ cond, columns, placeholders, onChange, onRemove }: {
+function ConditionRow({ cond, columns, placeholders, valueFields, onChange, onRemove }: {
   cond: DataTableCondition
   columns: Array<{ value: string; label: string }>
   placeholders: Array<{ name: string; group: string; label?: string }>
+  /**
+   * Offer "Compare with: Value | Field" (form rules): the right side may be another field or
+   * variable of the form, stored as its single placeholder {{path}} (lib/forms/condition-value.ts).
+   * Absent (a Data table's base filter): a value only.
+   */
+  valueFields?: Array<{ value: string; label: string }>
   onChange: (next: DataTableCondition, tag?: string) => void
   onRemove: () => void
 }) {
+  const [mode, setMode] = useState<ConditionValueMode>(() => (valueFields ? conditionValueMode(cond.value, valueFields.map((f) => f.value)) : 'value'))
+  const ref = conditionValueRef(cond.value)
+  const hasValue = cond.operator !== 'is_set' && cond.operator !== 'is_not_set'
   return (
     <div className="space-y-1 rounded border p-1.5 border-border" data-testid="dt-condition">
       <div className="grid grid-cols-[1fr_1fr_auto] gap-1">
@@ -198,18 +208,35 @@ function ConditionRow({ cond, columns, placeholders, onChange, onRemove }: {
           onChange={(v) => onChange({ column: cond.column, operator: (v || 'eq') as DataTableOperator, ...(v === 'is_set' || v === 'is_not_set' ? {} : { value: cond.value ?? '' }) })} />
         <button type="button" className="rounded p-0.5" aria-label="Remove condition" onClick={onRemove}><X size={11} /></button>
       </div>
-      {cond.operator !== 'is_set' && cond.operator !== 'is_not_set' && (
-        <VariableInput value={cond.value ?? ''} extraVariables={placeholders} placeholder="A value, {{form.<field>}}, {{user.email}}, {{today-30d}}" onChange={(v) => onChange({ ...cond, value: v }, 'dt-cond')} />
+      {hasValue && valueFields && (
+        <div className="flex items-center gap-1" data-condition-value-mode={mode}>
+          <span className="shrink-0 text-2xs text-fg-muted">Compare with</span>
+          <div className="w-32"><Radio label="Compare with" value={mode} options={[['value', 'Value'], ['field', 'Field']]}
+            onChange={(m) => {
+              setMode(m)
+              // Switching keeps what still fits: a field reference stays only in Field mode.
+              if (m === 'value' && ref) onChange({ ...cond, value: '' }, 'dt-cond')
+              if (m === 'field' && !(ref && valueFields.some((f) => f.value === ref))) onChange({ ...cond, value: '' }, 'dt-cond')
+            }} /></div>
+        </div>
       )}
+      {hasValue && (mode === 'field' && valueFields ? (
+        <AutocompleteSelect value={ref ?? ''} placeholder="Choose a field or variable…" options={valueFields.filter((f) => f.value !== cond.column)}
+          onChange={(v) => onChange({ ...cond, value: conditionFieldValue(v) })} dataAttrs={{ 'data-testid': 'condition-value-field' }} />
+      ) : (
+        <VariableInput value={cond.value ?? ''} extraVariables={placeholders} placeholder="A value, {{form.<field>}}, {{user.email}}, {{today-30d}}" onChange={(v) => onChange({ ...cond, value: v }, 'dt-cond')} />
+      ))}
     </div>
   )
 }
 
-export function GroupEditor({ group, depth, columns, placeholders, onChange, onRemove }: {
+export function GroupEditor({ group, depth, columns, placeholders, valueFields, onChange, onRemove }: {
   group: DataTableConditionGroup
   depth: number
   columns: Array<{ value: string; label: string }>
   placeholders: Array<{ name: string; group: string; label?: string }>
+  /** Form rules: what a condition may compare with besides a value (ConditionRow). */
+  valueFields?: Array<{ value: string; label: string }>
   onChange: (next: DataTableConditionGroup | undefined, tag?: string) => void
   onRemove?: () => void
 }) {
@@ -222,10 +249,10 @@ export function GroupEditor({ group, depth, columns, placeholders, onChange, onR
         {onRemove && <button type="button" className="ml-auto rounded p-0.5" aria-label="Remove group" onClick={onRemove}><X size={11} /></button>}
       </div>
       {group.conditions.map((c, i) => isConditionGroup(c)
-        ? <GroupEditor key={i} group={c} depth={depth + 1} columns={columns} placeholders={placeholders}
+        ? <GroupEditor key={i} group={c} depth={depth + 1} columns={columns} placeholders={placeholders} valueFields={valueFields}
             onChange={(next, tag) => set(next ? group.conditions.map((x, j) => (j === i ? next : x)) : group.conditions.filter((_, j) => j !== i), tag)}
             onRemove={() => set(group.conditions.filter((_, j) => j !== i))} />
-        : <ConditionRow key={i} cond={c} columns={columns} placeholders={placeholders}
+        : <ConditionRow key={i} cond={c} columns={columns} placeholders={placeholders} valueFields={valueFields}
             onChange={(next, tag) => set(group.conditions.map((x, j) => (j === i ? next : x)), tag ? `${tag}-${depth}-${i}` : undefined)}
             onRemove={() => set(group.conditions.filter((_, j) => j !== i))} />)}
       <div className="flex gap-3">

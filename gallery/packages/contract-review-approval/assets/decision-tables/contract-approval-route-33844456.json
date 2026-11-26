@@ -15,7 +15,7 @@
       },
       {
         "key": "contract_value",
-        "label": "Total value (NZD)",
+        "label": "Total value (USD)",
         "type": "number",
         "id": "a697e27e-3c0d-59fb-8e49-eb53fe7109f1"
       },

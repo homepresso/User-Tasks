@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ConnectorFieldRenderer } from "./connector-field-renderer"
 import {
   X, ChevronRight, ChevronLeft, Loader2, CheckCircle2, XCircle,
@@ -121,15 +122,9 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40" />
-
-      {/* Dialog */}
-      <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl shadow-2xl overflow-hidden bg-panel"
-        onClick={e => e.stopPropagation()}
-      >
+    // The shared Dialog primitive: focus trap, Esc, focus return, dialog role named by the title below.
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent size="md" className="max-w-lg rounded-2xl" aria-describedby={undefined}>
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
           <div
@@ -139,14 +134,14 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
             <Icon size={18} style={{ color: definition.color }} />
           </div>
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-fg">
+            <DialogTitle className="text-sm font-semibold text-fg">
               Connect {definition.name}
-            </h2>
+            </DialogTitle>
             <p className="text-2xs text-fg-muted">
               Step {stepIndex + 1} of {steps.length}
             </p>
           </div>
-          <button onClick={onClose} className="hover:opacity-70 text-fg-muted">
+          <button type="button" onClick={onClose} aria-label="Close" className="hover:opacity-70 text-fg-muted">
             <X size={18} />
           </button>
         </div>
@@ -380,7 +375,7 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
                 disabled={enabling || !canAdvance()}
                 style={{ backgroundColor: definition.color, color: 'white', borderColor: definition.color }}
               >
-                {enabling ? <><Loader2 size={14} className="mr-1.5 animate-spin" /> Enabling...</> : 'Enable Connector'}
+                {enabling ? <><Loader2 size={14} className="mr-1.5 animate-spin" /> Enabling…</> : 'Enable connector'}
               </Button>
             ) : (
               <Button size="sm" onClick={nextStep} disabled={!canAdvance()}
@@ -390,7 +385,7 @@ export function ConnectorSetupDialog({ definition, onClose, onEnabled }: SetupDi
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

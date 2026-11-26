@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ComponentType } from "react"
+import { useEffect, useRef, useState, type ComponentType } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
@@ -210,6 +210,18 @@ export function SettingsFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const tab = settingsTabFrom(params.get("tab"))
   const groups = useVisibleGroups()
+  const navRef = useRef<HTMLElement>(null)
+  const activeHref = groups.flatMap((g) => g.items).find((i) => isActive(i, pathname, tab))?.href
+  // The page (and this frame) mounts afresh on each navigation: bring the chosen item into the
+  // nav's own view, so picking one low in the list doesn't leave it scrolled out of sight.
+  useEffect(() => {
+    const nav = navRef.current
+    const link = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!nav || !link || nav.scrollHeight <= nav.clientHeight) return
+    // The nav's own scroll only (scrollIntoView would also move the page).
+    const top = link.getBoundingClientRect().top - nav.getBoundingClientRect().top + nav.scrollTop
+    if (top < nav.scrollTop || top + link.offsetHeight > nav.scrollTop + nav.clientHeight) nav.scrollTop = Math.max(0, top - nav.clientHeight / 2)
+  }, [activeHref])
 
   if (FULL_BLEED.has(pathname)) return <>{children}</>
 
@@ -235,7 +247,11 @@ export function SettingsFrame({ children }: { children: React.ReactNode }) {
         </Select>
       </div>
 
-      <nav aria-label="Settings" className="w-[200px] shrink-0 self-start max-md:hidden md:sticky md:top-0">
+      {/* Sticky, and never taller than the visible column: the nav scrolls on its own under the pointer
+          (and hands the wheel back to the page at its ends: no overscroll-contain), so its lower
+          groups are reachable without first scrolling the page to the bottom (customer report, Nov 2026). */}
+      <nav ref={navRef} aria-label="Settings" data-settings-nav
+        className="w-[200px] shrink-0 self-start max-md:hidden md:sticky md:top-0 md:max-h-[calc(100dvh-var(--theme-topbar-height)-3rem)] md:overflow-y-auto md:[scrollbar-width:thin]">
         <p className="mb-3 px-2 text-base font-semibold text-fg">Settings</p>
         <div className="space-y-4">
           {groups.map((g) => (

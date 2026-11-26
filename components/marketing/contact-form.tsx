@@ -1,10 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { CheckCircle2, Loader2, Send } from 'lucide-react'
 
 const initialForm = { name: '', email: '', company: '', comments: '', website: '' }
+
+/** The `subject` query parameter as plain text (one line, at most 120 characters), or null. */
+export function subjectFromSearch(search: string): string | null {
+  const raw = new URLSearchParams(search).get('subject')
+  const text = raw?.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120)
+  return text || null
+}
 
 export function ContactForm() {
   const [form, setForm] = useState(initialForm)
@@ -12,6 +19,11 @@ export function ContactForm() {
   // Synchronous guard: a double click / Enter in one frame would send the message twice.
   const sendGuard = useSubmitGuard()
   const [error, setError] = useState<string | null>(null)
+  // /contact?subject=… (e.g. "Infrastructure add-on: early access" from an extension page) starts the message with it.
+  useEffect(() => {
+    const subject = subjectFromSearch(window.location.search)
+    if (subject) setForm((current) => (current.comments ? current : { ...current, comments: `${subject}\n\n` }))
+  }, [])
   const set = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((current) => ({ ...current, [key]: event.target.value }))
 
   async function submit(event: React.FormEvent) {

@@ -13,7 +13,8 @@
 
 import { writeLifecycleEvent } from '@/lib/lifecycle-events'
 import { getDb, requirePerm, ServiceError, type ServiceContext } from './context'
-import { dbError } from './_shared'
+import { actorServiceClient, dbError } from './_shared'
+import { isValidDateValue } from '@/lib/task-field-schema'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- task metadata is free-form jsonb */
 
@@ -25,6 +26,7 @@ interface EffortTask {
   tenant_id: string
   actual_effort: number | null
   metadata: Record<string, any> | null
+  updated_at?: string | null
 }
 
 function requireActor(ctx: ServiceContext): string {
@@ -42,8 +44,10 @@ function wholeMinutes(value: unknown, field: string, options: { allowZero?: bool
 
 function optionalTimestamp(value: unknown, field: string): string | null {
   if (value === null || value === undefined || value === '') return null
-  const date = new Date(String(value))
-  if (Number.isNaN(date.getTime())) throw ServiceError.validation(`${field} must be a date/time`)
+  const text = String(value).trim()
+  const date = new Date(text)
+  // A YYYY-MM-DD… value must name a real day (Date rolls 2027-02-30 over to 2 March).
+  if (Number.isNaN(date.getTime()) || (/^\d{4}-\d{2}-\d{2}/.test(text) && !isValidDateValue(text))) throw ServiceError.validation(`${field} must be a date/time`)
   return date.toISOString()
 }
 
@@ -54,7 +58,7 @@ function hours(minutes: number): string {
 async function loadTask(ctx: ServiceContext, taskId: string): Promise<EffortTask> {
   requirePerm(ctx, 'tasks.complete')
   const { data, error } = await (getDb(ctx) as any).from('tasks')
-    .select('id, tenant_id, actual_effort, metadata')
+    .select('id, tenant_id, actual_effort, metadata, updated_at')
     .eq('id', taskId).eq('tenant_id', ctx.tenantId).is('deleted_at', null)
     .maybeSingle()
   if (error) throw dbError(error)
@@ -65,7 +69,7 @@ async function loadTask(ctx: ServiceContext, taskId: string): Promise<EffortTask
 }
 
 async function patchTask(ctx: ServiceContext, taskId: string, patch: Record<string, unknown>) {
-  const { error } = await (getDb(ctx) as any).from('tasks')
+  const { error } = await (await actorServiceClient(ctx) as any).from('tasks')
     .update(patch).eq('id', taskId).eq('tenant_id', ctx.tenantId)
   if (error) throw dbError(error, 'Failed to update the task')
 }
@@ -80,11 +84,27 @@ async function insertEffortRecord(ctx: ServiceContext, task: EffortTask, row: Re
   if (error) throw dbError(error, 'Failed to record effort')
 }
 
-/** Add minutes to tasks.actual_effort (read-modify-write, as the browser did). */
+/**
+ * Add minutes to tasks.actual_effort. Compare-and-swap on the value read, so
+ * two entries saved at once (two people stopping timers, a retried request)
+ * both count instead of the later one overwriting the earlier total.
+ */
 async function addActualEffort(ctx: ServiceContext, task: EffortTask, minutes: number): Promise<number> {
-  const actual = (task.actual_effort ?? 0) + minutes
-  await patchTask(ctx, task.id, { actual_effort: actual })
-  return actual
+  const db = await actorServiceClient(ctx) as any  // task writes are server-only (20270130140000)
+  let current: number | null = task.actual_effort
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const actual = (current ?? 0) + minutes
+    let update = db.from('tasks').update({ actual_effort: actual }).eq('id', task.id).eq('tenant_id', ctx.tenantId)
+    update = current === null ? update.is('actual_effort', null) : update.eq('actual_effort', current)
+    const { data, error } = await update.select('id')
+    if (error) throw dbError(error, 'Failed to update the task')
+    if (data?.length) return actual
+    const { data: fresh, error: readError } = await db.from('tasks').select('actual_effort').eq('id', task.id).eq('tenant_id', ctx.tenantId).maybeSingle()
+    if (readError) throw dbError(readError)
+    if (!fresh) throw ServiceError.notFound('Task not found')
+    current = fresh.actual_effort ?? null
+  }
+  throw ServiceError.conflict('The task\'s effort is being updated by someone else; try again')
 }
 
 function lifecycle(ctx: ServiceContext, task: EffortTask, eventType: 'started' | 'comment_added', metadata: Record<string, unknown>) {
@@ -169,20 +189,45 @@ export async function setEffortEstimate(ctx: ServiceContext, taskId: string, kin
   return { minutes }
 }
 
-function remainingMetadata(ctx: ServiceContext, task: EffortTask, minutes: number | null) {
+function remainingFields(ctx: ServiceContext, minutes: number | null) {
   return {
-    ...(task.metadata ?? {}),
     remaining_effort_minutes: minutes,
     remaining_effort_updated_at: new Date().toISOString(),
     remaining_effort_updated_by: ctx.actorId,
   }
 }
 
+/**
+ * Write the remaining-effort keys into tasks.metadata (and any column patch)
+ * without losing a metadata change saved meanwhile (a workflow step, another
+ * person): compare-and-swap on updated_at (set by trg_tasks_updated on every
+ * write), re-reading the current metadata when another write got there first.
+ */
+async function patchRemaining(ctx: ServiceContext, task: EffortTask, minutes: number | null, columns: Record<string, unknown> = {}) {
+  const db = await actorServiceClient(ctx) as any  // task writes are server-only (20270130140000)
+  let metadata = task.metadata
+  let version = task.updated_at ?? null
+  const fields = remainingFields(ctx, minutes)
+  for (let attempt = 0; attempt < 20; attempt++) {
+    let update = db.from('tasks').update({ ...columns, metadata: { ...(metadata ?? {}), ...fields } }).eq('id', task.id).eq('tenant_id', ctx.tenantId)
+    update = version === null ? update.is('updated_at', null) : update.eq('updated_at', version)
+    const { data, error } = await update.select('id')
+    if (error) throw dbError(error, 'Failed to update the task')
+    if (data?.length) return
+    const { data: fresh, error: readError } = await db.from('tasks').select('metadata, updated_at').eq('id', task.id).eq('tenant_id', ctx.tenantId).maybeSingle()
+    if (readError) throw dbError(readError)
+    if (!fresh) throw ServiceError.notFound('Task not found')
+    metadata = fresh.metadata ?? null
+    version = fresh.updated_at ?? null
+  }
+  throw ServiceError.conflict('The task is being updated by someone else; try again')
+}
+
 /** Manual remaining-effort plan (null = back to the calculated value). */
 export async function setRemainingEffort(ctx: ServiceContext, taskId: string, minutesInput: number | null) {
   const minutes = minutesInput === null ? null : wholeMinutes(minutesInput, 'Remaining effort', { allowZero: true })
   const task = await loadTask(ctx, taskId)
-  await patchTask(ctx, task.id, { metadata: remainingMetadata(ctx, task, minutes) })
+  await patchRemaining(ctx, task, minutes)
   await lifecycle(ctx, task, 'comment_added', { source: 'remaining_effort', minutes, hours: minutes != null ? hours(minutes) : null })
   return { minutes }
 }
@@ -211,11 +256,10 @@ export async function saveWorkPlan(ctx: ServiceContext, taskId: string, input: W
   const estimatedCompletion = optionalTimestamp(input.estimatedCompletion, 'Estimated completion')
 
   const task = await loadTask(ctx, taskId)
-  await patchTask(ctx, task.id, {
+  await patchRemaining(ctx, task, remaining, {
     estimated_effort_assigner: assigner,
     estimated_effort_assignee: assignee,
     estimated_completion: estimatedCompletion,
-    metadata: remainingMetadata(ctx, task, remaining),
   })
   await lifecycle(ctx, task, 'comment_added', {
     source: 'inline_work_plan',

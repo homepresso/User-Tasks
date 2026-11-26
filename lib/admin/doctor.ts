@@ -107,6 +107,93 @@ export interface DoctorOptions {
   /** Per-request network timeout. */
   timeoutMs?: number
   fetch?: typeof fetch
+  /** The companion connection strings (default: from the environment; see COMPANION_DATABASE_URLS). */
+  companionUrls?: Partial<Record<CompanionDatabaseEnv, string | undefined>>
+  /** Which server and database a connection string reaches (default: connect and ask; tests replace it). */
+  identifyDatabase?: (url: string) => Promise<DatabaseIdentity>
+}
+
+/**
+ * Connection strings besides DATABASE_URL that must reach the SAME database:
+ * a session connection for migrations, LISTEN and the scheduler's leader lock
+ * (they bypass a transaction-mode pooler, so they are often separate URLs).
+ * After a database move each must follow DATABASE_URL, or live updates listen
+ * on the old database and the leader lock is taken there.
+ */
+export const COMPANION_DATABASE_URLS = [
+  { env: 'MIGRATION_DATABASE_URL', use: 'migrations and usertasks-admin' },
+  { env: 'REALTIME_DATABASE_URL', use: 'live updates (LISTEN/NOTIFY)' },
+  { env: 'SCHEDULER_DATABASE_URL', use: "the background jobs' leader lock" },
+] as const
+
+export type CompanionDatabaseEnv = typeof COMPANION_DATABASE_URLS[number]['env']
+
+/** The server (as it sees itself, so a pooler in front doesn't change it) and database a connection reaches. */
+export type DatabaseIdentity = {
+  database: string
+  address: string
+  port: number
+  /** pg_postmaster_start_time(): tells apart two servers that report the same address (containers). */
+  startedAt: string
+}
+
+const DATABASE_IDENTITY_SQL = `SELECT current_database() AS database, coalesce(host(inet_server_addr()), 'local socket') AS address,
+       coalesce(inet_server_port(), 0) AS port, pg_postmaster_start_time()::text AS "startedAt"`
+
+function sameDatabase(a: DatabaseIdentity, b: DatabaseIdentity): boolean {
+  return a.database === b.database && a.address === b.address && a.port === b.port && a.startedAt === b.startedAt
+}
+
+function describeIdentity(id: DatabaseIdentity): string {
+  return `database ${id.database} on ${id.address}${id.port ? `:${id.port}` : ''}`
+}
+
+/**
+ * The finding for each companion URL that is set and differs from
+ * DATABASE_URL: ok when it reaches the same database, fail when it reaches
+ * another one (or can't connect). Pure, for the doctor and its tests.
+ */
+export function companionDatabaseFindings(primary: DatabaseIdentity, companions: Array<{ env: CompanionDatabaseEnv; identity?: DatabaseIdentity; error?: string }>): Array<{ name: string; status: CheckStatus; detail: string }> {
+  return companions.map(({ env, identity, error }) => {
+    const use = COMPANION_DATABASE_URLS.find((c) => c.env === env)!.use
+    if (!identity) return { name: env, status: 'fail' as const, detail: `${env} (${use}) does not connect: ${error ?? 'unknown error'}` }
+    if (sameDatabase(primary, identity)) return { name: env, status: 'ok' as const, detail: `${env} reaches the same database as DATABASE_URL` }
+    return {
+      name: env,
+      status: 'fail' as const,
+      detail: `${env} reaches ${describeIdentity(identity)}, but DATABASE_URL reaches ${describeIdentity(primary)}: ${use} would use the other database. Point ${env} at the same database as DATABASE_URL (after a database switch, change every *_DATABASE_URL, then restart).`,
+    }
+  })
+}
+
+async function identifyDatabase(url: string, timeoutMs: number): Promise<DatabaseIdentity> {
+  const client = new pg.Client(pgConnectionConfig(url, { application_name: 'usertasks-doctor', connectionTimeoutMillis: timeoutMs }))
+  client.on('error', () => undefined)
+  try {
+    await client.connect()
+    const { rows } = await client.query<DatabaseIdentity>(DATABASE_IDENTITY_SQL)
+    return { ...rows[0], port: Number(rows[0].port) }
+  } finally {
+    await client.end().catch(() => undefined)
+  }
+}
+
+async function checkCompanionDatabases(ctx: Ctx, sql: SqlClient, add: Add): Promise<void> {
+  const primaryUrl = ctx.config.bootstrap.databaseUrl
+  const urls = ctx.companionUrls ?? Object.fromEntries(COMPANION_DATABASE_URLS.map((c) => [c.env, readEnv(c.env)]))
+  const set = COMPANION_DATABASE_URLS.filter((c) => urls[c.env] && urls[c.env] !== primaryUrl)
+  if (!set.length) return
+  const { rows } = await sql.query<DatabaseIdentity>(DATABASE_IDENTITY_SQL)
+  const primary = { ...rows[0], port: Number(rows[0].port) }
+  const identify = ctx.identifyDatabase ?? ((url: string) => timed(identifyDatabase(url, ctx.timeoutMs ?? 10_000), ctx.timeoutMs ?? 10_000, 'connection'))
+  const companions = await Promise.all(set.map(async (c) => {
+    try {
+      return { env: c.env, identity: await identify(urls[c.env]!) }
+    } catch (error) {
+      return { env: c.env, error: message(error) }
+    }
+  }))
+  for (const f of companionDatabaseFindings(primary, companions)) add(f.name, f.status, f.detail)
 }
 
 const RANK: Record<CheckStatus, number> = { skip: 0, ok: 1, warn: 2, fail: 3 }
@@ -293,6 +380,7 @@ async function checkDatabase(ctx: Ctx, add: Add): Promise<void> {
   add('connection', 'ok', `PostgreSQL ${major} — database ${info.db} as ${info.user}${info.superuser ? ' (superuser)' : ''}`)
   add('version', major >= 15 ? 'ok' : 'fail', major >= 15 ? `PostgreSQL ${major} (15+ required)` : `PostgreSQL ${major} is too old: 15 or later is required`)
   await checkDatabaseAuth(sql, add)
+  await checkCompanionDatabases(ctx, sql, add)
 
   const { rows: roles } = await sql.query<{ rolname: string; member: boolean }>(
     `SELECT r.rolname, pg_has_role(current_user, r.oid, 'MEMBER') AS member

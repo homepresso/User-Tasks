@@ -10,7 +10,7 @@ internet access, install from the [air-gapped bundle](setup-air-gapped.md).
 
 | Area | In the cluster | Settings (values) |
 |---|---|---|
-| Web app | Deployment `node server.js`, probes on `GET /api/config/public`, HPA, PDB, non-root with a read-only root filesystem | `app.*` |
+| Web app | Deployment `node server.js`, startup probe on `GET /api/config/public`, readiness on `GET /api/ready` (database), liveness on `GET /api/health`, HPA, PDB, non-root with a read-only root filesystem | `app.*` |
 | Scheduler | `worker`: Deployment `node worker.cjs` (one leader ticks, extra replicas wait); `external`: CronJob calling `POST /api/cron/tick` with `CRON_SECRET` (or `node worker.cjs --once`) | `providers.scheduler.provider`, `worker.*`, `tick.*` |
 | Migrations | `usertasks-admin db migrate` + `storage init`: a pre-install / pre-upgrade hook, or a Job per release revision that the app pods wait for | `migrate.*` |
 | First workspace | Optional post-install Job (`usertasks-admin bootstrap`) | `bootstrap.*` |

@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { useState, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -30,6 +31,7 @@ import { extractPreheader } from '@/lib/email-editor/preview'
 type Row = Awaited<ReturnType<typeof listEmailTemplates>>[number]
 
 export function EmailTemplateManager() {
+  const [confirm, confirmDialog] = useConfirm()
   const queryClient = useQueryClient()
   const { can } = usePermissions()
   const { data = [], isLoading } = useQuery({ queryKey: ['email-templates'], queryFn: listEmailTemplates })
@@ -62,6 +64,7 @@ export function EmailTemplateManager() {
 
   return (
     <div className="space-y-4">
+      {confirmDialog}
       {header(
         <>
           {can('workflows.create') && <ImportConfigButton onImported={() => void queryClient.invalidateQueries({ queryKey: ['email-templates'] })} />}
@@ -109,7 +112,7 @@ export function EmailTemplateManager() {
                   <IconButton size="sm" label="Edit" icon={<Pencil />} onClick={() => setEditing(row)} />
                   <TagsActionButton onClick={() => setTagsTarget({ id: row.id, name: row.name, tags: row.tags ?? [] })} />
                   <ExportAssetButton ids={[row.id]} name={row.name} iconOnly variant="ghost" size="icon" className="size-7 text-fg-muted" />
-                  {!row.is_default && <IconButton size="sm" variant="danger-ghost" label="Delete" icon={<Trash2 />} onClick={async () => { if (!confirm(`Delete ${row.name}?`)) return; await deleteEmailTemplate(row.id); queryClient.invalidateQueries({ queryKey: ['email-templates'] }) }} />}
+                  {!row.is_default && <IconButton size="sm" variant="danger-ghost" label="Delete" icon={<Trash2 />} onClick={async () => { if (!(await confirm({ title: `Delete “${row.name}”?`, description: 'This can’t be undone.', confirmLabel: 'Delete template', destructive: true }))) return; await deleteEmailTemplate(row.id); queryClient.invalidateQueries({ queryKey: ['email-templates'] }) }} />}
                 </TDActions>
               </TR>
             ))}

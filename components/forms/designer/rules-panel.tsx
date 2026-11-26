@@ -23,7 +23,7 @@ import { ConfirmTextEditor, EditRowEditor, NestedTargetEditor, OpenRowFormEditor
 import { ROW_ACTION_TYPES, RULE_ONLY_ACTION_TYPES, listClearFields, type RowActionType, listSourceField, type FieldButtonAction, type FieldButtonActionType, type RuleOnlyActionType } from '@/lib/forms/field-buttons'
 import { FORM_TARGET_LABELS, FORM_WHOLE_TARGET } from '@/lib/forms/form-state'
 import {
-  AFTER_SUBMIT_ACTIONS, ALWAYS_ACTIONS, ALWAYS_ONLY_ACTIONS, EVENT_CONTEXT, EVENT_TARGET, FORM_RULE_EVENTS, FORM_RULE_EVENT_LABELS, RULE_ACTION_GROUPS, RULE_ACTION_LABELS,
+  AFTER_SUBMIT_ACTIONS, SERVER_STEP_ACTIONS, ALWAYS_ACTIONS, ALWAYS_ONLY_ACTIONS, EVENT_CONTEXT, EVENT_TARGET, FORM_RULE_EVENTS, FORM_RULE_EVENT_LABELS, RULE_ACTION_GROUPS, RULE_ACTION_LABELS,
   collectFormRules, conditionPaths, describeConditions, describeRuleAction, duplicateRule, moveNativeRule, newRuleId, removeUnifiedRule, ruleConflicts, ruleValue,
   promptIds, simulateRuleEvent, writeUnifiedRule,
   type FormRule, type FormRuleEventType, type RuleHome, type RulesDefinition, type UnifiedRule,
@@ -130,7 +130,9 @@ function scopeOptions(state: DesignerState, rule: FormRule) {
   for (const o of contextVariableOptions(state.layout)) subjects.push({ value: o.name, label: o.label, hint: o.group === 'Parameters' ? 'parameter' : 'variable' })
   const GROUPS: Record<string, string> = { event: 'This event', user: 'Current user', parameter: 'Parameters', variable: 'Variables', control: 'Controls', flag: 'Flags' }
   const placeholders = subjects.filter((s) => s.hint !== 'field').map((s) => ({ name: s.value, group: GROUPS[s.hint ?? 'flag'] ?? 'Flags', label: s.label }))
-  return { subjects, placeholders, eventPaths, table }
+  // A condition's value may name another field ("end date is after {{start_date}}"): the data picker lists the form's fields too.
+  const conditionPlaceholders = [...subjects.filter((s) => s.hint === 'field').map((s) => ({ name: s.value, group: 'This form', label: s.label })), ...placeholders]
+  return { subjects, placeholders, conditionPlaceholders, eventPaths, table }
 }
 
 function targetChoices(state: DesignerState, event: FormRuleEventType): Array<{ value: string; label: string }> {
@@ -154,9 +156,11 @@ function targetChoices(state: DesignerState, event: FormRuleEventType): Array<{ 
   }
 }
 
-function actionAllowed(event: FormRuleEventType, type: FieldButtonActionType, paged: boolean): boolean {
+function actionAllowed(event: FormRuleEventType, type: FieldButtonActionType, paged: boolean, serverSteps = false): boolean {
   if (event === 'always') return ALWAYS_ACTIONS.has(type)
   if (ALWAYS_ONLY_ACTIONS.has(type)) return false
+  // An After-submit rule that writes data on the server (Map to data event): its write steps only.
+  if (event === 'after_submit' && serverSteps) return SERVER_STEP_ACTIONS.has(type)
   if (event === 'after_submit') return AFTER_SUBMIT_ACTIONS.has(type)
   if (!paged && (type === 'go_to_page' || type === 'next_page' || type === 'previous_page')) return false
   return true
@@ -502,7 +506,7 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
 }) {
   const rule = unified.rule
   const paged = isPaged(state.layout)
-  const { subjects, placeholders, eventPaths } = scopeOptions(state, rule)
+  const { subjects, placeholders, conditionPlaceholders, eventPaths } = scopeOptions(state, rule)
   const targets = targetChoices(state, rule.event)
   const kind = EVENT_TARGET[rule.event]
   const set = (patch: Partial<FormRule>, tag?: string) => onWrite({ ...rule, ...patch }, tag)
@@ -556,7 +560,7 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
             const keep = EVENT_TARGET[event] === kind ? rule.target : undefined
             const choices = targetChoices(state, event)
             const target = keep ?? (EVENT_TARGET[event] && EVENT_TARGET[event] !== 'bar_button' && EVENT_TARGET[event] !== 'page' && EVENT_TARGET[event] !== 'flag' && EVENT_TARGET[event] !== 'section' && EVENT_TARGET[event] !== 'part' ? choices[0]?.value : undefined)
-            set({ event, target, then: rule.then.filter((a) => actionAllowed(event, a.type, paged)) })
+            set({ event, target, then: rule.then.filter((a) => actionAllowed(event, a.type, paged, Boolean(rule.server_steps))) })
           }}>
           {EVENT_GROUPS.map((g) => (
             <optgroup key={g.label} label={g.label}>
@@ -567,6 +571,9 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
         {kind && (
           <AutocompleteSelect value={rule.target ?? ''} placeholder={kind === 'bar_button' || kind === 'page' || kind === 'flag' || kind === 'section' || kind === 'part' ? 'Any' : 'Choose…'} clearable={kind === 'bar_button' || kind === 'page' || kind === 'flag' || kind === 'section' || kind === 'part'}
             options={targets} onChange={(v) => set({ target: v || undefined })} />
+        )}
+        {rule.event === 'after_submit' && rule.server_steps && (
+          <p className="text-2xs text-fg-muted" data-testid="rule-server-steps">Writes data on the server once a submission is accepted, with the stored answers (a refused submission writes nothing). Its steps: add a row, update rows, call an API reference; results go into variables for the later steps.</p>
         )}
         {rule.event === 'before_submit' && (
           <label className="flex items-start gap-1.5 text-2xs" data-testid="rule-step-check">
@@ -583,7 +590,7 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
       <fieldset className="space-y-1.5 rounded-lg border p-2 border-border">
         <legend className="px-1 text-2xs font-semibold text-primary-text">If</legend>
         {rule.if
-          ? <DesignerVariableScope state={state} context={{ kind: 'rule', event: rule.event, target: rule.target, slot: 'condition' }}><GroupEditor group={rule.if} depth={0} columns={subjects} placeholders={placeholders} onChange={(next, tag) => set({ if: next }, tag ? `rule-if-${tag}` : undefined)} /></DesignerVariableScope>
+          ? <DesignerVariableScope state={state} context={{ kind: 'rule', event: rule.event, target: rule.target, slot: 'condition' }}><GroupEditor group={rule.if} depth={0} columns={subjects} placeholders={conditionPlaceholders} valueFields={subjects} onChange={(next, tag) => set({ if: next }, tag ? `rule-if-${tag}` : undefined)} /></DesignerVariableScope>
           : (
             <button type="button" className="flex items-center gap-1 text-2xs font-medium text-primary-text" disabled={!subjects.length}
               onClick={() => set({ if: { match: 'all', conditions: [{ column: subjects[0]?.value ?? '', operator: 'eq', value: '' }] } })} data-testid="rule-add-condition">
@@ -605,7 +612,7 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
           // A data / API step's own steps: the same editors (no questions, one level).
           const stepBranch = (actions: FieldButtonAction[], setBranch: (next: FieldButtonAction[], tag?: string) => void) => (
             <BranchActions actions={actions} onChange={setBranch} create={(t) => newAction(t as FieldButtonActionType)}
-              options={RULE_ACTION_GROUPS.map((g) => ({ group: g.label, items: g.types.filter((t) => t !== 'prompt' && actionAllowed(rule.event, t, paged)).map((t) => ({ value: t, label: RULE_ACTION_LABELS[t] })) })).filter((g) => g.items.length)}
+              options={RULE_ACTION_GROUPS.map((g) => ({ group: g.label, items: g.types.filter((t) => t !== 'prompt' && actionAllowed(rule.event, t, paged, Boolean(rule.server_steps))).map((t) => ({ value: t, label: RULE_ACTION_LABELS[t] })) })).filter((g) => g.items.length)}
               renderAction={(a, j, inner) => (RULE_ONLY_ACTION_TYPES.includes(a.type as RuleOnlyActionType)
                 ? <RuleOnlyActionEditor key={j} {...inner} state={state} action={a} rule={rule} placeholders={[...placeholders, { name: 'result', group: 'This step', label: 'The result' }, { name: 'error.message', group: 'This step', label: 'Why it failed' }]} eventPaths={eventPaths} />
                 : <ActionEditor key={j} {...inner} state={state} action={a} field={{ _id: '', key: '', label: 'rule', type: 'button' }} label={RULE_ACTION_LABELS[a.type]} extraPlaceholders={placeholders}
@@ -616,7 +623,7 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
             : <ActionEditor key={i} {...common} action={action} field={{ _id: '', key: '', label: 'rule', type: 'button' }} label={RULE_ACTION_LABELS[action.type]} extraPlaceholders={placeholders}
                 renderBranch={(actions, setBranch) => (
                   <BranchActions actions={actions} onChange={setBranch} create={(t) => newAction(t as FieldButtonActionType)}
-                    options={RULE_ACTION_GROUPS.map((g) => ({ group: g.label, items: g.types.filter((t) => t !== 'prompt' && actionAllowed(rule.event, t, paged)).map((t) => ({ value: t, label: RULE_ACTION_LABELS[t] })) })).filter((g) => g.items.length)}
+                    options={RULE_ACTION_GROUPS.map((g) => ({ group: g.label, items: g.types.filter((t) => t !== 'prompt' && actionAllowed(rule.event, t, paged, Boolean(rule.server_steps))).map((t) => ({ value: t, label: RULE_ACTION_LABELS[t] })) })).filter((g) => g.items.length)}
                     renderAction={(a, j, inner) => (RULE_ONLY_ACTION_TYPES.includes(a.type as RuleOnlyActionType)
                       ? <RuleOnlyActionEditor key={j} {...inner} state={state} action={a} rule={rule} placeholders={placeholders} eventPaths={eventPaths} />
                       : <ActionEditor key={j} {...inner} state={state} action={a} field={{ _id: '', key: '', label: 'rule', type: 'button' }} label={RULE_ACTION_LABELS[a.type]} extraPlaceholders={placeholders}
@@ -641,7 +648,7 @@ function RuleEditor({ state, unified, onWrite, onChangeState, problem }: {
           onChange={(e) => { const t = e.target.value as FieldButtonActionType; if (t) setActions([...rule.then, newAction(t)]) }}>
           <option value="">+ Add an action…</option>
           {RULE_ACTION_GROUPS.map((g) => {
-            const types = g.types.filter((t) => actionAllowed(rule.event, t, paged))
+            const types = g.types.filter((t) => actionAllowed(rule.event, t, paged, Boolean(rule.server_steps)))
             return types.length ? (
               <optgroup key={g.label} label={g.label}>
                 {types.map((t) => <option key={t} value={t}>{RULE_ACTION_LABELS[t]}</option>)}

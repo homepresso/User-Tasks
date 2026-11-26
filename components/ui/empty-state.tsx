@@ -28,6 +28,11 @@ export interface EmptyStateProps {
   secondaryAction?: EmptyStateAction
   size?: 'sm' | 'md' | 'lg'
   variant?: 'first-run' | 'no-results' | 'error'
+  /**
+   * Heading level of the title. Default: 2 for a page-level empty state (md / lg,
+   * right under the page's h1), 3 for size sm (inside a section, panel or table).
+   */
+  headingLevel?: 2 | 3 | 4
   className?: string
   children?: ReactNode
 }
@@ -41,7 +46,8 @@ function ActionButton({ action, variant }: { action: EmptyStateAction; variant: 
   return <Button size="sm" variant={variant} onClick={action.onClick}>{action.label}</Button>
 }
 
-export function EmptyState({ icon, title, description, action, secondaryAction, size = 'md', variant = 'first-run', className, children }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, secondaryAction, size = 'md', variant = 'first-run', headingLevel, className, children }: EmptyStateProps) {
+  const Heading = `h${headingLevel ?? (size === 'sm' ? 3 : 2)}` as 'h2' | 'h3' | 'h4'
   const Icon = icon ?? (variant === 'error' ? AlertTriangle : variant === 'no-results' ? SearchX : undefined)
   return (
     <div className={cn('flex flex-col items-center justify-center px-4 text-center', PAD[size], className)} role={variant === 'error' ? 'alert' : undefined}>
@@ -55,7 +61,7 @@ export function EmptyState({ icon, title, description, action, secondaryAction, 
           <Icon className="lucide-lg size-5" aria-hidden="true" />
         </div>
       )}
-      <h3 className={cn('font-semibold text-fg', size === 'lg' ? 'text-base' : 'text-sm')}>{title}</h3>
+      <Heading className={cn('font-semibold text-fg', size === 'lg' ? 'text-base' : 'text-sm')}>{title}</Heading>
       {description != null && <p className="mt-1 max-w-[44ch] text-ui text-fg-muted">{description}</p>}
       {children}
       {(action || secondaryAction) && (

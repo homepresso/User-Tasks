@@ -508,6 +508,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -640,6 +641,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -1402,6 +1404,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false,
           "description": "Plain text or HTML. HTML is sanitised to an allowlist (formatting, lists, headings, links, tables, https images); scripts, styles, event handlers and unsafe URLs are removed."
         },
@@ -1418,6 +1421,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "due_date",
+          "type": "string",
           "required": false,
           "description": "ISO 8601"
         },
@@ -1427,6 +1431,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "estimated_completion",
+          "type": "string",
           "required": false,
           "description": "ISO 8601"
         },
@@ -2149,6 +2154,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "due_date",
+          "type": "string",
           "required": false,
           "description": "ISO 8601 date or date-time (years 2000–2100)"
         },
@@ -2207,6 +2213,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "due_date",
+          "type": "string",
           "required": false,
           "description": "ISO 8601 date or date-time (years 2000–2100)"
         },
@@ -2312,6 +2319,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -2353,10 +2361,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "integration_id",
+          "type": "string",
           "required": false
         },
         {
           "name": "temperature",
+          "type": "number",
           "required": false
         },
         {
@@ -2428,6 +2438,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -2469,10 +2480,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "integration_id",
+          "type": "string",
           "required": false
         },
         {
           "name": "temperature",
+          "type": "number",
           "required": false
         },
         {
@@ -3116,6 +3129,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -3187,6 +3201,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -3379,6 +3394,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -3440,6 +3456,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -3686,7 +3703,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
           "name": "file_base64",
           "type": "string",
           "required": true,
-          "description": "The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows (hosted instances accept request bodies up to about 4.5 MB). With multipart/form-data: the `file` field."
+          "description": "The file, base64: .csv, .tsv or .xlsx, at most 10 MB and 50,000 data rows. A JSON body is capped at API_MAX_BODY_BYTES (default 5 MiB; hosted instances about 4.5 MB): send larger files as multipart/form-data, in the `file` field."
         },
         {
           "name": "file_name",
@@ -4370,6 +4387,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -4472,6 +4490,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -4627,6 +4646,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -4681,6 +4701,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -5046,6 +5067,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -5129,6 +5151,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -5320,6 +5343,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "available_in_menu",
+          "type": "boolean",
           "required": false,
           "description": "Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false)."
         },
@@ -5426,6 +5450,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "available_in_menu",
+          "type": "boolean",
           "required": false,
           "description": "Available forms: list the form in the sidebar Forms menu of people given explicit access to it (a grant for them, a team they belong to or a role they hold) who can submit forms. A setting: no new version (default false)."
         },
@@ -7254,6 +7279,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -7303,6 +7329,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "source_filename",
+          "type": "string",
           "required": false
         }
       ]
@@ -7400,6 +7427,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -7449,6 +7477,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "source_filename",
+          "type": "string",
           "required": false
         },
         {
@@ -7646,10 +7675,12 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
           "name": "category",
+          "type": "string",
           "required": false
         },
         {
@@ -9365,6 +9396,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -9441,6 +9473,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -9538,6 +9571,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "retention_policy_id",
+          "type": "string",
           "required": false,
           "description": "Omit or null to clear the assignment"
         }
@@ -9585,6 +9619,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -9641,6 +9676,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
@@ -9899,20 +9935,24 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
           "name": "parent_id",
+          "type": "string",
           "required": false,
           "description": "Parent team id (loops are refused)"
         },
         {
           "name": "lead_user_id",
+          "type": "string",
           "required": false,
           "description": "Team lead (an active member)"
         },
         {
           "name": "org_unit_id",
+          "type": "string",
           "required": false,
           "description": "Org unit the team belongs to"
         },
@@ -9973,20 +10013,24 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "description",
+          "type": "string",
           "required": false
         },
         {
           "name": "parent_id",
+          "type": "string",
           "required": false,
           "description": "Parent team id (loops are refused)"
         },
         {
           "name": "lead_user_id",
+          "type": "string",
           "required": false,
           "description": "Team lead (an active member)"
         },
         {
           "name": "org_unit_id",
+          "type": "string",
           "required": false,
           "description": "Org unit the team belongs to"
         },
@@ -10294,16 +10338,19 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "role_id",
+          "type": "string",
           "required": false,
           "description": "Grant to a role (give exactly one of role_id, team_id, user_id)"
         },
         {
           "name": "team_id",
+          "type": "string",
           "required": false,
           "description": "Grant to a team"
         },
         {
           "name": "user_id",
+          "type": "string",
           "required": false,
           "description": "Grant to a person"
         },
@@ -10433,6 +10480,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "manager_user_id",
+          "type": "string",
           "required": false,
           "description": "Manager (null clears it). Needs org.manage or team.change_roles; loops and non-members are refused"
         }
@@ -10706,11 +10754,13 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "parent_id",
+          "type": "string",
           "required": false,
           "description": "Parent org unit id (loops are refused)"
         },
         {
           "name": "head_user_id",
+          "type": "string",
           "required": false,
           "description": "Head of the unit (an active member)"
         },
@@ -10775,11 +10825,13 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "parent_id",
+          "type": "string",
           "required": false,
           "description": "Parent org unit id (loops are refused)"
         },
         {
           "name": "head_user_id",
+          "type": "string",
           "required": false,
           "description": "Head of the unit (an active member)"
         },
@@ -11152,20 +11204,24 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "owner_user_id",
+          "type": "string",
           "required": false,
           "description": "Owner (default: the caller)"
         },
         {
           "name": "sponsor_user_id",
+          "type": "string",
           "required": false
         },
         {
           "name": "team_id",
+          "type": "string",
           "required": false,
           "description": "Owning team (its members count as project people)"
         },
         {
           "name": "org_unit_id",
+          "type": "string",
           "required": false
         },
         {
@@ -11245,20 +11301,24 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "owner_user_id",
+          "type": "string",
           "required": false,
           "description": "Owner (default: the caller)"
         },
         {
           "name": "sponsor_user_id",
+          "type": "string",
           "required": false
         },
         {
           "name": "team_id",
+          "type": "string",
           "required": false,
           "description": "Owning team (its members count as project people)"
         },
         {
           "name": "org_unit_id",
+          "type": "string",
           "required": false
         },
         {
@@ -11945,6 +12005,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "accent_color",
+          "type": "string",
           "required": false,
           "description": "#rrggbb for buttons and coloured panels; null is the UserTasks default (ink). Ignored while use_workspace_theme is on"
         },
@@ -12056,6 +12117,7 @@ export const COMMAND_SPECS: readonly CommandSpec[] = [
         },
         {
           "name": "accent_color",
+          "type": "string",
           "required": false,
           "description": "#rrggbb for buttons and coloured panels; null is the UserTasks default (ink). Ignored while use_workspace_theme is on"
         },

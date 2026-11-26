@@ -35,9 +35,9 @@
 
 import { isPlainObject } from '@/lib/utils/guards'
 import { normalizeLookupConfig, type LookupConfig } from './lookup'
-import { groupConditions, normalizeConditionGroup, type DataTableConditionGroup } from './data-table'
+import { groupConditions, isChangeSet, normalizeConditionGroup, type DataTableConditionGroup, type DataTableFieldConfig } from './data-table'
 import type { RuleScope } from './form-rules'
-import { ROW_ORIGINAL_KEY, rowDraftState } from './row-markers'
+import { ROW_ORIGINAL_KEY, rowDraftState, stripRowMarkers } from './row-markers'
 import { CELL_RULE_LIMIT, NO_ROW_STYLE, ROW_STYLE_LIMIT, mergeStyles, normalizeConditionalStyle, type ListCellRule, type ListRowStyle, type RowStyleResult } from './conditional-style'
 import { normalizeControlTextStyle, type ControlTextStyle } from './text-style'
 import { describeSignature, normalizeSignatureConfig, normalizeSignatureValue, signatureValueError, type SignatureFieldConfig, type SignatureValue } from './media-fields'
@@ -1090,6 +1090,25 @@ export function rawListRows(value: unknown): Record<string, unknown>[] {
   }
   if (!Array.isArray(list)) return []
   return list.filter(isPlainObject) as Record<string, unknown>[]
+}
+
+/**
+ * The items a per-item rule step (`each_item`) runs for: a repeating
+ * section's items / a List's rows (rawListRows), or an editable Data table's
+ * rows the person ADDED (its change set's `added`; a pending row a rule made
+ * is left out unless the table commits pending rows at submit) / a Select
+ * mode table's selected rows. The browser's runner and the server's
+ * rule-action check (lib/services/form-rule-actions.ts) both use this, so an
+ * item's position means the same row on both sides.
+ */
+export function eachItemRows(value: unknown, grid?: Pick<DataTableFieldConfig, 'mode' | 'on_submit_pending'> | null): Record<string, unknown>[] {
+  if (isChangeSet(value)) {
+    if (grid && grid.mode !== 'edit') return []
+    const added = (Array.isArray(value.added) ? value.added : []).filter(isPlainObject) as Record<string, unknown>[]
+    return added.filter((r) => grid?.on_submit_pending === 'commit' || rowDraftState(r) === null).map((r) => stripRowMarkers(r))
+  }
+  if (grid && grid.mode === 'display') return []
+  return rawListRows(value)
 }
 
 /** A row nobody filled in: every input column blank (booleans unticked, nested Lists without a filled row). */

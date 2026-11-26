@@ -12,6 +12,10 @@ vi.mock('@/lib/providers/db/session', () => ({
   getSessionDb: async () => session.db,
   getSessionDbWithUser: async () => ({ supabase: session.db, user: session.user }),
 }))
+// Service-role writes made for the acting user (lib/services/_shared actorServiceClient,
+// the task actions) land in the same memory database.
+const actorWrites = vi.hoisted(() => ({ db: null as any }))
+vi.mock('@/lib/cron-auth', async (orig) => ({ ...(await orig() as object), createActorServiceClient: () => actorWrites.db }))
 vi.mock('@/lib/permissions-server', () => ({ getUserPermissions: async () => new Set(['data.manage_rows', 'settings.edit']), requirePermission: async () => {} }))
 const storage = vi.hoisted(() => ({ put: vi.fn(async () => {}), publicUrl: vi.fn((b: string, p: string) => `http://s/${b}/${p}`) }))
 vi.mock('@/lib/providers/storage', () => ({ getStorageProvider: async () => storage }))
@@ -38,6 +42,8 @@ function sessionDb(perms: Record<string, string[]>, memberOf = Object.keys(perms
   }) as any
   db.rpc = vi.fn(async (name: string, args?: any) => {
     if (name === 'get_user_tenant_ids') return { data: memberOf, error: null }
+    // COALESCE(current_tenant_id, tenant_id) of the users row above.
+    if (name === 'get_current_tenant_id') return { data: 'tenant-a', error: null }
     if (name === 'get_user_permissions') return { data: perms[args?.p_tenant_id] ?? [], error: null }
     return { data: null, error: { message: `unexpected rpc ${name}` } }
   })
@@ -63,21 +69,21 @@ describe('runAction / unwrapAction', () => {
 
 describe('task actions', () => {
   it('act in the task\'s workspace with the permissions held there', async () => {
-    session.db = sessionDb({ 'tenant-a': [], 'tenant-b': ['tasks.complete'] })
+    session.db = actorWrites.db = sessionDb({ 'tenant-a': [], 'tenant-b': ['tasks.complete'] })
     expect(await reopenTask('task-b')).toEqual({ ok: true, data: { status: 'todo' } })
     expect(session.db.tables.tasks.find((t: any) => t.id === 'task-b').status).toBe('todo')
     expect(await reopenTask('task-a')).toEqual({ ok: false, error: "Forbidden: you lack the 'tasks.complete' permission" })
   })
 
   it('refuse workspaces the user does not belong to and unknown tasks', async () => {
-    session.db = sessionDb({ 'tenant-a': ['tasks.complete'] })
+    session.db = actorWrites.db = sessionDb({ 'tenant-a': ['tasks.complete'] })
     expect(await addTaskComment('task-b', 'hi')).toEqual({ ok: false, error: 'Forbidden: you are not a member of that workspace' })
     expect(await logManualEffort('missing', { minutes: 5 })).toEqual({ ok: false, error: 'Task not found' })
     expect(session.db.tables.lifecycle_events).toEqual([])
   })
 
   it('log effort end to end', async () => {
-    session.db = sessionDb({ 'tenant-a': ['tasks.complete'] })
+    session.db = actorWrites.db = sessionDb({ 'tenant-a': ['tasks.complete'] })
     const result = await logManualEffort('task-a', { hours: 1, minutes: 0 })
     expect(result).toEqual({ ok: true, data: { minutes: 60, actual_effort: 60 } })
     expect(session.db.tables.effort_records).toHaveLength(1)
@@ -86,7 +92,7 @@ describe('task actions', () => {
 
 describe('upload actions (FormData)', () => {
   it('store a data-table file and return its cell value', async () => {
-    session.db = sessionDb({ 'tenant-a': ['data.manage_rows'] })
+    session.db = actorWrites.db = sessionDb({ 'tenant-a': ['data.manage_rows'] })
     const body = new FormData()
     body.set('file', new File(['hello'], 'notes.txt', { type: 'text/plain' }))
     body.set('table_id', 'tbl-a')
@@ -96,14 +102,14 @@ describe('upload actions (FormData)', () => {
   })
 
   it('refuse a missing file', async () => {
-    session.db = sessionDb({ 'tenant-a': ['data.manage_rows'] })
+    session.db = actorWrites.db = sessionDb({ 'tenant-a': ['data.manage_rows'] })
     const body = new FormData()
     body.set('table_id', 'tbl-a')
     expect(await uploadDataTableFile(body)).toEqual({ ok: false, error: 'No file was uploaded' })
   })
 
   it('logos go to the given workspace only with settings.edit there', async () => {
-    session.db = sessionDb({ 'tenant-a': ['settings.edit'], 'tenant-b': [] })
+    session.db = actorWrites.db = sessionDb({ 'tenant-a': ['settings.edit'], 'tenant-b': [] })
     const body = new FormData()
     body.set('file', new File(['png'], 'logo.png', { type: 'image/png' }))
     body.set('variant', 'logo')

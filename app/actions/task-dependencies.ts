@@ -6,6 +6,7 @@ import { writeLifecycleEvent } from '@/lib/lifecycle-events'
 import { revalidatePath } from 'next/cache'
 import { fromSessionForTask } from '@/lib/actions/task-context'
 import { requireTaskReach } from '@/lib/services/tasks'
+import { actorServiceClient } from '@/lib/services/_shared'
 
 /**
  * A dependency belongs to the blocked task (`taskId`): only someone who can
@@ -61,14 +62,19 @@ export async function addTaskDependency(taskId: string, dependsOnTaskId: string)
 
 export async function removeTaskDependency(taskId: string, dependsOnTaskId: string): Promise<void> {
   await requirePermission('tasks.assign')
-  await requireBlockedTaskReach(taskId)
+  const ctx = await fromSessionForTask(taskId)
+  await requireTaskReach(ctx, taskId)
   const supabase = await createClient()
   const user = await getCachedUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { error } = await (supabase as any)
+  // End users have no write grant on task_dependencies: the checks above
+  // decide, the service role writes (scoped to the task's workspace).
+  const db = await actorServiceClient(ctx)
+  const { error } = await (db as any)
     .from('task_dependencies')
     .delete()
+    .eq('tenant_id', ctx.tenantId)
     .eq('task_id', taskId)
     .eq('depends_on_task_id', dependsOnTaskId)
   if (error) throw new Error(error.message ?? 'Failed to remove dependency')

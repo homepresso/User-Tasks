@@ -12,6 +12,7 @@ import { recordPullLog } from './access-log'
 import { EDITION_MANIFEST_FILE, EDITION_SIGNATURE_FILE, type PullServiceDeps } from './pull-service'
 import type { RegistryFrontDeps } from './registry-front'
 import { UpstreamRegistry } from './upstream'
+import { clientIpFrom } from '@/lib/client-ip'
 
 const clients = new Map<string, UpstreamRegistry>()
 
@@ -74,6 +75,6 @@ export function defaultRegistryFrontDeps(): RegistryFrontDeps {
 }
 
 export function requestIpHash(headers: Headers): string | null {
-  const ip = headers.get('x-forwarded-for')?.split(',')[0]?.trim() || headers.get('x-real-ip') || null
+  const ip = clientIpFrom(headers)
   return hashIp(ip)
 }

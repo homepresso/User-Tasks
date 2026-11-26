@@ -5,7 +5,7 @@
   "asset": {
     "id": "9adca175-8a25-5d09-8ced-f76225ee2715",
     "name": "Contract register",
-    "description": "The contract register as Data tables: Renewals due (base filter: Active or Approved contracts whose renewal decision falls in the next 90 days) and All contracts (editable status saved back for each changed row), with NZD values, dates, check marks and risk / status badges, search, filters and sorting on the server. Click a row to open the contract details tab.",
+    "description": "The contract register as Data tables: Renewals due (base filter: Active or Approved contracts whose renewal decision falls in the next 90 days) and All contracts (editable status saved back for each changed row), with USD values, dates, check marks and risk / status badges, search, filters and sorting on the server. Click a row to open the contract details tab.",
     "tags": [
       "contracts",
       "register",
@@ -78,7 +78,7 @@
               "filterable": true,
               "format": {
                 "kind": "currency",
-                "currency": "NZD",
+                "currency": "USD",
                 "decimals": 0
               }
             },
@@ -368,7 +368,7 @@
               "filterable": true,
               "format": {
                 "kind": "currency",
-                "currency": "NZD",
+                "currency": "USD",
                 "decimals": 0
               }
             },
@@ -645,7 +645,7 @@
         "key": "d_value",
         "label": "Total value",
         "type": "currency",
-        "currency": "NZD"
+        "currency": "USD"
       },
       {
         "key": "d_term",

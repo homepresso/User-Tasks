@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useRef, useId, useEffect, useSyncExternalStore, useContext, useMemo } from "react"
+import { toastError } from '@/lib/toast'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useState, useRef, useId, useEffect, useLayoutEffect, useSyncExternalStore, useContext, useMemo } from "react"
 import { useDesignerContext } from "@/lib/assistants/client-registry"
 import { usePermissions } from "@/lib/permissions-context"
 import { AGENT_RERUN_TEST_EVENT } from "@/components/assistants/agent-store"
@@ -102,7 +104,7 @@ const TestRunner = dynamic(() => import("./test-runner").then((m) => m.TestRunne
 
 function PanelSkeleton({ rows }: { rows: number }) {
   return (
-    <div className="space-y-3 py-2" aria-busy="true" aria-label="Loading">
+    <div className="space-y-3 py-2" role="status" aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="space-y-1.5">
           <Skeleton className="h-2.5 w-1/3" />
@@ -311,6 +313,7 @@ export function WorkflowBuilder({
   const [showPublishDialog, setShowPublishDialog] = useState(false)
   const [showPermissions, setShowPermissions] = useState(false)
   const [showVersionHistory, setShowVersionHistory] = useState(false)
+  const [confirm, confirmDialog] = useConfirm()
   const [publishNotes, setPublishNotes] = useState('')
   const [publishing, setPublishing] = useState(false)
   // Synchronous guard: a double click must not publish two versions.
@@ -525,7 +528,7 @@ export function WorkflowBuilder({
   function canAddMiddlewareTrigger() {
     const hasUserTasks = nodes.some((node) => node.type === 'user_task')
     if (hasUserTasks) {
-      alert('Please remove User Task nodes from this flow before adding a Middleware trigger.')
+      toastError('Remove the User Task steps first', 'A Middleware trigger can’t be added to a flow that has User Task steps.')
       return false
     }
     return true
@@ -828,7 +831,7 @@ export function WorkflowBuilder({
   async function handlePublish() {
     await publishGuard.run(async () => {
       if (!validation.valid) {
-        alert(`Cannot publish: ${validation.totalErrors} configuration issue${validation.totalErrors !== 1 ? 's' : ''} found.`)
+        toastError('Can’t publish yet', `${validation.totalErrors} configuration issue${validation.totalErrors !== 1 ? 's' : ''} to fix: they are marked on the steps.`)
         return
       }
       setPublishing(true)
@@ -873,10 +876,63 @@ export function WorkflowBuilder({
 
   // AAD group assignment is checked against the workspace (undefined while loading: not checked).
   const directoryCapabilities = useDirectoryCapabilities()
-  const validation = validateWorkflow(nodes, effectiveTriggerType, { entraGroups: directoryCapabilities?.entraGroups })
+  // Memoised: it ran on every builder render (selection, hover, connecting, resize moves).
+  const entraGroups = directoryCapabilities?.entraGroups
+  const validation = useMemo(() => validateWorkflow(nodes, effectiveTriggerType, { entraGroups }), [nodes, effectiveTriggerType, entraGroups])
+  // Steps hidden inside collapsed sections, once per nodes / edges change (was computed per render, twice).
+  const visibleGraph = useMemo(() => resolveVisibleGraph(nodes, edges), [nodes, edges])
+  const canvasExtent = useMemo(() => ({
+    width: Math.max(10000, ...nodes.map(n => n.type === 'section_group' ? n.position.x + (n.config?.width ?? 500) + 2000 : n.position.x + 2000)),
+    height: Math.max(8000, ...nodes.map(n => n.type === 'section_group' ? n.position.y + (n.config?.height ?? 300) + 2000 : n.position.y + 2000), ...swimlanes.map(l => l.y + l.height + 2000)),
+  }), [nodes, swimlanes])
+
+  // Stable per-step callbacks (CanvasNode is memoised): they call the latest handlers through a ref,
+  // so editing one step re-renders that card only, not every card on the canvas.
+  const canvasHandlers = useRef({
+    select: (_id: string, _e?: React.MouseEvent) => {},
+    remove: (_id: string) => {},
+    start: (_id: string, _branchLabel?: string, _port?: import('@/lib/workflow-schema').PortSide) => {},
+    finish: (_id: string) => {},
+  })
+  useLayoutEffect(() => {
+    canvasHandlers.current = {
+      select: (id, e) => {
+        setSelectedEdgeId(null)
+        if (e?.shiftKey) {
+          setSelectedNodeIds(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+          })
+          setSelectedNodeId(null)
+        } else {
+          setSelectedNodeId(id)
+          setSelectedNodeIds(new Set())
+        }
+      },
+      remove: (id) => deleteNode(id),
+      start: (id, branchLabel, port) => startConnect(id, branchLabel, port),
+      finish: (id) => finishConnect(id),
+    }
+  })
+  const canvasCallbacks = useRef(new Map<string, Pick<React.ComponentProps<typeof CanvasNode>, 'onSelect' | 'onDelete' | 'onStartConnect' | 'onFinishConnect'>>())
+  function canvasCallbacksFor(id: string) {
+    let callbacks = canvasCallbacks.current.get(id)
+    if (!callbacks) {
+      callbacks = {
+        onSelect: (e?: React.MouseEvent) => canvasHandlers.current.select(id, e),
+        onDelete: () => canvasHandlers.current.remove(id),
+        onStartConnect: (branchLabel, port) => canvasHandlers.current.start(id, branchLabel, port),
+        onFinishConnect: () => canvasHandlers.current.finish(id),
+      }
+      canvasCallbacks.current.set(id, callbacks)
+    }
+    return callbacks
+  }
 
   async function handleDelete() {
-    if (!confirm("Delete this workflow?")) return
+    if (!(await confirm({ title: "Delete this workflow?", description: "It is removed from this workspace. This can’t be undone from here.", confirmLabel: "Delete workflow", destructive: true }))) return
     await deleteWorkflow(workflowId)
     // Embedded (/embed/workflows/<id>): nothing left to edit here — back to the host page.
     if (embed) embed.leave('deleted')
@@ -952,7 +1008,7 @@ export function WorkflowBuilder({
 
   /** Canvas boxes of every visible step and section (fit-to-content, minimap). */
   function visibleBoxes(): (Bounds & { node: WorkflowNode })[] {
-    const { hiddenNodeIds } = resolveVisibleGraph(nodes, edges)
+    const { hiddenNodeIds } = visibleGraph
     return nodes.filter(n => !hiddenNodeIds.has(n.id)).map(n => ({ ...nodeBox(n, nodeSizes), node: n }))
   }
 
@@ -1020,14 +1076,14 @@ export function WorkflowBuilder({
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target?.result as string)
         if (!data.nodes || !Array.isArray(data.nodes)) {
-          alert('Invalid workflow file: missing nodes array')
+          toastError('Invalid workflow file', 'It has no nodes array.')
           return
         }
-        if (!confirm(`Import ${data.nodes.length} nodes and ${data.edges?.length ?? 0} edges? This will replace the current canvas.`)) return
+        if (!(await confirm({ title: `Import ${data.nodes.length} nodes and ${data.edges?.length ?? 0} edges?`, description: 'This replaces the steps and connections on the current canvas.', confirmLabel: 'Replace canvas', destructive: true }))) return
         // Normalize imported node configs for UI compatibility
         const normalizedNodes = (data.nodes as any[]).map((node: any) => {
           if (!node.config) return node
@@ -1050,7 +1106,7 @@ export function WorkflowBuilder({
         if (data.swimlanes) setSwimlanes(data.swimlanes)
         setSelectedNodeId(null)
       } catch {
-        alert('Failed to parse workflow file. Ensure it is valid JSON.')
+        toastError('Could not read the workflow file', 'Make sure it is valid JSON exported from UserTasks.')
       }
     }
     reader.readAsText(file)
@@ -1101,6 +1157,7 @@ export function WorkflowBuilder({
 
   return (
     <ActiveInputProvider>
+    {confirmDialog}
     <LinkedFormsProvider value={linkedForms}>
     <WorkflowLookupsProvider>
     <CanvasZoomContext.Provider value={zoom}>
@@ -1285,8 +1342,8 @@ export function WorkflowBuilder({
             style={{
               // Generous minimum (10000 × 8000) so the canvas feels infinite in every direction.
               // If nodes extend beyond this, the canvas grows to accommodate them.
-              minWidth: `${Math.max(10000, ...nodes.map(n => n.type === 'section_group' ? n.position.x + (n.config?.width ?? 500) + 2000 : n.position.x + 2000))}px`,
-              minHeight: `${Math.max(8000, ...nodes.map(n => n.type === 'section_group' ? n.position.y + (n.config?.height ?? 300) + 2000 : n.position.y + 2000), ...swimlanes.map(l => l.y + l.height + 2000))}px`,
+              minWidth: `${canvasExtent.width}px`,
+              minHeight: `${canvasExtent.height}px`,
               transform: canvasView.transform,
               transformOrigin: "0 0",
               // Dot grid on the snap grid, in the subtle border colour.
@@ -1359,7 +1416,7 @@ export function WorkflowBuilder({
 
             {/* Nodes — hide those inside collapsed sections */}
             {(() => {
-              const { hiddenNodeIds } = resolveVisibleGraph(nodes, edges)
+              const { hiddenNodeIds } = visibleGraph
               const selectedEdge = selectedEdgeId ? edges.find((e) => e.id === selectedEdgeId) : undefined
               return nodes.filter(n => !hiddenNodeIds.has(n.id) && n.type !== 'section_group').map((node) => (
                 <CanvasNode
@@ -1371,24 +1428,7 @@ export function WorkflowBuilder({
                   connectingSource={connecting}
                   isActive={isActive}
                   dimmed={middlewareMode && node.type === 'user_task'}
-                  onSelect={(e?: React.MouseEvent) => {
-                    setSelectedEdgeId(null)
-                    if (e?.shiftKey) {
-                      setSelectedNodeIds(prev => {
-                        const next = new Set(prev)
-                        if (next.has(node.id)) next.delete(node.id)
-                        else next.add(node.id)
-                        return next
-                      })
-                      setSelectedNodeId(null)
-                    } else {
-                      setSelectedNodeId(node.id)
-                      setSelectedNodeIds(new Set())
-                    }
-                  }}
-                  onDelete={() => deleteNode(node.id)}
-                  onStartConnect={(branchLabel, port) => startConnect(node.id, branchLabel, port)}
-                  onFinishConnect={() => finishConnect(node.id)}
+                  {...canvasCallbacksFor(node.id)}
                 />
               ))
             })()}

@@ -418,7 +418,7 @@ export function ProcessViewer({ workflow, run, logs, focus, compareRun, tasks = 
       )}
       {tab === 'canvas' && tasks.length > 0 && (
         <Card padding="md" className="mt-4">
-          <h2 className="mb-3 text-base font-semibold text-fg">User Tasks</h2>
+          <h2 className="mb-3 text-base font-semibold text-fg">User tasks</h2>
           <RunTaskSteps tasks={tasks} onFocusStep={focusNodeInCanvas} />
         </Card>
       )}

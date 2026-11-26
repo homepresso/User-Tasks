@@ -67,7 +67,8 @@ the server are the same thing. See
   `settings` kind and `queued` / `cancelled` statuses). Without it the CLI
   works as before and the page's background switches are unavailable.
 - Background switches write backups under `BACKUP_DIR` (default
-  `./backups/switches`): mount a volume there in containers.
+  `~/.usertasks/backups/switches`, outside the working tree): in containers,
+  set it to a mounted volume.
 
 ## Changed
 

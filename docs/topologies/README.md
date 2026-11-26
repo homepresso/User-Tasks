@@ -159,7 +159,7 @@ refuses a switch that would break one.
   endpoint overrides for national clouds and private endpoints. S3
   endpoints can point at a VPC endpoint or an on-premises store.
 - **Backups:** `usertasks-admin switch` writes backups to `BACKUP_DIR`
-  (default `./backups/switches`) on the machine where it runs. Keep that
+  (default `~/.usertasks/backups/switches`) on the machine where it runs. Keep that
   directory in the same jurisdiction too.
 - **Supabase only and hybrid:** your data's location is the Supabase
   project's region. Choose it when you create the project, because moving a

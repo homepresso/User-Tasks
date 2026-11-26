@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react"
 import Link from "next/link"
-import { ArrowRight, Check, Cloud, Cpu, FileKey2, GitBranch, Layers, Puzzle, Server, ShieldCheck, WifiOff } from "lucide-react"
+import { ArrowRight, Check, Cloud, Cpu, FileKey2, GitBranch, Headset, Layers, LifeBuoy, Puzzle, Server, ShieldCheck, WifiOff } from "lucide-react"
+import { ExtensionsBrowser } from "@/components/marketing/extensions-browser"
 import { ProductHero } from "@/components/marketing/product-hero"
 import { CheckList, FaqList, MarketingFooter, MarketingHeader, SectionHeading } from "@/components/marketing/marketing-ui"
 import { publicBaseUrl } from "@/lib/deployment"
@@ -10,6 +11,8 @@ import {
   extensionProductNode, type Extension, type ExtensionId, type ExtensionStatus,
 } from "@/lib/seo/extensions"
 import { SHAREPOINT_TRIAL } from "@/lib/seo/sharepoint-facts"
+import { CATALOGUE, EXTENSION_CATEGORIES, catalogueItemNode, type CatalogueIcon, type CatalogueItem } from "@/lib/seo/extensions-catalogue"
+import { SUPPORT_PAGE } from "@/lib/seo/support"
 
 /**
  * /extensions and /extensions/<id>: the paid extensions to the open-source
@@ -46,7 +49,7 @@ function primaryAction(extension: Extension, onIndex: boolean): { href: string; 
     if (extension.id === "sharepoint") return onIndex ? { href: extension.href, label: "See the SharePoint extension" } : { href: SHAREPOINT_TRIAL.path, label: `Start a ${SHAREPOINT_TRIAL.days}-day free trial` }
     return onIndex ? { href: extension.href, label: `See the ${extension.name} extension` } : { href: "/contact", label: "Buy or ask a question" }
   }
-  return { href: "/contact", label: "Ask about early access" }
+  return { href: "/contact", label: extension.status === "early-access" ? "Request early access" : "Ask about early access" }
 }
 
 function Price({ extension, size = "md" }: { extension: Extension; size?: "md" | "lg" }) {
@@ -58,78 +61,39 @@ function Price({ extension, size = "md" }: { extension: Extension; size?: "md" |
   )
 }
 
-function ExtensionCard({ extension }: { extension: Extension }) {
-  const Icon = ICONS[extension.id]
-  const action = primaryAction(extension, true)
-  const detailsHref = extension.href
-  const headingId = `extension-${extension.id}`
+const CATALOGUE_ICONS: Record<CatalogueIcon, typeof Server> = { server: Server, layers: Layers, cpu: Cpu, lifebuoy: LifeBuoy, headset: Headset, puzzle: Puzzle }
+
+const CATEGORY_LABEL = Object.fromEntries(EXTENSION_CATEGORIES.map((category) => [category.id, category.label])) as Record<string, string>
+
+/** One gallery card: icon, status, name, one line, price and where it goes. */
+function CatalogueCard({ item }: { item: CatalogueItem }) {
+  const Icon = CATALOGUE_ICONS[item.icon]
+  const headingId = `extension-card-${item.id}`
   return (
-    <article aria-labelledby={headingId} className="flex h-full flex-col rounded-3xl border border-(color:--mkt-ink)/[0.1] bg-(color:--mkt-white) p-6 shadow-[0_30px_80px_-50px_rgba(16,14,11,0.35)] sm:p-7" data-reveal data-extension={extension.id}>
+    <article aria-labelledby={headingId} className="mkt-lift group relative flex h-full flex-col rounded-3xl border border-(color:--mkt-ink)/[0.1] bg-(color:--mkt-white) p-6 shadow-[0_24px_60px_-44px_rgba(16,14,11,0.4)] hover:border-(color:--mkt-bronze)/40" data-extension={item.id} data-extension-category={item.category}>
       <div className="flex items-start justify-between gap-3">
         <span className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2A251E] to-[#14110D] text-[#F0C27B] shadow-lg"><Icon size={22} aria-hidden="true" /></span>
-        <StatusBadge status={extension.status} />
+        <StatusBadge status={item.status} />
       </div>
-      <h3 id={headingId} className="mt-5 font-display text-2xl font-bold tracking-tight"><Link href={detailsHref} className="hover:underline">{extension.name}</Link></h3>
-      <p className="mt-1 text-sm font-medium text-(color:--mkt-bronze)">{extension.tagline}</p>
-      <p className="mt-3 text-sm leading-6 text-(color:--mkt-text)">{extension.summary}</p>
-
-      <div className="mt-5 border-t border-(color:--mkt-ink)/[0.07] pt-5"><Price extension={extension} /></div>
-
-      <dl className="mt-5 space-y-4 text-sm leading-6">
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-(color:--mkt-subtle)">Who it&rsquo;s for</dt>
-          <dd className="mt-1 text-(color:--mkt-text)">{extension.audience}</dd>
+      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-(color:--mkt-subtle)">{CATEGORY_LABEL[item.category]}</p>
+      <h3 id={headingId} className="mt-1 font-display text-2xl font-bold tracking-tight">
+        <Link href={item.href} className="outline-none after:absolute after:inset-0 after:rounded-3xl focus-visible:after:ring-2 focus-visible:after:ring-(color:--mkt-bronze)" data-testid={`extension-cta-${item.id}`}>{item.name}</Link>
+      </h3>
+      <p className="mt-2 flex-1 text-sm leading-6 text-(color:--mkt-text)">{item.summary}</p>
+      <div className="mt-6 flex items-end justify-between gap-3 border-t border-(color:--mkt-ink)/[0.07] pt-5">
+        <div data-extension-price>
+          {item.price ? (
+            <p className="font-display text-2xl font-bold tracking-tight">
+              {item.price.from && <span className="mr-1 text-sm font-semibold text-(color:--mkt-muted)">from</span>}
+              {item.price.amount}<span className="text-sm font-semibold text-(color:--mkt-muted)">/{item.price.per}</span>
+              <span className="ml-1 text-xs font-semibold text-(color:--mkt-subtle)">{item.price.currency}</span>
+            </p>
+          ) : <p className="font-display text-2xl font-bold tracking-tight">Contact us</p>}
+          {item.price?.detail && <p className="text-xs text-(color:--mkt-muted)">{item.price.detail}</p>}
         </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-(color:--mkt-subtle)">Key capabilities</dt>
-          <dd>
-            <ul className="mt-2 space-y-1.5 text-(color:--mkt-text)">
-              {extension.capabilities.map((item) => <li key={item} className="flex gap-2"><Check size={15} className="mt-1 shrink-0 text-(color:--mkt-green)" aria-hidden="true" /><span>{item}</span></li>)}
-            </ul>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-(color:--mkt-subtle)">Deployment</dt>
-          <dd>
-            <ul className="mt-1 space-y-1 text-(color:--mkt-text)">
-              {extension.deployment.map((item) => <li key={item.label}><strong className="font-semibold text-(color:--mkt-ink)">{item.label}:</strong> {item.detail}</li>)}
-            </ul>
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-(color:--mkt-subtle)">Free in the core</dt>
-          <dd className="mt-1 text-(color:--mkt-text)">{extension.freeInCore}</dd>
-        </div>
-      </dl>
-
-      <div className="mt-auto pt-7">
-        <Link href={action.href} className="mkt-btn-primary inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold" data-testid={`extension-cta-${extension.id}`}>{action.label} <ArrowRight size={16} aria-hidden="true" /></Link>
-        {action.href !== detailsHref && <Link href={detailsHref} className="mt-3 inline-flex w-full items-center justify-center gap-1 text-sm font-semibold text-(color:--mkt-bronze) hover:underline">Details <ArrowRight size={14} aria-hidden="true" /></Link>}
+        <span aria-hidden="true" className="inline-flex items-center gap-1 text-sm font-semibold text-(color:--mkt-bronze)">Details <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" /></span>
       </div>
     </article>
-  )
-}
-
-/** Dark mini-cards in the hero: name, status and price at a glance. */
-function HeroOverview() {
-  return (
-    <ul className="grid gap-3 sm:grid-cols-3">
-      {EXTENSIONS.map((extension) => {
-        const Icon = ICONS[extension.id]
-        return (
-          <li key={extension.id}>
-            <a href={`#extension-${extension.id}`} className="flex h-full flex-col rounded-2xl border border-white/10 bg-[#fff]/[0.04] p-5 text-[#F4EFE4] transition-colors hover:border-white/25">
-              <span className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2 font-semibold"><Icon size={17} className="text-[#F0C27B]" aria-hidden="true" />{extension.name}</span>
-                <StatusBadge status={extension.status} tone="dark" />
-              </span>
-              <span className="mt-2 flex-1 text-sm leading-6 text-[#C9BFAE]">{extension.tagline}</span>
-              <span className="mt-4 font-display text-2xl font-bold text-white">{extension.price.amount} <span className="text-sm font-semibold text-[#A89E8C]">USD {extension.price.unit}</span></span>
-            </a>
-          </li>
-        )
-      })}
-    </ul>
   )
 }
 
@@ -145,35 +109,44 @@ export function ExtensionsPage() {
       "@type": "ItemList",
       "@id": `${baseUrl}${path}#extensions`,
       name: "UserTasks extensions",
-      itemListElement: EXTENSIONS.map((extension, index) => ({ "@type": "ListItem", position: index + 1, item: extensionProductNode(baseUrl, extension) })),
+      itemListElement: CATALOGUE.map((item, index) => ({ "@type": "ListItem", position: index + 1, item: catalogueItemNode(baseUrl, item) })),
     },
     faqNode(EXTENSIONS_FAQS),
   ]
+  const browserItems = CATALOGUE.map((item) => ({ key: item.id, category: item.category, text: [item.name, item.summary, CATEGORY_LABEL[item.category], ...item.keywords].join(" ").toLowerCase() }))
 
   return (
     <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
       <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
-      <MarketingHeader tone="night" />
+      <MarketingHeader />
       <main>
-        <ProductHero
-          crumb="Extensions"
-          eyebrow="Extensions · paid add-ons"
-          icon={Puzzle}
-          title={<>An open-source core. <span className="mkt-gradient-text">Extensions when you need more.</span></>}
-          intro={<>UserTasks is open source under <strong className="text-white">Apache-2.0</strong> and complete on its own. Three paid extensions add what some organizations need on top: SharePoint Server integration, infrastructure you choose for each service, and processing on separate runners.</>}
-          primary={{ href: "#extensions", label: "Compare the extensions" }}
-          secondary={{ href: "/open-source", label: "About the open-source core" }}
-          bullets={["Core: Apache-2.0, free to run", "Licences verified offline, air-gapped ready", "Prices in USD, per year"]}
-          visual={<HeroOverview />}
-        />
+        <section id="extensions" aria-labelledby="extensions-title" className="relative overflow-hidden border-b border-(color:--mkt-ink)/[0.06]">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_50%_0%,rgba(176,138,84,0.16),transparent_70%)]" />
+          <div aria-hidden="true" className="mkt-grid pointer-events-none absolute inset-0" />
+          <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 sm:pb-20 sm:pt-12">
+            <nav aria-label="Breadcrumb" className="text-xs text-(color:--mkt-muted)"><Link href="/" className="hover:text-(color:--mkt-ink)">UserTasks</Link><span className="px-2">/</span><span aria-current="page">Extensions</span></nav>
+            <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-(color:--mkt-bronze)/30 bg-(color:--mkt-white)/70 py-1 pl-1 pr-3 text-xs font-semibold uppercase tracking-wider text-(color:--mkt-bronze)">
+              <span className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-[#F3C77F] to-[#D99A52] text-[#1B1406]"><Puzzle size={13} aria-hidden="true" /></span>Extensions · add-ons and services
+            </p>
+            <h1 id="extensions-title" className="mt-5 max-w-4xl font-display text-4xl font-bold leading-[1.06] tracking-tight text-balance sm:text-6xl">An open-source core. <span className="mkt-gradient-text-ink">Extensions when you need more.</span></h1>
+            <p className="mkt-body mt-5 max-w-3xl text-(color:--mkt-text)">UserTasks is open source under <strong className="text-(color:--mkt-ink)">Apache-2.0</strong> and complete on its own. Extensions add what some organizations need on top: integrations such as SharePoint Server, platform add-ons for your own infrastructure and runners, and services from the team that builds UserTasks.</p>
+            <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-(color:--mkt-text)">
+              {["Core: Apache-2.0, free to run", "Licences verified offline, air-gapped ready", "Prices in USD"].map((bullet) => <li key={bullet} className="flex items-center gap-2"><Check size={14} className="text-(color:--mkt-green)" aria-hidden="true" />{bullet}</li>)}
+            </ul>
+            <div className="mt-10">
+              <ExtensionsBrowser items={browserItems} cards={CATALOGUE.map((item) => <CatalogueCard key={item.id} item={item} />)} categories={EXTENSION_CATEGORIES.map(({ id, label }) => ({ id, label }))} />
+            </div>
+          </div>
+        </section>
 
-        <section aria-labelledby="summary-title" className="border-t border-(color:--mkt-ink)/[0.07]">
+        <section aria-labelledby="summary-title">
           <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_1.1fr]">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze)">In short</p>
               <h2 id="summary-title" className="mt-3 font-display text-3xl font-bold tracking-tight">What an extension is</h2>
               <p className="mt-4 mkt-body text-(color:--mkt-text)">{EXTENSIONS_PAGE.definition}</p>
+              <p className="mt-4 mkt-body text-(color:--mkt-text)">Support plans and consulting are listed here too. <Link href={SUPPORT_PAGE.path} className="font-semibold text-(color:--mkt-bronze) hover:underline">See the support plans</Link>.</p>
             </div>
             <ul className="grid gap-3 sm:grid-cols-2">
               {LICENSING_FACTS.map((fact, index) => {
@@ -189,15 +162,6 @@ export function ExtensionsPage() {
           </div>
         </section>
 
-        <section id="extensions" aria-label="The extensions" className="scroll-mt-20 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-sand)/60">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <SectionHeading eyebrow="The extensions" title="Three extensions, one price each." align="center">Every price is in USD, per year. SharePoint is available today; Infrastructure and Processing are being finished.</SectionHeading>
-            <div className="mt-12 grid gap-6 lg:grid-cols-3">
-              {EXTENSIONS.map((extension) => <div key={extension.id} id={`extension-${extension.id}`} className="scroll-mt-24"><ExtensionCard extension={extension} /></div>)}
-            </div>
-          </div>
-        </section>
-
         <div className="border-t border-(color:--mkt-ink)/[0.07]">
           <FaqList faqs={EXTENSIONS_FAQS} />
         </div>
@@ -206,129 +170,12 @@ export function ExtensionsPage() {
           <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
             <p className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
               <Link href="/sharepoint" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">SharePoint extension <ArrowRight size={14} aria-hidden="true" /></Link>
+              <Link href={SUPPORT_PAGE.path} className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Support plans <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/docs/self-hosting/licensing" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Licences for paid extensions (docs) <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/docs/developers/extensions" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">How extensions work (docs) <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/open-source" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Open source <ArrowRight size={14} aria-hidden="true" /></Link>
               <Link href="/contact" className="inline-flex items-center gap-1 font-semibold text-(color:--mkt-bronze) hover:underline">Contact us <ArrowRight size={14} aria-hidden="true" /></Link>
             </p>
-            <p className="mt-8 text-xs leading-5 text-(color:--mkt-muted)">{TRADEMARKS}</p>
-          </div>
-        </section>
-      </main>
-      <MarketingFooter />
-    </div>
-  )
-}
-
-function DeploymentCard({ icon: Icon, title, children }: { icon: typeof Server; title: string; children: ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-6" data-reveal>
-      <h3 className="flex items-center gap-2 text-lg font-semibold"><Icon size={18} className="text-(color:--mkt-bronze)" aria-hidden="true" />{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-(color:--mkt-text)">{children}</p>
-    </div>
-  )
-}
-
-/** /extensions/<id> for the extensions without a page of their own elsewhere (not SharePoint). */
-export function ExtensionDetailPage({ extension }: { extension: Extension }) {
-  const baseUrl = publicBaseUrl()
-  const path = extension.href
-  const Icon = ICONS[extension.id]
-  const action = primaryAction(extension, false)
-  const comingSoon = extension.status === "coming-soon"
-  const others = EXTENSIONS.filter((other) => other.id !== extension.id)
-  const jsonLd = [
-    webPageNode(baseUrl, path, { name: extension.page.title, description: extension.page.description, updated: EXTENSIONS_UPDATED }),
-    breadcrumbNode(baseUrl, [{ name: EXTENSIONS_PAGE.eyebrow, path: EXTENSIONS_PAGE.path }, { name: extension.name, path }]),
-    extensionProductNode(baseUrl, extension),
-  ]
-
-  return (
-    <div className="mkt relative min-h-screen bg-(color:--mkt-paper) text-(color:--mkt-ink)" style={THEME}>
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-(color:--mkt-paper)" aria-hidden="true" />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(jsonLd) }} />
-      <MarketingHeader tone="night" />
-      <main>
-        <ProductHero
-          crumb={`Extensions / ${extension.name}`}
-          eyebrow={`${extension.name} extension · ${STATUS_LABEL[extension.status]}`}
-          icon={Icon}
-          title={<>{extension.name}. <span className="mkt-gradient-text">{extension.tagline}</span></>}
-          intro={<>{extension.summary} {comingSoon && <strong className="text-white">Coming soon: contact us for early access.</strong>}</>}
-          primary={action}
-          secondary={{ href: "/extensions", label: "All extensions" }}
-          bullets={[`${extension.price.amount} USD ${extension.price.unit}`, ...extension.deployment.map((item) => item.label), "Licence verified offline"]}
-        />
-
-        <section aria-labelledby="who-title" className="border-t border-(color:--mkt-ink)/[0.07]">
-          <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-(color:--mkt-bronze)">{extension.name} extension</p>
-              <h2 id="who-title" className="mt-3 font-display text-3xl font-bold tracking-tight">Who it&rsquo;s for</h2>
-              <p className="mt-4 mkt-body text-(color:--mkt-text)">{extension.audience}</p>
-            </div>
-            <div className="rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white)/80 p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-(color:--mkt-subtle)">Free in the open-source core</p>
-              <p className="mt-2 text-sm leading-6 text-(color:--mkt-text)">{extension.freeInCore} The extension adds the rest. UserTasks itself stays open source under Apache-2.0.</p>
-            </div>
-          </div>
-        </section>
-
-        <section aria-label="Key capabilities" className="border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-sand)/60">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <SectionHeading eyebrow="Key capabilities" title={`What the ${extension.name} extension does.`} />
-            <div className="max-w-3xl"><CheckList items={extension.capabilities} /></div>
-          </div>
-        </section>
-
-        <section aria-label="Deployment" className="border-t border-(color:--mkt-ink)/[0.07]">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <SectionHeading eyebrow="Deployment" title="Where it runs." />
-            <div className="mt-10 grid gap-4 md:grid-cols-2">
-              {extension.deployment.map((item) => <DeploymentCard key={item.label} icon={item.label === "UserTasks Cloud" ? Cloud : Server} title={item.label}>{item.detail}</DeploymentCard>)}
-            </div>
-          </div>
-        </section>
-
-        <section id="pricing" aria-label="Pricing" className="scroll-mt-8 border-t border-(color:--mkt-ink)/[0.07] bg-(color:--mkt-white)/50">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-            <SectionHeading eyebrow="Pricing" title="One price per deployment." align="center" />
-            <div className="mx-auto mt-10 max-w-3xl overflow-hidden rounded-3xl border border-(color:--mkt-ink)/[0.1] bg-(color:--mkt-white) shadow-[0_30px_80px_-40px_rgba(16,14,11,0.35)]">
-              <div className="grid gap-8 p-6 sm:p-10 md:grid-cols-[1fr_1.2fr]">
-                <div>
-                  <p className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-(color:--mkt-bronze)">{extension.name} extension <StatusBadge status={extension.status} /></p>
-                  <div className="mt-3"><Price extension={extension} size="lg" /></div>
-                  <Link href={action.href} className="mkt-btn-primary mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold" data-testid="pricing-cta">{action.label} <ArrowRight size={16} aria-hidden="true" /></Link>
-                  <p className="mt-3 text-xs leading-5 text-(color:--mkt-muted)">{comingSoon ? "Coming soon. Tell us about your deployment and we'll be in touch about early access." : "UserTasks itself is open source and free to self-host. The extension is the paid part."}</p>
-                </div>
-                <ul className="space-y-2 text-sm leading-6 text-(color:--mkt-text)">
-                  {LICENSING_FACTS.map((fact) => <li key={fact} className="flex gap-2"><Check size={16} className="mt-1 shrink-0 text-(color:--mkt-green)" aria-hidden="true" />{fact}</li>)}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section aria-labelledby="others-title" className="border-t border-(color:--mkt-ink)/[0.07]">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-            <h2 id="others-title" className="font-display text-2xl font-bold tracking-tight">The other extensions</h2>
-            <ul className="mt-6 grid gap-4 md:grid-cols-2">
-              {others.map((other) => {
-                const OtherIcon = ICONS[other.id]
-                return (
-                  <li key={other.id}>
-                    <Link href={other.href} className="mkt-lift flex h-full items-start gap-4 rounded-2xl border border-(color:--mkt-ink)/[0.08] bg-(color:--mkt-white) p-5 hover:border-(color:--mkt-bronze)/40">
-                      <OtherIcon size={20} className="mt-0.5 shrink-0 text-(color:--mkt-bronze)" aria-hidden="true" />
-                      <span>
-                        <span className="flex flex-wrap items-center gap-2 font-semibold">{other.name} <StatusBadge status={other.status} /></span>
-                        <span className="mt-1 block text-sm leading-6 text-(color:--mkt-text)">{other.tagline}</span>
-                        <span className="mt-1 block text-sm font-semibold">{other.price.amount} USD {other.price.unit}</span>
-                      </span>
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
             <p className="mt-8 text-xs leading-5 text-(color:--mkt-muted)">{TRADEMARKS}</p>
           </div>
         </section>

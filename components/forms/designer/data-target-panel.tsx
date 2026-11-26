@@ -16,6 +16,7 @@
  * it); unmapping a field that is required in the source asks first.
  */
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ExternalLink, Info } from 'lucide-react'
@@ -67,6 +68,7 @@ export function useTargetDescription(formId: string | null | undefined, state: D
 }
 
 export function DataTargetPanel({ formId, state, onChange, compact = false }: { formId: string; state: DesignerState; onChange: (next: DesignerState, tag?: string) => void; /** Inside the Save to … action: the mapping, columns to add and warnings only (the same binding). */ compact?: boolean }) {
+  const [confirm, confirmDialog] = useConfirm()
   const queryClient = useQueryClient()
   const def = definitionFrom(state)
   const { data, error, isPending } = useTargetDescription(formId, state)
@@ -87,8 +89,8 @@ export function DataTargetPanel({ formId, state, onChange, compact = false }: { 
     }
   }
 
-  async function act(id: string, confirm?: string | null) {
-    if (confirm && !window.confirm(confirm)) return
+  async function act(id: string, question?: string | null, label = 'Continue', danger = false) {
+    if (question && !(await confirm({ title: `${label}?`, description: question, confirmLabel: label, destructive: danger }))) return
     setBusy(true); setMessage(null)
     try {
       const res = await runFormDataTargetAction(formId, id)
@@ -121,6 +123,7 @@ export function DataTargetPanel({ formId, state, onChange, compact = false }: { 
 
   return (
     <div className="space-y-3 text-2xs" data-target-panel>
+      {confirmDialog}
       {!compact && <div>
         <p className="font-medium text-fg">{d.title}</p>
         {d.link && <a className="inline-flex items-center gap-1 text-primary-text underline" href={d.link.url} target="_blank" rel="noreferrer">{d.link.label} <ExternalLink size={10} aria-hidden /></a>}
@@ -229,7 +232,7 @@ export function DataTargetPanel({ formId, state, onChange, compact = false }: { 
       {!compact && d.actions && d.actions.length > 0 && data?.actions && (
         <div className="flex flex-wrap gap-1.5" data-target-actions>
           {d.actions.map((a) => (
-            <Button key={a.id} size="sm" variant={a.tone === 'danger' ? 'destructive' : 'outline'} disabled={busy} title={a.help ?? undefined} onClick={() => void act(a.id, a.confirm)} data-target-action={a.id}>{a.label}</Button>
+            <Button key={a.id} size="sm" variant={a.tone === 'danger' ? 'destructive' : 'outline'} disabled={busy} title={a.help ?? undefined} onClick={() => void act(a.id, a.confirm, a.label, a.tone === 'danger')} data-target-action={a.id}>{a.label}</Button>
           ))}
         </div>
       )}

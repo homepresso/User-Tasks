@@ -32,8 +32,9 @@ import type { ExtensionDefinition, ServerExtension } from '@/lib/extensions/sdk'
 import { invalidateLicenceCache, licensingDeps, type LicensingDeps } from '@/lib/licensing/service'
 import { EXPIRY_CUTOFF_MS } from '@/lib/licensing/format'
 import { resolveInstanceConfig } from '@/lib/config'
+import { PROVIDER_ENV } from '@/lib/config/schema'
 import { isFreeProviderChange, isFreeSettingsChange, INFRASTRUCTURE_PRICE, addonRequiredMessage } from '@/lib/infrastructure/addon'
-import { __setInfrastructureAddonForTests, infrastructureAddon } from '@/lib/infrastructure/provider'
+import { __setInfrastructureAddonForTests, infrastructureAddon, infrastructureAddonView } from '@/lib/infrastructure/provider'
 import { callInfrastructureAction } from '@/lib/infrastructure/dispatch'
 import { checkInfrastructureLicenceText, infrastructureDecision } from '@/lib/infrastructure/licence-gate'
 import { changeEmailProviderAs, saveProviderSettingsAs, type InfrastructureSettingsDeps } from '@/lib/admin/infrastructure-settings'
@@ -101,6 +102,7 @@ function useAddon() {
 }
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   if (Object.keys(saved).length) Object.assign(licensingDeps, saved)
   saved = {}
   invalidateLicenceCache()
@@ -147,6 +149,18 @@ describe('add-on resolution and licence (instance-wide, 24-hour grace)', () => {
     const expired = await infrastructureAddon()
     expect(expired.state).toBe('unlicensed')
     expect(expired.state === 'unlicensed' && expired.reason).toMatch(/expired/)
+  })
+
+  it('pages say why it is unlicensed without repeating the whole refusal', async () => {
+    useAddon()
+    licences = []
+    const view = await infrastructureAddonView()
+    expect(view.state).toBe('unlicensed')
+    expect(view.reason).toMatch(/not licensed/)
+    expect(view.reason).not.toMatch(/needs the Infrastructure add-on/)
+    // Server refusals keep the full message.
+    const addon = await infrastructureAddon()
+    expect(addon.state === 'unlicensed' && addon.reason).toMatch(/needs the Infrastructure add-on/)
   })
 
   it('a licence for another extension or without the feature does not count', async () => {
@@ -229,6 +243,9 @@ describe('core refuses add-on actions server side', () => {
 
 describe('a separated install keeps running without the add-on', () => {
   it('resolves and keeps every separated provider, licence or not', async () => {
+    // These are stored settings: a provider env var (CI's DB suites set
+    // STORAGE_PROVIDER, CACHE_PROVIDER, AUTH_PROVIDER…) would rightly win, so clear them.
+    for (const name of Object.values(PROVIDER_ENV)) vi.stubEnv(name, '')
     const config = resolveInstanceConfig(new Map<string, unknown>([
       ['providers.auth', 'oidc'], ['providers.storage', 's3'], ['storage.endpoint', 'https://s3.example.com'], ['providers.email', 'ses'], ['providers.cache', 'redis'], ['cache.redis_url', 'redis://cache.example.com:6379'],
     ]))

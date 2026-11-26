@@ -4,7 +4,7 @@
  * the renderer's legibility pass makes arbitrary custom palettes pass too.
  */
 import { describe, expect, it } from 'vitest'
-import { contrastRatio, parseColor } from '@/lib/theme/colors'
+import { contrastRatio, isDarkColor, parseColor } from '@/lib/theme/colors'
 import { CONTRAST_PAIRS, paletteContrastIssues } from '@/lib/theme/contrast'
 import { ensureContrast, legiblePalette, readableFill } from '@/lib/theme/legibility'
 import { THEME_TEMPLATES, defaultWorkspaceTheme, presetToWorkspaceTheme } from '@/lib/theme/presets'
@@ -33,10 +33,18 @@ describe('built-in presets pass the token audit', () => {
     expect(legiblePalette(theme.colors[mode], theme.chrome)).toEqual(theme.colors[mode])
   })
 
-  it('light-only presets use one palette in both modes (no near-black washes in dark mode)', () => {
-    const blue = presetToWorkspaceTheme('corporate-blue')!
-    expect(blue.colors.dark.primaryLight).toBe(blue.colors.light.primaryLight)
-    expect(blue.colors.dark.accentLight).toBe(blue.colors.light.accentLight)
+  it('every preset with a light canvas has a real dark palette (dark canvas and cards, light text)', () => {
+    // QA 2026-11-24: 24 light presets used their light palette in dark mode.
+    for (const t of THEME_TEMPLATES) {
+      const theme = presetToWorkspaceTheme(t.id)!
+      if (theme.meta.mode !== 'auto') continue
+      const { light, dark } = theme.colors
+      if (isDarkColor(light.surface)) continue
+      expect(isDarkColor(dark.surface), `${t.id} dark surface`).toBe(true)
+      expect(isDarkColor(dark.cardBg), `${t.id} dark cards`).toBe(true)
+      expect(isDarkColor(dark.cardText), `${t.id} dark-mode text`).toBe(false)
+      expect(dark.primaryLight, `${t.id} primaryLight`).not.toBe(light.primaryLight)
+    }
     // Dark-card presets get the dark status palette.
     const nebula = presetToWorkspaceTheme('nebula')!.colors.light
     expect(nebula.status.todo).not.toBe('#5B6770')

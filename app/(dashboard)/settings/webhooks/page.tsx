@@ -21,7 +21,7 @@ export default function WebhooksPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-2xl font-semibold">Webhook Delivery</h1>
+      <h1 className="text-2xl font-semibold">Webhook delivery</h1>
 
       <Card>
         <h3 className="text-sm font-semibold mb-4">

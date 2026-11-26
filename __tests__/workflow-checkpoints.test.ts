@@ -184,3 +184,56 @@ describe('recovery after a lost worker', () => {
     expect(await recoverRunFromCheckpoint(RUN, { tenantId: TENANT })).toBeNull()
   })
 })
+
+describe('checkpoint size budget (a Loop of thousands of side-effecting steps)', () => {
+  it('keeps completed records within MAX_COMPLETED_BYTES: later steps are recorded without output / variables', async () => {
+    const { CheckpointRuntime, MAX_COMPLETED_BYTES, newCheckpoint } = await import('@/lib/workflow-checkpoints')
+    let written = 0
+    const supabase = { rpc: vi.fn(async (_fn: string, args: any) => { written += JSON.stringify(args.p_completed ?? {}).length; return { data: true, error: null } }) } as any
+    const cp = newCheckpoint({ kind: 'start', variables: {} } as any)
+    const runtime = new CheckpointRuntime(supabase, RUN, cp, 'side_effects', null)
+    const node = { id: 'http', type: 'http_request', config: {} }
+    const output = { body: 'x'.repeat(100 * 1024) }
+    for (let visit = 1; visit <= 200; visit++) await runtime.recordCompleted(node, visit, output, { set: { last: output }, removed: [] })
+    const kept = JSON.stringify(cp.completed).length
+    // Before: 200 x ~200 KB = ~40 MB held in memory and merged into the run row.
+    expect(kept).toBeLessThan(MAX_COMPLETED_BYTES + 200 * 200)
+    expect(written).toBeLessThan(MAX_COMPLETED_BYTES + 200 * 200)
+    expect(cp.completed['http#1']).toMatchObject({ o: output })
+    expect(cp.completed['http#200']).toMatchObject({ o: null, d: {}, t: true })
+    // A replay of a step recorded past the budget is the oversized-step case: not restored.
+    const replay = new CheckpointRuntime(supabase, RUN, newCheckpoint({ kind: 'start', variables: {} } as any), 'side_effects', cp, 'fail')
+    expect(replay.decide({ id: 'http', type: 'http_request', config: { method: 'POST' } }, 200).kind).toBe('outcome_unknown')
+    expect(replay.decide({ id: 'http', type: 'http_request', config: { method: 'POST' } }, 1).kind).toBe('replay')
+  })
+})
+
+describe('Loop N times iteration cap', () => {
+  it('fails the step with a clear error instead of allocating a 100M-entry array (worker OOM; main caps it via maxStepsPerRun)', async () => {
+    const loopN = (count: string): Node => ({ id: 'ln', type: 'loop_n_times', label: 'Repeat', config: { count, index_var: 'i' } })
+    seed(chain([trigger(), loopN('100000000'), log('l1', 'x')]))
+    const heapBefore = process.memoryUsage().heapUsed
+    const result = await executeWorkflow(WF, undefined, false, {})
+    expect(result.status).toBe('failed')
+    expect(JSON.stringify(result)).toMatch(/Step limit reached/)
+    expect(process.memoryUsage().heapUsed - heapBefore).toBeLessThan(200 * 1024 * 1024)
+  })
+})
+
+describe('people directory shared across runs (USER_NAME / USER_EMAIL)', () => {
+  it('loads a workspace\'s directory once for consecutive runs, and still resolves names', async () => {
+    const { clearPeopleDirectoriesForTests } = await import('@/lib/workflow-engine')
+    clearPeopleDirectoriesForTests()
+    const USER = '0b000000-0000-4000-8000-0000000000e1'
+    const fake = seed(chain([trigger(), log('l1', `hi {{=USER_NAME("${USER}")}}`)]))
+    fake.tables.user_memberships = [{ id: 'm1', tenant_id: TENANT, user_id: USER }]
+    fake.tables.users = [{ id: USER, display_name: 'Ana Lima', email: 'ana@example.com' }]
+    const r1 = await executeWorkflow(WF, undefined, false, {})
+    const r2 = await executeWorkflow(WF, undefined, false, {})
+    expect([r1.status, r2.status]).toEqual(['completed', 'completed'])
+    expect(JSON.stringify(fake.tables.workflow_runs)).toContain('Ana Lima')
+    // Before: one membership read (+ user chunks) per run.
+    expect(fake.calls.filter((c) => c.table === 'user_memberships').length).toBe(1)
+    clearPeopleDirectoriesForTests()
+  })
+})

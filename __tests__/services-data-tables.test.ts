@@ -308,3 +308,39 @@ describe('MCP data tools (service wrappers)', () => {
     expect(enqueueDeletionJob).not.toHaveBeenCalled()
   })
 })
+
+describe('queryRows on tables larger than the in-memory scan', () => {
+  function bigDb() {
+    const rows = Array.from({ length: 600 }, (_, i) => ({ id: `big-${i}`, table_id: 'tbl-a', tenant_id: 'tenant-a', data: { id: i, order_no: `A-${i}`, status: 'open', amount: i }, created_at: new Date(Date.UTC(2026, 0, 1, 0, i)).toISOString() }))
+    const db = createMemorySupabase({ custom_tables: [{ id: 'tbl-a', tenant_id: 'tenant-a', name: 'Orders', slug: 'orders', description: null, columns: COLUMNS }], custom_table_rows: rows })
+    const rpc = vi.fn(async (_fn: string, args: any) => {
+      // Sorted over EVERY row, as data_table_rows_page does.
+      const all = [...rows].sort((a, b) => (args.p_dir === 'asc' ? 1 : -1) * (a.data.amount - b.data.amount))
+      return { data: all.slice(args.p_offset, args.p_offset + args.p_limit).map((r) => ({ ...r, retention_policy_id: null, _total: all.length })), error: null }
+    })
+    ;(db as any).rpc = rpc
+    return { db, rpc }
+  }
+
+  it('sorts by a cell over every row in the database (exact), scoped to the tenant', async () => {
+    const { db, rpc } = bigDb()
+    const result = await data.queryRows(ctx(db), 'tbl-a', { sort_field: 'Amount', sort_direction: 'asc' }, { limit: 10, offset: 0 })
+    expect(rpc).toHaveBeenCalledWith('data_table_rows_page', expect.objectContaining({ p_table_id: 'tbl-a', p_sort: 'amount', p_dir: 'asc', p_tenant_id: 'tenant-a' }))
+    // Before: only the newest 500 rows were sorted, so the smallest amounts (the oldest rows) never showed.
+    expect(result.rows.map((r: any) => r.data.amount)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    expect(result).toMatchObject({ total: 600, truncated: false })
+    expect(Object.keys(result.rows[0]).sort()).toEqual(['created_at', 'created_by', 'data', 'id', 'table_id', 'updated_at', 'updated_by'])
+  })
+
+  it('keeps the in-memory scan for small tables and for date comparisons SQL would read differently', async () => {
+    const small = seed()
+    const rpc = vi.fn()
+    ;(small as any).rpc = rpc
+    await data.queryRows(ctx(small), 'tbl-a', { sort_field: 'amount' }, page)
+    const { db, rpc: bigRpc } = bigDb()
+    const dated = await data.queryRows(ctx(db), 'tbl-a', { filters: [{ field: 'date_created', operator: 'gt', value: '2026-01-01' }] }, page)
+    expect(rpc).not.toHaveBeenCalled()
+    expect(bigRpc).not.toHaveBeenCalled()
+    expect(dated.truncated).toBe(true)
+  })
+})

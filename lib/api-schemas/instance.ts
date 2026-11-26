@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isoDateTime } from '@/lib/zod-datetime'
 import { INVITABLE_ROLES } from '@/lib/invitation-roles'
 import { defineEndpoint } from './registry'
 
@@ -135,7 +136,7 @@ export const changeInstanceMemberRoleEndpoint = action('POST', '/instance/worksp
 export const deactivateInstanceMemberEndpoint = action('POST', '/instance/workspaces/{id}/members/{user_id}/deactivate', 'deactivateInstanceMember', 'Deactivate a member (the last owner is guarded)', 'deactivate', memberParams, reasonBody, ['id', 'user_id'])
 export const reactivateInstanceMemberEndpoint = action('POST', '/instance/workspaces/{id}/members/{user_id}/reactivate', 'reactivateInstanceMember', 'Reactivate a deactivated member', 'reactivate', memberParams, z.object({ role: role.optional().describe('Role when they have none (default member)'), reason, idempotency_key: idempotency }), ['id', 'user_id'])
 export const extendInstanceTrialEndpoint = action('POST', '/instance/workspaces/{id}/licences/{extension_id}/extend', 'extendInstanceTrial', 'Extend a trial or licence of a workspace', 'extend-trial', licenceParams,
-  z.object({ days: z.coerce.number().int().min(1).max(365).optional().describe('Days to add (from the current end, or today)'), ends_at: z.string().datetime({ offset: true }).optional().describe('Or the new end'), reason, idempotency_key: idempotency }), ['id', 'extension_id'])
+  z.object({ days: z.coerce.number().int().min(1).max(365).optional().describe('Days to add (from the current end, or today)'), ends_at: isoDateTime({ offset: true }).optional().describe('Or the new end'), reason, idempotency_key: idempotency }), ['id', 'extension_id'])
 export const reactivateInstanceLicenceEndpoint = action('POST', '/instance/workspaces/{id}/licences/{extension_id}/reactivate', 'reactivateInstanceLicence', 'Reactivate a suspended licence of a workspace', 'reactivate-licence', licenceParams, reasonBody, ['id', 'extension_id'])
 export const resumeInstancePausedRunsEndpoint = action('POST', '/instance/workspaces/{id}/resume-paused-runs', 'resumeInstancePausedRuns', 'Resume workflow runs paused by a lapsed licence', 'resume-paused-runs', idParam,
   z.object({ extension_id: z.string().regex(/^[a-z][a-z0-9-]{0,62}$/).optional(), reason, idempotency_key: idempotency }), ['id'])

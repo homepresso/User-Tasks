@@ -119,7 +119,10 @@ describe.skipIf(!DB_URL)('report rollups (local DB)', () => {
   const taskIds: string[] = []
 
   async function addRun(tenant: string, wf: string, opts: { daysAgo: number }) {
-    const started = now - opts.daysAgo * DAY - Math.floor(rand() * 6 * 3600_000)
+    // Today's runs stay inside today's UTC day: run just after midnight UTC (as
+    // CI did at 00:44), a 6-hour jitter put nearly all of them on yesterday.
+    const jitter = opts.daysAgo === 0 ? Math.min(6 * 3600_000, now % DAY) : 6 * 3600_000
+    const started = now - opts.daysAgo * DAY - Math.floor(rand() * jitter)
     const status = pick(STATUSES)
     const dur = Math.floor(10 ** (1 + rand() * 6)) // 10 ms … 10^7 ms
     const done = ['completed', 'failed', 'cancelled'].includes(status)
@@ -254,9 +257,16 @@ describe.skipIf(!DB_URL)('report rollups (local DB)', () => {
     expect(rolled).toMatchObject({ ok: true })
     const shaped = toDailyStats(rolled.ok ? rolled.value : []).map((r) => ({
       workflow_id: r.workflow_id, day: r.day, runs: r.runs, active: r.active, errors: r.errors, completed: r.completed,
-      completed_ms: r.completed_ms.toFixed(2), timed: r.timed, timed_ms: r.timed_ms.toFixed(2), node_visits: r.node_visits, edge_traversals: r.edge_traversals,
+      completed_ms: r.completed_ms, timed: r.timed, timed_ms: r.timed_ms, node_visits: r.node_visits, edge_traversals: r.edge_traversals,
     })).sort((a, b) => a.day.localeCompare(b.day) || a.workflow_id.localeCompare(b.workflow_id))
-    expect(shaped).toEqual(live.map((r) => ({ ...r, completed_ms: Number(r.completed_ms).toFixed(2), timed_ms: Number(r.timed_ms).toFixed(2) })))
+    // Counts are exact; millisecond sums are double precision added in a
+    // different order (per shard, then summed), so they agree to float error,
+    // not to the cent ("262992715.80" vs "…79" on CI).
+    const ms = (v: unknown) => Number(v)
+    expect(shaped.map(({ completed_ms: _c, timed_ms: _t, ...rest }) => rest)).toEqual(live.map(({ completed_ms: _c, timed_ms: _t, ...rest }) => rest))
+    shaped.forEach((r, i) => {
+      for (const k of ['completed_ms', 'timed_ms'] as const) expect(Math.abs(ms(r[k]) - ms(live[i][k]))).toBeLessThanOrEqual(0.011 + Math.abs(ms(live[i][k])) * 1e-12)
+    })
 
     const { rows: dur } = await q(`SELECT * FROM public.workflow_run_duration_stats($1, $2)`, [since, WF])
     const [days, hists] = await Promise.all([rollupRunDays(rpcDb as never, T1, { since, workflowIds: WF, byDay: false }), rollupRunHists(rpcDb as never, T1, { since, workflowIds: WF, side: 'started', group: 'workflow' })])

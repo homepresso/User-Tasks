@@ -148,14 +148,30 @@ const RAW: Record<DailyKind, Array<{ table: string; at: string; status: string |
 
 let dailyMissing = false
 
+const DAILY_PAGE = 1000
+const DAILY_MAX_ROWS = 100_000
+
 /** Per-day, per-workspace counts in [from, to). `truncated` when the fallback hit its cap. */
 export async function dailyCounts(kind: DailyKind, from: Date, to: Date): Promise<{ rows: DailyCount[]; truncated: boolean }> {
   if (!dailyMissing) {
-    const { data, error } = await (instanceDb() as any).rpc('instance_admin_daily_counts', { p_kind: kind, p_from: from.toISOString(), p_to: to.toISOString() })
+    // Paged: the RPC returns a row per day x workspace x status, and one
+    // response is cut at max_rows (1,000) — ~200 workspaces over 7 days
+    // already exceed it, which made the overview's totals silently low.
+    const all: any[] = []
+    let error: any = null
+    for (let offset = 0; offset < DAILY_MAX_ROWS; offset += DAILY_PAGE) {
+      const call = (instanceDb() as any).rpc('instance_admin_daily_counts', { p_kind: kind, p_from: from.toISOString(), p_to: to.toISOString() })
+      const pageable = typeof call?.order === 'function'
+      const res = await (pageable ? call.order('day').order('tenant_id').order('status').range(offset, offset + DAILY_PAGE - 1) : call)
+      if (res.error) { error = res.error; break }
+      const page = (res.data ?? []) as any[]
+      all.push(...page)
+      if (!pageable || page.length < DAILY_PAGE) break
+    }
     if (!error) {
       return {
-        rows: ((data ?? []) as any[]).map((r) => ({ day: String(r.day).slice(0, 10), tenant_id: r.tenant_id ?? null, status: r.status ?? null, n: num(r.n), amount: r.amount === null || r.amount === undefined ? null : num(r.amount) })),
-        truncated: false,
+        rows: all.map((r) => ({ day: String(r.day).slice(0, 10), tenant_id: r.tenant_id ?? null, status: r.status ?? null, n: num(r.n), amount: r.amount === null || r.amount === undefined ? null : num(r.amount) })),
+        truncated: all.length >= DAILY_MAX_ROWS,
       }
     }
     if (/function|does not exist|schema cache/i.test(error.message ?? '')) dailyMissing = true

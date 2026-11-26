@@ -21,16 +21,16 @@ export default function InvitationsPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold">Invite Users</h1>
+      <h1 className="text-2xl font-semibold">Invite users</h1>
 
       <div className="rounded-lg border p-6 bg-panel border-border" data-tour="invite-form">
-        <h2 className="text-lg font-semibold mb-4">Send Invitation</h2>
+        <h2 className="text-lg font-semibold mb-4">Send an invitation</h2>
         <InviteForm />
       </div>
 
       <div className="rounded-lg border p-6 bg-panel border-border">
         <h2 className="text-lg font-semibold mb-4">
-          Pending Invitations
+          Pending invitations
           {invitations && invitations.length > 0 && (
             <span className="text-sm font-normal ml-2 text-fg-muted">
               ({invitations.length})

@@ -17,6 +17,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 /* eslint-disable @typescript-eslint/no-explicit-any -- memory rows */
 
 const tasksActions = vi.hoisted(() => ({ updateTaskField: vi.fn(), setSubtaskCompleted: vi.fn(), addSubtask: vi.fn(), completeTaskWithOutcome: vi.fn() }))
+// Service-role writes made for the acting user (lib/services/_shared actorServiceClient) land in the same memory database.
+const actorWrites = vi.hoisted(() => ({ db: null as any }))
+vi.mock('@/lib/cron-auth', async (orig) => ({ ...(await orig() as object), createActorServiceClient: () => actorWrites.db }))
 vi.mock('@/app/actions/tasks', () => tasksActions)
 vi.mock('@/app/actions/task-effort', () => ({ logManualEffort: vi.fn() }))
 
@@ -324,6 +327,7 @@ function seed() {
 }
 type Db = ReturnType<typeof seed>
 function ctx(db: Db, permissions: string[] = ['tasks.complete', 'tasks.view_own']): ServiceContext {
+  actorWrites.db = db
   return { db: db as any, supabase: db as any, tenantId: 'tenant-a', actorId: 'user-1', permissions: new Set(permissions), authKind: 'session', source: 'ui' }
 }
 

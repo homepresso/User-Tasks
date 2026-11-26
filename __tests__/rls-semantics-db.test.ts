@@ -259,10 +259,40 @@
  * report_rollup_state / _dirty (service role only: 42501). No end-user
  * writes (42501). Its triggers on workflow_runs, tasks and form_submissions
  * only write the rollup tables: no existing table entry changed.
+ * 20270128090000_data_table_change_audit.sql added custom_table_row_changes
+ * (field-change history of data table rows): SELECT for authenticated where
+ * the row's workspace is visible (rls_visible_tenant_ids) AND the caller can
+ * read the changed row itself (custom_table_rows' own RLS, through the
+ * policy's EXISTS) — so it follows custom_table_rows' entry; anon has no
+ * grant (42501); only the SECURITY DEFINER trigger writes, so every
+ * INSERT / UPDATE / DELETE gets 42501.
+ * 20270129090000_instance_admin.sql added instance_admin_audit (the
+ * instance administrators' action trail): no client grants at all — every
+ * caller gets 42501 for every statement. No existing table entry changed.
+ *
+ * 20270130090000_audit_actor_integrity.sql revoked UPDATE, DELETE and
+ * TRUNCATE on object_audit_log, permission_audit_log and lifecycle_events
+ * from anon and authenticated: their update / move / delete went from ok:0
+ * (no policy, 0 rows) to 42501. Inserts are unchanged (a trigger sets
+ * actor_id to the caller).
+ * 20270130121500_security_membership_and_definer_fixes.sql changed function
+ * bodies and EXECUTE grants only (an inactive membership no longer counts
+ * for the home / current workspace — no fixture caller is in that state):
+ * no table entry changed.
+ * 20270130140000_task_tables_service_writes.sql revoked end-user INSERT /
+ * UPDATE / DELETE on tasks, task_assignees, task_dependencies, task_reminders
+ * and task_escalations (the server writes them with the service role after
+ * its checks), and INSERT on notifications (owners keep UPDATE / DELETE of
+ * their own rows): every such statement is now 42501 for every caller,
+ * where it was ok:1 (members in their workspace) or ok:0 (no visible rows).
+ * SELECT entries are unchanged.
+ * 20270130150000_app_tags_audience.sql replaced functions only
+ * (app_audience_tagged, tag_usage, tag_objects): no table entry changed.
  * End users are simulated the way PostgREST does it: SET ROLE + request.jwt.claims.
  * Everything runs in one transaction that is rolled back.
  */
 import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client } from 'pg'
 
@@ -658,6 +688,10 @@ const SPECS: Spec[] = [
   { table: 'report_rollup_submissions', make: (k, v) => ({ tenant_id: TENANT[k], day: v === 'row' ? '2001-01-01' : '2001-01-02', form_id: uid(`rr-form:${k}`), shard: 0 }), touch: 'submissions' },
   { table: 'report_rollup_state', variants: ['row'], insertVariant: 'row', make: (k) => ({ tenant_id: TENANT[k] }), touch: 'days_rebuilt' },
   { table: 'report_rollup_dirty', make: (k, v) => ({ id: parseInt(uid(`report_rollup_dirty:${k}:${v}`).slice(0, 7), 16), tenant_id: TENANT[k], day_from: '2001-01-01', day_to: v === 'row' ? '2001-01-01' : '2001-01-02' }), touch: 'reason' },
+  // Data table field-change audit (20270128090000): SELECT where the workspace is visible AND the row itself is readable; only the trigger writes (no client writes).
+  { table: 'custom_table_row_changes', make: (k, v) => ({ id: parseInt(uid(`custom_table_row_changes:${k}:${v}`).slice(0, 7), 16), tenant_id: TENANT[k], table_id: id('custom_tables', k), row_id: id('custom_table_rows', k), field: `f_${v}`, old_value: 1, new_value: 2 }), touch: 'field' },
+  // Instance admin audit (20270129090000): instance level, service role only.
+  { table: 'instance_admin_audit', make: (k, v) => ({ admin_user_id: OWNER[k], admin_email: `admin-${k}@rls.test`, action: 'rls.probe', target_tenant_id: TENANT[k], reason: `rls ${v}` }), move: null, touch: 'reason' },
 ]
 
 /** Tables seeded by the fixture setup itself rather than SPECS. */
@@ -691,6 +725,13 @@ describe.skipIf(!DB_URL)('RLS semantics snapshot (local DB)', () => {
   beforeAll(async () => {
     await db.connect()
     await db.query('BEGIN')
+    // Opt-in, for checking a hand-run rollback script: SQL files run inside
+    // this rolled-back transaction before the fixture, and the result is
+    // compared with another snapshot (see "Rolling back the hotfix" in
+    // docs/migrations.md). Unset (always in CI): no effect.
+    for (const file of (process.env.RLS_SEMANTICS_PRE_SQL ?? '').split(',').filter(Boolean)) {
+      await db.query(readFileSync(file, 'utf8'))
+    }
     const { rows: tables } = await db.query<{ table: string; pk: string[]; identity: boolean; has_tenant: boolean }>(`
       SELECT c.relname AS table,
              array(SELECT a.attname::text FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
@@ -856,6 +897,6 @@ describe.skipIf(!DB_URL)('RLS semantics snapshot (local DB)', () => {
       await db.query('RESET ROLE')
     }
 
-    await expect(JSON.stringify(result, null, 1) + '\n').toMatchFileSnapshot('./__snapshots__/rls-semantics.json')
-  }, 300_000)
+    await expect(JSON.stringify(result, null, 1) + '\n').toMatchFileSnapshot(process.env.RLS_SEMANTICS_SNAPSHOT || './__snapshots__/rls-semantics.json')
+  }, 900_000)
 })

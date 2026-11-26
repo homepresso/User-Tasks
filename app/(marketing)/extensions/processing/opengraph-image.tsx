@@ -9,5 +9,5 @@ export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 
 export default function Image() {
-  return renderOgImage({ eyebrow: `${extension.name} extension · ${STATUS_LABEL[extension.status]}`, title: extension.tagline, subtitle: `${extension.price.amount} USD ${extension.price.unit}.` })
+  return renderOgImage({ eyebrow: `${extension.name} add-on · ${STATUS_LABEL[extension.status]}`, title: extension.tagline, subtitle: `Self-hosted UserTasks (Enterprise edition). ${extension.price.amount} USD ${extension.price.unit}.` })
 }

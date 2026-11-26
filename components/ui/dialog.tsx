@@ -45,6 +45,22 @@ export interface DialogContentProps extends Omit<React.ComponentPropsWithoutRef<
   showClose?: boolean
 }
 
+/**
+ * Initial focus: the first form field (or an element marked autofocus /
+ * data-autofocus), not the header's × — Radix's default is the first
+ * tabbable element, which put keyboard users on Close and sent typing
+ * nowhere. Dialogs without a field keep Radix's default.
+ */
+export function focusFirstField(e: Event) {
+  const root = e.target as HTMLElement | null
+  if (!root?.querySelector) return
+  const field = root.querySelector<HTMLElement>(FIRST_FIELD)
+  if (!field) return
+  e.preventDefault()
+  field.focus()
+}
+export const FIRST_FIELD = '[autofocus], [data-autofocus], input:not([type="hidden"]):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly]), select:not([disabled])'
+
 export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
   ({ size = 'md', title, description, hideHeader = false, showClose = true, className, children, ...props }, ref) => (
     <RadixDialog.Portal>
@@ -61,6 +77,7 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
           className,
         )}
         {...(description == null ? { 'aria-describedby': undefined } : {})}
+        onOpenAutoFocus={focusFirstField}
         {...props}
       >
         {/* No visible header: a slim top-right bar for the Agent button, collapsed (empty) unless the Agent is hosted here. */}

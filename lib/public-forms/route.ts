@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { isServiceError, ServiceError, type ServiceContext } from '@/lib/services/context'
 import type { ResolvedAnonymousForm } from '@/lib/services/anonymous-forms'
+import { clientIp } from '@/lib/client-ip'
 
 /**
  * The public form endpoints (app/api/public/forms/[token]/*): the ONLY
@@ -15,8 +16,7 @@ export const NO_STORE = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex'
 
 /** The visitor's IP as the platform's proxy reports it (Vercel / the reverse proxy sets x-forwarded-for). */
 export function visitorIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for')
-  return (forwarded?.split(',')[0] ?? request.headers.get('x-real-ip') ?? 'unknown').trim() || 'unknown'
+  return clientIp(request) ?? 'unknown'
 }
 
 export function publicError(error: unknown, fallback: string, label: string) {

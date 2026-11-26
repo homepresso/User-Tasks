@@ -16,6 +16,7 @@ import { referenceResponseSchema, type ResponseSchema } from '@/lib/response-sch
 import { runtimeView } from '@/lib/response-collections'
 import { DISPLAY_FIELD_TYPES, TASK_FIELD_TYPE_LABELS, type TaskFieldType } from '@/lib/task-field-schema'
 import { designerInputClass as inputClass } from './designer-controls'
+import { EachItemSelect } from './data-action-editor'
 import { cn } from '@/lib/utils'
 
 /**
@@ -102,6 +103,7 @@ export function CallReferenceEditor({ action, state, references, placeholders, o
           &#9888; Writes data — it runs on the server, for real, every time this rule fires (each click of a button). Guard it with a condition or a confirmation question if it should not repeat.
         </p>
       )}
+      {ref && <EachItemSelect action={action} state={state} onChange={onChange} />}
       {ref && <InputsSection inputs={inputs} action={action} placeholders={placeholders} onChange={onChange} />}
       {ref && (
         <section className="min-w-0 space-y-1.5" aria-label="Then map the response" data-testid="call-reference-results">

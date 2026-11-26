@@ -45,7 +45,7 @@
                   },
                   {
                     "type": "string",
-                    "example": "NZD",
+                    "example": "USD",
                     "name": "currency"
                   },
                   {
@@ -74,21 +74,21 @@
               "invoice_number": "INV-55120",
               "order_id": "SO-71001",
               "amount": 1250,
-              "currency": "NZD",
+              "currency": "USD",
               "status": "issued"
             },
             {
               "invoice_number": "INV-55123",
               "order_id": "SO-71004",
               "amount": 561.2,
-              "currency": "NZD",
+              "currency": "USD",
               "status": "issued"
             },
             {
               "invoice_number": "INV-55121",
               "order_id": "SO-71002",
               "amount": 389.5,
-              "currency": "NZD",
+              "currency": "USD",
               "status": "issued"
             }
           ],

@@ -5,6 +5,14 @@
 @media (prefers-reduced-motion: reduce) {
   [data-app-panel], [data-app-panels] * { transition: none !important; animation: none !important; }
 }
+/* App panels (components/apps/panels.tsx) sit at z 900+, over the page's z-50 layers. A dialog or sheet opened
+   while they're up (the "Discard the form you started?" confirmation, a widget's dialog) belongs above them:
+   left at z-50 it opened invisibly behind the panels and, being modal, blocked every click and Esc on them.
+   (data-app-panels-open: set on <body> while panels are open, by lockPageScroll in panels.tsx.) */
+body[data-app-panels-open] .ds-overlay,
+body[data-app-panels-open] .ds-dialog,
+body[data-app-panels-open] .ds-sheet,
+body[data-app-panels-open] .ds-sheet-bottom { z-index: 1000; }
 /* Docked nav bars: flush to the page content edges. */
 .app-page-shell { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { AnonymousStepToggle } from './anonymous-step-toggle'
 import { TableChangesEditor } from './table-changes-editor'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
@@ -200,15 +201,17 @@ export function BarActionEditor({ action, onChange, onRemove, workflows, placeho
   workflows: any[]
   placeholders: Array<{ name: string; group: string; label?: string }>
 }) {
+  const [confirm, confirmDialog] = useConfirm()
   const connection = useContext(TargetLabelContext)
   const workflow = workflows.find((w) => w.id === action.workflow_id)
   const inputs: string[] = Array.isArray(workflow?.user_variables) ? workflow.user_variables.map((v: any) => String(v?.name ?? '')).filter(Boolean) : []
   return (
     <div className="space-y-1.5 rounded border p-2 border-border" data-action-type={action.type}>
+      {confirmDialog}
       <div className="flex items-center gap-1">
         <p className="flex-1 text-2xs font-semibold">{action.type === 'save_target' ? saveLabel(connection) : FORM_ACTION_LABELS[action.type]}</p>
         <button type="button" className="rounded p-0.5" aria-label={`Remove ${action.type === 'save_target' ? saveLabel(connection) : FORM_ACTION_LABELS[action.type]}`}
-          onClick={() => { if (action.type !== 'save_target' || window.confirm(SAVE_TARGET_REMOVE_WARNING)) onRemove() }}><X size={11} /></button>
+          onClick={async () => { if (action.type !== 'save_target' || await confirm({ title: 'Remove the save step?', description: SAVE_TARGET_REMOVE_WARNING, confirmLabel: 'Remove step', destructive: true })) onRemove() }}><X size={11} /></button>
       </div>
       {action.type === 'save_target' && <SaveTargetActionEditor action={action} onChange={onChange} placeholders={placeholders} />}
       {action.type === 'message' && (

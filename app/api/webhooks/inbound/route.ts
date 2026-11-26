@@ -4,6 +4,9 @@ import { isMissingSha256Column, verifyWebhookSecret } from "@/lib/webhook-secret
 import { handsOff, QueuedRunTimeoutError, startRun, type RunOutcome } from "@/lib/processing/dispatch"
 import { processWorkflowQueueBatch } from "@/lib/workflow-queue-processor"
 import { kickQueueProcessor } from "@/lib/process-queue"
+import { safeWebhookResponseHeaders, webhookMaxBodyBytes, webhookRateLimitPerMinute } from "@/lib/webhook-response"
+import { capResponseBody, ResponseBodyTooLargeError } from "@/lib/capped-response"
+import { rateLimit } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +39,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Webhook not found or inactive" },
       { status: 404 }
+    )
+  }
+
+  // Per-webhook rate limit (counted before the key check, so guessing keys is throttled too).
+  const limited = await rateLimit(`webhook:${webhook.id}`, { max: webhookRateLimitPerMinute(), windowMs: 60_000 })
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests to this webhook" },
+      { status: 429, headers: { "Retry-After": String(Math.max(1, Math.ceil(limited.retryAfterMs / 1000))) } },
     )
   }
 
@@ -73,11 +85,24 @@ export async function POST(request: NextRequest) {
   }
 
   // Parse incoming payload
+  // Capped (WEBHOOK_MAX_BODY_BYTES): the body is read into memory.
   let payload: Record<string, any> = {}
+  let rawBody = ""
   try {
-    payload = await request.json()
+    rawBody = await capResponseBody(
+      new Response(request.body, { headers: { "content-length": request.headers.get("content-length") ?? "" } }),
+      webhookMaxBodyBytes(),
+    ).text()
+  } catch (error) {
+    if (error instanceof ResponseBodyTooLargeError) {
+      return NextResponse.json({ error: `Payload too large (max ${webhookMaxBodyBytes()} bytes)` }, { status: 413 })
+    }
+    throw error
+  }
+  try {
+    if (rawBody.trim()) payload = JSON.parse(rawBody)
   } catch {
-    // Allow empty body
+    // Not JSON: an empty payload, as before
   }
 
   // Apply payload mapping — extract fields from incoming data into variables
@@ -140,20 +165,20 @@ export async function POST(request: NextRequest) {
     if (response.bodyType === 'file') {
       return new NextResponse(response.body as BodyInit, {
         status: response.statusCode,
-        headers: response.headers,
+        headers: safeWebhookResponseHeaders(response.headers),
       })
     }
 
     if (response.bodyType === 'text') {
       return new NextResponse(String(response.body ?? ''), {
         status: response.statusCode,
-        headers: response.headers,
+        headers: safeWebhookResponseHeaders(response.headers),
       })
     }
 
     return new NextResponse(JSON.stringify(response.body ?? null), {
       status: response.statusCode,
-      headers: response.headers,
+      headers: safeWebhookResponseHeaders(response.headers),
     })
   }
 

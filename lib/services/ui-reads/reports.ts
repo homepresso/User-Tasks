@@ -2,6 +2,9 @@ import { z } from 'zod'
 import { selectWithTags } from '../tags-column'
 import { getDb, hasPerm, type ServiceContext } from '../context'
 import * as analytics from '../report-analytics'
+import { normalizeTaskSummary, summarizeTasks, type TaskSummary } from '@/lib/reports/task-summary'
+
+const isMissingFunction = (error: any) => ['PGRST202', '42883'].includes(String(error?.code ?? '')) || /could not find the function|does not exist/i.test(String(error?.message ?? ''))
 import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
@@ -211,11 +214,16 @@ export const reads = {
     },
   }),
 
-  /** Task report. Effort records arrive collapsed per task (collapseEffortRecords). */
+  /**
+   * Task report: a summary for the selected range (report_task_summary in the
+   * database: exact at any size), the 50 most recent completions and effort
+   * records collapsed per task. Before that migration the summary is counted
+   * from task lists (capped by max_rows, as before).
+   */
   'reports.tasks': defineRead({
-    args: NO_ARGS,
+    args: z.object({ since: z.string().datetime({ offset: true }).nullish() }).optional(),
     perm: TASKS_ALL,
-    run: async (ctx) => {
+    run: async (ctx, args) => {
       const db = getDb(ctx) as any
       const now = new Date()
       const thirtyDaysAgo = new Date(now)
@@ -223,40 +231,63 @@ export const reads = {
       const twelveWeeksAgo = new Date(now)
       twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84)
 
+      const since = args?.since ? new Date(args.since) : null
+
       const [
-        { data: allTasks },
-        { data: completedRecent },
-        { data: effortRecords },
-        { data: overdueTasks },
+        summaryResult,
         { data: recentCompleted },
       ] = await Promise.all([
-        // Only the columns the report reads (counts by status/priority/assignee, completion time).
-        db.from('tasks').select('id, status, priority, created_at, completed_at, assignee_id')
-          .is('deleted_at', null).is('parent_task_id', null),
-        db.from('tasks').select('id, completed_at')
-          .eq('status', 'completed').is('deleted_at', null)
-          .gte('completed_at', twelveWeeksAgo.toISOString()),
-        db.from('effort_records').select('task_id, minutes, record_type'),
-        db.from('tasks').select('id, title, priority, due_date, status, assignee_id')
-          .lt('due_date', now.toISOString()).in('status', ['todo', 'in_progress', 'blocked']).is('deleted_at', null),
+        typeof db.rpc === 'function'
+          ? db.rpc('report_task_summary', { p_since: since?.toISOString() ?? null, p_now: now.toISOString() })
+          : Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'Could not find the function' } }),
         db.from('tasks').select('id, title, priority, status, created_at, completed_at, assignee_id')
           .eq('status', 'completed').is('deleted_at', null)
           .gte('completed_at', thirtyDaysAgo.toISOString())
           .order('completed_at', { ascending: false }).limit(50),
       ])
 
-      // Assignee names for the recent-completed and overdue tasks.
-      const assigneeIds = [...new Set([...(recentCompleted ?? []), ...(overdueTasks ?? [])].map((t: any) => t.assignee_id).filter(Boolean))]
+      let summary: TaskSummary
+      let effortRecords: Array<{ task_id: string; minutes: number; record_type: string }> | null = null
+      const rawSummary = typeof summaryResult.data === 'string' ? JSON.parse(summaryResult.data) : summaryResult.data
+      if (!summaryResult.error && rawSummary && typeof rawSummary === 'object' && !Array.isArray(rawSummary)) {
+        summary = normalizeTaskSummary(rawSummary)
+        // Per-task estimated / actual minutes, aggregated in the database (all effort records, not the first 1,000).
+        if (Array.isArray(rawSummary.effort)) {
+          effortRecords = (rawSummary.effort as unknown[][]).flatMap(([task_id, est, act]) => [
+            { task_id: String(task_id), minutes: Number(est), record_type: 'assigner_estimate' },
+            { task_id: String(task_id), minutes: Number(act), record_type: 'actual' },
+          ])
+        }
+      } else {
+        if (summaryResult.error && !isMissingFunction(summaryResult.error)) throw new Error(summaryResult.error.message)
+        // Before migration 20270131100000: count from the lists (each capped by max_rows).
+        const [{ data: topLevel }, { data: completedRecent }, { data: overdue }] = await Promise.all([
+          db.from('tasks').select('id, status, priority, created_at, completed_at, assignee_id')
+            .is('deleted_at', null).is('parent_task_id', null),
+          db.from('tasks').select('id, completed_at')
+            .eq('status', 'completed').is('deleted_at', null)
+            .gte('completed_at', twelveWeeksAgo.toISOString()),
+          db.from('tasks').select('id, due_date')
+            .lt('due_date', now.toISOString()).in('status', ['todo', 'in_progress', 'blocked']).is('deleted_at', null),
+        ])
+        summary = summarizeTasks({ topLevel: topLevel ?? [], completedRecent: completedRecent ?? [], overdue: overdue ?? [] }, since, now)
+      }
+
+      if (!effortRecords) {
+        const { data } = await db.from('effort_records').select('task_id, minutes, record_type')
+        effortRecords = collapseEffortRecords(data ?? [])
+      }
+
+      // Assignee names for the recent completions and the leaderboard.
+      const assigneeIds = [...new Set([...((recentCompleted ?? []) as any[]).map((t: any) => t.assignee_id), ...summary.leaderboard.map((l) => l.assignee_id)].filter(Boolean))]
       const { data: users } = assigneeIds.length
         ? await db.from('users').select('id, display_name').in('id', assigneeIds)
         : { data: [] }
       const userMap = new Map<string, string>(((users ?? []) as any[]).map((u) => [u.id, u.display_name]))
 
       return {
-        allTasks: (allTasks ?? []) as any[],
-        completedRecent: (completedRecent ?? []) as any[],
-        effortRecords: collapseEffortRecords(effortRecords ?? []),
-        overdueTasks: (overdueTasks ?? []) as any[],
+        summary,
+        effortRecords,
         recentCompleted: ((recentCompleted ?? []) as any[]).map((t) => ({ ...t, assignee_name: userMap.get(t.assignee_id) ?? '—' })),
         userMap: Object.fromEntries(userMap) as Record<string, string>,
       }

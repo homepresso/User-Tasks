@@ -8,6 +8,7 @@ export interface EmailTemplate {
   subject: string
   html_body: string
   text_body: string
+  variables?: unknown
 }
 
 export function sanitizeEmailHtml(value: unknown): string {
@@ -54,7 +55,7 @@ export async function loadEmailTemplate(
 ): Promise<EmailTemplate | null> {
   const { data, error } = await (supabase as any)
     .from('email_templates')
-    .select('id, tenant_id, name, description, subject, html_body, text_body')
+    .select('id, tenant_id, name, description, subject, html_body, text_body, variables')
     .eq('id', templateId)
     .eq('tenant_id', tenantId)
     .maybeSingle()

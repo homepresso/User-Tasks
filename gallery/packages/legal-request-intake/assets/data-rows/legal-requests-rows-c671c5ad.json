@@ -88,7 +88,7 @@
           "department": "Operations",
           "request_type": "Dispute or claim",
           "title": "Supplier claims unpaid invoices",
-          "details": "Freightway says we owe NZD 48,200 for July; we dispute two of the invoices.",
+          "details": "Freightway says we owe USD 48,200 for July; we dispute two of the invoices.",
           "counterparty": "Freightway Logistics",
           "contract_value": null,
           "urgency": "High",

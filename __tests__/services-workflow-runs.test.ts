@@ -16,7 +16,7 @@ vi.mock('@/lib/services/context', async (importOriginal) => {
 })
 vi.mock('@/lib/cron-auth', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/cron-auth')>()
-  return { ...actual, createServiceClient: vi.fn() }
+  return { ...actual, createServiceClient: vi.fn(), createActorServiceClient: vi.fn() }
 })
 
 import { validateApiKey, type ApiKeySuccessResult } from '@/lib/api-auth'
@@ -24,7 +24,7 @@ import { writeAudit } from '@/lib/audit-log'
 import { resumeWorkflow } from '@/lib/workflow-engine'
 import { RunNotResumableError } from '@/lib/workflow-run-errors'
 import { fromSession, ServiceError, type ServiceContext } from '@/lib/services/context'
-import { createServiceClient } from '@/lib/cron-auth'
+import { createActorServiceClient, createServiceClient } from '@/lib/cron-auth'
 import { actOnWorkflowRun, CANCELLED_RUN_ERROR } from '@/lib/services/workflow-runs'
 import { createMcpServer } from '@/lib/mcp/server'
 import { POST as v1ActionRoute } from '@/app/api/v1/workflows/runs/[id]/action/route'
@@ -227,6 +227,7 @@ describe('workflow-runs surfaces', () => {
   it('queue UI route requires workflows.activate and keeps { ok, action } responses', async () => {
     const db = seed()
     vi.mocked(createServiceClient).mockReturnValue(db as any)
+    vi.mocked(createActorServiceClient).mockReturnValue(db as any)
     const session = (permissions: string[]) => vi.mocked(fromSession).mockResolvedValue({
       supabase: {} as any, tenantId: 'tenant-a', actorId: 'user-1', permissions: new Set(permissions), authKind: 'session', source: 'ui',
     })

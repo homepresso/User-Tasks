@@ -17,6 +17,7 @@ import type { z } from 'zod'
 import { validateApiKey, type ApiKeySuccessResult } from '@/lib/api-auth'
 import { prepareRoundTripBody, type EndpointDef, type MultipartOptions } from '@/lib/api-schemas/registry'
 import { fromApiAuth, isServiceError, requirePerm, type ServiceContext } from '@/lib/services/context'
+import { apiMaxBodyBytes, apiMaxPackageBodyBytes, bodyTooLargeMessage, readCappedBody } from '@/lib/api/body-limit'
 
 type Parsed<S> = S extends z.ZodType ? z.output<S> : Record<string, never>
 
@@ -31,7 +32,16 @@ export interface ApiRouteInput<P, Q, B> {
 
 type RouteContext = { params: Promise<Record<string, string | string[] | undefined>> }
 
+/** Postgres "invalid input syntax for type uuid" (22P02), thrown or wrapped by dbError. */
+export function isMalformedUuidError(error: unknown): boolean {
+  const e = error as { code?: unknown; message?: unknown } | null
+  const message = typeof e?.message === 'string' ? e.message : ''
+  return /invalid input syntax for type uuid/i.test(message) && (e?.code === undefined || e.code === '22P02')
+}
+
 export function apiError(message: string, status: number, code?: string, details?: unknown) {
+  // A busy / timed-out answer (e.g. lib/services/data-table-guard) tells the client when to retry.
+  const retryAfter = details && typeof details === 'object' ? Number((details as { retry_after?: unknown }).retry_after) : NaN
   return NextResponse.json(
     {
       success: false,
@@ -39,7 +49,7 @@ export function apiError(message: string, status: number, code?: string, details
       ...(code ? { code } : {}),
       ...(details !== undefined ? { details } : {}),
     },
-    { status },
+    { status, ...((status === 429 || status === 503) && Number.isFinite(retryAfter) && retryAfter > 0 ? { headers: { 'Retry-After': String(Math.ceil(retryAfter)) } } : {}) },
   )
 }
 
@@ -64,8 +74,16 @@ export function searchParamsToObject(params: URLSearchParams): Record<string, st
   return out
 }
 
-async function readJsonBody(request: NextRequest): Promise<{ ok: true; value: unknown } | { ok: false }> {
-  const text = await request.text()
+/** The JSON body cap of an endpoint (EndpointDef.bodyLimit, lib/api/body-limit.ts). */
+function bodyLimitOf(endpoint: Pick<EndpointDef, 'bodyLimit'>): number {
+  return endpoint.bodyLimit === 'package' ? apiMaxPackageBodyBytes() : apiMaxBodyBytes()
+}
+
+/** A JSON body of at most `maxBytes`; `tooLarge` → 413. */
+async function readJsonBody(request: NextRequest, maxBytes: number): Promise<{ ok: true; value: unknown } | { ok: false; tooLarge?: boolean }> {
+  const body = await readCappedBody(request, maxBytes)
+  if (!body.ok) return { ok: false, tooLarge: body.reason === 'too_large' }
+  const text = body.text
   if (!text.trim()) return { ok: true, value: {} }
   try {
     return { ok: true, value: JSON.parse(text) }
@@ -162,7 +180,11 @@ export function apiRoute<
       let body: unknown = {}
       if (endpoint.body) {
         const multipart = endpoint.multipart && /^multipart\/form-data/i.test(request.headers.get('content-type') ?? '')
-        const raw = multipart ? await readMultipartBody(request, endpoint.multipart!) : await readJsonBody(request)
+        const maxBytes = bodyLimitOf(endpoint)
+        const raw = multipart ? await readMultipartBody(request, endpoint.multipart!) : await readJsonBody(request, maxBytes)
+        if (!raw.ok && 'tooLarge' in raw && raw.tooLarge) {
+          return apiError(bodyTooLargeMessage(maxBytes, { tier: endpoint.bodyLimit ?? 'default', multipart: Boolean(endpoint.multipart) }), 413, 'payload_too_large', { max_bytes: maxBytes })
+        }
         if (!raw.ok) return apiError(multipart ? 'Invalid multipart body' : 'Invalid JSON body', 400, multipart ? 'invalid_body' : 'invalid_json')
         const input = endpoint.roundTrip ? prepareRoundTripBody(endpoint.body, endpoint.roundTrip, raw.value) : raw.value
         const parsed = endpoint.body.safeParse(input)
@@ -189,6 +211,9 @@ export function apiRoute<
       return NextResponse.json({ success: true, data: result ?? null }, { status: endpoint.successStatus ?? 200 })
     } catch (error) {
       if (isServiceError(error)) return apiError(error.message, error.status, error.code, error.details)
+      // A malformed id in the path or body (Postgres 22P02 on a uuid column)
+      // can't match anything: 404, not a 500 with a stack trace in the logs.
+      if (isMalformedUuidError(error)) return apiError('Not found (malformed id)', 404, 'not_found')
       console.error(`[api] ${endpoint.method} ${endpoint.path} failed:`, error)
       return apiError('Internal server error', 500, 'internal')
     }

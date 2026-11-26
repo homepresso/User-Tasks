@@ -134,10 +134,10 @@ export function WidgetError({ error, retry }: { error: unknown; retry: () => voi
 }
 
 export function WidgetSkeleton({ type }: { type: string }) {
-  if (["metric", "kpi", "goal", "gauge"].includes(type)) return <div className="flex h-full flex-col justify-between gap-2" aria-busy aria-label="Loading"><Skeleton className="h-3 w-20" /><Skeleton className="h-8 w-28" /><Skeleton className="h-3 w-16" /></div>
+  if (["metric", "kpi", "goal", "gauge"].includes(type)) return <div className="flex h-full flex-col justify-between gap-2" role="status" aria-busy aria-label="Loading"><Skeleton className="h-3 w-20" /><Skeleton className="h-8 w-28" /><Skeleton className="h-3 w-16" /></div>
   if (["chart", "sla_trend", "cycle_time", "throughput", "submission_trend"].includes(type)) {
     return (
-      <div className="flex h-full min-h-24 items-end gap-2 pb-5 pl-6" aria-busy aria-label="Loading">
+      <div className="flex h-full min-h-24 items-end gap-2 pb-5 pl-6" role="status" aria-busy aria-label="Loading">
         {[40, 65, 50, 80, 35, 70, 55, 90].map((h, i) => <Skeleton key={i} className="flex-1 rounded-b-none" style={{ height: `${h}%` }} />)}
       </div>
     )
@@ -145,7 +145,7 @@ export function WidgetSkeleton({ type }: { type: string }) {
   if (type === "heatmap") return <Skeleton className="h-full min-h-24 w-full" aria-label="Loading" />
   // Lists: rows shaped like the real ones (title, meta line, a chip on the right).
   return (
-    <div className="divide-y divide-border-subtle" aria-busy aria-label="Loading">
+    <div className="divide-y divide-border-subtle" role="status" aria-busy aria-label="Loading">
       {[72, 58, 66].map((w, i) => (
         <div key={i} className="flex h-13 items-center gap-3">
           <div className="min-w-0 flex-1 space-y-1.5"><Skeleton className="h-3.5" style={{ width: `${w}%` }} /><Skeleton className="h-2.5 w-1/3" /></div>

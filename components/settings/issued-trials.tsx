@@ -1,5 +1,6 @@
 'use client'
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { useEffect, useState } from 'react'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
 import { InlineNotice } from '@/components/ui/inline-notice'
@@ -31,7 +32,7 @@ export function IssuedTrials() {
       <CardHeader title="Trials issued" description="Self-serve 30-day trials from usertasks.com/sharepoint/trial and from installations starting one online. One per farm and per company email domain." />
       <CardBody className="space-y-3">
         {!data.available && <InlineNotice tone="warning" message={`Trials aren't available yet: ${data.reason ?? 'not configured'}. The website shows "Contact us" until then.`} />}
-        {!data.trials.length ? <p className="text-ui text-fg-muted">No trials yet.</p> : (
+        {!data.trials.length ? <EmptyState size="sm" title="No trials yet" /> : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="text-fg-muted"><tr><th className="py-1 pr-3">Company</th><th className="pr-3">Requester</th><th className="pr-3">Farm</th><th className="pr-3">From</th><th className="pr-3">Issued</th><th className="pr-3">Ends</th><th>Licence</th></tr></thead>

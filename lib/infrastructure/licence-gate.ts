@@ -51,6 +51,16 @@ export function infrastructureDecision(raw: RawLicence[], identity: InstanceIden
  * the one an existing install has.
  */
 export function checkInfrastructureLicenceText(text: string, input: { appUrl: string | undefined; now?: Date; instanceId?: string | null; keyring?: readonly LicenceKey[] }): InfrastructureLicenceCheck {
+  return checkAddonLicenceText(text, { ...input, extensionId: INFRASTRUCTURE_EXTENSION_ID, feature: INFRASTRUCTURE_FEATURE, addonName: 'Infrastructure' })
+}
+
+/**
+ * The same offline check for any paid add-on's licence (the Processing
+ * add-on's installer step uses it with extension `processing`, feature
+ * `processing`).
+ */
+export function checkAddonLicenceText(text: string, input: { appUrl: string | undefined; now?: Date; instanceId?: string | null; keyring?: readonly LicenceKey[]; extensionId: string; feature: string; addonName: string }): InfrastructureLicenceCheck {
+  const { extensionId, feature } = input
   const now = input.now ?? new Date()
   const keyring = input.keyring ?? LICENCE_KEYRING
   const identity: InstanceIdentity = { instanceId: input.instanceId ?? null, hostnames: instanceHostnames(input.appUrl) }
@@ -66,12 +76,12 @@ export function checkInfrastructureLicenceText(text: string, input: { appUrl: st
     return {
       ok: false,
       reason: onlyInstance && !identity.instanceId
-        ? 'This licence is bound to an instance id, which a new install does not have yet: install with the standard stack first, then run `usertasks-admin licence install <file>` and change providers in Settings → Infrastructure, or ask for a licence bound to this address.'
+        ? `This licence is bound to an instance id, which a new install does not have yet: install with the standard stack first, then run \`usertasks-admin licence install <file>\` and ${input.addonName === 'Infrastructure' ? 'change providers in Settings → Infrastructure' : 'turn the add-on on in Settings → Infrastructure'}, or ask for a licence bound to this address.`
         : `This licence is for another installation: ${binding.message}.`,
       decision: { allowed: false, state: 'unlicensed', reason: binding.message },
       ...base,
     }
   }
-  const decision = resolveDecision({ extensionId: INFRASTRUCTURE_EXTENSION_ID, feature: INFRASTRUCTURE_FEATURE, declaration: { tier: 'paid' }, grants: licenceGrants([verified], INFRASTRUCTURE_EXTENSION_ID) })
+  const decision = resolveDecision({ extensionId, feature, declaration: { tier: 'paid' }, grants: licenceGrants([verified], extensionId) })
   return { ok: decision.allowed, reason: decision.reason ?? null, decision, ...base }
 }

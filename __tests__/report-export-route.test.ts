@@ -11,6 +11,9 @@ vi.mock('@/lib/supabase/server', () => ({
   getCachedUser: async () => state.user,
 }))
 vi.mock('@/lib/permissions-server', () => ({ getUserPermissions: async () => state.perms }))
+vi.mock('@/lib/get-user-id', () => ({ getCurrentTenantId: async () => 'tenant-1' }))
+const audits: Array<Record<string, unknown>> = []
+vi.mock('@/lib/audit-log', () => ({ writeAudit: async (p: Record<string, unknown>) => { audits.push(p) } }))
 
 import { POST } from '@/app/api/reports/export/route'
 
@@ -21,6 +24,7 @@ const post = (body: unknown) => POST(new NextRequest('https://app.test/api/repor
 }))
 
 beforeEach(() => {
+  audits.length = 0
   state.user = { id: 'u-1' }
   state.perms = new Set(['reports.view'])
 })
@@ -34,6 +38,13 @@ describe('report export route', () => {
     expect(xl.sheetNames(book)).toEqual(['Report'])
     const rows = xl.sheetToArrays(xl.getSheet(book, 'Report')!, { defval: '' })
     expect(rows).toEqual([['Title', 'Count', 'Meta'], ['A', 3, '{"x":1}'], ['B', '', true]])
+  })
+
+  it('audits the export (who, how many rows), not the data', async () => {
+    await post({ filename: 'Salaries', columns: ['Name', 'Pay'], rows: [['A', 1], ['B', 2]] })
+    expect(audits).toHaveLength(1)
+    expect(audits[0]).toMatchObject({ tenantId: 'tenant-1', actorId: 'u-1', objectType: 'report', action: 'export', metadata: { rows: 2, columns: 2 } })
+    expect(JSON.stringify(audits[0])).not.toContain('"A"')
   })
 
   it('requires a signed-in user with reports.view', async () => {

@@ -70,7 +70,9 @@ function savepointPool(client: Client): Pool {
       return {
         query(text: any, values?: any) {
           if (typeof text === 'string' && /^BEGIN\b/.test(text)) return query('SAVEPOINT pgq')
-          if (text === 'COMMIT') return query('RELEASE SAVEPOINT pgq')
+          // A released savepoint keeps the request's SET LOCAL role, which a real
+          // COMMIT would end: reset it (see apps-db.test.ts; managed-PostgreSQL CI job).
+          if (text === 'COMMIT') return query('RELEASE SAVEPOINT pgq; RESET ROLE')
           if (text === 'ROLLBACK') return query('ROLLBACK TO SAVEPOINT pgq; RELEASE SAVEPOINT pgq')
           return query(text, values)
         },

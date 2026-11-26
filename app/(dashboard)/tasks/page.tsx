@@ -66,7 +66,7 @@ import { MarkAllReadButton } from "@/components/tasks/task-read-controls"
 import { showsUnread } from "@/lib/tasks/unread"
 import { ListRefreshButton } from "@/components/tasks/list-refresh-button"
 import { TASK_SEARCH_STATUS_OPTIONS, TaskSearchList, type TaskSearchStatus } from "@/components/tasks/task-search-list"
-import { QueueRulesButton } from "@/components/tasks/queue-rules-dialog"
+import { QueueRulesButton } from "@/components/tasks/queue-rules-button"
 import { QUEUED_STATUS, type QueueAction } from "@/lib/tasks/unified-list"
 import { DEFAULT_TASK_STATUS_FILTER } from "@/stores/app-store"
 
@@ -98,7 +98,10 @@ const TASK_LIST_REFRESH_KEYS = [["tasks"], ["subtasks"]] as const
 const COLUMNS = 8
 
 export default function TasksPage() {
-  const { taskFilters, setTaskFilters, layoutPreference, setLayoutPreference } = useAppStore()
+  const taskFilters = useAppStore((s) => s.taskFilters)
+  const setTaskFilters = useAppStore((s) => s.setTaskFilters)
+  const layoutPreference = useAppStore((s) => s.layoutPreference)
+  const setLayoutPreference = useAppStore((s) => s.setLayoutPreference)
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -118,6 +121,10 @@ export default function TasksPage() {
   // Column sort on the fetched list (before paging); none = the list's own order (manual order when dragged).
   const { sort, toggle: toggleSort, setSort, sorted } = useListSort("my-tasks", SORT_KEYS)
   const statusView = explicitStatusView(taskFilters.status, OPEN_VALUES)
+  // The Open view lists open work only: a stored filter from the old "Show completed" switch is narrowed back.
+  useEffect(() => {
+    if (statusView.showCompleted) setTaskFilters({ status: explicitStatusList(statusView.selected, false, OPEN_VALUES) })
+  }, [statusView.showCompleted]) // eslint-disable-line react-hooks/exhaustive-deps
   // Phones get a card list (no drag handles, no table) instead of the table.
   const mobile = useIsMobile()
 
@@ -272,16 +279,15 @@ export default function TasksPage() {
           onValueChange={setSearch}
           placeholder="Search tasks…"
           aria-label="Search tasks"
-          wrapperClassName="order-1 min-w-0 flex-1 sm:max-w-sm"
+          wrapperClassName="order-1 min-w-0 basis-full sm:basis-auto sm:flex-1 sm:max-w-sm"
         />
         <SegmentedControl size="sm" aria-label="Open or completed tasks" className="order-1" options={TASK_SEARCH_STATUS_OPTIONS} value={statusMode} onValueChange={setStatusMode}/>
         {/* The Open list's own filters; Completed / All have theirs in the search list below. */}
         {statusMode === "open" && <div className="order-3 -mx-4 flex basis-full items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:order-2 sm:mx-0 sm:basis-auto sm:flex-wrap sm:overflow-visible sm:px-0 [&>*]:shrink-0" data-tasks-filters>
           <FilterMenu label="Priority" options={PRIORITY_OPTIONS} selected={taskFilters.priority} onChange={(priority) => setTaskFilters({ priority })} />
+          {/* Open / Completed / All above is the one completed control here (no "Show completed" switch). */}
           <StatusFilterControls options={STATUS_OPTIONS} selected={statusView.selected}
-            onSelectedChange={(selected) => setTaskFilters({ status: explicitStatusList(selected, statusView.showCompleted, OPEN_VALUES) })}
-            showCompleted={statusView.showCompleted}
-            onShowCompletedChange={(on) => setTaskFilters({ status: explicitStatusList(statusView.selected, on, OPEN_VALUES) })} />
+            onSelectedChange={(selected) => setTaskFilters({ status: explicitStatusList(selected, false, OPEN_VALUES) })} />
           {mobile && <MobileSortMenu sort={sort} onSort={setSort} />}
           {filtered && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button>}
         </div>}

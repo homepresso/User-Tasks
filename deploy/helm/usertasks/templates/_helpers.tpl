@@ -128,6 +128,8 @@ their options, the other sections, `env`.
 {{- $appUrl := required "appUrl is required (the public origin, e.g. https://tasks.example.com)" $v.appUrl | trimSuffix "/" -}}
 {{- $_ := set $out "APP_URL" $appUrl -}}
 {{- $_ := set $out "NEXT_PUBLIC_APP_URL" $appUrl -}}
+{{- /* Queue / deletion / job kicks go to the in-cluster Service, not the ingress (lib/config/bootstrap.ts internalAppUrl). */ -}}
+{{- $_ := set $out "INTERNAL_APP_URL" (printf "http://%s.%s.svc:%v" (include "usertasks.fullname" $root) $root.Release.Namespace $v.service.port) -}}
 {{- if $v.instanceAdminEmails -}}
 {{- $_ := set $out "INSTANCE_ADMIN_EMAILS" (join "," $v.instanceAdminEmails) -}}
 {{- end -}}

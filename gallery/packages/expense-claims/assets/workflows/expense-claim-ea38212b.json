@@ -843,12 +843,12 @@
         "name": "currency",
         "type": "string",
         "description": "ISO currency code",
-        "defaultValue": "NZD",
+        "defaultValue": "USD",
         "label": "Currency",
         "options": [
-          "NZD",
-          "AUD",
           "USD",
+          "AUD",
+          "NZD",
           "EUR",
           "GBP"
         ]

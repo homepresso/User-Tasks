@@ -87,3 +87,4 @@ supabase/.temp
 /internal/dist/
 # Cloud admin screenshots and verification output
 /internal/verify/
+.support-shots/

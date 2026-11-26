@@ -10,10 +10,10 @@ Online petty cash, built only from UserTasks features: a **form page** (grid lay
 
 | Rule | Result |
 |---|---|
-| Over NZD 250 | declined: use an expense claim |
-| No receipt and over NZD 20 | declined: receipt needed |
+| Over USD 250 | declined: use an expense claim |
+| No receipt and over USD 20 | declined: receipt needed |
 | Takes the cost centre over its monthly float | budget holder approves |
-| Up to NZD 50 with a receipt | paid without approval |
+| Up to USD 50 with a receipt | paid without approval |
 | Anything else | budget holder approves |
 
 ## How it works
@@ -24,5 +24,5 @@ Online petty cash, built only from UserTasks features: a **form page** (grid lay
 
 - **Petty cash claim** is two steps with a numbered stepper (You & cost centre → The purchase & receipt), in Application mode with in-form Next / Back / Submit claim buttons.
 - The cost centre autocomplete stores the code and shows "Name (code)", with the budget holder under each suggestion.
-- Form rules (**Rules** tab): a receipt link is required over NZD 20 (instead of an automatic decline), the purchase date cannot be in the future, and picking a cost centre suggests its budget holder as the approver.
-- **Petty cash claims** page: **My claims** (base filter: claimant email = the signed-in user) and **This month** (claimed since the start of the month) Data tables with NZD, date, badge and link formats, search, filters and sorting; click a claim to open **Claim details**.
+- Form rules (**Rules** tab): a receipt link is required over USD 20 (instead of an automatic decline), the purchase date cannot be in the future, and picking a cost centre suggests its budget holder as the approver.
+- **Petty cash claims** page: **My claims** (base filter: claimant email = the signed-in user) and **This month** (claimed since the start of the month) Data tables with USD, date, badge and link formats, search, filters and sorting; click a claim to open **Claim details**.

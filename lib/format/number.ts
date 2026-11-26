@@ -32,11 +32,20 @@ export function formatCount(n: number | null | undefined, opts: { locale?: strin
 /** Compact count for tight spaces: `950`, `1.2K`, `3.4M`. */
 export function formatCompact(n: number | null | undefined, opts: { locale?: string } = {}): string {
   if (!isNum(n)) return '—'
-  const out = nf(opts.locale, { notation: 'compact', maximumFractionDigits: 1 }).format(n)
-  // CLDR 46+ (Node 22.12+, current browsers) switched en-GB's thousands
-  // suffix to a lowercase `k`; older ICU builds still print `K`. Keep the
-  // documented `1.2K` everywhere so server and client renders agree.
-  return /^en(-|$)/i.test(opts.locale ?? DEFAULT_LOCALE) ? out.replace(/(\d)k$/, '$1K') : out
+  return compactSuffix(nf(opts.locale, { notation: 'compact', maximumFractionDigits: 1 }).format(n), opts.locale)
+}
+
+const EN_COMPACT_SUFFIX: Record<string, string> = { k: 'K', m: 'M', bn: 'B', tn: 'T' }
+
+/**
+ * Newer CLDR data switched en-GB's compact suffixes to lowercase `k` / `m` /
+ * `bn` / `tn` (ICU 78, Node 22.21+; some browsers earlier), while older ICU
+ * builds print `K` / `M` / `B` / `T`. Keep the documented `1.2K`, `$4.44M`
+ * everywhere so server and client renders agree whatever ICU each has.
+ */
+function compactSuffix(out: string, locale: string | undefined): string {
+  if (!/^en(-|$)/i.test(locale ?? DEFAULT_LOCALE)) return out
+  return out.replace(/(\d)(k|m|bn|tn)$/, (_, d: string, s: string) => d + EN_COMPACT_SUFFIX[s])
 }
 
 /**
@@ -97,7 +106,7 @@ export function formatCurrencyHeadline(amount: number | null | undefined, curren
   if (!isNum(amount)) return '—'
   const abs = Math.abs(amount)
   if (abs >= 1_000_000) {
-    try { return nf(opts.locale, { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: currencyDisplay(currency, opts), notation: 'compact', maximumFractionDigits: 2 }).format(amount) } catch { /* fall through */ }
+    try { return compactSuffix(nf(opts.locale, { style: 'currency', currency: currency.toUpperCase(), currencyDisplay: currencyDisplay(currency, opts), notation: 'compact', maximumFractionDigits: 2 }).format(amount), opts.locale) } catch { /* fall through */ }
   }
   // Thousands and whole amounts read without cents ($73,990, $0, $250); small amounts with cents keep them ($42.50).
   return formatCurrency(amount, currency, { ...opts, ...(abs >= 1000 || Number.isInteger(amount) ? { maxFractionDigits: 0 } : {}) })

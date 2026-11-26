@@ -9,7 +9,7 @@
  * credential values never appear in it.
  */
 
-import { assertHttpAllowed, assertSafeEgressHost, assertSafeEgressUrl, EgressBlockedError } from '@/lib/egress-guard'
+import { assertHttpAllowed, assertSafeEgressHost, assertSafeEgressUrl, EgressBlockedError, egressFetch } from '@/lib/egress-guard'
 import type { LogDestinationType } from '@/lib/api-schemas/log-destinations'
 import { awsCloudWatchLogsFormatter } from './formats/aws-cloudwatch-logs'
 import { azureEventHubsFormatter } from './formats/azure-event-hubs'
@@ -22,6 +22,25 @@ import { otlpHttpFormatter } from './formats/otlp-http'
 import { splunkHecFormatter } from './formats/splunk-hec'
 import { AuthorizeError, FormatterConfigError, type FormatContext, type Formatter, type OutboundRequest, type ShipEvent } from './formats/types'
 import { webhookFormatter } from './formats/webhook'
+
+/** The first `maxBytes` of a response body as text; the rest is never read (the stream is cancelled). */
+export async function readErrorBody(response: Response, maxBytes: number): Promise<string> {
+  if (!response.body) return ''
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  try {
+    while (total < maxBytes) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      total += value.byteLength
+    }
+  } finally {
+    await reader.cancel().catch(() => {})
+  }
+  return Buffer.concat(chunks).subarray(0, maxBytes).toString('utf8')
+}
 import { parseSyslogUrl, sendSyslog } from './syslog-transport'
 
 export const REQUEST_TIMEOUT_MS = 10_000
@@ -173,7 +192,8 @@ export async function sendRequest(
 
   let response: Response
   try {
-    response = await (options.fetch ?? fetch)(request.url, {
+    // Pinned transport by default: connects only to addresses the egress policy allows.
+    response = await (options.fetch ?? egressFetch)(request.url, {
       method: request.method,
       headers: request.headers,
       body: request.body,
@@ -191,7 +211,8 @@ export async function sendRequest(
   }
   let detail = ''
   try {
-    detail = (await response.text()).replace(/\s+/g, ' ').trim().slice(0, 2000)
+    // At most 64 KB of an error body is read (only 2,000 characters are kept).
+    detail = (await readErrorBody(response, 64 * 1024)).replace(/\s+/g, ' ').trim().slice(0, 2000)
   } catch { /* body unreadable */ }
   const vendorKind = request.classify?.(response.status, detail) ?? null
   if (vendorKind === 'success') return done('success', response.status, null)
@@ -220,10 +241,10 @@ export async function deliverEvents(
     const formatter = FORMATTERS[type]
     if (!formatter) throw new FormatterConfigError(`unknown destination type ${type}`)
     // Bearer token / AWS credentials first (cached), one-off setup, then the pure build.
-    let built: FormatContext = formatter.authorize ? { ...ctx, accessToken: await formatter.authorize(ctx, { fetch: options.fetch, now }) } : ctx
-    if (formatter.authorizeAws) built = { ...built, awsCredentials: await formatter.authorizeAws(ctx, { fetch: options.fetch, now }) }
+    let built: FormatContext = formatter.authorize ? { ...ctx, accessToken: await formatter.authorize(ctx, { fetch: options.fetch ?? egressFetch, now }) } : ctx
+    if (formatter.authorizeAws) built = { ...built, awsCredentials: await formatter.authorizeAws(ctx, { fetch: options.fetch ?? egressFetch, now }) }
     if (built.accessToken || built.awsCredentials) secrets = { ...ctx.credentials, access_token: built.accessToken, aws: built.awsCredentials }
-    await formatter.prepare?.(built, { fetch: options.fetch, now, assertUrl: assertDeliverableUrl })
+    await formatter.prepare?.(built, { fetch: options.fetch ?? egressFetch, now, assertUrl: assertDeliverableUrl })
     requests = formatter.build(events, built)
   } catch (error) {
     const kind = error instanceof FormatterConfigError || error instanceof EgressBlockedError ? 'permanent' : error instanceof AuthorizeError ? 'retry' : null

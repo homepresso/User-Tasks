@@ -8,6 +8,11 @@ import { ensureTenantInvitation, INVITABLE_ROLES } from '@/lib/invitations'
 import { QUEUE_TASK_COLUMNS, queueFactsFromTask, type QueueTaskFacts } from '@/lib/tasks/queue-rules'
 import { acceptanceForAssignee, decideAcceptanceForAssignees } from '@/lib/tasks/queue-rules-server'
 
+import { createActorServiceClient } from '@/lib/cron-auth'
+/** Task-table and notification writes: end users hold no write grant on them (migration 20270130140000), so they run with the service role after this file's checks — carrying the acting user for the task triggers — always scoped to the task's workspace. */
+const taskWriter = (actorId: string | null | undefined) => createActorServiceClient(actorId) as any
+
+
 export async function respondToTask(
   taskId: string,
   action: 'accepted' | 'held' | 'rejected',
@@ -49,13 +54,14 @@ export async function respondToTask(
       .maybeSingle()
     if (!membership) return { success: false, error: 'Only the people assigned to this task can accept or decline it.' }
 
-    await supabase
-      .from('task_assignees' as any)
+    await taskWriter(user.id)
+      .from('task_assignees')
       .update({
         acceptance_status: action,
         acceptance_comment: comment?.trim() || null,
         accepted_at: action === 'accepted' ? now : null,
       })
+      .eq('tenant_id', String((task as any).tenant_id))
       .eq('task_id', taskId)
       .eq('user_id', user.id)
   } else {
@@ -75,7 +81,7 @@ export async function respondToTask(
     }
     if (action === 'rejected') updates.status = 'cancelled'
 
-    await supabase.from('tasks').update(updates as any).eq('id', taskId)
+    await taskWriter(user.id).from('tasks').update(updates as any).eq('id', taskId).eq('tenant_id', String((task as any).tenant_id))
   }
 
   // Record lifecycle event
@@ -99,7 +105,7 @@ export async function respondToTask(
   const assignerId = (task as any).assigner_id
   if (assignerId) {
     const actionLabel = action === 'accepted' ? 'accepted' : action === 'held' ? 'put on hold' : 'rejected'
-    await supabase.from('notifications').insert({
+    await taskWriter(user.id).from('notifications').insert({
       user_id: assignerId,
       tenant_id: (task as any).tenant_id,
       type: `task_${action}`,
@@ -261,11 +267,11 @@ export async function rerouteTask(
       facts: { ...queueFacts, assignment: 'collaborative' },
     })
     const acceptanceFor = (userId: string) => recipientDecisions.get(userId) ?? 'pending'
-    await supabase.from('tasks').update({
+    await taskWriter(user.id).from('tasks').update({
       assignment_mode: 'collaborative',
       assignee_id: resolvedUsers[0].id,
       acceptance_status: acceptanceFor(resolvedUsers[0].id),
-    } as any).eq('id', taskId)
+    } as any).eq('id', taskId).eq('tenant_id', String((task as any).tenant_id))
     // Diff instead of delete-all: retained assignees keep their acceptance
     // state (the previous wipe reset everyone to pending on every redirect).
     const { data: existingAssignees } = await (supabase as any)
@@ -276,11 +282,11 @@ export async function rerouteTask(
     const nextIds = new Set(resolvedUsers.map((target) => String(target.id)))
     const removedIds = [...existingIds].filter((id) => !nextIds.has(id))
     if (removedIds.length > 0) {
-      await (supabase as any).from('task_assignees').delete().eq('task_id', taskId).in('user_id', removedIds)
+      await taskWriter(user.id).from('task_assignees').delete().eq('tenant_id', String((task as any).tenant_id)).eq('task_id', taskId).in('user_id', removedIds)
     }
     const newAssignees = resolvedUsers.filter((target) => !existingIds.has(String(target.id)))
     if (newAssignees.length > 0) {
-      await (supabase as any).from('task_assignees').insert(
+      await taskWriter(user.id).from('task_assignees').insert(
         newAssignees.map((target) => ({
           tenant_id: (task as any).tenant_id,
           task_id: taskId,
@@ -294,7 +300,7 @@ export async function rerouteTask(
     }
 
     for (const target of resolvedUsers) {
-      await supabase.from('notifications').insert({
+      await taskWriter(user.id).from('notifications').insert({
         user_id: target.id,
         tenant_id: (task as any).tenant_id,
         type: 'task_assigned',
@@ -406,12 +412,12 @@ export async function rerouteTask(
 
   if (!targetUser?.id) throw new Error('Target user not found in this organisation')
 
-  await supabase.from('tasks').update({
+  await taskWriter(user.id).from('tasks').update({
     assignee_id: targetUser.id,
     acceptance_status: await acceptanceForAssignee(supabase, targetUser.id, queueFacts, undefined, { tenantId: String((task as any).tenant_id) }),
-  } as any).eq('id', taskId)
+  } as any).eq('id', taskId).eq('tenant_id', String((task as any).tenant_id))
 
-  await supabase.from('notifications').insert({
+  await taskWriter(user.id).from('notifications').insert({
     user_id: targetUser.id,
     tenant_id: (task as any).tenant_id,
     type: action === 'escalate' ? 'task_escalated' : 'task_assigned',
@@ -689,10 +695,10 @@ export async function inviteToTask(
   if (added.length) {
     const now = new Date().toISOString()
     if (!isCollaborative) {
-      await supabase.from('tasks').update({ assignment_mode: 'collaborative' } as any).eq('id', taskId)
+      await taskWriter(user.id).from('tasks').update({ assignment_mode: 'collaborative' } as any).eq('id', taskId).eq('tenant_id', tenantId)
       if (t.assignee_id && !existingIds.has(String(t.assignee_id))) {
         const leadStatus = t.acceptance_status ?? 'accepted'
-        await (supabase as any).from('task_assignees').insert({
+        await taskWriter(user.id).from('task_assignees').insert({
           tenant_id: tenantId, task_id: taskId, user_id: t.assignee_id, role: 'lead',
           acceptance_status: leadStatus, accepted_at: leadStatus === 'accepted' ? (t.accepted_at ?? now) : null,
         })
@@ -703,7 +709,7 @@ export async function inviteToTask(
       assigneeIds: added.map((p) => p.id),
       facts: { ...queueFactsFromTask(t, { assignedBy: user.id, origins: ['invite'] }), assignment: 'collaborative' },
     })
-    await (supabase as any).from('task_assignees').insert(added.map((p) => {
+    await taskWriter(user.id).from('task_assignees').insert(added.map((p) => {
       const accepted = decisions.get(p.id) === 'accepted'
       return {
         tenant_id: tenantId, task_id: taskId, user_id: p.id, role: 'collaborator',
@@ -711,7 +717,7 @@ export async function inviteToTask(
       }
     }))
     for (const p of added) {
-      await supabase.from('notifications').insert({
+      await taskWriter(user.id).from('notifications').insert({
         user_id: p.id, tenant_id: tenantId, type: 'task_assigned',
         title: `Invited: ${t.title}`,
         body: comment || 'You have been invited to collaborate on this task.',

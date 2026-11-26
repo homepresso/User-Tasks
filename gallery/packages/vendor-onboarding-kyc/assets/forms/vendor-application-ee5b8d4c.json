@@ -131,12 +131,12 @@
         "label": "Expected spend in the first 12 months",
         "type": "currency",
         "required": true,
-        "currency": "NZD",
+        "currency": "USD",
         "min": 0
       },
       {
         "key": "spend_justification",
-        "label": "Why this vendor? (spend of NZD 100,000 or more)",
+        "label": "Why this vendor? (spend of USD 100,000 or more)",
         "type": "textarea",
         "help_text": "Quotes compared, why this supplier, any sole-source reason"
       },
@@ -528,7 +528,7 @@
       "rules": [
         {
           "id": "r_spend_hide",
-          "name": "Justification only for NZD 100,000 or more",
+          "name": "Justification only for USD 100,000 or more",
           "event": "always",
           "then": [
             {
@@ -562,7 +562,7 @@
             {
               "type": "field_error",
               "field": "spend_justification",
-              "text": "Explain why this vendor: spend of NZD 100,000 or more needs a justification."
+              "text": "Explain why this vendor: spend of USD 100,000 or more needs a justification."
             }
           ],
           "if": {

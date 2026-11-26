@@ -145,7 +145,16 @@ export type ResolvedSubdomain =
   | { kind: 'unknown' }
 
 const CACHE_MS = 15_000
+/** Most cached lookups: the label comes from the Host header, so random subdomains could grow the map without bound. */
+export const RESOLVED_CACHE_MAX = 5_000
 const resolvedCache = new Map<string, { at: number; value: ResolvedSubdomain }>()
+
+function rememberResolved(label: string, value: ResolvedSubdomain) {
+  resolvedCache.delete(label)
+  resolvedCache.set(label, { at: addressDeps.now(), value })
+  // Oldest first (insertion order); expired entries go first anyway.
+  while (resolvedCache.size > RESOLVED_CACHE_MAX) resolvedCache.delete(resolvedCache.keys().next().value as string)
+}
 
 function forgetResolved(subdomain: string | null) {
   if (subdomain) resolvedCache.delete(subdomain)
@@ -154,6 +163,11 @@ function forgetResolved(subdomain: string | null) {
 /** Test hook: drop every cached lookup. */
 export function clearResolvedSubdomains() {
   resolvedCache.clear()
+}
+
+/** Test hook: how many lookups are cached. */
+export function resolvedSubdomainCacheSize(): number {
+  return resolvedCache.size
 }
 
 /**
@@ -165,6 +179,7 @@ export async function resolveSubdomain(label: string): Promise<ResolvedSubdomain
   if (!isValidSubdomain(label)) return { kind: 'unknown' }
   const hit = resolvedCache.get(label)
   if (hit && addressDeps.now() - hit.at < CACHE_MS) return hit.value
+  if (hit) resolvedCache.delete(label)
   const db = await addressDeps.serviceClient()
   let value: ResolvedSubdomain = { kind: 'unknown' }
   const { data: tenant, error } = await (db as any).from('tenants').select('id, name, slug, subdomain')
@@ -180,7 +195,7 @@ export async function resolveSubdomain(label: string): Promise<ResolvedSubdomain
       if (owner?.subdomain && owner.subdomain !== label) value = { kind: 'moved', subdomain: String(owner.subdomain) }
     }
   }
-  resolvedCache.set(label, { at: addressDeps.now(), value })
+  rememberResolved(label, value)
   return value
 }
 

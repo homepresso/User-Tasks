@@ -20,7 +20,8 @@ import { columnKey, normalizeRowData, slugifyColumnName, type CellColumn } from 
 import { enqueueDataTableEvents, type DataTableEvent } from '@/lib/data-table-workflow-triggers'
 import { initiatorFromContext } from '@/lib/workflow-initiator'
 import { requirePerm, ServiceError, type ServiceContext } from './context'
-import { childRelationsUnavailable, isMissingObject, validateChildRelations } from './data-table-grouping'
+import { childRelationsUnavailable, isMissingObject, queryFilteredRowsExact, validateChildRelations } from './data-table-grouping'
+import { cachedTableTotal, forgetTableTotal, rememberTableTotal } from './data-table-guard'
 import { auditUnavailable, isAuditMissing } from './data-table-audit'
 import { applyPage, audit, dbError, ilikeTerm, queueDeletion, queueDeletions, syncChange, type Page } from './_shared'
 import { isMissingTagsColumn, selectWithTags, tagsNotApplied, tagsSafeWrite, validTags } from './tags-column'
@@ -311,12 +312,50 @@ export function parseRowOrder(order: string | undefined): Pick<RowQuery, 'sort_f
 /**
  * Rows of a table. Plain pages (no search/filters, system sort) are read
  * straight from the database with an exact total; search, filters and
- * sorting by a cell scan the newest DATA_ROW_LIMITS.scan rows in memory and
- * report `truncated` when the table holds more than that.
+ * sorting by a cell match the newest DATA_ROW_LIMITS.scan rows in memory;
+ * when the table holds more, they run in data_table_rows_page over every
+ * row (exact). Only before that migration, or for a filter SQL compares
+ * differently (dates in gt/lt), is the in-memory result `truncated`.
  */
+const SQL_SYSTEM_FIELDS: Record<string, string> = { id: 'id', row_id: 'id', created_at: 'created_at', updated_at: 'updated_at', created_by: 'created_by' }
+const SQL_SORT_FIELDS: Record<string, string> = { id: '_row_id', row_id: '_row_id', created_at: '_created_at', updated_at: '_updated_at' }
+const NUMERIC_TEXT = /^\s*[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d{1,3})?\s*$/
+
+/** A filter / sort field as the stored cell key (the same lookup as fieldValue), or null when it names no column. */
+function storedFieldKey(columns: unknown, field: string): string | null {
+  const cols: CellColumn[] = (Array.isArray(columns) ? columns : []).filter((c: any) => c && (c.key || c.name)).map((c: any) => ({ key: c.key, name: String(c.name ?? c.key) }))
+  for (const col of cols) if (columnKey(col) === field) return field
+  const slug = slugifyColumnName(field)
+  for (const col of cols) if (slugifyColumnName(columnKey(col)) === slug || slugifyColumnName(col.name) === slug) return columnKey(col)
+  return null
+}
+
+/**
+ * The query for data_table_rows_page (exact, over every row), or null when a
+ * filter would compare differently there (dates in gt/lt, a field that is
+ * no column): those keep the in-memory scan below.
+ */
+function sqlRowQuery(columns: unknown, query: RowQuery): { sort: string; filters: Array<{ field: string; operator: any; value?: any }> } | null {
+  const sortField = query.sort_field ?? 'created_at'
+  const sort = SQL_SORT_FIELDS[sortField] ?? storedFieldKey(columns, sortField)
+  if (!sort) return null
+  const filters: Array<{ field: string; operator: any; value?: any }> = []
+  for (const f of query.filters ?? []) {
+    const field = SQL_SYSTEM_FIELDS[f.field] ?? storedFieldKey(columns, f.field)
+    if (!field) return null
+    if (f.value !== null && f.value !== undefined && typeof f.value === 'object') return null
+    if (['gt', 'gte', 'lt', 'lte'].includes(f.operator) && !(typeof f.value === 'number' || (typeof f.value === 'string' && NUMERIC_TEXT.test(f.value)))) return null
+    if (!['equals', 'not_equals', 'contains', 'starts_with', 'ends_with', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'not_empty'].includes(f.operator)) return null
+    filters.push({ field, operator: f.operator, ...(f.value === undefined || f.value === null ? {} : { value: typeof f.value === 'boolean' ? String(f.value) : f.value }) })
+  }
+  return { sort, filters }
+}
+
+const pickRowColumns = (row: any) => ({ id: row.id, table_id: row.table_id, data: row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by, updated_by: row.updated_by ?? null })
+
 export async function queryRows(ctx: ServiceContext, tableId: string, query: RowQuery, page: { limit: number; offset: number }) {
   requirePerm(ctx, 'data.view')
-  await loadTable(ctx, tableId, 'id')
+  const table = await loadTable(ctx, tableId, 'id, columns')
   const limit = Math.max(1, page.limit)
   const offset = Math.max(0, page.offset)
   const direction = query.sort_direction ?? 'desc'
@@ -324,14 +363,18 @@ export async function queryRows(ctx: ServiceContext, tableId: string, query: Row
   const local = Boolean(query.search) || Boolean(query.filters?.length) || !systemSort
 
   if (!local) {
+    // Exact totals of large tables are cached briefly (lib/services/data-table-guard); row writes here drop them.
+    const totalKey = `${ctx.tenantId}:${tableId}`
+    const cachedTotal = await cachedTableTotal(totalKey)
     const { data, count, error } = await (ctx.supabase as any).from('custom_table_rows')
-      .select(ROW_COLUMNS, { count: 'exact' })
+      .select(ROW_COLUMNS, cachedTotal === null ? { count: 'exact' } : undefined)
       .eq('table_id', tableId)
       .eq('tenant_id', ctx.tenantId)
       .order(query.sort_field === 'updated_at' ? 'updated_at' : 'created_at', { ascending: direction === 'asc' })
       .range(offset, offset + limit - 1)
     if (error) throw dbError(error)
-    return { rows: (data ?? []) as any[], total: (count ?? (data ?? []).length) as number, truncated: false, limit, offset }
+    if (cachedTotal === null && typeof count === 'number') await rememberTableTotal(totalKey, count)
+    return { rows: (data ?? []) as any[], total: (cachedTotal ?? count ?? (data ?? []).length) as number, truncated: false, limit, offset }
   }
 
   const cap = Math.min(Math.max(limit + offset, 200), DATA_ROW_LIMITS.scan)
@@ -353,6 +396,15 @@ export async function queryRows(ctx: ServiceContext, tableId: string, query: Row
   if (error) throw dbError(error)
   let rows = (data ?? []) as any[]
   const truncated = rows.length >= cap
+  // More rows than the scan holds: the in-memory result would be wrong (only the newest rows sorted /
+  // searched, pages past the cap empty). Run it in the database over every row instead
+  // (data_table_rows_page, SECURITY INVOKER, scoped to the tenant). Small tables keep the in-memory
+  // match, which also reads legacy cells stored under a column's name.
+  if (truncated) {
+    const sql = limit <= 500 ? sqlRowQuery(table?.columns, query) : null
+    const exact = sql ? await queryFilteredRowsExact(ctx.supabase, tableId, { search: query.search, filters: sql.filters, sort: sql.sort, dir: direction, limit, offset, workspace: ctx.tenantId }, ctx.tenantId) : null
+    if (exact) return { rows: exact.rows.map(pickRowColumns), total: exact.total, truncated: false, limit, offset }
+  }
   if (query.search) {
     const q = query.search.toLowerCase()
     rows = rows.filter((row) => String(row.id).toLowerCase().includes(q)
@@ -491,6 +543,7 @@ export async function upsertRows(ctx: ServiceContext, tableId: string, rows: Row
   } finally {
     await fireTriggers(ctx, tableId, events)
   }
+  if (results.some((r) => r.action === 'created')) await forgetTableTotal(`${ctx.tenantId}:${tableId}`)
   return results
 }
 
@@ -529,6 +582,8 @@ export async function deleteRows(ctx: ServiceContext, tableId: string, rowIds: s
   // One queue insert and one processor kick for the batch (was one each per row).
   await queueDeletions(ctx, 'data_row', rows.map((row) => ({ id: String(row.id), payload: { table_id: tableId, row_data: row.data ?? {} } })))
   const ids = rows.map((row) => String(row.id))
+  // Deletion runs from the queue; dropping the cached total now keeps it from lasting its full TTL after.
+  if (ids.length) await forgetTableTotal(`${ctx.tenantId}:${tableId}`)
   return { deleted: ids.length, ids }
 }
 

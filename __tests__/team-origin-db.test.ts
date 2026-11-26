@@ -95,7 +95,12 @@ describe.skipIf(!DB_URL)('team origin + assignee search (local database)', () =>
   const link = (tenant: string, provider: string, externalId: string, local: string) =>
     q(`INSERT INTO public.directory_links (tenant_id, provider, object_type, external_id, local_id, display_name) VALUES ($1, $2, 'group', $3, $4, $3)`, [tenant, provider, externalId, local])
 
+  // The services under test read through the service client (serviceRoleClient):
+  // point it at the same stack (CI sets no NEXT_PUBLIC_SUPABASE_URL / service key).
+  const prevEnv = { url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY }
   beforeAll(async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = API_URL
+    process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_KEY
     await db.connect()
     await cleanup()
     await q(`INSERT INTO public.tenants (id, name, slug) VALUES ($1, 'Origin A', 'origin-a-test'), ($2, 'Origin B', 'origin-b-test')`, [A, B])
@@ -136,6 +141,10 @@ describe.skipIf(!DB_URL)('team origin + assignee search (local database)', () =>
     await cleanup().catch(() => undefined)
     await db.end()
     await pool.end()
+    for (const [name, value] of [['NEXT_PUBLIC_SUPABASE_URL', prevEnv.url], ['SUPABASE_SERVICE_ROLE_KEY', prevEnv.key]] as const) {
+      if (value === undefined) delete process.env[name]
+      else process.env[name] = value
+    }
   }, 60_000)
 
   /* ── backfill ──────────────────────────────────────────────────────── */
@@ -258,8 +267,8 @@ describe.skipIf(!DB_URL)('team origin + assignee search (local database)', () =>
       team_id: T_SP, total: 3,
       members: [expect.objectContaining({ id: FINN, name: 'Finn Fischer' }), expect.objectContaining({ id: PRIYA, name: 'Priya Nair' })],
     })
-    // Another workspace's team: nothing.
-    expect(await teamMemberPreview(session(A, PRIYA), T_B)).toEqual({ team_id: T_B, total: 0, members: [] })
+    // Another workspace's team: not found, like other reads (5a0c4f3d7: no echo of the id, no empty preview).
+    await expect(teamMemberPreview(session(A, PRIYA), T_B)).rejects.toMatchObject({ code: 'not_found' })
   })
 
   it('a caller who is not a member of the workspace finds nothing in it (RLS)', async () => {

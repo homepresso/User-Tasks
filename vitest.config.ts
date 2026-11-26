@@ -9,6 +9,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // DB-gated suites set up / clean up committed rows in beforeAll / afterAll:
+    // on a loaded machine the 10 s default cut cleanup short and left rows
+    // that failed the next run (unique slugs).
+    hookTimeout: 60_000,
     // The RLS snapshot holds one transaction across every RLS table for a few
     // seconds; it runs after the other files so DB tests that take table
     // locks (e.g. ALTER TABLE event_stream) are not blocked by it.

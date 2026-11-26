@@ -1,7 +1,7 @@
 import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
-import { checkInfrastructureLicenceText as checkLicence } from '@/lib/infrastructure/licence-gate'
+import { checkAddonLicenceText, checkInfrastructureLicenceText as checkLicence } from '@/lib/infrastructure/licence-gate'
 import {
   fillSecrets, flagsLayer, formatEnvFile, mergeProfileLayers, parseEnvFile, PRESET_IDS, PRESETS, profileToConfig, redactEnv, redactProfile,
   validateProfile, ProfileInputError, PROFILE_AREAS, type PresetId, type Profile, type ProfileArea, presetProfile,
@@ -50,7 +50,8 @@ usertasks-admin install profile validate|check|write|apply
   write     [--format env|json] [--out <file>] [--merge <existing env file>] [--generate-secrets] [--force]
   apply     [--db-url <url>] [--merge <env file from write>] [--overwrite] [--actor <name>]   (instance settings, after db migrate)
   --licence <file>   Infrastructure licence: needed for a separated profile (your own PostgreSQL, external storage,
-                     SSO-only sign-in, email APIs, …); the bundled single stacks need none. Default: USERTASKS_LICENCE_FILE.
+                     SSO-only sign-in, email APIs, …); the bundled single stacks need none. Processing licence: needed
+                     for processing.mode: workers (separate processing workers). One file may hold both. Default: USERTASKS_LICENCE_FILE.
 Values written @env:NAME are read from the environment.`
 
 const OPTIONS = {
@@ -171,17 +172,33 @@ export async function runInstallCommand(argv: string[], io: CliIO): Promise<numb
 
     // The Infrastructure add-on boundary: new separation needs a licence (check runs only the connection tests).
     if (verb !== 'check') {
+      // apply: the key that encrypts credentials is known before anything reads instance settings
+      // (the key is read once per process: reading a stored secret first would leave it unset).
+      if (verb === 'apply') primeEncryptionKey(profile, values)
       const existing = verb === 'apply' ? await runningSettingsFingerprints(values, profile, io) : envFingerprints(values)
-      const gate = separationGate(profile, existing, values, io)
+      let gate = separationGate(profile, existing, values, io)
+      // A re-run (--merge): what a profile places in instance settings (the presets' files, sign-in, email, …)
+      // is not in the env file, so ask the running instance before refusing what it already runs.
+      if (!gate.ok && verb !== 'apply' && values.merge) gate = separationGate(profile, await runningSettingsFingerprints(values, profile, io), values, io)
       if (!gate.ok) {
         if (format === 'json') io.out(JSON.stringify({ ok: false, code: 'licence_required', separated: gate.separated, error: gate.error }, null, 2))
         else io.err(gate.error)
         return 1
       }
       if (gate.note) io.err(gate.note)
-      if (verb === 'apply' && gate.licenceText) {
-        const installed = await installLicence(gate.licenceText, values, profile, io)
-        if (installed !== 0) return installed
+      // The Processing add-on boundary: separate processing workers need its licence.
+      const pgate = processingGate(profile, values, io)
+      if (!pgate.ok) {
+        if (format === 'json') io.out(JSON.stringify({ ok: false, code: 'licence_required', addon: 'processing', error: pgate.error }, null, 2))
+        else io.err(pgate.error)
+        return 1
+      }
+      if (pgate.note) io.err(pgate.note)
+      if (verb === 'apply') {
+        for (const text of new Set([gate.licenceText, pgate.licenceText].filter((t): t is string => Boolean(t)))) {
+          const installed = await installLicence(text, values, profile, io)
+          if (installed !== 0) return installed
+        }
       }
     }
 
@@ -273,6 +290,14 @@ function envFromJson(text: string): Record<string, string> {
   }
 }
 
+/** ENCRYPTION_KEY for `apply` from the profile or the merged env file, when the environment has none (a fresh install). */
+function primeEncryptionKey(input: Profile, values: Values): void {
+  if (process.env.ENCRYPTION_KEY) return
+  const existing = values.merge && existsSync(path.resolve(values.merge)) ? parseEnvFile(readFileSync(path.resolve(values.merge), 'utf8')) : {}
+  const { profile } = fillSecrets(input, existing, { generate: false })
+  if (profile.app.encryptionKey) process.env.ENCRYPTION_KEY = profile.app.encryptionKey
+}
+
 async function apply(input: Profile, values: Values, io: CliIO): Promise<number> {
   // The env file `write` produced (--merge) supplies ENCRYPTION_KEY and the database URL when the profile doesn't.
   const existing = values.merge ? parseEnvFile(readFileSync(path.resolve(values.merge), 'utf8')) : {}
@@ -327,7 +352,7 @@ function envFingerprints(values: Values): (area: ProfileArea) => string | null {
   return (area) => envFingerprint(area, env)
 }
 
-/** apply: what the instance runs now (its settings, then the merged env file). */
+/** apply (and a write / validate re-run): what the instance runs now (its settings, then the merged env file). */
 async function runningSettingsFingerprints(values: Values, profile: Profile, io: CliIO): Promise<(area: ProfileArea) => string | null> {
   const fromEnv = envFingerprints(values)
   const existing = values.merge ? parseEnvFile(readFileSync(path.resolve(values.merge), 'utf8')) : {}
@@ -337,7 +362,9 @@ async function runningSettingsFingerprints(values: Values, profile: Profile, io:
     const { connect, decodeSettings, readSettingRows } = await import('./instance')
     const db = await connect(url)
     try {
-      const settings = decodeSettings(await readSettingRows(db))
+      // Providers and endpoints only: secret rows are not decrypted here (that would read ENCRYPTION_KEY
+      // before `apply` sets it from the merged env file, and the key is cached for the process).
+      const settings = decodeSettings((await readSettingRows(db)).filter((row) => !row.secret))
       return (area) => settingsFingerprint(area, settings) ?? fromEnv(area)
     } finally {
       await db.end().catch(() => undefined)
@@ -377,6 +404,36 @@ export function separationGate(profile: Profile, existing: (area: ProfileArea) =
   return { ok: true, separated: added, error: '', licenceText: text, note: `Infrastructure licence ${check.licenceId ?? ''}${check.customer ? ` (${check.customer})` : ''} accepted for: ${what}.${check.reason ? ` ${check.reason}` : ''}` }
 }
 
+export interface ProcessingGate {
+  ok: boolean
+  error: string
+  note: string | null
+  licenceText: string | null
+}
+
+/**
+ * Refuse `processing.mode: workers` without a valid Processing licence
+ * (offline check: signature against the pinned keyring, dates — it stops 24
+ * hours after expiry — extension `processing`, feature `processing`,
+ * binding). A re-run whose merged env already has PROCESSING_MODE=workers
+ * keeps it without a licence check (nothing new is turned on). The same
+ * --licence file may hold several add-ons.
+ */
+export function processingGate(profile: Profile, values: Values, io: { env: Record<string, string | undefined> }, now = new Date(), keyring?: Parameters<typeof checkLicence>[1]['keyring']): ProcessingGate {
+  if (profile.processing?.mode !== 'workers') return { ok: true, error: '', note: null, licenceText: null }
+  const merged = values.merge && existsSync(path.resolve(values.merge)) ? parseEnvFile(readFileSync(path.resolve(values.merge), 'utf8')) : {}
+  if ((merged.PROCESSING_MODE ?? '').trim().toLowerCase() === 'workers') {
+    return { ok: true, error: '', note: 'note: separate processing workers are already configured here (PROCESSING_MODE=workers) and are kept.', licenceText: null }
+  }
+  const { text, source } = licenceTextFrom(values, io.env)
+  if (!text) {
+    return { ok: false, note: null, licenceText: null, error: 'This profile runs processing on separate workers (processing.mode: workers). That needs the Processing add-on (a paid extension): pass --licence <your .licence file> (or set USERTASKS_LICENCE_FILE). Without a licence, leave processing out: the web app processes queued work (free).' }
+  }
+  const check = checkAddonLicenceText(text, { appUrl: profile.app.url, now, keyring, extensionId: 'processing', feature: 'processing', addonName: 'Processing' })
+  if (!check.ok) return { ok: false, note: null, licenceText: null, error: `This profile runs processing on separate workers, and the Processing licence ${source ? `from ${source} ` : ''}was not accepted: ${check.reason ?? 'not licensed'}` }
+  return { ok: true, error: '', licenceText: text, note: `Processing licence ${check.licenceId ?? ''}${check.customer ? ` (${check.customer})` : ''} accepted: separate processing workers.${check.reason ? ` ${check.reason}` : ''}` }
+}
+
 /** apply --licence: store the licence in the instance (Settings → Licence) as `usertasks-admin licence install` does. */
 async function installLicence(text: string, values: Values, profile: Profile, io: CliIO): Promise<number> {
   const existing = values.merge ? parseEnvFile(readFileSync(path.resolve(values.merge), 'utf8')) : {}
@@ -391,9 +448,10 @@ async function installLicence(text: string, values: Values, profile: Profile, io
     return 1
   }
   try {
-    const code = await runLicence('install', ['-'], { actor: values.actor || defaultActor() }, sqlLicenceStore(db), { ...io, out: io.out }, { readFile: async () => text })
-    if (code !== 0) io.err('The Infrastructure licence could not be installed in the instance (see above): install it later with usertasks-admin licence install <file>.')
-    void profile
+    // The licence is bound to the install's address: the profile's, when this process has no APP_URL (the installers).
+    const env = { ...io.env, APP_URL: io.env.APP_URL || io.env.NEXT_PUBLIC_APP_URL || profile.app.url }
+    const code = await runLicence('install', ['-'], { actor: values.actor || defaultActor() }, sqlLicenceStore(db), { ...io, out: io.out, env }, { readFile: async () => text })
+    if (code !== 0) io.err('The licence could not be installed in the instance (see above): install it later with usertasks-admin licence install <file>.')
     return 0
   } finally {
     await db.end().catch(() => undefined)

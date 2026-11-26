@@ -12,8 +12,11 @@
 import { readFileSync } from 'node:fs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client } from 'pg'
+import { dbCapabilities, setRoleSql } from './helpers/db-capabilities'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// service_role without BYPASSRLS (managed PostgreSQL): the app runs it as the schema owner.
+const caps = await dbCapabilities()
 const MIGRATION = readFileSync('supabase/migrations/20270116120000_team_requests.sql', 'utf8')
 const ROW = '33333333-3333-4333-8333-333333333333'
 
@@ -36,7 +39,7 @@ describe.skipIf(!DB_URL)('team_requests access (local DB)', () => {
   async function as(role: 'anon' | 'authenticated' | 'service_role', sql: string, params: unknown[] = []): Promise<string> {
     await db.query('SAVEPOINT probe')
     try {
-      await db.query(`SET LOCAL ROLE ${role}`)
+      await db.query(setRoleSql(role, caps))
       await db.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ role, sub: role === 'authenticated' ? '44444444-4444-4444-8444-444444444444' : undefined })])
       const res = await db.query(sql, params)
       return `ok:${res.rowCount}`

@@ -6,15 +6,20 @@
  * submissions" workflow is built the same way):
  *
  *   Form submitted (this form)
- *     → Insert into <parent table>            output_row_id_var step_1_id
- *     → Loop for each {{form.lines}}          (one per repeating section / List)
- *         Each item → Insert into <child>     parent_row_id = {{step_1_id}}
+ *     → Add to <parent table>                 output_row_id_var order_id
+ *     → Loop for each {{form.lines}}          (one per repeating section / List;
+ *                                              a grid: {{form.parts.added}})
+ *         Each Item → Add to <child>          parent_row_id = {{order_id}}
  *                   → Loop for each {{item.serials}} (nested items: parent_item)
  *     → Done → End
  *
+ * Variables are named after the target (order_id, order_line_id — lib/forms/
+ * data-event.ts stepStems), and the nodes are placed by the designer's own
+ * Tidy layout (lib/workflow-layout.ts).
+ *
  * An API reference step is a Call API / Reference node; when a later step
  * reads its id, a Set variable node keeps {{response.<id path>}} as
- * {{step_N_id}} (the response is overwritten by the next call).
+ * {{<name>_id}} (the response is overwritten by the next call).
  *
  * The outline (start, inserts, loops) is what the wizard's review shows.
  *
@@ -22,7 +27,9 @@
  */
 
 import type { TaskFieldDef } from '@/lib/task-field-schema'
-import { defaultIdPath, idVariable, sourceChain, type DataEventPlan, type DataEventSource, type DataEventStep, type DataEventTarget, type DataEventValue } from './data-event'
+import { applyLayout, layoutWorkflow } from '@/lib/workflow-layout'
+import type { WorkflowEdge, WorkflowNode } from '@/lib/workflow-schema'
+import { defaultIdPath, idVariable, itemWords, sourceChain, stepStems, type DataEventPlan, type DataEventSource, type DataEventStep, type DataEventTarget, type DataEventValue } from './data-event'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- workflow nodes are free-form JSON */
 
@@ -56,10 +63,15 @@ const X0 = 400
 const DX = 320
 const DY = 140
 
-/** The loop variable of a source at a depth (always `item`: the engine keeps the outer one as parent_item). */
+/**
+ * What a source's Loop runs over (the loop variable is always `item`: the
+ * engine keeps the outer one as parent_item): a section's items / a List's
+ * rows; a grid's added rows (its stored change set's `added`) or selected rows.
+ */
 function itemsExpression(source: DataEventSource, chain: DataEventSource[]): string {
   const parent = chain[chain.length - 2]
-  return !parent || parent.kind === 'form' ? `{{form.${source.key}}}` : `{{item.${source.key}}}`
+  const path = `${!parent || parent.kind === 'form' ? 'form' : 'item'}.${source.key}${source.kind === 'grid' && source.rows !== 'selected' ? '.added' : ''}`
+  return `{{${path}}}`
 }
 
 /**
@@ -72,6 +84,8 @@ export function buildDataEventWorkflow(plan: DataEventPlan, form: DataEventFormI
   const edges: DataEventWorkflowEdge[] = []
   const outline: OutlineLine[] = []
   const bySource = new Map(sources.map((s) => [s.key, s]))
+  const stems = stepStems(plan.steps)
+  // Placeholder positions; the designer's own Tidy layout places every node at the end.
   let y = 60
   const add = (node: Omit<DataEventWorkflowNode, 'position'>, depth: number) => {
     nodes.push({ ...node, position: { x: X0 + depth * DX, y } })
@@ -123,8 +137,8 @@ export function buildDataEventWorkflow(plan: DataEventPlan, form: DataEventFormI
     if (v.kind === 'parent') {
       const parent = plan.steps.find((p) => p.id === v.step)
       const path = v.path ?? (parent ? defaultIdPath(parent) : 'row_id')
-      if (parent?.target.kind === 'table' && path.startsWith('row.')) return `{{${v.step}_row.${path.slice(4)}}}`
-      return `{{${parent ? idVariable(parent, path) : `${v.step}_id`}}}`
+      if (parent?.target.kind === 'table' && path.startsWith('row.')) return `{{${stems.get(v.step) ?? v.step}_row.${path.slice(4)}}}`
+      return `{{${parent ? idVariable(parent, path, stems) : `${v.step}_id`}}}`
     }
     const own = step.source ? bySource.get(step.source)?.fields.some((f) => f.key === v.key) : false
     return own ? `{{item.${v.key}}}` : `{{form.${v.key}}}`
@@ -140,10 +154,12 @@ export function buildDataEventWorkflow(plan: DataEventPlan, form: DataEventFormI
     for (let i = stack.length - 1; i < chain.length; i++) {
       const source = chain[i]
       const loopId = `loop_${++loopCount}`
-      add({ id: loopId, type: 'loop', label: `Each ${source.label}`, config: { items: itemsExpression(source, [bySource.get('')!, ...chain.slice(0, i + 1)].filter(Boolean)), item_var: 'item', index_var: 'index' } }, stack.length - 1)
+      const words = itemWords(source)
+      add({ id: loopId, type: 'loop', label: `${words.charAt(0).toUpperCase()}${words.slice(1)}`.slice(0, 80), config: { items: itemsExpression(source, [bySource.get('')!, ...chain.slice(0, i + 1)].filter(Boolean)), item_var: 'item', index_var: 'index' } }, stack.length - 1)
       attach(loopId)
-      outline.push({ depth: stack.length - 1, kind: 'loop', text: `For each item of ${source.label}`, node: loopId })
-      stack.push({ source: source.key, loop: loopId, cursor: loopId, label: 'Each item' })
+      outline.push({ depth: stack.length - 1, kind: 'loop', text: `${words.charAt(0).toUpperCase()}${words.slice(1)}`, node: loopId })
+      // The designer's own branch label (lib/workflow-branches.ts: Done / Each Item).
+      stack.push({ source: source.key, loop: loopId, cursor: loopId, label: 'Each Item' })
     }
     const depth = stack.length - 1
     const values = Object.fromEntries(Object.entries(step.map).map(([k, v]) => [k, template(step, v)]))
@@ -153,8 +169,8 @@ export function buildDataEventWorkflow(plan: DataEventPlan, form: DataEventFormI
         id: step.id, type: 'update_data_table', label: `Add to ${step.target.name}`.slice(0, 80),
         config: {
           table_id: step.target.id, table_name: step.target.name, operation: 'insert', column_values: values,
-          output_row_id_var: `${step.id}_id`,
-          ...(needed && [...needed].some((p) => p.startsWith('row.')) ? { output_row_var: `${step.id}_row` } : {}),
+          output_row_id_var: idVariable(step, 'row_id', stems),
+          ...(needed && [...needed].some((p) => p.startsWith('row.')) ? { output_row_var: `${stems.get(step.id) ?? step.id}_row` } : {}),
         },
       }, depth)
       attach(id)
@@ -172,9 +188,9 @@ export function buildDataEventWorkflow(plan: DataEventPlan, form: DataEventFormI
       outline.push({ depth, kind: 'call', text: `Call ${step.target.name}`, step: step.id, node: id })
       if (needed?.size) {
         const setId = `${step.id}_keep`
-        add({ id: setId, type: 'set_variable', label: `Keep the ${step.target.name} id`.slice(0, 80), config: { assignments: [...needed].map((path) => ({ name: idVariable(step, path), expression: `{{response.${path}}}` })) } }, depth)
+        add({ id: setId, type: 'set_variable', label: `Keep the ${step.target.name} id`.slice(0, 80), config: { assignments: [...needed].map((path) => ({ name: idVariable(step, path, stems), expression: `{{response.${path}}}` })) } }, depth)
         attach(setId)
-        outline.push({ depth, kind: 'set', text: `Keep its id as {{${idVariable(step, [...needed][0])}}}`, step: step.id, node: setId })
+        outline.push({ depth, kind: 'set', text: `Keep its id as {{${idVariable(step, [...needed][0], stems)}}}`, step: step.id, node: setId })
       }
     }
   }
@@ -183,13 +199,15 @@ export function buildDataEventWorkflow(plan: DataEventPlan, form: DataEventFormI
   attach('done')
   outline.push({ depth: 0, kind: 'end', text: 'End', node: 'done' })
 
+  // Laid out as the workflow designer's Tidy does (a loop's body to its right, Done straight down): no overlaps, and tidying it again changes nothing.
+  const laid = applyLayout(nodes as unknown as WorkflowNode[], layoutWorkflow({ nodes: nodes as unknown as WorkflowNode[], edges: edges as unknown as WorkflowEdge[] })) as unknown as DataEventWorkflowNode[]
   const names = [...new Set(plan.steps.map((s) => s.target.name))]
   return {
     name: (plan.workflow_name?.trim() || `${form.name}: save submissions`).slice(0, 120),
     description: `Made by "Map to data event": saves each submission of "${form.name}" to ${names.join(', ') || 'its targets'}${plan.steps.some((s) => s.source) ? ' (repeating items in their own rows)' : ''}.`,
     trigger_type: 'form_submitted',
     trigger_config: {},
-    nodes,
+    nodes: laid,
     edges,
     tags: ['data-event'],
     outline,

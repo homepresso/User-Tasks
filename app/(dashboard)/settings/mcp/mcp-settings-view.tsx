@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { useState } from 'react'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { useRouter } from 'next/navigation'
@@ -99,6 +100,7 @@ interface Props {
 }
 
 export function McpSettingsView({ apiKeys, tenantSlug, mcpServers, toolCategories }: Props) {
+  const [confirm, confirmDialog] = useConfirm()
   const router = useRouter()
   const [copied, setCopied] = useState<string | null>(null)
   const [showAddServer, setShowAddServer] = useState(false)
@@ -185,7 +187,7 @@ export function McpSettingsView({ apiKeys, tenantSlug, mcpServers, toolCategorie
   }
 
   async function handleDeleteServer(id: string) {
-    if (!confirm('Delete this MCP server?')) return
+    if (!(await confirm({ title: 'Delete this MCP server?', description: 'Its connection settings are removed. This can’t be undone.', confirmLabel: 'Delete server', destructive: true }))) return
     setServerError('')
     try {
       const { deleteMcpServer } = await import('@/app/actions/mcp-servers')
@@ -198,6 +200,7 @@ export function McpSettingsView({ apiKeys, tenantSlug, mcpServers, toolCategorie
 
   return (
     <div className="space-y-8 max-w-3xl">
+      {confirmDialog}
       <div className="flex items-center gap-3">
         <Link href="/settings" className="p-1.5 rounded-lg hover:bg-subtle transition-colors text-fg-muted">
           <ArrowLeft size={18} />
@@ -451,7 +454,7 @@ export function McpSettingsView({ apiKeys, tenantSlug, mcpServers, toolCategorie
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => { setShowAddServer(false); setAddError('') }}>Cancel</Button>
               <Button size="sm" onClick={handleAddServer} disabled={!serverName.trim() || !serverUrl.trim() || saving}>
-                {saving ? 'Adding...' : 'Add Server'}
+                {saving ? 'Adding…' : 'Add server'}
               </Button>
             </div>
           </Card>

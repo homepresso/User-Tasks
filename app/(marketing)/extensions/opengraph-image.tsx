@@ -7,5 +7,5 @@ export const size = OG_SIZE
 export const contentType = OG_CONTENT_TYPE
 
 export default function Image() {
-  return renderOgImage({ eyebrow: EXTENSIONS_PAGE.eyebrow, title: 'An open-source core. Extensions when you need more.', subtitle: 'SharePoint, Infrastructure and Processing: paid add-ons, licensed offline, priced in USD.' })
+  return renderOgImage({ eyebrow: EXTENSIONS_PAGE.eyebrow, title: 'An open-source core. Extensions when you need more.', subtitle: 'SharePoint, Infrastructure, Processing, support plans and consulting. Priced in USD.' })
 }

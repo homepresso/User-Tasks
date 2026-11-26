@@ -21,7 +21,7 @@
       },
       {
         "key": "contract_value",
-        "label": "Contract value (NZD)",
+        "label": "Contract value (USD)",
         "type": "number",
         "id": "16d7981e-6432-59c4-87b9-a7dda2cf5862"
       },
@@ -98,7 +98,7 @@
           "queue": "Commercial",
           "sla_days": 5,
           "gc_review": true,
-          "route_note": "Contract value of NZD 500,000 or more: the general counsel signs off the advice."
+          "route_note": "Contract value of USD 500,000 or more: the general counsel signs off the advice."
         },
         "id": "6ff477eb-da6d-5e83-9953-fe92262955a6",
         "enabled": true

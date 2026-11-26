@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
@@ -14,22 +14,28 @@ import { TaskDetailPanel } from "@/components/tasks/task-detail-panel"
 import { RunWorkflowDialog } from "@/components/automations/run-workflow-dialog"
 import { serverQuery } from "@/lib/server-read"
 import {
-  MAX_PANELS, breadcrumb, closePanel, decodePanels, defaultTitle, designSize, encodePanels, markDirty, motionFor, parseSavedSize, popPanel, pushPanel, sizeKey, sizePx,
-  type Panel, type PanelTarget,
+  MAX_PANELS, breadcrumb, closeKeyFor, closePanel, decodePanels, defaultTitle, designSize, encodePanels, historyPlan, markDirty, motionFor, panelHref, parseSavedSize, pushPanel,
+  reconcileStack, sizeKey, sizePx, type Panel, type PanelCloseScope, type PanelTarget,
 } from "@/lib/apps/panels"
 import type { OpenMode } from "@/lib/apps/schema"
 import { filterParam } from "@/lib/apps/widgets"
-import { formAppPath } from "@/lib/forms/form-page-url"
+import { formAppPath } from "@/lib/forms/form-paths"
 import { cn } from "@/lib/utils"
+import { trapTabKey } from "@/lib/a11y/focus-trap"
 import { ReportWidget } from "./widgets/report-widget"
+// Panel motion, and dialogs opened over the panels lifted above them.
+import "./apps.css"
 
 /**
  * The app page's open-target host: modals, slide-in panels (right / left),
  * bottom sheets and full-screen overlays that STACK (lib/apps/panels.ts) —
  * opening a target from inside a panel slides a new one over; the previous
- * ones stay mounted and peek out, with a breadcrumb header. Esc closes the
- * top one (asking first when it holds an unsent form), focus returns to
- * what opened it, and the stack is mirrored in the URL (?panel=…) so a
+ * ones stay mounted and peek out, with a breadcrumb header. × and the
+ * backdrop close the whole stack; the back chevron, a breadcrumb and Esc
+ * close one level (or back to that level); closing asks first when a panel
+ * holds an unsent form. Focus returns to what opened the closed panels, the
+ * page behind doesn't scroll while panels are open, and the stack is mirrored
+ * in the URL (?panel=…, one history entry per level: Back pops one) so a
  * refresh or a shared link restores it. On phones panels are full-width
  * bottom sheets; beyond MAX_PANELS a target opens by navigation instead.
  * Motion: slide / fade / scale (prefers-reduced-motion: none).
@@ -74,10 +80,19 @@ export function PanelStackProvider({ appSlug, base, renderPage, children }: { ap
   const mobile = useMedia("(max-width: 640px)")
   const reduced = useMedia("(prefers-reduced-motion: reduce)")
   const [stack, setStack] = useState<Panel[]>(() => decodePanels(params.get("panel")))
-  const [confirm, setConfirm] = useState<{ key: string | null } | null>(null)
+  // The stack the handlers read and write synchronously (state follows it), so a close
+  // decides on the panels on screen — not on a render that hasn't happened yet.
+  const stackRef = useRef(stack)
+  const [confirm, setConfirm] = useState<{ key: string } | null>(null)
   const [workflow, setWorkflow] = useState<{ id: string; name: string } | null>(null)
   const openers = useRef(new Map<string, HTMLElement | null>())
   const hooks = useRef(new Map<string, OpenHooks>())
+  // Focus goes back here once the closed panels are gone (and the one below is no longer inert).
+  const focusAfter = useRef<HTMLElement | null>(null)
+  // History entries this session pushed for the stack's top levels (lib/apps/panels.ts historyPlan).
+  const pushed = useRef(0)
+  // While going back over our own entries: the ?panel= we are heading to (the address catches up later).
+  const expected = useRef<{ value: string; until: number } | null>(null)
   // The app's view stays mounted across its pages (app/(dashboard)/apps/[slug]/layout.tsx): another page
   // (a link, Back / Forward) starts from that address's own ?panel=, not the previous page's panels.
   const [stackPath, setStackPath] = useState(pathname)
@@ -85,17 +100,76 @@ export function PanelStackProvider({ appSlug, base, renderPage, children }: { ap
     setStackPath(pathname)
     setStack(decodePanels(params.get("panel")))
   }
+  useLayoutEffect(() => { stackRef.current = stack })
+  useLayoutEffect(() => { pushed.current = 0; expected.current = null }, [pathname])
 
-  // Mirror the stack in the URL (replace: panels aren't history entries).
-  const encoded = encodePanels(stack)
+  /** Closed panels: their openers' focus comes back, their openers hear onClosed. */
+  const settle = useCallback((prev: readonly Panel[], next: readonly Panel[]) => {
+    const closed = prev.filter((p) => !next.some((n) => n.key === p.key))
+    if (!closed.length) return
+    const restore = openers.current.get(closed[0].key) ?? null
+    if (restore) focusAfter.current = restore
+    for (const p of closed) openers.current.delete(p.key)
+    queueMicrotask(() => { for (const p of closed) { const h = hooks.current.get(p.key); hooks.current.delete(p.key); h?.onClosed?.(p.target) } })
+  }, [])
+
+  /** The address follows the stack: opening pushes an entry, closing goes back over ours (Back pops one level). */
+  const writeHistory = useCallback((prev: readonly Panel[], next: readonly Panel[]) => {
+    const before = encodePanels(prev) ?? ""
+    const after = encodePanels(next) ?? ""
+    const r = historyPlan(prev.length, next.length, pushed.current, before !== after)
+    pushed.current = r.pushed
+    const href = () => panelHref(window.location.pathname, window.location.search, stackRef.current)
+    const { plan } = r
+    if (plan.op === "push") window.history.pushState(null, "", href())
+    else if (plan.op === "replace") window.history.replaceState(null, "", href())
+    else if (plan.op === "back") {
+      expected.current = { value: after, until: Date.now() + 1500 }
+      if (plan.thenReplace) {
+        const onPop = () => { window.removeEventListener("popstate", onPop); window.history.replaceState(null, "", href()) }
+        window.addEventListener("popstate", onPop)
+      }
+      window.history.go(-plan.n)
+    }
+  }, [])
+
+  const commit = useCallback((next: Panel[]) => {
+    const prev = stackRef.current
+    stackRef.current = next
+    setStack(next)
+    settle(prev, next)
+    writeHistory(prev, next)
+  }, [settle, writeHistory])
+
+  // The browser's Back / Forward (or a link) changed ?panel=: the stack follows the address.
+  const urlPanel = params.get("panel") ?? ""
   useEffect(() => {
-    const current = params.get("panel")
-    if ((current ?? null) === (encoded ?? null)) return
-    const sp = new URLSearchParams(params.toString())
-    if (encoded) sp.set("panel", encoded); else sp.delete("panel")
-    const qs = sp.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [encoded]) // eslint-disable-line react-hooks/exhaustive-deps
+    const exp = expected.current
+    if (exp) {
+      if (urlPanel === exp.value || Date.now() > exp.until) expected.current = null
+      else return
+    }
+    const cur = stackRef.current
+    if ((encodePanels(cur) ?? "") === urlPanel) return
+    const r = reconcileStack(cur, decodePanels(urlPanel))
+    pushed.current = Math.min(pushed.current, r.common) + (r.stack.length - r.common)
+    stackRef.current = r.stack
+    setStack(r.stack)
+    settle(cur, r.stack)
+  }, [urlPanel, settle])
+
+  // Focus back to what opened the closed panels, once they're gone.
+  useEffect(() => {
+    const el = focusAfter.current
+    if (!el) return
+    focusAfter.current = null
+    const id = requestAnimationFrame(() => { if (el.isConnected) el.focus({ preventScroll: true }) })
+    return () => cancelAnimationFrame(id)
+  }, [stack])
+
+  // The page behind doesn't scroll while panels are open; it does again the moment they close.
+  const anyOpen = stack.length > 0
+  useEffect(() => (anyOpen ? lockPageScroll(document) : undefined), [anyOpen])
 
   const navigate = useCallback((target: PanelTarget, newTab: boolean) => {
     const href = hrefOf(target, base, appSlug)
@@ -109,48 +183,36 @@ export function PanelStackProvider({ appSlug, base, renderPage, children }: { ap
     if (target.t === "workflow") { setWorkflow({ id: target.id, name: title ?? "Start workflow" }); return }
     if (mode.mode === "navigate" || mode.mode === "tab") { navigate(target, mode.mode === "tab"); return }
     const panelMode = mode.mode === "inline" ? "modal" : mode.mode
-    setStack((s) => {
-      const next = pushPanel(s, { target, mode: panelMode, width: mode.width, motion: mode.motion, title: mode.title || title, titleFixed: !!mode.title || target.t === "page", size: designSize(mode), resizable: mode.resizable !== false }, { mobile })
-      if (next.overflow) { queueMicrotask(() => navigate(target, false)); return s }
-      const top = next.stack[next.stack.length - 1]
-      if (top) openers.current.set(top.key, document.activeElement as HTMLElement | null)
-      if (top && openHooks) hooks.current.set(top.key, openHooks)
-      return next.stack
-    })
-  }, [mobile, navigate])
+    const cur = stackRef.current
+    const next = pushPanel(cur, { target, mode: panelMode, width: mode.width, motion: mode.motion, title: mode.title || title, titleFixed: !!mode.title || target.t === "page", size: designSize(mode), resizable: mode.resizable !== false }, { mobile })
+    if (next.overflow) { navigate(target, false); return }
+    const top = next.stack[next.stack.length - 1]
+    if (top && !cur.some((p) => p.key === top.key)) openers.current.set(top.key, document.activeElement as HTMLElement | null)
+    if (top && openHooks) hooks.current.set(top.key, openHooks)
+    commit(next.stack)
+  }, [mobile, navigate, commit])
 
-  const close = useCallback((key: string | null, force = false) => {
-    setStack((s) => {
-      const r = key ? closePanel(s, key, { force }) : popPanel(s, { force })
-      if (r.confirm) { queueMicrotask(() => setConfirm({ key })); return s }
-      const closed = s.filter((p) => !r.stack.includes(p))
-      const closedKeys = closed.map((p) => p.key)
-      const restore = closedKeys.length ? openers.current.get(closedKeys[0]) : null
-      queueMicrotask(() => {
-        restore?.focus?.()
-        for (const p of closed) { const h = hooks.current.get(p.key); hooks.current.delete(p.key); h?.onClosed?.(p.target) }
-      })
-      return r.stack
-    })
-  }, [])
+  /** × and the backdrop: the whole stack; back and Esc: the top panel; a breadcrumb: the panels above it. */
+  const close = useCallback((scope: PanelCloseScope | { key: string }, force = false) => {
+    const cur = stackRef.current
+    const key = typeof scope === "object" && "key" in scope ? scope.key : closeKeyFor(cur, scope)
+    if (!key) return
+    const r = closePanel(cur, key, { force })
+    if (r.confirm) { setConfirm({ key }); return }
+    commit(r.stack)
+  }, [commit])
 
   useEffect(() => {
-    if (!stack.length) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) { e.preventDefault(); close(null) } }
+    if (!anyOpen || confirm) return
+    // Radix layers (a menu, a picker, a dialog opened from a panel) handle their own Esc and mark it handled.
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented && !e.isComposing) { e.preventDefault(); close("top") } }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [stack.length, close])
+  }, [anyOpen, confirm, close])
 
-  const closeAll = useCallback((all?: boolean) => {
-    setStack((s) => {
-      if (!s.length) return s
-      const keep = all ? [] : s.slice(0, -1)
-      const closed = s.slice(keep.length)
-      queueMicrotask(() => { for (const p of closed) { const h = hooks.current.get(p.key); hooks.current.delete(p.key); h?.onClosed?.(p.target) } })
-      return keep
-    })
-  }, [])
-  const api = useMemo<OpenApi>(() => ({ open, close: closeAll }), [open, closeAll])
+  // App rules' Close panel: the top one, or every panel.
+  const closeApi = useCallback((all?: boolean) => close(all ? "all" : "top"), [close])
+  const api = useMemo<OpenApi>(() => ({ open, close: closeApi }), [open, closeApi])
   const crumbs = breadcrumb(stack)
 
   return (
@@ -160,16 +222,16 @@ export function PanelStackProvider({ appSlug, base, renderPage, children }: { ap
         <div className="app-panels" data-app-panels={stack.length}>
           {stack.map((panel, i) => (
             <PanelFrame key={panel.key} panel={panel} depth={stack.length - 1 - i} index={i} crumbs={crumbs.slice(0, i + 1)}
-              motion={motionFor(panel.mode, panel.motion, reduced)} onClose={() => close(panel.key)} onBack={i > 0 ? () => close(panel.key) : undefined}
-              onCrumb={(j) => { const target = stack[j + 1]; if (target) close(target.key) }}
+              motion={motionFor(panel.mode, panel.motion, reduced)} onClose={() => close("all")} onBack={i > 0 ? () => close({ key: panel.key }) : undefined}
+              onCrumb={(j) => close({ above: j })}
               popout={hrefOf(panel.target, base, appSlug)}>
               {(slot) => (
-                <OpenContext.Provider value={{ open, close: closeAll, panelKey: panel.key }}>
+                <OpenContext.Provider value={{ open, close: closeApi, panelKey: panel.key }}>
                   <PanelBody panel={panel} renderPage={renderPage} actionsSlot={slot}
                     onSubmitted={(r) => { if (panel.target.t === "form") hooks.current.get(panel.key)?.onSubmitted?.({ form_id: panel.target.id, ...r }) }}
-                    onTitle={(title) => setStack((s) => s.map((p) => (p.key === panel.key && !p.titleFixed ? { ...p, title } : p)))}
-                    onDirty={(d) => setStack((s) => markDirty(s, panel.key, d))}
-                    onDone={() => close(panel.key, true)} />
+                    onTitle={(title) => { const next = stackRef.current.map((p) => (p.key === panel.key && !p.titleFixed ? { ...p, title } : p)); stackRef.current = next; setStack(next) }}
+                    onDirty={(d) => { const next = markDirty(stackRef.current, panel.key, d); stackRef.current = next; setStack(next) }}
+                    onDone={() => close({ key: panel.key }, true)} />
                 </OpenContext.Provider>
               )}
             </PanelFrame>
@@ -177,12 +239,28 @@ export function PanelStackProvider({ appSlug, base, renderPage, children }: { ap
         </div>,
         document.body,
       )}
+      {/* Above the panels (apps.css lifts any dialog opened while they're up). */}
       <ConfirmDialog open={!!confirm} onOpenChange={(o) => { if (!o) setConfirm(null) }} title="Discard the form you started?"
         description="It has answers that haven’t been sent." confirmLabel="Discard" destructive
-        onConfirm={() => { const k = confirm?.key ?? null; setConfirm(null); close(k, true) }} />
+        onConfirm={() => { const k = confirm?.key; setConfirm(null); if (k) close({ key: k }, true) }} />
       <RunWorkflowDialog workflow={workflow} open={!!workflow} onOpenChange={(o) => { if (!o) setWorkflow(null) }} />
     </OpenContext.Provider>
   )
+}
+
+/**
+ * Lock the page behind the panels (the document and the shell's scrolling
+ * <main>); returns the unlock, which puts back exactly what was there.
+ */
+export function lockPageScroll(doc: Document): () => void {
+  const els = [doc.body, doc.getElementById("main")].filter((el): el is HTMLElement => !!el)
+  const before = els.map((el) => el.style.overflow)
+  for (const el of els) el.style.overflow = "hidden"
+  doc.body.setAttribute("data-app-panels-open", "")
+  return () => {
+    els.forEach((el, i) => { el.style.overflow = before[i] })
+    doc.body.removeAttribute("data-app-panels-open")
+  }
 }
 
 export function hrefOf(t: PanelTarget, base: string, appSlug: string): string | null {
@@ -233,8 +311,10 @@ function PanelFrame({ panel, depth, index, crumbs, motion, onClose, onBack, onCr
   const save = (next: { w: number; h: number }) => { setSize(next); try { window.localStorage.setItem(key, JSON.stringify(next)) } catch { /* storage unavailable */ } }
   useEffect(() => {
     const id = requestAnimationFrame(() => setShown(true))
-    const first = ref.current?.querySelector<HTMLElement>("[data-panel-autofocus], [data-standalone-form] input, button, [href], input, select, textarea")
-    first?.focus({ preventScroll: true })
+    // Focus a form's first input, else the panel itself — not its first button (Back / a header icon):
+    // that showed the button's tooltip, and the first Esc only closed the tooltip, not the panel.
+    const first = ref.current?.querySelector<HTMLElement>("[data-panel-autofocus], [data-standalone-form] input")
+    ;(first ?? ref.current)?.focus({ preventScroll: true })
     return () => cancelAnimationFrame(id)
   }, [])
   const top = depth === 0
@@ -279,14 +359,17 @@ function PanelFrame({ panel, depth, index, crumbs, motion, onClose, onBack, onCr
   return (
     <>
       {index === 0 && <div aria-hidden className={cn("fixed inset-0 z-[900] bg-black/40 transition-opacity duration-200 motion-reduce:transition-none", shown ? "opacity-100" : "opacity-0")} onClick={onClose} />}
-      <div ref={ref} role="dialog" aria-modal={top} aria-label={crumbs[crumbs.length - 1]} data-app-panel={panel.mode} data-panel-depth={depth}
+      <div ref={ref} role="dialog" tabIndex={-1} aria-modal={top} aria-label={crumbs[crumbs.length - 1]} data-app-panel={panel.mode} data-panel-depth={depth}
         style={{ zIndex: 901 + index, ...style, ...offset }}
-        className={cn("fixed flex flex-col overflow-hidden border-border bg-elevated shadow-elev-3", box,
+        className={cn("fixed flex flex-col overflow-hidden border-border bg-elevated shadow-elev-3 outline-none", box,
           motion !== "none" && "transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none",
           panel.mode === "modal" && !shown && motion !== "none" ? (motion === "fade" ? "opacity-0" : "scale-95 opacity-0") : from,
           !top && "pointer-events-none brightness-95")}
-        inert={!top || undefined}>
-        <header className="flex h-11 shrink-0 items-center gap-1 border-b border-border px-2" onDoubleClick={() => resizable && setMax((m) => !m)}>
+        inert={!top || undefined}
+        // Modal: Tab / Shift+Tab wrap inside the top panel instead of walking into the page behind the backdrop.
+        onKeyDown={(e) => { if (top && ref.current) trapTabKey(ref.current, e) }}>
+        {/* A size container: on a narrow panel the extras (new tab, maximise) go first, so × (and the Agent) always fit. */}
+        <header className="@container flex h-11 shrink-0 items-center gap-1 border-b border-border px-2" onDoubleClick={() => resizable && setMax((m) => !m)} data-panel-header>
           {onBack && <IconButton size="sm" label="Back" icon={<ChevronLeft />} onClick={onBack} />}
           <nav aria-label="Open panels" className="min-w-0 flex-1 truncate px-1 text-sm">
             {crumbs.map((c, i) => (
@@ -299,19 +382,20 @@ function PanelFrame({ panel, depth, index, crumbs, motion, onClose, onBack, onCr
             ))}
           </nav>
           <div ref={setSlot} className="flex shrink-0 items-center gap-0.5 empty:hidden" data-panel-actions />
-          {popout && <IconButton size="sm" label="Open in a new tab" icon={<ExternalLink />} onClick={() => window.open(popout, "_blank", "noopener")} />}
-          {resizable && <IconButton size="sm" label={max ? "Restore size" : "Maximise"} icon={max ? <Minimize2 /> : <Maximize2 />} onClick={() => setMax((m) => !m)} data-panel-maximise />}
+          {popout && <IconButton size="sm" label="Open in a new tab" icon={<ExternalLink />} onClick={() => window.open(popout, "_blank", "noopener")} className="shrink-0 @max-[26rem]:hidden" />}
+          {resizable && <IconButton size="sm" label={max ? "Restore size" : "Maximise"} icon={max ? <Minimize2 /> : <Maximize2 />} onClick={() => setMax((m) => !m)} className="shrink-0 @max-[22rem]:hidden" data-panel-maximise />}
           <DialogAgentSlot className="mt-0" />
-          <IconButton size="sm" label="Close" icon={<X />} onClick={onClose} data-panel-close />
+          {/* × closes the whole stack (back to the page); the back chevron and Esc close one level. */}
+          <IconButton size="sm" label={depth === 0 && index > 0 ? "Close all panels" : "Close"} icon={<X />} onClick={onClose} className="shrink-0" data-panel-close />
         </header>
         <div className="min-h-0 flex-1 overflow-auto">{children(slot)}</div>
         {resizable && !max && (
           <>
-            {(panel.mode === "modal" || panel.mode === "panel_left") && <div role="separator" aria-orientation="vertical" aria-label="Resize width" tabIndex={0} onKeyDown={keyResize("w", 1)} onPointerDown={drag({ x: 1 })} className={cn(handle, "inset-y-0 right-0 w-1.5 cursor-ew-resize")} />}
-            {(panel.mode === "modal" || panel.mode === "panel_right") && <div role="separator" aria-orientation="vertical" aria-label="Resize width" tabIndex={0} onKeyDown={keyResize("w", -1)} onPointerDown={drag({ x: -1 })} className={cn(handle, "inset-y-0 left-0 w-1.5 cursor-ew-resize")} />}
-            {panel.mode === "modal" && <div role="separator" aria-orientation="horizontal" aria-label="Resize height" tabIndex={0} onKeyDown={keyResize("h", 1)} onPointerDown={drag({ y: 1 })} className={cn(handle, "inset-x-0 bottom-0 h-1.5 cursor-ns-resize")} />}
+            {(panel.mode === "modal" || panel.mode === "panel_left") && <div role="separator" aria-orientation="vertical" aria-label="Resize width" aria-valuenow={Math.round(size.w)} aria-valuemin={20} aria-valuemax={100} tabIndex={0} onKeyDown={keyResize("w", 1)} onPointerDown={drag({ x: 1 })} className={cn(handle, "inset-y-0 right-0 w-1.5 cursor-ew-resize")} />}
+            {(panel.mode === "modal" || panel.mode === "panel_right") && <div role="separator" aria-orientation="vertical" aria-label="Resize width" aria-valuenow={Math.round(size.w)} aria-valuemin={20} aria-valuemax={100} tabIndex={0} onKeyDown={keyResize("w", -1)} onPointerDown={drag({ x: -1 })} className={cn(handle, "inset-y-0 left-0 w-1.5 cursor-ew-resize")} />}
+            {panel.mode === "modal" && <div role="separator" aria-orientation="horizontal" aria-label="Resize height" aria-valuenow={Math.round(size.h)} aria-valuemin={20} aria-valuemax={100} tabIndex={0} onKeyDown={keyResize("h", 1)} onPointerDown={drag({ y: 1 })} className={cn(handle, "inset-x-0 bottom-0 h-1.5 cursor-ns-resize")} />}
             {panel.mode === "modal" && <div aria-hidden onPointerDown={drag({ x: 1, y: 1 })} className={cn(handle, "bottom-0 right-0 size-3 cursor-nwse-resize")} />}
-            {panel.mode === "sheet" && <div role="separator" aria-orientation="horizontal" aria-label="Resize height" tabIndex={0} onKeyDown={keyResize("h", -1)} onPointerDown={drag({ y: -1 })} className={cn(handle, "inset-x-0 top-0 h-1.5 cursor-ns-resize")} />}
+            {panel.mode === "sheet" && <div role="separator" aria-orientation="horizontal" aria-label="Resize height" aria-valuenow={Math.round(size.h)} aria-valuemin={20} aria-valuemax={100} tabIndex={0} onKeyDown={keyResize("h", -1)} onPointerDown={drag({ y: -1 })} className={cn(handle, "inset-x-0 top-0 h-1.5 cursor-ns-resize")} />}
           </>
         )}
       </div>

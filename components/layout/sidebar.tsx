@@ -66,7 +66,9 @@ export function useNavGroupState() {
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { openTasks, removeOpenTask } = useAppStore()
+  // Selectors: the whole-store form re-rendered the sidebar on every store write (each keystroke of a task form saves a draft).
+  const openTasks = useAppStore((s) => s.openTasks)
+  const removeOpenTask = useAppStore((s) => s.removeOpenTask)
   // Folded inside apps (they get the room), the person's preference elsewhere: hooks/use-shell-sidebar.ts.
   const { collapsed, toggle: toggleSidebar, inApp } = useShellSidebar()
   const { can, permissions } = usePermissions()

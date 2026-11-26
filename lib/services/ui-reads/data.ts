@@ -6,6 +6,7 @@ import { check, defineRead, id, NO_ARGS, type UiRead } from './define'
 import { computeChildCounts, computeRowGroups, loadChildRelations, loadChildRows, queryFilteredRows } from '../data-table-grouping'
 import { GROUPING_LIMITS, type GroupRowFilter } from '@/lib/grid/grouping'
 import { listRowChanges } from '../data-table-audit'
+import { cachedTableTotal, rememberTableTotal } from '../data-table-guard'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- rows as the browser read them */
 
@@ -158,8 +159,9 @@ export const reads = {
   /**
    * One page of a table's rows for the grid (server-side paging): a plain
    * page straight from the database with an exact total; search or a sort
-   * by a cell scans the newest GRID_SCAN rows (`truncated` when the table
-   * holds more). Hydrated like data.rows.
+   * by a cell runs in data_table_rows_page over every row (exact), and only
+   * before that migration scans the newest GRID_SCAN rows (`truncated`).
+   * Hydrated like data.rows.
    */
   'data.rowPage': defineRead({
     args: z.object({
@@ -177,18 +179,28 @@ export const reads = {
       const db = getDb(ctx) as any
       const direction = dir ?? 'desc'
       if (filters?.length) {
-        const page = await queryFilteredRows(db, tableId, { search, filters: filters as GroupRowFilter[], sort, dir: direction, limit, offset })
+        const page = await queryFilteredRows(db, tableId, { search, filters: filters as GroupRowFilter[], sort, dir: direction, limit, offset, workspace: ctx.tenantId })
         return { rows: await hydrateRows(db, page.rows), total: page.total, truncated: page.truncated }
       }
       const systemSort = !sort || sort === '_updated_at' || sort === '_created_at'
       const term = search?.trim().toLowerCase() ?? ''
       if (!term && systemSort) {
-        const { data, count, error } = await db.from('custom_table_rows').select('*', { count: 'exact' })
+        // Exact totals of large tables are cached briefly (lib/services/data-table-guard), so paging skips the count.
+        const totalKey = `${ctx.tenantId ?? 'unified'}:${tableId}`
+        const cachedTotal = await cachedTableTotal(totalKey)
+        const { data, count, error } = await db.from('custom_table_rows').select('*', cachedTotal === null ? { count: 'exact' } : undefined)
           .eq('table_id', tableId)
           .order(sort === '_created_at' ? 'created_at' : 'updated_at', { ascending: direction === 'asc', nullsFirst: false })
           .range(offset, offset + limit - 1)
         if (error) throw new Error(error.message)
-        return { rows: await hydrateRows(db, (data ?? []) as any[]), total: count ?? (data ?? []).length, truncated: false }
+        if (cachedTotal === null && typeof count === 'number' && (data ?? []).length) await rememberTableTotal(totalKey, count)
+        return { rows: await hydrateRows(db, (data ?? []) as any[]), total: cachedTotal ?? count ?? (data ?? []).length, truncated: false }
+      }
+      // Search / a cell sort: exact over every row in the database (data_table_rows_page); the newest-rows
+      // scan below only before that migration (queryFilteredRows reports it as truncated over 2,000 rows).
+      {
+        const page = await queryFilteredRows(db, tableId, { search, filters: [], sort, dir: direction, limit, offset, workspace: ctx.tenantId })
+        if (!page.truncated) return { rows: await hydrateRows(db, page.rows), total: page.total, truncated: false }
       }
       const { data, error } = await db.from('custom_table_rows').select('*').eq('table_id', tableId).order('updated_at', { ascending: false, nullsFirst: false }).limit(GRID_SCAN)
       if (error) throw new Error(error.message)
@@ -223,7 +235,7 @@ export const reads = {
     perm: 'data.view',
     run: async (ctx, { tableId, groupBy, search, sum, direction, filters }) => {
       // The grid knows its group_by: it is not echoed back.
-      const { group_by: _groupBy, ...result } = await computeRowGroups(getDb(ctx) as any, tableId, { group_by: groupBy, search, sum, direction, filters: filters as GroupRowFilter[] | undefined })
+      const { group_by: _groupBy, ...result } = await computeRowGroups(getDb(ctx) as any, tableId, { group_by: groupBy, search, sum, direction, filters: filters as GroupRowFilter[] | undefined, workspace: ctx.tenantId })
       return result
     },
   }),

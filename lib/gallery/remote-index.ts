@@ -104,9 +104,9 @@ async function readCapped(response: Response, max: number): Promise<Uint8Array> 
 }
 
 async function guardedGet(url: string, max: number, accept: string): Promise<Uint8Array> {
-  const { assertSafeEgressUrl } = await import('@/lib/egress-guard')
+  const { assertSafeEgressUrl, egressFetch } = await import('@/lib/egress-guard')
   await assertSafeEgressUrl(url)
-  const response = await fetch(url, { headers: { accept }, redirect: 'error', signal: AbortSignal.timeout(5_000), cache: 'no-store' })
+  const response = await egressFetch(url, { headers: { accept }, redirect: 'error', signal: AbortSignal.timeout(5_000) })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return readCapped(response, max)
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { EmptyState } from '@/components/ui/empty-state'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -45,7 +46,7 @@ export function FormRetentionOverview() {
         {isLoading ? (
           <p className="px-4 py-6 text-center text-xs text-fg-muted">Loading…</p>
         ) : forms.length === 0 ? (
-          <p className="px-4 py-6 text-center text-xs text-fg-muted">No forms yet</p>
+          <EmptyState size="sm" title="No forms yet" />
         ) : forms.map((form) => {
           const status = getFormRetentionStatus({ policy: (form.retention_policy ?? null) as RetentionPolicy | null, appliedAt: form.retention_applied_at, createdAt: form.created_at })
           return (

@@ -1,4 +1,4 @@
-import { assertSafeEgressUrl, EgressBlockedError } from '@/lib/egress-guard'
+import { assertSafeEgressUrl, EgressBlockedError, egressFetch } from '@/lib/egress-guard'
 import { isRemoteTransport } from './transports'
 
 /**
@@ -139,7 +139,11 @@ function isAbortError(error: unknown): boolean {
  * Response (any status) — callers map statuses to results.
  */
 export async function connectorFetch(rawUrl: string, init: RequestInit = {}, options: ConnectorFetchOptions = {}): Promise<Response> {
-  const doFetch = options.fetchImpl ?? fetch
+  // Default: the pinned transport (lib/egress-transport) — the socket connects
+  // only to addresses the egress policy allows, so a name cannot rebind to a
+  // blocked address between the check below and the connection. Skipped
+  // checks (skipEgressCheck: the app's own targets) use plain fetch.
+  const doFetch = options.fetchImpl ?? (options.skipEgressCheck === true ? fetch : egressFetch)
   const customTransport = Boolean(options.fetchImpl)
   // A remote transport (on-premises gateway) never dials from this server: its own allowlist applies.
   const remoteTransport = isRemoteTransport(options.fetchImpl)
@@ -167,6 +171,9 @@ export async function connectorFetch(rawUrl: string, init: RequestInit = {}, opt
       })
     } catch (error) {
       if (error instanceof EgressBlockedError) throw error
+      // The pinned transport refuses at connect time; fetch wraps it ("fetch failed").
+      const cause = (error as { cause?: unknown } | null)?.cause
+      if (cause instanceof EgressBlockedError) throw cause
       if (isAbortError(error)) throw new ConnectorTimeoutError(timeoutMs, target)
       // A transport that says retrying would not help (e.g. the gateway is offline).
       if ((error as { retryable?: unknown } | null)?.retryable === false) throw error
@@ -201,6 +208,9 @@ async function fetchFollowingRedirects(
   const origin = (() => { try { return new URL(rawUrl).origin } catch { return '' } })()
   for (let hop = 0; hop <= opts.maxRedirects; hop++) {
     const check = (!opts.skipEgressCheck || hop > 0) && !opts.skipEgressOnRedirects ? await assertSafeEgressUrl(current) : null
+    // Allowlisted private targets keep the node:http guarded transport they
+    // always used (connect-time checked too); everything else uses doFetch —
+    // by default the pinned egressFetch.
     const hopFetch = check?.private === 'allowlist' && !opts.customTransport ? await guardedFetch() : doFetch
     const res = await hopFetch(current, currentInit)
     const location = res.headers.get('location')

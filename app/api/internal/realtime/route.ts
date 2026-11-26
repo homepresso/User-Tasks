@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { fromSession, isServiceError } from '@/lib/services/context'
 import { SSE_HEADERS } from '@/lib/log-export/sse'
-import { authorizeSubscriptions, loadAudience, MAX_SUBSCRIPTIONS } from '@/lib/realtime/authorize'
+import { authorizeSubscriptions, loadAudience, MAX_SUBSCRIPTIONS, sharedAudience } from '@/lib/realtime/authorize'
 import { getRealtimeHub } from '@/lib/realtime/hub'
 import { createRealtimeStream } from '@/lib/realtime/stream'
 
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     subscriptions: accepted,
     rejected,
     audience,
-    refreshAudience: () => loadAudience(db, userId),
+    refreshAudience: () => sharedAudience(userId, () => loadAudience(db, userId)),
     lastEventId: resume ? Number(resume) : null,
     signal: request.signal,
     maxMs: maxDuration * 1000 - STREAM_END_MARGIN_MS,

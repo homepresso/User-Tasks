@@ -31,6 +31,7 @@ const conditionSchema = z.object({
     'is_not_empty',
   ]).describe('Comparison operator'),
   value: z.any().optional().describe('Comparison value when required by the operator'),
+  valueInputKey: z.string().optional().describe('Compare with another input of this table instead of a fixed value (e.g. inputKey "amount", operator "less_than_or_equal", valueInputKey "budget"). When set, value is ignored.'),
 })
 
 const ruleSchema = z.object({

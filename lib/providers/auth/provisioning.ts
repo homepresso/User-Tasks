@@ -12,7 +12,7 @@ import type { AuthDb } from './builtin/db'
  *    the two paths can't double-create.
  *  - checkInvitation / joinInvitedTenant / applyOrgOnSignIn: the invitation
  *    and organisation checks the login flow and the SSO callbacks ran in
- *    /api/auth/verify-invite, /api/auth/verify-tenant and /auth/callback,
+ *    /api/auth/verify-tenant and /auth/callback,
  *    unchanged, now callable server-side with a verified user.
  */
 
@@ -127,6 +127,16 @@ export async function joinInvitedTenant(
   slug: string,
   inviteToken: string | null | undefined,
   service: ServiceDb = getServiceDb(),
+  options: {
+    /**
+     * The session does not prove the user owns their email (Supabase with
+     * email confirmations off hands out a session at sign-up): joining on an
+     * invitation alone then needs the invitation's own token — otherwise
+     * anyone who knew an invited address (and the org slug) could sign up
+     * with it first and take the invited seat and role.
+     */
+    requireInviteToken?: boolean
+  } = {},
 ): Promise<{ ok: boolean; status: number; error?: string; tenantId?: string }> {
   const supabase = service as any
   const userId = user.id
@@ -135,15 +145,28 @@ export async function joinInvitedTenant(
   const { data: tenant } = await supabase.from('tenants').select('id, name, slug').eq('slug', slug.toLowerCase()).single()
   if (!tenant) return { ok: false, status: 404, error: 'Organisation not found or access denied.' }
 
-  const [directMember, currentTenant, hasRole, hasMembership, hasInvite] = await Promise.all([
+  const [directMember, currentTenant, hasRole, membership, pendingInvites] = await Promise.all([
     supabase.from('users').select('id').eq('id', userId).eq('tenant_id', tenant.id).maybeSingle(),
     supabase.from('users').select('id').eq('id', userId).eq('current_tenant_id', tenant.id).maybeSingle(),
     supabase.from('user_roles').select('id').eq('user_id', userId).eq('tenant_id', tenant.id).limit(1).maybeSingle(),
-    supabase.from('user_memberships').select('id').eq('user_id', userId).eq('tenant_id', tenant.id).eq('is_active', true).limit(1).maybeSingle(),
-    email ? supabase.from('invitations').select('id').eq('email', email.toLowerCase()).eq('tenant_id', tenant.id).limit(1).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from('user_memberships').select('id, is_active').eq('user_id', userId).eq('tenant_id', tenant.id).limit(1).maybeSingle(),
+    email ? supabase.from('invitations').select('id, expires_at').eq('email', email.toLowerCase()).eq('tenant_id', tenant.id).is('accepted_at', null) : Promise.resolve({ data: [] }),
   ])
-  const isMember = !!(directMember.data || currentTenant.data || hasRole.data || hasMembership.data || hasInvite.data)
+  // Only an unaccepted, unexpired invitation lets someone in: an accepted one
+  // (or a stale users.tenant_id / current_tenant_id) must not undo a
+  // deactivation — a deactivated member would otherwise restore their own
+  // access and invited role by calling /api/auth/verify-tenant.
+  const now = Date.now()
+  const hasPendingInvite = ((pendingInvites.data ?? []) as Array<{ expires_at: string | null }>)
+    .some((inv) => !inv.expires_at || new Date(inv.expires_at).getTime() >= now)
+  const deactivated = membership.data?.is_active === false
+  const hasAccess = membership.data?.is_active === true
+    || (!deactivated && !!(directMember.data || currentTenant.data || hasRole.data))
+  const isMember = hasAccess || hasPendingInvite
   if (!isMember) return { ok: false, status: 403, error: 'Access denied. Ask an admin to invite you.' }
+  if (!hasAccess && options.requireInviteToken && !(email && await inviteTokenMatches(inviteToken, email, service))) {
+    return { ok: false, status: 403, error: 'Open the invitation link from your email to join this workspace.' }
+  }
 
   const { data: existingProfile } = await supabase.from('users').select('id').eq('id', userId).single()
   if (!existingProfile) {

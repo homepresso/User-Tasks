@@ -15,7 +15,7 @@ import { GALLERY_SCREENSHOT_FILE, GALLERY_SCREENSHOT_LIMITS, isScreenshotImage, 
 
 export const GALLERY_ROOT = resolve(process.cwd(), 'gallery')
 export const GALLERY_PACKAGES_DIR = join(GALLERY_ROOT, 'packages')
-export const GALLERY_OUTPUT_DIR = resolve(process.cwd(), 'public', 'gallery')
+export { GALLERY_OUTPUT_DIR } from './paths'
 export const GALLERY_CATALOG_FILE = resolve(process.cwd(), 'lib', 'gallery', 'catalog.json')
 export const GALLERY_SIGNING_FILE = join(GALLERY_ROOT, 'signing.json')
 

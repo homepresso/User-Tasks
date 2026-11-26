@@ -9,6 +9,10 @@ on:
   workflow_dispatch:
   workflow_call:
 
+# Image builds (next build peaks near 10 GB) are slow on a 2-core / 7 GB
+# standard runner (private repositories): set the repository variable
+# BUILD_RUNNER to a larger runner label for the build-heavy jobs.
+
 permissions:
   contents: read
 
@@ -22,8 +26,8 @@ jobs:
   # incl. a scheduler tick; on-prem: no outbound internet), tear it down.
   profiles:
     name: Profile ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    runs-on: ${{ vars.BUILD_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -120,8 +124,8 @@ jobs:
   # tick CronJob.
   helm-kind:
     name: Helm chart on kind
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    runs-on: ${{ vars.BUILD_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 120
     needs: helm-lint
     steps:
       - uses: actions/checkout@v5
@@ -158,8 +162,8 @@ jobs:
   # Docker on an internal network): verify, load, compose up, smoke, CLI.
   air-gapped:
     name: Air-gapped bundle
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    runs-on: ${{ vars.BUILD_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 120
     env:
       NEXT_TELEMETRY_DISABLED: 1
     steps:
@@ -201,8 +205,8 @@ jobs:
   # sign-in, /files, worker jobs, log export, doctor, RLS snapshot.
   instance-migration:
     name: Instance migration (Supabase → standalone)
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    runs-on: ${{ vars.BUILD_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 120
     services:
       postgres:
         image: postgres:16

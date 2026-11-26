@@ -281,7 +281,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
         await queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })
         setEditor(null)
       } catch (error: any) {
-        alert(error?.message ?? 'Failed to save workflow activity')
+        jobs.notify({ tone: 'error', title: 'Could not save the workflow activity', body: error?.message ?? null })
       } finally {
         setSaving(false)
       }
@@ -305,7 +305,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
       await queryClient.invalidateQueries({ queryKey: ['custom-workflow-activities'] })
     } catch (error: any) {
       setLocalItems(previousItems)
-      alert(error?.message ?? 'Failed to delete workflow activity')
+      jobs.notify({ tone: 'error', title: 'Could not delete the workflow activity', body: error?.message ?? null })
     }
   }
 
@@ -315,7 +315,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
       const payload = await exportWorkflowActivity(item.id)
       downloadJson(`${item.key || item.name || 'workflow-activity'}.json`, payload)
     } catch (error: any) {
-      alert(error?.message ?? 'Failed to export workflow activity')
+      jobs.notify({ tone: 'error', title: 'Could not export the workflow activity', body: error?.message ?? null })
     } finally {
       setExportingId(null)
     }
@@ -330,7 +330,7 @@ export function WorkflowActivitiesView({ items }: WorkflowActivitiesViewProps) {
         setImportText('')
         setImportOpen(false)
       } catch (error: any) {
-        alert(error?.message ?? 'Failed to import workflow activity')
+        jobs.notify({ tone: 'error', title: 'Could not import the workflow activity', body: error?.message ?? null })
       } finally {
         setImporting(false)
       }

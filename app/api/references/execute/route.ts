@@ -3,6 +3,7 @@ import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { executeReference } from '@/lib/reference-executor'
 import { getCurrentTenantId, getOwnedReference } from '@/lib/integrations/auth'
 import { createServiceClient, isAuthorizedServiceCall } from '@/lib/cron-auth'
+import { getUserPermissions } from '@/lib/permissions-server'
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
@@ -40,6 +41,12 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const user = await getCachedUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Same gate as POST /api/v1/references/{id}/execute: running a reference
+  // calls the external system with the workspace's saved credentials, and
+  // readOnly only restricts custom references.
+  if (!(await getUserPermissions()).has('integrations.test')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   try {
     const tenantId = await getCurrentTenantId(supabase, user.id)

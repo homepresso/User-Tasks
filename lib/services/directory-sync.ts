@@ -31,6 +31,7 @@ import {
 import { createEntraClient } from '@/lib/directory-sync/entra'
 import { createGoogleDirectoryClient, googleSettingsSchema, parseServiceAccountJson } from '@/lib/directory-sync/google'
 import { kickDirectorySyncWorker } from '@/lib/directory-sync/kick'
+import { scopeGroupIdsSetting } from '@/lib/directory-sync/scope'
 import { createLdapClient, LdapError, ldapSettingsSchema, type LdapTestResult } from '@/lib/directory-sync/ldap'
 import { createOktaClient } from '@/lib/directory-sync/okta'
 import { DirectoryApiError, type DirectoryClient, type DirectoryLinkProvider, type DirectoryProvider } from '@/lib/directory-sync/types'
@@ -47,10 +48,10 @@ const intervalSetting = { sync_interval_minutes: z.number().int().min(10).max(10
 
 /** Settings per provider (stored in tenant_connectors.config.settings). */
 const SETTINGS_SCHEMAS: Record<DirectoryLinkProvider, z.ZodType<Record<string, unknown>>> = {
-  entra: z.object(intervalSetting),
-  okta: z.object(intervalSetting),
-  ldap: ldapSettingsSchema.extend(intervalSetting),
-  google: googleSettingsSchema.extend(intervalSetting),
+  entra: z.object({ ...intervalSetting, ...scopeGroupIdsSetting }),
+  okta: z.object({ ...intervalSetting, ...scopeGroupIdsSetting }),
+  ldap: ldapSettingsSchema.extend({ ...intervalSetting, ...scopeGroupIdsSetting }),
+  google: googleSettingsSchema.extend({ ...intervalSetting, ...scopeGroupIdsSetting }),
   scim: z.object({ rate_limit_per_minute: z.number().int().min(60).max(10_000).optional() }),
 }
 

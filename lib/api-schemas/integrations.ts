@@ -197,7 +197,7 @@ export const testIntegrationEndpoint = defineEndpoint({
 })
 
 export const importOpenApiEndpoint = defineEndpoint({
-  method: 'POST', path: '/integrations/import-openapi', operationId: 'importOpenApiIntegration', tags: integrationTags,
+  method: 'POST', path: '/integrations/import-openapi', bodyLimit: 'package', operationId: 'importOpenApiIntegration', tags: integrationTags,
   summary: 'Create an integration with one reference per operation from an OpenAPI 2/3 or Postman document',
   description: 'Body is either `{ spec, name?, base_url?, auth_type?, auth_config?, selected_reference_indexes?, tags? }` or the raw document (overrides via query).',
   permission: 'integrations.create',

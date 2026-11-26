@@ -122,7 +122,7 @@ export function InstallPage() {
                 <div className="mt-4 min-w-0"><Snippet code={INSTALL_PS1} language="powershell" /></div>
                 <p className="mt-4 text-sm leading-6 text-(color:--mkt-text)">Docker Desktop must use the WSL 2 backend and Linux containers. With options:</p>
                 <div className="mt-3 min-w-0"><Snippet code={INSTALL_PS1_OPTIONS} language="powershell" /></div>
-                <p className="mt-4 text-sm leading-6 text-(color:--mkt-text)" data-windows-msi>Need a native Windows installer (MSI, no Docker) for Windows Server? <a href="/contact" className="font-semibold underline underline-offset-2">Contact support</a> and we&apos;ll provide one.</p>
+                <p className="mt-4 text-sm leading-6 text-(color:--mkt-text)" data-windows-msi>Need a native Windows installer (MSI, no Docker) for Windows Server? <a href="/contact" className="font-semibold underline underline-offset-2">Contact support</a> and we&apos;ll provide one. Paid <a href="/extensions/support" className="font-semibold underline underline-offset-2">support plans</a> are available too.</p>
               </article>
             </div>
             <ol className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCachedUser } from '@/lib/supabase/server'
 import { joinInvitedTenant } from '@/lib/providers/auth/provisioning'
+import { getAuthProvider } from '@/lib/providers/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const result = await joinInvitedTenant(user, slug, typeof inviteToken === 'string' ? inviteToken : null)
+    // With Supabase a session may come from an unconfirmed sign-up: an
+    // invitation alone is joined only with its token (see joinInvitedTenant).
+    const provider = await getAuthProvider()
+    const result = await joinInvitedTenant(user, slug, typeof inviteToken === 'string' ? inviteToken : null, undefined, { requireInviteToken: provider.id === 'supabase' })
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
     return NextResponse.json({ success: true, tenantId: result.tenantId })
   } catch {

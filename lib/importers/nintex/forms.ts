@@ -71,7 +71,7 @@ function classicForm(xml: string, name: string, actionId: string | null): Nintex
     if (local(n.name) === 'FormControlProperties') {
       const type = (Object.entries(n.attrs).find(([k]) => local(k) === 'type')?.[1] ?? '').split(':').pop()!.replace(/FormControlProperties$/, '')
       const label = text(n, 'DataFieldDisplayName') || text(n, 'DisplayName') || text(n, 'Name') || type
-      const t = CLASSIC[type]
+      const t = Object.hasOwn(CLASSIC, type) ? CLASSIC[type] : undefined
       if (t === undefined || t === null) { skipped.push({ control: `${type}${label && label !== type ? ` "${label}"` : ''}`, reason: t === null ? 'display control' : 'no matching field type' }); return }
       const field: TaskFieldDef = { key: uniqueKey(text(n, 'Name') || label, used), label, type: t as TaskFieldType }
       if (text(n, 'IsRequired') === 'true') field.required = true
@@ -88,20 +88,38 @@ function classicForm(xml: string, name: string, actionId: string | null): Nintex
   return { name, kind: 'classic', fields, skipped, rules, actionId }
 }
 
+const MAX_RESPONSIVE_DEPTH = 200
+
 function responsiveForm(json: string, name: string, actionId: string | null): NintexFormModel {
-  const data = JSON.parse(json) as Record<string, unknown>
+  let data: Record<string, unknown>
+  try {
+    data = JSON.parse(json) as Record<string, unknown>
+  } catch (error) {
+    throw new Error(`Nintex form ${name}: not valid JSON (${error instanceof RangeError ? 'nested too deeply' : (error as Error).message})`)
+  }
   const used = new Set<string>()
   const fields: TaskFieldDef[] = []
   const skipped: NintexFormModel['skipped'] = []
   const rules = Array.isArray(data.ruleGroups) ? (data.ruleGroups as Array<{ rules?: unknown[] }>).reduce((n, g) => n + (Array.isArray(g?.rules) ? g.rules.length : 0), 0) : 0
+  // Real forms nest a few levels; a hostile file nested thousands deep would
+  // overflow the stack (a RangeError instead of a clean "not a form" error).
+  let depth = 0
   const walk = (o: unknown) => {
+    if (++depth > MAX_RESPONSIVE_DEPTH) throw new Error(`Nintex form ${name}: nested deeper than ${MAX_RESPONSIVE_DEPTH} levels — not a Nintex Forms export`)
+    try {
+      walkNode(o)
+    } finally {
+      depth--
+    }
+  }
+  const walkNode = (o: unknown) => {
     if (Array.isArray(o)) { o.forEach(walk); return }
     if (!o || typeof o !== 'object') return
     const c = o as Record<string, unknown>
     if (typeof c.widget === 'string') {
       const props = (c.properties ?? {}) as Record<string, unknown>
       const label = String(props.title ?? props.name ?? c.widget)
-      const t = RESPONSIVE[c.widget]
+      const t = Object.hasOwn(RESPONSIVE, c.widget) ? RESPONSIVE[c.widget] : undefined
       if (t === undefined || t === null) skipped.push({ control: `${c.widget}${props.title ? ` "${props.title}"` : ''}`, reason: t === null ? 'display control' : 'no matching field type' })
       else {
         const field: TaskFieldDef = { key: uniqueKey(String(props.name ?? label).replace(/^Task__/, ''), used), label, type: t as TaskFieldType }
@@ -124,14 +142,27 @@ function responsiveForm(json: string, name: string, actionId: string | null): Ni
   return { name, kind: 'responsive', fields, skipped, rules, actionId }
 }
 
+/**
+ * Text of the first `<tag>…</tag>` (null when absent). indexOf, not a lazy
+ * regex: `/<T>([\s\S]*?)<\/T>/` re-scans to the end from every `<T>` when
+ * the close is missing — quadratic on a file of repeated open tags.
+ */
+function between(raw: string, tag: string): string | null {
+  const open = raw.indexOf(`<${tag}>`)
+  if (open === -1) return null
+  const start = open + tag.length + 2
+  const end = raw.indexOf(`</${tag}>`, start)
+  return end === -1 ? null : raw.slice(start, end)
+}
+
 /** One Nintex Forms file (a .nwp's Forms/FormN.xml|json, or a bare form XML) → fields. */
 export function parseNintexForm(bytes: Uint8Array, fileName: string): NintexFormModel {
   const raw = decodeText(bytes)
   const name = fileName.replace(/\\/g, '/').split('/').pop()!.replace(/\.(xml|json)$/i, '')
-  const actionId = raw.match(/<ActionId>([^<]*)<\/ActionId>/)?.[1]?.trim() || null
-  const content = raw.match(/<FormContent>([\s\S]*?)<\/FormContent>/)?.[1]
+  const actionId = between(raw, 'ActionId')?.trim() || null
+  const content = between(raw, 'FormContent')
   if (content) return responsiveForm(decodeXml(content), name, actionId)
-  const inner = raw.match(/<FormXml>([\s\S]*?)<\/FormXml>/)?.[1]
+  const inner = between(raw, 'FormXml')
   if (inner) return classicForm(decodeXml(inner), name, actionId)
   if (/^\s*\{/.test(raw)) return responsiveForm(raw, name, actionId)
   return classicForm(raw, name, actionId)

@@ -127,12 +127,29 @@ export function lastErrorLine(stderr: string): string {
   return error.replace(/\/[^\s'"]*ut-media-[^\s'"/]+\//g, '').slice(0, 300)
 }
 
+/**
+ * Inputs may only be read from local files (and pipes): a crafted playlist
+ * (HLS .m3u8, concat lists) must not make FFmpeg fetch http:// / tcp:// URLs
+ * itself, outside the egress guard.
+ */
+export const INPUT_PROTOCOLS = ['-protocol_whitelist', 'file,pipe'] as const
+
+/** `args` with the protocol whitelist in front of every input (`-i`). */
+export function withInputProtocolWhitelist(args: readonly string[]): string[] {
+  const out: string[] = []
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '-i' && !(i >= 2 && args[i - 2] === INPUT_PROTOCOLS[0])) out.push(...INPUT_PROTOCOLS)
+    out.push(args[i])
+  }
+  return out
+}
+
 export async function runFfmpeg(args: readonly string[], options: RunOptions = {}): Promise<void> {
-  await run(ffmpegPaths().ffmpeg, args, options)
+  await run(ffmpegPaths().ffmpeg, withInputProtocolWhitelist(args), options)
 }
 
 export async function runFfprobe(args: readonly string[], options: RunOptions = {}): Promise<string> {
-  return (await run(ffmpegPaths().ffprobe, args, { timeoutMs: 60_000, ...options })).stdout
+  return (await run(ffmpegPaths().ffprobe, [...INPUT_PROTOCOLS, ...args], { timeoutMs: 60_000, ...options })).stdout
 }
 
 /** A private temp directory, always removed afterwards. */

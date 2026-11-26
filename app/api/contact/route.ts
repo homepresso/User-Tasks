@@ -4,6 +4,7 @@ import { rateLimit as countHit } from '@/lib/rate-limit'
 import { isCloud, publicBaseUrl } from '@/lib/deployment'
 import { escapeHtml } from '@/lib/contact/chirpme'
 import { notifyTeam, teamNotifyAvailable } from '@/lib/contact/team-requests'
+import { clientIp } from '@/lib/client-ip'
 
 const contactSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -16,7 +17,7 @@ const contactSchema = z.object({
 export async function POST(request: NextRequest) {
   if (!isCloud()) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+  const ip = clientIp(request) ?? 'unknown'
   const rateLimit = await countHit(`public-contact:${ip}`, { max: 5, windowMs: 60 * 60 * 1000 })
   if (!rateLimit.ok) {
     return NextResponse.json({ error: 'Too many contact requests. Please try again later.' }, { status: 429 })

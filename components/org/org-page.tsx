@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { LayoutList, Network, Settings2 } from 'lucide-react'
+import { LayoutList, Network, Settings2, UserPlus } from 'lucide-react'
 import { serverQuery } from '@/lib/server-read'
 import { usePermissions } from '@/lib/permissions-context'
 import { useDashboardAuth } from '@/lib/dashboard-auth-context'
@@ -82,7 +82,13 @@ export function OrgPage() {
         className="mb-2"
         title="Organization"
         description="Reporting lines, org units, teams and projects in this workspace."
-        actions={canManage ? <Button asChild variant="secondary" leadingIcon={<Settings2 />}><Link href="/org/manage">Manage</Link></Button> : undefined}
+        actions={canManage ? (
+          <>
+            {/* Organization → Import people (components/org/import-people-wizard.tsx): a connected directory or a CSV. */}
+            {can('org.manage') && <Button asChild variant="secondary" leadingIcon={<UserPlus />}><Link href="/org/manage?tab=import" data-org-import-people>Import people</Link></Button>}
+            <Button asChild variant="secondary" leadingIcon={<Settings2 />}><Link href="/org/manage">Manage</Link></Button>
+          </>
+        ) : undefined}
       />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <SegmentedControl aria-label="View" value={view} onValueChange={(v) => setParam('view', v)}

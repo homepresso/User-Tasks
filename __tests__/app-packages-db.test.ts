@@ -14,6 +14,7 @@ import { generateKeyPairSync } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Client } from 'pg'
 import { createClient } from './helpers/db-test-client'
+import { dbCapabilities } from './helpers/db-capabilities'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- fixture rows */
 
@@ -33,6 +34,8 @@ import { installPackage, planPackageInstall, uninstallPackage } from '@/lib/serv
 import type { ServiceContext } from '@/lib/services/context'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// Its users come from Supabase Auth's admin API: plain PostgreSQL has none (skips by capability, like other Supabase-service tests).
+const CAPS = await dbCapabilities()
 const API_URL = process.env.LOCKDOWN_SUPABASE_URL ?? 'http://127.0.0.1:54321'
 const SERVICE_KEY = process.env.LOCKDOWN_SERVICE_ROLE_KEY
   ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
@@ -45,7 +48,7 @@ const ROWS = [id(0x201), id(0x202)]
 const opts = { auth: { persistSession: false, autoRefreshToken: false } }
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><script>alert(1)</script><circle cx="12" cy="12" r="10"/></svg>'
 
-describe.skipIf(!DB_URL)('app packaging (local stack)', () => {
+describe.skipIf(!DB_URL || !CAPS?.supabase)('app packaging (local stack)', () => {
   const db = new Client({ connectionString: DB_URL })
   const admin = createClient(API_URL, SERVICE_KEY, opts)
   const users: Record<'a' | 'b', { id: string; email: string }> = { a: { id: '', email: `apppkg-a-${Date.now()}@example.com` }, b: { id: '', email: `apppkg-b-${Date.now()}@example.com` } }

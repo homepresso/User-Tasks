@@ -137,6 +137,16 @@ describe('apiRoute', () => {
     expect(await response.json()).toEqual({ success: false, error: 'Internal server error', code: 'internal' })
   })
 
+  it('a malformed uuid reaching Postgres (22P02) is a 404, not a 500', async () => {
+    mockedValidate.mockResolvedValue(authResult())
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const route = apiRoute(widgetEndpoint, async () => { throw new Error('invalid input syntax for type uuid: "None"') })
+    const response = await route(request(`/api/v1/widgets/${WIDGET_ID}`, { method: 'POST', body: '{"name":"a"}' }), routeContext({ id: WIDGET_ID }))
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({ success: false, error: 'Not found (malformed id)', code: 'not_found' })
+    expect(error).not.toHaveBeenCalled()
+  })
+
   it('runs the handler with parsed input and a service context, then wraps the envelope', async () => {
     mockedValidate.mockResolvedValue(authResult({ actingUserId: 'user-9' }))
     const handler = vi.fn(async ({ params, query, body, ctx }: { params: { id: string }; query: { verbose?: string }; body: unknown; ctx: ServiceContext }) => ({ id: params.id, verbose: query.verbose, body, tenant: ctx.tenantId, actor: ctx.actorId, source: ctx.source }))

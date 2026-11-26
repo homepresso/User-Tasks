@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
 import { useState, useEffect } from 'react'
 import { History, RotateCcw, ChevronDown, ChevronRight, GitCompare, ArrowLeft, Loader2, GitBranch } from 'lucide-react'
 import { LiveInstancesPanel } from './live-instances'
@@ -31,6 +32,7 @@ interface VersionHistoryProps {
 }
 
 export function VersionHistory({ workflowId, open, onClose }: VersionHistoryProps) {
+  const [confirm, confirmDialog] = useConfirm()
   const [versions, setVersions] = useState<Version[]>([])
   const [loading, setLoading] = useState(true)
   const [diffPair, setDiffPair] = useState<[string, string] | null>(null)
@@ -53,7 +55,7 @@ export function VersionHistory({ workflowId, open, onClose }: VersionHistoryProp
   }, [open, workflowId])
 
   async function handleRevert(versionId: string) {
-    if (!confirm('Revert the draft to this version? Your current draft will be overwritten.')) return
+    if (!(await confirm({ title: 'Revert the draft to this version?', description: 'Your current draft will be overwritten.', confirmLabel: 'Revert draft', destructive: true }))) return
     setReverting(versionId)
     await revertToVersion(workflowId, versionId)
     setReverting(null)
@@ -84,6 +86,7 @@ export function VersionHistory({ workflowId, open, onClose }: VersionHistoryProp
         description={loading ? undefined : plural(versions.length, 'version')}
       >
         <DialogBody className="pb-6">
+          {confirmDialog}
           {loading ? (
             <div className="flex flex-col items-center py-10 text-fg-muted">
               <Loader2 size={20} className="mb-2 animate-spin" aria-hidden="true" />

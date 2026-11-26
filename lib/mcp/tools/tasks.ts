@@ -25,6 +25,23 @@ const DESCRIPTION_HTML = 'Plain text or HTML (sanitised to an allowlist: formatt
 const taskFieldValuesSchema = z.record(z.string(), z.unknown()).optional()
   .describe('Values for the user_task node\'s fields, keyed by field key (see tasks_get → metadata.fields). Stored on the task as task.data.<key> and passed to the resumed workflow as {{task_data.<key>}}.')
 
+/**
+ * Is `userId` a person of this workspace (an active membership, or it being
+ * their home workspace — single-workspace users may lack membership rows)?
+ * The MCP client is service-role, so an unchecked assignee id could name a
+ * user of ANOTHER workspace: they would get this workspace's notifications
+ * and tasks_get would return their name and email.
+ */
+async function isWorkspacePerson(supabase: any, tenantId: string, userId: string): Promise<boolean> {
+  const [{ data: membership }, { data: home }] = await Promise.all([
+    supabase.from('user_memberships').select('id').eq('user_id', userId).eq('tenant_id', tenantId).eq('is_active', true).limit(1).maybeSingle(),
+    supabase.from('users').select('id').eq('id', userId).eq('tenant_id', tenantId).maybeSingle(),
+  ])
+  return Boolean(membership || home)
+}
+
+const NOT_A_MEMBER = 'The assignee must be a member of this workspace'
+
 /** Queued or added for the new assignee of a redirected / escalated task (their queue rules). */
 async function acceptanceOnReassign(supabase: any, tenantId: string, taskId: string, targetUserId: string, actingUserId: string | null | undefined, kind: 'redirect' | 'escalation') {
   const { data: task } = await supabase.from('tasks').select(QUEUE_TASK_COLUMNS).eq('id', taskId).eq('tenant_id', tenantId).maybeSingle()
@@ -182,6 +199,7 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     assignee_id: z.string().optional().describe('User ID to assign to'),
     status: z.enum(['todo', 'in_progress', 'blocked']).optional().describe('Initial status'),
   }, async (args) => {
+    if (args.assignee_id && !(await isWorkspacePerson(supabase, tenantId, args.assignee_id))) return mcpErr(NOT_A_MEMBER)
     const { data, error } = await supabase.from('tasks').insert({
       tenant_id: tenantId,
       title: args.title,
@@ -210,6 +228,7 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     }
     const { task_id, ...updates } = args
     const filtered = Object.fromEntries(Object.entries(updates).filter(([, v]) => v !== undefined))
+    if (typeof filtered.assignee_id === 'string' && filtered.assignee_id && !(await isWorkspacePerson(supabase, tenantId, filtered.assignee_id))) return mcpErr(NOT_A_MEMBER)
     if (filtered.status === 'completed') {
       const { data: current } = await supabase.from('tasks').select('is_workflow_task, event_id').eq('id', task_id).eq('tenant_id', tenantId).maybeSingle()
       if (current?.is_workflow_task && current.event_id) return mcpErr('Complete workflow tasks with tasks_complete_workflow (assignee, or their manager with on_behalf)')
@@ -262,6 +281,7 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     if (actingUserId && !(await canAccessTaskAsUser(supabase, tenantId, actingUserId, args.task_id))) {
       return mcpErr('This user-context API key cannot escalate that task')
     }
+    if (!(await isWorkspacePerson(supabase, tenantId, args.escalate_to))) return mcpErr(NOT_A_MEMBER)
     const { error } = await supabase.from('tasks').update({
       assignee_id: args.escalate_to,
       acceptance_status: await acceptanceOnReassign(supabase, tenantId, args.task_id, args.escalate_to, actingUserId, 'escalation'),
@@ -278,6 +298,7 @@ export function registerTaskTools(server: McpToolServer, ctx: McpContext) {
     if (actingUserId && !(await canAccessTaskAsUser(supabase, tenantId, actingUserId, args.task_id))) {
       return mcpErr('This user-context API key cannot redirect that task')
     }
+    if (!(await isWorkspacePerson(supabase, tenantId, args.redirect_to))) return mcpErr(NOT_A_MEMBER)
     const { error } = await supabase.from('tasks').update({
       assignee_id: args.redirect_to,
       acceptance_status: await acceptanceOnReassign(supabase, tenantId, args.task_id, args.redirect_to, actingUserId, 'redirect'),

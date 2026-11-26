@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-vi.mock('@/lib/egress-guard', () => ({ assertSafeEgressUrl: async () => {} }))
+vi.mock('@/lib/egress-guard', () => ({ assertSafeEgressUrl: async () => {}, EgressBlockedError: class extends Error {}, egressFetch: (...args: Parameters<typeof fetch>) => fetch(...args) }))
 vi.mock('@/lib/integrations/attach-auth', () => ({ applyAuthHeaders: async () => {} }))
 
 import { executeReference } from '@/lib/reference-executor'

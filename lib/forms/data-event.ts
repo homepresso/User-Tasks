@@ -15,8 +15,10 @@
  * table or calling one API reference, once for the form or once per item of
  * a repeating section / List — and compiles it into either:
  *
- *  - Write directly (compileDirectRule): one "Before submit" rule (the data
- *    binding's pattern) whose steps run in plan order. A parent step's new
+ *  - Write directly (compileDirectRule): one "After submit" rule marked
+ *    `server_steps` whose steps run on the server, in plan order, once the
+ *    submission is accepted and stored (so a refused submission writes
+ *    nothing). A parent step's new
  *    id is kept in a form variable (outputs → var.<step>_id) that later
  *    steps read ({{var.step_1_id}}); a child step runs once per item
  *    (`each_item`, {{row.<field>}} = that item).
@@ -37,6 +39,7 @@ import { layoutDataBinding } from './data-binding'
 import { normalizeDataTarget } from './data-target'
 import type { FormVariable } from './form-params'
 import { FORM_RULE_LIMITS } from './form-rules'
+import { addableColumns, type DataTableColumnType, type DataTableFieldConfig } from './data-table'
 
 /* ── Detection ──────────────────────────────────────────────────────── */
 
@@ -159,10 +162,13 @@ export interface DataEventField {
 }
 
 export interface DataEventSource {
-  /** '' = the form itself; else the repeating section / List key (nested: its own key). */
+  /** '' = the form itself; else the repeating section / List / Data table key (nested: its own key). */
   key: string
   label: string
-  kind: 'form' | 'list' | 'repeating_section'
+  /** grid: an editable (or Select mode) Data table control — its rows are the items. */
+  kind: 'form' | 'list' | 'repeating_section' | 'grid'
+  /** grid: which rows are the items — the rows the person added (edit mode) or the selected rows (select mode). */
+  rows?: 'added' | 'selected'
   fields: DataEventField[]
   /** The source holding it ('' = the form; null for the form itself). */
   parent: string | null
@@ -177,7 +183,22 @@ function fieldOf(f: { key: string; label?: string; type: string; required?: bool
   return { key: f.key, label: f.label || f.key, type: f.type, required: f.required === true, ...(f.options?.length ? { options: f.options.slice(0, 200) } : {}) }
 }
 
-/** The form and each repeating section / List (nested ones too), with their fields. */
+/** A Data table column's type as the form field type it fits like (choice → choice, the rest by name). */
+const GRID_COLUMN_FIELD: Record<DataTableColumnType, string> = { text: 'text', number: 'number', date: 'date', datetime: 'datetime', choice: 'choice', boolean: 'boolean' }
+
+/** The fields a grid's rows carry: the columns a person fills in when adding a row (edit), or every fetched column (select). */
+function gridFields(config: DataTableFieldConfig): DataEventField[] {
+  const columns = config.mode === 'edit' ? addableColumns(config) : config.columns
+  return columns.filter((c) => /^[a-z0-9_]{1,64}$/i.test(c.key)).map((c) => fieldOf({ key: c.key, label: c.label, type: GRID_COLUMN_FIELD[c.type] ?? 'text', required: config.mode === 'edit' && c.required === true, options: c.options }))
+}
+
+/** Is a field a grid whose rows can be child records (an editable table that may add rows, or a Select mode table)? */
+export function isGridSource(f: Pick<TaskFieldDef, 'type' | 'data_table' | 'read_only'>): boolean {
+  const c = f.type === 'data_table' ? f.data_table : undefined
+  return Boolean(c) && !f.read_only && ((c!.mode === 'edit' && c!.allow_add === true) || c!.mode === 'select')
+}
+
+/** The form and each repeating section / List / grid (editable Data table; nested ones too), with their fields. */
 export function dataEventSources(fields: TaskFieldDef[], formLabel = 'The form'): DataEventSource[] {
   const out: DataEventSource[] = []
   const top = valueFields(Array.isArray(fields) ? fields : [])
@@ -189,6 +210,7 @@ export function dataEventSources(fields: TaskFieldDef[], formLabel = 'The form')
   const walk = (list: TaskFieldDef[], parent: string, depth: number) => {
     for (const f of list) {
       if (f.type === 'list' && f.list) listSource(f.key, f.label || f.key, f.list.columns as Parameters<typeof listSource>[2], parent, depth)
+      if (isGridSource(f)) out.push({ key: f.key, label: f.label || f.key, kind: 'grid', rows: f.data_table!.mode === 'select' ? 'selected' : 'added', parent, depth, fields: gridFields(f.data_table!) })
       if (f.type === 'repeating_section' && f.repeating_section) {
         const inner = valueFields(f.repeating_section.fields ?? [])
         out.push({ key: f.key, label: f.label || f.key, kind: 'repeating_section', parent, depth, fields: inner.filter((x) => !SKIPPED_TYPES.has(x.type)).map(fieldOf) })
@@ -345,16 +367,49 @@ export function defaultIdPath(step: Pick<DataEventStep, 'target' | 'id_path'>): 
   return step.target.kind === 'table' ? 'row_id' : (step.id_path?.trim() || 'id')
 }
 
-/** The variable that holds a step's output at `path` (step_1_id; step_1_row_id_number for row.id_number). */
-export function stepVariable(stepId: string, path: string): string {
-  if (path === 'row_id' || path === 'id') return `${stepId}_id`
-  const slug = path.replace(/^row\./, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
-  return `${stepId}_${slug || 'value'}`
+/** Words a reference's name often starts with that say what it does, not what it makes ("Create CRM deal" → crm_deal). */
+const VERB_WORDS = new Set(['create', 'add', 'new', 'post', 'insert', 'save', 'make', 'call', 'send', 'submit', 'upsert', 'write'])
+
+/** A target's name as a variable stem, the way a person names it: "Orders" → order, "Order lines" → order_line, "Create CRM deal" → crm_deal. */
+export function nameStem(name: string): string {
+  let words = name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean)
+  if (words.length > 1 && VERB_WORDS.has(words[0])) words = words.slice(1)
+  if (words.length) {
+    const last = words[words.length - 1]
+    // A plural table name reads as one record: orders → order, entries → entry (not "status", "address").
+    if (/ies$/.test(last) && last.length > 4) words[words.length - 1] = `${last.slice(0, -3)}y`
+    else if (/[^su]s$/.test(last) && last.length > 3) words[words.length - 1] = last.slice(0, -1)
+  }
+  const stem = words.join('_').replace(/^[^a-z]+/, '').slice(0, 28).replace(/_+$/, '')
+  return stem || 'record'
 }
 
-/** The variable a parent step's id at `path` is kept in: its default id → step_1_id. */
-export function idVariable(step: Pick<DataEventStep, 'id' | 'target' | 'id_path'>, path: string): string {
-  return path === defaultIdPath(step) ? `${step.id}_id` : stepVariable(step.id, path)
+/** Each step's variable stem, unique in the plan (order, order_line; a second step on Orders → order_2). */
+export function stepStems(steps: Pick<DataEventStep, 'id' | 'target'>[]): Map<string, string> {
+  const out = new Map<string, string>()
+  const used = new Set<string>()
+  for (const s of steps) {
+    const base = nameStem(s.target.name)
+    let stem = base
+    for (let i = 2; used.has(stem); i++) stem = `${base}_${i}`
+    used.add(stem)
+    out.set(s.id, stem)
+  }
+  return out
+}
+
+/** The variable that holds a step's output at `path` (order_id; order_id_number for row.id_number). */
+export function stepVariable(stem: string, path: string): string {
+  if (path === 'row_id' || path === 'id') return `${stem}_id`
+  const slug = path.replace(/^row\./, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
+  // A column called "id" (not the row's own id, which is <stem>_id): order_column_id.
+  return `${stem}_${slug === 'id' ? 'column_id' : slug || 'value'}`
+}
+
+/** The variable a parent step's id at `path` is kept in: its default id → order_id (stems: stepStems of the plan; without, the step id). */
+export function idVariable(step: Pick<DataEventStep, 'id' | 'target' | 'id_path'>, path: string, stems?: ReadonlyMap<string, string>): string {
+  const stem = stems?.get(step.id) ?? step.id
+  return path === defaultIdPath(step) ? `${stem}_id` : stepVariable(stem, path)
 }
 
 /** A clean plan (unknown shapes dropped; the wizard's and the API's input). */
@@ -557,7 +612,7 @@ export function planProblems(plan: DataEventPlan, sources: DataEventSource[], ta
     const name = step.target.name
     const source = bySource.get(step.source)
     if (!source) { err(`${name}: "${step.source}" is not a repeating section or List of this form`, step.id); seen.add(step.id); continue }
-    if (plan.destination === 'direct' && source.depth > 1) err(`${name}: a rule can write each item of a top-level section or List only — "${source.label}" is nested. Send the data to a workflow instead`, step.id)
+    if (plan.destination === 'direct' && source.depth > 1) err(`${name}: "${source.label}" sits inside "${bySource.get(source.parent ?? '')?.label ?? 'another item'}", and a rule can't link each nested item to its own parent item — choose "Send to a workflow" instead (it loops over the items and links each one)`, step.id)
     const target = targets.find((t) => t.kind === step.target.kind && t.id === step.target.id)
     if (!target && !step.target.new_table) err(`${name}: the ${step.target.kind === 'table' ? 'data table' : 'API reference'} was not found`, step.id)
     const allowed = new Map<string, DataEventField>()
@@ -582,6 +637,8 @@ export function planProblems(plan: DataEventPlan, sources: DataEventSource[], ta
         else {
           const chain = sourceChain(sources, step.source).map((s) => s.key)
           if (!chain.includes(parent.source)) err(`${name}: ${parent.target.name} runs for "${bySource.get(parent.source)?.label ?? parent.source}", which does not hold "${source.label}"`, step.id, col)
+          // A rule keeps ONE id per step (its variable): a per-item step's id is only the last item's by the time a later step reads it.
+          else if (plan.destination === 'direct' && parent.source) err(`${name}: ${parent.target.name} runs once for each item of "${bySource.get(parent.source)?.label ?? parent.source}", and a rule keeps only the last item's id — choose "Send to a workflow" to link each item to its own record`, step.id, col)
         }
       }
     }
@@ -602,7 +659,7 @@ export function hasErrors(problems: DataEventProblem[]): boolean {
   return problems.some((p) => p.severity === 'error')
 }
 
-/* ── Option 1: write directly (a Before submit rule) ────────────────── */
+/* ── Option 1: write directly (an After submit server_steps rule) ────────────────── */
 
 export interface DirectRuleResult {
   rule: FormRule
@@ -625,14 +682,15 @@ function neededOutputs(plan: DataEventPlan): Map<string, Set<string>> {
   return out
 }
 
-/** Variable names, kept clear of names the form already declares. */
+/** Variable names (order_id, order_line_id…), kept clear of names the form already declares. */
 function variableNames(plan: DataEventPlan, taken: Iterable<string>): Map<string, string> {
   const used = new Set(taken)
   const out = new Map<string, string>()
+  const stems = stepStems(plan.steps)
   for (const [step, paths] of neededOutputs(plan)) {
     const s = plan.steps.find((p) => p.id === step)!
     for (const path of paths) {
-      const base = idVariable(s, path)
+      const base = idVariable(s, path, stems).slice(0, 38)
       let name = base
       for (let i = 2; used.has(name); i++) name = `${base}_${i}`.slice(0, 40)
       used.add(name)
@@ -642,8 +700,15 @@ function variableNames(plan: DataEventPlan, taken: Iterable<string>): Map<string
   return out
 }
 
+/** "for each item of Order lines" / "for each row added to Parts" / "for each row selected in Products". */
+export function itemWords(source: Pick<DataEventSource, 'label' | 'kind' | 'rows'> | undefined, fallback = ''): string {
+  const label = source?.label ?? fallback
+  if (source?.kind === 'grid') return `for each row ${source.rows === 'selected' ? 'selected in' : 'added to'} ${label}`
+  return `for each item of ${label}`
+}
+
 /**
- * The plan as one "Before submit" rule (steps in plan order). Field values
+ * The plan as one "After submit" `server_steps` rule (steps in plan order, on the server after the submission is stored). Field values
  * read the form ({{form.<key>}}) or, in a per-item step, the item
  * ({{row.<key>}}); a parent's id comes from the variable its step output it
  * into ({{var.step_1_id}}).
@@ -661,7 +726,7 @@ export function compileDirectRule(plan: DataEventPlan, sources: DataEventSource[
     const own = step.source ? bySource.get(step.source)?.fields.some((f) => f.key === v.key) : false
     return own ? `{{row.${v.key}}}` : `{{form.${v.key}}}`
   }
-  const then: FieldButtonAction[] = plan.steps.map((step) => {
+  const writes: FieldButtonAction[] = plan.steps.map((step) => {
     const values = Object.fromEntries(Object.entries(step.map).map(([k, v]) => [k, template(step, v)]))
     const outs = [...(outputs.get(step.id) ?? [])].map((path) => ({ path, to: `var.${names.get(`${step.id}:${path}`)}` }))
     const each = step.source ? { each_item: step.source } : {}
@@ -676,13 +741,17 @@ export function compileDirectRule(plan: DataEventPlan, sources: DataEventSource[
       inputs: values, ...each, ...(outs.length ? { outputs: outs } : {}),
     } satisfies FieldButtonAction
   })
+  // After submit, on the server (server_steps): the writes run only once the submission is accepted and stored,
+  // with the stored values — a submission the browser or the server refuses writes nothing.
+  const then: FieldButtonAction[] = writes
   const targets = [...new Set(plan.steps.map((s) => s.target.name))]
   const name = `Save to ${targets.join(', ')}`.slice(0, FORM_RULE_LIMITS.name)
   const rule: FormRule = {
     id: newRuleId(context.ruleIds ?? []),
     name,
-    description: `Made by "Map to data event"${context.formName ? ` for "${context.formName}"` : ''}: when the form is submitted, ${plan.steps.map((s, i) => `${i + 1}. ${s.target.kind === 'table' ? 'adds a row to' : 'calls'} ${s.target.name}${s.source ? ` for each item of ${bySource.get(s.source)?.label ?? s.source}` : ''}`).join('; ')}.`,
-    event: 'before_submit',
+    description: `Made by "Map to data event"${context.formName ? ` for "${context.formName}"` : ''}: once a submission is accepted, ${plan.steps.map((s, i) => `${i + 1}. ${s.target.kind === 'table' ? 'adds a row to' : 'calls'} ${s.target.name}${s.source ? ` ${itemWords(bySource.get(s.source), s.source)}` : ''}`).join('; ')}.`,
+    event: 'after_submit',
+    server_steps: true,
     then,
   }
   const variables: FormVariable[] = []

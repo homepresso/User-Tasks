@@ -64,5 +64,5 @@ export function ToastCard({ tone = 'info', title, description, action, onDismiss
 
 /** Bottom-right stack, 16px from the edges, newest at the bottom. */
 export function ToastViewport({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('pointer-events-none fixed bottom-4 right-4 z-[1200] flex flex-col items-end gap-2 [&>*]:pointer-events-auto', className)} {...props} />
+  return <div role="region" className={cn('pointer-events-none fixed bottom-4 right-4 z-[1200] flex flex-col items-end gap-2 [&>*]:pointer-events-auto', className)} {...props} />
 }

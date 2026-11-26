@@ -6,7 +6,7 @@ import { runTick, type TickSummary } from '@/lib/jobs/tick'
 import { pgCronStatus } from '@/lib/providers/scheduler/pg-cron'
 import { schedulerBoolOption, schedulerOption, type SchedulerOptions } from '@/lib/providers/scheduler/options'
 import { AdvisoryLockElector, LeaseElector, type LeaderElector } from './leader'
-import { SchedulerWorker, type TickRequest } from './worker'
+import { SchedulerWorker, type SchedulerWorkerOptions, type TickRequest } from './worker'
 import { pgConnectionConfig } from '@/lib/providers/db/pg-auth'
 
 /**
@@ -47,8 +47,8 @@ export async function runWorkerTick(request: TickRequest): Promise<TickSummary> 
   return summary
 }
 
-export function createSchedulerWorker(options: SchedulerOptions): SchedulerWorker {
-  return new SchedulerWorker({ elector: createElector(options), tick: runWorkerTick })
+export function createSchedulerWorker(options: SchedulerOptions, extra: Pick<SchedulerWorkerOptions, 'onMinute'> = {}): SchedulerWorker {
+  return new SchedulerWorker({ elector: createElector(options), tick: runWorkerTick, ...extra })
 }
 
 /**

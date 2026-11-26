@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { createInvitation } from '@/app/actions/invitations'
 import { useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
+import { Field } from '@/components/ui/field'
+import { Select } from '@/components/ui/select'
 import { Send } from 'lucide-react'
 import { useSubmitGuard } from '@/hooks/use-submit-guard'
 import { SubmitButton } from '@/components/ui/submit-button'
@@ -39,34 +41,36 @@ export function InviteForm() {
 
   return (
     <form id="invite-form" action={handleSubmit} className="space-y-4">
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <Input name="email" type="email" required placeholder="colleague@company.com" />
-        </div>
-        <select
-          name="role"
-          defaultValue="viewer"
-          className="rounded-lg border px-3 py-2 text-sm bg-panel border-border text-fg"
-        >
-          <option value="viewer">Viewer — read-only access</option>
-          <option value="member">Member — create and complete tasks</option>
-          <option value="manager">Manager — manage team tasks and workflows</option>
-          <option value="admin">Admin — full access except billing</option>
-        </select>
-        <SubmitButton pending={sending} pendingLabel="Sending...">
-          <Send size={14} className="mr-1" />
-          Send Invitation
+      {/* Labelled controls (not placeholder-only); wraps on narrow screens. */}
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label="Email address" className="min-w-[14rem] flex-1">
+          <Input id="invite-email" name="email" type="email" required placeholder="colleague@company.com" autoComplete="off" />
+        </Field>
+        <Field label="Role" className="min-w-[12rem]">
+          <Select id="invite-role" name="role" defaultValue="viewer">
+            <option value="viewer">Viewer — read-only access</option>
+            <option value="member">Member — create and complete tasks</option>
+            <option value="manager">Manager — manage team tasks and workflows</option>
+            <option value="admin">Admin — full access except billing</option>
+          </Select>
+        </Field>
+        <SubmitButton pending={sending} pendingLabel="Sending…">
+          <Send size={14} className="mr-1" aria-hidden="true" />
+          Send invitation
         </SubmitButton>
       </div>
 
-      {error && (
-        <p className="text-sm text-danger">{error}</p>
-      )}
-      {success && (
-        <p className="text-sm text-success">
-          Invitation sent! They'll receive an email to join.
-        </p>
-      )}
+      {/* Announced: the result of sending is otherwise silent for screen reader users. */}
+      <div aria-live="polite">
+        {error && (
+          <p role="alert" className="text-sm text-danger">{error}</p>
+        )}
+        {success && (
+          <p className="text-sm text-success">
+            Invitation sent. They&apos;ll receive an email to join.
+          </p>
+        )}
+      </div>
     </form>
   )
 }

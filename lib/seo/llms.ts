@@ -6,6 +6,7 @@ import { USE_CASES } from '@/lib/use-cases'
 import { PUBLIC_PAGES, pageUpdated, type PublicPage } from '@/lib/seo/public-pages'
 import { DOCS_UPDATED, PRODUCT_DEFINITION, SITE_CONTENT_UPDATED } from '@/lib/seo/site'
 import { EXTENSIONS, EXTENSIONS_PAGE, LICENSING_FACTS, STATUS_LABEL } from '@/lib/seo/extensions'
+import { CONSULTING, SUPPORT_INCLUDES, SUPPORT_PAGE, SUPPORT_PLANS } from '@/lib/seo/support'
 import { ALTERNATIVES_COMPARISON, SHAREPOINT_FACTS_CHECKED, SHAREPOINT_FAQS, SHAREPOINT_KEY_FACTS, SHAREPOINT_TIMELINE } from '@/lib/seo/sharepoint-facts'
 
 /**
@@ -62,6 +63,12 @@ export function buildLlmsTxt(baseUrl: string): string {
     `- ${EXTENSIONS_PAGE.definition}`,
     ...LICENSING_FACTS.map((fact) => `- ${fact}`),
     ...EXTENSIONS.map((extension) => `- [${extension.name} extension](${baseUrl}${extension.href}): ${STATUS_LABEL[extension.status]}. ${extension.price.amount} USD ${extension.price.unit}. ${extension.summary} Free in the core: ${extension.freeInCore}`),
+    '',
+    '## Support and consulting',
+    '',
+    `- ${SUPPORT_PAGE.definition}`,
+    `- [Support plans](${baseUrl}${SUPPORT_PAGE.path}): ${SUPPORT_PLANS.map((plan) => plan.price ? `${plan.name} ${plan.price.amount} USD ${plan.price.unit}` : `${plan.name} on request (contact us)`).join('; ')}. Included: ${SUPPORT_INCLUDES.map((item) => item.title.toLowerCase()).join(', and ')}.`,
+    `- [Consulting](${baseUrl}${SUPPORT_PAGE.path}#consulting): ${CONSULTING.summary}`,
     '',
   ]
   for (const [title, pages] of groups) {

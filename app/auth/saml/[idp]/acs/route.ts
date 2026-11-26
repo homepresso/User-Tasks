@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { completeSamlResponse, completionUrl, ssoOrigin } from '@/lib/providers/auth/sso/flow'
+import { clientIp } from '@/lib/client-ip'
 
 /**
  * SAML Assertion Consumer Service (HTTP-POST binding):
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.redirect(`${origin}/login?error=sso_failed`, 303)
   }
   const ctx = {
-    ip: (request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || null,
+    ip: clientIp(request),
     userAgent: request.headers.get('user-agent'),
   }
   const target = await completeSamlResponse(idp, body, request, ctx)

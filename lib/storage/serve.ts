@@ -50,7 +50,10 @@ export function contentTypeFor(key: string, stored: string | null): string {
 
 function dispositionFor(key: string, contentType: string): string {
   const name = key.split('/').pop() ?? 'file'
-  const kind = INLINE_TYPE.test(contentType.split(';')[0].trim()) ? 'inline' : 'attachment'
+  const type = contentType.split(';')[0].trim().toLowerCase()
+  // SVG can carry script: never render it as a top-level document from the
+  // app origin (an <img src> still displays it; disposition doesn't apply there).
+  const kind = INLINE_TYPE.test(type) && type !== 'image/svg+xml' ? 'inline' : 'attachment'
   const ascii = name.replace(/[^\x20-\x7e]|["\\]/g, '_')
   return `${kind}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`
 }
