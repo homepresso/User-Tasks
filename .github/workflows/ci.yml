@@ -70,6 +70,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
           DEPLOYMENT_MODE: self_hosted
+          # Two static-page workers (~0.9 GB each), as in the Docker build: the
+          # runner died of memory starvation in 0.4.1 ("lost communication").
+          NEXT_BUILD_CPUS: 2
 
       # Per-route function size (150 MB budget), the files routes read at
       # runtime, and every server chunk compiling (check:server-chunks).

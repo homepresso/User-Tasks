@@ -72,6 +72,8 @@ function savepointPool(client: Client): Pool {
   } as unknown as Pool
 }
 
+const prevCache = process.env.CACHE_PROVIDER
+
 describe.skipIf(!DB_URL)('data table grouping and child records (local DB, RLS)', () => {
   const db = new Client({ connectionString: DB_URL })
   let ctx: ServiceContext
@@ -90,6 +92,11 @@ describe.skipIf(!DB_URL)('data table grouping and child records (local DB, RLS)'
 
   beforeAll(async () => {
     await db.connect()
+    // The grid guard's slots in the in-process store: a database cache store
+    // (CI sets CACHE_PROVIDER=postgres) reads through pg-query's service pool,
+    // whose schema introspection waits behind this test's open migration
+    // transaction (the guard then gives up after DATA_GRID_SLOT_WAIT_MS).
+    process.env.CACHE_PROVIDER = 'memory'
     await db.query('BEGIN')
     await db.query(MIGRATION)
     await db.query(PERF_MIGRATION)
@@ -128,6 +135,8 @@ describe.skipIf(!DB_URL)('data table grouping and child records (local DB, RLS)'
   afterAll(async () => {
     await db.query('ROLLBACK').catch(() => {})
     await db.end()
+    if (prevCache === undefined) delete process.env.CACHE_PROVIDER
+    else process.env.CACHE_PROVIDER = prevCache
   })
 
   it('groups the whole table through data_table_row_groups (exact) and only the caller\'s rows', async () => {

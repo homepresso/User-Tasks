@@ -355,7 +355,17 @@ describe.skipIf(!DB_URL)('home activity stats (local stack)', () => {
     expect(s.tasks!.decisions.total + s.tasks!.decisions.non_decision).toBe(2000)
     expect(s.tasks!.decisions.approval_rate).toBeCloseTo(667 / 1334, 2)
     expect(ms).toBeLessThan(1500)
-    const plan = (await q(`EXPLAIN (FORMAT JSON) SELECT t.id FROM public.tasks t WHERE t.tenant_id = $1 AND t.assignee_id = $2 AND t.status = 'completed' AND t.deleted_at IS NULL AND t.completed_at >= now() - interval '90 days'`, [A, PERF]))
-    expect(JSON.stringify(plan)).not.toMatch(/"Seq Scan"/)
+    // An index must serve the filter. Whether the planner prefers it depends on
+    // the table's statistics (on a small CI database 2,000 of a few thousand
+    // rows can make a sequential scan cheaper: it chose one once), so ask with
+    // sequential scans priced out: a Seq Scan then means no usable index.
+    await q('BEGIN')
+    try {
+      await q('SET LOCAL enable_seqscan = off')
+      const plan = (await q(`EXPLAIN (FORMAT JSON) SELECT t.id FROM public.tasks t WHERE t.tenant_id = $1 AND t.assignee_id = $2 AND t.status = 'completed' AND t.deleted_at IS NULL AND t.completed_at >= now() - interval '90 days'`, [A, PERF]))
+      expect(JSON.stringify(plan)).not.toMatch(/"Seq Scan"/)
+    } finally {
+      await q('ROLLBACK')
+    }
   }, 30_000)
 })

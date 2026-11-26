@@ -13,8 +13,11 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { Client } from 'pg'
+import { dbCapabilities, setRoleSql } from './helpers/db-capabilities'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// service_role without BYPASSRLS (managed PostgreSQL): the app runs it as the schema owner.
+const caps = await dbCapabilities()
 
 const TENANT_A = '0d000000-0000-4000-8000-00000000000a'
 const TENANT_B = '0d000000-0000-4000-8000-00000000000b'
@@ -63,7 +66,7 @@ describe.skipIf(!DB_URL)('enqueue_workflow tenant checks (local DB)', () => {
   async function as(role: 'anon' | 'authenticated' | 'service_role', sql: string, params: unknown[] = []) {
     await db.query('SAVEPOINT caller')
     try {
-      await db.query(`SET LOCAL ROLE ${role}`)
+      await db.query(setRoleSql(role, caps))
       const claims = role === 'authenticated' ? { sub: USER, role } : { role }
       await db.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify(claims)])
       const { rows } = await db.query(sql, params)

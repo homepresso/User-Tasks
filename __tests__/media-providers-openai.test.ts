@@ -118,7 +118,7 @@ describe('openai transcribe', () => {
     const local = providerContext({ provider: 'openai', integrationId: 'i', baseUrl: 'http://169.254.169.254', apiKey: KEY, extra: {} }, { fetchImpl })
     await expect(openaiProvider.transcribe!(AUDIO, {}, local)).rejects.toThrow()
     expect(calls).toHaveLength(2)
-  })
+  }, 30_000) // its dynamic import of lib/media/http takes seconds when the suite runs in parallel
 })
 
 describe('openai images', () => {

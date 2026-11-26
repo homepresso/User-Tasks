@@ -177,7 +177,7 @@ describe('LDAP client', () => {
     const flat = createLdapClient({ settings: { ...OPENLDAP, nested_groups: false }, bindPassword: 'pw', connect: dir.factory })
     await flat.listGroups()
     expect(await flat.listGroupMemberIds('g-all')).toEqual(['u-ada'])
-  })
+  }, 30_000) // each connection checks its host with the egress guard (a real DNS lookup of ldap.example.com): slow on a busy CI runner
 
   it('finds a login entry with an escaped filter, and only a unique one', async () => {
     let entries: LdapEntry[] = [{ dn: 'uid=ada,ou=people,dc=example,dc=com', entryUUID: 'u1', uid: 'ada', mail: 'ada@example.com' }]

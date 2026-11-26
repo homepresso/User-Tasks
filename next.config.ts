@@ -60,6 +60,16 @@ if (process.env.NODE_ENV === "development" && !linkedWatch.__usertasksLinkedWatc
   watchLinkedExtensions(extensionRegistry);
 }
 
+// Build memory (docs/deployment-profiles.md#memory). Turbopack keeps what it
+// emits in memory until the build ends, and server source maps were most of it
+// (2.1 GB of .map files for 0.6 GB of server JavaScript; peak 18.5 GB → 12.5 GB
+// without them, measured on the build-memory branch, f733b1615). Nothing reads
+// them at run time (`next start` / Vercel load them only with
+// NODE_OPTIONS=--enable-source-maps). NEXT_SERVER_SOURCE_MAPS=true brings them
+// back, e.g. to map a production stack trace; `next dev` keeps them. Without
+// this, 0.4.1's build starved GitHub's 16 GB runners ("lost communication").
+const SERVER_SOURCE_MAPS = process.env.NODE_ENV === "development" || process.env.NEXT_SERVER_SOURCE_MAPS === "true";
+
 // The Docker image's server bundle (NEXT_OUTPUT_STANDALONE=true).
 const STANDALONE = process.env.NEXT_OUTPUT_STANDALONE === "true";
 const OPTIONAL_EXTERNALS =[...optionalPackageNames("storage"), ...optionalPackageNames("provider"), ...optionalPackageNames("document")].filter(isInstalled);
@@ -92,6 +102,8 @@ const nextConfig: NextConfig = {
     // Fewer static-generation workers keeps peak memory in bounds: one on
     // Vercel, NEXT_BUILD_CPUS when set (the Docker build sets 2).
     ...(process.env.VERCEL ? { cpus: 1 } : Number(process.env.NEXT_BUILD_CPUS) > 0 ? { cpus: Number(process.env.NEXT_BUILD_CPUS) } : {}),
+    // No server source maps in production builds (see SERVER_SOURCE_MAPS above).
+    ...(SERVER_SOURCE_MAPS ? {} : { serverSourceMaps: false, turbopackInputSourceMaps: false }),
     serverActions: {
       // Was 1gb — a DoS amplifier. Document uploads cap well below this; raise
       // deliberately if a real payload exceeds it.

@@ -24,6 +24,7 @@ import { getDb, ServiceError, type AnySupabaseClient, type ServiceContext } from
 import { dbError } from './_shared'
 import { enrichTrackerTasks, searchTrackerTasks, TRACKER_TASK_SELECT } from './task-tracker'
 import { withUnread } from './task-reads'
+import { TASK_PRIORITIES } from '@/lib/reports/task-summary'
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- tracker rows are the joined task rows */
 
@@ -191,6 +192,9 @@ export async function countFollowedTasks(ctx: ServiceContext, options: { viaRuns
  * last), then most recently followed.
  */
 export async function listFollowedTasks(ctx: ServiceContext, filters: FollowedTaskFilters = {}): Promise<any[]> {
+  // The task_priority enum: another value was a database error (500) on every surface (UI, REST, MCP).
+  const badPriority = filters.priority?.find((p) => !(TASK_PRIORITIES as readonly string[]).includes(p))
+  if (badPriority !== undefined) throw ServiceError.validation(`Unknown priority '${String(badPriority).slice(0, 50)}' (one of ${TASK_PRIORITIES.join(', ')})`)
   const me = actor(ctx)
   const { rows, tenantId } = await visibleFollows(ctx, me)
   const followedAt = new Map(rows.map((row) => [String(row.task_id), row.followed_at]))

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { resetMemoryCacheForTests } from '@/lib/providers/cache/memory'
+import { createMemoryCacheStore, resetMemoryCacheForTests } from '@/lib/providers/cache/memory'
+
+// The in-process store, always: the DB CI jobs configure a database (and
+// CACHE_PROVIDER=postgres / redis), and getCacheStore() would then read the
+// instance settings and share slots with every other test file running at once.
+vi.mock('@/lib/providers/cache', () => ({ getCacheStore: async () => createMemoryCacheStore() }))
 import { cachedTableTotal, forgetTableTotal, GRID_BUSY_MESSAGE, GRID_TIMEOUT_MESSAGE, gridGuardStateForTests, rememberTableTotal, withGridGuard } from '@/lib/services/data-table-guard'
 import { queryFilteredRowsExact } from '@/lib/services/data-table-grouping'
 import { apiError } from '@/lib/api/route'

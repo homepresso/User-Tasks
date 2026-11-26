@@ -195,7 +195,7 @@ describe('/files route module', () => {
     expect(traversal.status).toBe(400)
     delete process.env.STORAGE_PROVIDER
     delete process.env.STORAGE_LOCAL_ROOT
-  })
+  }, 60_000) // a fresh import of the route's module graph (vi.resetModules): seconds on a busy CI runner
 })
 
 describe('/files: SVG and the sandbox CSP (QA 2026-11-24)', () => {

@@ -307,8 +307,12 @@ describe.skipIf(!DB_URL)('report rollups (local DB)', () => {
     for (const w of liveStats.workflows) {
       const m = mine!.workflows.find((x) => x.workflow_id === w.workflow_id)!
       expect([m.started, m.completed, m.failed, m.cancelled, m.running, m.waiting, m.queued]).toEqual([w.started, w.completed, w.failed, w.cancelled, w.running, w.waiting, w.queued])
-      expect(m.avg_ms).toEqual(w.avg_ms === null ? null : Number(w.avg_ms))
-      expect(m.per_day).toEqual(w.per_day.map((d: { avg_ms: unknown }) => ({ ...d, avg_ms: d.avg_ms === null ? null : Number(d.avg_ms) })))
+      // Averages are rounded double-precision sums added in a different order
+      // (per shard): equal to within a millisecond, not always to the digit (260822 vs 260821 on CI).
+      const close = (a: number | null, b: unknown) => (b === null ? a === null : a !== null && Math.abs(a - Number(b)) <= 1)
+      expect(close(m.avg_ms, w.avg_ms), `avg_ms ${m.avg_ms} vs ${w.avg_ms}`).toBe(true)
+      expect(m.per_day.map(({ avg_ms: _a, ...rest }: { avg_ms: number | null }) => rest)).toEqual(w.per_day.map(({ avg_ms: _a, ...rest }: { avg_ms: unknown }) => rest))
+      m.per_day.forEach((d: { avg_ms: number | null }, i: number) => expect(close(d.avg_ms, w.per_day[i].avg_ms), `per_day[${i}].avg_ms`).toBe(true))
       if (w.p95_ms !== null) expect(Math.abs(m.p95_ms! - Number(w.p95_ms)) / Number(w.p95_ms)).toBeLessThanOrEqual(HIST_RELATIVE_ERROR + 0.01)
     }
     expect(mine!.total.started).toEqual(liveStats.total.started)

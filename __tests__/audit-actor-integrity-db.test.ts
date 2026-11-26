@@ -14,8 +14,11 @@
 import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client } from 'pg'
+import { dbCapabilities, setRoleSql } from './helpers/db-capabilities'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// service_role without BYPASSRLS (managed PostgreSQL): the app runs it as the schema owner.
+const caps = await dbCapabilities()
 const uid = (key: string) => {
   const h = createHash('md5').update(`audit-actor-integrity:${key}`).digest('hex')
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`
@@ -98,7 +101,7 @@ describe.skipIf(!DB_URL)('audit trail integrity (local stack)', () => {
 
   it('the service role keeps the actor it is given (workers, on-behalf actions)', async () => {
     await db.query('SAVEPOINT svc')
-    await db.query('SET LOCAL ROLE service_role')
+    await db.query(setRoleSql('service_role', caps))
     const { rows } = await db.query(
       `INSERT INTO public.object_audit_log (tenant_id, actor_id, object_type, object_id, action) VALUES ($1, $2, 'workflow_run', 'r1', 'resume') RETURNING actor_id`, [T, OWNER])
     await db.query('ROLLBACK TO SAVEPOINT svc')

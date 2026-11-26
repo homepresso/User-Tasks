@@ -32,7 +32,7 @@
 # USERTASKS_IMAGE runs another image (e.g. usertasks:local, or your registry's
 # copy); `docker compose build` / `up --build` always builds locally.
 x-app-image: &app-image
-  image: ${USERTASKS_IMAGE:-ghcr.io/homepresso/usertasks:0.4.1}
+  image: ${USERTASKS_IMAGE:-ghcr.io/homepresso/usertasks:0.4.2}
   env_file:
     # USERTASKS_ENV_FILE: another env file (npm run stack uses one per profile).
     - path: ${USERTASKS_ENV_FILE:-.env}

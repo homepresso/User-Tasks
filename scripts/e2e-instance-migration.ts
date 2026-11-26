@@ -284,6 +284,38 @@ async function main() {
   }
   await rlsSnapshot('before', SOURCE_DB)
 
+  // Core builds (the public repository, 0.4.0+) don't include the
+  // Infrastructure add-on that `switch` belongs to. There the gate checks the
+  // core promise instead: switch is refused with the add-on message, and the
+  // install keeps running on its providers (status, doctor, API). The full
+  // migration runs where the add-on is built in (E2E_EXPECT_ADDON=1 makes a
+  // missing add-on a failure there, never a silent skip).
+  const probe = admin(['switch', 'auth', '--to', 'builtin', '--dry-run'], supabaseEnv)
+  if (/Infrastructure add-on, a paid extension that is not in this build/.test(probe.out)) {
+    section('2. Core build: no Infrastructure add-on')
+    if (env.E2E_EXPECT_ADDON === '1') {
+      await check('addon', 'Infrastructure add-on present (E2E_EXPECT_ADDON=1)', async () => { throw new Error('usertasks-admin switch says the add-on is not in this build') })
+      return finish(source)
+    }
+    for (const args of [['switch', 'auth', '--to', 'builtin', '--yes'], ['switch', 'database', '--to', 'postgres', '--target-url', TARGET_DB, '--yes'], ['rollback', 'sw_none', '--yes']]) {
+      await check('addon', `${args.slice(0, 2).join(' ')} is refused with the add-on message`, async () => {
+        const res = admin(args, supabaseEnv)
+        if (res.code === 0) throw new Error(`exit 0: ${res.out.slice(-300)}`)
+        if (!/Infrastructure add-on/.test(res.out)) throw new Error(res.out.slice(-300))
+      })
+    }
+    await check('addon', 'status and doctor work without the add-on', async () => {
+      const status = JSON.parse(admin(['status', '--json'], supabaseEnv).stdout)
+      const report = JSON.parse(admin(['doctor', '--json'], supabaseEnv).stdout)
+      const bad = (report.checks as Array<{ area: string; name: string; status: string; detail: string }>).filter((c) => c.status === 'fail')
+      if (bad.length) throw new Error(bad.map((c) => `${c.area} ${c.name}: ${c.detail}`).join(' | '))
+      return status.areas.map((a: { area: string; provider: string }) => `${a.area}=${a.provider}`).join(' ')
+    })
+    await check('addon', 'app still serves the API', async () => { await api(KEY, 'GET', '/me') })
+    console.log('\n  (The switch and the migrated install are tested in builds that include the Infrastructure add-on.)')
+    return finish(source)
+  }
+
   // 2. Switch every area, in the documented order.
   section('2. usertasks-admin switch, area by area')
   const switches: Array<{ area: string; args: string[] }> = [

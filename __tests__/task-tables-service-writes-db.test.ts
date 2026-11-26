@@ -15,8 +15,11 @@ import { join } from 'node:path'
 import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Client } from 'pg'
+import { dbCapabilities, setRoleSql } from './helpers/db-capabilities'
 
 const DB_URL = process.env.EVENT_STREAM_DB_URL
+// service_role without BYPASSRLS (managed PostgreSQL): the app runs it as the schema owner.
+const caps = await dbCapabilities()
 const MIGRATION = readFileSync(join(process.cwd(), 'supabase/migrations/20270130140000_task_tables_service_writes.sql'), 'utf8')
 
 function uid(key: string): string {
@@ -38,7 +41,7 @@ describe.skipIf(!DB_URL)('task tables: service-role writes only (local DB)', () 
   async function as<T>(who: Who, fn: () => Promise<T>): Promise<T> {
     await db.query('SAVEPOINT as_user')
     try {
-      await db.query(`SET LOCAL ROLE ${who.role}`)
+      await db.query(setRoleSql(who.role, caps))
       await db.query(`SELECT set_config('request.jwt.claims', $1, true), set_config('request.headers', $2, true)`, [
         JSON.stringify({ role: who.role, ...(who.sub ? { sub: who.sub } : {}) }),
         JSON.stringify(who.actorHeader ? { 'x-usertasks-actor': who.actorHeader } : {}),
